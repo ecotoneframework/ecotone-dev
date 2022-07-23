@@ -354,14 +354,14 @@ final class TypeDescriptor implements Type
             return self::createCollection($collectionType->toString());
         } elseif ($type === self::ITERABLE) {
             $type = self::ITERABLE;
-        } elseif (is_callable($variable)) {
-            $type = self::CALLABLE;
         } elseif ($type === self::OBJECT) {
             $type = get_class($variable);
         } elseif ($type === self::STRING) {
             $type = self::STRING;
         } elseif ($type === self::RESOURCE) {
             $type = self::RESOURCE;
+        } elseif (is_callable($variable)) {
+            $type = self::CALLABLE;
         } elseif ($type === self::NULL) {
             $type = self::NULL;
         } else {

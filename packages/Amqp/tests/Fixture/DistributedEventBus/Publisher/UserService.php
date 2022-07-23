@@ -17,7 +17,7 @@ class UserService
     {
         $commandBus->publishEvent(
             self::BILLING_DETAILS_WERE_CHANGED,
-            TicketServiceReceiver::CREATE_TICKET_ENDPOINT
+            "ticket was created"
         );
     }
 }

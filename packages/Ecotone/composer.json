@@ -1,5 +1,5 @@
 {
-  "name": "ecotone/core",
+  "name": "ecotone/ecotone",
   "license": "MIT",
   "homepage": "https://docs.ecotone.tech",
   "type": "library",
@@ -59,8 +59,5 @@
     "allow-plugins": {
       "wikimedia/composer-merge-plugin": true
     }
-  },
-  "conflict": {
-    "ecotone/ecotone": "*"
   }
 }

@@ -51,7 +51,7 @@
       "dev-main": "2.0.0.x-dev"
     },
     "ecotone": {
-      "repository": "core"
+      "repository": "ecotone"
     }
   },
   "config": {

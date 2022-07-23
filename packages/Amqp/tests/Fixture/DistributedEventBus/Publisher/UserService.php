@@ -5,7 +5,6 @@ namespace Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\DistributedBus;
-use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceReceiver;
 
 class UserService
 {
@@ -17,7 +16,7 @@ class UserService
     {
         $commandBus->publishEvent(
             self::BILLING_DETAILS_WERE_CHANGED,
-            TicketServiceReceiver::CREATE_TICKET_ENDPOINT
+            'ticket was created'
         );
     }
 }

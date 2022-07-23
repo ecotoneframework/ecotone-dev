@@ -1,3 +1,6 @@
+# This is Read Only Repository
+To contribute make use of [Ecotone-Dev repository](https://github.com/ecotoneframework/ecotone-dev).
+
 <p align="left"><a href="https://ecotone.tech" target="_blank">
     <img src="https://github.com/ecotoneframework/ecotone-dev/blob/main/ecotone_small.png?raw=true">
 </a></p>
@@ -20,7 +23,7 @@ Read more on the [Blog](https://blog.ecotone.tech).
 
 ## Feature requests and issue reporting
 
-Use [issue tracking system](https://github.com/ecotoneframework/ecotone/issues) for new feature request and bugs. 
+Use [issue tracking system](https://github.com/ecotoneframework/ecotone-dev/issues) for new feature request and bugs. 
 Please verify that it's not already reported by someone else.
 
 ## Contact

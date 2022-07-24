@@ -1,0 +1,32 @@
+version: "3"
+
+services:
+  app:
+    image: simplycodedsoftware/php:8.1
+    volumes:
+      - "$PWD:/data/app"
+    user: 1000:1000
+    container_name: "ecotone-quickstart"
+    working_dir: "/data/app"
+    command: sleep 999999
+    networks:
+      - default
+  database:
+    image: postgres:12.1
+    networks:
+      - default
+    environment:
+      POSTGRES_USER: "ecotone"
+      POSTGRES_PASSWORD: "secret"
+    ports:
+      - "5432:5432"
+  rabbitmq:
+    image: rabbitmq:3.6-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - default

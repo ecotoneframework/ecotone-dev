@@ -14,7 +14,7 @@ use Symplify\MonorepoBuilder\Release\ReleaseWorker\UpdateBranchAliasReleaseWorke
 use Symplify\MonorepoBuilder\Release\ReleaseWorker\UpdateReplaceReleaseWorker;
 
 return static function (MBConfig $containerConfigurator): void {
-    $containerConfigurator->packageDirectories([__DIR__ . '/packages']);
+    $containerConfigurator->packageDirectories([__DIR__ . '/packages', __DIR__ . '/quickstart-examples']);
     $containerConfigurator->dataToAppend([
         ComposerJsonSection::AUTOLOAD_DEV => [
             'psr-4' => [

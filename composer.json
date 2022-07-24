@@ -144,7 +144,8 @@
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit",
-            "@tests:behat"
+            "@tests:behat",
+            "(cd quickstart-examples && composer tests:ci)"
         ]
     },
     "config": {

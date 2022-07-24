@@ -9,7 +9,7 @@ use Ecotone\Lite\EcotoneLiteApplication;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 
-$messagingSystem = EcotoneLiteApplication::boostrap([DbalConnectionFactory::class => getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : new DbalConnectionFactory('pgsql://ecotone:secret@database:5432/ecotone')]);
+$messagingSystem = EcotoneLiteApplication::boostrap([DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@database:5432/ecotone')]);
 $commandBus = $messagingSystem->getCommandBus();
 $queryBus = $messagingSystem->getQueryBus();
 

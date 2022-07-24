@@ -12,7 +12,7 @@ use Enqueue\Dbal\DbalConnectionFactory;
 
 require __DIR__ . "/vendor/autoload.php";
 $messagingSystem = EcotoneLiteApplication::boostrap([
-    DbalConnectionFactory::class => new DbalConnectionFactory('pgsql://ecotone:secret@database:5432/ecotone')
+    DbalConnectionFactory::class => getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : new DbalConnectionFactory('pgsql://ecotone:secret@database:5432/ecotone')
 ]);
 
 echo "Generating invoices using Scheduled Job. Waiting for cron execution...\n";

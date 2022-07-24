@@ -13,7 +13,7 @@ require __DIR__ . "/vendor/autoload.php";
 
 // Receiver
 $receiver = EcotoneLiteApplication::boostrap(
-    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory("amqp://guest:guest@rabbitmq:5672/%2f")],
+    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(\getenv('RABBIT_HOST')  ? \getenv('RABBIT_HOST') : "amqp://guest:guest@rabbitmq:5672/%2f")],
     configuration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(MessagingConfiguration::SERVICE_NAME)
         ->withNamespaces(["App\Microservices\Receiver"])

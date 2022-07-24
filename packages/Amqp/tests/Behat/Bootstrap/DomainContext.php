@@ -98,7 +98,7 @@ class DomainContext extends TestCase implements Context
                 }
         }
 
-        $amqpConnectionFactory = new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]);
+        $amqpConnectionFactory = new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f']);
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withNamespaces([$namespace])
             ->withCacheDirectoryPath(sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString())
@@ -182,7 +182,7 @@ class DomainContext extends TestCase implements Context
                     }
             }
 
-            $amqpConnectionFactory         = new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]);
+            $amqpConnectionFactory         = new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f']);
             self::$messagingSystems[$serviceName] = EcotoneLiteConfiguration::createWithConfiguration(
                 __DIR__ . '/../../../',
                 InMemoryPSRContainer::createFromObjects(array_merge($objects, [$amqpConnectionFactory])),

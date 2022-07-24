@@ -36,7 +36,8 @@
             "Ecotone\\Messaging\\": "packages/Ecotone/src/Messaging/",
             "Ecotone\\Modelling\\": "packages/Ecotone/src/Modelling/",
             "Ecotone\\SymfonyBundle\\": "packages/Symfony/SymfonyBundle",
-            "Ecotone\\SymfonyBundle\\DepedencyInjection\\": "packages/Symfony/DepedencyInjection"
+            "Ecotone\\SymfonyBundle\\DepedencyInjection\\": "packages/Symfony/DepedencyInjection",
+            "Monorepo\\": "Monorepo"
         }
     },
     "autoload-dev": {

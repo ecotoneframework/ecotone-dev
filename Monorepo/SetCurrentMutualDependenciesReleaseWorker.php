@@ -1,0 +1,55 @@
+<?php
+
+namespace Monorepo;
+
+use PharIo\Version\Version;
+use Symplify\MonorepoBuilder\DependencyUpdater;
+use Symplify\MonorepoBuilder\FileSystem\ComposerJsonProvider;
+use Symplify\MonorepoBuilder\Package\PackageNamesProvider;
+use Symplify\MonorepoBuilder\Release\Contract\ReleaseWorker\ReleaseWorkerInterface;
+use Symplify\MonorepoBuilder\Utils\VersionUtils;
+
+final class SetCurrentMutualDependenciesReleaseWorker  implements ReleaseWorkerInterface
+{
+    /**
+     * @var \Symplify\MonorepoBuilder\Utils\VersionUtils
+     */
+    private $versionUtils;
+    /**
+     * @var \Symplify\MonorepoBuilder\DependencyUpdater
+     */
+    private $dependencyUpdater;
+    /**
+     * @var \Symplify\MonorepoBuilder\FileSystem\ComposerJsonProvider
+     */
+    private $composerJsonProvider;
+    /**
+     * @var \Symplify\MonorepoBuilder\Package\PackageNamesProvider
+     */
+    private $packageNamesProvider;
+
+    public function __construct(VersionUtils $versionUtils, DependencyUpdater $dependencyUpdater, ComposerJsonProvider $composerJsonProvider, PackageNamesProvider $packageNamesProvider)
+    {
+        $this->versionUtils = $versionUtils;
+        $this->dependencyUpdater = $dependencyUpdater;
+        $this->composerJsonProvider = $composerJsonProvider;
+        $this->packageNamesProvider = $packageNamesProvider;
+    }
+    public function work(Version $version) : void
+    {
+        $versionInString = $this->getRequiredFormat($version);
+        $this->dependencyUpdater->updateFileInfosWithPackagesAndVersion($this->composerJsonProvider->getPackagesComposerFileInfos(), $this->packageNamesProvider->provide(), $versionInString);
+        // give time to propagate values before commit
+        \sleep(1);
+    }
+    public function getDescription(Version $version) : string
+    {
+        $versionInString = $this->getRequiredFormat($version);
+        return \sprintf('Set packages mutual dependencies to "%s" version', $versionInString);
+    }
+
+    private function getRequiredFormat(Version $version): string
+    {
+        return str_replace("^", "", $this->versionUtils->getRequiredFormat($version));
+    }
+}

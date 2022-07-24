@@ -1,77 +1,71 @@
 {
-  "name": "ecotone/laravel",
-  "minimum-stability": "dev",
-  "homepage": "https://docs.ecotone.tech/",
-  "prefer-stable": true,
-  "license": "MIT",
-  "type": "library",
-  "authors": [
-    {
-      "name": "Dariusz Gafka",
-      "email": "dgafka.mail@gmail.com"
-    }
-  ],
-  "keywords": [
-    "ddd",
-    "cqrs",
-    "messaging",
-    "eip",
-    "distributed architecture",
-    "ecotone",
-    "ddd and cqrs on top of eip"
-  ],
-  "description": "Laravel integration for Ecotone",
-  "autoload": {
-    "psr-4": {
-      "Ecotone\\Laravel\\": "src"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Test\\Ecotone\\Laravel\\": "tests"
-    }
-  },
-  "require": {
-    "ecotone/ecotone": "2.0.0.x-dev",
-    "laravel/framework": "^9.0"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "^9.5",
-    "behat/behat": "^3.10",
-    "guzzlehttp/psr7": "^2.0",
-    "phpstan/phpstan": "^1.8",
-    "orchestra/testbench": "^7.6",
-    "wikimedia/composer-merge-plugin": "^2.0"
-  },
-  "extra": {
-    "laravel": {
-      "providers": [
-        "Ecotone\\Laravel\\EcotoneProvider"
-      ]
+    "name": "ecotone/laravel",
+    "minimum-stability": "dev",
+    "homepage": "https://docs.ecotone.tech/",
+    "prefer-stable": true,
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "dgafka.mail@gmail.com"
+        }
+    ],
+    "keywords": ["ddd", "cqrs", "messaging", "eip", "distributed architecture", "ecotone", "ddd and cqrs on top of eip"],
+    "description": "Laravel integration for Ecotone",
+    "autoload": {
+        "psr-4": {
+            "Ecotone\\Laravel\\": "src"
+        }
     },
-    "branch-alias": {
-      "dev-main": "2.0.0.x-dev"
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\Ecotone\\Laravel\\": "tests"
+        }
     },
-    "ecotone": {
-      "repository": "laravel"
+    "require": {
+        "ecotone/ecotone": "^1.34",
+        "laravel/framework": "^9.0"
     },
-    "merge-plugin": {
-      "include": [
-        "../config.json"
-      ]
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "behat/behat": "^3.10",
+        "guzzlehttp/psr7": "^2.0",
+        "phpstan/phpstan": "^1.8",
+        "orchestra/testbench": "^7.6",
+        "wikimedia/composer-merge-plugin": "^2.0"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Ecotone\\Laravel\\EcotoneProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "2.0.0.x-dev"
+        },
+        "ecotone": {
+            "repository": "laravel"
+        },
+        "merge-plugin": {
+            "include": [
+                "../config.json"
+            ]
+        }
+    },
+    "scripts": {
+        "tests:phpstan": "vendor/bin/phpstan",
+        "tests:phpunit": [
+            "vendor/bin/phpunit"
+        ],
+        "tests:ci": [
+            "@tests:phpstan",
+            "@tests:phpunit"
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "wikimedia/composer-merge-plugin": true
+        }
     }
-  },
-  "scripts": {
-    "tests:phpstan": "vendor/bin/phpstan",
-    "tests:phpunit": ["vendor/bin/phpunit"],
-    "tests:ci": [
-      "@tests:phpstan",
-      "@tests:phpunit"
-    ]
-  },
-  "config": {
-    "allow-plugins": {
-      "wikimedia/composer-merge-plugin": true
-    }
-  }
 }

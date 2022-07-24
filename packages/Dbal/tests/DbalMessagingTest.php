@@ -20,10 +20,8 @@ abstract class DbalMessagingTest extends TestCase
     public function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
         if (! $this->dbalConnectionFactory) {
-            $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : null;
-            if (! $dsn) {
-                throw new InvalidArgumentException('Missing env `DATABASE_DSN` pointing to test database');
-            }
+            $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
+
             $dbalConnectionFactory = new DbalConnectionFactory($dsn);
             $this->dbalConnectionFactory = $isRegistry
                 ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)

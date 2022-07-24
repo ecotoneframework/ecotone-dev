@@ -17,7 +17,8 @@
         "ecotone/amqp": "^1.34"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.0.0"
+        "phpunit/phpunit": "^9.0.0",
+        "wikimedia/composer-merge-plugin": "^2.0"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

@@ -4,5 +4,5 @@ namespace App\Schedule\Messaging\PeriodSchedules;
 
 class InvoiceWasGenerated
 {
-    public function __construct(public readonly string $personId) {}
+    public function __construct(public string $personId) {}
 }

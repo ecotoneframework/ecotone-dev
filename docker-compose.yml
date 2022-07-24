@@ -16,7 +16,7 @@ services:
       COMPOSER_HOME: /data/app
       COMPOSE_HTTP_TIMEOUT: 9999
       COMPOSER_ROOT_VERSION: 'dev-main'
-      RABBIT_HOST: "rabbitmq"
+      RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
   database:
     image: postgres:12.1

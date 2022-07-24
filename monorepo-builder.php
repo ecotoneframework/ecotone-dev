@@ -35,6 +35,7 @@ return static function (MBConfig $containerConfigurator): void {
             "symplify/monorepo-builder" => "^11.0"
         ],
     ]);
+    $containerConfigurator->defaultBranch('main');
 
     $services = $containerConfigurator->services();
     # release workers - in order to execute

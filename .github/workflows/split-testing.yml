@@ -99,3 +99,5 @@ jobs:
       - name: Run tests
         run: composer tests:ci
         working-directory: ${{ matrix.package.directory }}
+        env:
+          COMPOSER_ROOT_VERSION: 'dev-main'

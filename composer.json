@@ -144,8 +144,7 @@
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit",
-            "@tests:behat",
-            "(cd quickstart-examples && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f composer tests:ci)"
+            "@tests:behat"
         ]
     },
     "config": {

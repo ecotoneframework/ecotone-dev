@@ -651,7 +651,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundAmqpGateway = $inboundAmqpAdapter
             ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
 
-        sleep(1);
+        usleep(1000);
         $inboundAmqpGateway->run();
 
         $this->assertNull($this->receiveOnce($inboundAmqpAdapter, $inboundQueueChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was did no expire');

@@ -7,7 +7,6 @@ use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 abstract class DbalMessagingTest extends TestCase

@@ -13,7 +13,7 @@ require __DIR__ . "/vendor/autoload.php";
 
 // Receiver
 $receiver = EcotoneLiteApplication::boostrap(
-    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(\getenv('RABBIT_HOST')  ? \getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f")],
+    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
     configuration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(MessagingConfiguration::SERVICE_NAME)
         ->withNamespaces(["App\Microservices\Receiver"])
@@ -24,7 +24,7 @@ $queryBus = $receiver->getQueryBus();
 
 // Publisher
 $publisher = EcotoneLiteApplication::boostrap(
-    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'localhost')],
+    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
     configuration: ServiceConfiguration::createWithDefaults()
             ->withServiceName(\App\Microservices\Publisher\MessagingConfiguration::SERVICE_NAME)
             ->withNamespaces(["App\Microservices\Publisher"])

@@ -132,26 +132,24 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
         $this->assertNotNull($receivedMessage, 'Not received message');
     }
 
-    /**
-     * @TODO
-     */
-//    public function test_delaying_the_message()
-//    {
-//        $messageChannel = DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
-//            ->withReceiveTimeout(1)
-//            ->build(InMemoryReferenceSearchService::createWith([
-//                DbalConnectionFactory::class => $this->getConnectionFactory(true),
-//            ]));
-//        $messageChannel->send(
-//            MessageBuilder::withPayload('some')
-//                ->setHeader(MessageHeaders::DELIVERY_DELAY, 1000)
-//                ->build()
-//        );
-//
-//        $this->assertNull($messageChannel->receive());
-//
-//        sleep(1);
-//
-//        $this->assertNotNull($messageChannel->receive());
-//    }
+    public function test_delaying_the_message()
+    {
+        $messageChannel = DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
+            ->withReceiveTimeout(1)
+            ->build(InMemoryReferenceSearchService::createWith([
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ]));
+
+        $messageChannel->send(
+            MessageBuilder::withPayload('some')
+                ->setHeader(MessageHeaders::DELIVERY_DELAY, 1000)
+                ->build()
+        );
+
+        $this->assertNull($messageChannel->receive());
+
+        usleep(1500000);
+
+        $this->assertNotNull($messageChannel->receive());
+    }
 }

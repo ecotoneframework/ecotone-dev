@@ -26,7 +26,7 @@
         }
     },
     "require": {
-        "ecotone/dbal": "^1.34",
+        "ecotone/dbal": "^1.35",
         "prooph/pdo-event-store": "^1.14.2"
     },
     "require-dev": {
@@ -57,7 +57,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "2.0.0.x-dev"
+            "dev-main": "1.35-dev"
         },
         "ecotone": {
             "repository": "pdo-event-sourcing"

@@ -2,8 +2,10 @@ name: 'Ecotone Framework'
 
 on:
   push:
-    tags-ignore:
+    branches:
       - '**'
+    tags-ignore:
+      - '*.*'
 
 jobs:
   get_packages:

@@ -278,9 +278,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             ->build($channelResolver, $referenceSearchService, $pollingMetadata);
         $inboundAmqpGateway->run();
 
-        $message = $inboundRequestChannel->receive();
-
-        return $message;
+        return $inboundRequestChannel->receive();
     }
 
     /**
@@ -627,10 +625,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $this->assertNull($this->receiveOnce($inboundAmqpAdapter, $inboundQueueChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was not acked correctly');
     }
 
-    /**
-     * @todo
-     */
-    public function TODO_test_sending_with_time_to_live()
+    public function test_sending_with_time_to_live()
     {
         $queueName = Uuid::uuid4()->toString();
         $amqpQueues = [AmqpQueue::createWith($queueName)->withExclusivity()];
@@ -691,7 +686,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpExchanges = [];
         $amqpBindings = [];
         $requestChannelName = 'requestChannel';
-        $inboundRequestChannel = DirectChannel::create();
+        $inboundRequestChannel = QueueChannel::create();
         $amqpConnectionReferenceName = 'connection';
         $messageToSend = MessageBuilder::withPayload('some')->build();
         $converters = [];
@@ -699,24 +694,24 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
-            ->withDefaultTimeToLive(1)
             ->withDefaultRoutingKey($queueName);
         $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
 
         $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName);
-        $inboundQueueChannel = QueueChannel::create();
-        $inboundRequestChannel->subscribe(ForwardMessageHandler::create($inboundQueueChannel));
+        $inboundQueueChannel = DirectChannel::create();
+        $inboundQueueChannel->subscribe(ExceptionalMessageHandler::create());
 
         $normalQueueChannelAdapter = $inboundAmqpAdapter
             ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
+
         $normalQueueChannelAdapter->run();
-        $this->assertNull($this->receiveOnce($inboundAmqpAdapter, $inboundQueueChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was not dead letter queued');
 
         $inboundAmqpAdapter = $this->createAmqpInboundAdapter($deadLetterQueue->getQueueName(), $requestChannelName, $amqpConnectionReferenceName);
         $deadLetterQueueChannelAdapter = $inboundAmqpAdapter
             ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
+
         $deadLetterQueueChannelAdapter->run();
-        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapter, $inboundQueueChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was not dead letter queued');
+        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapter, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was not dead letter queued');
     }
 
     /**

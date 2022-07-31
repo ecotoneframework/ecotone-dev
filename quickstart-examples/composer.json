@@ -1,41 +1,37 @@
 {
-  "name": "ecotone/quickstart-examples",
-  "type": "application",
-  "homepage": "https://docs.ecotone.tech/",
-  "minimum-stability": "dev",
-  "prefer-stable": true,
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Dariusz Gafka",
-      "email": "dgafka.mail@gmail.com"
-    }
-  ],
-  "keywords": ["symfony", "ecotone", "ddd", "messaging", "message", "enterprise integration patterns", "eip", "distributed architecture"],
-  "description": "Extends Ecotone with Symfony integration",
-  "require": {},
-  "require-dev": {},
-  "autoload": {},
-  "autoload-dev": {},
-  "scripts": {
-    "tests:ci": [
-      "(cd Asynchronous && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-      "(cd Conversion && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-      "(cd CQRS && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-      "(cd EmittingEventsFromProjection && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-      "(cd EventHandling && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-      "(cd EventSourcing && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-      "(cd Microservices && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-      "(cd Schedule && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-      "(cd StatefulProjection && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)"
-    ]
-  },
-  "extra": {
-    "branch-alias": {
-      "dev-main": "1.35-dev"
+    "name": "ecotone/quickstart-examples",
+    "type": "application",
+    "homepage": "https://docs.ecotone.tech/",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "dgafka.mail@gmail.com"
+        }
+    ],
+    "keywords": ["symfony", "ecotone", "ddd", "messaging", "message", "enterprise integration patterns", "eip", "distributed architecture"],
+    "description": "Extends Ecotone with Symfony integration",
+    "scripts": {
+        "tests:ci": [
+            "(cd Asynchronous && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
+            "(cd Conversion && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
+            "(cd CQRS && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
+            "(cd EmittingEventsFromProjection && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
+            "(cd EventHandling && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
+            "(cd EventSourcing && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
+            "(cd Microservices && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
+            "(cd Schedule && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
+            "(cd StatefulProjection && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)"
+        ]
     },
-    "ecotone": {
-      "repository": "quickstart-examples"
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.35-dev"
+        },
+        "ecotone": {
+            "repository": "quickstart-examples"
+        }
     }
-  }
 }

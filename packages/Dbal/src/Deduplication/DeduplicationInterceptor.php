@@ -22,6 +22,7 @@ use Interop\Queue\Exception\Exception;
  */
 class DeduplicationInterceptor
 {
+    public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
     private bool $isInitialized = false;
     private Clock $clock;
     private int $minimumTimeToRemoveMessageInMilliseconds;
@@ -51,8 +52,10 @@ class DeduplicationInterceptor
             ->from($this->getTableName())
             ->andWhere('message_id = :messageId')
             ->andWhere('consumer_endpoint_id = :consumerEndpointId')
+            ->andWhere('routing_slip = :routingSlip')
             ->setParameter('messageId', $messageId, Types::TEXT)
             ->setParameter('consumerEndpointId', $consumerEndpointId, Types::TEXT)
+            ->setParameter('routingSlip', $headers[MessageHeaders::ROUTING_SLIP] ?? '', Types::TEXT)
             ->setMaxResults(1)
             ->execute()
             ->fetch();
@@ -85,6 +88,7 @@ class DeduplicationInterceptor
                 'message_id' => $headers[MessageHeaders::MESSAGE_ID],
                 'handled_at' => $this->clock->unixTimeInMilliseconds(),
                 'consumer_endpoint_id' => $headers[MessageHeaders::CONSUMER_ENDPOINT_ID],
+                'routing_slip' => $headers[MessageHeaders::ROUTING_SLIP] ?? '',
             ],
             [
                 'id' => Types::TEXT,
@@ -100,7 +104,7 @@ class DeduplicationInterceptor
 
     private function getTableName(): string
     {
-        return 'ecotone_outbox';
+        return self::DEFAULT_DEDUPLICATION_TABLE;
     }
 
     private function createDataBaseTable(ConnectionFactory $connectionFactory): void
@@ -114,10 +118,11 @@ class DeduplicationInterceptor
         $table = new Table($this->getTableName());
 
         $table->addColumn('message_id', Types::STRING);
-        $table->addColumn('handled_at', Types::BIGINT);
         $table->addColumn('consumer_endpoint_id', Types::STRING);
+        $table->addColumn('routing_slip', Types::STRING);
+        $table->addColumn('handled_at', Types::BIGINT);
 
-        $table->setPrimaryKey(['message_id', 'consumer_endpoint_id']);
+        $table->setPrimaryKey(['message_id', 'consumer_endpoint_id', 'routing_slip']);
         $table->addIndex(['handled_at']);
 
         $sm->createTable($table);

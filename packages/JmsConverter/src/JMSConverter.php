@@ -62,7 +62,7 @@ class JMSConverter implements Converter
                     throw new InvalidArgumentException("Can't conversion from {$sourceMediaType->toString()}:{$sourceType->toString()} to {$targetMediaType->toString()}:{$targetMediaType->toString()}");
                 }
             }
-        } catch (RuntimeException $exception) {
+        } catch (RuntimeException|\InvalidArgumentException $exception) {
             throw ConversionException::createFromPreviousException("Can't convert from {$sourceMediaType}:{$sourceType} to {$targetMediaType}:{$targetType} " . $exception->getMessage(), $exception);
         }
     }

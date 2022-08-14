@@ -1,10 +1,11 @@
 <?php
 
-namespace Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction;
+namespace Test\Ecotone\Dbal\Fixture\Deduplication;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\EventBus;
 
 class OrderService
 {
@@ -12,12 +13,14 @@ class OrderService
     /** @var string[] */
     private array $orders = [];
 
-    #[Asynchronous('processOrders')]
+    #[Asynchronous(ChannelConfiguration::CHANNEL_NAME)]
     #[CommandHandler('placeOrder', 'placeOrderEndpoint')]
-    public function placeOrder(string $order): void
+    public function placeOrder(string $order, EventBus $eventBus): void
     {
         $this->callCounter++;
         $this->orders[] = $order;
+
+        $eventBus->publish(new OrderPlaced($order));
     }
 
     #[QueryHandler('order.getRegistered')]

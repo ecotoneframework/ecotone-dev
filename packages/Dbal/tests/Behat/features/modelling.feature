@@ -104,3 +104,22 @@ Feature: activating as aggregate order entity
     Given I active messaging for namespace "Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate"
     When I register person with id 100 and name "Johny" for document aggregate
     Then there person with id 100 should be named "Johny"  for document aggregate
+
+  Scenario: Sending same command will deduplicate message
+    Given I active messaging for namespace "Test\Ecotone\Dbal\Fixture\Deduplication"
+    When I send order "milk" with message id '3e84ff08-b755-4e16-b50d-94818bf9de99'
+    And I send order "milk" with message id '3e84ff08-b755-4e16-b50d-94818bf9de99'
+    Then there should be 1 order '["milk"]'
+
+  Scenario: Sending same  will deduplicate message
+    Given I active messaging for namespace "Test\Ecotone\Dbal\Fixture\Deduplication"
+    When I publish order was placed with "milk" and message id '3e84ff08-b755-4e16-b50d-94818bf9de99'
+    When I publish order was placed with "milk" and message id '3e84ff08-b755-4e16-b50d-94818bf9de99'
+    Then there subscriber should be called 2 times
+
+  Scenario: Sending different commands will not deduplicate messages
+    Given I active messaging for namespace "Test\Ecotone\Dbal\Fixture\Deduplication"
+    When I send order "milk" with message id '3e84ff08-b755-4e16-b50d-94818bf9de99'
+    And I send order "cheese" with message id '3e84ff08-b755-4e16-b50d-94818bf9de98'
+    Then there should be 2 order '["milk","cheese"]'
+    And there subscriber should be called 4 times

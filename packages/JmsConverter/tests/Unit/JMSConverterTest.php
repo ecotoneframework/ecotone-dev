@@ -6,6 +6,7 @@ use Ecotone\JMSConverter\JMSConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\JMSConverter\JMSHandlerAdapter;
+use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
@@ -138,7 +139,7 @@ class JMSConverterTest extends TestCase
         $toSerialize = new PropertyWithUnionType([]);
         $expectedSerializationString = '{"data":[]}';
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConversionException::class);
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString);
     }

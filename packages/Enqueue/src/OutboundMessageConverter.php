@@ -83,6 +83,10 @@ class OutboundMessageConverter
                     $targetType,
                     $mediaType
                 );
+            } elseif ($sourceType->isString()) {
+                if (is_null($mediaType)) {
+                    $mediaType = MediaType::createTextPlain();
+                }
             } else {
                 throw new InvalidArgumentException(
                     "Can't send message to external channel. Payload has incorrect non-convertable type or converter is missing for:

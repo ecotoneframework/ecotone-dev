@@ -6,6 +6,7 @@ use Behat\Behat\Context\Context;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Tools\Setup;
 use Ecotone\Dbal\DbalConnection;
+use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\Recoverability\DbalDeadLetter;
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
@@ -14,8 +15,10 @@ use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 use InvalidArgumentException;
@@ -27,6 +30,11 @@ use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\OrderGateway;
+
+use Test\Ecotone\Dbal\Fixture\Deduplication\ChannelConfiguration;
+use Test\Ecotone\Dbal\Fixture\Deduplication\Converter;
+use Test\Ecotone\Dbal\Fixture\Deduplication\OrderPlaced;
+use Test\Ecotone\Dbal\Fixture\Deduplication\OrderSubscriber;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
 use Test\Ecotone\Dbal\Fixture\ORM\RegisterPerson;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
@@ -83,6 +91,10 @@ class DomainContext extends TestCase implements Context
                 $objects = [new PersonJsonConverter()];
                 break;
             }
+            case "Test\Ecotone\Dbal\Fixture\Deduplication": {
+                $objects = [new \Test\Ecotone\Dbal\Fixture\Deduplication\OrderService(), new OrderSubscriber(), new Converter()];
+                break;
+            }
             default: {
                 throw new InvalidArgumentException("Namespace {$namespace} not yet implemented");
             }
@@ -97,6 +109,7 @@ class DomainContext extends TestCase implements Context
             $this->deleteFromTableExists(OrderService::ORDER_TABLE, $connection);
             $this->deleteFromTableExists(DbalDeadLetter::DEFAULT_DEAD_LETTER_TABLE, $connection);
             $this->deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
+            $this->deleteFromTableExists(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
         }
 
         $rootProjectDirectoryPath = __DIR__ . '/../../../';
@@ -176,6 +189,11 @@ class DomainContext extends TestCase implements Context
     private function getQueryBus(): QueryBus
     {
         return self::$messagingSystem->getGatewayByName(QueryBus::class);
+    }
+
+    private function getEventBus(): EventBus
+    {
+        return self::$messagingSystem->getGatewayByName(EventBus::class);
     }
 
     private function getDocumentStore(): DocumentStore
@@ -419,5 +437,54 @@ class DomainContext extends TestCase implements Context
             $commandBus->sendWithRouting('order.prepareWithFailure');
         } catch (\Exception) {
         }
+    }
+
+    /**
+     * @When I send order :order with message id :messageId
+     */
+    public function iSendOrderWithMessageIdX(string $order, string $messageId)
+    {
+        $this->getCommandBus()->sendWithRouting(
+            'placeOrder',
+            $order,
+            metadata: [
+                MessageHeaders::MESSAGE_ID => $messageId,
+            ]
+        );
+
+        self::$messagingSystem->run(ChannelConfiguration::CHANNEL_NAME);
+    }
+
+    /**
+     * @Then there should be :count order :payload
+     */
+    public function thereShouldBeOrder(int $count, string $payload)
+    {
+        $result = $this->getQueryBus()->sendWithRouting('order.getRegistered');
+
+        $data = json_decode($payload, true);
+
+        $this->assertEquals($data, $result);
+        $this->assertCount($count, $data);
+    }
+
+    /**
+     * @When I publish order was placed with :order and message id :messageId
+     */
+    public function iPublishOrderWasPlacedWithAndMessageId(string $order, string $messageId)
+    {
+        $this->getEventBus()->publish(new OrderPlaced($order), [
+            MessageHeaders::MESSAGE_ID => $messageId,
+        ]);
+
+        self::$messagingSystem->run(ChannelConfiguration::CHANNEL_NAME);
+    }
+
+    /**
+     * @Then there subscriber should be called :count times
+     */
+    public function thereSubscriberShouldBeCalledTimes(int $count)
+    {
+        $this->assertEquals($count, $this->getQueryBus()->sendWithRouting('order.getCalled'));
     }
 }

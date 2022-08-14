@@ -317,14 +317,14 @@ class MessageHeaders
      */
     private static function createMessageHeadersWith(array $headers): MessageHeaders
     {
-        /** @phpstan-ignore-next-line */
-        return new static(array_merge(
-            [
-                self::MESSAGE_ID => Uuid::uuid4()->toString(),
-                self::TIMESTAMP => (int)round(microtime(true)),
-            ],
-            $headers
-        ));
+        if (!array_key_exists(self::MESSAGE_ID, $headers)) {
+            $headers[self::MESSAGE_ID] = Uuid::uuid4()->toString();
+        }
+        if (!array_key_exists(self::TIMESTAMP, $headers)) {
+            $headers[self::TIMESTAMP] = (int)round(microtime(true));
+        }
+
+        return new static($headers);
     }
 
     /**

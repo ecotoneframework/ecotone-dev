@@ -122,7 +122,7 @@ class DbalDeadLetter
             $messagingException = $message->getPayload();
             $cause = $messagingException->getCause() ? $messagingException->getCause() : $messagingException;
 
-            $messageBuilder     = MessageBuilder::fromMessageWithPreservedMessageId($messagingException->getFailedMessage());
+            $messageBuilder     = MessageBuilder::fromMessage($messagingException->getFailedMessage());
             if ($messageBuilder->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
                 $messageBuilder->removeHeader($messageBuilder->getHeaderWithName(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION));
             }
@@ -218,7 +218,7 @@ class DbalDeadLetter
     private function replyWithoutInitialization(string $messageId, MessagingEntrypoint $messagingEntrypoint): void
     {
         $message = $this->show($messageId);
-        $message = MessageBuilder::fromMessageWithPreservedMessageId($message)
+        $message = MessageBuilder::fromMessage($message)
             ->removeHeaders(
                 [
                     ErrorContext::EXCEPTION_STACKTRACE,

@@ -3,7 +3,7 @@ name: 'Ecotone Framework'
 on:
   push:
     branches:
-      - '**'
+      - 'main'
     tags-ignore:
       - '*.*'
 

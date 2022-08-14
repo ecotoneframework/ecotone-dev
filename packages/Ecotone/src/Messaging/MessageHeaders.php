@@ -14,7 +14,7 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class MessageHeaders
+final class MessageHeaders
 {
     /**
      * An identifier for this message instance. Changes each time a message is mutated.

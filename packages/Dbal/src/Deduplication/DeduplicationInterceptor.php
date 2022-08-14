@@ -22,7 +22,7 @@ use Interop\Queue\Exception\Exception;
  */
 class DeduplicationInterceptor
 {
-    const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
+    public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
     private bool $isInitialized = false;
     private Clock $clock;
     private int $minimumTimeToRemoveMessageInMilliseconds;
@@ -88,7 +88,7 @@ class DeduplicationInterceptor
                 'message_id' => $headers[MessageHeaders::MESSAGE_ID],
                 'handled_at' => $this->clock->unixTimeInMilliseconds(),
                 'consumer_endpoint_id' => $headers[MessageHeaders::CONSUMER_ENDPOINT_ID],
-                'routing_slip' => $headers[MessageHeaders::ROUTING_SLIP] ?? ''
+                'routing_slip' => $headers[MessageHeaders::ROUTING_SLIP] ?? '',
             ],
             [
                 'id' => Types::TEXT,

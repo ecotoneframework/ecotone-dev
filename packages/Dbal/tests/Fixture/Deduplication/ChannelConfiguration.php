@@ -9,7 +9,7 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 
 class ChannelConfiguration
 {
-    const CHANNEL_NAME = 'processOrders';
+    public const CHANNEL_NAME = 'processOrders';
 
     #[ServiceContext]
     public function registerCommandChannel(): array

@@ -83,7 +83,7 @@ class OutboundMessageConverter
                     $targetType,
                     $mediaType
                 );
-            }elseif ($sourceType->isString()) {
+            } elseif ($sourceType->isString()) {
                 if (is_null($mediaType)) {
                     $mediaType = MediaType::createTextPlain();
                 }

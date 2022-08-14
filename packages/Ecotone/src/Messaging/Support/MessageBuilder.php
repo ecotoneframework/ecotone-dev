@@ -206,7 +206,7 @@ final class MessageBuilder
      */
     public function getHeaderWithName(string $name)
     {
-        if (!array_key_exists($name, $this->getCurrentHeaders())) {
+        if (! array_key_exists($name, $this->getCurrentHeaders())) {
             throw MessageHeaderDoesNotExistsException::create("Tries to retrieve not existing header with name {$name}");
         }
 

@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\Dbal\Behat\Bootstrap;
 
-use Behat\Behat\Tester\Exception\PendingException;
 use Behat\Behat\Context\Context;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Tools\Setup;
@@ -18,18 +17,12 @@ use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 use InvalidArgumentException;
 
-use Test\Ecotone\Dbal\Fixture\Deduplication\ChannelConfiguration;
-use Test\Ecotone\Dbal\Fixture\Deduplication\Converter;
-use Test\Ecotone\Dbal\Fixture\Deduplication\OrderPlaced;
-use Test\Ecotone\Dbal\Fixture\Deduplication\OrderSubscriber;
-use Test\Ecotone\Dbal\Fixture\Deduplication\PlaceOrder;
 use function json_decode;
 use function json_encode;
 
@@ -37,6 +30,11 @@ use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\OrderGateway;
+
+use Test\Ecotone\Dbal\Fixture\Deduplication\ChannelConfiguration;
+use Test\Ecotone\Dbal\Fixture\Deduplication\Converter;
+use Test\Ecotone\Dbal\Fixture\Deduplication\OrderPlaced;
+use Test\Ecotone\Dbal\Fixture\Deduplication\OrderSubscriber;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
 use Test\Ecotone\Dbal\Fixture\ORM\RegisterPerson;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
@@ -447,10 +445,10 @@ class DomainContext extends TestCase implements Context
     public function iSendOrderWithMessageIdX(string $order, string $messageId)
     {
         $this->getCommandBus()->sendWithRouting(
-            "placeOrder",
+            'placeOrder',
             $order,
             metadata: [
-                MessageHeaders::MESSAGE_ID => $messageId
+                MessageHeaders::MESSAGE_ID => $messageId,
             ]
         );
 
@@ -464,7 +462,7 @@ class DomainContext extends TestCase implements Context
     {
         $result = $this->getQueryBus()->sendWithRouting('order.getRegistered');
 
-        $data = \json_decode($payload, true);
+        $data = json_decode($payload, true);
 
         $this->assertEquals($data, $result);
         $this->assertCount($count, $data);
@@ -476,7 +474,7 @@ class DomainContext extends TestCase implements Context
     public function iPublishOrderWasPlacedWithAndMessageId(string $order, string $messageId)
     {
         $this->getEventBus()->publish(new OrderPlaced($order), [
-            MessageHeaders::MESSAGE_ID => $messageId
+            MessageHeaders::MESSAGE_ID => $messageId,
         ]);
 
         self::$messagingSystem->run(ChannelConfiguration::CHANNEL_NAME);

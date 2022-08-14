@@ -317,10 +317,10 @@ final class MessageHeaders
      */
     private static function createMessageHeadersWith(array $headers): MessageHeaders
     {
-        if (!array_key_exists(self::MESSAGE_ID, $headers)) {
+        if (! array_key_exists(self::MESSAGE_ID, $headers)) {
             $headers[self::MESSAGE_ID] = Uuid::uuid4()->toString();
         }
-        if (!array_key_exists(self::TIMESTAMP, $headers)) {
+        if (! array_key_exists(self::TIMESTAMP, $headers)) {
             $headers[self::TIMESTAMP] = (int)round(microtime(true));
         }
 

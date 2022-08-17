@@ -5,6 +5,8 @@ namespace Ecotone\Dbal;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
+use Doctrine\Persistence\ObjectRepository;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
@@ -35,64 +37,100 @@ class DbalConnection implements ManagerRegistry
         return new ManagerRegistryConnectionFactory($managerRegistry, ['connection_name' => $connectionName]);
     }
 
-    public function getDefaultConnectionName()
+    /**
+     * {@inheritdoc}
+     */
+    public function getDefaultConnectionName(): string
     {
         return 'default';
     }
 
-    public function getConnection($name = null)
+    /**
+     * {@inheritdoc}
+     */
+    public function getConnection($name = null): object
     {
         return $this->connection;
     }
 
-    public function getConnections()
+    /**
+     * {@inheritdoc}
+     */
+    public function getConnections(): array
     {
         return [$this->connection];
     }
 
-    public function getConnectionNames()
+    /**
+     * {@inheritdoc}
+     */
+    public function getConnectionNames(): array
     {
         return ['default'];
     }
 
-    public function getDefaultManagerName()
+    /**
+     * {@inheritdoc}
+     */
+    public function getDefaultManagerName(): string
     {
         return 'default';
     }
 
-    public function getManager($name = null)
+    /**
+     * {@inheritdoc}
+     */
+    public function getManager($name = null): ObjectManager
     {
         return $this->entityManager;
     }
 
-    public function getManagers()
+    /**
+     * {@inheritdoc}
+     */
+    public function getManagers(): array
     {
         return $this->entityManager ? [$this->entityManager] : [];
     }
 
-    public function resetManager($name = null)
+    /**
+     * {@inheritdoc}
+     */
+    public function resetManager($name = null): ObjectManager
     {
         $this->entityManager->getUnitOfWork()->clear();
 
         return $this->entityManager;
     }
 
-    public function getAliasNamespace($alias)
+    /**
+     * @throws InvalidArgumentException
+     */
+    public function getAliasNamespace($alias): string
     {
         throw InvalidArgumentException::create('Method not supported');
     }
 
-    public function getManagerNames()
+    /**
+     * {@inheritdoc}
+     */
+    public function getManagerNames(): array
     {
         return ['default'];
     }
 
-    public function getRepository($persistentObject, $persistentManagerName = null)
+    /**
+     * {@inheritdoc}
+     */
+    public function getRepository($persistentObject, $persistentManagerName = null): ObjectRepository
     {
         return $this->entityManager->getRepository($persistentObject);
     }
 
-    public function getManagerForClass($class)
+    /**
+     * {@inheritdoc}
+     */
+    public function getManagerForClass($class): ?ObjectManager
     {
         return $this->entityManager;
     }

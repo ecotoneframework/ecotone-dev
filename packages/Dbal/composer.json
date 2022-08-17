@@ -26,7 +26,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "^1.36",
+        "ecotone/enqueue": "1.35.1",
         "enqueue/dbal": "^0.10.17",
         "doctrine/dbal": "^3.3.7"
     },

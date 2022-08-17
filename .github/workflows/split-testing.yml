@@ -1,6 +1,7 @@
 name: 'Ecotone Framework'
 
 on:
+  pull_request:
   push:
     branches:
       - '**'

@@ -23,13 +23,14 @@ use Ecotone\Modelling\QueryBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 use InvalidArgumentException;
 
-use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInterceptor;
 use function json_decode;
 use function json_encode;
 
 use PHPUnit\Framework\Assert;
+
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInterceptor;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\OrderGateway;
 
 use Test\Ecotone\Dbal\Fixture\Deduplication\ChannelConfiguration;
@@ -73,7 +74,7 @@ class DomainContext extends TestCase implements Context
             case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor": {
                 $objects = [
                     new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\OrderService(),
-                    new AddMetadataInterceptor()
+                    new AddMetadataInterceptor(),
                 ];
                 break;
             }

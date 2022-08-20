@@ -22,7 +22,7 @@ class ChannelConfiguration
             DbalBackedMessageChannelBuilder::create('orders')
                 ->withReceiveTimeout(1),
             PollingMetadata::create('orders')
-                ->withTestingSetup()
+                ->withTestingSetup(),
         ];
     }
 }

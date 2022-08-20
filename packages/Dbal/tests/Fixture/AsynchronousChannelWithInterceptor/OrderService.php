@@ -15,7 +15,7 @@ class OrderService
     #[CommandHandler('order.register', 'orderRegister')]
     public function register(string $order, #[Header(AddMetadataInterceptor::SAFE_ORDER)] bool $safeOrder): void
     {
-        if (!$safeOrder) {
+        if (! $safeOrder) {
             return;
         }
 

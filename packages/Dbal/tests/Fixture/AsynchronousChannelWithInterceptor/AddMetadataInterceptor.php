@@ -12,7 +12,7 @@ final class AddMetadataInterceptor
     public function addMetadata(): array
     {
         return [
-            self::SAFE_ORDER => true
+            self::SAFE_ORDER => true,
         ];
     }
 }

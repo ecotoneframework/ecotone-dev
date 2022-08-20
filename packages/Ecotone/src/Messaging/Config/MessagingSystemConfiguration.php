@@ -148,7 +148,7 @@ final class MessagingSystemConfiguration implements Configuration
      * @param object[] $extensionObjects
      * @param string[] $skippedModulesPackages
      */
-    private function __construct(?string $rootPathToSearchConfigurationFor, ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration)
+    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration)
     {
         $extensionObjects = array_merge($extensionObjects, $applicationConfiguration->getExtensionObjects());
         $extensionApplicationConfiguration = [];
@@ -708,7 +708,7 @@ final class MessagingSystemConfiguration implements Configuration
 
     public static function prepareWithDefaults(ModuleRetrievingService $moduleConfigurationRetrievingService, ?ServiceConfiguration $serviceConfiguration = null): MessagingSystemConfiguration
     {
-        return new self(null, $moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults());
+        return new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults());
     }
 
     public static function prepare(string $rootPathToSearchConfigurationFor, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $applicationConfiguration, bool $useCachedVersion): Configuration
@@ -730,7 +730,6 @@ final class MessagingSystemConfiguration implements Configuration
 
         $preparationInterfaceRegistry = InterfaceToCallRegistry::createWith($referenceTypeFromNameResolver, $annotationFinder);
         return self::prepareWithModuleRetrievingService(
-            $rootPathToSearchConfigurationFor,
             new AnnotationModuleRetrievingService(
                 $annotationFinder,
                 $preparationInterfaceRegistry,
@@ -756,13 +755,13 @@ final class MessagingSystemConfiguration implements Configuration
         return null;
     }
 
-    public static function prepareWithModuleRetrievingService(?string $rootProjectDirectoryPath, ModuleRetrievingService $moduleConfigurationRetrievingService, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): MessagingSystemConfiguration
+    public static function prepareWithModuleRetrievingService(ModuleRetrievingService $moduleConfigurationRetrievingService, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): MessagingSystemConfiguration
     {
         $cacheDirectoryPath = $applicationConfiguration->getCacheDirectoryPath();
         if ($cacheDirectoryPath) {
             self::prepareCacheDirectory($cacheDirectoryPath);
         }
-        $messagingSystemConfiguration = new self($rootProjectDirectoryPath, $moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), $referenceTypeFromNameResolver, $preparationInterfaceRegistry, $applicationConfiguration);
+        $messagingSystemConfiguration = new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), $referenceTypeFromNameResolver, $preparationInterfaceRegistry, $applicationConfiguration);
 
         if ($cacheDirectoryPath) {
             $serializedMessagingSystemConfiguration = serialize($messagingSystemConfiguration);

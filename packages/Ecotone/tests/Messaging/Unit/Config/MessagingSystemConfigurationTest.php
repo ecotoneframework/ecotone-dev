@@ -619,7 +619,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
     public function test_registering_reference_from_interface_to_call_on_prepare_method()
     {
         $messagingSystem = MessagingSystemConfiguration::prepareWithModuleRetrievingService(
-            null,
             InMemoryModuleMessaging::createWith(
                 [
                     ExampleModuleConfiguration::createWithHandlers(
@@ -649,8 +648,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
     public function test_registering_with_extension_media_type_serializer_applied_to_application_configuration()
     {
         $this->assertEquals(
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)),
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults())
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)),
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults())
         );
     }
 
@@ -658,22 +657,22 @@ class MessagingSystemConfigurationTest extends MessagingTest
     {
         $this->expectException(ConfigurationException::class);
 
-        MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_XML)]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults());
+        MessagingSystemConfiguration::prepareWithModuleRetrievingService( InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_XML)]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults());
     }
 
     public function test_taking_default_media_type_serializer_from_global_application_configuration_if_passed()
     {
         $this->assertEquals(
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)),
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_XML)]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON))
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)),
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService( InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_XML)]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON))
         );
     }
 
     public function test_registering_with_default_error_channel_applied_to_application_configuration()
     {
         $this->assertEquals(
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')),
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults())
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')),
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults())
         );
     }
 
@@ -681,14 +680,14 @@ class MessagingSystemConfigurationTest extends MessagingTest
     {
         $this->expectException(ConfigurationException::class);
 
-        MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel1'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel2')]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults());
+        MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel1'), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel2')]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults());
     }
 
     public function test_taking_default_error_channel_from_global_application_configuration_if_passed()
     {
         $this->assertEquals(
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')),
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('inputChannel')]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'))
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService( InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel')),
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService( InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('inputChannel')]), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultErrorChannel('errorChannel'))
         );
     }
 
@@ -1110,7 +1109,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
     {
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
                                         ->withDefaultErrorChannel('error');
-        $messagingSystemConfiguration = MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createEmpty(), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), $applicationConfiguration);
+        $messagingSystemConfiguration = MessagingSystemConfiguration::prepareWithModuleRetrievingService( InMemoryModuleMessaging::createEmpty(), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), $applicationConfiguration);
 
         $inputMessageChannelName = 'inputChannelName';
         $messageHandler = ExceptionMessageHandler::create();
@@ -1142,7 +1141,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
     {
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withDefaultErrorChannel('error');
-        $messagingSystemConfiguration = MessagingSystemConfiguration::prepareWithModuleRetrievingService(null, InMemoryModuleMessaging::createEmpty(), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), $applicationConfiguration);
+        $messagingSystemConfiguration = MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createEmpty(), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), $applicationConfiguration);
 
         $inputMessageChannelName = 'inputChannelName';
         $messageHandler = ExceptionMessageHandler::create();
@@ -1442,7 +1441,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $messagingSystemConfiguration =
             MessagingSystemConfiguration::prepareWithModuleRetrievingService(
-                null,
                 InMemoryModuleMessaging::createEmpty(),
                 InMemoryReferenceTypeFromNameResolver::createFromObjects($objects),
                 InterfaceToCallRegistry::createEmpty(),

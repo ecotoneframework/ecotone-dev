@@ -42,6 +42,13 @@ Feature: activating as aggregate order entity
     And I call pollable endpoint "processOrders"
     Then there should 1 registered orders
 
+  Scenario: Working with asynchronous channel and interceptor
+    Given I active messaging for namespace "Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor"
+    When I transactionally order "milk"
+    Then there should 0 registered orders
+    And I call pollable endpoint "orders"
+    Then there should 1 registered orders
+
   Scenario: Application exception handling
     Given I active messaging for namespace "Test\Ecotone\Dbal\Fixture\DeadLetter"
     When I order "coffee"

@@ -409,9 +409,9 @@ final class MessagingSystemConfiguration implements Configuration
             foreach ($this->messageHandlerBuilders as $key => $messageHandlerBuilder) {
                 if ($messageHandlerBuilder->getEndpointId() === $targetEndpointId) {
                     $busRoutingChannel = $messageHandlerBuilder->getInputMessageChannelName();
-                    $synchronousChannelName        = AsynchronousModule::getSynchronousChannelName($busRoutingChannel);
-                    $this->messageHandlerBuilders[$key] = $messageHandlerBuilder->withInputChannelName($synchronousChannelName);
-                    $this->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($synchronousChannelName));
+                    $handlerExecutionChannel        = AsynchronousModule::getHandlerExecutionChannel($busRoutingChannel);
+                    $this->messageHandlerBuilders[$key] = $messageHandlerBuilder->withInputChannelName($handlerExecutionChannel);
+                    $this->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($handlerExecutionChannel));
 
                     /**
                      * This provides endpoint that is called by gateway (bus).
@@ -427,7 +427,7 @@ final class MessagingSystemConfiguration implements Configuration
                                 BusModule::COMMAND_CHANNEL_NAME_BY_OBJECT => null,
                                 BusModule::EVENT_CHANNEL_NAME_BY_OBJECT => null,
                                 BusModule::EVENT_CHANNEL_NAME_BY_NAME => null,
-                                MessageHeaders::ROUTING_SLIP => $synchronousChannelName,
+                                MessageHeaders::ROUTING_SLIP => $handlerExecutionChannel,
                             ]
                         )
                             ->withEndpointId($generatedEndpointId)

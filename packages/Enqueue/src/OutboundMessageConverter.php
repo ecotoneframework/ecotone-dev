@@ -42,6 +42,7 @@ class OutboundMessageConverter
         unset($applicationHeaders[MessageHeaders::CONSUMER_ACK_HEADER_LOCATION]);
         unset($applicationHeaders[MessageHeaders::CONSUMER_ENDPOINT_ID]);
         unset($applicationHeaders[MessageHeaders::POLLED_CHANNEL_NAME]);
+        unset($applicationHeaders[MessageHeaders::REPLY_CHANNEL]);
 
         return $applicationHeaders;
     }

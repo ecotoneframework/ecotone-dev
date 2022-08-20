@@ -75,6 +75,10 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $messageHandlerBuilders = [];
     /**
+     * @var array<string, string>
+     */
+    private array $messageHandlerBuilderToChannel = [];
+    /**
      * @var PollingMetadata[]
      */
     private array $pollingMetadata = [];
@@ -130,7 +134,6 @@ final class MessagingSystemConfiguration implements Configuration
      * @var string[]
      */
     private array $gatewayClassesToGenerateProxies = [];
-    private ?string $rootPathToSearchConfigurationFor;
     private ServiceConfiguration $applicationConfiguration;
     /**
      * @var string[]
@@ -170,7 +173,6 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->isLazyConfiguration = ! $applicationConfiguration->isFailingFast();
-        $this->rootPathToSearchConfigurationFor = $rootPathToSearchConfigurationFor;
         $this->applicationConfiguration = $applicationConfiguration;
 
         $extensionObjects = array_filter(
@@ -267,16 +269,6 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    /**
-     * @param InterfaceToCallRegistry $interfaceToCallRegistry
-     * @param ServiceConfiguration $applicationConfiguration
-     *
-     * @throws AnnotationException
-     * @throws ConfigurationException
-     * @throws InvalidArgumentException
-     * @throws MessagingException
-     * @throws ReflectionException
-     */
     private function prepareAndOptimizeConfiguration(InterfaceToCallRegistry $interfaceToCallRegistry, ServiceConfiguration $applicationConfiguration): void
     {
         $pollableEndpointAnnotations = [new AsynchronousRunningEndpoint()];
@@ -302,45 +294,10 @@ final class MessagingSystemConfiguration implements Configuration
             $this->registerChannelInterceptor($beforeSendInterceptor);
         }
 
-        $this->configureAsynchronousEndpoints();
         $this->configureDefaultMessageChannels();
+        $this->configureAsynchronousEndpoints();
+        $this->configureRequiredReferencesAndInterfaces($interfaceToCallRegistry);
 
-        $this->resolveRequiredReferences(
-            $interfaceToCallRegistry,
-            array_map(
-                function (MethodInterceptor $methodInterceptor) {
-                    return $methodInterceptor->getInterceptingObject();
-                },
-                $this->beforeCallMethodInterceptors
-            )
-        );
-        foreach ($this->beforeCallMethodInterceptors as $interceptor) {
-            $this->interfacesToCall = array_merge($this->interfacesToCall, $interceptor->getMessageHandler()->resolveRelatedInterfaces($interfaceToCallRegistry));
-        }
-        foreach ($this->beforeSendInterceptors as $interceptor) {
-            $this->interfacesToCall = array_merge($this->interfacesToCall, $interceptor->getMessageHandler()->resolveRelatedInterfaces($interfaceToCallRegistry));
-        }
-        foreach ($this->aroundMethodInterceptors as $aroundInterceptorReference) {
-            $this->interfacesToCall[] = $aroundInterceptorReference->getInterceptingInterface($interfaceToCallRegistry);
-        }
-        foreach ($this->afterCallMethodInterceptors as $interceptor) {
-            $this->interfacesToCall = array_merge($this->interfacesToCall, $interceptor->getMessageHandler()->resolveRelatedInterfaces($interfaceToCallRegistry));
-        }
-
-        $this->resolveRequiredReferences(
-            $interfaceToCallRegistry,
-            array_map(
-                function (MethodInterceptor $methodInterceptor) {
-                    return $methodInterceptor->getInterceptingObject();
-                },
-                $this->afterCallMethodInterceptors
-            )
-        );
-        foreach ($this->messageHandlerBuilders as $key => $messageHandlerBuilder) {
-            if ($this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()]->isPollable() && ($messageHandlerBuilder instanceof InterceptedEndpoint)) {
-                $this->messageHandlerBuilders[$key] = $messageHandlerBuilder->withEndpointAnnotations(array_merge($messageHandlerBuilder->getEndpointAnnotations(), $pollableEndpointAnnotations));
-            }
-        }
         $this->configureInterceptors($interfaceToCallRegistry);
         $this->resolveRequiredReferences($interfaceToCallRegistry, $this->messageHandlerBuilders);
         $this->resolveRequiredReferences($interfaceToCallRegistry, $this->gatewayBuilders);
@@ -454,6 +411,7 @@ final class MessagingSystemConfiguration implements Configuration
                     $busRoutingChannel = $messageHandlerBuilder->getInputMessageChannelName();
                     $synchronousChannelName        = AsynchronousModule::getSynchronousChannelName($busRoutingChannel);
                     $this->messageHandlerBuilders[$key] = $messageHandlerBuilder->withInputChannelName($synchronousChannelName);
+                    $this->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($synchronousChannelName));
 
                     /**
                      * This provides endpoint that is called by gateway (bus).
@@ -461,24 +419,24 @@ final class MessagingSystemConfiguration implements Configuration
                      * Then when message is consumed it's routed by routing slip
                      * to target handler
                      */
-                    $this->messageHandlerBuilders[$synchronousChannelName] = (
+                    $generatedEndpointId = Uuid::uuid4()->toString();
+                    $this->registerMessageHandler(
                         TransformerBuilder::createHeaderEnricher(
                             [
                                 BusModule::COMMAND_CHANNEL_NAME_BY_NAME => null,
                                 BusModule::COMMAND_CHANNEL_NAME_BY_OBJECT => null,
                                 BusModule::EVENT_CHANNEL_NAME_BY_OBJECT => null,
                                 BusModule::EVENT_CHANNEL_NAME_BY_NAME => null,
-                                MessageHeaders::REPLY_CHANNEL => null,
                                 MessageHeaders::ROUTING_SLIP => $synchronousChannelName,
                             ]
                         )
-                            ->withEndpointId($synchronousChannelName)
+                            ->withEndpointId($generatedEndpointId)
                             ->withInputChannelName($busRoutingChannel)
                             ->withOutputMessageChannel($asynchronousMessageChannel)
                     );
 
                     if (array_key_exists($messageHandlerBuilder->getEndpointId(), $this->pollingMetadata)) {
-                        $this->pollingMetadata[$synchronousChannelName] = $this->pollingMetadata[$messageHandlerBuilder->getEndpointId()];
+                        $this->pollingMetadata[$generatedEndpointId] = $this->pollingMetadata[$messageHandlerBuilder->getEndpointId()];
                         unset($this->pollingMetadata[$messageHandlerBuilder->getEndpointId()]);
                     }
                     $foundEndpoint = true;
@@ -492,15 +450,25 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         foreach (array_unique($asynchronousChannels) as $asynchronousChannel) {
+            Assert::isTrue($this->channelBuilders[$asynchronousChannel]->isPollable(), "Asynchronous Message Channel {$asynchronousChannel} must be Pollable");
             //        needed for correct around intercepting, otherwise requestReply is outside of around interceptor scope
-            $bridgeBuilder = ChainMessageHandlerBuilder::create()
+            /**
+             * This is Bridge that will fetch the message and make use of routing_slip to target it
+             * message handler
+             */
+            $this->messageHandlerBuilders[$asynchronousChannel] = ChainMessageHandlerBuilder::create()
+                ->withInputChannelName($asynchronousChannel)
+                ->withEndpointId($asynchronousChannel)
                 ->chain(ServiceActivatorBuilder::createWithDirectReference(new Bridge(), 'handle'))
                 ->chain(ServiceActivatorBuilder::createWithDirectReference(new Bridge(), 'handle'));
-            $this->messageHandlerBuilders[$asynchronousChannel] = $bridgeBuilder
-                ->withInputChannelName($asynchronousChannel)
-                ->withEndpointId($asynchronousChannel);
         }
 
+        $pollableEndpointAnnotations = [new AsynchronousRunningEndpoint()];
+        foreach ($this->messageHandlerBuilders as $key => $messageHandlerBuilder) {
+            if ($this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()]->isPollable() && ($messageHandlerBuilder instanceof InterceptedEndpoint)) {
+                $this->messageHandlerBuilders[$key] = $messageHandlerBuilder->withEndpointAnnotations(array_merge($messageHandlerBuilder->getEndpointAnnotations(), $pollableEndpointAnnotations));
+            }
+        }
         $this->asynchronousEndpoints = [];
     }
 
@@ -618,7 +586,8 @@ final class MessagingSystemConfiguration implements Configuration
                 }
                 if ($beforeCallInterceptors || $afterCallInterceptors) {
                     $outputChannel = $messageHandlerBuilder->getOutputMessageChannelName();
-                    $messageHandlerBuilder = $messageHandlerBuilder->withOutputMessageChannel('');
+                    $messageHandlerBuilder = $messageHandlerBuilder
+                        ->withOutputMessageChannel('');
                     $messageHandlerBuilderToUse = ChainMessageHandlerBuilder::create()
                         ->withEndpointId($messageHandlerBuilder->getEndpointId())
                         ->withInputChannelName($messageHandlerBuilder->getInputMessageChannelName())
@@ -1023,6 +992,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->messageHandlerBuilders[$messageHandlerBuilder->getEndpointId()] = $messageHandlerBuilder;
+        $this->messageHandlerBuilderToChannel[$messageHandlerBuilder->getInputMessageChannelName()][] = $messageHandlerBuilder->getEndpointId();
         $this->verifyEndpointAndChannelNameUniqueness();
 
         return $this;
@@ -1266,5 +1236,40 @@ final class MessagingSystemConfiguration implements Configuration
         $this->consoleCommands[] = $consoleCommandConfiguration;
 
         return $this;
+    }
+
+    private function configureRequiredReferencesAndInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        $this->resolveRequiredReferences(
+            $interfaceToCallRegistry,
+            array_map(
+                function (MethodInterceptor $methodInterceptor) {
+                    return $methodInterceptor->getInterceptingObject();
+                },
+                $this->beforeCallMethodInterceptors
+            )
+        );
+        foreach ($this->beforeCallMethodInterceptors as $interceptor) {
+            $this->interfacesToCall = array_merge($this->interfacesToCall, $interceptor->getMessageHandler()->resolveRelatedInterfaces($interfaceToCallRegistry));
+        }
+        foreach ($this->beforeSendInterceptors as $interceptor) {
+            $this->interfacesToCall = array_merge($this->interfacesToCall, $interceptor->getMessageHandler()->resolveRelatedInterfaces($interfaceToCallRegistry));
+        }
+        foreach ($this->aroundMethodInterceptors as $aroundInterceptorReference) {
+            $this->interfacesToCall[] = $aroundInterceptorReference->getInterceptingInterface($interfaceToCallRegistry);
+        }
+        foreach ($this->afterCallMethodInterceptors as $interceptor) {
+            $this->interfacesToCall = array_merge($this->interfacesToCall, $interceptor->getMessageHandler()->resolveRelatedInterfaces($interfaceToCallRegistry));
+        }
+
+        $this->resolveRequiredReferences(
+            $interfaceToCallRegistry,
+            array_map(
+                function (MethodInterceptor $methodInterceptor) {
+                    return $methodInterceptor->getInterceptingObject();
+                },
+                $this->afterCallMethodInterceptors
+            )
+        );
     }
 }

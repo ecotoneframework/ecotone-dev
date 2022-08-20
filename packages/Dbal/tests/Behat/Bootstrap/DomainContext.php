@@ -23,6 +23,7 @@ use Ecotone\Modelling\QueryBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 use InvalidArgumentException;
 
+use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInterceptor;
 use function json_decode;
 use function json_encode;
 
@@ -66,6 +67,13 @@ class DomainContext extends TestCase implements Context
             case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction": {
                 $objects = [
                     new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderService(),
+                ];
+                break;
+            }
+            case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor": {
+                $objects = [
+                    new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\OrderService(),
+                    new AddMetadataInterceptor()
                 ];
                 break;
             }

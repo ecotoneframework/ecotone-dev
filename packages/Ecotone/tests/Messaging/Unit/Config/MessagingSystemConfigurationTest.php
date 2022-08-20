@@ -538,18 +538,20 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $this->assertEquals(4, $configuredMessagingSystem->getMessageChannelByName('inputChannel1')->receive()->getPayload());
     }
 
-    public function test_registering_asynchronous_endpoint_with_direct_channel()
+    public function test_registering_asynchronous_endpoint_with_in_memory_queue_channel()
     {
         $calculatingService = CalculatingService::create(1);
         $configuredMessagingSystem = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
+            ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageHandler(
                 ServiceActivatorBuilder::createWithDirectReference($calculatingService, 'result')
                     ->withEndpointId('endpointId')
                     ->withInputChannelName('inputChannel')
             )
             ->registerAsynchronousEndpoint('fakeAsyncChannel', 'endpointId')
-            ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createDirectMessageChannel('fakeAsyncChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('fakeAsyncChannel'))
+            ->registerPollingMetadata(PollingMetadata::create('fakeAsyncChannel')->withTestingSetup())
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         $message = MessageBuilder::withPayload(2)
@@ -560,6 +562,9 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $channel = $configuredMessagingSystem->getMessageChannelByName('inputChannel');
 
         $channel->send($message);
+        $this->assertNull($calculatingService->getLastResult());
+
+        $configuredMessagingSystem->run('fakeAsyncChannel');
         $this->assertEquals(2, $calculatingService->getLastResult());
     }
 

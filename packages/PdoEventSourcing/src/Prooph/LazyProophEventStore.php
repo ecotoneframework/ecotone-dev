@@ -273,11 +273,11 @@ class LazyProophEventStore implements EventStore
     {
         if (is_callable($this->getConnection(), 'getNativeConnection')) {
             return $this->getConnection()->getNativeConnection();
-        }else {
+        } else {
             /** Case when getNativeConnection is not implemented in nested connection */
             $connection = $this->getConnection()->getWrappedConnection();
 
-            if ($connection instanceof \PDO || is_subclass_of($connection, "Doctrine\DBAL\Driver\PDOConnection") || get_class($connection) === "Doctrine\DBAL\Driver\PDOConnection") {
+            if ($connection instanceof PDO || is_subclass_of($connection, "Doctrine\DBAL\Driver\PDOConnection") || get_class($connection) === "Doctrine\DBAL\Driver\PDOConnection") {
                 return $connection;
             }
 

@@ -14,7 +14,7 @@
     "keywords": ["symfony", "ecotone", "ddd", "messaging", "message", "enterprise integration patterns", "eip", "distributed architecture"],
     "description": "Extends Ecotone with Symfony integration",
     "require": {
-        "ecotone/ecotone": "1.36.6",
+        "ecotone/ecotone": "^1.37",
         "laminas/laminas-zendframework-bridge": "^1.0.0",
         "symfony/console": "^5.4|^6.0",
         "symfony/framework-bundle": "^5.4|^6.0"

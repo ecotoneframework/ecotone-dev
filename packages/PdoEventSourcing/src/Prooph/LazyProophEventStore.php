@@ -271,14 +271,9 @@ class LazyProophEventStore implements EventStore
     /** @phpstan-ignore-next-line */
     public function getWrappedConnection(): PDOConnection|PDO
     {
-        $lazyProophEventStore = new \ReflectionClass($this->getConnection());
-        if ($lazyProophEventStore->hasMethod( 'getNativeConnection')) {
-            try {
-                return $this->getConnection()->getNativeConnection();
-            }catch (\LogicException) {
-                return $this->getConnectionInLegacyOrLaravelWay();
-            }
-        } else {
+        try {
+            return $this->getConnection()->getNativeConnection();
+        }catch (\Throwable) {
             return $this->getConnectionInLegacyOrLaravelWay();
         }
     }

@@ -276,10 +276,10 @@ class LazyProophEventStore implements EventStore
             try {
                 return $this->getConnection()->getNativeConnection();
             }catch (\LogicException) {
-                return $this->getConnectionInLegacyWay();
+                return $this->getConnectionInLegacyOrLaravelWay();
             }
         } else {
-            return $this->getConnectionInLegacyWay();
+            return $this->getConnectionInLegacyOrLaravelWay();
         }
     }
 
@@ -397,7 +397,7 @@ class LazyProophEventStore implements EventStore
         return $connection instanceof \Doctrine\DBAL\Driver\PDO\Connection;
     }
 
-    private function getConnectionInLegacyWay(): \Doctrine\DBAL\Driver\Connection|null|PDOConnection|PDO
+    private function getConnectionInLegacyOrLaravelWay()
     {
         /** Case when getNativeConnection is not implemented in nested connection */
         $connection = $this->getConnection()->getWrappedConnection();

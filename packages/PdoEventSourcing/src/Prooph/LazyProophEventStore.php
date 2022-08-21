@@ -273,7 +273,7 @@ class LazyProophEventStore implements EventStore
     {
         try {
             return $this->getConnection()->getNativeConnection();
-        }catch (\Throwable) {
+        } catch (\Throwable) {
             return $this->getConnectionInLegacyOrLaravelWay();
         }
     }

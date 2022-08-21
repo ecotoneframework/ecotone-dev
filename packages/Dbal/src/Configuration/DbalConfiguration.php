@@ -12,7 +12,7 @@ class DbalConfiguration
     public const DEFAULT_TRANSACTION_ON_COMMAND_BUS = true;
     public const DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS = true;
     public const DEFAULT_CLEAR_OBJECT_MANAGER_ON_ASYNCHRONOUS_ENDPOINTS = true;
-    public const DEFAULT_DEDUPLICATION_ENABLED = true;
+    public const DEFAULT_DEDUPLICATION_ENABLED = false;
     public const DEFAULT_DEAD_LETTER_ENABLED = false;
 
     private bool $transactionOnAsynchronousEndpoints = self::DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS;

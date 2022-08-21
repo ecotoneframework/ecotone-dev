@@ -271,18 +271,15 @@ class LazyProophEventStore implements EventStore
     /** @phpstan-ignore-next-line */
     public function getWrappedConnection(): PDOConnection|PDO
     {
-        if (is_callable($this->getConnection(), 'getNativeConnection')) {
-            return $this->getConnection()->getNativeConnection();
-        } else {
-            /** Case when getNativeConnection is not implemented in nested connection */
-            $connection = $this->getConnection()->getWrappedConnection();
-
-            if ($connection instanceof PDO || is_subclass_of($connection, "Doctrine\DBAL\Driver\PDOConnection") || get_class($connection) === "Doctrine\DBAL\Driver\PDOConnection") {
-                return $connection;
+        $lazyProophEventStore = new \ReflectionClass($this->getConnection());
+        if ($lazyProophEventStore->hasMethod( 'getNativeConnection')) {
+            try {
+                return $this->getConnection()->getNativeConnection();
+            }catch (\LogicException) {
+                return $this->getConnectionInLegacyWay();
             }
-
-            /** Laravel case @look Illuminate\Database\PDO\Connection */
-            return $connection->getWrappedConnection();
+        } else {
+            return $this->getConnectionInLegacyWay();
         }
     }
 
@@ -398,5 +395,18 @@ class LazyProophEventStore implements EventStore
     private function isDbalVersionThreeOrHigher(?\Doctrine\DBAL\Driver\Connection $connection): bool
     {
         return $connection instanceof \Doctrine\DBAL\Driver\PDO\Connection;
+    }
+
+    private function getConnectionInLegacyWay(): \Doctrine\DBAL\Driver\Connection|null|PDOConnection|PDO
+    {
+        /** Case when getNativeConnection is not implemented in nested connection */
+        $connection = $this->getConnection()->getWrappedConnection();
+
+        if ($connection instanceof PDO || is_subclass_of($connection, "Doctrine\DBAL\Driver\PDOConnection") || get_class($connection) === "Doctrine\DBAL\Driver\PDOConnection") {
+            return $connection;
+        }
+
+        /** Laravel case @look Illuminate\Database\PDO\Connection */
+        return $connection->getWrappedConnection();
     }
 }

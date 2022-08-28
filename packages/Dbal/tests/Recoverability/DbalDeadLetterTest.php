@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\Dbal\Recoverability;
 
-use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Recoverability\DbalDeadLetter;
 use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\Handler\MessageHandlingException;

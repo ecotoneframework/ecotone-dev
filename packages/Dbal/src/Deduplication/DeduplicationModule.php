@@ -14,7 +14,6 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 #[ModuleAnnotation]
 class DeduplicationModule implements AnnotationModule
@@ -48,7 +47,7 @@ class DeduplicationModule implements AnnotationModule
         $isDeduplicatedEnabled = $dbalConfiguration->isDeduplicatedEnabled();
         $connectionFactory     = $dbalConfiguration->getDeduplicationConnectionReference();
 
-        if (!$isDeduplicatedEnabled) {
+        if (! $isDeduplicatedEnabled) {
             return;
         }
 

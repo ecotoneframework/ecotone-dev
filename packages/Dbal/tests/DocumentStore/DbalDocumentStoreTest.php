@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\Dbal\DocumentStore;
 
-use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Enqueue\CachedConnectionFactory;

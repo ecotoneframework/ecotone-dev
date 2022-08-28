@@ -148,7 +148,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
 
         $this->assertNull($messageChannel->receive());
 
-        usleep(1500000);
+        sleep(1);
 
         $this->assertNotNull($messageChannel->receive());
     }

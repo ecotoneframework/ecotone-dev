@@ -14,6 +14,7 @@ use Ecotone\Messaging\Scheduling\Clock;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
+use Ecotone\Messaging\Message;
 
 /**
  * Class DbalTransactionInterceptor
@@ -35,7 +36,7 @@ class DeduplicationInterceptor
         $this->connectionReferenceName = $connectionReferenceName;
     }
 
-    public function deduplicate(MethodInvocation $methodInvocation, $payload, array $headers, ReferenceSearchService $referenceSearchService)
+    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
         $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName)));
 
@@ -44,8 +45,8 @@ class DeduplicationInterceptor
             $this->isInitialized = true;
         }
         $this->removeExpiredMessages($connectionFactory);
-        $messageId = $headers[MessageHeaders::MESSAGE_ID];
-        $consumerEndpointId = $headers[MessageHeaders::CONSUMER_ENDPOINT_ID];
+        $messageId = $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
+        $consumerEndpointId = $message->getHeaders()->get(MessageHeaders::CONSUMER_ENDPOINT_ID);
 
         $select = $this->getConnection($connectionFactory)->createQueryBuilder()
             ->select('message_id')
@@ -55,7 +56,7 @@ class DeduplicationInterceptor
             ->andWhere('routing_slip = :routingSlip')
             ->setParameter('messageId', $messageId, Types::TEXT)
             ->setParameter('consumerEndpointId', $consumerEndpointId, Types::TEXT)
-            ->setParameter('routingSlip', $headers[MessageHeaders::ROUTING_SLIP] ?? '', Types::TEXT)
+            ->setParameter('routingSlip', $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP) ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP) : '', Types::TEXT)
             ->setMaxResults(1)
             ->execute()
             ->fetch();
@@ -65,7 +66,7 @@ class DeduplicationInterceptor
         }
 
         $result = $methodInvocation->proceed();
-        $this->insertHandledMessage($connectionFactory, $headers);
+        $this->insertHandledMessage($connectionFactory, $message->getHeaders()->headers());
 
         return $result;
     }

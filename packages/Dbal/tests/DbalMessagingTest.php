@@ -45,7 +45,7 @@ abstract class DbalMessagingTest extends TestCase
     {
         $connection = $this->getConnectionFactory()->createContext()->getDbalConnection();
 
-        $this->deleteFromTableExists("enqueue", $connection);
+        $this->deleteFromTableExists('enqueue', $connection);
         $this->deleteFromTableExists(OrderService::ORDER_TABLE, $connection);
         $this->deleteFromTableExists(DbalDeadLetter::DEFAULT_DEAD_LETTER_TABLE, $connection);
         $this->deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);

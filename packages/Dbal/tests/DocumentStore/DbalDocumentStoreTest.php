@@ -298,27 +298,6 @@ final class DbalDocumentStoreTest extends DbalMessagingTest
         $documentStore->addDocument('users', '123', '{"name":"Johny Mac"}');
     }
 
-    protected function setUp(): void
-    {
-        $this->cachedConnectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory()));
-        /** @var Connection $dbalConnection */
-        $dbalConnection = $this->cachedConnectionFactory->createContext()->getDbalConnection();
-
-        $dbalConnection->executeStatement(sprintf(<<<SQL
-                DROP TABLE IF EXISTS %s
-            SQL, DbalDocumentStore::ECOTONE_DOCUMENT_STORE));
-
-        $dbalConnection->beginTransaction();
-    }
-
-    protected function tearDown(): void
-    {
-        try {
-            $this->cachedConnectionFactory->createContext()->getDbalConnection()->rollBack();
-        } catch (\Exception) {
-        }
-    }
-
     private function getDocumentStore(): DocumentStore
     {
         return new DbalDocumentStore(

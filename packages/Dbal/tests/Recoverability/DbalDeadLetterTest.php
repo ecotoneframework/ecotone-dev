@@ -19,29 +19,6 @@ use Throwable;
  */
 class DbalDeadLetterTest extends DbalMessagingTest
 {
-    protected function setUp(): void
-    {
-        /** @var Connection $connection */
-        $connection = $this->getConnectionFactory()->createContext()->getDbalConnection();
-
-        $connection->executeStatement(sprintf(<<<SQL
-                DROP TABLE IF EXISTS %s
-            SQL, DbalDeadLetter::DEFAULT_DEAD_LETTER_TABLE));
-
-        $connection->beginTransaction();
-    }
-
-    protected function tearDown(): void
-    {
-        /** @var Connection $dbalConnection */
-        $dbalConnection = $this->getConnectionFactory()->createContext()->getDbalConnection();
-
-        try {
-            $dbalConnection->rollBack();
-        } catch (\Exception) {
-        }
-    }
-
     public function __test_retrieving_error_message_details()
     {
         $dbalDeadLetter = new DbalDeadLetter($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(InMemoryConversionService::createWithoutConversion()));

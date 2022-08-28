@@ -62,10 +62,7 @@ class InboundMessageConverter
                 ->setHeader(MessageHeaders::TIMESTAMP, $enqueueMessageHeaders[MessageHeaders::TIMESTAMP]);
         }
 
-        $messageBuilder = $messageBuilder
-            ->setHeader(MessageHeaders::CONSUMER_ENDPOINT_ID, $this->inboundEndpointId)
+        return $messageBuilder
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, $this->acknowledgeHeaderName);
-
-        return $messageBuilder;
     }
 }

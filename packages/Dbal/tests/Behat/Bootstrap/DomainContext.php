@@ -454,6 +454,15 @@ class DomainContext extends TestCase implements Context
                     $config = Setup::createAnnotationMetadataConfiguration([$rootProjectDirectoryPath . DIRECTORY_SEPARATOR . 'tests/Dbal/Fixture/ORM'], true, null, null, false);
 
                     $objects[DbalConnectionFactory::class] = DbalConnection::createEntityManager(EntityManager::create(['url' => $dsn], $config));
+
+                    if (!$this->checkIfTableExists($connection, 'persons')) {
+                        $connection->executeStatement(<<<SQL
+                            CREATE TABLE persons (
+                                person_id INTEGER PRIMARY KEY,
+                                name VARCHAR(255)
+                            )
+                        SQL);
+                    }
                 }
                 default:
                 {

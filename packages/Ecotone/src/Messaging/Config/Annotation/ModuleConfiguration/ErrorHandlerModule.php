@@ -6,7 +6,6 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -22,8 +21,6 @@ use Ecotone\Messaging\MessageHeaders;
 #[ModuleAnnotation]
 class ErrorHandlerModule extends NoExternalConfigurationModule implements AnnotationModule
 {
-    public const MODULE_NAME = 'errorHandlerModule';
-
     private function __construct()
     {
     }
@@ -41,12 +38,8 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
      */
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof DbalConfiguration && $extensionObject->isDeadLetterEnabled()) {
-                if (!$this->hasErrorConfiguration($extensionObjects)) {
-                    $extensionObjects = [ErrorHandlerConfiguration::createDefault()];
-                }
-            }
+        if (!$this->hasErrorConfiguration($extensionObjects)) {
+            $extensionObjects = [ErrorHandlerConfiguration::createDefault()];
         }
 
         /** @var ErrorHandlerConfiguration $extensionObject */
@@ -82,7 +75,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
      */
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof ErrorHandlerConfiguration || $extensionObject instanceof DbalConfiguration;
+        return $extensionObject instanceof ErrorHandlerConfiguration;
     }
 
     public function getModulePackageName(): string

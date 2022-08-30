@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -39,8 +41,20 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
      */
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof DbalConfiguration && $extensionObject->isDeadLetterEnabled()) {
+                if (!$this->hasErrorConfiguration($extensionObjects)) {
+                    $extensionObjects = [ErrorHandlerConfiguration::createDefault()];
+                }
+            }
+        }
+
         /** @var ErrorHandlerConfiguration $extensionObject */
         foreach ($extensionObjects as $extensionObject) {
+            if (!($extensionObject instanceof ErrorHandlerConfiguration)) {
+                continue;
+            }
+
             $errorHandler = ServiceActivatorBuilder::createWithDirectReference(
                 new ErrorHandler($extensionObject->getDelayedRetryTemplate(), (bool)$extensionObject->getDeadLetterQueueChannel()),
                 'handle'
@@ -57,6 +71,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                 ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getErrorChannelName()))
                 ->registerMessageHandler(
                     RouterBuilder::createHeaderRouter(MessageHeaders::POLLED_CHANNEL_NAME)
+                        ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName() . ".router")
                         ->withInputChannelName('ecotone.recoverability.reply')
                 );
         }
@@ -67,11 +82,22 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
      */
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof ErrorHandlerConfiguration;
+        return $extensionObject instanceof ErrorHandlerConfiguration || $extensionObject instanceof DbalConfiguration;
     }
 
     public function getModulePackageName(): string
     {
         return CoreModule::NAME;
+    }
+
+    private function hasErrorConfiguration(array $extensionObjects): bool
+    {
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof ErrorHandlerConfiguration) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

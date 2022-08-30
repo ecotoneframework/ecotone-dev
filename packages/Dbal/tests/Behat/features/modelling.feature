@@ -49,8 +49,10 @@ Feature: activating as aggregate order entity
     And I call pollable endpoint "orders"
     Then there should 1 registered orders
 
-  Scenario: Application exception handling
-    Given I active messaging for namespace "Test\Ecotone\Dbal\Fixture\DeadLetter"
+  Scenario: Application exception handling with custom handling 1 retry
+    Given I active messaging for namespaces
+      | Test\Ecotone\Dbal\Fixture\DeadLetter\Example             |
+      | Test\Ecotone\Dbal\Fixture\DeadLetter\CustomConfiguration |
     When I order "coffee"
     And I call pollable endpoint "orderService"
     Then there should be 0 orders

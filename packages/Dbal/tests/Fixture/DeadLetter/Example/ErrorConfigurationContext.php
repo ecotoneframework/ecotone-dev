@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Dbal\Fixture\DeadLetter;
+namespace Test\Ecotone\Dbal\Fixture\DeadLetter\Example;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
@@ -16,7 +16,6 @@ class ErrorConfigurationContext
 {
     public const INPUT_CHANNEL = 'inputChannel';
     public const ERROR_CHANNEL = 'errorChannel';
-    public const DEAD_LETTER_CHANNEL = 'deadLetterChannel';
 
 
     #[ServiceContext]
@@ -24,17 +23,6 @@ class ErrorConfigurationContext
     {
         return DbalBackedMessageChannelBuilder::create(self::INPUT_CHANNEL, 'managerRegistry')
             ->withReceiveTimeout(1);
-    }
-
-    #[ServiceContext]
-    public function errorConfiguration()
-    {
-        return ErrorHandlerConfiguration::createWithDeadLetterChannel(
-            self::ERROR_CHANNEL,
-            RetryTemplateBuilder::exponentialBackoff(1, 1)
-                ->maxRetryAttempts(1),
-            DbalDeadLetterBuilder::STORE_CHANNEL
-        );
     }
 
     #[ServiceContext]

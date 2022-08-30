@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\Dbal\Fixture\DeadLetter;
+namespace Test\Ecotone\Dbal\Fixture\DeadLetter\Example;
 
 use Ecotone\Messaging\Attribute\MessageGateway;
 

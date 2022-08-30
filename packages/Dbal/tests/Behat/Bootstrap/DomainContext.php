@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Dbal\Behat\Bootstrap;
 
 use Behat\Behat\Context\Context;
+use Behat\Gherkin\Node\TableNode;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Tools\Setup;
 use Ecotone\Dbal\DbalConnection;
@@ -22,17 +23,11 @@ use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 use InvalidArgumentException;
-
-use function json_decode;
-use function json_encode;
-
 use PHPUnit\Framework\Assert;
-
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInterceptor;
-use Test\Ecotone\Dbal\Fixture\DeadLetter\OrderGateway;
-
+use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderGateway;
 use Test\Ecotone\Dbal\Fixture\Deduplication\ChannelConfiguration;
 use Test\Ecotone\Dbal\Fixture\Deduplication\Converter;
 use Test\Ecotone\Dbal\Fixture\Deduplication\OrderPlaced;
@@ -40,6 +35,8 @@ use Test\Ecotone\Dbal\Fixture\Deduplication\OrderSubscriber;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
 use Test\Ecotone\Dbal\Fixture\ORM\RegisterPerson;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
+use function json_decode;
+use function json_encode;
 
 /**
  * Defines application features from the specific context.
@@ -54,111 +51,19 @@ class DomainContext extends TestCase implements Context
     private static $messagingSystem;
 
     /**
+     * @Given I active messaging for namespaces
+     */
+    public function iActiveMessagingForNamespaces(TableNode $table)
+    {
+        $this->prepareMessagingFor($table->getColumn(0));
+    }
+
+    /**
      * @Given I active messaging for namespace :namespace
      */
     public function iActiveMessagingForNamespace(string $namespace)
     {
-        switch ($namespace) {
-            case "Test\Ecotone\Dbal\Fixture\Transaction": {
-                $objects = [
-                    new OrderService(),
-                ];
-                break;
-            }
-            case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction": {
-                $objects = [
-                    new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderService(),
-                ];
-                break;
-            }
-            case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor": {
-                $objects = [
-                    new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\OrderService(),
-                    new AddMetadataInterceptor(),
-                ];
-                break;
-            }
-            case "Test\Ecotone\Dbal\Fixture\DeadLetter": {
-                $objects = [
-                    new \Test\Ecotone\Dbal\Fixture\DeadLetter\OrderService(),
-                ];
-                break;
-            }
-            case "Test\Ecotone\Dbal\Fixture\ORM": {
-                $objects = [];
-                break;
-            }
-            case "Test\Ecotone\Dbal\Fixture\DocumentStore": {
-                $objects = [];
-                break;
-            }
-            case "Test\Ecotone\Dbal\Fixture\InMemoryDocumentStore": {
-                $objects = [];
-                break;
-            }
-            case "Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate": {
-                $objects = [new PersonJsonConverter()];
-                break;
-            }
-            case "Test\Ecotone\Dbal\Fixture\Deduplication": {
-                $objects = [new \Test\Ecotone\Dbal\Fixture\Deduplication\OrderService(), new OrderSubscriber(), new Converter()];
-                break;
-            }
-            default: {
-                throw new InvalidArgumentException("Namespace {$namespace} not yet implemented");
-            }
-        }
-
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : null;
-        $connectionFactory = DbalConnection::fromConnectionFactory(new DbalConnectionFactory(['dsn' => $dsn]));
-        $connection = $connectionFactory->createContext()->getDbalConnection();
-        $enqueueTable = 'enqueue';
-        if ($this->checkIfTableExists($connection, $enqueueTable)) {
-            $this->deleteFromTableExists($enqueueTable, $connection);
-            $this->deleteFromTableExists(OrderService::ORDER_TABLE, $connection);
-            $this->deleteFromTableExists(DbalDeadLetter::DEFAULT_DEAD_LETTER_TABLE, $connection);
-            $this->deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
-            $this->deleteFromTableExists(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
-        }
-
-        $rootProjectDirectoryPath = __DIR__ . '/../../../';
-        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withNamespaces([$namespace])
-            ->withCacheDirectoryPath(sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString())
-            ->withSkippedModulePackageNames(['jmsConverter', 'amqp', 'eventSourcing']);
-        MessagingSystemConfiguration::cleanCache($serviceConfiguration->getCacheDirectoryPath());
-
-        switch ($namespace) {
-            case "Test\Ecotone\Dbal\Fixture\ORM": {
-                if (! $this->checkIfTableExists($connection, 'persons')) {
-                    $connection->executeStatement(<<<SQL
-                            CREATE TABLE persons (
-                                person_id INTEGER PRIMARY KEY,
-                                name VARCHAR(255)
-                            )
-                        SQL);
-                }
-                $this->deleteFromTableExists('persons', $connection);
-
-                $config = Setup::createAnnotationMetadataConfiguration([$rootProjectDirectoryPath . DIRECTORY_SEPARATOR . 'tests/Dbal/Fixture/ORM'], true, null, null, false);
-
-                $objects = [
-                    DbalConnectionFactory::class => DbalConnection::createEntityManager(EntityManager::create(['url' => $dsn], $config)),
-                ];
-                break;
-            }
-            default: {
-                $objects = array_merge($objects, ['managerRegistry' => $connectionFactory, DbalConnectionFactory::class => $connectionFactory]);
-            }
-        }
-
-        self::$messagingSystem            = EcotoneLiteConfiguration::createWithConfiguration(
-            $rootProjectDirectoryPath,
-            InMemoryPSRContainer::createFromObjects($objects),
-            $serviceConfiguration,
-            [],
-            true
-        );
+        $this->prepareMessagingFor([$namespace]);
     }
 
     private function deleteFromTableExists(string $tableName, \Doctrine\DBAL\Connection $connection): void
@@ -495,5 +400,98 @@ class DomainContext extends TestCase implements Context
     public function thereSubscriberShouldBeCalledTimes(int $count)
     {
         $this->assertEquals($count, $this->getQueryBus()->sendWithRouting('order.getCalled'));
+    }
+
+    private function prepareMessagingFor(array $namespaces): void
+    {
+        $rootProjectDirectoryPath = __DIR__ . '/../../../';
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : null;
+        $connectionFactory = DbalConnection::fromConnectionFactory(new DbalConnectionFactory(['dsn' => $dsn]));
+        $connection = $connectionFactory->createContext()->getDbalConnection();
+
+        $objects = ['managerRegistry' => $connectionFactory, DbalConnectionFactory::class => $connectionFactory];
+
+        foreach ($namespaces as $namespace) {
+            switch ($namespace) {
+                case "Test\Ecotone\Dbal\Fixture\Transaction":
+                {
+                    $objects[] = new OrderService();
+                    break;
+                }
+                case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction":
+                {
+                    $objects[] = new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderService();
+                    break;
+                }
+                case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor":
+                {
+                    $objects = array_merge($objects, [
+                        new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\OrderService(),
+                        new AddMetadataInterceptor(),
+                    ]);
+                    break;
+                }
+                case "Test\Ecotone\Dbal\Fixture\DeadLetter\Example":
+                {
+                    $objects[] = new \Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderService();
+                    break;
+                }
+                case "Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate":
+                {
+                    $objects[] = new PersonJsonConverter();
+                    break;
+                }
+                case "Test\Ecotone\Dbal\Fixture\Deduplication":
+                {
+                    $objects = array_merge(
+                        $objects,
+                        [new \Test\Ecotone\Dbal\Fixture\Deduplication\OrderService(), new OrderSubscriber(), new Converter()]
+                    );
+                    break;
+                }
+                case "Test\Ecotone\Dbal\Fixture\ORM":
+                {
+                    $config = Setup::createAnnotationMetadataConfiguration([$rootProjectDirectoryPath . DIRECTORY_SEPARATOR . 'tests/Dbal/Fixture/ORM'], true, null, null, false);
+
+                    $objects[DbalConnectionFactory::class] = DbalConnection::createEntityManager(EntityManager::create(['url' => $dsn], $config));
+
+                    if (!$this->checkIfTableExists($connection, 'persons')) {
+                        $connection->executeStatement(<<<SQL
+                            CREATE TABLE persons (
+                                person_id INTEGER PRIMARY KEY,
+                                name VARCHAR(255)
+                            )
+                        SQL);
+                    }
+                }
+                default:
+                {
+                }
+            }
+        }
+
+        $enqueueTable = 'enqueue';
+        if ($this->checkIfTableExists($connection, $enqueueTable)) {
+            $this->deleteFromTableExists($enqueueTable, $connection);
+            $this->deleteFromTableExists(OrderService::ORDER_TABLE, $connection);
+            $this->deleteFromTableExists(DbalDeadLetter::DEFAULT_DEAD_LETTER_TABLE, $connection);
+            $this->deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
+            $this->deleteFromTableExists(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
+            $this->deleteFromTableExists('persons', $connection);
+        }
+
+        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
+            ->withNamespaces($namespaces)
+            ->withCacheDirectoryPath(sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString())
+            ->withSkippedModulePackageNames(['jmsConverter', 'amqp', 'eventSourcing']);
+        MessagingSystemConfiguration::cleanCache($serviceConfiguration->getCacheDirectoryPath());
+
+        self::$messagingSystem = EcotoneLiteConfiguration::createWithConfiguration(
+            $rootProjectDirectoryPath,
+            InMemoryPSRContainer::createFromObjects($objects),
+            $serviceConfiguration,
+            [],
+            true
+        );
     }
 }

@@ -99,3 +99,12 @@ Feature: activating as aggregate order entity
     Then using "ticket_service" there are 0 error tickets
     Then using "ticket_service" process ticket with failure
     Then using "ticket_service" there are 1 error tickets
+
+  Scenario: Distributing message to another service
+    Given I active messaging distributed services:
+      | name            | namespace |
+      | user_service    | Test\Ecotone\Amqp\Fixture\DistributedMessage\Publisher |
+      | ticket_service  | Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver  |
+    When using "ticket_service" I should have 0 remaining ticket
+    And using "user_service" I change billing details
+    Then using "ticket_service" I should have 1 remaining ticket

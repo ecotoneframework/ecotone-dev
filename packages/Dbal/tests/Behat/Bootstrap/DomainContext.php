@@ -23,6 +23,10 @@ use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 use InvalidArgumentException;
+
+use function json_decode;
+use function json_encode;
+
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -35,8 +39,6 @@ use Test\Ecotone\Dbal\Fixture\Deduplication\OrderSubscriber;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
 use Test\Ecotone\Dbal\Fixture\ORM\RegisterPerson;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
-use function json_decode;
-use function json_encode;
 
 /**
  * Defines application features from the specific context.
@@ -414,59 +416,59 @@ class DomainContext extends TestCase implements Context
         foreach ($namespaces as $namespace) {
             switch ($namespace) {
                 case "Test\Ecotone\Dbal\Fixture\Transaction":
-                {
-                    $objects[] = new OrderService();
-                    break;
-                }
-                case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction":
-                {
-                    $objects[] = new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderService();
-                    break;
-                }
-                case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor":
-                {
-                    $objects = array_merge($objects, [
-                        new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\OrderService(),
-                        new AddMetadataInterceptor(),
-                    ]);
-                    break;
-                }
-                case "Test\Ecotone\Dbal\Fixture\DeadLetter\Example":
-                {
-                    $objects[] = new \Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderService();
-                    break;
-                }
-                case "Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate":
-                {
-                    $objects[] = new PersonJsonConverter();
-                    break;
-                }
-                case "Test\Ecotone\Dbal\Fixture\Deduplication":
-                {
-                    $objects = array_merge(
-                        $objects,
-                        [new \Test\Ecotone\Dbal\Fixture\Deduplication\OrderService(), new OrderSubscriber(), new Converter()]
-                    );
-                    break;
-                }
-                case "Test\Ecotone\Dbal\Fixture\ORM":
-                {
-                    $config = Setup::createAnnotationMetadataConfiguration([$rootProjectDirectoryPath . DIRECTORY_SEPARATOR . 'tests/Dbal/Fixture/ORM'], true, null, null, false);
-
-                    $objects[DbalConnectionFactory::class] = DbalConnection::createEntityManager(EntityManager::create(['url' => $dsn], $config));
-
-                    if (!$this->checkIfTableExists($connection, 'persons')) {
-                        $connection->executeStatement(<<<SQL
-                            CREATE TABLE persons (
-                                person_id INTEGER PRIMARY KEY,
-                                name VARCHAR(255)
-                            )
-                        SQL);
+                    {
+                        $objects[] = new OrderService();
+                        break;
                     }
-                }
+                case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction":
+                    {
+                        $objects[] = new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderService();
+                        break;
+                    }
+                case "Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor":
+                    {
+                        $objects = array_merge($objects, [
+                            new \Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\OrderService(),
+                            new AddMetadataInterceptor(),
+                        ]);
+                        break;
+                    }
+                case "Test\Ecotone\Dbal\Fixture\DeadLetter\Example":
+                    {
+                        $objects[] = new \Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderService();
+                        break;
+                    }
+                case "Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate":
+                    {
+                        $objects[] = new PersonJsonConverter();
+                        break;
+                    }
+                case "Test\Ecotone\Dbal\Fixture\Deduplication":
+                    {
+                        $objects = array_merge(
+                            $objects,
+                            [new \Test\Ecotone\Dbal\Fixture\Deduplication\OrderService(), new OrderSubscriber(), new Converter()]
+                        );
+                        break;
+                    }
+                case "Test\Ecotone\Dbal\Fixture\ORM":
+                    {
+                        $config = Setup::createAnnotationMetadataConfiguration([$rootProjectDirectoryPath . DIRECTORY_SEPARATOR . 'tests/Dbal/Fixture/ORM'], true, null, null, false);
+
+                        $objects[DbalConnectionFactory::class] = DbalConnection::createEntityManager(EntityManager::create(['url' => $dsn], $config));
+
+                        if (! $this->checkIfTableExists($connection, 'persons')) {
+                            $connection->executeStatement(<<<SQL
+                                    CREATE TABLE persons (
+                                        person_id INTEGER PRIMARY KEY,
+                                        name VARCHAR(255)
+                                    )
+                                SQL);
+                        }
+                    }
                 default:
-                {
-                }
+                    {
+                    }
             }
         }
 

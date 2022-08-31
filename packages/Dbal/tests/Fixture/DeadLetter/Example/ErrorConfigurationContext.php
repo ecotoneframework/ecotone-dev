@@ -6,11 +6,8 @@ namespace Test\Ecotone\Dbal\Fixture\DeadLetter\Example;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
 class ErrorConfigurationContext
 {

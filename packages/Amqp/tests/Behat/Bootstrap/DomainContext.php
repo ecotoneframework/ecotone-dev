@@ -166,6 +166,20 @@ class DomainContext extends TestCase implements Context
                         ];
                         break;
                     }
+                case "Test\Ecotone\Amqp\Fixture\DistributedMessage\Publisher":
+                {
+                    $objects = [
+                        new \Test\Ecotone\Amqp\Fixture\DistributedMessage\Publisher\UserService(),
+                    ];
+                    break;
+                }
+                case "Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver":
+                {
+                    $objects = [
+                        new \Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver\TicketServiceReceiver(),
+                    ];
+                    break;
+                }
                 case "Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Publisher":
                     {
                         $objects = [

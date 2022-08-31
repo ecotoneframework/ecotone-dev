@@ -192,6 +192,19 @@ class AmqpDistributionModule
                     ->withDefaultConversionMediaType($mediaType)
                     ->withStaticHeadersToEnrich([MessageHeaders::POLLED_CHANNEL_NAME => $channelName])
             )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create($amqpPublisher->getReferenceName(), DistributedBus::class, 'sendMessage', $amqpPublisher->getReferenceName())
+                    ->withParameterConverters(
+                        [
+                            GatewayPayloadBuilder::create('payload'),
+                            GatewayHeadersBuilder::create('metadata'),
+                            GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
+                            GatewayHeaderBuilder::create('targetChannelName', DistributionEntrypoint::DISTRIBUTED_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('destination', self::AMQP_ROUTING_KEY),
+                            GatewayHeaderValueBuilder::create(DistributionEntrypoint::DISTRIBUTED_PAYLOAD_TYPE, 'message'),
+                        ]
+                    )
+            )
             ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($amqpPublisher->getReferenceName()));
     }
 

@@ -18,7 +18,7 @@ use Throwable;
  */
 class DbalDeadLetterTest extends DbalMessagingTest
 {
-    public function __test_retrieving_error_message_details()
+    public function test_retrieving_error_message_details()
     {
         $dbalDeadLetter = new DbalDeadLetter($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(InMemoryConversionService::createWithoutConversion()));
 
@@ -31,7 +31,7 @@ class DbalDeadLetterTest extends DbalMessagingTest
         );
     }
 
-    public function __test_storing_wrapped_error_message()
+    public function test_storing_wrapped_error_message()
     {
         $dbalDeadLetter = new DbalDeadLetter($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(InMemoryConversionService::createWithoutConversion()));
 
@@ -71,7 +71,7 @@ class DbalDeadLetterTest extends DbalMessagingTest
         );
     }
 
-    public function __test_deleting_error_message()
+    public function test_deleting_error_message()
     {
         $dbalDeadLetter = new DbalDeadLetter($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(InMemoryConversionService::createWithoutConversion()));
 

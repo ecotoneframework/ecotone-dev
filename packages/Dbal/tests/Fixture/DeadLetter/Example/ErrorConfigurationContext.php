@@ -15,7 +15,7 @@ class ErrorConfigurationContext
 {
     public const INPUT_CHANNEL = 'inputChannel';
     public const ERROR_CHANNEL = 'errorChannel';
-    const CUSTOM_GATEWAY_REFERENCE_NAME = "custom";
+    public const CUSTOM_GATEWAY_REFERENCE_NAME = 'custom';
 
 
     #[ServiceContext]

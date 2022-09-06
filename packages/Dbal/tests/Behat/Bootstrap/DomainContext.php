@@ -24,14 +24,15 @@ use Ecotone\Modelling\QueryBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 use InvalidArgumentException;
 
-use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\ErrorConfigurationContext;
 use function json_decode;
 use function json_encode;
 
 use PHPUnit\Framework\Assert;
+
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInterceptor;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderGateway;
 use Test\Ecotone\Dbal\Fixture\Deduplication\ChannelConfiguration;
 use Test\Ecotone\Dbal\Fixture\Deduplication\Converter;

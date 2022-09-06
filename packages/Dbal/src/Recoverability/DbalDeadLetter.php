@@ -43,7 +43,7 @@ class DbalDeadLetter
      */
     public function list(int $limit, int $offset): array
     {
-        if (!$this->doesDeadLetterTableExists()) {
+        if (! $this->doesDeadLetterTableExists()) {
             return [];
         }
 

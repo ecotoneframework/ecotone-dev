@@ -115,7 +115,7 @@ class DbalDeadLetterModule implements AnnotationModule
 
     private function registerGateway(string $referenceName, string $connectionFactoryReference, bool $isCustomGateway, Configuration $configuration): void
     {
-        if (!$isCustomGateway) {
+        if (! $isCustomGateway) {
             $configuration->registerMessageHandler(DbalDeadLetterBuilder::createStore($connectionFactoryReference));
         }
 

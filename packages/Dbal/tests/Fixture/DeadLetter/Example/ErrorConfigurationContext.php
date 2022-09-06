@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\Example;
 
+use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Enqueue\Dbal\DbalConnectionFactory;
 
 class ErrorConfigurationContext
 {
     public const INPUT_CHANNEL = 'inputChannel';
     public const ERROR_CHANNEL = 'errorChannel';
+    const CUSTOM_GATEWAY_REFERENCE_NAME = "custom";
 
 
     #[ServiceContext]
@@ -37,5 +40,11 @@ class ErrorConfigurationContext
         return DbalConfiguration::createWithDefaults()
             ->withDeadLetter(true, 'managerRegistry')
             ->withDefaultConnectionReferenceNames(['managerRegistry']);
+    }
+
+    #[ServiceContext]
+    public function customDeadLetterGateway()
+    {
+        return CustomDeadLetterGateway::createWith(self::CUSTOM_GATEWAY_REFERENCE_NAME, DbalConnectionFactory::class);
     }
 }

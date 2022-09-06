@@ -43,12 +43,17 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         $this->inputMessageChannelName = $inputChannelName;
     }
 
+    public static function getChannelName(string $connectionReferenceName, string $actionChannel): string
+    {
+        return $connectionReferenceName . "." . $actionChannel;
+    }
+
     public static function createList(string $connectionReferenceName): self
     {
         return new self(
             'list',
             $connectionReferenceName,
-            self::LIST_CHANNEL,
+            self::getChannelName($connectionReferenceName, self::LIST_CHANNEL),
             [
                 HeaderBuilder::create('limit', self::LIMIT_HEADER),
                 HeaderBuilder::create('offset', self::OFFSET_HEADER),
@@ -58,7 +63,9 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 
     public static function createShow(string $connectionReferenceName): self
     {
-        return new self('show', $connectionReferenceName, self::SHOW_CHANNEL, [
+        return new self('show', $connectionReferenceName,
+            self::getChannelName($connectionReferenceName,     self::SHOW_CHANNEL),
+        [
             PayloadBuilder::create('messageId'),
             HeaderBuilder::createOptional('replyChannel', MessageHeaders::REPLY_CHANNEL),
         ]);
@@ -66,7 +73,10 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 
     public static function createReply(string $connectionReferenceName): self
     {
-        return new self('reply', $connectionReferenceName, self::REPLAY_CHANNEL, []);
+        return new self('reply', $connectionReferenceName,
+            self::getChannelName($connectionReferenceName, self::REPLAY_CHANNEL),
+            []
+        );
     }
 
     public static function createReplyAll(string $connectionReferenceName): self
@@ -74,7 +84,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         return new self(
             'replyAll',
             $connectionReferenceName,
-            self::REPLAY_ALL_CHANNEL,
+            self::getChannelName($connectionReferenceName, self::REPLAY_ALL_CHANNEL),
             [
                 ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypoint::class),
             ]
@@ -83,12 +93,18 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 
     public static function createDelete(string $connectionReferenceName): self
     {
-        return new self('delete', $connectionReferenceName, self::DELETE_CHANNEL, []);
+        return new self('delete', $connectionReferenceName,
+            self::getChannelName($connectionReferenceName, self::DELETE_CHANNEL),
+            []
+        );
     }
 
     public static function createStore(string $connectionReferenceName): self
     {
-        return new self('store', $connectionReferenceName, self::STORE_CHANNEL, []);
+        return new self('store', $connectionReferenceName,
+            self::STORE_CHANNEL,
+            []
+        );
     }
 
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall

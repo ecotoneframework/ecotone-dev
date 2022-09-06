@@ -24,6 +24,7 @@ use Ecotone\Modelling\QueryBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 use InvalidArgumentException;
 
+use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\ErrorConfigurationContext;
 use function json_decode;
 use function json_encode;
 
@@ -172,10 +173,12 @@ class DomainContext extends TestCase implements Context
         /** @var DeadLetterGateway $gateway */
         $gateway = self::$messagingSystem->getGatewayByName(DeadLetterGateway::class);
 
-        $this->assertEquals(
-            $amount,
-            count($gateway->list(100, 0))
-        );
+        $this->assertEquals($amount, count($gateway->list(100, 0)));
+
+        /** @var DeadLetterGateway $gateway */
+        $gateway = self::$messagingSystem->getGatewayByName(ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
+
+        $this->assertEquals($amount, count($gateway->list(100, 0)));
     }
 
     /**

@@ -43,7 +43,10 @@ class DbalDeadLetter
      */
     public function list(int $limit, int $offset): array
     {
-        $this->initialize();
+        if (!$this->doesDeadLetterTableExists()) {
+            return [];
+        }
+
         $messages = $this->getConnection()->createQueryBuilder()
             ->select('*')
             ->from($this->getTableName())
@@ -177,7 +180,7 @@ class DbalDeadLetter
     {
         $sm = $this->getConnection()->getSchemaManager();
 
-        if ($sm->tablesExist([$this->getTableName()])) {
+        if ($this->doesDeadLetterTableExists()) {
             return;
         }
 
@@ -192,6 +195,13 @@ class DbalDeadLetter
         $table->addIndex(['failed_at']);
 
         $sm->createTable($table);
+    }
+
+    private function doesDeadLetterTableExists(): bool
+    {
+        $sm = $this->getConnection()->getSchemaManager();
+
+        return $sm->tablesExist([$this->getTableName()]);
     }
 
     private function getConnection(): Connection

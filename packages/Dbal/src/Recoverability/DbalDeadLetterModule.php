@@ -3,6 +3,7 @@
 namespace Ecotone\Dbal\Recoverability;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Configuration\DbalModule;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -39,14 +40,18 @@ class DbalDeadLetterModule implements AnnotationModule
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $isDeadLetterEnabled = false;
-        $connectionFactory     = DbalConnectionFactory::class;
+        $connectionFactoryReference     = DbalConnectionFactory::class;
+        $customDeadLetterGateways = [];
         foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof CustomDeadLetterGateway) {
+                $customDeadLetterGateways[] = $extensionObject;
+            }
             if ($extensionObject instanceof DbalConfiguration) {
                 if (! $extensionObject->isDeadLetterEnabled()) {
                     return;
                 }
 
-                $connectionFactory     = $extensionObject->getDeadLetterConnectionReference();
+                $connectionFactoryReference     = $extensionObject->getDeadLetterConnectionReference();
                 $isDeadLetterEnabled = true;
             }
         }
@@ -62,57 +67,10 @@ class DbalDeadLetterModule implements AnnotationModule
         $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $configuration, $interfaceToCallRegistry);
         $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $configuration, $interfaceToCallRegistry);
 
-        $configuration
-            ->registerMessageHandler(DbalDeadLetterBuilder::createStore($connectionFactory))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($connectionFactory))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createShow($connectionFactory))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createList($connectionFactory))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReply($connectionFactory))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($connectionFactory))
-            ->registerGatewayBuilder(
-                GatewayProxyBuilder::create(
-                    DeadLetterGateway::class,
-                    DeadLetterGateway::class,
-                    'list',
-                    DbalDeadLetterBuilder::LIST_CHANNEL
-                )
-                    ->withParameterConverters([
-                        GatewayHeaderBuilder::create('limit', DbalDeadLetterBuilder::LIMIT_HEADER),
-                        GatewayHeaderBuilder::create('offset', DbalDeadLetterBuilder::OFFSET_HEADER),
-                    ])
-            )
-            ->registerGatewayBuilder(
-                GatewayProxyBuilder::create(
-                    DeadLetterGateway::class,
-                    DeadLetterGateway::class,
-                    'show',
-                    DbalDeadLetterBuilder::SHOW_CHANNEL
-                )
-            )
-            ->registerGatewayBuilder(
-                GatewayProxyBuilder::create(
-                    DeadLetterGateway::class,
-                    DeadLetterGateway::class,
-                    'reply',
-                    DbalDeadLetterBuilder::REPLAY_CHANNEL
-                )
-            )
-            ->registerGatewayBuilder(
-                GatewayProxyBuilder::create(
-                    DeadLetterGateway::class,
-                    DeadLetterGateway::class,
-                    'replyAll',
-                    DbalDeadLetterBuilder::REPLAY_ALL_CHANNEL
-                )
-            )
-            ->registerGatewayBuilder(
-                GatewayProxyBuilder::create(
-                    DeadLetterGateway::class,
-                    DeadLetterGateway::class,
-                    'delete',
-                    DbalDeadLetterBuilder::DELETE_CHANNEL
-                )
-            );
+        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, false, $configuration);
+        foreach ($customDeadLetterGateways as $customDeadLetterGateway) {
+            $this->registerGateway($customDeadLetterGateway->getGatewayReferenceName(), $customDeadLetterGateway->getConnectionReferenceName(), true, $configuration);
+        }
     }
 
     /**
@@ -120,7 +78,7 @@ class DbalDeadLetterModule implements AnnotationModule
      */
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof DbalConfiguration;
+        return $extensionObject instanceof DbalConfiguration || $extensionObject instanceof CustomDeadLetterGateway;
     }
 
     /**
@@ -153,5 +111,63 @@ class DbalDeadLetterModule implements AnnotationModule
     public function getModulePackageName(): string
     {
         return DbalModule::NAME;
+    }
+
+    private function registerGateway(string $referenceName, string $connectionFactoryReference, bool $isCustomGateway, Configuration $configuration): void
+    {
+        if (!$isCustomGateway) {
+            $configuration->registerMessageHandler(DbalDeadLetterBuilder::createStore($connectionFactoryReference));
+        }
+
+        $configuration
+            ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createShow($connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createList($connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReply($connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($connectionFactoryReference))
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create(
+                    $referenceName,
+                    DeadLetterGateway::class,
+                    'list',
+                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::LIST_CHANNEL)
+                )
+                    ->withParameterConverters([
+                        GatewayHeaderBuilder::create('limit', DbalDeadLetterBuilder::LIMIT_HEADER),
+                        GatewayHeaderBuilder::create('offset', DbalDeadLetterBuilder::OFFSET_HEADER),
+                    ])
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create(
+                    $referenceName,
+                    DeadLetterGateway::class,
+                    'show',
+                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::SHOW_CHANNEL)
+                )
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create(
+                    $referenceName,
+                    DeadLetterGateway::class,
+                    'reply',
+                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::REPLAY_CHANNEL)
+                )
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create(
+                    $referenceName,
+                    DeadLetterGateway::class,
+                    'replyAll',
+                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::REPLAY_ALL_CHANNEL)
+                )
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create(
+                    $referenceName,
+                    DeadLetterGateway::class,
+                    'delete',
+                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::DELETE_CHANNEL)
+                )
+            );
     }
 }

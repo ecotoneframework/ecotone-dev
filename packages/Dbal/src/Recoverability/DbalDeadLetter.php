@@ -96,7 +96,7 @@ class DbalDeadLetter
             return 0;
         }
 
-        return $this->getConnection()->createQueryBuilder()
+        return (int)$this->getConnection()->createQueryBuilder()
             ->select('count(*)')
             ->from($this->getTableName())
             ->executeQuery()

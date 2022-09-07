@@ -53,8 +53,8 @@ class DbalDeadLetter
             ->setMaxResults($limit)
             ->setFirstResult($offset)
             ->orderBy('failed_at', 'DESC')
-            ->execute()
-            ->fetchAll();
+            ->executeQuery()
+            ->fetchAllAssociative();
 
         return array_map(function (array $message) {
             return ErrorContext::fromHeaders($this->decodeHeaders($message));
@@ -70,8 +70,8 @@ class DbalDeadLetter
             ->andWhere('message_id = :messageId')
             ->setParameter('messageId', $messageId, Types::TEXT)
             ->setMaxResults(1)
-            ->execute()
-            ->fetch();
+            ->executeQuery()
+            ->fetchAssociative();
 
         if (! $message) {
             throw InvalidArgumentException::create("Can not find message with id {$messageId}");
@@ -88,6 +88,19 @@ class DbalDeadLetter
                     ->setMultipleHeaders($headers)
                     ->setHeader(MessageHeaders::REPLY_CHANNEL, $replyChannel)
                     ->build();
+    }
+
+    public function count(): int
+    {
+        if (!$this->doesDeadLetterTableExists()) {
+            return 0;
+        }
+
+        return (int)$this->getConnection()->createQueryBuilder()
+            ->select('count(*)')
+            ->from($this->getTableName())
+            ->executeQuery()
+            ->fetchOne();
     }
 
     public function reply(string $messageId, MessagingEntrypoint $messagingEntrypoint): void
@@ -113,7 +126,7 @@ class DbalDeadLetter
             ->delete($this->getTableName())
             ->andWhere('message_id = :messageId')
             ->setParameter('messageId', $messageId, Types::TEXT)
-            ->execute();
+            ->executeStatement();
     }
 
     public function store(Message $message): void

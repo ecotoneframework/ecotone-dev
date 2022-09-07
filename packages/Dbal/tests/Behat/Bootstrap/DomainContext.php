@@ -175,11 +175,13 @@ class DomainContext extends TestCase implements Context
         $gateway = self::$messagingSystem->getGatewayByName(DeadLetterGateway::class);
 
         $this->assertEquals($amount, count($gateway->list(100, 0)));
+        $this->assertEquals($amount, $gateway->count());
 
         /** @var DeadLetterGateway $gateway */
         $gateway = self::$messagingSystem->getGatewayByName(ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
         $this->assertEquals($amount, count($gateway->list(100, 0)));
+        $this->assertEquals($amount, $gateway->count());
     }
 
     /**

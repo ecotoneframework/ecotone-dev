@@ -76,12 +76,15 @@ class DbalDeadLetterTest extends DbalMessagingTest
         $dbalDeadLetter = new DbalDeadLetter($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(InMemoryConversionService::createWithoutConversion()));
 
         $message = MessageBuilder::withPayload('error2')->build();
+
+        $this->assertEquals(0, $dbalDeadLetter->count());
+
         $dbalDeadLetter->store($message);
+        $this->assertEquals(1, $dbalDeadLetter->count());
+
         $dbalDeadLetter->delete($message->getHeaders()->getMessageId());
 
-        $this->assertEquals(
-            [],
-            $dbalDeadLetter->list(1, 0)
-        );
+        $this->assertEquals([], $dbalDeadLetter->list(1, 0));
+        $this->assertEquals(0, $dbalDeadLetter->count());
     }
 }

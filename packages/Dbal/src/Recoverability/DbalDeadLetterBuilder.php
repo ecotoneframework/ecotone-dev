@@ -26,6 +26,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 
     public const LIST_CHANNEL  = 'ecotone.dbal.deadletter.list';
     public const SHOW_CHANNEL       = 'ecotone.dbal.deadletter.show';
+    public const COUNT_CHANNEL       = 'ecotone.dbal.deadletter.count';
     public const REPLAY_CHANNEL     = 'ecotone.dbal.deadletter.reply';
     public const REPLAY_ALL_CHANNEL = 'ecotone.dbal.deadletter.replyAll';
     public const DELETE_CHANNEL     = 'ecotone.dbal.deadletter.delete';
@@ -71,6 +72,14 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                 PayloadBuilder::create('messageId'),
                 HeaderBuilder::createOptional('replyChannel', MessageHeaders::REPLY_CHANNEL),
             ]
+        );
+    }
+
+    public static function createCount(string $connectionReferenceName): self
+    {
+        return new self('count', $connectionReferenceName,
+            self::getChannelName($connectionReferenceName,     self::COUNT_CHANNEL),
+            []
         );
     }
 

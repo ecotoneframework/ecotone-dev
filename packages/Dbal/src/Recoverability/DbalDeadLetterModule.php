@@ -123,6 +123,7 @@ class DbalDeadLetterModule implements AnnotationModule
             ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createShow($connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createList($connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createCount($connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createReply($connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($connectionFactoryReference))
             ->registerGatewayBuilder(
@@ -143,6 +144,14 @@ class DbalDeadLetterModule implements AnnotationModule
                     DeadLetterGateway::class,
                     'show',
                     DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::SHOW_CHANNEL)
+                )
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create(
+                    $referenceName,
+                    DeadLetterGateway::class,
+                    'count',
+                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::COUNT_CHANNEL)
                 )
             )
             ->registerGatewayBuilder(

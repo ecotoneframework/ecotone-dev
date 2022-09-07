@@ -92,7 +92,7 @@ class DbalDeadLetter
 
     public function count(): int
     {
-        if (!$this->doesDeadLetterTableExists()) {
+        if (! $this->doesDeadLetterTableExists()) {
             return 0;
         }
 

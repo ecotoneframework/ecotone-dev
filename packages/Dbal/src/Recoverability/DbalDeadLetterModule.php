@@ -39,7 +39,7 @@ class DbalDeadLetterModule implements AnnotationModule
      */
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $isDeadLetterEnabled = false;
+        $isDeadLetterEnabled = DbalConfiguration::createWithDefaults()->isDeadLetterEnabled();
         $connectionFactoryReference     = DbalConnectionFactory::class;
         $customDeadLetterGateways = [];
         foreach ($extensionObjects as $extensionObject) {

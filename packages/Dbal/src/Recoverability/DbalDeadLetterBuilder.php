@@ -77,8 +77,10 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 
     public static function createCount(string $connectionReferenceName): self
     {
-        return new self('count', $connectionReferenceName,
-            self::getChannelName($connectionReferenceName,     self::COUNT_CHANNEL),
+        return new self(
+            'count',
+            $connectionReferenceName,
+            self::getChannelName($connectionReferenceName, self::COUNT_CHANNEL),
             []
         );
     }

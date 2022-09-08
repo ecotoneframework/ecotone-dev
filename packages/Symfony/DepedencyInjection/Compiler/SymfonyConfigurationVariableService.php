@@ -13,7 +13,7 @@ class SymfonyConfigurationVariableService implements ConfigurationVariableServic
 
     public function getByName(string $name)
     {
-        return $this->container->get($name);
+        return $this->container->getParameter($name);
     }
 
     public function hasName(string $name): bool

@@ -14,7 +14,7 @@
     },
     "require": {
         "ecotone/lite-application": "^1.0",
-        "ecotone/jms-converter": "1.41.1"
+        "ecotone/jms-converter": "^1.42"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",

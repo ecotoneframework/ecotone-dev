@@ -16,7 +16,8 @@ class ProjectionRunningConfiguration
         private int $persistChangesAfterAmountOfOperations = 1, // this is not yet handled
         private int $projectionLockTimeout = 1000,
         private int $updateLockTimeoutAfter = 0,
-        private bool $isTestingSetup = false
+        private bool $isTestingSetup = false,
+        private ?int $loadCount = null
     ) {
     }
 
@@ -148,5 +149,18 @@ class ProjectionRunningConfiguration
         $self->isTestingSetup = $isTestingSetup;
 
         return $self;
+    }
+
+    public function withLoadCount(?int $loadCount = null): static
+    {
+        $self = clone $this;
+        $self->loadCount = $loadCount;
+
+        return $self;
+    }
+
+    public function loadCount(): ?int
+    {
+        return $this->loadCount;
     }
 }

@@ -210,6 +210,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             if ($projectionAttribute->isFromAll()) {
                 $projectionConfiguration = ProjectionSetupConfiguration::create(
                     $projectionAttribute->getName(),
+                    $projectionAttribute->getOptions(),
                     $projectionLifeCycle,
                     $projectionAttribute->getEventStoreReferenceName(),
                     ProjectionStreamSource::forAllStreams()
@@ -217,6 +218,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             } elseif ($projectionAttribute->getFromStreams()) {
                 $projectionConfiguration = ProjectionSetupConfiguration::create(
                     $projectionAttribute->getName(),
+                    $projectionAttribute->getOptions(),
                     $projectionLifeCycle,
                     $projectionAttribute->getEventStoreReferenceName(),
                     ProjectionStreamSource::fromStreams($projectionAttribute->getFromStreams())
@@ -224,6 +226,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             } else {
                 $projectionConfiguration = ProjectionSetupConfiguration::create(
                     $projectionAttribute->getName(),
+                    $projectionAttribute->getOptions(),
                     $projectionLifeCycle,
                     $projectionAttribute->getEventStoreReferenceName(),
                     ProjectionStreamSource::fromCategories($projectionAttribute->getFromCategories())

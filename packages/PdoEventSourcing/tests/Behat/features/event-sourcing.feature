@@ -178,6 +178,20 @@ Feature: activating as aggregate order entity
       | 1235      | alert          |
       | 1236      | alert          |
 
+  Scenario: Polling projections with additional options
+    Given I active messaging for namespaces
+      | Test\Ecotone\EventSourcing\Fixture\Ticket                      |
+      | Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjectionAndOptions |
+    When I register "alert" ticket 1234 with assignation to "Marcus"
+    And I register "alert" ticket 1235 with assignation to "Andrew"
+    And I register "alert" ticket 1236 with assignation to "Andrew"
+    And I run endpoint with name "inProgressTicketList"
+    Then I should see tickets in progress:
+      | ticket_id  | ticket_type    |
+      | 1234       | alert          |
+      | 1235      | alert          |
+      | 1236      | alert          |
+
   Scenario: I verify building projection from event sourced aggregate using custom stream name and simple arrays in projections
     Given I active messaging for namespaces
       | Test\Ecotone\EventSourcing\Fixture\Basket                      |

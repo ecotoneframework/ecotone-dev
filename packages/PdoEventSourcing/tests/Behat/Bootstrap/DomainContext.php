@@ -256,6 +256,10 @@ class DomainContext extends TestCase implements Context
                     $objects = array_merge($objects, [new InProgressTicketList(self::$connection)]);
                     break;
                 }
+                case "Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjectionAndOptions": {
+                    $objects = array_merge($objects, [new \Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjectionAndOptions\InProgressTicketList(self::$connection)]);
+                    break;
+                }
                 case "Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection": {
                     $objects = array_merge($objects, [new \Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection\InProgressTicketList(self::$connection)]);
                     break;

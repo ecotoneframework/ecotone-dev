@@ -25,7 +25,7 @@ final class ProjectionSetupConfiguration
         $this->projectionOptions = array_merge(
             $projectionOptions,
             [
-                PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection()
+                PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(),
             ]
         );
     }

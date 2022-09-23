@@ -119,13 +119,13 @@
         }
     },
     "replace": {
-        "ecotone/amqp": "1.42.1",
-        "ecotone/dbal": "1.42.1",
-        "ecotone/enqueue": "1.42.1",
-        "ecotone/jms-converter": "1.42.1",
-        "ecotone/laravel": "1.42.1",
-        "ecotone/pdo-event-sourcing": "1.42.1",
-        "ecotone/symfony-bundle": "1.42.1"
+        "ecotone/amqp": "1.43.0",
+        "ecotone/dbal": "1.43.0",
+        "ecotone/enqueue": "1.43.0",
+        "ecotone/jms-converter": "1.43.0",
+        "ecotone/laravel": "1.43.0",
+        "ecotone/pdo-event-sourcing": "1.43.0",
+        "ecotone/symfony-bundle": "1.43.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

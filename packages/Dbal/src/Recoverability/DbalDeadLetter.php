@@ -265,6 +265,7 @@ class DbalDeadLetter
                     ErrorContext::EXCEPTION_LINE,
                 ]
             )
+            ->setHeader(ErrorContext::DLQ_MESSAGE_REPLIED, '1')
             ->setHeader(MessagingEntrypoint::ENTRYPOINT, $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME))
             ->build();
 

@@ -120,18 +120,18 @@ class DbalDeadLetterModule implements AnnotationModule
         }
 
         $configuration
-            ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createShow($connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createList($connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createCount($connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReply($connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createShow($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createList($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createCount($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReply($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($referenceName, $connectionFactoryReference))
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create(
                     $referenceName,
                     DeadLetterGateway::class,
                     'list',
-                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::LIST_CHANNEL)
+                    DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::LIST_CHANNEL)
                 )
                     ->withParameterConverters([
                         GatewayHeaderBuilder::create('limit', DbalDeadLetterBuilder::LIMIT_HEADER),
@@ -143,7 +143,7 @@ class DbalDeadLetterModule implements AnnotationModule
                     $referenceName,
                     DeadLetterGateway::class,
                     'show',
-                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::SHOW_CHANNEL)
+                    DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::SHOW_CHANNEL)
                 )
             )
             ->registerGatewayBuilder(
@@ -151,7 +151,7 @@ class DbalDeadLetterModule implements AnnotationModule
                     $referenceName,
                     DeadLetterGateway::class,
                     'count',
-                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::COUNT_CHANNEL)
+                    DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::COUNT_CHANNEL)
                 )
             )
             ->registerGatewayBuilder(
@@ -159,7 +159,7 @@ class DbalDeadLetterModule implements AnnotationModule
                     $referenceName,
                     DeadLetterGateway::class,
                     'reply',
-                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::REPLAY_CHANNEL)
+                    DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::REPLAY_CHANNEL)
                 )
             )
             ->registerGatewayBuilder(
@@ -167,7 +167,7 @@ class DbalDeadLetterModule implements AnnotationModule
                     $referenceName,
                     DeadLetterGateway::class,
                     'replyAll',
-                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::REPLAY_ALL_CHANNEL)
+                    DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::REPLAY_ALL_CHANNEL)
                 )
             )
             ->registerGatewayBuilder(
@@ -175,7 +175,7 @@ class DbalDeadLetterModule implements AnnotationModule
                     $referenceName,
                     DeadLetterGateway::class,
                     'delete',
-                    DbalDeadLetterBuilder::getChannelName($connectionFactoryReference, DbalDeadLetterBuilder::DELETE_CHANNEL)
+                    DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::DELETE_CHANNEL)
                 )
             );
     }

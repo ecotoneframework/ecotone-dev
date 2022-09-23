@@ -103,10 +103,19 @@ class DbalDeadLetter
             ->fetchOne();
     }
 
-    public function reply(string $messageId, MessagingEntrypoint $messagingEntrypoint): void
+    public function reply(string|array $messageId, MessagingEntrypoint $messagingEntrypoint): void
     {
         $this->initialize();
-        $this->replyWithoutInitialization($messageId, $messagingEntrypoint);
+
+        if (is_string($messageId)) {
+            $this->replyWithoutInitialization($messageId, $messagingEntrypoint);
+
+            return;
+        }
+
+        foreach ($messageId as $id) {
+            $this->replyWithoutInitialization($id, $messagingEntrypoint);
+        }
     }
 
     public function replyAll(MessagingEntrypoint $messagingEntrypoint): void
@@ -119,14 +128,19 @@ class DbalDeadLetter
         }
     }
 
-    public function delete(string $messageId): void
+    public function delete(string|array $messageId): void
     {
         $this->initialize();
-        $this->getConnection()->createQueryBuilder()
-            ->delete($this->getTableName())
-            ->andWhere('message_id = :messageId')
-            ->setParameter('messageId', $messageId, Types::TEXT)
-            ->executeStatement();
+
+        if (is_string($messageId)) {
+            $this->deleteGivenMessage($messageId);
+
+            return;
+        }
+
+        foreach ($messageId as $id) {
+            $this->deleteGivenMessage($id);
+        }
     }
 
     public function store(Message $message): void
@@ -256,5 +270,14 @@ class DbalDeadLetter
 
         $messagingEntrypoint->sendMessage($message);
         $this->delete($messageId);
+    }
+
+    private function deleteGivenMessage(array|string $messageId): void
+    {
+        $this->getConnection()->createQueryBuilder()
+            ->delete($this->getTableName())
+            ->andWhere('message_id = :messageId')
+            ->setParameter('messageId', $messageId, Types::TEXT)
+            ->executeStatement();
     }
 }

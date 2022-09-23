@@ -16,9 +16,9 @@ interface DeadLetterGateway
 
     public function count(): int;
 
-    public function reply(string $messageId): void;
+    public function reply(string|array $messageId): void;
 
     public function replyAll(): void;
 
-    public function delete(string $messageId): void;
+    public function delete(string|array $messageId): void;
 }

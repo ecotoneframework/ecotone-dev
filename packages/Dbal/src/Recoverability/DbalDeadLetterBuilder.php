@@ -44,17 +44,17 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         $this->inputMessageChannelName = $inputChannelName;
     }
 
-    public static function getChannelName(string $connectionReferenceName, string $actionChannel): string
+    public static function getChannelName(string $referenceName, string $actionChannel): string
     {
-        return $connectionReferenceName . '.' . $actionChannel;
+        return $referenceName . '.' . $actionChannel;
     }
 
-    public static function createList(string $connectionReferenceName): self
+    public static function createList(string $referenceName, string $connectionReferenceName): self
     {
         return new self(
             'list',
             $connectionReferenceName,
-            self::getChannelName($connectionReferenceName, self::LIST_CHANNEL),
+            self::getChannelName($referenceName, self::LIST_CHANNEL),
             [
                 HeaderBuilder::create('limit', self::LIMIT_HEADER),
                 HeaderBuilder::create('offset', self::OFFSET_HEADER),
@@ -62,12 +62,12 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         );
     }
 
-    public static function createShow(string $connectionReferenceName): self
+    public static function createShow(string $referenceName, string $connectionReferenceName): self
     {
         return new self(
             'show',
             $connectionReferenceName,
-            self::getChannelName($connectionReferenceName, self::SHOW_CHANNEL),
+            self::getChannelName($referenceName, self::SHOW_CHANNEL),
             [
                 PayloadBuilder::create('messageId'),
                 HeaderBuilder::createOptional('replyChannel', MessageHeaders::REPLY_CHANNEL),
@@ -75,44 +75,44 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         );
     }
 
-    public static function createCount(string $connectionReferenceName): self
+    public static function createCount(string $referenceName, string $connectionReferenceName): self
     {
         return new self(
             'count',
             $connectionReferenceName,
-            self::getChannelName($connectionReferenceName, self::COUNT_CHANNEL),
+            self::getChannelName($referenceName, self::COUNT_CHANNEL),
             []
         );
     }
 
-    public static function createReply(string $connectionReferenceName): self
+    public static function createReply(string $referenceName, string $connectionReferenceName): self
     {
         return new self(
             'reply',
             $connectionReferenceName,
-            self::getChannelName($connectionReferenceName, self::REPLAY_CHANNEL),
+            self::getChannelName($referenceName, self::REPLAY_CHANNEL),
             []
         );
     }
 
-    public static function createReplyAll(string $connectionReferenceName): self
+    public static function createReplyAll(string $referenceName, string $connectionReferenceName): self
     {
         return new self(
             'replyAll',
             $connectionReferenceName,
-            self::getChannelName($connectionReferenceName, self::REPLAY_ALL_CHANNEL),
+            self::getChannelName($referenceName, self::REPLAY_ALL_CHANNEL),
             [
                 ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypoint::class),
             ]
         );
     }
 
-    public static function createDelete(string $connectionReferenceName): self
+    public static function createDelete(string $referenceName, string $connectionReferenceName): self
     {
         return new self(
             'delete',
             $connectionReferenceName,
-            self::getChannelName($connectionReferenceName, self::DELETE_CHANNEL),
+            self::getChannelName($referenceName, self::DELETE_CHANNEL),
             []
         );
     }

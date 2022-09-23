@@ -64,6 +64,40 @@ Feature: activating as aggregate order entity
     When I call pollable endpoint "orderService"
     And there should be 1 orders
 
+  Scenario: Application exception handling replaying multiple dead messages
+    Given I active messaging for namespaces
+      | Test\Ecotone\Dbal\Fixture\DeadLetter\Example             |
+      | Test\Ecotone\Dbal\Fixture\DeadLetter\DeadLetterRightAway |
+    When I order "coffee"
+    And I call pollable endpoint "orderService"
+    And I call pollable endpoint "orderService"
+    And I order "coffee"
+    And I call pollable endpoint "orderService"
+    And I call pollable endpoint "orderService"
+    And there should 2 error message in dead letter
+    When all error messages are replied using message ids
+    Then there should 0 error message in dead letter
+    When I call pollable endpoint "orderService"
+    And I call pollable endpoint "orderService"
+    And there should be 2 orders
+
+  Scenario: Application exception handling deleting multiple dead messages
+    Given I active messaging for namespaces
+      | Test\Ecotone\Dbal\Fixture\DeadLetter\Example             |
+      | Test\Ecotone\Dbal\Fixture\DeadLetter\DeadLetterRightAway |
+    When I order "coffee"
+    And I call pollable endpoint "orderService"
+    And I call pollable endpoint "orderService"
+    And I order "coffee"
+    And I call pollable endpoint "orderService"
+    And I call pollable endpoint "orderService"
+    And there should 2 error message in dead letter
+    When all error messages are deleted using message ids
+    Then there should 0 error message in dead letter
+    When I call pollable endpoint "orderService"
+    And I call pollable endpoint "orderService"
+    And there should be 0 orders
+
   Scenario: Provide support for ORM
     Given I active messaging for namespace "Test\Ecotone\Dbal\Fixture\ORM"
     When I register person with id 100 and name "Johny"

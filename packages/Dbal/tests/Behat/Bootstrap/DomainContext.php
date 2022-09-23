@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Behat\Bootstrap;
 
+use Behat\Behat\Tester\Exception\PendingException;
 use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\TableNode;
 use Doctrine\ORM\EntityManager;
@@ -16,6 +17,7 @@ use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Modelling\CommandBus;
@@ -193,6 +195,28 @@ class DomainContext extends TestCase implements Context
         $gateway = self::$messagingSystem->getGatewayByName(DeadLetterGateway::class);
 
         $gateway->replyAll();
+    }
+
+    /**
+     * @When all error messages are replied using message ids
+     */
+    public function allErrorMessagesAreRepliedUsingMessageIds()
+    {
+        /** @var DeadLetterGateway $gateway */
+        $gateway = self::$messagingSystem->getGatewayByName(DeadLetterGateway::class);
+
+        $gateway->reply(array_map(fn(ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
+    }
+
+    /**
+     * @When all error messages are deleted using message ids
+     */
+    public function allErrorMessagesAreDeletedUsingMessageIds()
+    {
+        /** @var DeadLetterGateway $gateway */
+        $gateway = self::$messagingSystem->getGatewayByName(DeadLetterGateway::class);
+
+        $gateway->delete(array_map(fn(ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
     /**

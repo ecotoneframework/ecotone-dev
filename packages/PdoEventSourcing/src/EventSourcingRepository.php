@@ -109,6 +109,7 @@ class EventSourcingRepository implements EventSourcedRepository
         $aggregateType = $this->getAggregateType($aggregateClassName);
         $metadata = OutboundMessageConverter::unsetEnqueueMetadata($metadata);
         $metadata = DistributedMetadata::unsetDistributionKeys($metadata);
+        $metadata = MessageHeaders::unsetAsyncKeys($metadata);
 
         $eventsWithMetadata = [];
         $eventsCount = count($events);

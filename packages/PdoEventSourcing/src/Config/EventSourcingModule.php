@@ -281,14 +281,21 @@ class EventSourcingModule extends NoExternalConfigurationModule
             if (array_key_exists($projectionSetupConfiguration->getProjectionName(), $projectionRunningConfigurations)) {
                 $projectionRunningConfiguration = $projectionRunningConfigurations[$projectionSetupConfiguration->getProjectionName()];
             }
+
             $projectionSetupConfiguration = $projectionSetupConfiguration
-                                    ->withOptions([
-                                        ReadModelProjector::OPTION_CACHE_SIZE => $projectionRunningConfiguration->getAmountOfCachedStreamNames(),
-                                        ReadModelProjector::OPTION_SLEEP => $projectionRunningConfiguration->getWaitBeforeCallingESWhenNoEventsFound(),
-                                        ReadModelProjector::OPTION_PERSIST_BLOCK_SIZE => $projectionRunningConfiguration->getPersistChangesAfterAmountOfOperations(),
-                                        ReadModelProjector::OPTION_LOCK_TIMEOUT_MS => $projectionRunningConfiguration->getProjectionLockTimeout(),
-                                        ReadModelProjector::DEFAULT_UPDATE_LOCK_THRESHOLD => $projectionRunningConfiguration->getUpdateLockTimeoutAfter(),
-                                    ]);
+                ->withOptions(
+                    array_merge(
+                        [
+                            ReadModelProjector::OPTION_CACHE_SIZE => $projectionRunningConfiguration->getAmountOfCachedStreamNames(),
+                            ReadModelProjector::OPTION_SLEEP => $projectionRunningConfiguration->getWaitBeforeCallingESWhenNoEventsFound(),
+                            ReadModelProjector::OPTION_PERSIST_BLOCK_SIZE => $projectionRunningConfiguration->getPersistChangesAfterAmountOfOperations(),
+                            ReadModelProjector::OPTION_LOCK_TIMEOUT_MS => $projectionRunningConfiguration->getProjectionLockTimeout(),
+                            ReadModelProjector::OPTION_UPDATE_LOCK_THRESHOLD => $projectionRunningConfiguration->getUpdateLockTimeoutAfter(),
+                        ],
+                        $projectionSetupConfiguration->getProjectionOptions()
+                    )
+                )
+            ;
 
             $projectionExecutorBuilder = new ProjectionExecutorBuilder($eventSourcingConfiguration, $projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'execute');
             $projectionExecutorBuilder = $projectionExecutorBuilder->withInputChannelName($generatedChannelName);

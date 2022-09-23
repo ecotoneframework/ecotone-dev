@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\Dbal\Behat\Bootstrap;
 
-use Behat\Behat\Tester\Exception\PendingException;
 use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\TableNode;
 use Doctrine\ORM\EntityManager;
@@ -205,7 +204,7 @@ class DomainContext extends TestCase implements Context
         /** @var DeadLetterGateway $gateway */
         $gateway = self::$messagingSystem->getGatewayByName(DeadLetterGateway::class);
 
-        $gateway->reply(array_map(fn(ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
+        $gateway->reply(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
     /**
@@ -216,7 +215,7 @@ class DomainContext extends TestCase implements Context
         /** @var DeadLetterGateway $gateway */
         $gateway = self::$messagingSystem->getGatewayByName(DeadLetterGateway::class);
 
-        $gateway->delete(array_map(fn(ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
+        $gateway->delete(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
     /**

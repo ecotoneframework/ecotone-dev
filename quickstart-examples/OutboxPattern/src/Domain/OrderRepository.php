@@ -10,5 +10,5 @@ interface OrderRepository
     public function save(Order $order): void;
 
     #[Repository]
-    public function findBy(string $orderId): Order;
+    public function findBy(string $orderId): ?Order;
 }

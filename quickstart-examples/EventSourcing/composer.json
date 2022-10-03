@@ -12,11 +12,6 @@
             "App\\EventSourcing\\": "src"
         }
     },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\App\\EventSourcing\\": "tests"
-        }
-    },
     "require": {
         "ecotone/lite-event-sourcing-starter": "^1.0"
     },

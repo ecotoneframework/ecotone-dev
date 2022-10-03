@@ -17,22 +17,18 @@ final class ProjectionSetupConfiguration
 
     private function __construct(
         private string $projectionName,
-        array $projectionOptions,
         private ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration,
         private string $eventStoreReferenceName,
         private ProjectionStreamSource $projectionStreamSource
     ) {
-        $this->projectionOptions = array_merge(
-            $projectionOptions,
-            [
-                PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(),
-            ]
-        );
+        $this->projectionOptions = [
+            PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(),
+        ];
     }
 
-    public static function create(string $projectionName, array $projectionOptions, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource): static
+    public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource): static
     {
-        return new static($projectionName, $projectionOptions, $projectionLifeCycleConfiguration, $eventStoreReferenceName,$projectionStreamSource);
+        return new static($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource);
     }
 
     public function withKeepingStateBetweenEvents(bool $keepState): static

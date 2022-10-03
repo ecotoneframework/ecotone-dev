@@ -40,7 +40,8 @@ class AmqpTransactionConfiguration implements AnnotationModule
     {
         $connectionFactories = [AmqpConnectionFactory::class];
         $pointcut = AmqpTransaction::class;
-        $amqpConfiguration = ExtensionObjectResolver::resolveUnique(AmqpConfiguration::class, $extensionObjects, AmqpConfiguration::createWithDefaults());;
+        $amqpConfiguration = ExtensionObjectResolver::resolveUnique(AmqpConfiguration::class, $extensionObjects, AmqpConfiguration::createWithDefaults());
+        ;
 
         $isTransactionWrapperEnabled = false;
         if ($amqpConfiguration->isTransactionOnAsynchronousEndpoints()) {

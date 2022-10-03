@@ -267,7 +267,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $configuration->requireReferences($this->requiredReferences);
 
         $projectionRunningConfigurations = [];
-        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());;
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
+        ;
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof ProjectionRunningConfiguration) {
                 $projectionRunningConfigurations[$extensionObject->getProjectionName()] = $extensionObject;

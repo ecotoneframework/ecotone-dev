@@ -15,7 +15,6 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 #[ModuleAnnotation]
 class DbalDeadLetterModule implements AnnotationModule

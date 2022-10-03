@@ -7,6 +7,7 @@ use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Configuration\DbalModule;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -33,7 +34,7 @@ class DbalDocumentStoreModule implements AnnotationModule
      */
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $dbalConfiguration = $this->getDbalConfiguration($extensionObjects);
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
         if (! $dbalConfiguration->isEnableDbalDocumentStore()) {
             return;
@@ -199,7 +200,7 @@ class DbalDocumentStoreModule implements AnnotationModule
 
     public function getModuleExtensions(array $serviceExtensions): array
     {
-        $dbalConfiguration = $this->getDbalConfiguration($serviceExtensions);
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
 
         if ($dbalConfiguration->isEnableDocumentStoreAggregateRepository()) {
             return [new DocumentStoreAggregateRepositoryBuilder($dbalConfiguration->getDbalDocumentStoreReference())];
@@ -214,17 +215,6 @@ class DbalDocumentStoreModule implements AnnotationModule
     public function getRelatedReferences(): array
     {
         return [];
-    }
-
-    private function getDbalConfiguration(array $extensionObjects): DbalConfiguration
-    {
-        $dbalConfiguration = DbalConfiguration::createWithDefaults();
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof DbalConfiguration) {
-                $dbalConfiguration = $extensionObject;
-            }
-        }
-        return $dbalConfiguration;
     }
 
     public function getModulePackageName(): string

@@ -9,6 +9,7 @@ use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -40,12 +41,7 @@ class DbalTransactionModule implements AnnotationModule
         $connectionFactories = [DbalConnectionFactory::class];
         $pointcut            = '(' . DbalTransaction::class . ')';
 
-        $dbalConfiguration = DbalConfiguration::createWithDefaults();
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof DbalConfiguration) {
-                $dbalConfiguration = $extensionObject;
-            }
-        }
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
         if ($dbalConfiguration->isTransactionOnAsynchronousEndpoints()) {
             $pointcut .= '||(' . AsynchronousRunningEndpoint::class . ')';

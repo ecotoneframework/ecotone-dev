@@ -5,9 +5,11 @@ namespace Ecotone\Amqp\Publisher;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Amqp\Configuration\AmqpModule;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -39,21 +41,9 @@ class AmqpPublisherModule implements AnnotationModule
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $registeredReferences = [];
-        /** @var ServiceConfiguration $applicationConfiguration */
-        $applicationConfiguration = null;
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof ServiceConfiguration) {
-                $applicationConfiguration = $extensionObject;
-                break;
-            }
-        }
+        $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());;
 
-        /** @var AmqpMessagePublisherConfiguration $amqpPublisher */
-        foreach ($extensionObjects as $amqpPublisher) {
-            if (! ($amqpPublisher instanceof AmqpMessagePublisherConfiguration)) {
-                continue;
-            }
-
+        foreach (ExtensionObjectResolver::resolve(AmqpMessagePublisherConfiguration::class, $extensionObjects) as $amqpPublisher) {
             if (in_array($amqpPublisher->getReferenceName(), $registeredReferences)) {
                 throw ConfigurationException::create("Registering two publishers under same reference name {$amqpPublisher->getReferenceName()}. You need to create publisher with specific reference using `createWithReferenceName`.");
             }

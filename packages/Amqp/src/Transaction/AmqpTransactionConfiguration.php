@@ -9,6 +9,7 @@ use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -39,12 +40,7 @@ class AmqpTransactionConfiguration implements AnnotationModule
     {
         $connectionFactories = [AmqpConnectionFactory::class];
         $pointcut = AmqpTransaction::class;
-        $amqpConfiguration = AmqpConfiguration::createWithDefaults();
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof AmqpConfiguration) {
-                $amqpConfiguration = $extensionObject;
-            }
-        }
+        $amqpConfiguration = ExtensionObjectResolver::resolveUnique(AmqpConfiguration::class, $extensionObjects, AmqpConfiguration::createWithDefaults());;
 
         $isTransactionWrapperEnabled = false;
         if ($amqpConfiguration->isTransactionOnAsynchronousEndpoints()) {

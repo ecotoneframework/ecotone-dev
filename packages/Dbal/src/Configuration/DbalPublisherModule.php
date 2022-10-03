@@ -6,6 +6,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -37,21 +38,9 @@ class DbalPublisherModule implements AnnotationModule
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $registeredReferences = [];
-        /** @var ServiceConfiguration $applicationConfiguration */
-        $applicationConfiguration = null;
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof ServiceConfiguration) {
-                $applicationConfiguration = $extensionObject;
-                break;
-            }
-        }
+        $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
-        /** @var DbalMessagePublisherConfiguration $dbalPublisher */
-        foreach ($extensionObjects as $dbalPublisher) {
-            if (! ($dbalPublisher instanceof DbalMessagePublisherConfiguration)) {
-                return;
-            }
-
+        foreach (ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $extensionObjects) as $dbalPublisher) {
             if (in_array($dbalPublisher->getReferenceName(), $registeredReferences)) {
                 throw ConfigurationException::create("Registering two publishers under same reference name {$dbalPublisher->getReferenceName()}. You need to create publisher with specific reference using `createWithReferenceName`.");
             }

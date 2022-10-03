@@ -10,6 +10,7 @@ use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -41,7 +42,7 @@ class ObjectManagerModule implements AnnotationModule
         $connectionFactories = [DbalConnectionFactory::class];
         $pointcut            = '(' . DbalTransaction::class . ')';
 
-        $dbalConfiguration = $this->getDbalConfiguration($extensionObjects);
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
         if ($dbalConfiguration->isTransactionOnCommandBus()) {
             $pointcut .= '||(' . CommandBus::class . ')';
@@ -79,7 +80,7 @@ class ObjectManagerModule implements AnnotationModule
 
     public function getModuleExtensions(array $serviceExtensions): array
     {
-        $dbalConfiguration = $this->getDbalConfiguration($serviceExtensions);
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
         $repositories = [];
 
         if ($dbalConfiguration->isDoctrineORMRepositoriesEnabled()) {
@@ -95,21 +96,6 @@ class ObjectManagerModule implements AnnotationModule
     public function getRelatedReferences(): array
     {
         return [];
-    }
-
-    /**
-     * @param array $extensionObjects
-     * @return DbalConfiguration
-     */
-    private function getDbalConfiguration(array $extensionObjects): DbalConfiguration
-    {
-        $dbalConfiguration = DbalConfiguration::createWithDefaults();
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof DbalConfiguration) {
-                $dbalConfiguration = $extensionObject;
-            }
-        }
-        return $dbalConfiguration;
     }
 
     public function getModulePackageName(): string

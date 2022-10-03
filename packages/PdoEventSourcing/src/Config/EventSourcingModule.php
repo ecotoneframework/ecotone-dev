@@ -30,6 +30,7 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
@@ -266,11 +267,9 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $configuration->requireReferences($this->requiredReferences);
 
         $projectionRunningConfigurations = [];
-        $eventSourcingConfiguration = EventSourcingConfiguration::createWithDefaults();
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());;
         foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof EventSourcingConfiguration) {
-                $eventSourcingConfiguration = $extensionObject;
-            } elseif ($extensionObject instanceof ProjectionRunningConfiguration) {
+            if ($extensionObject instanceof ProjectionRunningConfiguration) {
                 $projectionRunningConfigurations[$extensionObject->getProjectionName()] = $extensionObject;
             }
         }

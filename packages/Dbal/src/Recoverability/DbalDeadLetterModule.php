@@ -9,6 +9,7 @@ use Ecotone\Dbal\Configuration\DbalModule;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -39,22 +40,10 @@ class DbalDeadLetterModule implements AnnotationModule
      */
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $isDeadLetterEnabled = DbalConfiguration::createWithDefaults()->isDeadLetterEnabled();
-        $connectionFactoryReference     = DbalConnectionFactory::class;
-        $customDeadLetterGateways = [];
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof CustomDeadLetterGateway) {
-                $customDeadLetterGateways[] = $extensionObject;
-            }
-            if ($extensionObject instanceof DbalConfiguration) {
-                if (! $extensionObject->isDeadLetterEnabled()) {
-                    return;
-                }
-
-                $connectionFactoryReference     = $extensionObject->getDeadLetterConnectionReference();
-                $isDeadLetterEnabled = true;
-            }
-        }
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $isDeadLetterEnabled = $dbalConfiguration->isDeadLetterEnabled();
+        $customDeadLetterGateways = ExtensionObjectResolver::resolve(CustomDeadLetterGateway::class, $extensionObjects);
+        $connectionFactoryReference     = $dbalConfiguration->getDeadLetterConnectionReference();
 
         if (! $isDeadLetterEnabled) {
             return;

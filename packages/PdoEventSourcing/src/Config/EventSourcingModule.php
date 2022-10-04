@@ -536,7 +536,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $configuration->registerGatewayBuilder(
             GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'linkTo', $routerHandler->getInputMessageChannelName())
                 ->withEndpointAnnotations([new PropagateHeaders()])
-                ->withParameterConverters([GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents')],)
+                ->withParameterConverters([GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents')], )
         );
 
         $streamNameMapperChannel = Uuid::uuid4()->toString();

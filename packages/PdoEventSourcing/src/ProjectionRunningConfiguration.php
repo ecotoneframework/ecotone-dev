@@ -2,6 +2,8 @@
 
 namespace Ecotone\EventSourcing;
 
+use InvalidArgumentException;
+
 class ProjectionRunningConfiguration
 {
     private const EVENT_DRIVEN = 'event-driven';
@@ -97,7 +99,7 @@ class ProjectionRunningConfiguration
 
     public function getOption(string $key): mixed
     {
-        return array_key_exists($key, $this->options) ? $this->options[$key] : throw new \InvalidArgumentException(sprintf('Option %s do not exists. Did you forget to set it with %s', $key, self::class));
+        return array_key_exists($key, $this->options) ? $this->options[$key] : throw new InvalidArgumentException(sprintf('Option %s do not exists. Did you forget to set it with %s', $key, self::class));
     }
 
     /**

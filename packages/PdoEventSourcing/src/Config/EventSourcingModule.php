@@ -60,8 +60,6 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\BusModule;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
-use Prooph\EventStore\Pdo\Projection\PdoEventStoreReadModelProjector;
-use Prooph\EventStore\Projection\ReadModelProjector;
 use Ramsey\Uuid\Uuid;
 
 #[ModuleAnnotation]
@@ -283,15 +281,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionSetupConfiguration = $projectionSetupConfiguration
                 ->withOptions(
                     array_merge(
-                        [
-                            ReadModelProjector::OPTION_CACHE_SIZE => $projectionRunningConfiguration->getOption($projectionRunningConfiguration::OPTION_AMOUNT_OF_CACHED_STREAM_NAMES),
-                            ReadModelProjector::OPTION_SLEEP => $projectionRunningConfiguration->getOption($projectionRunningConfiguration::OPTION_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND),
-                            ReadModelProjector::OPTION_PERSIST_BLOCK_SIZE => $projectionRunningConfiguration->getOption($projectionRunningConfiguration::OPTION_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS),
-                            ReadModelProjector::OPTION_LOCK_TIMEOUT_MS => $projectionRunningConfiguration->getOption($projectionRunningConfiguration::OPTION_PROJECTION_LOCK_TIMEOUT),
-                            ReadModelProjector::OPTION_UPDATE_LOCK_THRESHOLD => $projectionRunningConfiguration->getOption($projectionRunningConfiguration::OPTION_UPDATE_LOCK_TIMEOUT_AFTER),
-                            PdoEventStoreReadModelProjector::OPTION_LOAD_COUNT => $projectionRunningConfiguration->getOption($projectionRunningConfiguration::OPTION_LOAD_COUNT),
-                        ],
-                        $projectionSetupConfiguration->getProjectionOptions()
+                        $projectionSetupConfiguration->getProjectionOptions(),
+                        $projectionRunningConfiguration->getOptions()
                     )
                 )
             ;

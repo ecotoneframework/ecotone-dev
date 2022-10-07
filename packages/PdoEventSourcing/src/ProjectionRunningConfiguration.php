@@ -12,28 +12,29 @@ class ProjectionRunningConfiguration
     public const OPTION_INITIALIZE_ON_STARTUP = 'initializeOnStartup';
     public const DEFAULT_INITIALIZE_ON_STARTUP = true;
 
-    public const OPTION_AMOUNT_OF_CACHED_STREAM_NAMES = 'amountOfCachedStreamNames';
+    public const OPTION_AMOUNT_OF_CACHED_STREAM_NAMES = 'cache_size';
     public const DEFAULT_AMOUNT_OF_CACHED_STREAM_NAMES = 1000;
 
-    public const OPTION_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 'waitBeforeCallingESWhenNoEventsFound';
+    public const OPTION_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 'sleep';
     public const DEFAULT_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 10000;
 
-    public const OPTION_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 'persistChangesAfterAmountOfOperations';
+    public const OPTION_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 'persist_block_size';
     public const DEFAULT_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 1;
 
-    public const OPTION_PROJECTION_LOCK_TIMEOUT = 'projectionLockTimeout';
+    public const OPTION_PROJECTION_LOCK_TIMEOUT = 'lock_timeout_ms';
     public const DEFAULT_PROJECTION_LOCK_TIMEOUT = 1000;
 
-    public const OPTION_UPDATE_LOCK_TIMEOUT_AFTER = 'updateLockTimeoutAfter';
+    public const OPTION_UPDATE_LOCK_TIMEOUT_AFTER = 'update_lock_threshold';
     public const DEFAULT_UPDATE_LOCK_TIMEOUT_AFTER = 0;
 
-    public const OPTION_LOAD_COUNT = 'loadCount';
+    public const OPTION_LOAD_COUNT = 'load_count';
     public const DEFAULT_LOAD_COUNT = null;
 
     public const OPTION_IS_TESTING_SETUP = 'isTestingSetup';
     public const DEFAULT_IS_TESTING_SETUP = false;
 
     private array $options;
+    private bool $isTestingSetup = false;
 
     private function __construct(
         private string $projectionName,
@@ -74,6 +75,11 @@ class ProjectionRunningConfiguration
     public function isEventDriven(): bool
     {
         return $this->runningType === self::EVENT_DRIVEN;
+    }
+
+    public function isTestingSetup(): bool
+    {
+        return $this->isTestingSetup;
     }
 
     public function withOption(string $key, mixed $value): static
@@ -158,11 +164,6 @@ class ProjectionRunningConfiguration
         return $this->getOption(self::OPTION_LOAD_COUNT) !== null ? (int) $this->getOption(self::OPTION_LOAD_COUNT) : null;
     }
 
-    public function isTestingSetup(): bool
-    {
-        return (bool) $this->getOption(self::OPTION_IS_TESTING_SETUP);
-    }
-
     /**
      * @deprecated use self::withOptions or self::withOption(self::OPTION_INITIALIZE_ON_STARTUP, $value) instead
      */
@@ -219,12 +220,15 @@ class ProjectionRunningConfiguration
 
     public function withTestingSetup(): static
     {
-        return $this
+        $self = $this
             ->withOption(self::OPTION_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND, 0)
             ->withOption(self::OPTION_INITIALIZE_ON_STARTUP, true)
             ->withOption(self::OPTION_PROJECTION_LOCK_TIMEOUT, 0)
             ->withOption(self::OPTION_UPDATE_LOCK_TIMEOUT_AFTER, 0)
-            ->withOption(self::OPTION_IS_TESTING_SETUP, true)
         ;
+
+        $self->isTestingSetup = true;
+
+        return $self;
     }
 }

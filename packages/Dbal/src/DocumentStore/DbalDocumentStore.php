@@ -51,12 +51,14 @@ final class DbalDocumentStore implements DocumentStore
                     'document_id' => $documentId,
                     'document_type' => $type->toString(),
                     'document' => $this->convertToJSONDocument($type, $document),
+                    'updated_at' => hrtime(true),
                 ],
                 [
                     'collection' => Types::STRING,
                     'document_id' => Types::STRING,
                     'document_type' => Types::STRING,
                     'document' => Types::TEXT,
+                    'updated_at' => Types::FLOAT,
                 ]
             );
         } catch (DriverException $driverException) {
@@ -196,6 +198,7 @@ final class DbalDocumentStore implements DocumentStore
         $table->addColumn('document_id', Types::STRING);
         $table->addColumn('document_type', Types::TEXT);
         $table->addColumn('document', Types::JSON);
+        $table->addColumn('updated_at', Types::FLOAT, ["length"=>53]);
 
         $table->setPrimaryKey(['collection', 'document_id']);
 
@@ -246,6 +249,7 @@ final class DbalDocumentStore implements DocumentStore
                 [
                     'document_type' => $type->toString(),
                     'document' => $this->convertToJSONDocument($type, $document),
+                    'updated_at' => hrtime(true),
                 ],
                 [
                     'document_id' => $documentId,
@@ -256,6 +260,7 @@ final class DbalDocumentStore implements DocumentStore
                     'document_id' => Types::STRING,
                     'document_type' => Types::STRING,
                     'document' => Types::STRING,
+                    'updated_at' => Types::FLOAT,
                 ]
             );
         } catch (DriverException $driverException) {

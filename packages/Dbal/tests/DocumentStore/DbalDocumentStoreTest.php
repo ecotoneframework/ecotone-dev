@@ -59,6 +59,18 @@ final class DbalDocumentStoreTest extends DbalMessagingTest
         $this->assertJsons('{"name":"Franco"}', $documentStore->getDocument('users', '123'));
     }
 
+    public function test_updating_document_with_same_content()
+    {
+        $documentStore = $this->getDocumentStore();
+
+        $this->assertEquals(0, $documentStore->countDocuments('users'));
+
+        $documentStore->addDocument('users', '123', '{"name":"Johny"}');
+        $documentStore->updateDocument('users', '123', '{"name":"Johny"}');
+
+        $this->assertJsons('{"name":"Johny"}', $documentStore->getDocument('users', '123'));
+    }
+
     public function test_adding_document_as_object_should_return_object()
     {
         $documentStore = new DbalDocumentStore(

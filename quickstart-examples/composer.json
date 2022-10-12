@@ -29,7 +29,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.45-dev"
+            "dev-main": "1.46-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"

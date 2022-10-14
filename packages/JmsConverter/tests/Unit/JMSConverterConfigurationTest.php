@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\JMSConverter\Unit;
 
+use ArrayObject;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
@@ -60,17 +61,17 @@ class JMSConverterConfigurationTest extends TestCase
                                 'convertTo'
                             ),
                             JMSHandlerAdapter::createWithDirectObject(
-                                TypeDescriptor::create(\ArrayObject::class),
+                                TypeDescriptor::create(ArrayObject::class),
                                 TypeDescriptor::createArrayType(),
                                 new ArrayObjectConverter(),
-                                "from"
+                                'from'
                             ),
                             JMSHandlerAdapter::createWithDirectObject(
                                 TypeDescriptor::createArrayType(),
-                                TypeDescriptor::create(\ArrayObject::class),
+                                TypeDescriptor::create(ArrayObject::class),
                                 new ArrayObjectConverter(),
-                                "to"
-                            )
+                                'to'
+                            ),
                         ],
                         JMSConverterConfiguration::createWithDefaults(),
                         null
@@ -132,17 +133,17 @@ class JMSConverterConfigurationTest extends TestCase
                                 'convertTo'
                             ),
                             JMSHandlerAdapter::createWithDirectObject(
-                                TypeDescriptor::create(\ArrayObject::class),
+                                TypeDescriptor::create(ArrayObject::class),
                                 TypeDescriptor::createArrayType(),
                                 new ArrayObjectConverter(),
-                                "from"
+                                'from'
                             ),
                             JMSHandlerAdapter::createWithDirectObject(
                                 TypeDescriptor::createArrayType(),
-                                TypeDescriptor::create(\ArrayObject::class),
+                                TypeDescriptor::create(ArrayObject::class),
                                 new ArrayObjectConverter(),
-                                "to"
-                            )
+                                'to'
+                            ),
                         ],
                         JMSConverterConfiguration::createWithDefaults(),
                         null
@@ -186,17 +187,17 @@ class JMSConverterConfigurationTest extends TestCase
             MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
                 ->registerConverter(new JMSConverterBuilder([
                     JMSHandlerAdapter::createWithDirectObject(
-                        TypeDescriptor::create(\ArrayObject::class),
+                        TypeDescriptor::create(ArrayObject::class),
                         TypeDescriptor::createArrayType(),
                         new ArrayObjectConverter(),
-                        "from"
+                        'from'
                     ),
                     JMSHandlerAdapter::createWithDirectObject(
                         TypeDescriptor::createArrayType(),
-                        TypeDescriptor::create(\ArrayObject::class),
+                        TypeDescriptor::create(ArrayObject::class),
                         new ArrayObjectConverter(),
-                        "to"
-                    )
+                        'to'
+                    ),
                 ], JMSConverterConfiguration::createWithDefaults(), '/tmp')),
             $configuration,
         );
@@ -264,17 +265,17 @@ class JMSConverterConfigurationTest extends TestCase
                                 'convertTo'
                             ),
                             JMSHandlerAdapter::createWithDirectObject(
-                                TypeDescriptor::create(\ArrayObject::class),
+                                TypeDescriptor::create(ArrayObject::class),
                                 TypeDescriptor::createArrayType(),
                                 new ArrayObjectConverter(),
-                                "from"
+                                'from'
                             ),
                             JMSHandlerAdapter::createWithDirectObject(
                                 TypeDescriptor::createArrayType(),
-                                TypeDescriptor::create(\ArrayObject::class),
+                                TypeDescriptor::create(ArrayObject::class),
                                 new ArrayObjectConverter(),
-                                "to"
-                            )
+                                'to'
+                            ),
                         ],
                         JMSConverterConfiguration::createWithDefaults(),
                         null
@@ -304,17 +305,17 @@ class JMSConverterConfigurationTest extends TestCase
     {
         return new JMSConverterBuilder([
             JMSHandlerAdapter::createWithDirectObject(
-                TypeDescriptor::create(\ArrayObject::class),
+                TypeDescriptor::create(ArrayObject::class),
                 TypeDescriptor::createArrayType(),
                 new ArrayObjectConverter(),
-                "from"
+                'from'
             ),
             JMSHandlerAdapter::createWithDirectObject(
                 TypeDescriptor::createArrayType(),
-                TypeDescriptor::create(\ArrayObject::class),
+                TypeDescriptor::create(ArrayObject::class),
                 new ArrayObjectConverter(),
-                "to"
-            )
+                'to'
+            ),
         ], JMSConverterConfiguration::createWithDefaults(), null);
     }
 }

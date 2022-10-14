@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\JMSConverter\Unit;
 
+use ArrayObject;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
@@ -72,29 +73,29 @@ class JMSConverterTest extends TestCase
 
     public function test_converting_with_mixed_scalar_array_type()
     {
-        $toSerialize = new PropertyWithMixedArrayType(new \ArrayObject([
-            "name" => "Franco",
-            "age" => 13,
-            "passport" => [
-                "id" => 123,
-                "valid" => "2022-01-01"
-            ]
+        $toSerialize = new PropertyWithMixedArrayType(new ArrayObject([
+            'name' => 'Franco',
+            'age' => 13,
+            'passport' => [
+                'id' => 123,
+                'valid' => '2022-01-01',
+            ],
         ]));
         $expectedSerializationString = '{"data":{"name":"Franco","age":13,"passport":{"id":123,"valid":"2022-01-01"}}}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
             JMSHandlerAdapter::createWithDirectObject(
-                TypeDescriptor::create(\ArrayObject::class),
+                TypeDescriptor::create(ArrayObject::class),
                 TypeDescriptor::createArrayType(),
                 new ArrayObjectConverter(),
-                "from"
+                'from'
             ),
             JMSHandlerAdapter::createWithDirectObject(
                 TypeDescriptor::createArrayType(),
-                TypeDescriptor::create(\ArrayObject::class),
+                TypeDescriptor::create(ArrayObject::class),
                 new ArrayObjectConverter(),
-                "to"
-            )
+                'to'
+            ),
         ]);
     }
 

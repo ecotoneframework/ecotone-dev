@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\JMSConverter\Unit;
 
+use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
@@ -23,6 +24,7 @@ use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PersonAbstractClass;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PersonInterface;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PropertiesWithDocblockTypes;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PropertyWithAnnotationMetadataDefined;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PropertyWithMixedArrayType;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PropertyWithNullUnionType;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PropertyWithTypeAndMetadataType;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PropertyWithUnionType;
@@ -67,6 +69,35 @@ class JMSConverterTest extends TestCase
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString);
     }
+
+    public function test_converting_with_mixed_scalar_array_type()
+    {
+        $toSerialize = new PropertyWithMixedArrayType(new \ArrayObject([
+            "name" => "Franco",
+            "age" => 13,
+            "passport" => [
+                "id" => 123,
+                "valid" => "2022-01-01"
+            ]
+        ]));
+        $expectedSerializationString = '{"data":{"name":"Franco","age":13,"passport":{"id":123,"valid":"2022-01-01"}}}';
+
+        $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
+            JMSHandlerAdapter::createWithDirectObject(
+                TypeDescriptor::create(\ArrayObject::class),
+                TypeDescriptor::createArrayType(),
+                new ArrayObjectConverter(),
+                "from"
+            ),
+            JMSHandlerAdapter::createWithDirectObject(
+                TypeDescriptor::createArrayType(),
+                TypeDescriptor::create(\ArrayObject::class),
+                new ArrayObjectConverter(),
+                "to"
+            )
+        ]);
+    }
+
 
     public function test_two_level_object_nesting()
     {

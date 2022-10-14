@@ -2,6 +2,7 @@
 
 namespace Ecotone\JMSConverter\Configuration;
 
+use ArrayObject;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
@@ -71,16 +72,16 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
         }
 
         $converters[] = JMSHandlerAdapter::createWithDirectObject(
-            TypeDescriptor::create(\ArrayObject::class),
+            TypeDescriptor::create(ArrayObject::class),
             TypeDescriptor::createArrayType(),
             new ArrayObjectConverter(),
-            "from"
+            'from'
         );
         $converters[] = JMSHandlerAdapter::createWithDirectObject(
             TypeDescriptor::createArrayType(),
-            TypeDescriptor::create(\ArrayObject::class),
+            TypeDescriptor::create(ArrayObject::class),
             new ArrayObjectConverter(),
-            "to"
+            'to'
         );
 
         return new self($converters);

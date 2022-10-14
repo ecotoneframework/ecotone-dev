@@ -3,6 +3,7 @@
 namespace Ecotone\JMSConverter\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\JMSConverter\JMSHandlerAdapter;
@@ -15,6 +16,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 
 #[ModuleAnnotation]
 class JMSConverterConfigurationModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -67,6 +69,19 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
                 }
             }
         }
+
+        $converters[] = JMSHandlerAdapter::createWithDirectObject(
+            TypeDescriptor::create(\ArrayObject::class),
+            TypeDescriptor::createArrayType(),
+            new ArrayObjectConverter(),
+            "from"
+        );
+        $converters[] = JMSHandlerAdapter::createWithDirectObject(
+            TypeDescriptor::createArrayType(),
+            TypeDescriptor::create(\ArrayObject::class),
+            new ArrayObjectConverter(),
+            "to"
+        );
 
         return new self($converters);
     }

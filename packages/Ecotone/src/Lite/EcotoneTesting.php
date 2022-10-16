@@ -45,7 +45,7 @@ final class EcotoneTesting
         GatewayAwareContainer|array $containerOrAvailableServices = [],
         ?ServiceConfiguration       $configuration = null,
         array                       $configurationVariables = [],
-        array                       $enableModules
+        array                       $enableModules = []
     ): ConfiguredMessagingSystem
     {
         if (!$configuration) {

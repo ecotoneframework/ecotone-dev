@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Lite;
 
 use Ecotone\Lite\EcotoneLiteConfiguration;
-use Ecotone\Lite\InMemoryPSRContainerInterfaceWithSet;
+use Ecotone\Lite\InMemoryPSRGatewayAwareContainer;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -25,15 +25,15 @@ class EcotoneLiteConfigurationTest extends TestCase
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
                                         ->withCacheDirectoryPath('/tmp/' . Uuid::uuid4()->toString())
                                         ->withSkippedModulePackageNames(['amqp', 'dbal', 'jmsConverter', 'eventSourcing']);
-        $configuration1 = EcotoneLiteConfiguration::createWithConfiguration(__DIR__ . '/../../', InMemoryPSRContainerInterfaceWithSet::createEmpty(), $applicationConfiguration, [], true);
-        $configuration2 = EcotoneLiteConfiguration::createWithConfiguration(__DIR__ . '/../../', InMemoryPSRContainerInterfaceWithSet::createEmpty(), $applicationConfiguration, [], true);
+        $configuration1 = EcotoneLiteConfiguration::createWithConfiguration(__DIR__ . '/../../', InMemoryPSRGatewayAwareContainer::createEmpty(), $applicationConfiguration, [], true);
+        $configuration2 = EcotoneLiteConfiguration::createWithConfiguration(__DIR__ . '/../../', InMemoryPSRGatewayAwareContainer::createEmpty(), $applicationConfiguration, [], true);
 
         $this->assertEquals($configuration1, $configuration2);
     }
 
     public function test_registering_with_gateway_aware_container()
     {
-        $container = InMemoryPSRContainerInterfaceWithSet::createFromObjects([
+        $container = InMemoryPSRGatewayAwareContainer::createFromObjects([
             new MultiplyCoins(), new Shop(),
         ]);
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()

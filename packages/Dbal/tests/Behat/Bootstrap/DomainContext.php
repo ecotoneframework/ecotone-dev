@@ -12,7 +12,7 @@ use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\Recoverability\DbalDeadLetter;
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLiteConfiguration;
-use Ecotone\Lite\InMemoryPSRContainerInterfaceWithSet;
+use Ecotone\Lite\InMemoryPSRGatewayAwareContainer;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -519,7 +519,7 @@ class DomainContext extends TestCase implements Context
 
         self::$messagingSystem = EcotoneLiteConfiguration::createWithConfiguration(
             $rootProjectDirectoryPath,
-            InMemoryPSRContainerInterfaceWithSet::createFromObjects($objects),
+            InMemoryPSRGatewayAwareContainer::createFromObjects($objects),
             $serviceConfiguration,
             [],
             true

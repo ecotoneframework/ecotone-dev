@@ -9,7 +9,7 @@ use Ecotone\Messaging\Handler\ReferenceNotFoundException;
  * @package Ecotone\Lite
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class InMemoryPSRContainerInterfaceWithSet implements ContainerInterfaceWithSet
+class InMemoryPSRGatewayAwareContainer implements GatewayAwareContainer
 {
     private array $objects;
 
@@ -24,7 +24,7 @@ class InMemoryPSRContainerInterfaceWithSet implements ContainerInterfaceWithSet
 
     /**
      * @param object[] $objects
-     * @return InMemoryPSRContainerInterfaceWithSet
+     * @return InMemoryPSRGatewayAwareContainer
      */
     public static function createFromAssociativeArray(array $objects): self
     {
@@ -33,7 +33,7 @@ class InMemoryPSRContainerInterfaceWithSet implements ContainerInterfaceWithSet
 
     /**
      * @param array $objects
-     * @return InMemoryPSRContainerInterfaceWithSet
+     * @return InMemoryPSRGatewayAwareContainer
      */
     public static function createFromObjects(array $objects): self
     {
@@ -46,16 +46,16 @@ class InMemoryPSRContainerInterfaceWithSet implements ContainerInterfaceWithSet
     }
 
     /**
-     * @return InMemoryPSRContainerInterfaceWithSet
+     * @return InMemoryPSRGatewayAwareContainer
      */
     public static function createEmpty(): self
     {
         return self::createFromAssociativeArray([]);
     }
 
-    public function setService(string $referenceName, object $service): void
+    public function addGateway(string $referenceName, object $gateway): void
     {
-        $this->objects[$referenceName] = $service;
+        $this->objects[$referenceName] = $gateway;
     }
 
     /**

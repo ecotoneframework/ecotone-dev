@@ -6,7 +6,7 @@ use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\TableNode;
 use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\Lite\EcotoneLiteConfiguration;
-use Ecotone\Lite\InMemoryPSRContainerInterfaceWithSet;
+use Ecotone\Lite\InMemoryPSRGatewayAwareContainer;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -107,7 +107,7 @@ class DomainContext extends TestCase implements Context
 
         self::$messagingSystem = EcotoneLiteConfiguration::createWithConfiguration(
             __DIR__ . '/../../../',
-            InMemoryPSRContainerInterfaceWithSet::createFromObjects(array_merge($objects, [$amqpConnectionFactory])),
+            InMemoryPSRGatewayAwareContainer::createFromObjects(array_merge($objects, [$amqpConnectionFactory])),
             $serviceConfiguration,
             [],
             true
@@ -199,7 +199,7 @@ class DomainContext extends TestCase implements Context
             $amqpConnectionFactory         = new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f']);
             self::$messagingSystems[$serviceName] = EcotoneLiteConfiguration::createWithConfiguration(
                 __DIR__ . '/../../../',
-                InMemoryPSRContainerInterfaceWithSet::createFromObjects(array_merge($objects, [$amqpConnectionFactory])),
+                InMemoryPSRGatewayAwareContainer::createFromObjects(array_merge($objects, [$amqpConnectionFactory])),
                 ServiceConfiguration::createWithDefaults()
                     ->withNamespaces([$namespace])
                     ->withServiceName($serviceName)

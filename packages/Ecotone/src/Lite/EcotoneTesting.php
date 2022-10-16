@@ -19,13 +19,13 @@ final class EcotoneTesting
     /**
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
-     * @param ContainerInterfaceWithSet|object[] $containerOrAvailableServices
+     * @param GatewayAwareContainer|object[] $containerOrAvailableServices
      */
     public static function boostrapAllModules(
-        array                           $classesToResolve = [],
-        ContainerInterfaceWithSet|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration           $configuration = null,
-        array                           $configurationVariables = [],
+        array                       $classesToResolve = [],
+        GatewayAwareContainer|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration       $configuration = null,
+        array                       $configurationVariables = [],
     ): ConfiguredMessagingSystem
     {
         if (!$configuration) {
@@ -38,14 +38,14 @@ final class EcotoneTesting
     /**
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
-     * @param ContainerInterfaceWithSet|object[] $containerOrAvailableServices
+     * @param GatewayAwareContainer|object[] $containerOrAvailableServices
      */
     public static function boostrapWithMessageHandlers(
-        array                           $classesToResolve = [],
-        ContainerInterfaceWithSet|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration           $configuration = null,
-        array                           $configurationVariables = [],
-        array $enableModules
+        array                       $classesToResolve = [],
+        GatewayAwareContainer|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration       $configuration = null,
+        array                       $configurationVariables = [],
+        array                       $enableModules
     ): ConfiguredMessagingSystem
     {
         if (!$configuration) {
@@ -59,11 +59,11 @@ final class EcotoneTesting
      * @param string[] $modules
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
-     * @param ContainerInterfaceWithSet|object[] $containerOrAvailableServices
+     * @param GatewayAwareContainer|object[] $containerOrAvailableServices
      */
-    private static function prepareConfiguration(array $modulesToEnable, ContainerInterfaceWithSet|array $containerOrAvailableServices, ServiceConfiguration $configuration, array $classesToResolve, array $configurationVariables): ConfiguredMessagingSystem
+    private static function prepareConfiguration(array $modulesToEnable, GatewayAwareContainer|array $containerOrAvailableServices, ServiceConfiguration $configuration, array $classesToResolve, array $configurationVariables): ConfiguredMessagingSystem
     {
-        $container = $containerOrAvailableServices instanceof ContainerInterfaceWithSet ? $containerOrAvailableServices : InMemoryPSRContainerInterfaceWithSet::createFromAssociativeArray($containerOrAvailableServices);
+        $container = $containerOrAvailableServices instanceof GatewayAwareContainer ? $containerOrAvailableServices : InMemoryPSRGatewayAwareContainer::createFromAssociativeArray($containerOrAvailableServices);
 
         $modulesToEnable = array_unique($modulesToEnable);
         $configuration = $configuration->withSkippedModulePackageNames(array_diff(ModuleList::allModules(), $modulesToEnable));

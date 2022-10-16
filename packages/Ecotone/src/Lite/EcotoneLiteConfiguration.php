@@ -20,12 +20,12 @@ use Psr\Container\ContainerInterface;
  */
 class EcotoneLiteConfiguration
 {
-    public static function create(string $rootProjectDirectoryPath, ContainerInterface|GatewayAwareContainer $container): ConfiguredMessagingSystem
+    public static function create(string $rootProjectDirectoryPath, ContainerInterface|ContainerInterfaceWithSet $container): ConfiguredMessagingSystem
     {
         return self::createWithConfiguration($rootProjectDirectoryPath, $container, ServiceConfiguration::createWithDefaults(), [], false);
     }
 
-    public static function createWithConfiguration(string $rootProjectDirectoryPath, ContainerInterface|GatewayAwareContainer $container, ServiceConfiguration $serviceConfiguration, array $configurationVariables, bool $useCachedVersion): ConfiguredMessagingSystem
+    public static function createWithConfiguration(string $rootProjectDirectoryPath, ContainerInterface|ContainerInterfaceWithSet $container, ServiceConfiguration $serviceConfiguration, array $configurationVariables, bool $useCachedVersion): ConfiguredMessagingSystem
     {
         $serviceConfiguration = $serviceConfiguration->withNamespaces(array_merge(
             $serviceConfiguration->getNamespaces(),
@@ -40,9 +40,9 @@ class EcotoneLiteConfiguration
             $useCachedVersion
         )->buildMessagingSystemFromConfiguration(new PsrContainerReferenceSearchService($container, ['logger' => new EchoLogger(), ConfiguredMessagingSystem::class => new StubConfiguredMessagingSystem()]));
 
-        if ($container instanceof GatewayAwareContainer) {
+        if ($container instanceof ContainerInterfaceWithSet) {
             foreach ($configuredMessagingSystem->getGatewayList() as $gatewayReference) {
-                $container->addGateway($gatewayReference->getReferenceName(), $gatewayReference->getGateway());
+                $container->setService($gatewayReference->getReferenceName(), $gatewayReference->getGateway());
             }
         }
 

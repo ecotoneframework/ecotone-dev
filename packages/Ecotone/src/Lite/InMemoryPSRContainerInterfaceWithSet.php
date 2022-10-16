@@ -9,7 +9,7 @@ use Ecotone\Messaging\Handler\ReferenceNotFoundException;
  * @package Ecotone\Lite
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class InMemoryPSRContainer implements GatewayAwareContainer
+class InMemoryPSRContainerInterfaceWithSet implements ContainerInterfaceWithSet
 {
     private array $objects;
 
@@ -24,7 +24,7 @@ class InMemoryPSRContainer implements GatewayAwareContainer
 
     /**
      * @param object[] $objects
-     * @return InMemoryPSRContainer
+     * @return InMemoryPSRContainerInterfaceWithSet
      */
     public static function createFromAssociativeArray(array $objects): self
     {
@@ -33,7 +33,7 @@ class InMemoryPSRContainer implements GatewayAwareContainer
 
     /**
      * @param array $objects
-     * @return InMemoryPSRContainer
+     * @return InMemoryPSRContainerInterfaceWithSet
      */
     public static function createFromObjects(array $objects): self
     {
@@ -46,16 +46,16 @@ class InMemoryPSRContainer implements GatewayAwareContainer
     }
 
     /**
-     * @return InMemoryPSRContainer
+     * @return InMemoryPSRContainerInterfaceWithSet
      */
     public static function createEmpty(): self
     {
         return self::createFromAssociativeArray([]);
     }
 
-    public function addGateway(string $referenceName, object $gateway): void
+    public function setService(string $referenceName, object $service): void
     {
-        $this->objects[$referenceName] = $gateway;
+        $this->objects[$referenceName] = $service;
     }
 
     /**
@@ -68,6 +68,11 @@ class InMemoryPSRContainer implements GatewayAwareContainer
         }
 
         return $this->objects[$id];
+    }
+
+    public function set(string $id, object $object): void
+    {
+        $this->objects[$id] = $object;
     }
 
     /**

@@ -12,7 +12,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Lite\EcotoneLiteConfiguration;
-use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Lite\InMemoryPSRContainerInterfaceWithSet;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\CommandBus;
@@ -295,7 +295,7 @@ class DomainContext extends TestCase implements Context
 
         self::$messagingSystem = EcotoneLiteConfiguration::createWithConfiguration(
             __DIR__ . '/../../../',
-            InMemoryPSRContainer::createFromObjects(
+            InMemoryPSRContainerInterfaceWithSet::createFromObjects(
                 array_merge(
                     $objects,
                     [

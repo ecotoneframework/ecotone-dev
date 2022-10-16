@@ -2,6 +2,7 @@
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
@@ -26,6 +27,9 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
      * @var int
      */
     protected $receiveTimeoutInMilliseconds = self::DEFAULT_RECEIVE_TIMEOUT;
+
+    protected int $pollingMetadataExecutionTimeLimit;
+
     protected array $headerMapper = [];
     /**
      * @var string

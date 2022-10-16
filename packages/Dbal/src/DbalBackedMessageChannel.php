@@ -43,6 +43,6 @@ class DbalBackedMessageChannel implements PollableChannel
      */
     public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
     {
-        return $this->inboundChannelAdapter->receiveMessage();
+        return $this->inboundChannelAdapter->receiveMessage($timeoutInMilliseconds);
     }
 }

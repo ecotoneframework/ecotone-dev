@@ -25,7 +25,7 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  */
 class EcotoneSymfonyBundle extends Bundle
 {
-    public const CONFIGURED_MESSAGING_SYSTEM                 = 'configured_messaging_system';
+    public const CONFIGURED_MESSAGING_SYSTEM                 = ConfiguredMessagingSystem::class;
     public const CONFIGURED_MESSAGING_SYSTEM_WRAPPER = ConfiguredMessagingSystem::class;
     public const APPLICATION_CONFIGURATION_CONTEXT   = 'messaging_system_application_context';
 
@@ -45,6 +45,7 @@ class EcotoneSymfonyBundle extends Bundle
         $definition->setSynthetic(true);
         $definition->setPublic(true);
         $container->setDefinition(self::CONFIGURED_MESSAGING_SYSTEM, $definition);
+        $container->setAlias('configured_messaging_systems', self::CONFIGURED_MESSAGING_SYSTEM);
     }
 
     /**

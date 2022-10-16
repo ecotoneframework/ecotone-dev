@@ -41,7 +41,7 @@ class AmqpBackendMessageChannel implements PollableChannel
      */
     public function receive(): ?Message
     {
-        return $this->amqpInboundChannelAdapter->getMessage(0);
+        return $this->amqpInboundChannelAdapter->getMessage();
     }
 
     /**

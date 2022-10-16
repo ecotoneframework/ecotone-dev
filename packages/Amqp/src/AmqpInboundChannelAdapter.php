@@ -94,7 +94,7 @@ class AmqpInboundChannelAdapter implements TaskExecutor
         $this->inboundAmqpGateway->executeEntrypoint($message);
     }
 
-    public function getMessage(int $timeout): ?Message
+    public function getMessage(int $timeout = 0): ?Message
     {
         try {
             if (! $this->initialized) {

@@ -8,8 +8,6 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\ConfiguredMessagingSystemWrapper;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\EcotoneCompilerPass;
-use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyConfigurationVariableService;
-use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyReferenceTypeResolver;
 use Ecotone\SymfonyBundle\DepedencyInjection\EcotoneExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;

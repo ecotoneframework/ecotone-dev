@@ -8,7 +8,6 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
-use Ecotone\SymfonyBundle\EcotoneSymfonyBundle;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;

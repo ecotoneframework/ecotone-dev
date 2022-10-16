@@ -716,7 +716,7 @@ final class MessagingSystemConfiguration implements Configuration
                 $applicationConfiguration->getNamespaces(),
                 $applicationConfiguration->getEnvironment(),
                 $applicationConfiguration->getLoadedCatalog() ?? '',
-                ModuleClassList::allModules()
+                array_filter(ModuleClassList::allModules(), fn(string $moduleClassName): bool => class_exists($moduleClassName))
             ),
             $referenceTypeFromNameResolver,
             $configurationVariableService,

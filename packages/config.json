@@ -34,7 +34,7 @@
       },
       {
         "type": "path",
-        "url": "../../packages/LiteApplication"
+        "url": "..//LiteApplication"
       }
     ]
 }

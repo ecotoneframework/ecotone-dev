@@ -5,6 +5,7 @@ namespace Ecotone\Dbal;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Enqueue\Dbal\DbalContext;
@@ -52,16 +53,16 @@ class DbalInboundChannelAdapter implements TaskExecutor
         $this->inboundMessageConverter = $inboundMessageConverter;
     }
 
-    public function execute(): void
+    public function execute(PollingMetadata $pollingMetadata): void
     {
-        $message = $this->receiveMessage();
+        $message = $this->receiveMessage($pollingMetadata->getExecutionTimeLimitInMilliseconds());
 
         if ($message) {
             $this->entrypointGateway->executeEntrypoint($message);
         }
     }
 
-    public function receiveMessage(): ?Message
+    public function receiveMessage(int $timeout = 0): ?Message
     {
         if (! $this->initialized) {
             /** @var DbalContext $context */
@@ -75,7 +76,7 @@ class DbalInboundChannelAdapter implements TaskExecutor
         $consumer = $this->cachedConnectionFactory->getConsumer(new DbalDestination($this->queueName));
 
         /** @var DbalMessage $dbalMessage */
-        $dbalMessage = $consumer->receive($this->receiveTimeoutInMilliseconds);
+        $dbalMessage = $consumer->receive($timeout ?: $this->receiveTimeoutInMilliseconds);
 
         if (! $dbalMessage) {
             return null;

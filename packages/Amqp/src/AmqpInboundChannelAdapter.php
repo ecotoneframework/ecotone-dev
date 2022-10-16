@@ -9,6 +9,7 @@ use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
@@ -81,13 +82,9 @@ class AmqpInboundChannelAdapter implements TaskExecutor
         $this->isMessageChannel = $isMessageChannel;
     }
 
-    /**
-     * @throws InvalidArgumentException
-     * @throws Throwable
-     */
-    public function execute(): void
+    public function execute(PollingMetadata $pollingMetadata): void
     {
-        $message = $this->getMessage();
+        $message = $this->getMessage($pollingMetadata->getExecutionTimeLimitInMilliseconds());
 
         if (! $message) {
             return;
@@ -97,12 +94,7 @@ class AmqpInboundChannelAdapter implements TaskExecutor
         $this->inboundAmqpGateway->executeEntrypoint($message);
     }
 
-    /**
-     * @return Message|null
-     * @throws InvalidArgumentException
-     * @throws MessagingException
-     */
-    public function getMessage(): ?Message
+    public function getMessage(int $timeout = 0): ?Message
     {
         try {
             if (! $this->initialized) {
@@ -113,7 +105,7 @@ class AmqpInboundChannelAdapter implements TaskExecutor
             $consumer = $this->connectionFactory->getConsumer(new \Interop\Amqp\Impl\AmqpQueue($this->getQueueName()));
 
             /** @var AmqpMessage $amqpMessage */
-            $amqpMessage = $consumer->receive($this->receiveTimeoutInMilliseconds);
+            $amqpMessage = $consumer->receive($timeout ?: $this->receiveTimeoutInMilliseconds);
 
             if (! $amqpMessage) {
                 return null;

@@ -49,6 +49,6 @@ class AmqpBackendMessageChannel implements PollableChannel
      */
     public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
     {
-        return $this->amqpInboundChannelAdapter->getMessage();
+        return $this->amqpInboundChannelAdapter->getMessage($timeoutInMilliseconds);
     }
 }

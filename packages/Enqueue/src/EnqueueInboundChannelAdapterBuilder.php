@@ -26,6 +26,7 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
      * @var int
      */
     protected $receiveTimeoutInMilliseconds = self::DEFAULT_RECEIVE_TIMEOUT;
+
     protected array $headerMapper = [];
     /**
      * @var string

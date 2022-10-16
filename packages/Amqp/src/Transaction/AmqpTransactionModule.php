@@ -19,7 +19,7 @@ use Ecotone\Modelling\CommandBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 #[ModuleAnnotation]
-class AmqpTransactionConfiguration implements AnnotationModule
+class AmqpTransactionModule implements AnnotationModule
 {
     private function __construct()
     {

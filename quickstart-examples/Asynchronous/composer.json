@@ -13,8 +13,8 @@
         }
     },
     "require": {
-        "ecotone/lite-application": "1.47.1",
-        "ecotone/amqp": "1.47.1"
+        "ecotone/lite-application": "^1.48",
+        "ecotone/amqp": "^1.48"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",

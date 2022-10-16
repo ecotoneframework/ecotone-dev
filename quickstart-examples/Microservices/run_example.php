@@ -17,7 +17,8 @@ $receiver = EcotoneLiteApplication::boostrap(
     configuration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(MessagingConfiguration::SERVICE_NAME)
         ->withNamespaces(["App\Microservices\Receiver"])
-        ->doNotLoadCatalog()
+        ->doNotLoadCatalog(),
+    pathToRootCatalog: __DIR__
 );
 $receiver->run(MessagingConfiguration::SERVICE_NAME);
 $queryBus = $receiver->getQueryBus();
@@ -28,7 +29,8 @@ $publisher = EcotoneLiteApplication::boostrap(
     configuration: ServiceConfiguration::createWithDefaults()
             ->withServiceName(\App\Microservices\Publisher\MessagingConfiguration::SERVICE_NAME)
             ->withNamespaces(["App\Microservices\Publisher"])
-            ->doNotLoadCatalog()
+            ->doNotLoadCatalog(),
+    pathToRootCatalog: __DIR__
 );
 $distributedBus = $publisher->getDistributedBus();
 

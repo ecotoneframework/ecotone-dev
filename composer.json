@@ -32,7 +32,7 @@
             ],
             "Ecotone\\JMSConverter\\": "packages/JmsConverter/src",
             "Ecotone\\Laravel\\": "packages/Laravel/src",
-            "Ecotone\\Lite\\": "packages/Ecotone/src/Lite/",
+            "Ecotone\\Lite\\": ["packages/Ecotone/src/Lite/","packages/LiteApplication/src"],
             "Ecotone\\Messaging\\": "packages/Ecotone/src/Messaging/",
             "Ecotone\\Modelling\\": "packages/Ecotone/src/Modelling/",
             "Ecotone\\SymfonyBundle\\": "packages/Symfony/SymfonyBundle",
@@ -61,6 +61,9 @@
             ],
             "Test\\Ecotone\\Dbal\\": [
                 "packages/Dbal/tests"
+            ],
+            "Test\\Ecotone\\Lite\\": [
+                "packages/LiteApplication/tests"
             ],
             "Test\\Ecotone\\EventSourcing\\": [
                 "packages/EventSourcing/tests",
@@ -94,7 +97,8 @@
         "symfony/cache": "^5.4|^6.1",
         "symfony/console": "^5.4|^6.0",
         "symfony/framework-bundle": "^5.4|^6.0",
-        "wikimedia/composer-merge-plugin": "^2.0"
+        "wikimedia/composer-merge-plugin": "^2.0",
+        "php-di/php-di": "^6.3"
     },
     "require-dev": {
         "behat/behat": "^3.10",

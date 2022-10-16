@@ -13,7 +13,7 @@
         }
     },
     "require": {
-        "ecotone/lite-application-starter": "^1.0.1",
+        "ecotone/lite-application-starter": "^1.0.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",

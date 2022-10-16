@@ -14,9 +14,10 @@ use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Psr\Container\ContainerInterface;
 
 /**
- * Class EcotoneLite
- * @package Ecotone\Lite
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @TODO Ecotone 2.0 drop this class completely and make use of
+ * EcotoneLiteApplication
+ * Symfony
+ * Laravel
  */
 class EcotoneLiteConfiguration
 {

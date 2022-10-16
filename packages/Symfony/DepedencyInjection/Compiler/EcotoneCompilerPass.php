@@ -42,7 +42,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
     public function process(ContainerBuilder $container)
     {
         $ecotoneCacheDirectory    = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
-        $applicationConfiguration = ServiceConfiguration::createWithDefaults()
+        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
             ->withFailFast($container->getParameter('kernel.environment') === 'prod' ? false : $container->getParameter(self::FAIL_FAST_CONFIG))
             ->withLoadCatalog($container->getParameter(self::LOAD_SRC) ? 'src' : '')
@@ -55,21 +55,21 @@ class EcotoneCompilerPass implements CompilerPassInterface
             ->withCacheDirectoryPath($ecotoneCacheDirectory);
 
         if ($container->getParameter(self::SERVICE_NAME)) {
-            $applicationConfiguration = $applicationConfiguration
+            $serviceConfiguration = $serviceConfiguration
                 ->withServiceName($container->getParameter(self::SERVICE_NAME));
         }
 
         if ($container->getParameter(self::DEFAULT_SERIALIZATION_MEDIA_TYPE)) {
-            $applicationConfiguration = $applicationConfiguration
+            $serviceConfiguration = $serviceConfiguration
                 ->withDefaultSerializationMediaType($container->getParameter(self::DEFAULT_SERIALIZATION_MEDIA_TYPE));
         }
         if ($container->getParameter(self::DEFAULT_MEMORY_LIMIT)) {
-            $applicationConfiguration = $applicationConfiguration
+            $serviceConfiguration = $serviceConfiguration
                 ->withConsumerMemoryLimit($container->getParameter(self::DEFAULT_MEMORY_LIMIT));
         }
         if ($container->getParameter(self::DEFAULT_CONNECTION_EXCEPTION_RETRY)) {
             $retryTemplate            = $container->getParameter(self::DEFAULT_CONNECTION_EXCEPTION_RETRY);
-            $applicationConfiguration = $applicationConfiguration
+            $serviceConfiguration = $serviceConfiguration
                 ->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackoffWithMaxDelay(
                         $retryTemplate['initialDelay'],
@@ -79,7 +79,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
                 );
         }
         if ($container->getParameter(self::ERROR_CHANNEL)) {
-            $applicationConfiguration = $applicationConfiguration
+            $serviceConfiguration = $serviceConfiguration
                 ->withDefaultErrorChannel($container->getParameter(self::ERROR_CHANNEL));
         }
 
@@ -88,7 +88,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
             self::getRootProjectPath($container),
             new SymfonyReferenceTypeResolver($container),
             $configurationVariableService,
-            $applicationConfiguration,
+            $serviceConfiguration,
             false
         );
 
@@ -152,7 +152,5 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
         }
-
-        $container->setParameter(EcotoneSymfonyBundle::APPLICATION_CONFIGURATION_CONTEXT, serialize($applicationConfiguration));
     }
 }

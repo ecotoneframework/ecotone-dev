@@ -69,13 +69,8 @@ class EcotoneSymfonyBundle extends Bundle
 
     public function boot()
     {
-        $configuration = MessagingSystemConfiguration::prepare(
-            EcotoneCompilerPass::getRootProjectPath($this->container),
-            new SymfonyReferenceTypeResolver($this->container),
-            new SymfonyConfigurationVariableService($this->container),
-            unserialize($this->container->getParameter(self::APPLICATION_CONFIGURATION_CONTEXT)),
-            true
-        );
+        $configuration = MessagingSystemConfiguration::loadFromCache($this->container->getParameter('kernel.cache_dir') . EcotoneCompilerPass::CACHE_DIRECTORY_SUFFIX);
+
         $messagingSystem = $configuration->buildMessagingSystemFromConfiguration($this->container->get('symfonyReferenceSearchService'));
 
         $this->container->set(self::CONFIGURED_MESSAGING_SYSTEM, $messagingSystem);

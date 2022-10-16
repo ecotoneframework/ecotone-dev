@@ -11,10 +11,8 @@ use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Interop\Amqp\AmqpMessage;
 use Throwable;
 

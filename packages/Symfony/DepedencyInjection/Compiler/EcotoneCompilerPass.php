@@ -46,12 +46,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
             ->withEnvironment($container->getParameter('kernel.environment'))
             ->withFailFast($container->getParameter('kernel.environment') === 'prod' ? false : $container->getParameter(self::FAIL_FAST_CONFIG))
             ->withLoadCatalog($container->getParameter(self::LOAD_SRC) ? 'src' : '')
-            ->withNamespaces(
-                array_merge(
-                    $container->getParameter(self::WORKING_NAMESPACES_CONFIG),
-                    [self::FRAMEWORK_NAMESPACE]
-                )
-            )
+            ->withNamespaces($container->getParameter(self::WORKING_NAMESPACES_CONFIG))
             ->withCacheDirectoryPath($ecotoneCacheDirectory);
 
         if ($container->getParameter(self::SERVICE_NAME)) {

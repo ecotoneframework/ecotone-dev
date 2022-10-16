@@ -23,7 +23,6 @@ use Illuminate\Support\ServiceProvider;
 
 class EcotoneProvider extends ServiceProvider
 {
-    public const FRAMEWORK_NAMESPACE        = 'Ecotone';
     public const MESSAGING_SYSTEM_REFERENCE = ConfiguredMessagingSystem::class;
 
     /**
@@ -53,7 +52,7 @@ class EcotoneProvider extends ServiceProvider
             ->withEnvironment($environment)
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
-            ->withNamespaces(array_merge([self::FRAMEWORK_NAMESPACE], Config::get('ecotone.namespaces')));
+            ->withNamespaces(Config::get('ecotone.namespaces'));
 
         if ($isCachingConfiguration) {
             $applicationConfiguration = $applicationConfiguration

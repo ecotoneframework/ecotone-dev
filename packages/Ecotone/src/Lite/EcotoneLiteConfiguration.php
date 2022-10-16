@@ -28,11 +28,6 @@ class EcotoneLiteConfiguration
 
     public static function createWithConfiguration(string $rootProjectDirectoryPath, ContainerInterface|GatewayAwareContainer $container, ServiceConfiguration $serviceConfiguration, array $configurationVariables, bool $useCachedVersion): ConfiguredMessagingSystem
     {
-        $serviceConfiguration = $serviceConfiguration->withNamespaces(array_merge(
-            $serviceConfiguration->getNamespaces(),
-            [FileSystemAnnotationFinder::FRAMEWORK_NAMESPACE]
-        ));
-
         $configuredMessagingSystem = MessagingSystemConfiguration::prepare(
             realpath($rootProjectDirectoryPath),
             new TypeResolver($container),

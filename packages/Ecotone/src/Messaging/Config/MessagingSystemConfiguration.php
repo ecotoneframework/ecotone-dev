@@ -713,7 +713,7 @@ final class MessagingSystemConfiguration implements Configuration
         return self::prepareWithAnnotationFinder(
             AnnotationFinderFactory::createForAttributes(
                 realpath($rootPathToSearchConfigurationFor),
-                $applicationConfiguration->getNamespaces(),
+                array_merge($applicationConfiguration->getNamespaces(), ["Ecotone"]),
                 $applicationConfiguration->getEnvironment(),
                 $applicationConfiguration->getLoadedCatalog() ?? ''
             ),

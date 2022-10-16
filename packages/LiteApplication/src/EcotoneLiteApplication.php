@@ -36,11 +36,6 @@ class EcotoneLiteApplication
             $container->set($referenceName, $object);
         }
 
-        $configuration = $configuration->withNamespaces(array_merge(
-            $configuration->getNamespaces(),
-            [FileSystemAnnotationFinder::FRAMEWORK_NAMESPACE]
-        ));
-
         $messagingConfiguration       = MessagingSystemConfiguration::prepare(
             $rootCatalog,
             $container,

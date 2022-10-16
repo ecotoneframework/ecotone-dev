@@ -747,7 +747,7 @@ final class MessagingSystemConfiguration implements Configuration
         );
     }
 
-    private static function getCachedVersion(ServiceConfiguration $applicationConfiguration): ?MessagingSystemConfiguration
+    public static function getCachedVersion(ServiceConfiguration $applicationConfiguration): ?MessagingSystemConfiguration
     {
         if (! $applicationConfiguration->getCacheDirectoryPath()) {
             return null;

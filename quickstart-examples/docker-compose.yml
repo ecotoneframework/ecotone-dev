@@ -9,6 +9,9 @@ services:
     container_name: "ecotone-quickstart"
     working_dir: "/data/app"
     command: sleep 999999
+    environment:
+      RABBIT_HOST: "amqp://rabbitmq:5672"
+      DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
     networks:
       - default
   database:

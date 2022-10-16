@@ -715,7 +715,8 @@ final class MessagingSystemConfiguration implements Configuration
                 realpath($rootPathToSearchConfigurationFor),
                 array_merge($applicationConfiguration->getNamespaces(), ["Ecotone"]),
                 $applicationConfiguration->getEnvironment(),
-                $applicationConfiguration->getLoadedCatalog() ?? ''
+                $applicationConfiguration->getLoadedCatalog() ?? '',
+                []
             ),
             $referenceTypeFromNameResolver,
             $configurationVariableService,

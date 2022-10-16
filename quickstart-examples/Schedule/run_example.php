@@ -11,9 +11,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 require __DIR__ . "/vendor/autoload.php";
-$messagingSystem = EcotoneLiteApplication::boostrap([
-    DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')
-]);
+$messagingSystem = EcotoneLiteApplication::boostrap([DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')], pathToRootCatalog: __DIR__);
 
 echo "Generating invoices using Scheduled Job. Waiting for cron execution...\n";
 $messagingSystem->run(InvoiceService::NAME, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1));

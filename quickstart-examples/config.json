@@ -31,6 +31,10 @@
       {
         "type": "path",
         "url": "../../packages/Symfony"
+      },
+      {
+        "type": "path",
+        "url": "../../packages/LiteApplication"
       }
     ]
 }

@@ -7,7 +7,7 @@ use Ecotone\Lite\EcotoneLiteApplication;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . "/vendor/autoload.php";
-$messagingSystem = EcotoneLiteApplication::boostrap();
+$messagingSystem = EcotoneLiteApplication::boostrap(pathToRootCatalog: __DIR__);
 
 $productId = 1;
 $messagingSystem->getCommandBus()->send(new RegisterProduct($productId, 100));

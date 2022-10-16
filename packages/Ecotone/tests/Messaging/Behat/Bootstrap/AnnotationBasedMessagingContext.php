@@ -5,7 +5,7 @@ namespace Test\Ecotone\Messaging\Behat\Bootstrap;
 use Behat\Behat\Context\Context;
 use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\Lite\EcotoneLiteConfiguration;
-use Ecotone\Lite\InMemoryPSRGatewayAwareContainer;
+use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -358,7 +358,7 @@ class AnnotationBasedMessagingContext extends TestCase implements Context
         MessagingSystemConfiguration::cleanCache($applicationConfiguration->getCacheDirectoryPath());
         self::$messagingSystem = EcotoneLiteConfiguration::createWithConfiguration(
             __DIR__ . '/../../../../',
-            InMemoryPSRGatewayAwareContainer::createFromObjects($objects),
+            InMemoryPSRContainer::createFromObjects($objects),
             $applicationConfiguration,
             [],
             true

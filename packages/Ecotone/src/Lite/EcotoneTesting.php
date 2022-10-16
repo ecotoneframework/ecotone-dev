@@ -63,7 +63,7 @@ final class EcotoneTesting
      */
     private static function prepareConfiguration(array $modulesToEnable, GatewayAwareContainer|array $containerOrAvailableServices, ServiceConfiguration $configuration, array $classesToResolve, array $configurationVariables): ConfiguredMessagingSystem
     {
-        $container = $containerOrAvailableServices instanceof GatewayAwareContainer ? $containerOrAvailableServices : InMemoryPSRGatewayAwareContainer::createFromAssociativeArray($containerOrAvailableServices);
+        $container = $containerOrAvailableServices instanceof GatewayAwareContainer ? $containerOrAvailableServices : InMemoryPSRContainer::createFromAssociativeArray($containerOrAvailableServices);
 
         $modulesToEnable = array_unique($modulesToEnable);
         $configuration = $configuration->withSkippedModulePackageNames(array_diff(ModuleList::allModules(), $modulesToEnable));

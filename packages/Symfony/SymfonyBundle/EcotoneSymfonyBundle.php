@@ -45,7 +45,7 @@ class EcotoneSymfonyBundle extends Bundle
         $definition->setSynthetic(true);
         $definition->setPublic(true);
         $container->setDefinition(self::CONFIGURED_MESSAGING_SYSTEM, $definition);
-        $container->setAlias('configured_messaging_systems', self::CONFIGURED_MESSAGING_SYSTEM);
+        $container->setAlias('configured_messaging_system', self::CONFIGURED_MESSAGING_SYSTEM);
     }
 
     /**

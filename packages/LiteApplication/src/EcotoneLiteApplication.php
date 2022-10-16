@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
@@ -12,21 +14,21 @@ use Ecotone\Messaging\InMemoryConfigurationVariableService;
 
 class EcotoneLiteApplication
 {
-    const CONFIGURED_MESSAGING_SYSTEM = ConfiguredMessagingSystem::class;
+    public const CONFIGURED_MESSAGING_SYSTEM = ConfiguredMessagingSystem::class;
 
     public static function boostrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $configuration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null): ConfiguredMessagingSystem
     {
-        if (!$configuration) {
+        if (! $configuration) {
             $configuration = ServiceConfiguration::createWithDefaults();
         }
 
-        if ($configuration->isLoadingCatalogEnabled() && !$configuration->getLoadedCatalog()) {
+        if ($configuration->isLoadingCatalogEnabled() && ! $configuration->getLoadedCatalog()) {
             $configuration = $configuration
-                                ->withLoadCatalog("src");
+                                ->withLoadCatalog('src');
         }
 
 //        moving out of vendor catalog
-        $rootCatalog = $pathToRootCatalog ?: __DIR__ . "/../../../../../";
+        $rootCatalog = $pathToRootCatalog ?: __DIR__ . '/../../../../../';
 
         $container = new LiteDIContainer($configuration, $cacheConfiguration, $configurationVariables);
 
@@ -57,7 +59,7 @@ class EcotoneLiteApplication
         }
 
         $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration(
-            new \Ecotone\Lite\PsrContainerReferenceSearchService($container, ["logger" => new EchoLogger(), ConfiguredMessagingSystem::class => new StubConfiguredMessagingSystem()])
+            new \Ecotone\Lite\PsrContainerReferenceSearchService($container, ['logger' => new EchoLogger(), ConfiguredMessagingSystem::class => new StubConfiguredMessagingSystem()])
         );
 
         $container->set(self::CONFIGURED_MESSAGING_SYSTEM, $messagingSystem);

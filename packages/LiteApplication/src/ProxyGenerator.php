@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Config\MessagingSystem;
@@ -20,7 +19,6 @@ class ProxyGenerator
     {
         $proxyFactory = ProxyFactory::createWithCache($cacheDirectoryPath);
         $factory = new RemoteObjectFactory(new class ($container, $referenceName) implements AdapterInterface {
-
             private ContainerInterface $container;
             private string $referenceName;
 

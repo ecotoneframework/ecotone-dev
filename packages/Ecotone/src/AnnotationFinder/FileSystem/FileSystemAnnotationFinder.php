@@ -120,7 +120,10 @@ class FileSystemAnnotationFinder implements AnnotationFinder
 
         $registeredClasses = array_merge($systemClassesToRegister, $userClassesToRegister);
         if ($catalogToLoad) {
-            $registeredClasses = $this->getClassesIn([$rootProjectDir . DIRECTORY_SEPARATOR . $catalogToLoad], null);
+            $registeredClasses = array_merge(
+                $registeredClasses,
+                $this->getClassesIn([$rootProjectDir . DIRECTORY_SEPARATOR . $catalogToLoad], null)
+            );
         }
 
         $registeredClasses = array_merge(

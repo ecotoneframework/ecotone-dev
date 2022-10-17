@@ -8,6 +8,7 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
+use Ecotone\SymfonyBundle\EcotoneSymfonyBundle;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -16,7 +17,6 @@ use Symfony\Component\DependencyInjection\Reference;
 
 class EcotoneCompilerPass implements CompilerPassInterface
 {
-    public const         FRAMEWORK_NAMESPACE                = 'Ecotone';
     public const  SERVICE_NAME                           = 'ecotone.service_name';
     public const  WORKING_NAMESPACES_CONFIG          = 'ecotone.namespaces';
     public const  FAIL_FAST_CONFIG                   = 'ecotone.fail_fast';
@@ -146,5 +146,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
         }
+
+        $container->setParameter(EcotoneSymfonyBundle::APPLICATION_CONFIGURATION_CONTEXT, serialize($serviceConfiguration));
     }
 }

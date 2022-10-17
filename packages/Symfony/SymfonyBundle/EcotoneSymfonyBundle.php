@@ -8,6 +8,8 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\ConfiguredMessagingSystemWrapper;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\EcotoneCompilerPass;
+use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyConfigurationVariableService;
+use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyReferenceTypeResolver;
 use Ecotone\SymfonyBundle\DepedencyInjection\EcotoneExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -67,7 +69,13 @@ class EcotoneSymfonyBundle extends Bundle
 
     public function boot()
     {
-        $configuration = MessagingSystemConfiguration::loadFromCache($this->container->getParameter('kernel.cache_dir') . EcotoneCompilerPass::CACHE_DIRECTORY_SUFFIX);
+        $configuration = MessagingSystemConfiguration::prepare(
+            EcotoneCompilerPass::getRootProjectPath($this->container),
+            new SymfonyReferenceTypeResolver($this->container),
+            new SymfonyConfigurationVariableService($this->container),
+            unserialize($this->container->getParameter(self::APPLICATION_CONFIGURATION_CONTEXT)),
+            true
+        );
 
         $messagingSystem = $configuration->buildMessagingSystemFromConfiguration($this->container->get('symfonyReferenceSearchService'));
 

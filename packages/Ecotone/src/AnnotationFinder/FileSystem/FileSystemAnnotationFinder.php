@@ -23,7 +23,6 @@ use function json_decode;
  */
 class FileSystemAnnotationFinder implements AnnotationFinder
 {
-    public const         FRAMEWORK_NAMESPACE = 'Ecotone';
     private const FILE_EXTENSION = 'php';
     public const         CLASS_NAMESPACE_REGEX = "#namespace[\s]*([^\n\s\(\)\[\]\{\}\$]*);#";
 
@@ -77,7 +76,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
             foreach (get_class_methods($className) as $method) {
                 $classAnnotations = array_values(
                     array_filter(
-                        $methodAnnotations = array_map(
+                        array_map(
                             function (object $annotation) {
                                 if ($annotation instanceof Environment) {
                                     return $annotation;

@@ -61,8 +61,8 @@ jobs:
         options: >-
           --health-cmd="mysqladmin ping"
           --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
+          --health-timeout=10s
+          --health-retries=5
         ports:
           - 3306:3306
       postgres:

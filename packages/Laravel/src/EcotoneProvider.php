@@ -2,6 +2,7 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Config\ProxyGenerator;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;

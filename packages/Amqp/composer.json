@@ -27,7 +27,7 @@
     },
     "require": {
         "ext-amqp": "*",
-        "ecotone/enqueue": "1.48.1",
+        "ecotone/enqueue": "^1.49",
         "enqueue/amqp-ext": "^0.10.4",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0"

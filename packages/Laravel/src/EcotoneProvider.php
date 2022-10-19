@@ -166,7 +166,7 @@ class EcotoneProvider extends ServiceProvider
 
         $this->app->singleton(
             ConfiguredMessagingSystem::class,
-            new LazyConfiguredMessagingSystem($this->app)
+            function () {return new LazyConfiguredMessagingSystem($this->app);}
         );
 
         $this->app->singleton(

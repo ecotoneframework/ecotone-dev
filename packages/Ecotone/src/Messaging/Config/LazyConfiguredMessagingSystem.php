@@ -1,8 +1,7 @@
 <?php
 
-namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
+namespace Ecotone\Messaging\Config;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
@@ -11,16 +10,15 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
-use Ecotone\SymfonyBundle\EcotoneSymfonyBundle;
-use Symfony\Component\DependencyInjection\Container;
+use Psr\Container\ContainerInterface;
 
-class ConfiguredMessagingSystemWrapper implements ConfiguredMessagingSystem
+/**
+ * configured messaging system is set up on boot, so in case of fetching it during initialization we need to provide lazy config
+ */
+class LazyConfiguredMessagingSystem implements ConfiguredMessagingSystem
 {
-    private Container $container;
-
-    public function __construct(Container $container)
+    public function __construct(private ContainerInterface $container)
     {
-        $this->container = $container;
     }
 
     public function getGatewayByName(string $gatewayReferenceName): object
@@ -28,7 +26,7 @@ class ConfiguredMessagingSystemWrapper implements ConfiguredMessagingSystem
         return $this->getConfiguredSystem()->getGatewayByName($gatewayReferenceName);
     }
 
-    public function getNonProxyGatewayByName(string $gatewayReferenceName): \Ecotone\Messaging\Config\NonProxyCombinedGateway
+    public function getNonProxyGatewayByName(string $gatewayReferenceName): NonProxyCombinedGateway
     {
         return $this->getConfiguredSystem()->getNonProxyGatewayByName($gatewayReferenceName);
     }
@@ -92,6 +90,6 @@ class ConfiguredMessagingSystemWrapper implements ConfiguredMessagingSystem
 
     private function getConfiguredSystem(): ConfiguredMessagingSystem
     {
-        return $this->container->get(EcotoneSymfonyBundle::CONFIGURED_MESSAGING_SYSTEM);
+        return $this->container->get(LazyConfiguredMessagingSystem::class);
     }
 }

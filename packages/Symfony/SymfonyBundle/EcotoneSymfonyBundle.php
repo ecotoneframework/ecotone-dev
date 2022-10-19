@@ -3,10 +3,10 @@
 namespace Ecotone\SymfonyBundle;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\LazyConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
-use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\ConfiguredMessagingSystemWrapper;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\EcotoneCompilerPass;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyConfigurationVariableService;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyReferenceTypeResolver;
@@ -25,8 +25,7 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  */
 class EcotoneSymfonyBundle extends Bundle
 {
-    public const CONFIGURED_MESSAGING_SYSTEM                 = 'configured_messaging_system';
-    public const CONFIGURED_MESSAGING_SYSTEM_WRAPPER = ConfiguredMessagingSystem::class;
+    public const CONFIGURED_MESSAGING_SYSTEM                 = ConfiguredMessagingSystem::class;
     public const APPLICATION_CONFIGURATION_CONTEXT   = 'messaging_system_application_context';
 
     public function build(ContainerBuilder $container)
@@ -36,15 +35,16 @@ class EcotoneSymfonyBundle extends Bundle
         $this->setUpExpressionLanguage($container);
 
         $definition = new Definition();
-        $definition->setClass(ConfiguredMessagingSystemWrapper::class);
+        $definition->setClass(LazyConfiguredMessagingSystem::class);
         $definition->addArgument(new Reference('service_container'));
-        $container->setDefinition(self::CONFIGURED_MESSAGING_SYSTEM_WRAPPER, $definition);
+        $definition->setPublic(true);
+        $container->setDefinition(ConfiguredMessagingSystem::class, $definition);
 
         $definition = new Definition();
         $definition->setClass(ConfiguredMessagingSystem::class);
         $definition->setSynthetic(true);
         $definition->setPublic(true);
-        $container->setDefinition(self::CONFIGURED_MESSAGING_SYSTEM, $definition);
+        $container->setDefinition(LazyConfiguredMessagingSystem::class, $definition);
     }
 
     /**
@@ -79,7 +79,7 @@ class EcotoneSymfonyBundle extends Bundle
 
         $messagingSystem = $configuration->buildMessagingSystemFromConfiguration($this->container->get('symfonyReferenceSearchService'));
 
-        $this->container->set(self::CONFIGURED_MESSAGING_SYSTEM, $messagingSystem);
+        $this->container->set(LazyConfiguredMessagingSystem::class, $messagingSystem);
     }
 
     public function getContainerExtension(): ?ExtensionInterface

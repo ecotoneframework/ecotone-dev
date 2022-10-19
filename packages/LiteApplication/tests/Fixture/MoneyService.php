@@ -8,12 +8,13 @@ use Ecotone\Messaging\Attribute\Parameter\ConfigurationVariable;
 use Ecotone\Messaging\Gateway\Converter\Serializer;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\CommandBus;
 
 class MoneyService
 {
     private array $bank = [];
 
-    public function __construct(private Serializer $serializer)
+    public function __construct(private Serializer $serializer, private CommandBus $commandBus)
     {
     }
 

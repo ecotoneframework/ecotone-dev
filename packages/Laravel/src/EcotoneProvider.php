@@ -2,6 +2,8 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Config\LazyConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\ProxyGenerator;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
@@ -162,7 +164,12 @@ class EcotoneProvider extends ServiceProvider
         }
 
         $this->app->singleton(
-            self::MESSAGING_SYSTEM_REFERENCE,
+            ConfiguredMessagingSystem::class,
+            new LazyConfiguredMessagingSystem($this->app)
+        );
+
+        $this->app->singleton(
+            LazyConfiguredMessagingSystem::class,
             function () use ($configuration) {
                 return $configuration->buildMessagingSystemFromConfiguration(new LaravelReferenceSearchService($this->app));
             }

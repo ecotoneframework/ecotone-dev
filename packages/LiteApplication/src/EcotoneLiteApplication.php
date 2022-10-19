@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\LazyConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Config\StubConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
@@ -53,7 +55,7 @@ class EcotoneLiteApplication
         }
 
         $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration(
-            new \Ecotone\Lite\PsrContainerReferenceSearchService($container, ['logger' => new EchoLogger(), ConfiguredMessagingSystem::class => new StubConfiguredMessagingSystem()])
+            new \Ecotone\Lite\PsrContainerReferenceSearchService($container, ['logger' => new EchoLogger(), ConfiguredMessagingSystem::class => new LazyConfiguredMessagingSystem($container)])
         );
 
         $container->set(self::CONFIGURED_MESSAGING_SYSTEM, $messagingSystem);

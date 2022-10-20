@@ -57,7 +57,8 @@
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit",
-            "@tests:behat"
+            "@tests:behat",
+            "bin/console ecotone:list"
         ]
     },
     "extra": {

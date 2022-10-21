@@ -142,10 +142,14 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
 
         $messageChannel->send(
             MessageBuilder::withPayload('some')
-                ->setHeader(MessageHeaders::DELIVERY_DELAY, 1000)
+                ->setHeader(MessageHeaders::DELIVERY_DELAY, 2000)
                 ->build()
         );
 
         $this->assertNull($messageChannel->receive());
+
+        sleep(3);
+
+        $this->assertNotNull($messageChannel->receive());
     }
 }

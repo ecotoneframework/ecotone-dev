@@ -44,10 +44,10 @@ $distributedBus->sendCommand(
 echo "Before running consumer and handling command, there should be no ordered products\n";
 Assert::assertEquals([], $queryBus->sendWithRouting(OrderServiceReceiver::GET_ALL_ORDERED_PRODUCTS));
 
-echo "After running consumer, there should be milk and bread ordered\n";
+echo "Running Receiver:\n";
 $receiver->run(MessagingConfiguration::SERVICE_NAME);
 Assert::assertEquals([123 => ["milk", "bread"]], $queryBus->sendWithRouting(OrderServiceReceiver::GET_ALL_ORDERED_PRODUCTS));
-
+echo "All good milk and bread ordered\n\n";
 
 echo "Sending event that user was banned\n";
 $distributedBus->publishEvent(
@@ -56,9 +56,7 @@ $distributedBus->publishEvent(
     "application/json"
 );
 
-echo "Before running consumer and handling events, there should milk and bread ordered\n";
-Assert::assertEquals([123 => ["milk", "bread"]], $queryBus->sendWithRouting(OrderServiceReceiver::GET_ALL_ORDERED_PRODUCTS));
-
-echo "After running consumer, there should be no orders\n";
+echo "After user wa banned, there should be no orders:\n";
 $receiver->run(MessagingConfiguration::SERVICE_NAME);
 Assert::assertEquals([], $queryBus->sendWithRouting(OrderServiceReceiver::GET_ALL_ORDERED_PRODUCTS));
+echo "No orders left, all good\n";

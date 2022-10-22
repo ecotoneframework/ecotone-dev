@@ -1,8 +1,6 @@
 # Microservices PHP Demo
 
-This provide demo of advanced integration of two Microservices - `Customer Service` and `Backoffice Service`.
-State and events are stored in `Postgres` database.  
-Integration of microservices happens over `RabbitMQ`.
+This demo integrates two Microservices - `Customer Service` and `Backoffice Service`.
 
 ## Customer Service
 
@@ -11,7 +9,7 @@ Customer can close the issue, if he thinks it's resolved.
 
 - Implements [state-stored aggregate](https://docs.ecotone.tech/modelling/command-handling/state-stored-aggregate) `Issue` 
 - Make of [Document Store](https://docs.ecotone.tech/modelling/document-store) as Issue Repository
-- Sends [distributed commands](https://docs.ecotone.tech/modelling/microservices-php#commands) to `BackofficeService` as a result of event happening in Issue aggregate
+- Sends [distributed commands](https://docs.ecotone.tech/modelling/microservices-php#commands) to `BackofficeService` whenever Issue aggregate publish new events
 - Make use of asynchronous channel backed by database in order to support [Outbox Pattern](https://docs.ecotone.tech/modelling/asynchronous-handling#outbox-pattern).
 
 ## Backoffice Service
@@ -34,4 +32,7 @@ If you want to play with Demo having UI written in Symfony and Laravel, follow [
 
 # Insights
 
-The main focus in on the domain model. `Ecotone` solves all integration problems, so the `amount of the code to build and integrate services is minimal`.
+State, events and projections are stored in `Postgres` database.  
+Integration of microservices happens over `RabbitMQ`.   
+The main focus in on the domain model.   
+`Ecotone` solves all integration problems, so the `amount of the code to build and integrate services is minimal`.

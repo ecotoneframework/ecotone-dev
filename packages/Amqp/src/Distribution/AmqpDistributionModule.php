@@ -10,6 +10,7 @@ use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -51,7 +52,7 @@ class AmqpDistributionModule
 
     public function getAmqpConfiguration(array $extensionObjects): array
     {
-        $applicationConfiguration = $this->getServiceConfiguration($extensionObjects);
+        $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $amqpConfiguration = [];
         /** @var AmqpMessagePublisherConfiguration $distributedBusConfiguration */
         foreach ($extensionObjects as $distributedBusConfiguration) {
@@ -84,7 +85,7 @@ class AmqpDistributionModule
     public function prepare(Configuration $configuration, array $extensionObjects): void
     {
         $registeredReferences     = [];
-        $applicationConfiguration = $this->getServiceConfiguration($extensionObjects);
+        $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
         /** @var AmqpDistributedBusConfiguration $distributedBusConfiguration */
         foreach ($extensionObjects as $distributedBusConfiguration) {
@@ -206,18 +207,5 @@ class AmqpDistributionModule
                     )
             )
             ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($amqpPublisher->getReferenceName()));
-    }
-
-    private function getServiceConfiguration(array $extensionObjects): ServiceConfiguration
-    {
-        $applicationConfiguration = ServiceConfiguration::createWithDefaults();
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof ServiceConfiguration) {
-                $applicationConfiguration = $extensionObject;
-                break;
-            }
-        }
-
-        return $applicationConfiguration;
     }
 }

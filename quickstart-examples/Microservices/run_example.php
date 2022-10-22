@@ -20,6 +20,7 @@ $receiver = EcotoneLiteApplication::boostrap(
         ->doNotLoadCatalog(),
     pathToRootCatalog: __DIR__
 );
+/** Running consumer for the first time, in order to create queue */
 $receiver->run(MessagingConfiguration::SERVICE_NAME);
 $queryBus = $receiver->getQueryBus();
 

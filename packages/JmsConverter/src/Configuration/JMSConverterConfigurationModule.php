@@ -101,7 +101,7 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
                 $cacheDirectoryPath = $extensionObject->getCacheDirectoryPath();
             }
         }
-
+        
         $configuration->registerConverter(new JMSConverterBuilder($this->jmsHandlerAdapters, $jmsConverterConfiguration, $cacheDirectoryPath));
     }
 

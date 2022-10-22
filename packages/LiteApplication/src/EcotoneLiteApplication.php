@@ -28,7 +28,7 @@ class EcotoneLiteApplication
         }
 
 //        moving out of vendor catalog
-        $rootCatalog = $pathToRootCatalog ?: __DIR__ . '/../../../';
+        $rootCatalog = $pathToRootCatalog ?: __DIR__ . '/../../../../';
 
         $container = new LiteDIContainer($configuration, $cacheConfiguration, $configurationVariables);
 

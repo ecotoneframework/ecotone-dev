@@ -24,12 +24,7 @@ class TicketsProjection
     const GET_PREPARED_TICKETS = "getPreparedTickets";
     const GET_TICKET_DETAILS = "getTicketDetails";
 
-    private DbalConnectionFactory $connectionFactory;
-
-    public function __construct(DbalConnectionFactory $connectionFactory)
-    {
-        $this->connectionFactory = $connectionFactory;
-    }
+    public function __construct(private DbalConnectionFactory $connectionFactory) {}
 
     #[EventHandler]
     public function onTicketWasPrepared(TicketWasPrepared $event, #[Header(MessageHeaders::TIMESTAMP)] $occurredOn) : void

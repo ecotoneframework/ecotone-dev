@@ -31,6 +31,24 @@ class TicketsProjection
         $this->connectionFactory = $connectionFactory;
     }
 
+    #[EventHandler]
+    public function onTicketWasPrepared(TicketWasPrepared $event, #[Header(MessageHeaders::TIMESTAMP)] $occurredOn) : void
+    {
+        $this->getConnection()->insert(self::TABLE_NAME, [
+            "ticket_id" => $event->getTicketId(),
+            "ticket_type" => $event->getTicketType(),
+            "description" => $event->getDescription(),
+            "status" => "awaiting",
+            "prepared_at" => date('Y-m-d H:i:s', $occurredOn)
+        ]);
+    }
+
+    #[EventHandler]
+    public function onTicketWasCancelled(TicketWasCancelled $event) : void
+    {
+        $this->getConnection()->update(self::TABLE_NAME, ["status" => "cancelled"], ["ticket_id" => $event->getTicketId()]);
+    }
+
     #[QueryHandler(self::GET_TICKET_DETAILS)]
     public function getTicket(string $ticketId) : array
     {
@@ -51,24 +69,6 @@ SQL, ["ticket_id" => $ticketId])->fetchAssociative();
 SELECT * FROM last_prepared_tickets ORDER BY prepared_at DESC
 SQL
         )->fetchAllAssociative();
-    }
-
-    #[EventHandler(endpointId:"LastPreparedTicketsProjection::onTicketWasPreperad")]
-    public function onTicketWasPrepared(TicketWasPrepared $event, #[Header(MessageHeaders::TIMESTAMP)] $occurredOn) : void
-    {
-        $this->getConnection()->insert(self::TABLE_NAME, [
-            "ticket_id" => $event->getTicketId(),
-            "ticket_type" => $event->getTicketType(),
-            "description" => $event->getDescription(),
-            "status" => "awaiting",
-            "prepared_at" => date('Y-m-d H:i:s', $occurredOn)
-        ]);
-    }
-
-    #[EventHandler(endpointId:"LastPreparedTicketsProjection::onTicketWasCancelled")]
-    public function onTicketWasCancelled(TicketWasCancelled $event) : void
-    {
-        $this->getConnection()->update(self::TABLE_NAME, ["status" => "cancelled"], ["ticket_id" => $event->getTicketId()]);
     }
 
     #[ProjectionInitialization]

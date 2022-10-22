@@ -22,6 +22,7 @@
             "(cd EventHandling && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
             "(cd EventSourcing && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
             "(cd Microservices && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
+            "(cd MicroservicesAdvanced && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
             "(cd Schedule && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
             "(cd StatefulProjection && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
             "(cd OutboxPattern && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)"

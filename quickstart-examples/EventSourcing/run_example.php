@@ -9,6 +9,9 @@ use PHPUnit\Framework\Assert;
 require __DIR__ . "/vendor/autoload.php";
 $messagingSystem = EcotoneLiteApplication::boostrap(pathToRootCatalog: __DIR__);
 
+/** If you do not do it manually, then projection will be created automatically for you */
+$messagingSystem->runConsoleCommand("ecotone:es:initialize-projection", ["name" => "price_change_over_time"]);
+
 $productId = 1;
 $messagingSystem->getCommandBus()->send(new RegisterProduct($productId, 100));
 

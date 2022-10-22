@@ -17,8 +17,8 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
-#[Projection("last_prepared_tickets", Ticket::class)]
-class LastPreparedTicketsProjection
+#[Projection("tickets_projection", Ticket::class)]
+class TicketsProjection
 {
     const TABLE_NAME = "last_prepared_tickets";
     const GET_PREPARED_TICKETS = "getPreparedTickets";

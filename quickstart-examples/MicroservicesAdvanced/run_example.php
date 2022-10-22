@@ -1,6 +1,6 @@
 <?php
 
-use App\Microservices\BackofficeService\ReadModel\LastPreparedTicketsProjection;
+use App\Microservices\BackofficeService\ReadModel\TicketsProjection;
 use App\Microservices\CustomerService\Domain\Issue;
 use App\Microservices\CustomerService\Domain\IssueRepository;
 use App\Microservices\CustomerService\Infrastructure\EcotoneConfiguration;
@@ -33,6 +33,8 @@ $backofficeService = EcotoneLiteApplication::boostrap(
         ->doNotLoadCatalog(),
     pathToRootCatalog: __DIR__
 );
+/** Running consumer for first time in order to create the queue */
+$backofficeService->run(BACKOFFICE_SERVICE);
 
 /**  Running example */
 
@@ -52,7 +54,7 @@ $customerService->run(EcotoneConfiguration::ASYNCHRONOUS_CHANNEL);
 echo "\n\nBackofficeService: Running distributed consumer for Backoffice Service, in order to create Ticket\n";
 $backofficeService->run(BACKOFFICE_SERVICE);
 
-$ticketDetails = $backofficeService->getQueryBus()->sendWithRouting(LastPreparedTicketsProjection::GET_TICKET_DETAILS, $issueId);
+$ticketDetails = $backofficeService->getQueryBus()->sendWithRouting(TicketsProjection::GET_TICKET_DETAILS, $issueId);
 echo sprintf("BackofficeService: Ticket with id %s was created. Current status: %s\n", $ticketDetails['ticket']['ticket_id'], $ticketDetails['ticket']['status']);
 
 echo sprintf("\n\nCustomerService: Closing issue with id %s.\n", $issueId->toString());
@@ -61,6 +63,6 @@ $customerService->run(EcotoneConfiguration::ASYNCHRONOUS_CHANNEL);
 
 echo "\n\nBackofficeService: Running distributed consumer for Backoffice Service, in order to close Ticket\n";
 $backofficeService->run(BACKOFFICE_SERVICE);
-$ticketDetails = $backofficeService->getQueryBus()->sendWithRouting(LastPreparedTicketsProjection::GET_TICKET_DETAILS, $issueId);
+$ticketDetails = $backofficeService->getQueryBus()->sendWithRouting(TicketsProjection::GET_TICKET_DETAILS, $issueId);
 Assert::assertSame('cancelled', $ticketDetails['ticket']['status']);
 echo sprintf("BackofficeService: Ticket with id %s was closed. Current status: %s\n", $ticketDetails['ticket']['ticket_id'], $ticketDetails['ticket']['status']);

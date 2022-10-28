@@ -14,6 +14,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\AggregateVersion;
+use Ecotone\Modelling\Attribute\Revision;
 use Ecotone\Modelling\DistributedMetadata;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
@@ -121,6 +122,7 @@ class EventSourcingRepository implements EventSourcedRepository
                     $this->headerMapper->mapFromMessageHeaders($metadata),
                     [
                         MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
+                        MessageHeaders::REVISION => $this->getRevision($event),
                         LazyProophEventStore::AGGREGATE_ID => $aggregateId,
                         LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
                         LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
@@ -171,5 +173,20 @@ class EventSourcingRepository implements EventSourcedRepository
             $aggregate
         );
         return $aggregateVersion;
+    }
+
+    private function getRevision(object $event): int
+    {
+        $reflection = new \ReflectionObject($event);
+        $revisionAttributes = $reflection->getAttributes(Revision::class, \ReflectionAttribute::IS_INSTANCEOF);
+
+        if (empty($revisionAttributes)) {
+            return 1;
+        }
+
+        /** @var Revision $revision */
+        $revision = $revisionAttributes[0]->newInstance();
+
+        return $revision->getRevision();
     }
 }

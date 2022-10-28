@@ -137,7 +137,12 @@ class EcotoneEventStoreProophWrapper implements EventStore
             $events[] = Event::createWithType(
                 $eventName,
                 $deserialize ? $this->conversionService->convert($event->payload(), $sourcePHPType, $PHPMediaType, $eventName, $PHPMediaType) : $event->payload(),
-                $event->metadata()
+                array_merge(
+                    [
+                        MessageHeaders::REVISION => 1,
+                    ],
+                    $event->metadata()
+                )
             );
 
             $streamEvents->next();

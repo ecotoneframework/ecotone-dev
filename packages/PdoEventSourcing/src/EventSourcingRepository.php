@@ -26,6 +26,8 @@ use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
 use Prooph\EventStore\StreamName;
 use Ramsey\Uuid\Uuid;
+use ReflectionAttribute;
+use ReflectionObject;
 
 class EventSourcingRepository implements EventSourcedRepository
 {
@@ -177,8 +179,8 @@ class EventSourcingRepository implements EventSourcedRepository
 
     private function getRevision(object $event): int
     {
-        $reflection = new \ReflectionObject($event);
-        $revisionAttributes = $reflection->getAttributes(Revision::class, \ReflectionAttribute::IS_INSTANCEOF);
+        $reflection = new ReflectionObject($event);
+        $revisionAttributes = $reflection->getAttributes(Revision::class, ReflectionAttribute::IS_INSTANCEOF);
 
         if (empty($revisionAttributes)) {
             return 1;

@@ -716,7 +716,7 @@ final class MessagingSystemConfiguration implements Configuration
                 $applicationConfiguration->getNamespaces(),
                 $applicationConfiguration->getEnvironment(),
                 $applicationConfiguration->getLoadedCatalog() ?? '',
-                array_filter(ModuleClassList::allModules(), fn (string $moduleClassName): bool => class_exists($moduleClassName)),
+                array_filter(array_diff(ModuleClassList::allModules(), $applicationConfiguration->getSkippedModulesPackages()), fn (string $moduleClassName): bool => class_exists($moduleClassName)),
                 $userLandClassesToRegister
             ),
             $referenceTypeFromNameResolver,
@@ -745,6 +745,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $preparationInterfaceRegistry = InterfaceToCallRegistry::createWith($referenceTypeFromNameResolver, $annotationFinder);
+
         return self::prepareWithModuleRetrievingService(
             new AnnotationModuleRetrievingService(
                 $annotationFinder,

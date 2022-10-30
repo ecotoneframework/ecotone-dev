@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ecotone\Lite;
 
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
@@ -13,7 +15,7 @@ use Ecotone\Messaging\Config\StubConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 
-final class EcotoneTestSupport
+final class EcotoneMinimal
 {
     public const CONFIGURED_MESSAGING_SYSTEM = ConfiguredMessagingSystem::class;
 
@@ -69,7 +71,7 @@ final class EcotoneTestSupport
 
         $messagingConfiguration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
             InMemoryAnnotationFinder::createFrom(array_merge($classesToResolve, $modulesToEnable)),
-            InMemoryReferenceTypeFromNameResolver::createFromAssociativeArray($classesToResolve),
+            InMemoryReferenceTypeFromNameResolver::createFromReferenceSearchService(new PsrContainerReferenceSearchService($container)),
             InMemoryConfigurationVariableService::create($configurationVariables),
             $configuration,
             false

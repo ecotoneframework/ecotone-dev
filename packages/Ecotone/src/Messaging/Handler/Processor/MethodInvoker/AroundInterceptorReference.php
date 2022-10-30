@@ -190,9 +190,9 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
      * @throws TypeDefinitionException
      * @throws MessagingException
      */
-    public function doesItCutWith(InterfaceToCall $interfaceToCall, iterable $endpointAnnotations): bool
+    public function doesItCutWith(InterfaceToCall $interfaceToCall, iterable $endpointAnnotations, InterfaceToCallRegistry $interfaceToCallRegistry): bool
     {
-        return $this->pointcut->doesItCut($interfaceToCall, $endpointAnnotations);
+        return $this->pointcut->doesItCut($interfaceToCall, $endpointAnnotations, $interfaceToCallRegistry);
     }
 
     /**

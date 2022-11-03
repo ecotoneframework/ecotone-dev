@@ -11,10 +11,10 @@ use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\AggregateVersion;
-use Ecotone\Modelling\Attribute\Revision;
 use Ecotone\Modelling\DistributedMetadata;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
@@ -26,8 +26,6 @@ use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
 use Prooph\EventStore\StreamName;
 use Ramsey\Uuid\Uuid;
-use ReflectionAttribute;
-use ReflectionObject;
 
 class EventSourcingRepository implements EventSourcedRepository
 {
@@ -118,19 +116,19 @@ class EventSourcingRepository implements EventSourcedRepository
         $eventsCount = count($events);
         for ($eventNumber = 1; $eventNumber <= $eventsCount; $eventNumber++) {
             $event = $events[$eventNumber - 1];
-            $eventsWithMetadata[] = Event::create(
-                $event,
-                array_merge(
-                    $this->headerMapper->mapFromMessageHeaders($metadata),
-                    [
-                        MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
-                        MessageHeaders::REVISION => $this->getRevision($event),
-                        LazyProophEventStore::AGGREGATE_ID => $aggregateId,
-                        LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
-                        LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
-                    ]
-                )
+
+            $metadata = RevisionMetadataEnricher::enrich($metadata, $event);
+            $metadata = array_merge(
+                $this->headerMapper->mapFromMessageHeaders($metadata),
+                [
+                    MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
+                    LazyProophEventStore::AGGREGATE_ID => $aggregateId,
+                    LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
+                    LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
+                ]
             );
+
+            $eventsWithMetadata[] = Event::create($event, $metadata);
         }
         $this->eventStore->appendTo($streamName, $eventsWithMetadata);
     }
@@ -175,20 +173,5 @@ class EventSourcingRepository implements EventSourcedRepository
             $aggregate
         );
         return $aggregateVersion;
-    }
-
-    private function getRevision(object $event): int
-    {
-        $reflection = new ReflectionObject($event);
-        $revisionAttributes = $reflection->getAttributes(Revision::class, ReflectionAttribute::IS_INSTANCEOF);
-
-        if (empty($revisionAttributes)) {
-            return 1;
-        }
-
-        /** @var Revision $revision */
-        $revision = $revisionAttributes[0]->newInstance();
-
-        return $revision->getRevision();
     }
 }

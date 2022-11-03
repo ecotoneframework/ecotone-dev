@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Lite\Unit;
 
 use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Lite\Fixture\AddMoney;
@@ -20,7 +21,7 @@ class EcotoneLiteApplicationTest extends TestCase
             configurationVariables: ['currentExchange' => 2],
             configuration: ServiceConfiguration::createWithDefaults()
                                 ->withNamespaces(["Test\Ecotone\Lite\Fixture"])
-                                ->withSkippedModulePackageNames(['amqp', 'dbal', 'jmsConverter', 'eventSourcing']),
+                                ->withSkippedModulePackageNames([ModulePackageList::AMQP_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 

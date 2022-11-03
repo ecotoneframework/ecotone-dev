@@ -35,6 +35,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurat
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -65,8 +66,6 @@ use Ramsey\Uuid\Uuid;
 #[ModuleAnnotation]
 class EventSourcingModule extends NoExternalConfigurationModule
 {
-    public const NAME = 'eventSourcing';
-
     public const ECOTONE_ES_STOP_PROJECTION = 'ecotone:es:stop-projection';
     public const ECOTONE_ES_RESET_PROJECTION = 'ecotone:es:reset-projection';
     public const ECOTONE_ES_DELETE_PROJECTION = 'ecotone:es:delete-projection';
@@ -546,6 +545,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     public function getModulePackageName(): string
     {
-        return self::NAME;
+        return ModulePackageList::EVENT_SOURCING_PACKAGE;
     }
 }

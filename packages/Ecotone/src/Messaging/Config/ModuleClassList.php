@@ -48,7 +48,6 @@ class ModuleClassList
         MethodInterceptorModule::class,
         MessagingCommandsModule::class,
         EndpointHeadersInterceptorModule::class,
-        AsynchronousModule::class,
         BasicMessagingModule::class,
         ConsoleCommandModule::class,
         ConverterModule::class,
@@ -63,6 +62,10 @@ class ModuleClassList
         ServiceActivatorModule::class,
         SplitterModule::class,
         TransformerModule::class,
+    ];
+
+    public const ASYNCHRONOUS_MODULE = [
+        AsynchronousModule::class,
     ];
 
     public const AMQP_MODULES = [
@@ -94,6 +97,7 @@ class ModuleClassList
     {
         return array_merge(
             self::CORE_MODULES,
+            self::ASYNCHRONOUS_MODULE,
             self::AMQP_MODULES,
             self::DBAL_MODULES,
             self::EVENT_SOURCING_MODULES,

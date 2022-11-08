@@ -15,6 +15,7 @@ use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
+use Ecotone\Lite\Test\Configuration\EcotoneTestSupportModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\BasicMessagingModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
@@ -91,6 +92,10 @@ class ModuleClassList
     public const JMS_CONVERTER_MODULES = [
         JMSConverterConfigurationModule::class,
         JMSDefaultSerialization::class,
+    ];
+
+    public const TEST_MODULES = [
+        EcotoneTestSupportModule::class
     ];
 
     public static function allModules(): array

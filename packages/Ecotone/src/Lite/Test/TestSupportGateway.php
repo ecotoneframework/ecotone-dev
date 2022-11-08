@@ -43,4 +43,6 @@ interface TestSupportGateway
      * @return array<int, mixed>
      */
     public function getSentQueryMessages(): array;
+
+    public function resetMessages(): void;
 }

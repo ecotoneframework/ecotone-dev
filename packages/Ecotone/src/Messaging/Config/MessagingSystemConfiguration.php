@@ -708,9 +708,14 @@ final class MessagingSystemConfiguration implements Configuration
         return new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults());
     }
 
-    public static function prepare(string $rootPathToSearchConfigurationFor, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $applicationConfiguration, bool $useCachedVersion, array $userLandClassesToRegister = []): Configuration
+    public static function prepare(string $rootPathToSearchConfigurationFor, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $applicationConfiguration, bool $useCachedVersion, array $userLandClassesToRegister = [], bool $enableTestPackage = false): Configuration
     {
-        $availablePackages = array_diff(ModulePackageList::allPackages(), $applicationConfiguration->getSkippedModulesPackages());
+        $allPackages = ModulePackageList::allPackages();
+        if ($enableTestPackage) {
+            $allPackages[] = ModulePackageList::TEST_PACKAGE;
+        }
+
+        $availablePackages = array_diff($allPackages, $applicationConfiguration->getSkippedModulesPackages());
         $modulesClasses = [];
         foreach ($availablePackages as $availablePackage) {
             $modulesClasses = array_merge($modulesClasses, ModulePackageList::getModuleClassesForPackage($availablePackage));

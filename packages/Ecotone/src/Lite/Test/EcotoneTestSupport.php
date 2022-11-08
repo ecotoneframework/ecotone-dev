@@ -2,14 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Lite;
+namespace Ecotone\Lite\Test;
 
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
+use Ecotone\Lite\GatewayAwareContainer;
+use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\InMemoryReferenceTypeFromNameResolver;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModuleClassList;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Config\StubConfiguredMessagingSystem;
@@ -17,7 +21,7 @@ use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Psr\Container\ContainerInterface;
 
-final class EcotoneMinimal
+final class EcotoneTestSupport
 {
     public const CONFIGURED_MESSAGING_SYSTEM = ConfiguredMessagingSystem::class;
 
@@ -27,16 +31,14 @@ final class EcotoneMinimal
      * @param ContainerInterface|object[] $containerOrAvailableServices
      */
     public static function boostrapAllModules(
-        array                       $classesToResolve = [],
+        array                    $classesToResolve = [],
         ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration       $configuration = null,
-        array                       $configurationVariables = [],
-    ): ConfiguredMessagingSystem {
-        if (! $configuration) {
-            $configuration = ServiceConfiguration::createWithDefaults();
-        }
-
-        return self::prepareConfiguration(ModuleClassList::allModules(), $containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables);
+        ?ServiceConfiguration    $configuration = null,
+        array                    $configurationVariables = [],
+        ?string                  $pathToRootCatalog = null
+    ): ConfiguredMessagingSystem
+    {
+        return self::prepareConfiguration(ModulePackageList::allPackages(), $containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog);
     }
 
     /**
@@ -45,36 +47,33 @@ final class EcotoneMinimal
      * @param ContainerInterface|object[] $containerOrAvailableServices
      */
     public static function boostrapWithMessageHandlers(
-        array                       $classesToResolve = [],
+        array                    $classesToResolve = [],
         ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration       $configuration = null,
-        array                       $configurationVariables = [],
-        array                       $enableModules = [],
-        ?string $pathToRootCatalog = null
-    ): ConfiguredMessagingSystem {
-        if (! $configuration) {
-            $configuration = ServiceConfiguration::createWithDefaults();
-        }
-
-        return self::prepareConfiguration(array_merge(ModuleClassList::CORE_MODULES, $enableModules), $containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog);
+        ?ServiceConfiguration    $configuration = null,
+        array                    $configurationVariables = [],
+        array                    $enableModulePackages = [],
+        ?string                  $pathToRootCatalog = null
+    ): ConfiguredMessagingSystem
+    {
+        return self::prepareConfiguration(array_merge([ModulePackageList::CORE_PACKAGE], $enableModulePackages), $containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog);
     }
 
     /**
-     * @param array $modulesToEnable
+     * @param string[] $packagesToEnable
      * @param GatewayAwareContainer|object[] $containerOrAvailableServices
-     * @param ServiceConfiguration $configuration
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
      * @return ConfiguredMessagingSystem
      */
-    private static function prepareConfiguration(array $modulesToEnable, ContainerInterface|array $containerOrAvailableServices, ServiceConfiguration $configuration, array $classesToResolve, array $configurationVariables, ?string $pathToRootCatalog): ConfiguredMessagingSystem
+    private static function prepareConfiguration(array $packagesToEnable, ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $configuration, array $classesToResolve, array $configurationVariables, ?string $pathToRootCatalog): ConfiguredMessagingSystem
     {
         $pathToRootCatalog = $pathToRootCatalog ?: __DIR__ . '/../../../../';
+        if (is_null($configuration)) {
+            $configuration = ServiceConfiguration::createWithDefaults();
+        }
 
         $container = $containerOrAvailableServices instanceof ContainerInterface ? $containerOrAvailableServices : InMemoryPSRContainer::createFromAssociativeArray($containerOrAvailableServices);
-
-        $modulesToEnable = array_unique($modulesToEnable);
-        $configuration = $configuration->withSkippedModulePackageNames(array_diff(ModuleClassList::allModules(), $modulesToEnable));
+        $configuration = $configuration->withSkippedModulePackageNames(array_diff(ModulePackageList::allPackages(), $packagesToEnable));
 
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
             $pathToRootCatalog,

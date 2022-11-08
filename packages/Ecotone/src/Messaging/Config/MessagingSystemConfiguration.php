@@ -710,13 +710,19 @@ final class MessagingSystemConfiguration implements Configuration
 
     public static function prepare(string $rootPathToSearchConfigurationFor, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $applicationConfiguration, bool $useCachedVersion, array $userLandClassesToRegister = []): Configuration
     {
+        $availablePackages = array_diff(ModulePackageList::allPackages(), $applicationConfiguration->getSkippedModulesPackages());
+        $modulesClasses = [];
+        foreach ($availablePackages as $availablePackage) {
+            $modulesClasses = array_merge($modulesClasses, ModulePackageList::getModuleClassesForPackage($availablePackage));
+        }
+
         return self::prepareWithAnnotationFinder(
             AnnotationFinderFactory::createForAttributes(
                 realpath($rootPathToSearchConfigurationFor),
                 $applicationConfiguration->getNamespaces(),
                 $applicationConfiguration->getEnvironment(),
                 $applicationConfiguration->getLoadedCatalog() ?? '',
-                array_filter(array_diff(ModuleClassList::allModules(), $applicationConfiguration->getSkippedModulesPackages()), fn (string $moduleClassName): bool => class_exists($moduleClassName)),
+                array_filter($modulesClasses, fn (string $moduleClassName): bool => class_exists($moduleClassName)),
                 $userLandClassesToRegister
             ),
             $referenceTypeFromNameResolver,

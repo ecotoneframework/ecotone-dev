@@ -269,7 +269,6 @@ class SaveAggregateServiceBuilderTest extends TestCase
 
         $newVersionOrder = clone $order;
         $newVersionOrder->increaseAggregateVersion();
-        ;
         $newVersionOrder->getRecordedEvents();
 
         $orderRepository->expects($this->once())

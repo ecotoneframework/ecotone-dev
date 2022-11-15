@@ -19,7 +19,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\NamedEvent;
-use Ecotone\Modelling\Attribute\Revision;
 use Ecotone\Modelling\Config\BusModule;
 
 /**

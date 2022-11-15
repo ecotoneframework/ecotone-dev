@@ -51,6 +51,7 @@ class DeduplicationModule implements AnnotationModule
         $configuration
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    $interfaceToCallRegistry,
                     new DeduplicationInterceptor(
                         $connectionFactory,
                         new EpochBasedClock(),

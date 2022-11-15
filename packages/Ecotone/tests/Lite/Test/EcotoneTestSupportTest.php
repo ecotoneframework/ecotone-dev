@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Lite\Test;
 
 use Ecotone\Lite\Test\EcotoneTestSupport;
+use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Lite\Test\TestSupportGateway;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -96,5 +97,53 @@ final class EcotoneTestSupportTest extends TestCase
 
         $this->assertEquals(new OrderWasPlaced($orderId), $testSupportGateway->getPublishedEventMessages()[0]->getPayload());
         $this->assertEmpty($testSupportGateway->getPublishedEventMessages());
+    }
+
+    public function test_collecting_sent_commands()
+    {
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+            [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
+            [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
+        );
+
+        $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
+
+        $testSupportGateway = $ecotoneTestSupport->getTestSupportGateway();
+
+        $this->assertEquals([[]], $testSupportGateway->getSentCommands());
+        $this->assertEmpty($testSupportGateway->getSentCommands());
+    }
+
+    public function test_collecting_sent_command_messages()
+    {
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+            [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
+            [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
+        );
+
+        $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
+
+        $testSupportGateway = $ecotoneTestSupport->getTestSupportGateway();
+
+        $this->assertEquals([], $testSupportGateway->getSentCommandMessages()[0]->getPayload());
+        $this->assertEmpty($testSupportGateway->getSentCommandMessages());
+    }
+
+    public function test_not_failing_in_test_mode_when_no_routing_command_found()
+    {
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+            [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
+            [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment("test")
+                ->withExtensionObjects([
+                    TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
+                ]),
+        );
+
+        $command = new PlaceOrder("someId");
+        $ecotoneTestSupport->getCommandBus()->sendWithRouting('basket.addItem', $command);
+
+        $this->assertEquals([$command], $ecotoneTestSupport->getTestSupportGateway()->getSentCommands());
     }
 }

@@ -381,6 +381,7 @@ class BusRoutingModule implements AnnotationModule
             )
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    $interfaceToCallRegistry,
                     $this->messageHeadersPropagator,
                     'storeHeaders',
                     Precedence::ENDPOINT_HEADERS_PRECEDENCE - 1,

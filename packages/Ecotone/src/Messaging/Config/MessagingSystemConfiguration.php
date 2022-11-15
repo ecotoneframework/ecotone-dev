@@ -789,7 +789,13 @@ final class MessagingSystemConfiguration implements Configuration
         if ($cacheDirectoryPath) {
             self::prepareCacheDirectory($cacheDirectoryPath);
         }
-        $messagingSystemConfiguration = new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), $referenceTypeFromNameResolver, $preparationInterfaceRegistry, $applicationConfiguration);
+        $messagingSystemConfiguration = new self(
+            $moduleConfigurationRetrievingService,
+            $moduleConfigurationRetrievingService->findAllExtensionObjects(),
+            $referenceTypeFromNameResolver,
+            $preparationInterfaceRegistry,
+            $applicationConfiguration
+        );
 
         if ($cacheDirectoryPath) {
             $serializedMessagingSystemConfiguration = serialize($messagingSystemConfiguration);

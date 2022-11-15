@@ -113,6 +113,7 @@ class BusRoutingModuleTest extends MessagingTest
                 )
                 ->registerAroundMethodInterceptor(
                     AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                        InterfaceToCallRegistry::createEmpty(),
                         new MessageHeadersPropagator(),
                         'storeHeaders',
                         Precedence::ENDPOINT_HEADERS_PRECEDENCE - 1,

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Lite\Test\TestSupportGateway;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -15,6 +17,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Precedence;
@@ -42,6 +45,50 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
     }
 
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        $testConfiguration = ExtensionObjectResolver::resolveUnique(TestConfiguration::class, $extensionObjects, TestConfiguration::createWithDefaults());
+
+        $this->registerMessageCollector($configuration, $interfaceToCallRegistry);
+
+        $allowMissingDestination = new AllowMissingDestination();
+        if (!$testConfiguration->isFailingOnCommandHandlerNotFound()) {
+            $configuration
+                ->registerAroundMethodInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    $interfaceToCallRegistry,
+                    $allowMissingDestination,
+                    "invoke",
+                    Precedence::DEFAULT_PRECEDENCE,
+                    CommandBus::class
+                ));
+        }
+        if (!$testConfiguration->isFailingOnQueryHandlerNotFound()) {
+            $configuration
+                ->registerAroundMethodInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    $interfaceToCallRegistry,
+                    $allowMissingDestination,
+                    "invoke",
+                    Precedence::DEFAULT_PRECEDENCE,
+                    QueryBus::class
+                ));
+        }
+    }
+
+    public function canHandle($extensionObject): bool
+    {
+        return $extensionObject instanceof TestConfiguration;
+    }
+
+    public function getModulePackageName(): string
+    {
+        return ModulePackageList::TEST_PACKAGE;
+    }
+
+    private static function inputChannelName(string $methodName): string
+    {
+        return "test_support.message_collector." .$methodName;
+    }
+
+    private function registerMessageCollector(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $messageCollectorHandler = new MessageCollectorHandler();
 
@@ -159,20 +206,5 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 Precedence::DEFAULT_PRECEDENCE,
                 QueryBus::class
             ));
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
-    public function getModulePackageName(): string
-    {
-        return ModulePackageList::TEST_PACKAGE;
-    }
-
-    private static function inputChannelName(string $methodName): string
-    {
-        return "test_support.message_collector." .$methodName;
     }
 }

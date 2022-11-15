@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
+use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MethodArgument;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
@@ -200,6 +201,7 @@ class Gateway implements NonProxyGateway
             ->withEndpointAnnotations($this->endpointAnnotations);
         $aroundInterceptorReferences = $this->aroundInterceptors;
         $aroundInterceptorReferences[] = AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+            $this->referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME),
             new ConversionInterceptor(
                 $this->referenceSearchService->get(ConversionService::REFERENCE_NAME),
                 $this->interfaceToCall,

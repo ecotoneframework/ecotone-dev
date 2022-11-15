@@ -63,6 +63,7 @@ class ObjectManagerModule implements AnnotationModule
             ->requireReferences($connectionFactories)
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    $interfaceToCallRegistry,
                     new ObjectManagerInterceptor($connectionFactories),
                     'transactional',
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,

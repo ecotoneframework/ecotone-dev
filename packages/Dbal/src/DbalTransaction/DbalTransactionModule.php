@@ -61,6 +61,7 @@ class DbalTransactionModule implements AnnotationModule
             ->requireReferences($connectionFactories)
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    $interfaceToCallRegistry,
                     new DbalTransactionInterceptor($connectionFactories),
                     'transactional',
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE,

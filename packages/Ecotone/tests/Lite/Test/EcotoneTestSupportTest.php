@@ -2,13 +2,19 @@
 
 namespace Test\Ecotone\Lite\Test;
 
+use Ecotone\Lite\Test\Configuration\InMemoryStateStoredRepositoryBuilder;
 use Ecotone\Lite\Test\EcotoneTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Lite\Test\TestSupportGateway;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
+use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
+use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\GetShippingAddressQuery;
+use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Notification;
+use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Order;
 use Test\Ecotone\Modelling\Fixture\Order\ChannelConfiguration;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlaced;
@@ -197,5 +203,27 @@ final class EcotoneTestSupportTest extends TestCase
         $this->expectException(DestinationResolutionException::class);
 
         $ecotoneTestSupport->getQueryBus()->sendWithRouting('basket.addItem', new PlaceOrder("someId"));
+    }
+
+    public function test_registering_in_memory_state_stored_repository()
+    {
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+            [Order::class],
+            [],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment("test")
+                ->withExtensionObjects([
+                    InMemoryStateStoredRepositoryBuilder::createForAllAggregates()
+                ]),
+        );
+
+        $ecotoneTestSupport->getCommandBus()->send(CreateOrderCommand::createWith(1, 1, "some"));
+
+        $this->assertEquals(
+            "some",
+            $ecotoneTestSupport->getQueryBus()->send(GetShippingAddressQuery::create(1))
+        );
+
+        $this->assertEquals([new Notification()], $ecotoneTestSupport->getTestSupportGateway()->getPublishedEvents());
     }
 }

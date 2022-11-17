@@ -147,32 +147,33 @@ final class MessagingSystemConfiguration implements Configuration
      * @param object[] $extensionObjects
      * @param string[] $skippedModulesPackages
      */
-    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration)
+    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration)
     {
-        $extensionObjects = array_merge($extensionObjects, $applicationConfiguration->getExtensionObjects());
+        $extensionObjects = array_merge($extensionObjects, $serviceConfiguration->getExtensionObjects());
         $extensionApplicationConfiguration = [];
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof ServiceConfiguration) {
                 $extensionApplicationConfiguration[] = $extensionObject;
             }
         }
-        $applicationConfiguration = $applicationConfiguration->mergeWith($extensionApplicationConfiguration);
-        if (! $applicationConfiguration->getConnectionRetryTemplate()) {
-            if ($applicationConfiguration->isProductionConfiguration()) {
-                $applicationConfiguration->withConnectionRetryTemplate(
+        $serviceConfiguration = $serviceConfiguration->mergeWith($extensionApplicationConfiguration);
+
+        if (! $serviceConfiguration->getConnectionRetryTemplate()) {
+            if ($serviceConfiguration->isProductionConfiguration()) {
+                $serviceConfiguration->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackoff(1000, 3)
                         ->maxRetryAttempts(5)
                 );
             } else {
-                $applicationConfiguration->withConnectionRetryTemplate(
+                $serviceConfiguration->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackoff(100, 3)
                         ->maxRetryAttempts(3)
                 );
             }
         }
 
-        $this->isLazyConfiguration = ! $applicationConfiguration->isFailingFast();
-        $this->applicationConfiguration = $applicationConfiguration;
+        $this->isLazyConfiguration = ! $serviceConfiguration->isFailingFast();
+        $this->applicationConfiguration = $serviceConfiguration;
 
         $extensionObjects = array_filter(
             $extensionObjects,
@@ -184,8 +185,8 @@ final class MessagingSystemConfiguration implements Configuration
                 return ! ($extensionObject instanceof ServiceConfiguration);
             }
         );
-        $extensionObjects[] = $applicationConfiguration;
-        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $referenceTypeFromNameResolver, $applicationConfiguration->getCacheDirectoryPath() ? ProxyFactory::createWithCache($applicationConfiguration->getCacheDirectoryPath()) : ProxyFactory::createNoCache(), $preparationInterfaceRegistry, $applicationConfiguration);
+        $extensionObjects[] = $serviceConfiguration;
+        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $referenceTypeFromNameResolver, $serviceConfiguration->getCacheDirectoryPath() ? ProxyFactory::createWithCache($serviceConfiguration->getCacheDirectoryPath()) : ProxyFactory::createNoCache(), $preparationInterfaceRegistry, $serviceConfiguration);
     }
 
     /**
@@ -708,14 +709,14 @@ final class MessagingSystemConfiguration implements Configuration
         return new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InMemoryReferenceTypeFromNameResolver::createEmpty(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults());
     }
 
-    public static function prepare(string $rootPathToSearchConfigurationFor, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $applicationConfiguration, bool $useCachedVersion, array $userLandClassesToRegister = [], bool $enableTestPackage = false): Configuration
+    public static function prepare(string $rootPathToSearchConfigurationFor, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $serviceConfiguration, bool $useCachedVersion, array $userLandClassesToRegister = [], bool $enableTestPackage = false): Configuration
     {
         $allPackages = ModulePackageList::allPackages();
         if ($enableTestPackage) {
             $allPackages[] = ModulePackageList::TEST_PACKAGE;
         }
 
-        $availablePackages = array_diff($allPackages, $applicationConfiguration->getSkippedModulesPackages());
+        $availablePackages = array_diff($allPackages, $serviceConfiguration->getSkippedModulesPackages());
         $modulesClasses = [];
         foreach ($availablePackages as $availablePackage) {
             $modulesClasses = array_merge($modulesClasses, ModulePackageList::getModuleClassesForPackage($availablePackage));
@@ -724,15 +725,15 @@ final class MessagingSystemConfiguration implements Configuration
         return self::prepareWithAnnotationFinder(
             AnnotationFinderFactory::createForAttributes(
                 realpath($rootPathToSearchConfigurationFor),
-                $applicationConfiguration->getNamespaces(),
-                $applicationConfiguration->getEnvironment(),
-                $applicationConfiguration->getLoadedCatalog() ?? '',
+                $serviceConfiguration->getNamespaces(),
+                $serviceConfiguration->getEnvironment(),
+                $serviceConfiguration->getLoadedCatalog() ?? '',
                 array_filter($modulesClasses, fn (string $moduleClassName): bool => class_exists($moduleClassName)),
                 $userLandClassesToRegister
             ),
             $referenceTypeFromNameResolver,
             $configurationVariableService,
-            $applicationConfiguration,
+            $serviceConfiguration,
             $useCachedVersion
         );
     }

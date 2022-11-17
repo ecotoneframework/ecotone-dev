@@ -62,6 +62,23 @@ final class EcotoneTestSupport
     }
 
     /**
+     * @param string[] $classesToResolve
+     * @param array<string,string> $configurationVariables
+     * @param ContainerInterface|object[] $containerOrAvailableServices
+     */
+    public static function boostrapWithEventSourcing(
+        array                    $classesToResolve = [],
+        ContainerInterface|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration    $configuration = null,
+        array                    $configurationVariables = [],
+        array                    $enableModulePackages = [],
+        ?string                  $pathToRootCatalog = null
+    ): ConfiguredMessagingSystemWithTestSupport
+    {
+        return self::prepareConfiguration(array_merge([ModulePackageList::CORE_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE], $enableModulePackages), $containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog);
+    }
+
+    /**
      * @param string[] $packagesToEnable
      * @param GatewayAwareContainer|object[] $containerOrAvailableServices
      * @param string[] $classesToResolve

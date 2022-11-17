@@ -6,11 +6,16 @@ use Ecotone\Lite\Test\Configuration\InMemoryStateStoredRepositoryBuilder;
 use Ecotone\Lite\Test\EcotoneTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Lite\Test\TestSupportGateway;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\ConversionException;
+use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\GetShippingAddressQuery;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Notification;
@@ -18,11 +23,13 @@ use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Order;
 use Test\Ecotone\Modelling\Fixture\Order\ChannelConfiguration;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlaced;
+use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlacedConverter;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
+use Test\Ecotone\Modelling\Fixture\Order\PlaceOrderConverter;
 
 final class EcotoneTestSupportTest extends TestCase
 {
-    public function test_bootstraping_ecotone_minimal_with_given_set_of_classes()
+    public function test_bootstraping_with_given_set_of_classes()
     {
         $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
             [OrderService::class, ChannelConfiguration::class],
@@ -37,11 +44,11 @@ final class EcotoneTestSupportTest extends TestCase
         $this->assertNotEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
     }
 
-    public function test_bootstraping_ecotone_minimal_with_namespace()
+    public function test_bootstraping_with_namespace()
     {
         $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
             [],
-            [new OrderService()],
+            [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment("test")
                 ->withNamespaces(["Test\Ecotone\Modelling\Fixture\Order"]),
@@ -54,7 +61,7 @@ final class EcotoneTestSupportTest extends TestCase
         $this->assertNotEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
     }
 
-    public function test_bootstraping_ecotone_minimal_with_given_set_of_classes_and_asynchronous_module()
+    public function test_bootstraping_with_given_set_of_classes_and_asynchronous_module()
     {
         $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
             [OrderService::class, ChannelConfiguration::class],
@@ -68,6 +75,106 @@ final class EcotoneTestSupportTest extends TestCase
 
         $ecotoneTestSupport->run("orders");
         $this->assertNotEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
+    }
+
+    public function test_sending_command_which_requires_serialization()
+    {
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+            [OrderService::class, PlaceOrderConverter::class],
+            [new OrderService(), new PlaceOrderConverter()],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment("test"),
+        );
+
+        $orderId = "someId";
+        $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', ["orderId" => $orderId]);
+
+        $this->assertNotEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
+    }
+
+    public function test_sending_command_which_requires_serialization_with_converter_by_class()
+    {
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+            [OrderService::class, ChannelConfiguration::class, PlaceOrderConverter::class],
+            [new OrderService(), new PlaceOrderConverter()],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment("test"),
+        );
+
+        $orderId = "someId";
+        $ecotoneTestSupport->getCommandBus()->sendWithRouting(PlaceOrder::class, ["orderId" => $orderId]);
+
+        $this->assertNotEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
+    }
+
+    public function test_failing_serializing_command_message_due_to_lack_of_converter()
+    {
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+            [OrderService::class],
+            [new OrderService()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                    PollingMetadata::create('orders')
+                        ->withTestingSetup(2),
+                    TestConfiguration::createWithDefaults()
+                        ->withMediaTypeConversion("orders", MediaType::createApplicationXPHPArray())
+                ]),
+            enableModulePackages: [ModulePackageList::ASYNCHRONOUS_PACKAGE]
+        );
+
+        /** Failing on command serialization */
+        $this->expectException(ConversionException::class);
+
+        $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder("someId"));
+    }
+
+    public function test_failing_serializing_event_message_due_to_lack_of_converter()
+    {
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+            [OrderService::class, PlaceOrderConverter::class],
+            [new OrderService(), new PlaceOrderConverter(), "logger" => new NullLogger()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                    PollingMetadata::create('orders')
+                        ->withTestingSetup(1),
+                    TestConfiguration::createWithDefaults()
+                        ->withMediaTypeConversion("orders", MediaType::createApplicationXPHPArray())
+                ]),
+            enableModulePackages: [ModulePackageList::ASYNCHRONOUS_PACKAGE]
+        );
+
+        $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder("someId"));
+
+        /** Failing on event serialization */
+        $this->expectException(ConversionException::class);
+
+        $ecotoneTestSupport->run("orders");
+    }
+
+    public function test_serializing_command_and_event_before_sending_to_asynchronous_channel()
+    {
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+            [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                    PollingMetadata::create('orders')
+                        ->withTestingSetup(2),
+                    TestConfiguration::createWithDefaults()
+                        ->withMediaTypeConversion("orders", MediaType::createApplicationXPHPArray())
+                ]),
+            enableModulePackages: [ModulePackageList::ASYNCHRONOUS_PACKAGE]
+        );
+
+        $orderId = "someId";
+        $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
+
+        $ecotoneTestSupport->run("orders");
+
+        $this->assertEquals([$orderId], $ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getNotifiedOrders'));
     }
 
     public function test_collecting_sent_events()

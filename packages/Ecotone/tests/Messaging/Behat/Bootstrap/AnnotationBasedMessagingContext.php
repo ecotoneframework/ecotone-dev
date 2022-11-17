@@ -59,7 +59,9 @@ use Test\Ecotone\Modelling\Fixture\LateAggregateIdAssignation\UserRepository;
 use Test\Ecotone\Modelling\Fixture\MultipleHandlersAtSameMethod\Basket;
 use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestBookRepository;
 use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestViewer;
+use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlacedConverter;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
+use Test\Ecotone\Modelling\Fixture\Order\PlaceOrderConverter;
 use Test\Ecotone\Modelling\Fixture\OrderAggregate\AddUserId\AddUserIdService;
 use Test\Ecotone\Modelling\Fixture\OrderAggregate\LoggingService;
 use Test\Ecotone\Modelling\Fixture\OrderAggregate\OrderErrorHandler;
@@ -146,6 +148,8 @@ class AnnotationBasedMessagingContext extends TestCase implements Context
                 {
                     $objects = [
                         \Test\Ecotone\Modelling\Fixture\Order\OrderService::class => new \Test\Ecotone\Modelling\Fixture\Order\OrderService(),
+                        OrderWasPlacedConverter::class => new OrderWasPlacedConverter(),
+                        PlaceOrderConverter::class => new PlaceOrderConverter()
                     ];
                     break;
                 }

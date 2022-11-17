@@ -8,6 +8,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Lite\Test\TestSupportGateway;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -70,6 +71,11 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                     Precedence::DEFAULT_PRECEDENCE,
                     QueryBus::class
                 ));
+        }
+
+        if ($testConfiguration->getPollableChannelMediaTypeConversion()) {
+            $configuration
+                ->registerChannelInterceptor(new SerializationChannelAdapterBuilder($testConfiguration->getChannelToConvertOn(), $testConfiguration->getPollableChannelMediaTypeConversion()));
         }
     }
 

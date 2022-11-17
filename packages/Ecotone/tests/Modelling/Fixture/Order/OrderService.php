@@ -20,6 +20,7 @@ class OrderService
      */
     private $notifiedOrders = [];
 
+    #[CommandHandler(endpointId: "orderReceiver2")]
     #[CommandHandler('order.register', 'orderReceiver')]
     public function register(PlaceOrder $placeOrder, EventBus $eventBus): void
     {

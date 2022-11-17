@@ -61,11 +61,11 @@ final class PollingMetadata
         return new self($endpointId);
     }
 
-    public function withTestingSetup(): self
+    public function withTestingSetup(int $amountOfMessagesToHandle = 1): self
     {
         return $this
-            ->setExecutionAmountLimit(1)
-            ->setExecutionTimeLimitInMilliseconds(1)
+            ->setExecutionAmountLimit($amountOfMessagesToHandle)
+            ->setExecutionTimeLimitInMilliseconds($amountOfMessagesToHandle * 10)
             ->setStopOnError(true);
     }
 

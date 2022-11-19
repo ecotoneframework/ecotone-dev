@@ -3,18 +3,22 @@
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Lite\Test\EcotoneTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTest;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDrivenProjection\InProgressTicketList;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDrivenProjection\ProjectionConfiguration;
 
-final class EcotoneEventSourcingTestSupportTest extends TestCase
+final class EcotoneEventSourcingTestSupportTest extends EventSourcingMessagingTest
 {
     public function test_registering_in_memory_event_sourcing_repository()
     {
@@ -25,7 +29,6 @@ final class EcotoneEventSourcingTestSupportTest extends TestCase
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
-                    TestConfiguration::createWithDefaults()
                 ]),
             enableModulePackages: [ModulePackageList::EVENT_SOURCING_PACKAGE]
         );
@@ -46,7 +49,6 @@ final class EcotoneEventSourcingTestSupportTest extends TestCase
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
-                    TestConfiguration::createWithDefaults()
                 ]),
             enableModulePackages: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]
         );
@@ -58,5 +60,78 @@ final class EcotoneEventSourcingTestSupportTest extends TestCase
         $ecotoneTestSupport->run('asynchronous_projections');
 
         $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));;
+    }
+
+    public function test_running_in_memory_based_projection_twice_with_reset()
+    {
+        $connectionFactory = $this->getConnectionFactory();
+
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithEventSourcing(
+            [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
+            [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment("test")
+                ->withExtensionObjects([
+                    EventSourcingConfiguration::createInMemory(),
+                ]),
+            enableModulePackages: [ModulePackageList::EVENT_SOURCING_PACKAGE]
+        );
+
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotoneTestSupport->getGatewayByName(EventStore::class);
+
+        /** @var ProjectionManager $projectionManager */
+        $projectionManager = $ecotoneTestSupport->getGatewayByName(ProjectionManager::class);
+
+        if ($eventStore->hasStream(Ticket::class)) {
+            $eventStore->delete(Ticket::class);
+        }
+
+        $projectionManager->initializeProjection('inProgressTicketList');
+
+        $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket("1", "johny", "alert"));
+
+        $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
+
+        $projectionManager->resetProjection('inProgressTicketList');
+        $eventStore->delete(Ticket::class);
+        $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket("1", "johny", "alert"));
+
+        $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
+    }
+
+    public function test_running_dbal_based_projection_twice_with_reset()
+    {
+        $connectionFactory = $this->getConnectionFactory();
+
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithEventSourcing(
+            [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
+            [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment("test"),
+            enableModulePackages: [ModulePackageList::EVENT_SOURCING_PACKAGE]
+        );
+
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotoneTestSupport->getGatewayByName(EventStore::class);
+
+        /** @var ProjectionManager $projectionManager */
+        $projectionManager = $ecotoneTestSupport->getGatewayByName(ProjectionManager::class);
+
+        if ($eventStore->hasStream(Ticket::class)) {
+            $eventStore->delete(Ticket::class);
+        }
+
+        $projectionManager->initializeProjection('inProgressTicketList');
+
+        $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket("1", "johny", "alert"));
+
+        $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
+
+        $projectionManager->resetProjection('inProgressTicketList');
+        $eventStore->delete(Ticket::class);
+        $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket("1", "johny", "alert"));
+
+        $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
     }
 }

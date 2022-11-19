@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing;
+namespace Ecotone\EventSourcing\InMemory;
 
-use Prooph\EventStore\Projection\InMemoryProjectionManager;
+use Ecotone\EventSourcing\CachingInMemoryReadModelProjector;
 use Prooph\EventStore\Projection\ProjectionStatus;
 use Prooph\EventStore\Projection\Projector;
 use Prooph\EventStore\Projection\Query;

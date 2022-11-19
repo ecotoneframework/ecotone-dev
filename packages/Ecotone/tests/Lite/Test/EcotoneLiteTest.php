@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Modelling\CommandBus;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\GetShippingAddressQuery;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Notification;
@@ -374,7 +375,7 @@ final class EcotoneLiteTest extends TestCase
 
     public function test_making_use_of_cache()
     {
-        $cacheDirectoryPath = sys_get_temp_dir();
+        $cacheDirectoryPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString();
         $inMemoryPSRContainer = InMemoryPSRContainer::createFromAssociativeArray([
             OrderService::class => new OrderService()
         ]);

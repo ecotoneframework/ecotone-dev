@@ -10,8 +10,9 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
+use Psr\Container\ContainerInterface;
 
-class LiteDIContainer implements \Ecotone\Lite\GatewayAwareContainer, ReferenceTypeFromNameResolver
+class LiteDIContainer implements ContainerInterface
 {
     private Container $container;
 
@@ -44,11 +45,6 @@ class LiteDIContainer implements \Ecotone\Lite\GatewayAwareContainer, ReferenceT
     public function set(string $id, object $service)
     {
         $this->container->set($id, $service);
-    }
-
-    public function addGateway(string $referenceName, object $gateway): void
-    {
-        $this->container->set($referenceName, $gateway);
     }
 
     public function resolve(string $referenceName): Type

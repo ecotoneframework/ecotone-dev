@@ -4,7 +4,6 @@ namespace Ecotone\Lite;
 
 use DI\Container;
 use DI\ContainerBuilder;
-use Ecotone\Messaging\Config\ReferenceTypeFromNameResolver;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\Type;

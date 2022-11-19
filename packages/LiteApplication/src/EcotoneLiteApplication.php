@@ -11,11 +11,11 @@ class EcotoneLiteApplication
 {
     public static function boostrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null): ConfiguredMessagingSystem
     {
-        if (!$serviceConfiguration) {
+        if (! $serviceConfiguration) {
             $serviceConfiguration = ServiceConfiguration::createWithDefaults();
         }
 
-        if ($serviceConfiguration->isLoadingCatalogEnabled() && !$serviceConfiguration->getLoadedCatalog()) {
+        if ($serviceConfiguration->isLoadingCatalogEnabled() && ! $serviceConfiguration->getLoadedCatalog()) {
             $serviceConfiguration = $serviceConfiguration
                 ->withLoadCatalog('src');
         }

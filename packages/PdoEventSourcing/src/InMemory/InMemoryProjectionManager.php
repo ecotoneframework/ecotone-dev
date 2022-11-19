@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\InMemory;
 
+use function array_keys;
+use function array_slice;
+use function get_class;
+use function preg_grep;
+
 use Prooph\EventStore\EventStore;
 use Prooph\EventStore\EventStoreDecorator;
+use Prooph\EventStore\Exception;
 use Prooph\EventStore\InMemoryEventStore;
 use Prooph\EventStore\NonTransactionalInMemoryEventStore;
 use Prooph\EventStore\Projection\InMemoryEventStoreProjector;
@@ -16,7 +22,13 @@ use Prooph\EventStore\Projection\Projector;
 use Prooph\EventStore\Projection\Query;
 use Prooph\EventStore\Projection\ReadModel;
 use Prooph\EventStore\Projection\ReadModelProjector;
-use Prooph\EventStore\Exception;
+use ReflectionProperty;
+
+use function restore_error_handler;
+use function set_error_handler;
+use function sort;
+
+use const SORT_STRING;
 
 /**
  * This is copy of Prooph's In Memory Event Store with support for projection reset and delete
@@ -116,7 +128,7 @@ final class InMemoryProjectionManager implements ProjectionManager
 
     public function stopProjection(string $name): void
     {
-        return;
+
     }
 
     public function fetchProjectionNames(?string $filter, int $limit = 20, int $offset = 0): array
@@ -134,10 +146,10 @@ final class InMemoryProjectionManager implements ProjectionManager
         }
 
         if (null === $filter) {
-            $result = \array_keys($this->projectors);
-            \sort($result, \SORT_STRING);
+            $result = array_keys($this->projectors);
+            sort($result, SORT_STRING);
 
-            return \array_slice($result, $offset, $limit);
+            return array_slice($result, $offset, $limit);
         }
 
         if (isset($this->projectors[$filter])) {
@@ -161,19 +173,19 @@ final class InMemoryProjectionManager implements ProjectionManager
             );
         }
 
-        \set_error_handler(function ($errorNo, $errorMsg): void {
+        set_error_handler(function ($errorNo, $errorMsg): void {
             throw new Exception\RuntimeException($errorMsg);
         });
 
         try {
-            $result = \preg_grep("/$regex/", \array_keys($this->projectors));
-            \sort($result, \SORT_STRING);
+            $result = preg_grep("/$regex/", array_keys($this->projectors));
+            sort($result, SORT_STRING);
 
-            return \array_slice($result, $offset, $limit);
+            return array_slice($result, $offset, $limit);
         } catch (Exception\RuntimeException $e) {
             throw new Exception\InvalidArgumentException('Invalid regex pattern given', 0, $e);
         } finally {
-            \restore_error_handler();
+            restore_error_handler();
         }
     }
 
@@ -185,7 +197,7 @@ final class InMemoryProjectionManager implements ProjectionManager
 
         $projector = $this->projectors[$name];
 
-        $ref = new \ReflectionProperty(\get_class($projector), 'status');
+        $ref = new ReflectionProperty(get_class($projector), 'status');
         $ref->setAccessible(true);
 
         return $ref->getValue($projector);
@@ -199,7 +211,7 @@ final class InMemoryProjectionManager implements ProjectionManager
 
         $projector = $this->projectors[$name];
 
-        $ref = new \ReflectionProperty(\get_class($projector), 'streamPositions');
+        $ref = new ReflectionProperty(get_class($projector), 'streamPositions');
         $ref->setAccessible(true);
         $value = $ref->getValue($projector);
 

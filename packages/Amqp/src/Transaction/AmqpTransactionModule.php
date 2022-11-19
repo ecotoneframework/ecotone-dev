@@ -3,7 +3,6 @@
 namespace Ecotone\Amqp\Transaction;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
-use Ecotone\Amqp\Configuration\AmqpModule;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ConsoleCommand;

@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDrivenProjection;
 
-use Doctrine\DBAL\Connection;
 use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -32,8 +31,8 @@ class InProgressTicketList
     public function addTicket(TicketWasRegistered $event): void
     {
         $this->tickets[$event->getTicketId()] = [
-            "ticket_id" => $event->getTicketId(),
-            "ticket_type" => $event->getTicketType()
+            'ticket_id' => $event->getTicketId(),
+            'ticket_type' => $event->getTicketType(),
         ];
     }
 

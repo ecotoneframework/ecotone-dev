@@ -4,7 +4,6 @@ namespace Ecotone\Dbal\ObjectManager;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\Configuration\DbalModule;
 use Ecotone\Dbal\DbalTransaction\DbalTransaction;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ConsoleCommand;

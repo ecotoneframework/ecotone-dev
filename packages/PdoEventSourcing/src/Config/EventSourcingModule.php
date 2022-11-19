@@ -3,7 +3,6 @@
 namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
-use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\AggregateStreamMapping;
 use Ecotone\EventSourcing\AggregateTypeMapping;
@@ -37,7 +36,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurat
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
-use Ecotone\Messaging\Config\EnabledPackages;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;

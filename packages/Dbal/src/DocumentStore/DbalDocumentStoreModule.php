@@ -4,7 +4,6 @@ namespace Ecotone\Dbal\DocumentStore;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\Configuration\DbalModule;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;

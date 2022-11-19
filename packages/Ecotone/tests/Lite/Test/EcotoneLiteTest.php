@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Lite\Test;
 
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryStateStoredRepositoryBuilder;
-use Ecotone\Lite\Test\EcotoneTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Lite\Test\TestSupportGateway;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -13,7 +13,7 @@ use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
-use Ecotone\Modelling\InMemoryEventSourcedRepository;
+use Ecotone\Modelling\CommandBus;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
@@ -27,11 +27,11 @@ use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlacedConverter;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrderConverter;
 
-final class EcotoneTestSupportTest extends TestCase
+final class EcotoneLiteTest extends TestCase
 {
     public function test_bootstraping_with_given_set_of_classes()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -47,7 +47,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_bootstraping_with_namespace()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
@@ -65,7 +65,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_bootstraping_with_given_set_of_classes_and_asynchronous_module()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -82,7 +82,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_sending_command_which_requires_serialization()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [OrderService::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
@@ -98,7 +98,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_sending_command_which_requires_serialization_with_converter_by_class()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [OrderService::class, ChannelConfiguration::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
@@ -114,7 +114,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_failing_serializing_command_message_due_to_lack_of_converter()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [OrderService::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -136,7 +136,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_failing_serializing_event_message_due_to_lack_of_converter()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [OrderService::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter(), "logger" => new NullLogger()],
             ServiceConfiguration::createWithDefaults()
@@ -160,7 +160,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_serializing_command_and_event_before_sending_to_asynchronous_channel()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
@@ -184,7 +184,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_collecting_sent_events()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -203,7 +203,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_collecting_sent_event_messages()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -222,7 +222,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_collecting_sent_commands()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -239,7 +239,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_collecting_sent_command_messages()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -256,7 +256,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_not_command_bus_failing_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -275,7 +275,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_failing_command_bus_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -293,7 +293,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_not_query_bus_failing_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -311,7 +311,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_failing_query_bus_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -329,7 +329,7 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_registering_in_memory_state_stored_repository()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [Order::class],
             [],
             ServiceConfiguration::createWithDefaults()
@@ -348,5 +348,60 @@ final class EcotoneTestSupportTest extends TestCase
         );
 
         $this->assertEquals([new Notification()], $ecotoneTestSupport->getTestSupportGateway()->getPublishedEvents());
+    }
+
+    public function test_add_gateways_to_container()
+    {
+        $inMemoryPSRContainer = InMemoryPSRContainer::createFromAssociativeArray([
+            OrderService::class => new OrderService()
+        ]);
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            $inMemoryPSRContainer,
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+            allowGatewaysToBeRegisteredInContainer: true
+        );
+
+        $orderId = "123";
+        $inMemoryPSRContainer->get(CommandBus::class)->sendWithRouting('order.register', new PlaceOrder($orderId));
+
+        $testSupportGateway = $ecotoneTestSupport->getTestSupportGateway();
+
+        $this->assertEquals([new OrderWasPlaced($orderId)], $testSupportGateway->getPublishedEvents());
+        $this->assertEmpty($testSupportGateway->getPublishedEvents());
+    }
+
+    public function test_making_use_of_cache()
+    {
+        $cacheDirectoryPath = sys_get_temp_dir();
+        $inMemoryPSRContainer = InMemoryPSRContainer::createFromAssociativeArray([
+            OrderService::class => new OrderService()
+        ]);
+
+//        cache
+        EcotoneLite::bootstrap(
+            [OrderService::class],
+            $inMemoryPSRContainer,
+            ServiceConfiguration::createWithDefaults()
+                ->withCacheDirectoryPath($cacheDirectoryPath)
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+            useCachedVersion: true
+        );
+
+//        resolve cache
+        $ecotoneLite = EcotoneLite::bootstrap(
+            [OrderService::class],
+            $inMemoryPSRContainer,
+            ServiceConfiguration::createWithDefaults()
+                ->withCacheDirectoryPath($cacheDirectoryPath)
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+            useCachedVersion: true
+        );
+
+        $orderId = "123";
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
+
+        $this->assertNotEmpty($ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
     }
 }

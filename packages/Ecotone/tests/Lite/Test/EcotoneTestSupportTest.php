@@ -31,10 +31,11 @@ final class EcotoneTestSupportTest extends TestCase
 {
     public function test_bootstraping_with_given_set_of_classes()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test"),
         );
 
@@ -46,10 +47,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_bootstraping_with_namespace()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test")
                 ->withNamespaces(["Test\Ecotone\Modelling\Fixture\Order"]),
             pathToRootCatalog: __DIR__ . '/../../'
@@ -63,10 +65,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_bootstraping_with_given_set_of_classes_and_asynchronous_module()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
-            enableModulePackages: [ModulePackageList::ASYNCHRONOUS_PACKAGE]
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
         );
 
         $orderId = "someId";
@@ -79,10 +82,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_sending_command_which_requires_serialization()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [OrderService::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test"),
         );
 
@@ -94,10 +98,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_sending_command_which_requires_serialization_with_converter_by_class()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [OrderService::class, ChannelConfiguration::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test"),
         );
 
@@ -109,10 +114,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_failing_serializing_command_message_due_to_lack_of_converter()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [OrderService::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders'),
                     PollingMetadata::create('orders')
@@ -120,7 +126,6 @@ final class EcotoneTestSupportTest extends TestCase
                     TestConfiguration::createWithDefaults()
                         ->withMediaTypeConversion("orders", MediaType::createApplicationXPHPArray())
                 ]),
-            enableModulePackages: [ModulePackageList::ASYNCHRONOUS_PACKAGE]
         );
 
         /** Failing on command serialization */
@@ -131,10 +136,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_failing_serializing_event_message_due_to_lack_of_converter()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [OrderService::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter(), "logger" => new NullLogger()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders'),
                     PollingMetadata::create('orders')
@@ -142,7 +148,6 @@ final class EcotoneTestSupportTest extends TestCase
                     TestConfiguration::createWithDefaults()
                         ->withMediaTypeConversion("orders", MediaType::createApplicationXPHPArray())
                 ]),
-            enableModulePackages: [ModulePackageList::ASYNCHRONOUS_PACKAGE]
         );
 
         $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder("someId"));
@@ -155,10 +160,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_serializing_command_and_event_before_sending_to_asynchronous_channel()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders'),
                     PollingMetadata::create('orders')
@@ -166,7 +172,6 @@ final class EcotoneTestSupportTest extends TestCase
                     TestConfiguration::createWithDefaults()
                         ->withMediaTypeConversion("orders", MediaType::createApplicationXPHPArray())
                 ]),
-            enableModulePackages: [ModulePackageList::ASYNCHRONOUS_PACKAGE]
         );
 
         $orderId = "someId";
@@ -179,10 +184,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_collecting_sent_events()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test"),
         );
 
@@ -197,10 +203,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_collecting_sent_event_messages()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test"),
         );
 
@@ -215,9 +222,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_collecting_sent_commands()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
         );
 
         $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
@@ -230,9 +239,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_collecting_sent_command_messages()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
         );
 
         $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
@@ -245,10 +256,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_not_command_bus_failing_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
@@ -263,10 +275,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_failing_command_bus_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(true)
@@ -280,10 +293,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_not_query_bus_failing_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(false)
@@ -297,10 +311,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_failing_query_bus_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(true)
@@ -314,10 +329,11 @@ final class EcotoneTestSupportTest extends TestCase
 
     public function test_registering_in_memory_state_stored_repository()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithMessageHandlers(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [Order::class],
             [],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     InMemoryStateStoredRepositoryBuilder::createForAllAggregates()

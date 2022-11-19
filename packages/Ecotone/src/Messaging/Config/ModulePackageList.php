@@ -42,4 +42,9 @@ final class ModulePackageList
             self::JMS_CONVERTER_PACKAGE
         ];
     }
+
+    public static function allPackagesExcept(array $modulePackageNames): array
+    {
+        return array_diff(self::allPackages(), $modulePackageNames);
+    }
 }

@@ -207,6 +207,8 @@ class ServiceConfiguration
     }
 
     /**
+     * List which packages should be skipped. The core package can't be skipped.
+     * @link ModulePackageList list of available packages
      * @param string[] $modulePackageNames
      */
     public function withSkippedModulePackageNames(array $modulePackageNames): self

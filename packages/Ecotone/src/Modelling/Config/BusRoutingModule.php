@@ -30,7 +30,7 @@ use Ecotone\Modelling\Attribute\NotUniqueHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagator;
+use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\QueryBus;
 use ReflectionMethod;
 
@@ -43,9 +43,9 @@ class BusRoutingModule implements AnnotationModule
     private BusRouterBuilder $commandBusByName;
     private BusRouterBuilder $queryBusByName;
     private BusRouterBuilder $eventBusByName;
-    private MessageHeadersPropagator $messageHeadersPropagator;
+    private MessageHeadersPropagatorInterceptor $messageHeadersPropagator;
 
-    public function __construct(MessageHeadersPropagator $messageHeadersPropagator, BusRouterBuilder $commandBusByObject, BusRouterBuilder $commandBusByName, BusRouterBuilder $queryBusByObject, BusRouterBuilder $queryBusByName, BusRouterBuilder $eventBusByObject, BusRouterBuilder $eventBusByName)
+    public function __construct(MessageHeadersPropagatorInterceptor $messageHeadersPropagator, BusRouterBuilder $commandBusByObject, BusRouterBuilder $commandBusByName, BusRouterBuilder $queryBusByObject, BusRouterBuilder $queryBusByName, BusRouterBuilder $eventBusByObject, BusRouterBuilder $eventBusByName)
     {
         $this->commandBusByObject       = $commandBusByObject;
         $this->queryBusByObject         = $queryBusByObject;
@@ -61,7 +61,7 @@ class BusRoutingModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $messageHeadersPropagator = new MessageHeadersPropagator();
+        $messageHeadersPropagator = new MessageHeadersPropagatorInterceptor();
 
         $uniqueObjectChannels = [];
         $uniqueNameChannels = [];
@@ -367,8 +367,8 @@ class BusRoutingModule implements AnnotationModule
         $configuration
             ->registerBeforeMethodInterceptor(
                 MethodInterceptor::create(
-                    MessageHeadersPropagator::class,
-                    $interfaceToCallRegistry->getFor(MessageHeadersPropagator::class, 'propagateHeaders'),
+                    MessageHeadersPropagatorInterceptor::class,
+                    $interfaceToCallRegistry->getFor(MessageHeadersPropagatorInterceptor::class, 'propagateHeaders'),
                     TransformerBuilder::createWithDirectObject($this->messageHeadersPropagator, 'propagateHeaders')
                         ->withMethodParameterConverters(
                             [

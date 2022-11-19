@@ -28,20 +28,15 @@ final class EcotoneTestSupport
 {
     public const CONFIGURED_MESSAGING_SYSTEM = ConfiguredMessagingSystem::class;
 
-    /**
-     * @param string[] $classesToResolve
-     * @param array<string,string> $configurationVariables
-     * @param ContainerInterface|object[] $containerOrAvailableServices
-     */
-    public static function boostrapAllModules(
+    public function bootstrap(
         array                    $classesToResolve = [],
         ContainerInterface|array $containerOrAvailableServices = [],
         ?ServiceConfiguration    $configuration = null,
         array                    $configurationVariables = [],
         ?string                  $pathToRootCatalog = null
-    ): ConfiguredMessagingSystemWithTestSupport
+    ): ConfiguredMessagingSystem
     {
-        return self::prepareConfiguration(ModulePackageList::allPackages(), $containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog);
+
     }
 
     /**
@@ -49,33 +44,15 @@ final class EcotoneTestSupport
      * @param array<string,string> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
      */
-    public static function boostrapWithMessageHandlers(
+    public static function boostrapForTesting(
         array                    $classesToResolve = [],
         ContainerInterface|array $containerOrAvailableServices = [],
         ?ServiceConfiguration    $configuration = null,
         array                    $configurationVariables = [],
-        array                    $enableModulePackages = [],
         ?string                  $pathToRootCatalog = null
     ): ConfiguredMessagingSystemWithTestSupport
     {
-        return self::prepareConfiguration(array_merge([ModulePackageList::CORE_PACKAGE], $enableModulePackages), $containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog);
-    }
-
-    /**
-     * @param string[] $classesToResolve
-     * @param array<string,string> $configurationVariables
-     * @param ContainerInterface|object[] $containerOrAvailableServices
-     */
-    public static function boostrapWithEventSourcing(
-        array                    $classesToResolve = [],
-        ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration    $configuration = null,
-        array                    $configurationVariables = [],
-        array                    $enableModulePackages = [],
-        ?string                  $pathToRootCatalog = null
-    ): ConfiguredMessagingSystemWithTestSupport
-    {
-        return self::prepareConfiguration(array_merge([ModulePackageList::CORE_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE], $enableModulePackages), $containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog);
+        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog);
     }
 
     /**
@@ -84,16 +61,14 @@ final class EcotoneTestSupport
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
      */
-    private static function prepareConfiguration(array $packagesToEnable, ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $configuration, array $classesToResolve, array $configurationVariables, ?string $pathToRootCatalog): ConfiguredMessagingSystemWithTestSupport
+    private static function prepareConfiguration(ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $configuration, array $classesToResolve, array $configurationVariables, ?string $pathToRootCatalog): ConfiguredMessagingSystemWithTestSupport
     {
         $pathToRootCatalog = $pathToRootCatalog ?: __DIR__ . '/../../../../';
         if (is_null($configuration)) {
             $configuration = ServiceConfiguration::createWithDefaults();
         }
-        Assert::assertEmptyArray($configuration->getSkippedModulesPackages(), "Do not set skipped module packages for Test Support. Make use of enableModulePackages configuration.");
 
         $container = $containerOrAvailableServices instanceof ContainerInterface ? $containerOrAvailableServices : InMemoryPSRContainer::createFromAssociativeArray($containerOrAvailableServices);
-        $configuration = $configuration->withSkippedModulePackageNames(array_diff(ModulePackageList::allPackages(), $packagesToEnable));
 
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
             $pathToRootCatalog,

@@ -711,14 +711,15 @@ final class MessagingSystemConfiguration implements Configuration
 
     public static function prepare(string $rootPathToSearchConfigurationFor, ReferenceTypeFromNameResolver $referenceTypeFromNameResolver, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $serviceConfiguration, bool $useCachedVersion, array $userLandClassesToRegister = [], bool $enableTestPackage = false): Configuration
     {
-        $allPackages = ModulePackageList::allPackages();
+        $requiredModules = [ModulePackageList::CORE_PACKAGE];
         if ($enableTestPackage) {
-            $allPackages[] = ModulePackageList::TEST_PACKAGE;
+            $requiredModules[] = ModulePackageList::TEST_PACKAGE;
         }
 
-        $availablePackages = array_diff($allPackages, $serviceConfiguration->getSkippedModulesPackages());
+        $serviceConfiguration = $serviceConfiguration->withSkippedModulePackageNames(array_diff($serviceConfiguration->getSkippedModulesPackages(), $requiredModules));
+
         $modulesClasses = [];
-        foreach ($availablePackages as $availablePackage) {
+        foreach (array_diff(array_merge(ModulePackageList::allPackages(), [ModulePackageList::TEST_PACKAGE]), $serviceConfiguration->getSkippedModulesPackages()) as $availablePackage) {
             $modulesClasses = array_merge($modulesClasses, ModulePackageList::getModuleClassesForPackage($availablePackage));
         }
 

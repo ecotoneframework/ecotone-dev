@@ -22,15 +22,15 @@ final class EcotoneEventSourcingTestSupportTest extends EventSourcingMessagingTe
 {
     public function test_registering_in_memory_event_sourcing_repository()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithEventSourcing(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
                 ]),
-            enableModulePackages: [ModulePackageList::EVENT_SOURCING_PACKAGE]
         );
 
         $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));;
@@ -42,15 +42,15 @@ final class EcotoneEventSourcingTestSupportTest extends EventSourcingMessagingTe
 
     public function test_registering_with_asynchronous_package()
     {
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithEventSourcing(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class, ProjectionConfiguration::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
                 ]),
-            enableModulePackages: [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]
         );
 
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket("1", "johny", "alert"));
@@ -66,15 +66,15 @@ final class EcotoneEventSourcingTestSupportTest extends EventSourcingMessagingTe
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithEventSourcing(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
                 ->withEnvironment("test")
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
                 ]),
-            enableModulePackages: [ModulePackageList::EVENT_SOURCING_PACKAGE]
         );
 
         /** @var EventStore $eventStore */
@@ -104,12 +104,12 @@ final class EcotoneEventSourcingTestSupportTest extends EventSourcingMessagingTe
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        $ecotoneTestSupport = EcotoneTestSupport::boostrapWithEventSourcing(
+        $ecotoneTestSupport = EcotoneTestSupport::boostrapForTesting(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
                 ->withEnvironment("test"),
-            enableModulePackages: [ModulePackageList::EVENT_SOURCING_PACKAGE]
         );
 
         /** @var EventStore $eventStore */

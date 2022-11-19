@@ -128,7 +128,6 @@ final class InMemoryProjectionManager implements ProjectionManager
 
     public function stopProjection(string $name): void
     {
-
     }
 
     public function fetchProjectionNames(?string $filter, int $limit = 20, int $offset = 0): array

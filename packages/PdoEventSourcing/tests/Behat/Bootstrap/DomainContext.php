@@ -14,6 +14,7 @@ use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Lite\EcotoneLiteConfiguration;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
@@ -308,7 +309,7 @@ class DomainContext extends TestCase implements Context
                 ->withEnvironment('prod')
                 ->withNamespaces($namespaces)
                 ->withFailFast($failFast)
-                ->withSkippedModulePackageNames(['jmsConverter', 'amqp'])
+                ->withSkippedModulePackageNames([ModulePackageList::AMQP_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString()),
             [
                 'isPostgres' => $dbalConnectionFactory->createContext()->getDbalConnection()->getDriver() instanceof Driver,

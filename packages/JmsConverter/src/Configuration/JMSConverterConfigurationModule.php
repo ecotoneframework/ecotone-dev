@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -113,6 +114,6 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
 
     public function getModulePackageName(): string
     {
-        return JMSConverterModule::NAME;
+        return ModulePackageList::JMS_CONVERTER_PACKAGE;
     }
 }

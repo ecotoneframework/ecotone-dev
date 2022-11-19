@@ -11,6 +11,7 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
@@ -60,6 +61,7 @@ class DbalTransactionModule implements AnnotationModule
             ->requireReferences($connectionFactories)
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    $interfaceToCallRegistry,
                     new DbalTransactionInterceptor($connectionFactories),
                     'transactional',
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE,
@@ -91,6 +93,6 @@ class DbalTransactionModule implements AnnotationModule
 
     public function getModulePackageName(): string
     {
-        return DbalModule::NAME;
+        return ModulePackageList::DBAL_PACKAGE;
     }
 }

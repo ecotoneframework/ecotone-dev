@@ -14,7 +14,7 @@ require __DIR__ . "/vendor/autoload.php";
 // Receiver
 $receiver = EcotoneLiteApplication::boostrap(
     [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
-    configuration: ServiceConfiguration::createWithDefaults()
+    serviceConfiguration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(MessagingConfiguration::SERVICE_NAME)
         ->withNamespaces(["App\Microservices\Receiver"])
         ->doNotLoadCatalog(),
@@ -27,7 +27,7 @@ $queryBus = $receiver->getQueryBus();
 // Publisher
 $publisher = EcotoneLiteApplication::boostrap(
     [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
-    configuration: ServiceConfiguration::createWithDefaults()
+    serviceConfiguration: ServiceConfiguration::createWithDefaults()
             ->withServiceName(\App\Microservices\Publisher\MessagingConfiguration::SERVICE_NAME)
             ->withNamespaces(["App\Microservices\Publisher"])
             ->doNotLoadCatalog(),

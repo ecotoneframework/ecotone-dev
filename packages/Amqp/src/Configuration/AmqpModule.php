@@ -14,14 +14,13 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
 #[ModuleAnnotation]
 class AmqpModule implements AnnotationModule
 {
-    public const NAME = 'amqp';
-
     private AmqpDistributionModule $amqpDistributionModule;
 
     private function __construct(AmqpDistributionModule $amqpDistributionModule)
@@ -96,6 +95,6 @@ class AmqpModule implements AnnotationModule
 
     public function getModulePackageName(): string
     {
-        return AmqpModule::NAME;
+        return ModulePackageList::AMQP_PACKAGE;
     }
 }

@@ -18,7 +18,7 @@ const CUSTOMER_SERVICE = "customer_service";
 
 $customerService = EcotoneLiteApplication::boostrap(
     [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]), DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')],
-    configuration: ServiceConfiguration::createWithDefaults()
+    serviceConfiguration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(CUSTOMER_SERVICE)
         ->withNamespaces(["App\Microservices\CustomerService"])
         ->doNotLoadCatalog(),
@@ -27,7 +27,7 @@ $customerService = EcotoneLiteApplication::boostrap(
 
 $backofficeService = EcotoneLiteApplication::boostrap(
     [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]), DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')],
-    configuration: ServiceConfiguration::createWithDefaults()
+    serviceConfiguration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(BACKOFFICE_SERVICE)
         ->withNamespaces(["App\Microservices\BackofficeService"])
         ->doNotLoadCatalog(),

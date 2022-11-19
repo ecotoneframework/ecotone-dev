@@ -2,12 +2,13 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\EventSourcing\InMemory\CachingInMemoryProjectionManager;
+use Ecotone\EventSourcing\InMemory\InMemoryProjectionManager;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Prooph\EventStore\InMemoryEventStore;
 use Prooph\EventStore\Pdo\PersistenceStrategy;
-use Prooph\EventStore\Projection\InMemoryProjectionManager;
 
 class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 {

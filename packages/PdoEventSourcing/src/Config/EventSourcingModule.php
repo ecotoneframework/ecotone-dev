@@ -2,6 +2,8 @@
 
 namespace Ecotone\EventSourcing\Config;
 
+use Ecotone\AnnotationFinder\AnnotatedDefinition;
+use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\AggregateStreamMapping;
 use Ecotone\EventSourcing\AggregateTypeMapping;
@@ -35,7 +37,10 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurat
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
+use Ecotone\Messaging\Config\EnabledPackages;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -65,8 +70,6 @@ use Ramsey\Uuid\Uuid;
 #[ModuleAnnotation]
 class EventSourcingModule extends NoExternalConfigurationModule
 {
-    public const NAME = 'eventSourcing';
-
     public const ECOTONE_ES_STOP_PROJECTION = 'ecotone:es:stop-projection';
     public const ECOTONE_ES_RESET_PROJECTION = 'ecotone:es:reset-projection';
     public const ECOTONE_ES_DELETE_PROJECTION = 'ecotone:es:delete-projection';
@@ -87,10 +90,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     /**
      * @var ProjectionSetupConfiguration[]
+     * @var AnnotatedDefinition[] $projectionEventHandlers
      * @var ServiceActivatorBuilder[]
      * @var GatewayProxyBuilder[]
      */
-    private function __construct(array $projectionConfigurations, array $projectionLifeCycleServiceActivators, EventMapper $eventMapper, AggregateStreamMapping $aggregateToStreamMapping, AggregateTypeMapping $aggregateTypeMapping, array $relatedInterfaces, array $requiredReferences, private array $projectionStateGateways)
+    private function __construct(array $projectionConfigurations, private array $projectionEventHandlers, private AsynchronousModule $asynchronousModule, array $projectionLifeCycleServiceActivators, EventMapper $eventMapper, AggregateStreamMapping $aggregateToStreamMapping, AggregateTypeMapping $aggregateTypeMapping, array $relatedInterfaces, array $requiredReferences, private array $projectionStateGateways)
     {
         $this->projectionSetupConfigurations = $projectionConfigurations;
         $this->projectionLifeCycleServiceActivators = $projectionLifeCycleServiceActivators;
@@ -233,16 +237,24 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration;
         }
 
-        foreach ($projectionEventHandlers as $projectionEventHandler) {
+        return new self($projectionSetupConfigurations, $projectionEventHandlers, AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry), $projectionLifeCyclesServiceActivators, EventMapper::createWith($fromClassToNameMapping, $fromNameToClassMapping), AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $relatedInterfaces, array_unique($requiredReferences), $projectionStateGateways);
+    }
+
+    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+
+        foreach ($this->projectionEventHandlers as $projectionEventHandler) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
             /** @var EndpointAnnotation $handlerAttribute */
             $handlerAttribute = $projectionEventHandler->getAnnotationForMethod();
-            $projectionConfiguration = $projectionSetupConfigurations[$projectionAttribute->getName()];
+            $projectionConfiguration = $this->projectionSetupConfigurations[$projectionAttribute->getName()];
 
             $eventHandlerChannelName = ModellingHandlerModule::getHandlerChannel($projectionEventHandler);
-            $synchronousEventHandlerRequestChannel = AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry)->getSynchronousChannelFor($eventHandlerChannelName, $handlerAttribute->getEndpointId());
-            $projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration->withProjectionEventHandler(
+
+            $synchronousEventHandlerRequestChannel = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) ? $this->asynchronousModule->getSynchronousChannelFor($eventHandlerChannelName, $handlerAttribute->getEndpointId()) : $eventHandlerChannelName;
+            $this->projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration->withProjectionEventHandler(
                 ModellingHandlerModule::getNamedMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry),
                 $projectionEventHandler->getClassName(),
                 $projectionEventHandler->getMethodName(),
@@ -251,11 +263,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
             );
         }
 
-        return new self($projectionSetupConfigurations, $projectionLifeCyclesServiceActivators, EventMapper::createWith($fromClassToNameMapping, $fromNameToClassMapping), AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $relatedInterfaces, array_unique($requiredReferences), $projectionStateGateways);
-    }
-
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
-    {
         $moduleReferenceSearchService->store(EventMapper::class, $this->eventMapper);
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
@@ -331,7 +338,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
     {
         return
             $extensionObject instanceof EventSourcingConfiguration
-            || $extensionObject instanceof ProjectionRunningConfiguration;
+            || $extensionObject instanceof ProjectionRunningConfiguration
+            || $extensionObject instanceof ServiceConfiguration;
     }
 
     public function getModuleExtensions(array $serviceExtensions): array
@@ -546,6 +554,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     public function getModulePackageName(): string
     {
-        return self::NAME;
+        return ModulePackageList::EVENT_SOURCING_PACKAGE;
     }
 }

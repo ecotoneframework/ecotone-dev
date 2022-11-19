@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -123,6 +124,6 @@ class DbalPublisherModule implements AnnotationModule
 
     public function getModulePackageName(): string
     {
-        return DbalModule::NAME;
+        return ModulePackageList::DBAL_PACKAGE;
     }
 }

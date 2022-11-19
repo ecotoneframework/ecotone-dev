@@ -9,6 +9,7 @@ use Ecotone\Lite\EcotoneLiteConfiguration;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
@@ -102,7 +103,7 @@ class DomainContext extends TestCase implements Context
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withNamespaces([$namespace])
             ->withCacheDirectoryPath(sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString())
-            ->withSkippedModulePackageNames(['jmsConverter', 'dbal', 'eventSourcing']);
+            ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]);
         MessagingSystemConfiguration::cleanCache($serviceConfiguration->getCacheDirectoryPath());
 
         self::$messagingSystem = EcotoneLiteConfiguration::createWithConfiguration(
@@ -203,7 +204,7 @@ class DomainContext extends TestCase implements Context
                 ServiceConfiguration::createWithDefaults()
                     ->withNamespaces([$namespace])
                     ->withServiceName($serviceName)
-                    ->withSkippedModulePackageNames(['jmsConverter', 'dbal', 'eventSourcing'])
+                    ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                     ->withCacheDirectoryPath(sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString()),
                 [],
                 false

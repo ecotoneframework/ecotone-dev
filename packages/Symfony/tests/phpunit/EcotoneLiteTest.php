@@ -13,6 +13,9 @@ use Fixture\User\UserRepository;
 use Fixture\User\UserService;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+/**
+ * @internal
+ */
 final class EcotoneLiteTest extends KernelTestCase
 {
     public function test_when_messaging_configured_in_container_replacing_it_with_test_one()
@@ -25,13 +28,13 @@ final class EcotoneLiteTest extends KernelTestCase
             $kernel->getContainer(),
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    InMemoryStateStoredRepositoryBuilder::createForAllAggregates()
+                    InMemoryStateStoredRepositoryBuilder::createForAllAggregates(),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
         );
 
-        $userId = "123";
-        $ecotoneTestSupport->getCommandBus()->sendWithRouting("user.register", $userId);
+        $userId = '123';
+        $ecotoneTestSupport->getCommandBus()->sendWithRouting('user.register', $userId);
 
         /** @var UserRepository $userRepository */
         $userRepository = $ecotoneTestSupport->getGatewayByName(UserRepository::class);

@@ -12,7 +12,6 @@ final class User
 {
     private function __construct(#[AggregateIdentifier] private string $userId)
     {
-
     }
 
     public static function register(string $userId): self

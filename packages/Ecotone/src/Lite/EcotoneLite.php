@@ -97,7 +97,9 @@ final class EcotoneLite
             new PsrContainerReferenceSearchService($container, ['logger' => new EchoLogger(), ConfiguredMessagingSystem::class => new StubConfiguredMessagingSystem()])
         );
 
-        $container->set(self::CONFIGURED_MESSAGING_SYSTEM, $messagingSystem);
+        if ($allowGatewaysToBeRegisteredInContainer) {
+            $container->set(self::CONFIGURED_MESSAGING_SYSTEM, $messagingSystem);
+        }
 
         if ($enableTesting) {
             $messagingSystem = new ConfiguredMessagingSystemWithTestSupport($messagingSystem);

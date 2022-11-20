@@ -22,12 +22,14 @@
         timeoutForLargeTests="60"
         verbose="false"
 >
-    <php>
-        <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
-    </php>
     <testsuites>
         <testsuite name="Unit Tests">
-            <directory>tests/phpunit</directory>
+            <directory>tests</directory>
         </testsuite>
     </testsuites>
+    <filter>
+        <whitelist processUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">./src/**/*</directory>
+        </whitelist>
+    </filter>
 </phpunit>

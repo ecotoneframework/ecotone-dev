@@ -55,7 +55,8 @@ class EcotoneProvider extends ServiceProvider
             ->withEnvironment($environment)
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
-            ->withNamespaces(Config::get('ecotone.namespaces'));
+            ->withNamespaces(Config::get('ecotone.namespaces'))
+            ->withSkippedModulePackageNames(Config::get('ecotone.skippedModulePackageNames'));
 
         if ($isCachingConfiguration) {
             $applicationConfiguration = $applicationConfiguration

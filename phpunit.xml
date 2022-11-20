@@ -25,6 +25,9 @@
       <directory suffix=".php">./packages/**/*</directory>
     </include>
   </coverage>
+  <php>
+    <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
+  </php>
   <testsuites>
     <testsuite name="Core tests">
       <directory>packages/Ecotone/tests</directory>

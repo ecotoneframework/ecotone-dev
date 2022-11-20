@@ -61,6 +61,11 @@ class Configuration implements ConfigurationInterface
                             ->end()
                     ->end()
 
+                    ->arrayNode('skippedModulePackageNames')
+                        ->scalarPrototype()
+                        ->end()
+                    ->end()
+
                 ->end()
             ->end();
     }

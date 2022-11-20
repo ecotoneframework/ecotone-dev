@@ -18,6 +18,7 @@ class EcotoneExtension extends Extension
         $container->setParameter(EcotoneCompilerPass::FAIL_FAST_CONFIG, $config['failFast']);
         $container->setParameter(EcotoneCompilerPass::LOAD_SRC, $config['loadSrcNamespaces']);
         $container->setParameter(EcotoneCompilerPass::DEFAULT_SERIALIZATION_MEDIA_TYPE, $config['defaultSerializationMediaType']);
+        $container->setParameter(EcotoneCompilerPass::SKIPPED_MODULE_PACKAGES, $config['skippedModulePackageNames']);
         $container->setParameter(EcotoneCompilerPass::ERROR_CHANNEL, $config['defaultErrorChannel']);
         $container->setParameter(EcotoneCompilerPass::DEFAULT_MEMORY_LIMIT, $config['defaultMemoryLimit']);
         $container->setParameter(EcotoneCompilerPass::DEFAULT_CONNECTION_EXCEPTION_RETRY, $config['defaultConnectionExceptionRetry'] ?? null);

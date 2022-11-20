@@ -90,4 +90,15 @@ return [
     |
     */
     'defaultConnectionExceptionRetry' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Namespaces
+    |--------------------------------------------------------------------------
+    |
+    | A list of namespaces that Ecotone should look in for configurations,
+    | command handlers, aggregates, projections, etc.
+    |
+    */
+    'skippedModulePackageNames' => [],
 ];

@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 
 class EcotoneLiteApplication
 {
-    public static function boostrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null): ConfiguredMessagingSystem
+    public static function bootstrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null): ConfiguredMessagingSystem
     {
         if (! $serviceConfiguration) {
             $serviceConfiguration = ServiceConfiguration::createWithDefaults();
@@ -35,5 +35,15 @@ class EcotoneLiteApplication
             $pathToRootCatalog,
             true,
         );
+    }
+
+    /**
+     * @deprecated Use EcotoneLiteApplication::bootstrap instead
+     *
+     * @TODO drop in Ecotone 2.0
+     */
+    public static function boostrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null): ConfiguredMessagingSystem
+    {
+        return self::bootstrap($objectsToRegister, $configurationVariables, $serviceConfiguration, $cacheConfiguration, $pathToRootCatalog);
     }
 }

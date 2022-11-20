@@ -26,6 +26,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
     public const  ERROR_CHANNEL                      = 'ecotone.errorChannel';
     public const  DEFAULT_MEMORY_LIMIT               = 'ecotone.defaultMemoryLimit';
     public const  DEFAULT_CONNECTION_EXCEPTION_RETRY = 'ecotone.defaultChannelPollRetry';
+    public const  SKIPPED_MODULE_PACKAGES   = 'ecotone.skippedModulePackageNames';
     public const         SRC_CATALOG                        = 'src';
     public const         CACHE_DIRECTORY_SUFFIX             = DIRECTORY_SEPARATOR . 'ecotone';
 
@@ -47,6 +48,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
             ->withFailFast($container->getParameter('kernel.environment') === 'prod' ? false : $container->getParameter(self::FAIL_FAST_CONFIG))
             ->withLoadCatalog($container->getParameter(self::LOAD_SRC) ? 'src' : '')
             ->withNamespaces($container->getParameter(self::WORKING_NAMESPACES_CONFIG))
+            ->withSkippedModulePackageNames($container->getParameter(self::SKIPPED_MODULE_PACKAGES))
             ->withCacheDirectoryPath($ecotoneCacheDirectory);
 
         if ($container->getParameter(self::SERVICE_NAME)) {

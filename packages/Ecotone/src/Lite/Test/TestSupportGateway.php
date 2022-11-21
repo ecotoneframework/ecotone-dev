@@ -45,4 +45,6 @@ interface TestSupportGateway
     public function getSentQueryMessages(): array;
 
     public function resetMessages(): void;
+
+    public function releaseMessagesAwaitingFor(string $channelName, int $timeInMilliseconds): void;
 }

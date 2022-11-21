@@ -18,15 +18,9 @@ use Ecotone\Messaging\PollableChannel;
 class SimpleMessageChannelBuilder implements MessageChannelBuilder
 {
     private string $messageChannelName;
-    private \Ecotone\Messaging\MessageChannel $messageChannel;
+    private MessageChannel $messageChannel;
     private bool $isPollable;
 
-    /**
-     * SimpleMessageChannelBuilder constructor.
-     * @param string $messageChannelName
-     * @param MessageChannel $messageChannel
-     * @param bool $isPollable
-     */
     private function __construct(string $messageChannelName, MessageChannel $messageChannel, bool $isPollable)
     {
         $this->messageChannelName = $messageChannelName;
@@ -52,6 +46,11 @@ class SimpleMessageChannelBuilder implements MessageChannelBuilder
     public static function createQueueChannel(string $messageChannelName): self
     {
         return self::create($messageChannelName, QueueChannel::create($messageChannelName));
+    }
+
+    public static function createDelayableQueueChannel(string $messageChannelName): self
+    {
+        return self::create($messageChannelName, DelayableQueueChannel::create($messageChannelName));
     }
 
     public static function createNullableChannel(string $messageChannelName): self

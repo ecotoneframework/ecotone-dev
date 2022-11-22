@@ -127,7 +127,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
         foreach ($messagingConfiguration->getRequiredReferences() as $requiredReference) {
             /** Set alias only for non gateways */
-            if (in_array($requiredReference, array_merge(array_map(fn(GatewayProxyBuilder $gatewayProxyBuilder) => $gatewayProxyBuilder->getInterfaceName(), $messagingConfiguration->getRegisteredGateways()), [ReferenceSearchService::class, ChannelResolver::class, ConversionService::class]))) {
+            if (in_array($requiredReference, array_merge(array_map(fn (GatewayProxyBuilder $gatewayProxyBuilder) => $gatewayProxyBuilder->getInterfaceName(), $messagingConfiguration->getRegisteredGateways()), [ReferenceSearchService::class, ChannelResolver::class, ConversionService::class]))) {
                 continue;
             }
 

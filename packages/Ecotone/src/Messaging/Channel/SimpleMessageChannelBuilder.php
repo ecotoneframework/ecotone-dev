@@ -43,14 +43,11 @@ class SimpleMessageChannelBuilder implements MessageChannelBuilder
         return self::create($messageChannelName, PublishSubscribeChannel::create($messageChannelName));
     }
 
-    public static function createQueueChannel(string $messageChannelName): self
+    public static function createQueueChannel(string $messageChannelName, bool $delayable = false): self
     {
-        return self::create($messageChannelName, QueueChannel::create($messageChannelName));
-    }
+        $messageChannel = $delayable ? DelayableQueueChannel::create($messageChannelName) : QueueChannel::create($messageChannelName);
 
-    public static function createDelayableQueueChannel(string $messageChannelName): self
-    {
-        return self::create($messageChannelName, DelayableQueueChannel::create($messageChannelName));
+        return self::create($messageChannelName, $messageChannel);
     }
 
     public static function createNullableChannel(string $messageChannelName): self

@@ -81,6 +81,8 @@ final class MessageCollectorHandler
 
     public function resetMessages(): void
     {
-        // TODO: Implement resetMessages() method.
+        $this->sentQueries = [];
+        $this->sentCommands = [];
+        $this->publishedEvents = [];
     }
 }

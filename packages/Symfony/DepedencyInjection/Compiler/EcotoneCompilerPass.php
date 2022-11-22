@@ -6,8 +6,12 @@ use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
 use Ecotone\SymfonyBundle\EcotoneSymfonyBundle;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -122,6 +126,11 @@ class EcotoneCompilerPass implements CompilerPassInterface
         }
 
         foreach ($messagingConfiguration->getRequiredReferences() as $requiredReference) {
+            /** Set alias only for non gateways */
+            if (in_array($requiredReference, array_merge(array_map(fn(GatewayProxyBuilder $gatewayProxyBuilder) => $gatewayProxyBuilder->getInterfaceName(), $messagingConfiguration->getRegisteredGateways()), [ReferenceSearchService::class, ChannelResolver::class, ConversionService::class]))) {
+                continue;
+            }
+
             $alias = $container->setAlias($requiredReference . '-proxy', $requiredReference);
 
             if ($alias) {

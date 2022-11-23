@@ -124,7 +124,6 @@ class LazyProophProjectionManager implements ProjectionManager
     public function fetchProjectionNames(?string $filter, int $limit = 20, int $offset = 0): array
     {
         $this->ensureEventStoreIsPrepared();
-        ;
 
         return $this->getProjectionManager()->fetchProjectionNames($filter, $limit, $offset);
     }
@@ -132,7 +131,6 @@ class LazyProophProjectionManager implements ProjectionManager
     public function fetchProjectionNamesRegex(string $regex, int $limit = 20, int $offset = 0): array
     {
         $this->ensureEventStoreIsPrepared();
-        ;
 
         return $this->getProjectionManager()->fetchProjectionNamesRegex($regex, $limit, $offset);
     }
@@ -140,7 +138,6 @@ class LazyProophProjectionManager implements ProjectionManager
     public function fetchProjectionStatus(string $name): ProjectionStatus
     {
         $this->ensureEventStoreIsPrepared();
-        ;
 
         return $this->getProjectionManager()->fetchProjectionStatus($name);
     }
@@ -148,7 +145,6 @@ class LazyProophProjectionManager implements ProjectionManager
     public function fetchProjectionStreamPositions(string $name): array
     {
         $this->ensureEventStoreIsPrepared();
-        ;
 
         return $this->getProjectionManager()->fetchProjectionStreamPositions($name);
     }
@@ -161,13 +157,21 @@ class LazyProophProjectionManager implements ProjectionManager
     public function fetchProjectionState(string $name): array
     {
         $this->ensureEventStoreIsPrepared();
-        ;
 
         return $this->getProjectionManager()->fetchProjectionState($name);
     }
 
     public function run(string $projectionName, ProjectionStreamSource $projectionStreamSource, ProjectionExecutor $projectionExecutor, array $relatedEventClassNames, array $projectionConfiguration): void
     {
+        $projection = $this->createReadModelProjection($projectionName, new ProophReadModel(), $projectionConfiguration);
+        if ($projectionStreamSource->isForAllStreams()) {
+            $projection = $projection->fromAll();
+        } elseif ($projectionStreamSource->getCategories()) {
+            $projection = $projection->fromCategories(...$projectionStreamSource->getCategories());
+        } elseif ($projectionStreamSource->getStreams()) {
+            $projection = $projection->fromStreams(...$projectionStreamSource->getStreams());
+        }
+
         $handlers = [];
         foreach ($relatedEventClassNames as $eventName) {
             $handlers[$eventName] = function ($state, Message $event) use ($eventName, $projectionExecutor): mixed {
@@ -177,15 +181,6 @@ class LazyProophProjectionManager implements ProjectionManager
                     $state
                 );
             };
-        }
-
-        $projection = $this->createReadModelProjection($projectionName, new ProophReadModel(), $projectionConfiguration);
-        if ($projectionStreamSource->isForAllStreams()) {
-            $projection = $projection->fromAll();
-        } elseif ($projectionStreamSource->getCategories()) {
-            $projection = $projection->fromCategories(...$projectionStreamSource->getCategories());
-        } elseif ($projectionStreamSource->getStreams()) {
-            $projection = $projection->fromStreams(...$projectionStreamSource->getStreams());
         }
         $projection = $projection->when($handlers);
 

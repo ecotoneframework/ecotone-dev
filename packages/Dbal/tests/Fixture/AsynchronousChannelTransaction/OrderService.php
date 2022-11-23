@@ -19,6 +19,14 @@ class OrderService
 
     private int $callCounter = 0;
 
+    public static function failAtFirstCall(): self
+    {
+        $self = new self();
+        $self->callCounter = 1;
+
+        return $self;
+    }
+
     #[Asynchronous('orders')]
     #[CommandHandler('order.register', 'orderRegister')]
     public function register(string $order, OrderRegisteringGateway $orderRegisteringGateway): void

@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\Dbal\Deduplication;
+namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Messaging\MessageHeaders;

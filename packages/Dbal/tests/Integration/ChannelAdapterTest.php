@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\Dbal;
+namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Dbal\DbalInboundChannelAdapterBuilder;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Dbal\DbalMessagingTest;
 
 /**
  * @internal

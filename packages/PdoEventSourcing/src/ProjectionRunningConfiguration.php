@@ -105,7 +105,6 @@ class ProjectionRunningConfiguration
 
     public function disableTransactions(): void
     {
-
     }
 
     public function getOption(string $key): mixed

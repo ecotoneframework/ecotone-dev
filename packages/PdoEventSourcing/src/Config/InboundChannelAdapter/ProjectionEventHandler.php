@@ -38,7 +38,7 @@ class ProjectionEventHandler
 
     public function execute(MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): void
     {
-        if (!$this->wasInitialized && $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel()) {
+        if (! $this->wasInitialized && $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel()) {
             $messagingEntrypoint->send([], $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel());
             $this->wasInitialized = true;
         }

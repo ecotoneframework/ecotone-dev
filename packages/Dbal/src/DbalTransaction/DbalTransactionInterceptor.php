@@ -34,7 +34,7 @@ class DbalTransactionInterceptor
     public function transactional(MethodInvocation $methodInvocation, #[Header(MessageHeaders::CONSUMER_ENDPOINT_ID)] ?string $endpointId, ?DbalTransaction $DbalTransaction, #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)] LoggerInterface $logger, ReferenceSearchService $referenceSearchService)
     {
         $connections = [];
-        if (!in_array($endpointId, $this->disableTransactionOnAsynchronousEndpoints)) {
+        if (! in_array($endpointId, $this->disableTransactionOnAsynchronousEndpoints)) {
             /** @var Connection[] $connections */
             $possibleConnections = array_map(function (string $connectionReferenceName) use ($referenceSearchService) {
                 $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($connectionReferenceName)));

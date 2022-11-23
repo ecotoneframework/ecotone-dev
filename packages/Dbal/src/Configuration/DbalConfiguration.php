@@ -16,6 +16,7 @@ class DbalConfiguration
     public const DEFAULT_DEAD_LETTER_ENABLED = true;
 
     private bool $transactionOnAsynchronousEndpoints = self::DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS;
+    private array $disableTransactionsOnAsynchronousEndpointNames = [];
     private bool $transactionOnCommandBus = self::DEFAULT_TRANSACTION_ON_COMMAND_BUS;
     private bool $transactionOnConsoleCommands = self::DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS;
     private bool $clearObjectManagerOnAsynchronousEndpoints = self::DEFAULT_CLEAR_OBJECT_MANAGER_ON_ASYNCHRONOUS_ENDPOINTS;
@@ -93,6 +94,14 @@ class DbalConfiguration
     {
         $self                                     = clone $this;
         $self->transactionOnAsynchronousEndpoints = $isTransactionEnabled;
+
+        return $self;
+    }
+
+    public function withoutTransactionOnAsynchronousEndpoints(array $names): self
+    {
+        $self                                     = clone $this;
+        $self->disableTransactionsOnAsynchronousEndpointNames = $names;
 
         return $self;
     }
@@ -233,5 +242,10 @@ class DbalConfiguration
     public function isEnableDocumentStoreAggregateRepository(): bool
     {
         return $this->enableDocumentStoreAggregateRepository;
+    }
+
+    public function getDisabledTransactionsOnAsynchronousEndpointNames(): array
+    {
+        return $this->disableTransactionsOnAsynchronousEndpointNames;
     }
 }

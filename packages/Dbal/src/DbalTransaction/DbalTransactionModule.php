@@ -61,7 +61,7 @@ class DbalTransactionModule implements AnnotationModule
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
                     $interfaceToCallRegistry,
-                    new DbalTransactionInterceptor($connectionFactories),
+                    new DbalTransactionInterceptor($connectionFactories, $dbalConfiguration->getDisabledTransactionsOnAsynchronousEndpointNames()),
                     'transactional',
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE,
                     $pointcut

@@ -103,6 +103,11 @@ class ProjectionRunningConfiguration
         return $this->options;
     }
 
+    public function disableTransactions(): void
+    {
+
+    }
+
     public function getOption(string $key): mixed
     {
         return array_key_exists($key, $this->options) ? $this->options[$key] : throw new InvalidArgumentException(sprintf('Option %s do not exists. Did you forget to set it with %s', $key, self::class));

@@ -9,13 +9,14 @@ use Ecotone\EventSourcing\ProjectionStatus;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
+use Ecotone\Messaging\Message;
 use Prooph\EventStore\StreamName;
 
 class ProjectionEventHandler
 {
-    public const PROJECTION_STATE            = 'projection.state';
-    public const PROJECTION_IS_REBUILDING            = 'projection.is_rebuilding';
-    public const PROJECTION_NAME             = 'projection.name';
+    public const PROJECTION_STATE = 'projection.state';
+    public const PROJECTION_IS_REBUILDING = 'projection.is_rebuilding';
+    public const PROJECTION_NAME = 'projection.name';
     public const PROJECTION_IS_POLLING = 'projection.isPolling';
 
     private bool $wasInitialized = false;
@@ -24,7 +25,7 @@ class ProjectionEventHandler
     {
     }
 
-    public function beforeEventHandler(\Ecotone\Messaging\Message $message, MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): ?\Ecotone\Messaging\Message
+    public function beforeEventHandler(Message $message, MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): ?Message
     {
         if ($this->shouldBePassedToEventHandler($message)) {
             return $message;
@@ -37,7 +38,7 @@ class ProjectionEventHandler
 
     public function execute(MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): void
     {
-        if (! $this->wasInitialized && $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel()) {
+        if (!$this->wasInitialized && $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel()) {
             $messagingEntrypoint->send([], $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel());
             $this->wasInitialized = true;
         }
@@ -59,6 +60,11 @@ class ProjectionEventHandler
         }
 
         $this->lazyProophProjectionManager->run($this->projectionSetupConfiguration->getProjectionName(), $this->projectionSetupConfiguration->getProjectionStreamSource(), $projectionExecutor, array_keys($this->projectionSetupConfiguration->getProjectionEventHandlerConfigurations()), $this->projectionSetupConfiguration->getProjectionOptions());
+        while ($status->getStatus() === ProjectionStatus::REBUILDING) {
+            $status = $this->lazyProophProjectionManager->getProjectionStatus($this->projectionSetupConfiguration->getProjectionName());
+
+            $this->lazyProophProjectionManager->run($this->projectionSetupConfiguration->getProjectionName(), $this->projectionSetupConfiguration->getProjectionStreamSource(), $projectionExecutor, array_keys($this->projectionSetupConfiguration->getProjectionEventHandlerConfigurations()), $this->projectionSetupConfiguration->getProjectionOptions());
+        }
 
         if ($status == ProjectionStatus::DELETING() && $projectHasRelatedStream) {
             $projectionStreamName = new StreamName(LazyProophProjectionManager::getProjectionStreamName($this->projectionSetupConfiguration->getProjectionName()));
@@ -68,7 +74,7 @@ class ProjectionEventHandler
         }
     }
 
-    private function shouldBePassedToEventHandler(\Ecotone\Messaging\Message $message)
+    private function shouldBePassedToEventHandler(Message $message)
     {
         return $message->getHeaders()->containsKey(ProjectionEventHandler::PROJECTION_IS_POLLING)
             ? $message->getHeaders()->get(ProjectionEventHandler::PROJECTION_IS_POLLING)

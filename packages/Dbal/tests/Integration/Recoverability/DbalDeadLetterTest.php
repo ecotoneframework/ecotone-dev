@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\Dbal\Recoverability;
+namespace Test\Ecotone\Dbal\Integration\Recoverability;
 
 use Ecotone\Dbal\Recoverability\DbalDeadLetter;
 use Ecotone\Messaging\Conversion\InMemoryConversionService;

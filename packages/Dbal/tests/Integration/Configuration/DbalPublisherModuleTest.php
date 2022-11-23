@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\Dbal\Configuration;
+namespace Test\Ecotone\Dbal\Integration\Configuration;
 
 use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;

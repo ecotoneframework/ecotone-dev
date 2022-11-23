@@ -26,6 +26,7 @@ use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
+use Ecotone\Messaging\Attribute\DisableTransactions;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
@@ -289,8 +290,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         $projectionSetupConfiguration->getProjectionOptions(),
                         $projectionRunningConfiguration->getOptions()
                     )
-                )
-            ;
+                );
 
             $projectionExecutorBuilder = new ProjectionExecutorBuilder($eventSourcingConfiguration, $projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'execute');
             $projectionExecutorBuilder = $projectionExecutorBuilder->withInputChannelName($generatedChannelName);
@@ -319,7 +319,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         $generatedChannelName,
                         new ProjectionChannelAdapter(),
                         'run'
-                    )->withEndpointId($projectionSetupConfiguration->getProjectionName())
+                    )
+                        ->withEndpointId($projectionSetupConfiguration->getProjectionName())
                 );
             }
         }

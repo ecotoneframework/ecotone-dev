@@ -20,11 +20,7 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 use InvalidArgumentException;
-
-use function json_decode;
-
 use PHPUnit\Framework\TestCase;
-
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTest;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
@@ -50,6 +46,7 @@ use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\TicketCounterProjec
 use Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\InProgressTicketList;
 use Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier\ArticleEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier\PublishArticle;
+use function json_decode;
 
 /**
  * @internal

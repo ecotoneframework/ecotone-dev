@@ -59,12 +59,11 @@ class ProjectionEventHandler
             $messagingEntrypoint->send([], $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getDeleteRequestChannel());
         }
 
-        $this->lazyProophProjectionManager->run($this->projectionSetupConfiguration->getProjectionName(), $this->projectionSetupConfiguration->getProjectionStreamSource(), $projectionExecutor, array_keys($this->projectionSetupConfiguration->getProjectionEventHandlerConfigurations()), $this->projectionSetupConfiguration->getProjectionOptions());
-        while ($status->getStatus() === ProjectionStatus::REBUILDING) {
-            $status = $this->lazyProophProjectionManager->getProjectionStatus($this->projectionSetupConfiguration->getProjectionName());
-
+        do {
             $this->lazyProophProjectionManager->run($this->projectionSetupConfiguration->getProjectionName(), $this->projectionSetupConfiguration->getProjectionStreamSource(), $projectionExecutor, array_keys($this->projectionSetupConfiguration->getProjectionEventHandlerConfigurations()), $this->projectionSetupConfiguration->getProjectionOptions());
-        }
+
+            $status = $this->lazyProophProjectionManager->getProjectionStatus($this->projectionSetupConfiguration->getProjectionName());
+        } while (in_array($status->getStatus(), [ProjectionStatus::REBUILDING, ProjectionStatus::RUNNING], true));
 
         if ($status == ProjectionStatus::DELETING() && $projectHasRelatedStream) {
             $projectionStreamName = new StreamName(LazyProophProjectionManager::getProjectionStreamName($this->projectionSetupConfiguration->getProjectionName()));

@@ -27,7 +27,7 @@ final class User
         $this->recordThat(new UserWasRegistered($this->userId, $this->email, $this->phoneNumber));
     }
 
-    #[CommandHandler]
+    #[CommandHandler("user.register")]
     public static function register(RegisterUser $command): self
     {
         return new self(
@@ -42,5 +42,10 @@ final class User
     public function block(): void
     {
         $this->isBlocked = true;
+    }
+
+    public function isBlocked(): bool
+    {
+        return $this->isBlocked;
     }
 }

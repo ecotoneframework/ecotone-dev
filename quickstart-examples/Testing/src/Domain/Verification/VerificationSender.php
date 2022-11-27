@@ -9,7 +9,7 @@ use App\Testing\Domain\Verification\Command\StartPhoneNumberVerification;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Psr\Log\LoggerInterface;
 
-final class VerificationService
+final class VerificationSender
 {
     #[CommandHandler]
     public function startEmailVerification(StartEmailVerification $command, LoggerInterface $logger): void

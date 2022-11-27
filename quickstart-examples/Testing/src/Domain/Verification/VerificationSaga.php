@@ -14,7 +14,7 @@ use Ecotone\Modelling\CommandBus;
 use Ramsey\Uuid\UuidInterface;
 
 #[Saga]
-final class VerificationProcess
+final class VerificationSaga
 {
     private function __construct(
         private UuidInterface           $userId,

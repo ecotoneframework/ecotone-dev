@@ -29,4 +29,18 @@ final class UserTest extends TestCase
             $user->getRecordedEvents()
         );
     }
+
+    public function test_blocking_user()
+    {
+        $user = User::register(new RegisterUser(
+            Uuid::uuid4(),
+            "johny",
+            Email::create("test@wp.pl"),
+            PhoneNumber::create("148518518518"))
+        );
+
+        $user->block();
+
+        $this->assertTrue($user->isBlocked());
+    }
 }

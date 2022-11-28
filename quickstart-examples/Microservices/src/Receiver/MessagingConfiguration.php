@@ -16,8 +16,7 @@ class MessagingConfiguration
         return [
             AmqpDistributedBusConfiguration::createConsumer(),
             PollingMetadata::create(self::SERVICE_NAME)
-                ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(1)
+                ->withTestingSetup()
         ];
     }
 }

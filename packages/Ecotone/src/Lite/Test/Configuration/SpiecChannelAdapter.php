@@ -22,11 +22,11 @@ final class SpiecChannelAdapter implements ChannelInterceptor
 
     public function postSend(Message $message, MessageChannel $messageChannel): void
     {
+        $this->messageCollectorHandler->recordSpiedChannelMessage($this->channelName, $message);
     }
 
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): void
     {
-        $this->messageCollectorHandler->recordSpiedChannelMessage($this->channelName, $message);
     }
 
     public function preReceive(MessageChannel $messageChannel): bool

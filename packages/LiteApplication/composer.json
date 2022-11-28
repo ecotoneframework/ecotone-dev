@@ -24,8 +24,8 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.56",
-        "ecotone/jms-converter": "^1.56",
+        "ecotone/ecotone": "1.56",
+        "ecotone/jms-converter": "1.56",
         "php-di/php-di": "^6.3"
     },
     "require-dev": {

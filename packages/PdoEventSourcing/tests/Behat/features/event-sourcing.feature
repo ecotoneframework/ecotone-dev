@@ -54,17 +54,33 @@ Feature: activating as aggregate order entity
         | Test\Ecotone\EventSourcing\Fixture\Ticket                      |
         | Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection |
     When I register "alert" ticket 123 with assignation to "Johny"
+    When I register "alert" ticket 124 with assignation to "Johny"
+    When I register "alert" ticket 125 with assignation to "Johny"
+    When I register "alert" ticket 126 with assignation to "Johny"
+    When I register "alert" ticket 127 with assignation to "Johny"
     When I run endpoint with name "inProgressTicketList"
     Then I should see tickets in progress:
       | ticket_id  | ticket_type    |
       | 123        | alert          |
+      | 124        | alert          |
+      | 125        | alert          |
+      | 126        | alert          |
+      | 127        | alert          |
     When I close ticket with id 123
     Then I should see tickets in progress:
       | ticket_id  | ticket_type    |
       | 123        | alert          |
+      | 124        | alert          |
+      | 125        | alert          |
+      | 126        | alert          |
+      | 127        | alert          |
     And I run endpoint with name "inProgressTicketList"
     Then I should see tickets in progress:
       | ticket_id  | ticket_type    |
+      | 124        | alert          |
+      | 125        | alert          |
+      | 126        | alert          |
+      | 127        | alert          |
 
   Scenario: I verify building asynchronous event driven projection
     Given I active messaging for namespaces
@@ -148,18 +164,26 @@ Feature: activating as aggregate order entity
 
   Scenario: Catching up events after reset the synchronous event-driven projection
     Given I active messaging for namespaces
-      | Test\Ecotone\EventSourcing\Fixture\Ticket                      |
-      | Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection                      |
+      | Test\Ecotone\EventSourcing\Fixture\Ticket                                     |
+      | Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection |
       | Test\Ecotone\EventSourcing\Fixture\TicketWithLimitedLoad                      |
     When I register "alert" ticket 1234 with assignation to "Marcus"
     And I register "alert" ticket 1235 with assignation to "Andrew"
     And I register "alert" ticket 1236 with assignation to "Andrew"
+    And I register "info" ticket 1237 with assignation to "Thomas"
+    And I register "info" ticket 1238 with assignation to "Peter"
+    And I register "info" ticket 1239 with assignation to "Maik"
+    And I register "warning" ticket 1240 with assignation to "Jack"
     When I reset the projection for in progress tickets
     Then I should see tickets in progress:
-      | ticket_id  | ticket_type    |
-      | 1234       | alert          |
-      | 1235      | alert          |
-      | 1236      | alert          |
+      | ticket_id | ticket_type |
+      | 1234      | alert       |
+      | 1235      | alert       |
+      | 1236      | alert       |
+      | 1237      | info        |
+      | 1238      | info        |
+      | 1239      | info        |
+      | 1240      | warning     |
 
   Scenario: Catching up events after reset the asynchronous event-driven projection
     Given I active messaging for namespaces
@@ -169,6 +193,10 @@ Feature: activating as aggregate order entity
     When I register "alert" ticket 1234 with assignation to "Marcus"
     And I register "alert" ticket 1235 with assignation to "Andrew"
     And I register "alert" ticket 1236 with assignation to "Andrew"
+    And I register "info" ticket 1237 with assignation to "Thomas"
+    And I register "info" ticket 1238 with assignation to "Peter"
+    And I register "info" ticket 1239 with assignation to "Maik"
+    And I register "warning" ticket 1240 with assignation to "Jack"
     And I run endpoint with name "asynchronous_projections"
     And I reset the projection for in progress tickets
     And I run endpoint with name "asynchronous_projections"
@@ -177,6 +205,10 @@ Feature: activating as aggregate order entity
       | 1234       | alert          |
       | 1235      | alert          |
       | 1236      | alert          |
+      | 1237      | info          |
+      | 1238      | info          |
+      | 1239      | info          |
+      | 1240      | warning          |
 
   Scenario: I verify building projection from event sourced aggregate using custom stream name and simple arrays in projections
     Given I active messaging for namespaces

@@ -30,6 +30,11 @@ interface ProjectionManager
      */
     public function initializeProjection(string $name): void;
 
+    /**
+     * @throws ProjectionNotFoundException
+     */
+    public function triggerProjection(string $name): void;
+
     public function hasInitializedProjectionWithName(string $name): bool;
 
     /**

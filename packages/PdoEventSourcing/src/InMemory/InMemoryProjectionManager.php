@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\InMemory;
 
-use Prooph\EventStore\Projection\ProjectionStatus;
 use function array_keys;
 use function array_slice;
 use function get_class;
 use function preg_grep;
 
 use Prooph\EventStore\EventStore;
+
 use Prooph\EventStore\EventStoreDecorator;
 use Prooph\EventStore\Exception;
 use Prooph\EventStore\InMemoryEventStore;
@@ -19,6 +19,7 @@ use Prooph\EventStore\Projection\InMemoryEventStoreProjector;
 use Prooph\EventStore\Projection\InMemoryEventStoreQuery;
 use Prooph\EventStore\Projection\InMemoryEventStoreReadModelProjector;
 use Prooph\EventStore\Projection\ProjectionManager;
+use Prooph\EventStore\Projection\ProjectionStatus;
 use Prooph\EventStore\Projection\Projector;
 use Prooph\EventStore\Projection\Query;
 use Prooph\EventStore\Projection\ReadModel;
@@ -206,7 +207,7 @@ final class InMemoryProjectionManager implements ProjectionManager
         }
     }
 
-    public function fetchProjectionStatus(string $name): \Prooph\EventStore\Projection\ProjectionStatus
+    public function fetchProjectionStatus(string $name): ProjectionStatus
     {
         if (! isset($this->projectors[$name])) {
             throw Exception\ProjectionNotFound::withName($name);

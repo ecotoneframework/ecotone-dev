@@ -164,8 +164,9 @@ Feature: activating as aggregate order entity
 
   Scenario: Catching up events after reset the synchronous event-driven projection
     Given I active messaging for namespaces
-      | Test\Ecotone\EventSourcing\Fixture\Ticket                      |
-      | Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection                      |
+      | Test\Ecotone\EventSourcing\Fixture\Ticket                                     |
+      | Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection |
+      | Test\Ecotone\EventSourcing\Fixture\TicketWithLimitedLoad                      |
     When I register "alert" ticket 1234 with assignation to "Marcus"
     And I register "alert" ticket 1235 with assignation to "Andrew"
     And I register "alert" ticket 1236 with assignation to "Andrew"

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\InMemory;
 
+use Prooph\EventStore\Projection\ProjectionStatus;
 use function array_keys;
 use function array_slice;
 use function get_class;
@@ -123,7 +124,24 @@ final class InMemoryProjectionManager implements ProjectionManager
 
     public function resetProjection(string $name): void
     {
-        unset($this->projectors[$name]);
+        if (! isset($this->projectors[$name])) {
+            throw Exception\ProjectionNotFound::withName($name);
+        }
+
+        $projector = $this->projectors[$name];
+
+        $status = new ReflectionProperty(get_class($projector), 'status');
+        $status->setAccessible(true);
+        /** @phpstan-ignore-next-line */
+        $status->setValue($projector, ProjectionStatus::RESETTING());
+
+        $streamPositions = new ReflectionProperty(get_class($projector), 'streamPositions');
+        $streamPositions->setAccessible(true);
+        $streamPositions->setValue($projector, []);
+
+        $state = new ReflectionProperty(get_class($projector), 'state');
+        $state->setAccessible(true);
+        $state->setValue($projector, []);
     }
 
     public function stopProjection(string $name): void

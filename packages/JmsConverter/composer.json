@@ -26,7 +26,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "1.57",
+        "ecotone/ecotone": "^1.58",
         "jms/serializer": "^3.17",
         "symfony/cache": "^5.4|^6.1"
     },
@@ -48,7 +48,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.57-dev"
+            "dev-main": "1.58-dev"
         },
         "ecotone": {
             "repository": "jms-converter"

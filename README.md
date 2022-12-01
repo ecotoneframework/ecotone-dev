@@ -33,6 +33,11 @@ To run tests for given module
     docker exec -it -w=/data/app/packages/Dbal ecotone_development composer tests:ci
 ```
 
+Clear environment
+```php
+    docker-compose down
+```
+
 ## Feature requests and issue reporting
 
 Use [issue tracking system](https://github.com/ecotoneframework/ecotone/issues) for new feature request and bugs. 

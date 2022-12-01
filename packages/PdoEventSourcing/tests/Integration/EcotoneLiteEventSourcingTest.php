@@ -158,7 +158,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTest
                     EventSourcingConfiguration::createInMemory(),
                     PollingMetadata::create($channelName)
                         ->withTestingSetup(),
-                    SimpleMessageChannelBuilder::createQueueChannel($channelName)
+                    SimpleMessageChannelBuilder::createQueueChannel($channelName),
                 ]),
         );
 

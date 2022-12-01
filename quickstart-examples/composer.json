@@ -15,18 +15,18 @@
     "description": "Extends Ecotone with Symfony integration",
     "scripts": {
         "tests:ci": [
-            "(cd Asynchronous && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd Conversion && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd CQRS && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd EmittingEventsFromProjection && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd EventHandling && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd EventSourcing && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd WorkingWithAggregateDirectly && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd Microservices && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd MicroservicesAdvanced && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd Schedule && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd StatefulProjection && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)",
-            "(cd OutboxPattern && composer update && DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone RABBIT_HOST=amqp://guest:guest@localhost:5672/%2f php run_example.php)"
+            "(cd Asynchronous && composer update && php run_example.php)",
+            "(cd Conversion && composer update && php run_example.php)",
+            "(cd CQRS && composer update && php run_example.php)",
+            "(cd EmittingEventsFromProjection && composer update && php run_example.php)",
+            "(cd EventHandling && composer update && php run_example.php)",
+            "(cd EventSourcing && composer update && php run_example.php)",
+            "(cd WorkingWithAggregateDirectly && composer update && php run_example.php)",
+            "(cd Microservices && composer update && php run_example.php)",
+            "(cd MicroservicesAdvanced && composer update && php run_example.php)",
+            "(cd Schedule && composer update && php run_example.php)",
+            "(cd StatefulProjection && composer update && php run_example.php)",
+            "(cd OutboxPattern && composer update && php run_example.php)"
         ]
     },
     "extra": {

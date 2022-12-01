@@ -7,6 +7,7 @@ services:
       - "$PWD:/data/app"
     working_dir: "/data/app"
     command: sleep 99999
+    container_name: "ecotone_development"
     networks:
       - default
     extra_hosts:

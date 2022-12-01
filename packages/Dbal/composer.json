@@ -42,18 +42,8 @@
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
-        "tests:phpunit-postgres": "DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone vendor/bin/phpunit",
-        "tests:phpunit-mysql": "DATABASE_DSN=mysql://ecotone:secret@127.0.0.1:3306/ecotone vendor/bin/phpunit",
-        "tests:phpunit": [
-            "@tests:phpunit-postgres",
-            "@tests:phpunit-mysql"
-        ],
-        "tests:behat-postgres": "DATABASE_DSN=pgsql://ecotone:secret@localhost:5432/ecotone vendor/bin/behat -vvv",
-        "tests:behat-mysql": "DATABASE_DSN=mysql://ecotone:secret@127.0.0.1:3306/ecotone vendor/bin/behat -vvv",
-        "tests:behat": [
-            "@tests:behat-postgres",
-            "@tests:behat-mysql"
-        ],
+        "tests:phpunit": "vendor/bin/phpunit",
+        "tests:behat": "vendor/bin/behat -vvv",
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit",

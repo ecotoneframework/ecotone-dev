@@ -21,20 +21,18 @@ class Product
     const PRODUCT_REGISTER_API = "product.register";
 
     #[AggregateIdentifier]
-    private int $productId;
+    private string $productId;
     use WithAggregateVersioning;
 
     private float $price;
 
     #[CommandHandler(self::PRODUCT_REGISTER_API)]
-    #[CommandHandler]
     public static function register(RegisterProduct $command): array
     {
         return [new ProductWasRegistered($command->getProductId(), $command->getPrice())];
     }
 
     #[CommandHandler(self::PRODUCT_CHANGE_PRICE_API)]
-    #[CommandHandler]
     public function changePrice(ChangePrice $command): array
     {
         return [new PriceWasChanged($this->productId, $command->getPrice())];

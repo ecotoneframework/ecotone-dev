@@ -7,6 +7,7 @@ services:
       - "$PWD:/data/app"
     working_dir: "/data/app"
     command: sleep 99999
+    container_name: "ecotone_development"
     networks:
       - default
     extra_hosts:
@@ -18,6 +19,7 @@ services:
       COMPOSER_ROOT_VERSION: 'dev-main'
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
   database:
     image: postgres:12.1
     networks:

@@ -77,7 +77,8 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-
+    env:
+      RABBIT_HOST: amqp://127.0.0.1:5672
     steps:
       - uses: actions/checkout@v2
 
@@ -86,6 +87,9 @@ jobs:
         with:
           php-version: 8.1
           coverage: none
+
+      - name: Make use of local packages
+        run: mv config_ci.json config.json
 
       - name: Enable merge-plugin
         run: composer global config --no-interaction allow-plugins.wikimedia/composer-merge-plugin true && composer global require wikimedia/composer-merge-plugin
@@ -97,8 +101,16 @@ jobs:
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
 
-      - name: Run tests
+      - name: Run tests on Postgres
         run: composer tests:ci
         working-directory: ${{ matrix.package.directory }}
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
+          DATABASE_DSN: pgsql://ecotone:secret@localhost:5432/ecotone
+
+      - name: Run tests on Mysql
+        run: composer tests:ci
+        working-directory: ${{ matrix.package.directory }}
+        env:
+          COMPOSER_ROOT_VERSION: 'dev-main'
+          DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone

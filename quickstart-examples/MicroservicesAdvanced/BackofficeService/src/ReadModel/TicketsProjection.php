@@ -6,6 +6,8 @@ use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasCancelled;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasPrepared;
 use App\Microservices\BackofficeService\Domain\Ticket\Ticket;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
@@ -69,16 +71,19 @@ SQL
     #[ProjectionInitialization]
     public function initializeProjection() : void
     {
-            $this->getConnection()->executeStatement(<<<SQL
-        CREATE TABLE IF NOT EXISTS last_prepared_tickets (
-            ticket_id UUID PRIMARY KEY,
-            ticket_type VARCHAR(255),
-            description TEXT,
-            status VARCHAR(50),
-            assigned_to VARCHAR(255),
-            prepared_at TIMESTAMP
-        )
-    SQL);
+        if ($this->getConnection()->createSchemaManager()->tablesExist('last_prepared_tickets')) {
+            return;
+        }
+
+        $table = new Table('last_prepared_tickets');
+
+        $table->addColumn('ticket_id', Types::STRING);
+        $table->addColumn('ticket_type', Types::STRING);
+        $table->addColumn('description', Types::TEXT);
+        $table->addColumn('status', Types::STRING);
+        $table->addColumn('prepared_at', Types::STRING);
+
+        $this->getConnection()->createSchemaManager()->createTable($table);
     }
 
     #[ProjectionReset]

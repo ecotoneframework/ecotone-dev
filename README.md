@@ -20,6 +20,24 @@ The quickstart [page](https://docs.ecotone.tech/quick-start) of the
 [reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.  
 Read more on the [Blog](https://blog.ecotone.tech).
 
+# Development
+
+To run tests for monorepo:
+
+```php
+    docker-compose up -d && docker exec -it ecotone_development composer tests:local
+```
+
+To run tests for given module
+```php
+    docker exec -it -w=/data/app/packages/Dbal ecotone_development composer tests:ci
+```
+
+Clear environment
+```php
+    docker-compose down
+```
+
 ## Feature requests and issue reporting
 
 Use [issue tracking system](https://github.com/ecotoneframework/ecotone/issues) for new feature request and bugs. 

@@ -4,9 +4,9 @@ namespace App\WorkingWithAggregateDirectly\Event;
 
 class ProductWasRegistered
 {
-    public function __construct(private int $productId, private float $price) {}
+    public function __construct(private string $productId, private float $price) {}
 
-    public function getProductId(): int
+    public function getProductId(): string
     {
         return $this->productId;
     }

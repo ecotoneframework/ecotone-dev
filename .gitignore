@@ -11,3 +11,4 @@ composer.lock
 .php-cs-fixer.cache
 cache
 auth.json
+config.json

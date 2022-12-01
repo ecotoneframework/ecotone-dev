@@ -87,6 +87,11 @@ class LazyProophProjectionManager implements ProjectionManager
         $this->triggerActionOnProjection($name);
     }
 
+    public function triggerProjection(string $name): void
+    {
+        $this->triggerActionOnProjection($name);
+    }
+
     public function initializeProjection(string $name): void
     {
         /** @var MessagingEntrypoint $messagingEntrypoint */

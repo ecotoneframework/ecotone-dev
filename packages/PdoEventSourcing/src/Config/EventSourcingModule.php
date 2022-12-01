@@ -72,6 +72,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
     public const ECOTONE_ES_RESET_PROJECTION = 'ecotone:es:reset-projection';
     public const ECOTONE_ES_DELETE_PROJECTION = 'ecotone:es:delete-projection';
     public const ECOTONE_ES_INITIALIZE_PROJECTION = 'ecotone:es:initialize-projection';
+    public const ECOTONE_ES_TRIGGER_PROJECTION = 'ecotone:es:trigger-projection';
     /**
      * @var ProjectionSetupConfiguration[]
      */
@@ -444,6 +445,16 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_INITIALIZE_PROJECTION,
+            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)]
+        );
+
+        $this->registerProjectionManagerAction(
+            'triggerProjection',
+            [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
+            [GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
+            $eventSourcingConfiguration,
+            $configuration,
+            self::ECOTONE_ES_TRIGGER_PROJECTION,
             [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)]
         );
 

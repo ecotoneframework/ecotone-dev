@@ -2,12 +2,16 @@
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\PollableChannel;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTest;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -136,6 +140,46 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTest
         $projectionManager->resetProjection('inProgressTicketList');
         $eventStore->delete(Ticket::class);
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
+
+        $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
+    }
+
+    public function test_triggering_projection_to_catch_up(): void
+    {
+        $channelName = 'asynchronous_projections';
+
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+            [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
+            [new TicketEventConverter(), new InProgressTicketList()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withEnvironment('test')
+                ->withExtensionObjects([
+                    EventSourcingConfiguration::createInMemory(),
+                    PollingMetadata::create($channelName)
+                        ->withTestingSetup(),
+                    SimpleMessageChannelBuilder::createQueueChannel($channelName)
+                ]),
+        );
+
+        $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
+
+        $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
+        /** @var PollableChannel $asyncChannel */
+        $asyncChannel = $ecotoneTestSupport->getMessageChannelByName($channelName);
+        /** Drop message from channel */
+        $asyncChannel->receive();
+
+        /** No messages that will trigger projection */
+        $ecotoneTestSupport->run($channelName);
+
+        $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
+
+        /** When */
+        $ecotoneTestSupport->runConsoleCommand(EventSourcingModule::ECOTONE_ES_TRIGGER_PROJECTION, ['name' => InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION]);
+
+        /** New message will trigger projection */
+        $ecotoneTestSupport->run($channelName);
 
         $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
     }

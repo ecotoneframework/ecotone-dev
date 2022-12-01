@@ -24,8 +24,8 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "1.58",
-        "ecotone/jms-converter": "1.58",
+        "ecotone/ecotone": "^1.59",
+        "ecotone/jms-converter": "^1.59",
         "php-di/php-di": "^6.3"
     },
     "require-dev": {
@@ -38,7 +38,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.58-dev"
+            "dev-main": "1.59-dev"
         },
         "ecotone": {
             "repository": "lite-application"

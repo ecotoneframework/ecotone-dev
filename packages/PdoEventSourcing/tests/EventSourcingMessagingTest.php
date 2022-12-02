@@ -60,9 +60,14 @@ abstract class EventSourcingMessagingTest extends TestCase
         EventSourcingMessagingTest::deleteEventStreamTables($connection);
     }
 
+    public static function tableExists(Connection $connection, string $table): bool
+    {
+        return $connection->createSchemaManager()->tablesExist([$table]);
+    }
+
     private static function deleteEventStreamTables(Connection $connection): void
     {
-        if (self::checkIfTableExists($connection, 'event_streams')) {
+        if (self::tableExists($connection, 'event_streams')) {
             $projections = $connection->createQueryBuilder()
                 ->select('*')
                 ->from('event_streams')
@@ -80,28 +85,15 @@ abstract class EventSourcingMessagingTest extends TestCase
 
     private static function deleteFromTableExists(string $tableName, Connection $connection): void
     {
-        $doesExists = self::checkIfTableExists($connection, $tableName);
-
-        if ($doesExists) {
+        if (self::tableExists($connection, $tableName)) {
             $connection->executeStatement('DELETE FROM ' . $tableName);
         }
     }
 
     private static function deleteTable(string $tableName, Connection $connection): void
     {
-        $doesExists = self::checkIfTableExists($connection, $tableName);
-
-        if ($doesExists) {
-            $schemaManager = $connection->createSchemaManager();
-
-            $schemaManager->dropTable($tableName);
+        if (self::tableExists($connection, $tableName)) {
+            $connection->createSchemaManager()->dropTable($tableName);
         }
-    }
-
-    private static function checkIfTableExists(Connection $connection, string $table): bool
-    {
-        $schemaManager = $connection->createSchemaManager();
-
-        return $schemaManager->tablesExist([$table]);
     }
 }

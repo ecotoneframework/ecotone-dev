@@ -22,20 +22,26 @@ Read more on the [Blog](https://blog.ecotone.tech).
 
 # Development
 
+Start docker containers
+
+```php
+docker-compose up -d
+```
+
 To run tests for monorepo:
 
 ```php
-    docker-compose up -d && docker exec -it ecotone_development composer tests:local
+docker exec -it ecotone_development composer tests:local
 ```
 
 To run tests for given module
 ```php
-    docker exec -it -w=/data/app/packages/Dbal ecotone_development composer tests:ci
+docker exec -it -w=/data/app/packages/Dbal ecotone_development composer tests:ci
 ```
 
 Clear environment
 ```php
-    docker-compose down
+docker-compose down
 ```
 
 ## Feature requests and issue reporting

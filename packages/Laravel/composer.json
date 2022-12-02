@@ -2,6 +2,7 @@
     "name": "ecotone/laravel",
     "minimum-stability": "dev",
     "homepage": "https://docs.ecotone.tech/",
+    "forum": "https://discord.gg/CctGMcrYnV",
     "prefer-stable": true,
     "license": "MIT",
     "type": "library",

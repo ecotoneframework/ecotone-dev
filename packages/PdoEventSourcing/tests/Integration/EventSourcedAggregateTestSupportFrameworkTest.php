@@ -19,6 +19,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDrivenProjection\InProgressTicketList;
 
+/**
+ * @internal
+ */
 final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 {
     public function test_calling_aggregate_and_receiving_events()
@@ -28,7 +31,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
                 ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllEventSourcedAggregates()
+                    InMemoryRepositoryBuilder::createForAllEventSourcedAggregates(),
                 ]),
         );
 
@@ -47,7 +50,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
                 ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllEventSourcedAggregates()
+                    InMemoryRepositoryBuilder::createForAllEventSourcedAggregates(),
                 ]),
         );
 
@@ -69,7 +72,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
                 ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllEventSourcedAggregates()
+                    InMemoryRepositoryBuilder::createForAllEventSourcedAggregates(),
                 ]),
         );
 
@@ -94,7 +97,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllEventSourcedAggregates(),
                     TestConfiguration::createWithDefaults()
-                        ->addAggregateOrSagaUnderTest(Ticket::class)
+                        ->addAggregateOrSagaUnderTest(Ticket::class),
                 ]),
         );
 

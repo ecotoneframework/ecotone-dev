@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\Configuration\InMemoryStateStoredRepositoryBuilder;
+use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Fixture\User\User;
@@ -28,7 +28,7 @@ final class EcotoneLiteTest extends KernelTestCase
             $kernel->getContainer(),
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    InMemoryStateStoredRepositoryBuilder::createForAllAggregates(),
+                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
         );

@@ -12,7 +12,7 @@ use App\Testing\Infrastructure\Converter\EmailConverter;
 use App\Testing\Infrastructure\Converter\PhoneNumberConverter;
 use App\Testing\Infrastructure\Converter\UuidConverter;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\Configuration\InMemoryStateStoredRepositoryBuilder;
+use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
@@ -20,7 +20,7 @@ use Ramsey\Uuid\Uuid;
 
 final class UserIntegrationTest extends TestCase
 {
-    public function test_registering_user()
+    public function test_sending_command_as_json()
     {
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             // classes to resolve
@@ -33,7 +33,7 @@ final class UserIntegrationTest extends TestCase
                                 ->withSkippedModulePackageNames([ModulePackageList::ASYNCHRONOUS_PACKAGE])
                                 ->withExtensionObjects([
                                     // register in memory repository for User
-                                    InMemoryStateStoredRepositoryBuilder::createForAllAggregates()
+                                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates()
                                 ]),
             pathToRootCatalog: __DIR__ // can be ignored, needed for running inside ecotone-dev monorepo
         );
@@ -53,7 +53,7 @@ final class UserIntegrationTest extends TestCase
                 PhoneNumber::create("148518518518")
             )],
             // Make use of Test Support Gateway to find published events
-            $ecotoneLite->getTestSupportGateway()->getRecordedEvents()
+            $ecotoneLite->getMessagingTestSupport()->getRecordedEvents()
         );
     }
 }

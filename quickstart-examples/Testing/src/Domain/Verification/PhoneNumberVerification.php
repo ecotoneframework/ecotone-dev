@@ -15,6 +15,16 @@ final class PhoneNumberVerification
         return $this->phoneNumber;
     }
 
+    public function isTokenEqual(VerificationToken $verificationToken): bool
+    {
+        return $this->verificationToken->equals($verificationToken);
+    }
+
+    public function finishVerificationWithSuccess(): self
+    {
+        return new self($this->phoneNumber, $this->verificationToken, true);
+    }
+
     public function getVerificationToken(): VerificationToken
     {
         return $this->verificationToken;

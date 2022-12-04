@@ -12,14 +12,14 @@ use Psr\Log\LoggerInterface;
 final class VerificationSender
 {
     #[CommandHandler]
-    public function startEmailVerification(StartEmailVerification $command, LoggerInterface $logger): void
+    public function startEmailVerification(StartEmailVerification $command): void
     {
-        $logger->info("Email verification send to " . $command->getEmail()->toString());
+        // send email
     }
 
     #[CommandHandler]
-    public function startPhoneNumberVerification(StartPhoneNumberVerification $command, LoggerInterface $logger): void
+    public function startPhoneNumberVerification(StartPhoneNumberVerification $command): void
     {
-        $logger->info("Sms verification send to " . $command->getPhoneNumber()->toString());
+        // send sms
     }
 }

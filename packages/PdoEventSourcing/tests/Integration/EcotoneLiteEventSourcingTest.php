@@ -39,12 +39,10 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTest
         );
 
         $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
-        ;
 
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
 
         $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
-        ;
     }
 
     public function test_registering_with_asynchronous_package()
@@ -63,12 +61,10 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTest
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
 
         $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
-        ;
 
         $ecotoneTestSupport->run('asynchronous_projections');
 
         $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
-        ;
     }
 
     public function test_running_in_memory_based_projection_twice_with_reset()
@@ -177,6 +173,8 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTest
 
         /** When */
         $ecotoneTestSupport->runConsoleCommand(EventSourcingModule::ECOTONE_ES_TRIGGER_PROJECTION, ['name' => InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION]);
+
+        $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
 
         /** New message will trigger projection */
         $ecotoneTestSupport->run($channelName);

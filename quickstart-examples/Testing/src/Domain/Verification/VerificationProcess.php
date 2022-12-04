@@ -7,16 +7,23 @@ namespace App\Testing\Domain\Verification;
 use App\Testing\Domain\User\Event\UserWasRegistered;
 use App\Testing\Domain\Verification\Command\StartEmailVerification;
 use App\Testing\Domain\Verification\Command\StartPhoneNumberVerification;
+use App\Testing\Domain\Verification\Command\VerifyEmail;
+use App\Testing\Domain\Verification\Command\VerifySms;
+use App\Testing\Infrastructure\MessagingConfiguration;
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Endpoint\Delayed;
+use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Saga;
 use Ecotone\Modelling\CommandBus;
 use Ramsey\Uuid\UuidInterface;
 
 #[Saga]
-final class VerificationSaga
+final class VerificationProcess
 {
     private function __construct(
+        #[AggregateIdentifier]
         private UuidInterface           $userId,
         private EmailVerification       $emailVerification,
         private PhoneNumberVerification $phoneNumberVerification
@@ -25,12 +32,12 @@ final class VerificationSaga
     }
 
     #[EventHandler]
-    public static function start(UserWasRegistered $event, CommandBus $commandBus): self
+    public static function start(UserWasRegistered $event, TokenGenerator $tokenGenerator, CommandBus $commandBus): self
     {
         $self = new self(
             $event->getUserId(),
-            new EmailVerification($event->getEmail(), VerificationToken::generate(), false),
-            new PhoneNumberVerification($event->getPhoneNumber(), VerificationToken::generate(), false)
+            new EmailVerification($event->getEmail(), $tokenGenerator->generate(), false),
+            new PhoneNumberVerification($event->getPhoneNumber(), $tokenGenerator->generate(), false)
         );
 
         $commandBus->send(new StartEmailVerification($self->emailVerification->getEmail(), $self->emailVerification->getVerificationToken()));
@@ -39,6 +46,27 @@ final class VerificationSaga
         return $self;
     }
 
+    #[CommandHandler]
+    public function verifyEmail(VerifyEmail $command): void
+    {
+        if (!$this->emailVerification->isTokenEqual($command->getVerificationToken())) {
+            throw new \InvalidArgumentException("Token incorrect");
+        }
+
+        $this->emailVerification = $this->emailVerification->finishVerificationWithSuccess();
+    }
+
+    #[CommandHandler]
+    public function verifySms(VerifySms $command): void
+    {
+        if (!$this->phoneNumberVerification->isTokenEqual($command->getVerificationToken())) {
+            throw new \InvalidArgumentException("Token incorrect");
+        }
+
+        $this->phoneNumberVerification = $this->phoneNumberVerification->finishVerificationWithSuccess();
+    }
+
+    #[Asynchronous(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)]
     #[Delayed(1000 * 60 * 60 * 24)] // execute 24 hours after registration
     #[EventHandler]
     public function timeout(UserWasRegistered $userWasRegistered, CommandBus $commandBus): void

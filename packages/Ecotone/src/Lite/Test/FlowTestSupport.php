@@ -138,7 +138,7 @@ final class FlowTestSupport
 
     /**
      * @template T
-     * @param T $className
+     * @param class-string<T> $className
      * @param string|array $identifiers
      * @return T
      */
@@ -155,7 +155,7 @@ final class FlowTestSupport
 
     /**
      * @template T
-     * @param T $className
+     * @param class-string<T> $className
      * @param string|array $identifiers
      * @return T
      */

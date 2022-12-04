@@ -25,7 +25,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.59",
+        "ecotone/ecotone": "1.59",
         "laravel/framework": "^9.0"
     },
     "require-dev": {

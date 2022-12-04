@@ -14,7 +14,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Test\\App\\Testing\\": "tests"
+            "Test\\App\\": "tests"
         }
     },
     "require": {

@@ -78,7 +78,8 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
             $this->getEventBus(),
             $this->getQueryBus(),
             $this->getMessagingTestSupport(),
-            $this->getGatewayByName(MessagingEntrypoint::class)
+            $this->getGatewayByName(MessagingEntrypoint::class),
+            $this->configuredMessagingSystem
         );
     }
 

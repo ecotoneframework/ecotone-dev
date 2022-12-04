@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\App\Testing\Domain\User;
+namespace Test\App\Unit\Domain\User;
 
 use App\Testing\Domain\User\Command\RegisterUser;
 use App\Testing\Domain\User\Email;

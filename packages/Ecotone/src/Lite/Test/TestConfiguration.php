@@ -21,7 +21,7 @@ final class TestConfiguration
 
     public static function createWithDefaults(): self
     {
-        return new self(false, true, null, '', [], []);
+        return new self(true, true, null, '', [], []);
     }
 
     public function withFailOnCommandHandlerNotFound(bool $shouldFail): self

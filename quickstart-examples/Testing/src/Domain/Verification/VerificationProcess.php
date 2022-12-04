@@ -8,7 +8,8 @@ use App\Testing\Domain\User\Event\UserWasRegistered;
 use App\Testing\Domain\Verification\Command\StartEmailVerification;
 use App\Testing\Domain\Verification\Command\StartPhoneNumberVerification;
 use App\Testing\Domain\Verification\Command\VerifyEmail;
-use App\Testing\Domain\Verification\Command\VerifySms;
+use App\Testing\Domain\Verification\Command\VerifyPhoneNumber;
+use App\Testing\Domain\Verification\Event\VerificationProcessStarted;
 use App\Testing\Infrastructure\MessagingConfiguration;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Endpoint\Delayed;
@@ -17,11 +18,14 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Saga;
 use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\WithAggregateEvents;
 use Ramsey\Uuid\UuidInterface;
 
 #[Saga]
 final class VerificationProcess
 {
+    use WithAggregateEvents;
+
     private function __construct(
         #[AggregateIdentifier]
         private UuidInterface           $userId,
@@ -29,6 +33,7 @@ final class VerificationProcess
         private PhoneNumberVerification $phoneNumberVerification
     )
     {
+        $this->recordThat(new VerificationProcessStarted($this->userId));
     }
 
     #[EventHandler]
@@ -57,7 +62,7 @@ final class VerificationProcess
     }
 
     #[CommandHandler]
-    public function verifySms(VerifySms $command): void
+    public function verifySms(VerifyPhoneNumber $command): void
     {
         if (!$this->phoneNumberVerification->isTokenEqual($command->getVerificationToken())) {
             throw new \InvalidArgumentException("Token incorrect");
@@ -68,10 +73,12 @@ final class VerificationProcess
 
     #[Asynchronous(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)]
     #[Delayed(1000 * 60 * 60 * 24)] // execute 24 hours after registration
-    #[EventHandler]
-    public function timeout(UserWasRegistered $userWasRegistered, CommandBus $commandBus): void
+    #[EventHandler(endpointId: "verificationProcess.timeout")]
+    public function timeout(VerificationProcessStarted $event, CommandBus $commandBus): void
     {
         if ($this->emailVerification->isVerified() && $this->phoneNumberVerification->isVerified()) {
+            $commandBus->sendWithRouting("user.verify", metadata: ["aggregate.id" => $this->userId]);
+
             return;
         }
 

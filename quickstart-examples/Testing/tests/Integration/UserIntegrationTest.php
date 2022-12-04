@@ -20,7 +20,7 @@ use Ramsey\Uuid\Uuid;
 
 final class UserIntegrationTest extends TestCase
 {
-    public function test_registering_user()
+    public function test_sending_command_as_json()
     {
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             // classes to resolve

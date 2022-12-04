@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test;
 
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
@@ -19,7 +23,8 @@ final class FlowTestSupport
         private EventBus $eventBus,
         private QueryBus $queryBus,
         private MessagingTestSupport $testSupportGateway,
-        private MessagingEntrypoint $messagingEntrypoint
+        private MessagingEntrypoint $messagingEntrypoint,
+        private ConfiguredMessagingSystem $configuredMessagingSystem
     )
     {}
 
@@ -63,9 +68,17 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function releaseMessagesAwaitingFor(string $channelName, int $timeInMilliseconds): self
+    public function releaseAwaitingMessagesAndRunConsumer(string $channelName, int $timeInMilliseconds, ?ExecutionPollingMetadata $executionPollingMetadata = null): self
     {
         $this->testSupportGateway->releaseMessagesAwaitingFor($channelName, $timeInMilliseconds);
+        $this->run($channelName, $executionPollingMetadata);
+
+        return $this;
+    }
+
+    public function run(string $name, ?ExecutionPollingMetadata $executionPollingMetadata = null): self
+    {
+        $this->configuredMessagingSystem->run($name, $executionPollingMetadata);
 
         return $this;
     }
@@ -84,11 +97,43 @@ final class FlowTestSupport
     }
 
     /**
+     * @return MessageHeaders[]
+     */
+    public function getRecordedEventHeaders(): array
+    {
+        return array_map(fn(Message $message) => $message->getHeaders(), $this->testSupportGateway->getRecordedEventMessages());
+    }
+
+    /**
+     * @return MessageHeaders[]
+     */
+    public function getRecordedEventRouting(): array
+    {
+        return array_map(fn(Message $message) => $message->getHeaders()->get('ecotone.modelling.bus.command_by_name'), $this->testSupportGateway->getRecordedEventMessages());
+    }
+
+    /**
      * @return mixed[]
      */
     public function getRecordedCommands(): array
     {
         return $this->testSupportGateway->getRecordedCommands();
+    }
+
+    /**
+     * @return MessageHeaders[]
+     */
+    public function getRecordedCommandHeaders(): array
+    {
+        return array_map(fn(Message $message) => $message->getHeaders(), $this->testSupportGateway->getRecordedCommandMessages());
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getRecordedCommandRouting(): array
+    {
+        return array_map(fn(Message $message) => $message->getHeaders()->get('ecotone.modelling.bus.command_by_name'), $this->testSupportGateway->getRecordedCommandMessages());
     }
 
     /**

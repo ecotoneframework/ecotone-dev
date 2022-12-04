@@ -6,6 +6,7 @@ namespace App\Testing\Domain\User;
 
 use App\Testing\Domain\User\Command\RegisterUser;
 use App\Testing\Domain\User\Event\UserWasRegistered;
+use Assert\Assert;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -22,11 +23,13 @@ final class User
         private string $name,
         private Email $email,
         private PhoneNumber $phoneNumber,
-        private $isBlocked = false
+        private $isBlocked = false,
+        private $isVerified = false
     ) {
         $this->recordThat(new UserWasRegistered($this->userId, $this->email, $this->phoneNumber));
     }
 
+    #[CommandHandler]
     #[CommandHandler("user.register")]
     public static function register(RegisterUser $command): self
     {
@@ -42,6 +45,14 @@ final class User
     public function block(): void
     {
         $this->isBlocked = true;
+    }
+
+    #[CommandHandler("user.verify")]
+    public function verify(): void
+    {
+        Assert::that($this->isBlocked, "Can't verify blocked user")->false();
+
+        $this->isVerified = true;
     }
 
     public function isBlocked(): bool

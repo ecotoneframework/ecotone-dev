@@ -7,7 +7,7 @@ namespace App\Testing\Domain\Verification\Command;
 use App\Testing\Domain\Verification\VerificationToken;
 use Ramsey\Uuid\UuidInterface;
 
-final class VerifySms
+final class VerifyPhoneNumber
 {
     public function __construct(private UuidInterface $userId, private VerificationToken $verificationToken) {}
 

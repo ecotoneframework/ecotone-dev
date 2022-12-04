@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Testing\Domain\Verification;
+namespace Test\App\Fixture;
+
+use App\Testing\Domain\Verification\TokenGenerator;
+use App\Testing\Domain\Verification\VerificationToken;
 
 final class StubTokenGenerator implements TokenGenerator
 {

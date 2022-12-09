@@ -9,6 +9,17 @@ use App\Testing\Domain\User\Email;
 use App\Testing\Domain\User\Event\UserWasRegistered;
 use App\Testing\Domain\User\PhoneNumber;
 use App\Testing\Domain\User\User;
+use App\Testing\Domain\Verification\TokenGenerator;
+use App\Testing\Domain\Verification\VerificationProcess;
+use App\Testing\Infrastructure\MessagingConfiguration;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
+use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Lite\Test\TestConfiguration;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 
@@ -30,17 +41,65 @@ final class UserTest extends TestCase
         );
     }
 
+    public function test_registering_user_with_message_flows()
+    {
+        $userId = Uuid::uuid4();
+        $email = Email::create("test@wp.pl");
+        $phoneNumber = PhoneNumber::create("148518518518");
+        $command = new RegisterUser($userId, "johny", $email, $phoneNumber);
+
+        /** Comparing published events after registration */
+        $this->assertEquals(
+            [new UserWasRegistered($userId, $email, $phoneNumber)],
+            $this->buildEcotoneFlowSupport()
+                ->sendCommand($command)
+                ->getRecordedEvents()
+        );
+    }
+
+    public function test_registering_user_with_message_flows_by_verifying_state()
+    {
+        $userId = Uuid::uuid4();
+        $email = Email::create("test@wp.pl");
+        $phoneNumber = PhoneNumber::create("148518518518");
+
+        $this->assertTrue(
+            $this->buildEcotoneFlowSupport([
+                TestConfiguration::createWithDefaults()
+                    ->addAggregateUnderTest(User::class)
+            ])
+                ->sendCommand(new RegisterUser($userId, "johny", $email, $phoneNumber))
+                ->sendCommandWithRoutingKey("user.block", metadata: ["aggregate.id" => $userId])
+                ->getAggregate(User::class, $userId)
+                ->isBlocked()
+        );
+    }
+
     public function test_blocking_user()
     {
         $user = User::register(new RegisterUser(
-            Uuid::uuid4(),
-            "johny",
-            Email::create("test@wp.pl"),
-            PhoneNumber::create("148518518518"))
+                Uuid::uuid4(),
+                "johny",
+                Email::create("test@wp.pl"),
+                PhoneNumber::create("148518518518"))
         );
 
         $user->block();
 
         $this->assertTrue($user->isBlocked());
+    }
+
+    private function buildEcotoneFlowSupport(array $extensionObjects = []): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapForTesting(
+            [User::class],
+            configuration: ServiceConfiguration::createWithDefaults()
+                /** We are focusing on domain model without asynchronous handlers, no need to load any extra modules */
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withExtensionObjects(
+                    /** Built in, In Memory Repository, that we want to use for User aggregate */
+                    array_merge([InMemoryRepositoryBuilder::createForAllStateStoredAggregates()], $extensionObjects),
+                ),
+        )->getFlowTestSupport();
     }
 }

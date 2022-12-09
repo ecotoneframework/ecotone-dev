@@ -41,6 +41,7 @@ final class VerificationProcessTest extends TestCase
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
                     SimpleMessageChannelBuilder::createNullableChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES),
+                    /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
                     TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
                 ]),
         );
@@ -74,6 +75,7 @@ final class VerificationProcessTest extends TestCase
                     InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
                     SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
                     PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
+                    /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
                     TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
                 ]),
         );
@@ -83,14 +85,14 @@ final class VerificationProcessTest extends TestCase
         $phoneNumber = PhoneNumber::create('148518518518');
 
         $this->assertEquals(
-            ["user.verify"],
+            [["user.verify", $userId->toString()]],
             $ecotoneTestSupport->getFlowTestSupport()
                 ->publishEvent(new UserWasRegistered($userId, $email, $phoneNumber))
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
                 ->discardRecordedMessages()
                 ->releaseAwaitingMessagesAndRunConsumer(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
-                ->getRecordedCommandRouting()
+                ->getRecordedCommandsWithRouting()
         );
     }
 
@@ -108,6 +110,7 @@ final class VerificationProcessTest extends TestCase
                     InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
                     SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
                     PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
+                    /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
                     TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
                 ]),
         );
@@ -117,13 +120,13 @@ final class VerificationProcessTest extends TestCase
         $phoneNumber = PhoneNumber::create('148518518518');
 
         $this->assertEquals(
-            ['user.block'],
+            [['user.block', $userId->toString()]],
             $ecotoneTestSupport->getFlowTestSupport()
                 ->publishEvent(new UserWasRegistered($userId, $email, $phoneNumber))
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->discardRecordedMessages()
                 ->releaseAwaitingMessagesAndRunConsumer(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
-                ->getRecordedCommandRouting()
+                ->getRecordedCommandsWithRouting()
         );
     }
 }

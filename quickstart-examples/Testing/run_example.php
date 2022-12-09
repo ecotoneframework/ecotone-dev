@@ -4,9 +4,10 @@ use App\CQRS\GetOrder;
 use App\CQRS\PlaceOrder;
 use Ecotone\Lite\EcotoneLiteApplication;
 
-require __DIR__ . "/vendor/autoload.php";
-$messagingSystem = \Ecotone\Lite\EcotoneLite::bootstrap(pathToRootCatalog: __DIR__);
+/**
+ * This example is different. Run it by running tests "./vendor/bin/phpunit".
+ *
+ * Check test examples in tests catalog.
+ */
 
-$messagingSystem->getCommandBus()->send(new PlaceOrder(1, "Milk"));
-
-echo $messagingSystem->getQueryBus()->send(new GetOrder(1)) . "\n";
+echo "Run vendor/bin/phpunit\n";

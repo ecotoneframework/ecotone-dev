@@ -54,14 +54,14 @@ final class UserStoriesTest extends TestCase
         $phoneNumber = PhoneNumber::create('148518518518');
 
         $this->assertEquals(
-            ["user.verify"],
+            [["user.verify", $userId->toString()]],
             $ecotoneTestSupport->getFlowTestSupport()
                 ->sendCommand(new RegisterUser($userId, "John Snow", $email, $phoneNumber))
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
                 ->discardRecordedMessages()
                 ->releaseAwaitingMessagesAndRunConsumer(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
-                ->getRecordedCommandRouting()
+                ->getRecordedCommandsWithRouting()
         );
     }
 }

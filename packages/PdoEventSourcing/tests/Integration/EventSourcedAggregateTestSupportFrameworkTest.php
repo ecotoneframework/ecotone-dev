@@ -97,7 +97,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllEventSourcedAggregates(),
                     TestConfiguration::createWithDefaults()
-                        ->addAggregateOrSagaUnderTest(Ticket::class),
+                        ->addAggregateUnderTest(Ticket::class),
                 ]),
         );
 

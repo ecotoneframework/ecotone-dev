@@ -10,6 +10,7 @@ use Assert\Assert;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateEvents;
 use Ramsey\Uuid\UuidInterface;
 
@@ -58,5 +59,11 @@ final class User
     public function isBlocked(): bool
     {
         return $this->isBlocked;
+    }
+
+    #[QueryHandler("user.isVerified")]
+    public function isVerified(): bool
+    {
+
     }
 }

@@ -44,8 +44,7 @@ final class EcotoneLite
         bool                     $useCachedVersion = false,
         ?string                  $pathToRootCatalog = null,
         bool                     $allowGatewaysToBeRegisteredInContainer = false
-    ): ConfiguredMessagingSystem
-    {
+    ): ConfiguredMessagingSystem {
         return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, false, $allowGatewaysToBeRegisteredInContainer, $useCachedVersion);
     }
 
@@ -61,8 +60,7 @@ final class EcotoneLite
         array                    $configurationVariables = [],
         ?string                  $pathToRootCatalog = null,
         bool                     $allowGatewaysToBeRegisteredInContainer = false
-    ): ConfiguredMessagingSystemWithTestSupport
-    {
+    ): ConfiguredMessagingSystemWithTestSupport {
         return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false);
     }
 
@@ -83,8 +81,7 @@ final class EcotoneLite
         bool                     $allowGatewaysToBeRegisteredInContainer = false,
         bool                     $addInMemoryStateStoredRepository = true,
         bool                     $addEventSourcedRepository = true,
-    ): FlowTestSupport
-    {
+    ): FlowTestSupport {
         $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository);
 
         if ($addEventSourcedRepository) {
@@ -112,18 +109,17 @@ final class EcotoneLite
         ?string                  $pathToRootCatalog = null,
         bool                     $allowGatewaysToBeRegisteredInContainer = false,
         bool                     $addInMemoryStateStoredRepository = true,
-    ): FlowTestSupport
-    {
+    ): FlowTestSupport {
         $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]), $classesToResolve, $addInMemoryStateStoredRepository);
 
-        if (!$configuration->hasExtensionObject(BaseEventSourcingConfiguration::class)) {
-            Assert::isTrue(class_exists(EventSourcingConfiguration::class), "To use Flow Testing with Event Store you need to add event sourcing module.");
+        if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class)) {
+            Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
 
             $configuration = $configuration
                 ->addExtensionObject(EventSourcingConfiguration::createInMemory());
         }
 
-        if (!$configuration->hasExtensionObject(DbalConfiguration::class)) {
+        if (! $configuration->hasExtensionObject(DbalConfiguration::class)) {
             $configuration = $configuration
                 ->addExtensionObject(DbalConfiguration::createForTesting());
         }
@@ -210,7 +206,7 @@ final class EcotoneLite
         $configuration = $configuration ?: ServiceConfiguration::createWithDefaults();
         $testConfiguration = ExtensionObjectResolver::resolveUnique(TestConfiguration::class, $configuration->getExtensionObjects(), TestConfiguration::createWithDefaults());
 
-        if (!$configuration->areSkippedPackagesDefined()) {
+        if (! $configuration->areSkippedPackagesDefined()) {
             $configuration = $configuration
                 ->withSkippedModulePackageNames($packagesToSkip);
         }

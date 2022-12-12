@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test;
 
-use App\Testing\Domain\ShoppingBasket\Basket;
-use App\Testing\Domain\ShoppingBasket\Event\ProductWasAddedToBasket;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;

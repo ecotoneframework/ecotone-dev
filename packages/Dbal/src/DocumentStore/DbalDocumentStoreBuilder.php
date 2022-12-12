@@ -14,7 +14,6 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
-use Ecotone\Messaging\Support\Assert;
 
 final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
 {

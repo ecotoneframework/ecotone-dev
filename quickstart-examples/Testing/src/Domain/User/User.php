@@ -24,8 +24,8 @@ final class User
         private string $name,
         private Email $email,
         private PhoneNumber $phoneNumber,
-        private $isBlocked = false,
-        private $isVerified = false
+        private bool $isBlocked = false,
+        private bool $isVerified = false
     ) {
         $this->recordThat(new UserWasRegistered($this->userId, $this->email, $this->phoneNumber));
     }
@@ -45,12 +45,20 @@ final class User
     #[CommandHandler("user.block")]
     public function block(): void
     {
+        if ($this->isBlocked) {
+            return;
+        }
+
         $this->isBlocked = true;
     }
 
     #[CommandHandler("user.verify")]
     public function verify(): void
     {
+        if ($this->isVerified) {
+            return;
+        }
+
         Assert::that($this->isBlocked, "Can't verify blocked user")->false();
 
         $this->isVerified = true;

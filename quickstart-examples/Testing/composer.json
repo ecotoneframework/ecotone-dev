@@ -18,7 +18,7 @@
         }
     },
     "require": {
-        "ecotone/lite-application-starter": "^1.0.1",
+        "ecotone/lite-event-sourcing-starter": "^1.0",
         "beberlei/assert": "^3.3.2"
     },
     "require-dev": {

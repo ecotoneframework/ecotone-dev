@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Testing\Domain\ShoppingBasket\Event;
+namespace App\Testing\Domain\Product\Command;
 
 use Ramsey\Uuid\UuidInterface;
 
-final class ProductWasAddedToBasket
+final class AddProduct
 {
     public function __construct(
-        private UuidInterface $userId,
         private UuidInterface $productId,
+        private string $name,
         private int $price
     )
     {}
 
-    public function getUserId(): UuidInterface
-    {
-        return $this->userId;
-    }
-
     public function getProductId(): UuidInterface
     {
         return $this->productId;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
     }
 
     public function getPrice(): int

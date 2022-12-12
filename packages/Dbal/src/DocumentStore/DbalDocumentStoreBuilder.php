@@ -32,16 +32,16 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
 
     public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
     {
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-        $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName)));
-
-        Assert::isSubclassOf($conversionService, ConversionService::class, 'Have you forgot to register ' . ConversionService::REFERENCE_NAME . '?');
+        $documentStore = $this->inMemoryEventStore
+            ? $this->inMemoryDocumentStore
+            : new DbalDocumentStore(
+                CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName))),
+                $this->initializeDocumentStore,
+                $referenceSearchService->get(ConversionService::REFERENCE_NAME)
+            );
 
         return ServiceActivatorBuilder::createWithDirectReference(
-            $this->inMemoryEventStore
-                ? $this->inMemoryDocumentStore
-                : new DbalDocumentStore($connectionFactory, $this->initializeDocumentStore, $conversionService),
+            $documentStore,
             $this->method
         )
             ->withInputChannelName($this->getInputMessageChannelName())

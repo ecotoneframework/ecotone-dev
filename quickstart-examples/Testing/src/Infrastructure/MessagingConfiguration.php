@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Testing\Infrastructure;
 
+use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 
 final class MessagingConfiguration
 {
@@ -15,6 +16,12 @@ final class MessagingConfiguration
     #[ServiceContext]
     public function registerInMemoryPollableChannel() : MessageChannelBuilder
     {
-        return SimpleMessageChannelBuilder::createQueueChannel(self::ASYNCHRONOUS_MESSAGES, true);
+        return DbalBackedMessageChannelBuilder::create(self::ASYNCHRONOUS_MESSAGES);
+    }
+
+    #[ServiceContext]
+    public function registerDocumentStoreRepository(): DbalConfiguration
+    {
+        return DbalConfiguration::createWithDefaults()->withDocumentStore(enableDocumentStoreAggregateRepository: true);
     }
 }

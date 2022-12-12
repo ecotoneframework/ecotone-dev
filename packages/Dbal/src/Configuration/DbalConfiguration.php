@@ -48,6 +48,18 @@ class DbalConfiguration
         return new self();
     }
 
+    public static function createForTesting(): self
+    {
+        return (new self())
+            ->withTransactionOnAsynchronousEndpoints(false)
+            ->withTransactionOnCommandBus(false)
+            ->withTransactionOnConsoleCommands(false)
+            ->withDeduplication(false)
+            ->withDeadLetter(false)
+            ->withCleanObjectManagerOnAsynchronousEndpoints(false)
+            ->withDocumentStore(true, true);
+    }
+
     public function getDeduplicationConnectionReference(): string
     {
         return $this->getMainConnectionOrDefault($this->deduplicationConnectionReference, 'deduplication');

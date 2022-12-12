@@ -52,23 +52,31 @@ final class VerificationProcess
     }
 
     #[CommandHandler]
-    public function verifyEmail(VerifyEmail $command): void
+    public function verifyEmail(VerifyEmail $command, CommandBus $commandBus): void
     {
         if (!$this->emailVerification->isTokenEqual($command->getVerificationToken())) {
             throw new \InvalidArgumentException("Token incorrect");
         }
 
         $this->emailVerification = $this->emailVerification->finishVerificationWithSuccess();
+
+        if ($this->phoneNumberVerification->isVerified()) {
+            $commandBus->sendWithRouting("user.verify", metadata: ["aggregate.id" => $this->userId]);
+        }
     }
 
     #[CommandHandler]
-    public function verifySms(VerifyPhoneNumber $command): void
+    public function verifySms(VerifyPhoneNumber $command, CommandBus $commandBus): void
     {
         if (!$this->phoneNumberVerification->isTokenEqual($command->getVerificationToken())) {
             throw new \InvalidArgumentException("Token incorrect");
         }
 
         $this->phoneNumberVerification = $this->phoneNumberVerification->finishVerificationWithSuccess();
+
+        if ($this->emailVerification->isVerified()) {
+            $commandBus->sendWithRouting("user.verify", metadata: ["aggregate.id" => $this->userId]);
+        }
     }
 
     #[Asynchronous(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)]
@@ -77,8 +85,6 @@ final class VerificationProcess
     public function timeout(VerificationProcessStarted $event, CommandBus $commandBus): void
     {
         if ($this->emailVerification->isVerified() && $this->phoneNumberVerification->isVerified()) {
-            $commandBus->sendWithRouting("user.verify", metadata: ["aggregate.id" => $this->userId]);
-
             return;
         }
 

@@ -33,18 +33,6 @@ final class VerificationProcessTest extends TestCase
         $emailToken = "123";
         $phoneNumberToken = "12345";
         $tokenGenerator = new StubTokenGenerator([$emailToken, $phoneNumberToken]);
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
-            [VerificationProcess::class],
-            [TokenGenerator::class => $tokenGenerator],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
-                    SimpleMessageChannelBuilder::createNullableChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES),
-                    /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
-                    TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
-                ]),
-        );
 
         $userId = Uuid::uuid4();
         $email = Email::create('test@wp.pl');
@@ -55,7 +43,7 @@ final class VerificationProcessTest extends TestCase
                 new StartEmailVerification($email, VerificationToken::from($emailToken)),
                 new StartPhoneNumberVerification($phoneNumber, VerificationToken::from($phoneNumberToken))
             ],
-            $ecotoneTestSupport->getFlowTestSupport()
+            $this->bootstrapFlowTesting($tokenGenerator)
                 ->publishEvent(new UserWasRegistered($userId, $email, $phoneNumber))
                 ->getRecordedCommands()
         );
@@ -66,19 +54,6 @@ final class VerificationProcessTest extends TestCase
         $emailToken = "123";
         $phoneNumberToken = "12345";
         $tokenGenerator = new StubTokenGenerator([$emailToken, $phoneNumberToken]);
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
-            [VerificationProcess::class],
-            [TokenGenerator::class => $tokenGenerator],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
-                    SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
-                    PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
-                    /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
-                    TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
-                ]),
-        );
 
         $userId = Uuid::uuid4();
         $email = Email::create('test@wp.pl');
@@ -86,11 +61,11 @@ final class VerificationProcessTest extends TestCase
 
         $this->assertEquals(
             [["user.verify", $userId->toString()]],
-            $ecotoneTestSupport->getFlowTestSupport()
+            $this->bootstrapFlowTesting($tokenGenerator)
                 ->publishEvent(new UserWasRegistered($userId, $email, $phoneNumber))
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
-                ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
                 ->discardRecordedMessages()
+                ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
                 ->releaseAwaitingMessagesAndRunConsumer(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
                 ->getRecordedCommandsWithRouting()
         );
@@ -101,19 +76,6 @@ final class VerificationProcessTest extends TestCase
         $emailToken = "123";
         $phoneNumberToken = "12345";
         $tokenGenerator = new StubTokenGenerator([$emailToken, $phoneNumberToken]);
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
-            [VerificationProcess::class],
-            [TokenGenerator::class => $tokenGenerator],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
-                    SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
-                    PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
-                    /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
-                    TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
-                ]),
-        );
 
         $userId = Uuid::uuid4();
         $email = Email::create('test@wp.pl');
@@ -121,12 +83,29 @@ final class VerificationProcessTest extends TestCase
 
         $this->assertEquals(
             [['user.block', $userId->toString()]],
-            $ecotoneTestSupport->getFlowTestSupport()
+            $this->bootstrapFlowTesting($tokenGenerator)
                 ->publishEvent(new UserWasRegistered($userId, $email, $phoneNumber))
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->discardRecordedMessages()
                 ->releaseAwaitingMessagesAndRunConsumer(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
                 ->getRecordedCommandsWithRouting()
+        );
+    }
+
+    private function bootstrapFlowTesting(StubTokenGenerator $tokenGenerator): \Ecotone\Lite\Test\FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            [VerificationProcess::class],
+            [TokenGenerator::class => $tokenGenerator],
+            ServiceConfiguration::createWithDefaults()
+                /** We want to enable asynchronous package to test delays */
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
+                    PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
+                    /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
+                    TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
+                ]),
         );
     }
 }

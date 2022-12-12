@@ -51,7 +51,7 @@ final class UserTest extends TestCase
         /** Comparing published events after registration */
         $this->assertEquals(
             [new UserWasRegistered($userId, $email, $phoneNumber)],
-            $this->buildEcotoneFlowSupport()
+            EcotoneLite::bootstrapFlowTesting([User::class])
                 ->sendCommand($command)
                 ->getRecordedEvents()
         );
@@ -64,10 +64,7 @@ final class UserTest extends TestCase
         $phoneNumber = PhoneNumber::create("148518518518");
 
         $this->assertTrue(
-            $this->buildEcotoneFlowSupport([
-                TestConfiguration::createWithDefaults()
-                    ->addAggregateUnderTest(User::class)
-            ])
+            EcotoneLite::bootstrapFlowTesting([User::class])
                 ->sendCommand(new RegisterUser($userId, "johny", $email, $phoneNumber))
                 ->sendCommandWithRoutingKey("user.block", metadata: ["aggregate.id" => $userId])
                 ->getAggregate(User::class, $userId)
@@ -87,19 +84,5 @@ final class UserTest extends TestCase
         $user->block();
 
         $this->assertTrue($user->isBlocked());
-    }
-
-    private function buildEcotoneFlowSupport(array $extensionObjects = []): FlowTestSupport
-    {
-        return EcotoneLite::bootstrapForTesting(
-            [User::class],
-            configuration: ServiceConfiguration::createWithDefaults()
-                /** We are focusing on domain model without asynchronous handlers, no need to load any extra modules */
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->withExtensionObjects(
-                    /** Built in, In Memory Repository, that we want to use for User aggregate */
-                    array_merge([InMemoryRepositoryBuilder::createForAllStateStoredAggregates()], $extensionObjects),
-                ),
-        )->getFlowTestSupport();
     }
 }

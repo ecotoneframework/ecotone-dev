@@ -103,7 +103,6 @@ final class FlowTestSupport
      */
     public function appendToEventStore(string $streamName, array $events): self
     {
-        /** @phpstan-ignore-next-line  */
         $this->getGateway(EventStore::class)->appendTo($streamName, $events);
 
         return $this;
@@ -111,7 +110,6 @@ final class FlowTestSupport
 
     public function triggerProjection(string $projectionName): self
     {
-        /** @phpstan-ignore-next-line  */
         $this->getGateway(ProjectionManager::class)->triggerProjection($projectionName);
 
         return $this;

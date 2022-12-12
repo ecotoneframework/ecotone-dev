@@ -120,11 +120,14 @@ final class EcotoneLite
             Assert::isTrue(class_exists(EventSourcingConfiguration::class), "To use Flow Testing with Event Store you need to add event sourcing module.");
 
             $configuration = $configuration
+                /** @phpstan-ignore-next-line  */
                 ->addExtensionObject(EventSourcingConfiguration::createInMemory());
         }
 
+        /** @phpstan-ignore-next-line  */
         if (!$configuration->hasExtensionObject(DbalConfiguration::class)) {
             $configuration = $configuration
+                /** @phpstan-ignore-next-line  */
                 ->addExtensionObject(DbalConfiguration::createForTesting());
         }
 

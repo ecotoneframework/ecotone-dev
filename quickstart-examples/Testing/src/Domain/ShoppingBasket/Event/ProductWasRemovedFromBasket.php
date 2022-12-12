@@ -10,7 +10,7 @@ final class ProductWasRemovedFromBasket
 {
     public function __construct(
         private UuidInterface $userId,
-        private string        $product
+        private UuidInterface $productId
     )
     {}
 
@@ -19,8 +19,8 @@ final class ProductWasRemovedFromBasket
         return $this->userId;
     }
 
-    public function getProduct(): string
+    public function getProductId(): UuidInterface
     {
-        return $this->product;
+        return $this->productId;
     }
 }

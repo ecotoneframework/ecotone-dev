@@ -9,13 +9,20 @@ use Ramsey\Uuid\UuidInterface;
 final class OrderWasPlaced
 {
     /**
-     * @param string[] $products
+     * @var UuidInterface[]
+     */
+    private array $productIds;
+
+    /**
+     * @var UuidInterface[] $productIds
      */
     public function __construct(
         private UuidInterface $userId,
-        private array $products
+        array $productIds
     )
-    {}
+    {
+        $this->productIds = $productIds;
+    }
 
     public function getUserId(): UuidInterface
     {
@@ -23,10 +30,10 @@ final class OrderWasPlaced
     }
 
     /**
-     * @return string[]
+     * @return UuidInterface[]
      */
-    public function getProducts(): array
+    public function getProductIds(): array
     {
-        return $this->products;
+        return $this->productIds;
     }
 }

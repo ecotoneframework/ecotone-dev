@@ -22,7 +22,7 @@ final class UserIntegrationTest extends TestCase
 {
     public function test_sending_command_as_json()
     {
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             // classes to resolve
             [User::class],
             // available services, you may inject container instead
@@ -30,7 +30,7 @@ final class UserIntegrationTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                                 // resolve all classes from Converter namespace
                                 ->withNamespaces(["App\Testing\Infrastructure\Converter"])
-                                ->withSkippedModulePackageNames([ModulePackageList::ASYNCHRONOUS_PACKAGE])
+                                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::JMS_CONVERTER_PACKAGE]))
                                 ->withExtensionObjects([
                                     // register in memory repository for User
                                     InMemoryRepositoryBuilder::createForAllStateStoredAggregates()
@@ -38,7 +38,7 @@ final class UserIntegrationTest extends TestCase
             pathToRootCatalog: __DIR__ // can be ignored, needed for running inside ecotone-dev monorepo
         );
 
-        $ecotoneLite->getCommandBus()->sendWithRouting("user.register", \json_encode([
+        $ecotoneLite->sendCommandWithRoutingKey("user.register", \json_encode([
             "userId" => "7dd60feb-c23c-4ddb-9d53-5354349becaa",
             "name" => "johny",
             "email" => "test@wp.pl",
@@ -53,7 +53,7 @@ final class UserIntegrationTest extends TestCase
                 PhoneNumber::create("148518518518")
             )],
             // Make use of Test Support Gateway to find published events
-            $ecotoneLite->getMessagingTestSupport()->getRecordedEvents()
+            $ecotoneLite->getRecordedEvents()
         );
     }
 }

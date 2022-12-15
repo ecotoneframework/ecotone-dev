@@ -79,8 +79,8 @@ final class VerificationProcess
         }
     }
 
-    #[Asynchronous(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)]
     #[Delayed(1000 * 60 * 60 * 24)] // execute 24 hours after registration
+    #[Asynchronous(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)]
     #[EventHandler(endpointId: "verificationProcess.timeout")]
     public function timeout(VerificationProcessStarted $event, CommandBus $commandBus): void
     {

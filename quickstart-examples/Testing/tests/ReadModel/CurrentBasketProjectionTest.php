@@ -26,10 +26,11 @@ final class CurrentBasketProjectionTest extends TestCase
         $productId = Uuid::uuid4();
         $productPrice = 500;
 
+        /** Verifying projection's read model */
         $this->assertEquals(
             [$productId->toString() => $productPrice],
             $this->getTestSupport()
-                ->appendToEventStore(Basket::class, [
+                ->withEventStream(Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                 ])
                 ->triggerProjection("current_basket")
@@ -46,7 +47,7 @@ final class CurrentBasketProjectionTest extends TestCase
         $this->assertEquals(
             [],
             $this->getTestSupport()
-                ->appendToEventStore(Basket::class, [
+                ->withEventStream(Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                     new ProductWasRemovedFromBasket($userId, $productId)
                 ])
@@ -64,7 +65,7 @@ final class CurrentBasketProjectionTest extends TestCase
         $this->assertEquals(
             [],
             $this->getTestSupport()
-                ->appendToEventStore(Basket::class, [
+                ->withEventStream(Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                     new OrderWasPlaced($userId, [$productId])
                 ])

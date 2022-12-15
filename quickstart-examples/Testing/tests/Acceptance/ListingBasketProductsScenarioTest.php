@@ -45,6 +45,7 @@ final class ListingBasketProductsScenarioTest extends TestCase
         $emailToken = "123";
         $phoneNumberToken = "12345";
 
+        /** Full acceptance test, based on high level Commands API */
         $this->assertEquals(
             [$productId->toString() => $productPrice],
             $this->getTestSupport($emailToken, $phoneNumberToken)

@@ -6,6 +6,7 @@ use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
@@ -59,6 +60,12 @@ class Ticket
     public function setVersion(int $version): void
     {
         $this->version = $version;
+    }
+
+    #[QueryHandler("ticket.getAssignedPerson")]
+    public function getAssignedPerson(): string
+    {
+        return $this->assignedPerson;
     }
 
     public function toArray(): array

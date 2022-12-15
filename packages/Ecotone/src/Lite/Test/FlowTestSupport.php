@@ -133,8 +133,6 @@ final class FlowTestSupport
         $this->messagingEntrypoint->sendWithHeaders(
             $aggregate,
             [
-//                AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER => is_object($identifiers) ? (string)$identifiers : $identifiers,
-//                AggregateMessage::TARGET_VERSION => $aggregateVersion,
                 AggregateMessage::AGGREGATE_OBJECT => $aggregate
             ],
             ModellingHandlerModule::getRegisterAggregateSaveRepositoryInputChannel($aggregate::class)

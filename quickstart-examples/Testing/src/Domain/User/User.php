@@ -72,6 +72,6 @@ final class User
     #[QueryHandler("user.isVerified")]
     public function isVerified(): bool
     {
-
+        return $this->isVerified;
     }
 }

@@ -19,6 +19,7 @@ final class ProductTest extends TestCase
         $name = "Milk";
         $price = 100;
 
+        /** Verifying published events by aggregate, after calling command */
         $this->assertEquals(
             [new ProductWasAdded($productId,$name,$price)],
             EcotoneLite::bootstrapFlowTesting([Product::class])

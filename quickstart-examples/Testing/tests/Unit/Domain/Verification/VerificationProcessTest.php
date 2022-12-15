@@ -38,6 +38,7 @@ final class VerificationProcessTest extends TestCase
         $email = Email::create('test@wp.pl');
         $phoneNumber = PhoneNumber::create('148518518518');
 
+        /** Testing Saga flow, publishing event and verifying sent commands */
         $this->assertEquals(
             [
                 new StartEmailVerification($email, VerificationToken::from($emailToken)),

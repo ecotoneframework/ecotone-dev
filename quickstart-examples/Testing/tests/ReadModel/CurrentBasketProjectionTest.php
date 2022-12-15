@@ -26,11 +26,11 @@ final class CurrentBasketProjectionTest extends TestCase
         $productId = Uuid::uuid4();
         $productPrice = 500;
 
-        /** Verifying projection's read model */
+        /** Verifying projection's read model after handling event */
         $this->assertEquals(
             [$productId->toString() => $productPrice],
             $this->getTestSupport()
-                ->withEventStream(Basket::class, [
+                ->withEventsFor($userId, Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                 ])
                 ->triggerProjection("current_basket")
@@ -47,10 +47,31 @@ final class CurrentBasketProjectionTest extends TestCase
         $this->assertEquals(
             [],
             $this->getTestSupport()
-                ->withEventStream(Basket::class, [
+                ->withEventsFor($userId, Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                     new ProductWasRemovedFromBasket($userId, $productId)
                 ])
+                ->triggerProjection("current_basket")
+                ->sendQueryWithRouting(CurrentBasketProjection::GET_CURRENT_BASKET_QUERY, $userId)
+        );
+    }
+
+    public function test_changing_projection()
+    {
+        $userId = Uuid::uuid4();
+        $productId = Uuid::uuid4();
+        $productPrice = 500;
+
+        $this->assertEquals(
+            [],
+            $this->getTestSupport()
+                ->withEventsFor($userId, Basket::class, [
+                    new ProductWasAddedToBasket($userId, $productId, $productPrice)
+                ])
+                ->triggerProjection("current_basket")
+                ->withEventsFor($userId, Basket::class, [
+                    new ProductWasRemovedFromBasket($userId, $productId)
+                ], 1)
                 ->triggerProjection("current_basket")
                 ->sendQueryWithRouting(CurrentBasketProjection::GET_CURRENT_BASKET_QUERY, $userId)
         );
@@ -65,7 +86,7 @@ final class CurrentBasketProjectionTest extends TestCase
         $this->assertEquals(
             [],
             $this->getTestSupport()
-                ->withEventStream(Basket::class, [
+                ->withEventsFor($userId, Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                     new OrderWasPlaced($userId, [$productId])
                 ])
@@ -77,7 +98,7 @@ final class CurrentBasketProjectionTest extends TestCase
     private function getTestSupport(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [CurrentBasketProjection::class],
+            [CurrentBasketProjection::class, Basket::class],
             [new CurrentBasketProjection(), new EmailConverter(), new PhoneNumberConverter(), new UuidConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
                 // Loading converters, so they can be used for events

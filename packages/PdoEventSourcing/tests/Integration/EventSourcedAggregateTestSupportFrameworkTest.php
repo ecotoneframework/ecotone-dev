@@ -11,6 +11,7 @@ use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
@@ -88,17 +89,12 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
         );
     }
 
-    public function test_calling_multiple_commands_on_aggregate_and_receiving_aggregate_instance()
+    public function test_calling_command_on_aggregate_and_receiving_aggregate_instance()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
-                ->withExtensionObjects([
-                    InMemoryRepositoryBuilder::createForAllEventSourcedAggregates(),
-                    TestConfiguration::createWithDefaults()
-                        ->addAggregateUnderTest(Ticket::class),
-                ]),
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE])),
         );
 
         $ticketId = '1';
@@ -109,9 +105,29 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 
         $this->assertEquals(
             $ticket,
-            $ecotoneTestSupport->getFlowTestSupport()
+            $ecotoneTestSupport
                 ->sendCommand(new RegisterTicket($ticketId, 'johny', 'alert'))
                 ->getAggregate(Ticket::class, $ticketId)
+        );
+    }
+
+    public function test_providing_initial_state_in_form_of_events()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore([Ticket::class]);
+
+        $ticketId = '1';
+
+        /** Setting up event sourced aggregate initial events */
+        $this->assertEquals(
+            'Andrew',
+            $ecotoneTestSupport
+                ->withEventsFor($ticketId, Ticket::class, [
+                    new TicketWasRegistered($ticketId, 'Johny', 'alert'),
+                    new ChangeAssignedPerson($ticketId, 'Elvis')
+                ])
+                ->sendCommand(new ChangeAssignedPerson($ticketId, 'Andrew'))
+                ->getAggregate(Ticket::class, $ticketId)
+                ->getAssignedPerson()
         );
     }
 

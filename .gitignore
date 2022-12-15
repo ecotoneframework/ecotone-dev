@@ -12,3 +12,4 @@ composer.lock
 cache
 auth.json
 config.json
+.env

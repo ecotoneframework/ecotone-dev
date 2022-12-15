@@ -46,13 +46,12 @@ final class UserTest extends TestCase
         $userId = Uuid::uuid4();
         $email = Email::create("test@wp.pl");
         $phoneNumber = PhoneNumber::create("148518518518");
-        $command = new RegisterUser($userId, "johny", $email, $phoneNumber);
 
         /** Comparing published events after registration */
         $this->assertEquals(
             [new UserWasRegistered($userId, $email, $phoneNumber)],
             EcotoneLite::bootstrapFlowTesting([User::class])
-                ->sendCommand($command)
+                ->sendCommand(new RegisterUser($userId, "johny", $email, $phoneNumber))
                 ->getRecordedEvents()
         );
     }

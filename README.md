@@ -22,7 +22,7 @@ Read more on the [Blog](https://blog.ecotone.tech).
 
 # Development
 
-Start docker containers
+Copy `.env.dist` to `.env` and start docker containers
 
 ```php
 docker-compose up -d
@@ -42,6 +42,13 @@ docker exec -it -w=/data/app/packages/Dbal ecotone_development composer tests:ci
 Clear environment
 ```php
 docker-compose down
+```
+
+Debugging code with Xdebug.    
+To have enabled Xdebug all the time, change line in your .env file to `XDEBUG_ENABLED="1"`
+To enable xdebug conditionally for given test run:  
+```php
+docker exec -it ecotone_development xdebug vendor/bin/phpunit --filter test_calling_command_on_aggregate_and_receiving_aggregate_instance
 ```
 
 ## Feature requests and issue reporting

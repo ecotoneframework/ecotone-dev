@@ -25,7 +25,9 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\Aggregate;
+use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
+use Ecotone\Modelling\Config\RegisterAggregateRepositoryChannels;
 use Psr\Container\ContainerInterface;
 
 final class EcotoneLite
@@ -211,11 +213,14 @@ final class EcotoneLite
                 ->withSkippedModulePackageNames($packagesToSkip);
         }
 
-        $aggregate = TypeDescriptor::create(Aggregate::class);
+        $aggregateAnnotation = TypeDescriptor::create(Aggregate::class);
         foreach ($classesToResolve as $class) {
-            if (ClassDefinition::createFor(TypeDescriptor::create($class))->hasClassAnnotation($aggregate)) {
-                $testConfiguration = $testConfiguration->addAggregateUnderTest($class);
+            $aggregateClass = ClassDefinition::createFor(TypeDescriptor::create($class));
+            if (!$aggregateClass->hasClassAnnotation($aggregateAnnotation)) {
+                continue;
             }
+
+            $configuration = $configuration->addExtensionObject(new RegisterAggregateRepositoryChannels($aggregateClass->getClassType()->toString(), $aggregateClass->getSingleClassAnnotation($aggregateAnnotation) instanceof EventSourcingAggregate));
         }
 
         $configuration = $configuration

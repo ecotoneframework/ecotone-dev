@@ -113,6 +113,26 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 
     public function test_providing_initial_state_in_form_of_events()
     {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Ticket::class]);
+
+        $ticketId = '1';
+
+        /** Setting up event sourced aggregate initial events */
+        $this->assertEquals(
+            'Andrew',
+            $ecotoneTestSupport
+                ->withEventsFor($ticketId, Ticket::class, [
+                    new TicketWasRegistered($ticketId, 'Johny', 'alert'),
+                    new ChangeAssignedPerson($ticketId, 'Elvis')
+                ])
+                ->sendCommand(new ChangeAssignedPerson($ticketId, 'Andrew'))
+                ->getAggregate(Ticket::class, $ticketId)
+                ->getAssignedPerson()
+        );
+    }
+
+    public function test_providing_initial_state_in_form_of_events_with_event_store()
+    {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore([Ticket::class]);
 
         $ticketId = '1';

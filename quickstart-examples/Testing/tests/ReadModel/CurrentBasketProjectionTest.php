@@ -56,6 +56,27 @@ final class CurrentBasketProjectionTest extends TestCase
         );
     }
 
+    public function test_changing_projection()
+    {
+        $userId = Uuid::uuid4();
+        $productId = Uuid::uuid4();
+        $productPrice = 500;
+
+        $this->assertEquals(
+            [],
+            $this->getTestSupport()
+                ->withEventsFor($userId, Basket::class, [
+                    new ProductWasAddedToBasket($userId, $productId, $productPrice)
+                ])
+                ->triggerProjection("current_basket")
+                ->withEventsFor($userId, Basket::class, [
+                    new ProductWasRemovedFromBasket($userId, $productId)
+                ], 1)
+                ->triggerProjection("current_basket")
+                ->sendQueryWithRouting(CurrentBasketProjection::GET_CURRENT_BASKET_QUERY, $userId)
+        );
+    }
+
     public function test_listing_basket_when_order_was_placed()
     {
         $userId = Uuid::uuid4();

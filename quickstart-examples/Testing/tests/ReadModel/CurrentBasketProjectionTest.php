@@ -26,11 +26,11 @@ final class CurrentBasketProjectionTest extends TestCase
         $productId = Uuid::uuid4();
         $productPrice = 500;
 
-        /** Verifying projection's read model */
+        /** Verifying projection's read model after handling event */
         $this->assertEquals(
             [$productId->toString() => $productPrice],
             $this->getTestSupport()
-                ->withEventStream(Basket::class, [
+                ->withEventsFor($userId, Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                 ])
                 ->triggerProjection("current_basket")
@@ -47,7 +47,7 @@ final class CurrentBasketProjectionTest extends TestCase
         $this->assertEquals(
             [],
             $this->getTestSupport()
-                ->withEventStream(Basket::class, [
+                ->withEventsFor($userId, Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                     new ProductWasRemovedFromBasket($userId, $productId)
                 ])
@@ -65,7 +65,7 @@ final class CurrentBasketProjectionTest extends TestCase
         $this->assertEquals(
             [],
             $this->getTestSupport()
-                ->withEventStream(Basket::class, [
+                ->withEventsFor($userId, Basket::class, [
                     new ProductWasAddedToBasket($userId, $productId, $productPrice),
                     new OrderWasPlaced($userId, [$productId])
                 ])
@@ -77,7 +77,7 @@ final class CurrentBasketProjectionTest extends TestCase
     private function getTestSupport(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [CurrentBasketProjection::class],
+            [CurrentBasketProjection::class, Basket::class],
             [new CurrentBasketProjection(), new EmailConverter(), new PhoneNumberConverter(), new UuidConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
                 // Loading converters, so they can be used for events

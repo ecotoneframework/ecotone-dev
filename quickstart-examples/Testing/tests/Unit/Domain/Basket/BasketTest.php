@@ -25,6 +25,7 @@ final class BasketTest extends TestCase
         $productId = Uuid::uuid4();
         $productService = new StubProductService(500);
 
+        /** Verifying published events by aggregate, after calling command */
         $this->assertEquals(
             [new ProductWasAddedToBasket($userId, $productId, 500)],
             EcotoneLite::bootstrapFlowTesting([Basket::class], [ProductService::class => $productService])

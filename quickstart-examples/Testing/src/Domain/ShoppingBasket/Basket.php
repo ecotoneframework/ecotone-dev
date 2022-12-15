@@ -58,7 +58,7 @@ final class Basket
         return [new ProductWasRemovedFromBasket($command->getUserId(), $command->getProductId())];
     }
 
-    #[CommandHandler]
+    #[CommandHandler("order.placeOrder")]
     public function placeOrder(#[Reference] UserService $userService): array
     {
         Assert::that($userService->isUserVerified($this->userId))->true("User must be verified to place order");

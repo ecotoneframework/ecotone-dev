@@ -7,7 +7,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
@@ -124,7 +123,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             $ecotoneTestSupport
                 ->withEventsFor($ticketId, Ticket::class, [
                     new TicketWasRegistered($ticketId, 'Johny', 'alert'),
-                    new AssignedPersonWasChanged($ticketId, 'Elvis')
+                    new AssignedPersonWasChanged($ticketId, 'Elvis'),
                 ])
                 ->sendCommand(new ChangeAssignedPerson($ticketId, 'Andrew'))
                 ->getAggregate(Ticket::class, $ticketId)
@@ -149,7 +148,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             $ecotoneTestSupport
                 ->withEventsFor($ticketId, Ticket::class, [
                     new TicketWasRegistered($ticketId, 'Johny', 'alert'),
-                    new AssignedPersonWasChanged($ticketId, 'Elvis')
+                    new AssignedPersonWasChanged($ticketId, 'Elvis'),
                 ])
                 ->sendCommand(new ChangeAssignedPerson($ticketId, 'Andrew'))
                 ->getAggregate(Ticket::class, $ticketId)

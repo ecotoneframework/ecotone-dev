@@ -62,7 +62,7 @@ class Ticket
         $this->version = $version;
     }
 
-    #[QueryHandler("ticket.getAssignedPerson")]
+    #[QueryHandler('ticket.getAssignedPerson')]
     public function getAssignedPerson(): string
     {
         return $this->assignedPerson;

@@ -14,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\AssignedPersonWasChanged;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
@@ -113,7 +114,12 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 
     public function test_providing_initial_state_in_form_of_events()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Ticket::class]);
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [Ticket::class, TicketEventConverter::class],
+            [new TicketEventConverter()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+        );
 
         $ticketId = '1';
 
@@ -123,7 +129,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             $ecotoneTestSupport
                 ->withEventsFor($ticketId, Ticket::class, [
                     new TicketWasRegistered($ticketId, 'Johny', 'alert'),
-                    new ChangeAssignedPerson($ticketId, 'Elvis')
+                    new AssignedPersonWasChanged($ticketId, 'Elvis')
                 ])
                 ->sendCommand(new ChangeAssignedPerson($ticketId, 'Andrew'))
                 ->getAggregate(Ticket::class, $ticketId)

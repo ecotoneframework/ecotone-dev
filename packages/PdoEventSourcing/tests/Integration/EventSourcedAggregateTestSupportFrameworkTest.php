@@ -114,12 +114,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 
     public function test_providing_initial_state_in_form_of_events()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [Ticket::class, TicketEventConverter::class],
-            [new TicketEventConverter()],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
-        );
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Ticket::class]);
 
         $ticketId = '1';
 
@@ -139,7 +134,12 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 
     public function test_providing_initial_state_in_form_of_events_with_event_store()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore([Ticket::class]);
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [Ticket::class, TicketEventConverter::class],
+            [new TicketEventConverter()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+        );
 
         $ticketId = '1';
 
@@ -149,7 +149,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             $ecotoneTestSupport
                 ->withEventsFor($ticketId, Ticket::class, [
                     new TicketWasRegistered($ticketId, 'Johny', 'alert'),
-                    new ChangeAssignedPerson($ticketId, 'Elvis')
+                    new AssignedPersonWasChanged($ticketId, 'Elvis')
                 ])
                 ->sendCommand(new ChangeAssignedPerson($ticketId, 'Andrew'))
                 ->getAggregate(Ticket::class, $ticketId)

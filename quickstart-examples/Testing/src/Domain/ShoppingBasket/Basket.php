@@ -39,13 +39,13 @@ final class Basket
     }
 
     #[CommandHandler]
-    public function add(AddProductToBasket $command): array
+    public function add(AddProductToBasket $command, ProductService $productService): array
     {
         if (in_array($command->getProductId(), $this->productIds)) {
             return [];
         }
 
-        return [new ProductWasAddedToBasket($command->getUserId(), $command->getProductId())];
+        return [new ProductWasAddedToBasket($command->getUserId(), $command->getProductId(), $productService->getPrice($command->getProductId()))];
     }
 
     #[CommandHandler]

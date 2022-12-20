@@ -59,7 +59,6 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata),
             true,
             $this->queueName,
-            new DbalDestination($this->queueName),
             $this->receiveTimeoutInMilliseconds,
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, DbalHeader::HEADER_ACKNOWLEDGE, $headerMapper)
         );

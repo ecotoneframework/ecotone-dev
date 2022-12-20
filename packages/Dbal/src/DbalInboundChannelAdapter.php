@@ -3,6 +3,7 @@
 namespace Ecotone\Dbal;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -14,47 +15,32 @@ use Enqueue\Dbal\DbalMessage;
 use Interop\Queue\Destination;
 use Interop\Queue\Message as EnqueueMessage;
 
-class DbalInboundChannelAdapter implements TaskExecutor
+class DbalInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
     public function __construct(
-        private CachedConnectionFactory $cachedConnectionFactory,
-        private InboundChannelAdapterEntrypoint $entrypointGateway,
-        private bool $declareOnStartup,
+        CachedConnectionFactory $cachedConnectionFactory,
+        InboundChannelAdapterEntrypoint $entrypointGateway,
+        bool $declareOnStartup,
         private string $queueName,
-        private Destination $destination,
-        private int $receiveTimeoutInMilliseconds,
-        private InboundMessageConverter $inboundMessageConverter
-    ) {}
-
-    public function execute(PollingMetadata $pollingMetadata): void
-    {
-        $message = $this->receiveMessage($pollingMetadata->getExecutionTimeLimitInMilliseconds());
-
-        if ($message) {
-            $this->entrypointGateway->executeEntrypoint($message);
-        }
+        int $receiveTimeoutInMilliseconds,
+        InboundMessageConverter $inboundMessageConverter
+    ) {
+        parent::__construct(
+            $cachedConnectionFactory,
+            $entrypointGateway,
+            $declareOnStartup,
+            new DbalDestination($queueName),
+            $receiveTimeoutInMilliseconds,
+            $inboundMessageConverter
+        );
     }
 
-    public function receiveMessage(int $timeout = 0): ?Message
+    public function initialize(): void
     {
-        if (! $this->declareOnStartup) {
-            /** @var DbalContext $context */
-            $context = $this->cachedConnectionFactory->createContext();
+        /** @var DbalContext $context */
+        $context = $this->cachedConnectionFactory->createContext();
 
-            $context->createDataBaseTable();
-            $context->createQueue($this->queueName);
-            $this->declareOnStartup = false;
-        }
-
-        $consumer = $this->cachedConnectionFactory->getConsumer($this->destination);
-
-        /** @var EnqueueMessage $message */
-        $message = $consumer->receive($timeout ?: $this->receiveTimeoutInMilliseconds);
-
-        if (! $message) {
-            return null;
-        }
-
-        return $this->inboundMessageConverter->toMessage($message, $consumer)->build();
+        $context->createDataBaseTable();
+        $context->createQueue($this->queueName);
     }
 }

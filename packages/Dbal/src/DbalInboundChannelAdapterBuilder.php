@@ -19,14 +19,8 @@ use Exception;
 
 class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    /**
-     * @var string
-     */
-    private $connectionReferenceName;
-    /**
-     * @var string
-     */
-    private $queueName;
+    private string $connectionReferenceName;
+    private string $queueName;
 
     private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $dbalConnectionReferenceName)
     {

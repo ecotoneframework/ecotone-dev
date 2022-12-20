@@ -7,25 +7,8 @@ use Ecotone\Messaging\PollableChannel;
 
 class AmqpBackendMessageChannel implements PollableChannel
 {
-    /**
-     * @var AmqpInboundChannelAdapter
-     */
-    private $amqpInboundChannelAdapter;
-    /**
-     * @var AmqpOutboundChannelAdapter
-     */
-    private $amqpOutboundChannelAdapter;
-
-    /**
-     * AmqpBackedQueue constructor.
-     *
-     * @param AmqpInboundChannelAdapter $amqpInboundChannelAdapter
-     * @param AmqpOutboundChannelAdapter $amqpOutboundChannelAdapter
-     */
-    public function __construct(AmqpInboundChannelAdapter $amqpInboundChannelAdapter, AmqpOutboundChannelAdapter $amqpOutboundChannelAdapter)
+    public function __construct(private AmqpInboundChannelAdapter $amqpInboundChannelAdapter, private AmqpOutboundChannelAdapter $amqpOutboundChannelAdapter)
     {
-        $this->amqpInboundChannelAdapter = $amqpInboundChannelAdapter;
-        $this->amqpOutboundChannelAdapter = $amqpOutboundChannelAdapter;
     }
 
     /**
@@ -41,7 +24,7 @@ class AmqpBackendMessageChannel implements PollableChannel
      */
     public function receive(): ?Message
     {
-        return $this->amqpInboundChannelAdapter->getMessage();
+        return $this->amqpInboundChannelAdapter->receiveMessage();
     }
 
     /**
@@ -49,6 +32,6 @@ class AmqpBackendMessageChannel implements PollableChannel
      */
     public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
     {
-        return $this->amqpInboundChannelAdapter->getMessage($timeoutInMilliseconds);
+        return $this->amqpInboundChannelAdapter->receiveMessage($timeoutInMilliseconds);
     }
 }

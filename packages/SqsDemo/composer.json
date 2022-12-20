@@ -1,0 +1,68 @@
+{
+    "name": "ecotone/sqs",
+    "license": "MIT",
+    "homepage": "https://docs.ecotone.tech/",
+    "forum": "https://discord.gg/CctGMcrYnV",
+    "type": "library",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "dgafka.mail@gmail.com"
+        }
+    ],
+    "keywords": ["ecotone", "Sqs"],
+    "description": "Extends Ecotone with Amazon Sqs integration",
+    "autoload": {
+        "psr-4": {
+            "Ecotone\\SqsDemo\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\Ecotone\\SqsDemo\\": [
+                "tests"
+            ]
+        }
+    },
+    "require": {
+        "ecotone/ecotone": "^1.62",
+        "enqueue/sqs": "^0.10.15",
+        "ecotone/enqueue": "1.62.x-dev"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "behat/behat": "^3.10",
+        "phpstan/phpstan": "^1.8",
+        "wikimedia/composer-merge-plugin": "^2.0"
+    },
+    "scripts": {
+        "tests:phpstan": "vendor/bin/phpstan",
+        "tests:phpunit": "vendor/bin/phpunit",
+        "tests:behat": "vendor/bin/behat -vvv",
+        "tests:ci": [
+            "@tests:phpstan",
+            "@tests:phpunit",
+            "@tests:behat"
+        ]
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.62-dev"
+        },
+        "ecotone": {
+            "repository": "dbal"
+        },
+        "merge-plugin": {
+            "include": [
+                "../config.json"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "wikimedia/composer-merge-plugin": true
+        }
+    }
+}

@@ -2,10 +2,13 @@
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Amqp\AmqpInboundChannelAdapter;
 use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
+use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Endpoint\TaskExecutorChannelAdapter\TaskExecutorChannelAdapter;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;

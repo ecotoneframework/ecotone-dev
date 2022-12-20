@@ -23,6 +23,7 @@ use Ecotone\Messaging\Scheduling\CronTrigger;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Scheduling\PeriodicTrigger;
 use Ecotone\Messaging\Scheduling\SyncTaskScheduler;
+use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Exception;
@@ -37,7 +38,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
     private \Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder $gatewayExecutor;
     private string $referenceName;
     private string $methodName;
-    private ?string $endpointId = null;
+    protected ?string $endpointId = null;
     private string $requestChannelName;
     private ?object $directObject = null;
 
@@ -194,10 +195,15 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         return $this;
     }
 
+    protected function withContinuesPolling(): bool
+    {
+        return false;
+    }
+
     /**
      * @inheritDoc
      */
-    protected function buildAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): ConsumerLifecycle
+    protected function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): InboundChannelTaskExecutor
     {
         Assert::notNullAndEmpty($this->endpointId, "Endpoint Id for inbound channel adapter can't be empty");
 
@@ -235,21 +241,13 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         $gateway = $this->gatewayExecutor
             ->buildWithoutProxyObject($referenceSearchService, $channelResolver);
 
-        $taskExecutor = new InboundChannelTaskExecutor(
+        return new InboundChannelTaskExecutor(
             $gateway,
             $referenceService,
             $methodName
         );
-
-        return new InboundChannelAdapter(
-            $this->endpointId,
-            SyncTaskScheduler::createWithEmptyTriggerContext(new EpochBasedClock(), $pollingMetadata),
-            $pollingMetadata->getCron()
-                ? CronTrigger::createWith($pollingMetadata->getCron())
-                : PeriodicTrigger::create($pollingMetadata->getFixedRateInMilliseconds(), $pollingMetadata->getInitialDelayInMilliseconds()),
-            $taskExecutor
-        );
     }
+
 
     /**
      * @param array $registeredAnnotations

@@ -120,7 +120,7 @@ class AmqpInboundChannelAdapter implements TaskExecutor
                 throw $exception;
             }
 
-            throw new ConnectionException('There was a problem during polling amqp channel', 0, $exception);
+            throw new ConnectionException('There was a problem while polling amqp channel', 0, $exception);
         }
     }
 

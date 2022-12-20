@@ -39,7 +39,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     /**
      * @inheritDoc
      */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): DbalOutboundChannelAdapter
     {
         /** @var ConnectionFactory $dbalConnectionFactory */
         $dbalConnectionFactory = $referenceSearchService->get($this->connectionFactoryReferenceName);

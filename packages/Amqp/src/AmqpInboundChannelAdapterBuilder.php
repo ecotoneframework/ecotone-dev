@@ -23,14 +23,8 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  */
 class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    /**
-     * @var string
-     */
-    private $amqpConnectionReferenceName;
-    /**
-     * @var string
-     */
-    private $queueName;
+    private string $amqpConnectionReferenceName;
+    private string $queueName;
 
     private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName, bool $withAckInterceptor)
     {
@@ -58,18 +52,6 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         return $this->queueName;
     }
 
-    /**
-     * @inheritDoc
-     */
-    protected function buildAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): ConsumerLifecycle
-    {
-        return TaskExecutorChannelAdapter::createFrom(
-            $this->endpointId,
-            $pollingMetadata->setFixedRateInMilliseconds(1),
-            $this->createInboundChannelAdapter($channelResolver, $referenceSearchService, $pollingMetadata)
-        );
-    }
-
     public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): AmqpInboundChannelAdapter
     {
         if ($pollingMetadata->getExecutionTimeLimitInMilliseconds()) {
@@ -86,7 +68,8 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         $inboundAmqpGateway = $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata);
 
         $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, [], $conversionService);
-        $inboundChannelAdapter = new AmqpInboundChannelAdapter(
+
+        return new AmqpInboundChannelAdapter(
             CachedConnectionFactory::createFor(new AmqpConsumerConnectionFactory($amqpConnectionFactory)),
             $inboundAmqpGateway,
             $amqpAdmin,
@@ -96,6 +79,5 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, AmqpHeader::HEADER_ACKNOWLEDGE, $headerMapper),
             ! $this->withAckInterceptor
         );
-        return $inboundChannelAdapter;
     }
 }

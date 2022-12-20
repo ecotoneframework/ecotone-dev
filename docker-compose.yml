@@ -52,6 +52,12 @@ services:
     ports:
       - "15672:15672"
       - "5672:5672"
+  localstack-sqs-demo:
+    image: localstack/localstack
+    networks:
+      - default
+    ports:
+      - "4566:4566"
 networks:
   default:
     external:

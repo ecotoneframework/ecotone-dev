@@ -13,14 +13,8 @@ use Enqueue\Dbal\DbalConnectionFactory;
 
 class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 {
-    /**
-     * @var DbalInboundChannelAdapterBuilder
-     */
-    private $inboundChannelAdapter;
-    /**
-     * @var DbalOutboundChannelAdapterBuilder
-     */
-    private $outboundChannelAdapter;
+    private DbalInboundChannelAdapterBuilder $inboundChannelAdapter;
+    private DbalOutboundChannelAdapterBuilder $outboundChannelAdapter;
 
     private function __construct(string $channelName, string $connectionReferenceName)
     {
@@ -102,8 +96,9 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
     public function prepareProviderChannel(ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): MessageChannel
     {
         $inMemoryChannelResolver = InMemoryChannelResolver::createEmpty();
+
         return new DbalBackedMessageChannel(
-            $this->inboundChannelAdapter->buildInboundChannelAdapter($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')),
+            $this->inboundChannelAdapter->createInboundChannelAdapter($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')),
             $this->outboundChannelAdapter->build($inMemoryChannelResolver, $referenceSearchService)
         );
     }

@@ -1,6 +1,8 @@
 <?php
 
-namespace Ecotone\Dbal;
+declare(strict_types=1);
+
+namespace Test\SqsDemo;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\InboundMessageConverter;
@@ -8,23 +10,20 @@ use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
-use Enqueue\Dbal\DbalContext;
 use Enqueue\Dbal\DbalDestination;
-use Enqueue\Dbal\DbalMessage;
-use Interop\Queue\Destination;
-use Interop\Queue\Message as EnqueueMessage;
+use Enqueue\Sqs\SqsContext;
+use Enqueue\Sqs\SqsMessage;
 
-class DbalInboundChannelAdapter implements TaskExecutor
+final class SqsInboundChannelAdapter implements TaskExecutor
 {
     public function __construct(
-        private CachedConnectionFactory $cachedConnectionFactory,
+        private CachedConnectionFactory         $cachedConnectionFactory,
         private InboundChannelAdapterEntrypoint $entrypointGateway,
-        private bool $declareOnStartup,
-        private string $queueName,
-        private Destination $destination,
-        private int $receiveTimeoutInMilliseconds,
-        private InboundMessageConverter $inboundMessageConverter
-    ) {}
+        private bool                            $initialized,
+        private string                          $queueName,
+        private int                             $receiveTimeoutInMilliseconds,
+        private InboundMessageConverter         $inboundMessageConverter)
+    {}
 
     public function execute(PollingMetadata $pollingMetadata): void
     {
@@ -37,21 +36,20 @@ class DbalInboundChannelAdapter implements TaskExecutor
 
     public function receiveMessage(int $timeout = 0): ?Message
     {
-        if (! $this->declareOnStartup) {
-            /** @var DbalContext $context */
+        if (!$this->initialized) {
+            /** @var SqsContext $context */
             $context = $this->cachedConnectionFactory->createContext();
 
-            $context->createDataBaseTable();
             $context->createQueue($this->queueName);
-            $this->declareOnStartup = false;
+            $this->initialized = true;
         }
 
-        $consumer = $this->cachedConnectionFactory->getConsumer($this->destination);
+        $consumer = $this->cachedConnectionFactory->getConsumer(new DbalDestination($this->queueName));
 
-        /** @var EnqueueMessage $message */
+        /** @var SqsMessage $message */
         $message = $consumer->receive($timeout ?: $this->receiveTimeoutInMilliseconds);
 
-        if (! $message) {
+        if (!$message) {
             return null;
         }
 

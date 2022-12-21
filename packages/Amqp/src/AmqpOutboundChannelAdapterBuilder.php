@@ -101,7 +101,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     /**
      * @inheritDoc
      */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): AmqpOutboundChannelAdapter
     {
         /** @var AmqpConnectionFactory $amqpConnectionFactory */
         $amqpConnectionFactory = $referenceSearchService->get($this->amqpConnectionFactoryReferenceName);

@@ -25,6 +25,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 {
     private string $amqpConnectionReferenceName;
     private string $queueName;
+    private bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
     private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName, bool $withAckInterceptor)
     {
@@ -44,12 +45,16 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         return new self($endpointId, $queueName, $requestChannelName, $amqpConnectionReferenceName, false);
     }
 
-    /**
-     * @return string
-     */
     public function getQueueName(): string
     {
         return $this->queueName;
+    }
+
+    public function withDeclareOnStartup(bool $declareOnStartup): self
+    {
+        $this->declareOnStartup = $declareOnStartup;
+
+        return $this;
     }
 
     public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): AmqpInboundChannelAdapter
@@ -73,7 +78,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             CachedConnectionFactory::createFor(new AmqpConsumerConnectionFactory($amqpConnectionFactory)),
             $inboundAmqpGateway,
             $amqpAdmin,
-            true,
+            $this->declareOnStartup,
             $this->queueName,
             $this->receiveTimeoutInMilliseconds,
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, AmqpHeader::HEADER_ACKNOWLEDGE, $headerMapper),

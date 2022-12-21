@@ -19,6 +19,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 {
+    const DECLARE_ON_STARTUP_DEFAULT = true;
     public const DEFAULT_RECEIVE_TIMEOUT = 10000;
 
     /**

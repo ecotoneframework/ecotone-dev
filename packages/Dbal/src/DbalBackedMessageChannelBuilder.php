@@ -72,6 +72,14 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return $this;
     }
 
+    public function withAutoDeclare(bool $autoDeclare): self
+    {
+        $this->inboundChannelAdapter->withDeclareOnStartup($autoDeclare);
+        $this->outboundChannelAdapter->withAutoDeclareOnSend($autoDeclare);
+
+        return $this;
+    }
+
     public function getDefaultConversionMediaType(): ?MediaType
     {
         return $this->outboundChannelAdapter->getDefaultConversionMediaType();

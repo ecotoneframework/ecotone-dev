@@ -2,11 +2,17 @@
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Ramsey\Uuid\Uuid;
@@ -152,5 +158,59 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
         sleep(3);
 
         $this->assertNotNull($messageChannel->receive());
+    }
+
+    public function test_sending_message()
+    {
+        $queueName = Uuid::uuid4()->toString();
+        $messagePayload = 'some';
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create($queueName)
+                ])
+        );
+
+        /** @var PollableChannel $messageChannel */
+        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+
+        $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
+
+        $this->assertEquals(
+            'some',
+            $messageChannel->receiveWithTimeout(1)->getPayload()
+        );;
+    }
+
+    public function test_failing_to_receive_message_when_not_declared()
+    {
+        $queueName = Uuid::uuid4()->toString();
+        $messagePayload = 'some';
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create($queueName)
+                        ->withAutoDeclare(false)
+                ])
+        );
+
+        /** @var PollableChannel $messageChannel */
+        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+
+        $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
+
+        /** Dbal handle handle not declared queues as long as database table is created first */
+
+        $this->assertNotNull($messageChannel->receiveWithTimeout(1));
     }
 }

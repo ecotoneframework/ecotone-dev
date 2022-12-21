@@ -16,34 +16,14 @@ use Exception;
 
 class DbalOutboundChannelAdapter implements MessageHandler
 {
-    /**
-     * @var CachedConnectionFactory
-     */
-    private $connectionFactory;
-    /**
-     * @var bool
-     */
-    private $autoDeclare;
-    /**
-     * @var OutboundMessageConverter
-     */
-    private $outboundMessageConverter;
-    /**
-     * @var string
-     */
-    private $queueName;
-    /**
-     * @var bool
-     */
-    private $initialized = false;
+    private bool $initialized = false;
 
-    public function __construct(CachedConnectionFactory $connectionFactory, string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter)
-    {
-        $this->connectionFactory        = $connectionFactory;
-        $this->autoDeclare              = $autoDeclare;
-        $this->outboundMessageConverter = $outboundMessageConverter;
-        $this->queueName                = $queueName;
-    }
+    public function __construct(
+        private CachedConnectionFactory $connectionFactory,
+        private string $queueName,
+        private bool $autoDeclare,
+        private OutboundMessageConverter $outboundMessageConverter)
+    {}
 
     /**
      * @inheritDoc

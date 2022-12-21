@@ -21,6 +21,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 {
     private string $connectionReferenceName;
     private string $queueName;
+    private bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
     private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $dbalConnectionReferenceName)
     {
@@ -39,6 +40,13 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         return new self($endpointId, $queueName, $requestChannelName, $connectionReferenceName);
     }
 
+    public function withDeclareOnStartup(bool $declareOnStartup): self
+    {
+        $this->declareOnStartup = $declareOnStartup;
+
+        return $this;
+    }
+
     public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): DbalInboundChannelAdapter
     {
         /** @var DbalConnection $connectionFactory */
@@ -51,7 +59,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         return new DbalInboundChannelAdapter(
             CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory)),
             $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata),
-            true,
+            $this->declareOnStartup,
             $this->queueName,
             $this->receiveTimeoutInMilliseconds,
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, DbalHeader::HEADER_ACKNOWLEDGE, $headerMapper)

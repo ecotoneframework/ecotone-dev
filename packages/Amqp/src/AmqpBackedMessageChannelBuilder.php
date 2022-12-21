@@ -2,7 +2,9 @@
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -79,6 +81,14 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
     public function withDefaultConversionMediaType(string $mediaType): self
     {
         $this->outboundChannelAdapter->withDefaultConversionMediaType($mediaType);
+
+        return $this;
+    }
+
+    public function withAutoDeclare(bool $autoDeclare): self
+    {
+        $this->inboundChannelAdapter->withDeclareOnStartup($autoDeclare);
+        $this->outboundChannelAdapter->withAutoDeclareOnSend($autoDeclare);
 
         return $this;
     }

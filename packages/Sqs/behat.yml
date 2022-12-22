@@ -6,4 +6,4 @@ default:
     suites:
       default:
           paths:    [ tests/Behat/features ]
-          contexts: [ Test\Ecotone\SqsDemo\Behat\Bootstrap\DomainContext ]
+          contexts: [ Test\Ecotone\Sqs\Behat\Bootstrap\DomainContext ]

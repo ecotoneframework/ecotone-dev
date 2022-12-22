@@ -12,7 +12,7 @@ abstract class AbstractConnectionTest extends TestCase
 
     public function getConnectionFactory(): ConnectionFactory
     {
-        if (!$this->connectionFactory) {
+        if (! $this->connectionFactory) {
             $dsn = getenv('SQS_DSN') ? getenv('SQS_DSN') : 'sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest';
 
             $this->connectionFactory = new SqsConnectionFactory($dsn);

@@ -22,7 +22,6 @@ use Ecotone\Messaging\Transaction\Transactional;
 use Ecotone\Messaging\Transaction\TransactionInterceptor;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerStoppingService;
-use Test\Ecotone\Messaging\Fixture\Handler\DataReturningService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingNoArguments;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 use Test\Ecotone\Messaging\Unit\MessagingTest;

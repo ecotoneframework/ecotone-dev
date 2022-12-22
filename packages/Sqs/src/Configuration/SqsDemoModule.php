@@ -22,7 +22,6 @@ final class SqsDemoModule extends NoExternalConfigurationModule implements Annot
 
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-
     }
 
     public function canHandle($extensionObject): bool
@@ -32,6 +31,6 @@ final class SqsDemoModule extends NoExternalConfigurationModule implements Annot
 
     public function getModulePackageName(): string
     {
-        return "sqsDemo";
+        return 'sqsDemo';
     }
 }

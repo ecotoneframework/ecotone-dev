@@ -6,16 +6,11 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Endpoint\TaskExecutorChannelAdapter\TaskExecutorChannelAdapter;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\DbalDestination;
-use Exception;
 
 class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {

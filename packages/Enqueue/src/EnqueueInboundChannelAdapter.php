@@ -11,7 +11,6 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
-use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Queue\Message as EnqueueMessage;
 
 abstract class EnqueueInboundChannelAdapter implements TaskExecutor
@@ -25,8 +24,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
         protected string                          $queueName,
         protected int                             $receiveTimeoutInMilliseconds,
         protected InboundMessageConverter         $inboundMessageConverter,
-    )
-    {
+    ) {
     }
 
     public function execute(PollingMetadata $pollingMetadata): void
@@ -38,7 +36,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
         }
     }
 
-    public abstract function initialize(): void;
+    abstract public function initialize(): void;
 
     public function enrichMessage(EnqueueMessage $sourceMessage, MessageBuilder $targetMessage): MessageBuilder
     {
@@ -64,7 +62,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
             throw new ConnectionException('There was a problem while polling channel', 0, $exception);
         }
 
-        if (!$message) {
+        if (! $message) {
             return null;
         }
 

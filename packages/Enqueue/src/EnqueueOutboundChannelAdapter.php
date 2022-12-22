@@ -17,10 +17,12 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         protected CachedConnectionFactory  $connectionFactory,
         protected Destination              $destination,
         protected bool                     $autoDeclare,
-        protected OutboundMessageConverter $outboundMessageConverter)
-    {}
+        protected OutboundMessageConverter $outboundMessageConverter
+    )
+    {
+    }
 
-    public abstract function initialize(): void;
+    abstract public function initialize(): void;
 
     public function handle(Message $message): void
     {

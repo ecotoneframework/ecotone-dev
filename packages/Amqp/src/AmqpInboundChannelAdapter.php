@@ -28,8 +28,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         string                          $queueName,
         int                             $receiveTimeoutInMilliseconds,
         InboundMessageConverter         $inboundMessageConverter
-    )
-    {
+    ) {
         parent::__construct(
             $cachedConnectionFactory,
             $inboundAmqpGateway,

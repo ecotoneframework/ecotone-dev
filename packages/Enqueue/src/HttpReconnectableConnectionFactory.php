@@ -9,7 +9,9 @@ use Interop\Queue\Context;
 
 final class HttpReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
-    public function __construct(private ConnectionFactory $connectionFactory) {}
+    public function __construct(private ConnectionFactory $connectionFactory)
+    {
+    }
 
     public function createContext(): Context
     {
@@ -23,7 +25,7 @@ final class HttpReconnectableConnectionFactory implements ReconnectableConnectio
 
     public function reconnect(): void
     {
-        return;
+
     }
 
     public function getConnectionInstanceId(): int

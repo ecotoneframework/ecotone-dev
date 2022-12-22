@@ -112,7 +112,7 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelBuilder
         $serviceConfiguration = $referenceSearchService->has(ServiceConfiguration::class) ? $referenceSearchService->get(ServiceConfiguration::class) : null;
         $pollingMetadata = PollingMetadata::create('');
 
-        if (!$this->getDefaultConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
+        if (! $this->getDefaultConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
             $this->withDefaultConversionMediaType($serviceConfiguration->getDefaultSerializationMediaType());
         }
 

@@ -14,6 +14,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * @internal
+ */
 final class AmqpMessageChannelTest extends AmqpMessagingTest
 {
     public function test_sending_message()
@@ -23,12 +26,12 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory()
+                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
                 ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($queueName)
+                    AmqpBackedMessageChannelBuilder::create($queueName),
                 ])
         );
 
@@ -40,7 +43,8 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
         $this->assertEquals(
             'some',
             $messageChannel->receiveWithTimeout(1)->getPayload()
-        );;
+        );
+        ;
     }
 
     public function test_failing_to_receive_message_when_not_declared()
@@ -50,13 +54,13 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory()
+                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName)
-                        ->withAutoDeclare(false)
+                        ->withAutoDeclare(false),
                 ])
         );
 

@@ -13,6 +13,9 @@ use Enqueue\Sqs\SqsConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Sqs\AbstractConnectionTest;
 
+/**
+ * @internal
+ */
 final class SqsBackedMessageChannelTest extends AbstractConnectionTest
 {
     public function TODO_test_sending_and_receiving_message()
@@ -26,7 +29,7 @@ final class SqsBackedMessageChannelTest extends AbstractConnectionTest
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    SqsBackedMessageChannelBuilder::create($queueName)
+                    SqsBackedMessageChannelBuilder::create($queueName),
                 ])
         );
 
@@ -38,6 +41,7 @@ final class SqsBackedMessageChannelTest extends AbstractConnectionTest
         $this->assertEquals(
             $messagePayload,
             $messageChannel->receiveWithTimeout(1)->getPayload()
-        );;
+        );
+        ;
     }
 }

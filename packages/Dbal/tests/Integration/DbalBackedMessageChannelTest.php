@@ -2,17 +2,14 @@
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Ramsey\Uuid\Uuid;
@@ -172,7 +169,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create($queueName)
+                    DbalBackedMessageChannelBuilder::create($queueName),
                 ])
         );
 
@@ -184,7 +181,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
         $this->assertEquals(
             'some',
             $messageChannel->receiveWithTimeout(1)->getPayload()
-        );;
+        );
+        ;
     }
 
     public function test_failing_to_receive_message_when_not_declared()
@@ -200,7 +198,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($queueName)
-                        ->withAutoDeclare(false)
+                        ->withAutoDeclare(false),
                 ])
         );
 

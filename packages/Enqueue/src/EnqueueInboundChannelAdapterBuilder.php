@@ -2,13 +2,9 @@
 
 namespace Ecotone\Enqueue;
 
-use Ecotone\Amqp\AmqpInboundChannelAdapter;
-use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
-use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Endpoint\TaskExecutorChannelAdapter\TaskExecutorChannelAdapter;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -16,11 +12,10 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Scheduling\TaskExecutor;
 
 abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 {
-    const DECLARE_ON_STARTUP_DEFAULT = true;
+    public const DECLARE_ON_STARTUP_DEFAULT = true;
     public const DEFAULT_RECEIVE_TIMEOUT = 10000;
 
     /**
@@ -232,5 +227,5 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         return $this->inboundEntrypoint instanceof NullEntrypointGateway;
     }
 
-    public abstract function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter;
+    abstract public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter;
 }

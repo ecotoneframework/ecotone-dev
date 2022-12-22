@@ -52,7 +52,7 @@ abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBui
      */
     protected $requiredReferenceNames = [];
 
-    public abstract function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler;
+    abstract public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler;
 
     /**
      * @inheritDoc

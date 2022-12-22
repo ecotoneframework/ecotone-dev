@@ -59,5 +59,5 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
         return true;
     }
 
-    protected abstract function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): TaskExecutor;
+    abstract protected function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): TaskExecutor;
 }

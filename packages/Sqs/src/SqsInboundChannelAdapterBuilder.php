@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Sqs;
 
-use Ecotone\Dbal\DbalHeader;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;

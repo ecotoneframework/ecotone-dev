@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Monorepo\SetCurrentMutualDependenciesReleaseWorker;
-use Symplify\ComposerJsonManipulator\ValueObject\ComposerJsonSection;
+use Symplify\MonorepoBuilder\ComposerJsonManipulator\ValueObject\ComposerJsonSection;
 use Symplify\MonorepoBuilder\Config\MBConfig;
 use Symplify\MonorepoBuilder\Release\ReleaseWorker\AddTagToChangelogReleaseWorker;
 use Symplify\MonorepoBuilder\Release\ReleaseWorker\PushNextDevReleaseWorker;
@@ -32,7 +32,7 @@ return static function (MBConfig $containerConfigurator): void {
             "phpstan/phpstan" => "^1.8",
             "phpunit/phpunit" => "^9.5",
             "symfony/expression-language" => "^6.0",
-            "symplify/monorepo-builder" => "^11.0"
+            "symplify/monorepo-builder" => "^11.1.21"
         ],
     ]);
     $containerConfigurator->defaultBranch('main');

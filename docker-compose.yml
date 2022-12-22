@@ -52,6 +52,16 @@ services:
     ports:
       - "15672:15672"
       - "5672:5672"
+  localstack:
+    image: localstack/localstack:0.8.10
+    networks:
+      - default
+    environment:
+      HOSTNAME_EXTERNAL: 'localstack'
+      SERVICES: 'sqs,sns'
+    ports:
+      - '4576:4576'
+      - '4575:4575'
 networks:
   default:
     external:

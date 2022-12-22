@@ -23,51 +23,9 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  */
 class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    /**
-     * @var string
-     */
-    private $amqpConnectionReferenceName;
-    /**
-     * @var string
-     */
-    private $queueName;
-
-    private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName, bool $withAckInterceptor)
-    {
-        $this->amqpConnectionReferenceName = $amqpConnectionReferenceName;
-        $this->queueName = $queueName;
-        $this->initialize($endpointId, $requestChannelName, $amqpConnectionReferenceName);
-        $this->withAckInterceptor = $withAckInterceptor;
-    }
-
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
     {
-        return new self($endpointId, $queueName, $requestChannelName, $amqpConnectionReferenceName, true);
-    }
-
-    public static function createWithoutAck(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
-    {
-        return new self($endpointId, $queueName, $requestChannelName, $amqpConnectionReferenceName, false);
-    }
-
-    /**
-     * @return string
-     */
-    public function getQueueName(): string
-    {
-        return $this->queueName;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function buildAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): ConsumerLifecycle
-    {
-        return TaskExecutorChannelAdapter::createFrom(
-            $this->endpointId,
-            $pollingMetadata->setFixedRateInMilliseconds(1),
-            $this->createInboundChannelAdapter($channelResolver, $referenceSearchService, $pollingMetadata)
-        );
+        return new self($queueName, $endpointId, $requestChannelName, $amqpConnectionReferenceName);
     }
 
     public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): AmqpInboundChannelAdapter
@@ -79,23 +37,22 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         /** @var AmqpAdmin $amqpAdmin */
         $amqpAdmin = $referenceSearchService->get(AmqpAdmin::REFERENCE_NAME);
         /** @var AmqpConnectionFactory $amqpConnectionFactory */
-        $amqpConnectionFactory = $referenceSearchService->get($this->amqpConnectionReferenceName);
+        $amqpConnectionFactory = $referenceSearchService->get($this->connectionReferenceName);
         /** @var ConversionService $conversionService */
         $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
 
         $inboundAmqpGateway = $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata);
 
         $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, [], $conversionService);
-        $inboundChannelAdapter = new AmqpInboundChannelAdapter(
+
+        return new AmqpInboundChannelAdapter(
             CachedConnectionFactory::createFor(new AmqpConsumerConnectionFactory($amqpConnectionFactory)),
             $inboundAmqpGateway,
             $amqpAdmin,
-            true,
-            $this->queueName,
+            $this->declareOnStartup,
+            $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
-            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, AmqpHeader::HEADER_ACKNOWLEDGE, $headerMapper),
-            ! $this->withAckInterceptor
+            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper),
         );
-        return $inboundChannelAdapter;
     }
 }

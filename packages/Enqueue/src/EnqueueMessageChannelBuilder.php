@@ -95,7 +95,7 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelBuilder
 
     public function getMessageChannelName(): string
     {
-        return $this->getInboundChannelAdapter()->getQueueName();
+        return $this->getInboundChannelAdapter()->getMessageChannelName();
     }
 
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable

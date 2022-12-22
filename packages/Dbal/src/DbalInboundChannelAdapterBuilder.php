@@ -19,17 +19,9 @@ use Exception;
 
 class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    private string $connectionReferenceName;
-
-    private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $dbalConnectionReferenceName)
-    {
-        $this->connectionReferenceName = $dbalConnectionReferenceName;
-        $this->initialize($queueName, $endpointId, $requestChannelName, $dbalConnectionReferenceName);
-    }
-
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = DbalConnectionFactory::class): self
     {
-        return new self($endpointId, $queueName, $requestChannelName, $connectionReferenceName);
+        return new self($queueName, $endpointId, $requestChannelName, $connectionReferenceName);
     }
 
     public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): DbalInboundChannelAdapter
@@ -45,7 +37,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory)),
             $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata),
             $this->declareOnStartup,
-            $this->queueName,
+            $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, DbalHeader::HEADER_ACKNOWLEDGE, $headerMapper)
         );

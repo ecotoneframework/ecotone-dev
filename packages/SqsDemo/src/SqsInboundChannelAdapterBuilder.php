@@ -19,20 +19,9 @@ use Enqueue\Sqs\SqsConnectionFactory;
 
 final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    private function __construct(
-        string         $endpointId,
-        private string $queueName,
-        ?string        $requestChannelName,
-        private bool   $declareOnStartup,
-        private string $connectionReferenceName
-    )
+    public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = DbalConnectionFactory::class): self
     {
-        $this->initialize($endpointId, $requestChannelName, $connectionReferenceName);
-    }
-
-    public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, bool $initializeOnStartup = true, string $connectionReferenceName = DbalConnectionFactory::class): self
-    {
-        return new self($endpointId, $queueName, $requestChannelName, $initializeOnStartup, $connectionReferenceName);
+        return new self($endpointId, $queueName, $requestChannelName, $connectionReferenceName);
     }
 
     protected function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): TaskExecutor
@@ -48,7 +37,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             CachedConnectionFactory::createFor(new SqsReconnectableConnectionFactory($connectionFactory)),
             $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata),
             $this->declareOnStartup,
-            $this->queueName,
+            $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, DbalHeader::HEADER_ACKNOWLEDGE, $headerMapper)
         );

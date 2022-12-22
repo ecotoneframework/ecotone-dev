@@ -42,17 +42,20 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
      */
     protected $inboundEntrypoint;
 
-    protected $requiredReferenceNames = [];
+    protected array $requiredReferenceNames = [];
 
     protected $withAckInterceptor = false;
 
     protected bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
-    protected string $queueName;
+    protected string $messageChannelName;
 
-    protected function initialize(string $queueName, string $endpointId, ?string $requestChannelName, string $connectionReferenceName): void
+    protected string $connectionReferenceName;
+
+    public function __construct(string $messageChannelName, string $endpointId, ?string $requestChannelName, string $connectionReferenceName)
     {
-        $this->queueName = $queueName;
+        $this->messageChannelName = $messageChannelName;
+        $this->connectionReferenceName = $connectionReferenceName;
         $this->requiredReferenceNames[] = $connectionReferenceName;
         $this->endpointId = $endpointId;
         $this->inboundEntrypoint = $requestChannelName
@@ -63,13 +66,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     protected function buildGatewayFor(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver, PollingMetadata $pollingMetadata): InboundChannelAdapterEntrypoint
     {
         if (! $this->isNullableGateway()) {
-            if ($this->withAckInterceptor) {
-                $this->inboundEntrypoint->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor(
-                    $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME),
-                    $pollingMetadata
-                ));
-            }
-
             return $this->inboundEntrypoint
                 ->withErrorChannel($pollingMetadata->getErrorChannelName())
                 ->build($referenceSearchService, $channelResolver);
@@ -111,9 +107,9 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         return $this->endpointId;
     }
 
-    public function getQueueName(): string
+    public function getMessageChannelName(): string
     {
-        return $this->queueName;
+        return $this->messageChannelName;
     }
 
     /**

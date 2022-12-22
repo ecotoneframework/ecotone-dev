@@ -23,18 +23,9 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  */
 class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    private string $amqpConnectionReferenceName;
-
-    private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName)
-    {
-        $this->amqpConnectionReferenceName = $amqpConnectionReferenceName;
-        $this->queueName = $queueName;
-        $this->initialize($queueName, $endpointId, $requestChannelName, $amqpConnectionReferenceName);
-    }
-
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
     {
-        return new self($endpointId, $queueName, $requestChannelName, $amqpConnectionReferenceName);
+        return new self($queueName, $endpointId, $requestChannelName, $amqpConnectionReferenceName);
     }
 
     public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): AmqpInboundChannelAdapter
@@ -46,7 +37,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         /** @var AmqpAdmin $amqpAdmin */
         $amqpAdmin = $referenceSearchService->get(AmqpAdmin::REFERENCE_NAME);
         /** @var AmqpConnectionFactory $amqpConnectionFactory */
-        $amqpConnectionFactory = $referenceSearchService->get($this->amqpConnectionReferenceName);
+        $amqpConnectionFactory = $referenceSearchService->get($this->connectionReferenceName);
         /** @var ConversionService $conversionService */
         $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
 
@@ -59,7 +50,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $inboundAmqpGateway,
             $amqpAdmin,
             $this->declareOnStartup,
-            $this->queueName,
+            $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, AmqpHeader::HEADER_ACKNOWLEDGE, $headerMapper),
         );

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint\InboundChannelAdapter;
 
+use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
@@ -237,6 +238,11 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             $referenceService = new PassThroughService($referenceService, $methodName);
             $methodName = 'execute';
         }
+
+        $this->gatewayExecutor->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor(
+            $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME),
+            $pollingMetadata
+        ));
 
         $gateway = $this->gatewayExecutor
             ->buildWithoutProxyObject($referenceSearchService, $channelResolver);

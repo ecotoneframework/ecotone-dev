@@ -24,37 +24,17 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
 class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
     private string $amqpConnectionReferenceName;
-    private string $queueName;
-    private bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
-    private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName, bool $withAckInterceptor)
+    private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName)
     {
         $this->amqpConnectionReferenceName = $amqpConnectionReferenceName;
         $this->queueName = $queueName;
-        $this->initialize($endpointId, $requestChannelName, $amqpConnectionReferenceName);
-        $this->withAckInterceptor = $withAckInterceptor;
+        $this->initialize($queueName, $endpointId, $requestChannelName, $amqpConnectionReferenceName);
     }
 
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
     {
-        return new self($endpointId, $queueName, $requestChannelName, $amqpConnectionReferenceName, true);
-    }
-
-    public static function createWithoutAck(string $endpointId, string $queueName, ?string $requestChannelName, string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
-    {
-        return new self($endpointId, $queueName, $requestChannelName, $amqpConnectionReferenceName, false);
-    }
-
-    public function getQueueName(): string
-    {
-        return $this->queueName;
-    }
-
-    public function withDeclareOnStartup(bool $declareOnStartup): self
-    {
-        $this->declareOnStartup = $declareOnStartup;
-
-        return $this;
+        return new self($endpointId, $queueName, $requestChannelName, $amqpConnectionReferenceName);
     }
 
     public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): AmqpInboundChannelAdapter

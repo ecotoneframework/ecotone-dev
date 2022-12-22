@@ -823,7 +823,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      * @return AmqpBackendMessageChannel
      * @throws MessagingException
      */
-    private function createDirectAmqpBackendMessageChannel(string $queueName): AmqpBackendMessageChannel
+    private function createDirectAmqpBackendMessageChannel(string $queueName): PollableChannel
     {
         $amqpConnectionReferenceName = 'amqpConnectionName';
         $referenceSearchService = $this->createReferenceSearchService(

@@ -6,7 +6,6 @@ namespace Test\SqsDemo;
 
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Enqueue\Sqs\SqsContext;
-use Enqueue\Sqs\SqsDestination;
 
 final class SqsInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {

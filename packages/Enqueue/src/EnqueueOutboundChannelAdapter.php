@@ -7,16 +7,16 @@ namespace Ecotone\Enqueue;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
-use Enqueue\Dbal\DbalMessage;
+use Interop\Queue\Destination;
 
 abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 {
     private bool $initialized = false;
 
     public function __construct(
-        protected CachedConnectionFactory $connectionFactory,
-        protected string $queueName,
-        protected bool $autoDeclare,
+        protected CachedConnectionFactory  $connectionFactory,
+        protected Destination              $destination,
+        protected bool                     $autoDeclare,
         protected OutboundMessageConverter $outboundMessageConverter)
     {}
 
@@ -33,11 +33,11 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         $headers                               = $outboundMessage->getHeaders();
         $headers[MessageHeaders::CONTENT_TYPE] = $outboundMessage->getContentType();
 
-        $messageToSend = new DbalMessage($outboundMessage->getPayload(), $headers, []);
+        $messageToSend = $this->connectionFactory->createContext()->createMessage($outboundMessage->getPayload(), $headers, []);
 
         $this->connectionFactory->getProducer()
             ->setTimeToLive($outboundMessage->getTimeToLive())
             ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
-            ->send($this->connectionFactory->createContext()->createQueue($this->queueName), $messageToSend);
+            ->send($this->destination, $messageToSend);
     }
 }

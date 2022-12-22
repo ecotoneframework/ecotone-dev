@@ -3,8 +3,11 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
@@ -48,6 +51,8 @@ abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBui
      * @var string[]
      */
     protected $requiredReferenceNames = [];
+
+    public abstract function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler;
 
     /**
      * @inheritDoc

@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\Scheduling\TaskExecutor;
 
 abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 {
@@ -45,8 +46,13 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
 
     protected $withAckInterceptor = false;
 
-    protected function initialize(string $endpointId, ?string $requestChannelName, string $connectionReferenceName): void
+    protected bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
+
+    protected string $queueName;
+
+    protected function initialize(string $queueName, string $endpointId, ?string $requestChannelName, string $connectionReferenceName): void
     {
+        $this->queueName = $queueName;
         $this->requiredReferenceNames[] = $connectionReferenceName;
         $this->endpointId = $endpointId;
         $this->inboundEntrypoint = $requestChannelName
@@ -103,6 +109,11 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     public function getEndpointId(): string
     {
         return $this->endpointId;
+    }
+
+    public function getQueueName(): string
+    {
+        return $this->queueName;
     }
 
     /**
@@ -201,6 +212,13 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         return $this;
     }
 
+    public function withDeclareOnStartup(bool $declareOnStartup): self
+    {
+        $this->declareOnStartup = $declareOnStartup;
+
+        return $this;
+    }
+
     /**
      * @return string
      */
@@ -221,4 +239,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     {
         return $this->inboundEntrypoint instanceof NullEntrypointGateway;
     }
+
+    protected abstract function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter;
 }

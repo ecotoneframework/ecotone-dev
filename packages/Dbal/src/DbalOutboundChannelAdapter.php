@@ -14,9 +14,20 @@ use Enqueue\Dbal\DbalContext;
 use Enqueue\Dbal\DbalDestination;
 use Enqueue\Dbal\DbalMessage;
 use Exception;
+use Interop\Queue\Destination;
 
 class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {
+    public function __construct(CachedConnectionFactory $connectionFactory, private string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter)
+    {
+        parent::__construct(
+            $connectionFactory,
+            new DbalDestination($this->queueName),
+            $autoDeclare,
+            $outboundMessageConverter
+        );
+    }
+
     public function initialize(): void
     {
         /** @var DbalContext $context */

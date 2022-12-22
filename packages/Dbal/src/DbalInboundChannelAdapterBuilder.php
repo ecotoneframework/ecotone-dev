@@ -20,31 +20,16 @@ use Exception;
 class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
     private string $connectionReferenceName;
-    private string $queueName;
-    private bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
     private function __construct(string $endpointId, string $queueName, ?string $requestChannelName, string $dbalConnectionReferenceName)
     {
         $this->connectionReferenceName = $dbalConnectionReferenceName;
-        $this->queueName = $queueName;
-        $this->initialize($endpointId, $requestChannelName, $dbalConnectionReferenceName);
-    }
-
-    public function getQueueName(): string
-    {
-        return $this->queueName;
+        $this->initialize($queueName, $endpointId, $requestChannelName, $dbalConnectionReferenceName);
     }
 
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = DbalConnectionFactory::class): self
     {
         return new self($endpointId, $queueName, $requestChannelName, $connectionReferenceName);
-    }
-
-    public function withDeclareOnStartup(bool $declareOnStartup): self
-    {
-        $this->declareOnStartup = $declareOnStartup;
-
-        return $this;
     }
 
     public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): DbalInboundChannelAdapter

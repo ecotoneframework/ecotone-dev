@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Sqs;
 
-use Ecotone\Dbal\DbalOutboundChannelAdapter;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
@@ -14,7 +12,6 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Sqs\SqsConnectionFactory;
 
 final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
@@ -24,7 +21,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         $this->initialize($connectionFactoryReferenceName);
     }
 
-    public static function create(string $queueName, string $connectionFactoryReferenceName = DbalConnectionFactory::class): self
+    public static function create(string $queueName, string $connectionFactoryReferenceName = SqsConnectionFactory::class): self
     {
         return new self($queueName, $connectionFactoryReferenceName);
     }

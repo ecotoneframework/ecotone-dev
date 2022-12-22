@@ -54,7 +54,6 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
         }
 
         $consumer = $this->connectionFactory->getConsumer(
-//            new AmqpQueue($this->queueName)
             $this->connectionFactory->createContext()->createQueue($this->queueName)
         );
 

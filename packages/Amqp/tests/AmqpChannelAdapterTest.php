@@ -6,19 +6,16 @@ namespace Test\Ecotone\Amqp;
 
 use Ecotone\Amqp\AmqpAdmin;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\AmqpBackendMessageChannel;
 use Ecotone\Amqp\AmqpBinding;
 use Ecotone\Amqp\AmqpExchange;
 use Ecotone\Amqp\AmqpHeader;
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Enqueue\EnqueueMessageChannel;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -458,7 +455,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create('', $amqpConnectionReferenceName)
-                                        ->withRoutingKeyFromHeader('routingKey');
+            ->withRoutingKeyFromHeader('routingKey');
         $this->send(
             $outboundAmqpGatewayBuilder,
             $inMemoryChannelResolver,
@@ -820,7 +817,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
 
     /**
      * @param string $queueName
-     * @return AmqpBackendMessageChannel
+     * @return EnqueueMessageChannel
      * @throws MessagingException
      */
     private function createDirectAmqpBackendMessageChannel(string $queueName): PollableChannel

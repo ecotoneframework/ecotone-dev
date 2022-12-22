@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 abstract class AbstractConnectionTest extends TestCase
 {
-    private SqsConnectionFactory $connectionFactory;
+    private ?SqsConnectionFactory $connectionFactory = null;
 
     public function getConnectionFactory(): ConnectionFactory
     {

@@ -17,30 +17,11 @@ use Interop\Queue\Message as EnqueueMessage;
 
 class DbalInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
-    public function __construct(
-        CachedConnectionFactory $cachedConnectionFactory,
-        InboundChannelAdapterEntrypoint $entrypointGateway,
-        bool $declareOnStartup,
-        private string $queueName,
-        int $receiveTimeoutInMilliseconds,
-        InboundMessageConverter $inboundMessageConverter
-    ) {
-        parent::__construct(
-            $cachedConnectionFactory,
-            $entrypointGateway,
-            $declareOnStartup,
-            new DbalDestination($queueName),
-            $receiveTimeoutInMilliseconds,
-            $inboundMessageConverter
-        );
-    }
-
     public function initialize(): void
     {
         /** @var DbalContext $context */
-        $context = $this->cachedConnectionFactory->createContext();
+        $context = $this->connectionFactory->createContext();
 
         $context->createDataBaseTable();
-        $context->createQueue($this->queueName);
     }
 }

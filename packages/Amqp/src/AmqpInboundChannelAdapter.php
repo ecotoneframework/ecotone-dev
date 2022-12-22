@@ -9,15 +9,9 @@ use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
-use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Scheduling\TaskExecutor;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\Message as EnqueueMessage;
-use Throwable;
 
 /**
  * Class InboundEnqueueGateway
@@ -27,19 +21,20 @@ use Throwable;
 class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
     public function __construct(
-        CachedConnectionFactory $cachedConnectionFactory,
+        CachedConnectionFactory         $cachedConnectionFactory,
         InboundChannelAdapterEntrypoint $inboundAmqpGateway,
-        private AmqpAdmin $amqpAdmin,
-        bool $declareOnStartup,
-        private string $amqpQueueName,
-        int $receiveTimeoutInMilliseconds,
-        InboundMessageConverter $inboundMessageConverter
-    ) {
+        private AmqpAdmin               $amqpAdmin,
+        bool                            $declareOnStartup,
+        string                          $queueName,
+        int                             $receiveTimeoutInMilliseconds,
+        InboundMessageConverter         $inboundMessageConverter
+    )
+    {
         parent::__construct(
             $cachedConnectionFactory,
             $inboundAmqpGateway,
             $declareOnStartup,
-            new \Interop\Amqp\Impl\AmqpQueue($amqpQueueName),
+            $queueName,
             $receiveTimeoutInMilliseconds,
             $inboundMessageConverter
         );
@@ -47,7 +42,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
     public function initialize(): void
     {
-        $this->amqpAdmin->declareQueueWithBindings($this->amqpQueueName, $this->cachedConnectionFactory->createContext());
+        $this->amqpAdmin->declareQueueWithBindings($this->queueName, $this->connectionFactory->createContext());
     }
 
     /**

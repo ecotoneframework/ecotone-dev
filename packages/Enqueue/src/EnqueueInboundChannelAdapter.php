@@ -11,7 +11,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
-use Interop\Queue\Destination;
+use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Queue\Message as EnqueueMessage;
 
 abstract class EnqueueInboundChannelAdapter implements TaskExecutor
@@ -19,10 +19,10 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
     private bool $initialized = false;
 
     public function __construct(
-        protected CachedConnectionFactory         $cachedConnectionFactory,
+        protected CachedConnectionFactory         $connectionFactory,
         protected InboundChannelAdapterEntrypoint $entrypointGateway,
         protected bool                            $declareOnStartup,
-        protected Destination                     $destination,
+        protected string                          $queueName,
         protected int                             $receiveTimeoutInMilliseconds,
         protected InboundMessageConverter         $inboundMessageConverter,
     )
@@ -53,7 +53,10 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
             $this->initialized = true;
         }
 
-        $consumer = $this->cachedConnectionFactory->getConsumer($this->destination);
+        $consumer = $this->connectionFactory->getConsumer(
+//            new AmqpQueue($this->queueName)
+            $this->connectionFactory->createContext()->createQueue($this->queueName)
+        );
 
         try {
             /** @var EnqueueMessage $message */

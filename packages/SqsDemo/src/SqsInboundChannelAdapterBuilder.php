@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\SqsDemo;
 
 use Ecotone\Dbal\DbalHeader;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
@@ -14,6 +13,7 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
+use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Sqs\SqsConnectionFactory;
 
@@ -23,7 +23,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
         string         $endpointId,
         private string $queueName,
         ?string        $requestChannelName,
-        private bool   $initializeOnStartup,
+        private bool   $declareOnStartup,
         private string $connectionReferenceName
     )
     {
@@ -35,7 +35,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
         return new self($endpointId, $queueName, $requestChannelName, $initializeOnStartup, $connectionReferenceName);
     }
 
-    public function buildInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): SqsInboundChannelAdapter
+    protected function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): TaskExecutor
     {
         /** @var SqsConnectionFactory $connectionFactory */
         $connectionFactory = $referenceSearchService->get($this->connectionReferenceName);
@@ -47,7 +47,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
         return new SqsInboundChannelAdapter(
             CachedConnectionFactory::createFor(new SqsReconnectableConnectionFactory($connectionFactory)),
             $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata),
-            !$this->initializeOnStartup,
+            $this->declareOnStartup,
             $this->queueName,
             $this->receiveTimeoutInMilliseconds,
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, DbalHeader::HEADER_ACKNOWLEDGE, $headerMapper)

@@ -699,24 +699,25 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
         $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
-        $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
-            ->withDefaultRoutingKey($queueName);
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
-
         $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName);
         $inboundQueueChannel = DirectChannel::create();
         $inboundQueueChannel->subscribe(ExceptionalMessageHandler::create());
 
-        $normalQueueChannelAdapter = $inboundAmqpAdapter
-            ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
+        $normalQueueChannelAdapter = $inboundAmqpAdapter->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
+        $normalQueueChannelAdapter->run();
 
+        $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
+            ->withAutoDeclareOnSend(false)
+            ->withDefaultRoutingKey($queueName);
+        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
+
+        $normalQueueChannelAdapter->run();
         $normalQueueChannelAdapter->run();
 
         $inboundAmqpAdapter = $this->createAmqpInboundAdapter($deadLetterQueue->getQueueName(), $requestChannelName, $amqpConnectionReferenceName);
-        $deadLetterQueueChannelAdapter = $inboundAmqpAdapter
-            ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
-
+        $deadLetterQueueChannelAdapter = $inboundAmqpAdapter->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
         $deadLetterQueueChannelAdapter->run();
+
         $this->assertNotNull($this->receiveOnce($inboundAmqpAdapter, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was not dead letter queued');
     }
 

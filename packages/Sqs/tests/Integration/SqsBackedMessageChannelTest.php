@@ -36,7 +36,7 @@ final class SqsBackedMessageChannelTest extends AbstractConnectionTest
         $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
 
         $this->assertEquals(
-            'some',
+            $messagePayload,
             $messageChannel->receiveWithTimeout(1)->getPayload()
         );;
     }

@@ -75,9 +75,6 @@
             "Test\\Ecotone\\JMSConverter\\": [
                 "packages/JmsConverter/tests"
             ],
-            "Test\\Ecotone\\JMSConverter\\": [
-                "packages/JmsConverter/tests"
-            ],
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
             "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
             "Tests\\Ecotone\\": "tests"

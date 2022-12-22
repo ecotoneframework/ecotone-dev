@@ -19,6 +19,8 @@ use Ecotone\Messaging\Scheduling\TaskExecutor;
  */
 abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsumerBuilder
 {
+    protected ?string $endpointId = null;
+
     /**
      * @inheritDoc
      */

@@ -39,7 +39,6 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
     private \Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder $gatewayExecutor;
     private string $referenceName;
     private string $methodName;
-    protected ?string $endpointId = null;
     private string $requestChannelName;
     private ?object $directObject = null;
 

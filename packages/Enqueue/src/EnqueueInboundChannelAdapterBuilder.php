@@ -24,10 +24,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     public const DEFAULT_RECEIVE_TIMEOUT = 10000;
 
     /**
-     * @var string
-     */
-    protected $endpointId;
-    /**
      * @var int
      */
     protected $receiveTimeoutInMilliseconds = self::DEFAULT_RECEIVE_TIMEOUT;

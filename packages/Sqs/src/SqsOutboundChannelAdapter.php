@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Test\SqsDemo;
+namespace Ecotone\Sqs;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Enqueue\OutboundMessageConverter;
 use Enqueue\Sqs\SqsContext;
 use Enqueue\Sqs\SqsDestination;
-use Interop\Queue\Destination;
 
 final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {

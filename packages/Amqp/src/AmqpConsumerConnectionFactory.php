@@ -27,7 +27,6 @@ class AmqpConsumerConnectionFactory implements ReconnectableConnectionFactory
     {
         if (! $this->isConnected()) {
             $this->reconnect();
-            ;
         }
 
         return $this->connectionFactory->createContext();

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\SqsDemo;
+namespace Ecotone\Sqs;
 
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Enqueue\Sqs\SqsContext;

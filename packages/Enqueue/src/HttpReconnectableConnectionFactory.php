@@ -2,16 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Test\SqsDemo;
+namespace Ecotone\Enqueue;
 
-use Ecotone\Enqueue\ReconnectableConnectionFactory;
-use Enqueue\Sqs\SqsConnectionFactory;
+use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 
-final class SqsReconnectableConnectionFactory implements ReconnectableConnectionFactory
+final class HttpReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
-    public function __construct(private SqsConnectionFactory $connectionFactory)
-    {}
+    public function __construct(private ConnectionFactory $connectionFactory) {}
 
     public function createContext(): Context
     {
@@ -20,7 +18,7 @@ final class SqsReconnectableConnectionFactory implements ReconnectableConnection
 
     public function isDisconnected(?Context $context): bool
     {
-        $this->createContext()->close();;
+        return false;
     }
 
     public function reconnect(): void

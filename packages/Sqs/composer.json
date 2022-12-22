@@ -16,12 +16,12 @@
     "description": "Extends Ecotone with Amazon Sqs integration",
     "autoload": {
         "psr-4": {
-            "Ecotone\\SqsDemo\\": "src"
+            "Ecotone\\Sqs\\": "src"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Test\\Ecotone\\SqsDemo\\": [
+            "Test\\Ecotone\\Sqs\\": [
                 "tests"
             ]
         }

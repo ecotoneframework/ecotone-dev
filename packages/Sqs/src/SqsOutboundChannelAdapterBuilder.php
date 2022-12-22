@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Test\SqsDemo;
+namespace Ecotone\Sqs;
 
 use Ecotone\Dbal\DbalOutboundChannelAdapter;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
+use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
 use Ecotone\Enqueue\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -28,7 +29,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         return new self($queueName, $connectionFactoryReferenceName);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): DbalOutboundChannelAdapter
+    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): SqsOutboundChannelAdapter
     {
         /** @var SqsConnectionFactory $connectionFactory */
         $connectionFactory = $referenceSearchService->get($this->connectionFactoryReferenceName);
@@ -36,8 +37,8 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
 
         $headerMapper = DefaultHeaderMapper::createWith([], $this->headerMapper, $conversionService);
-        return new DbalOutboundChannelAdapter(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory)),
+        return new SqsOutboundChannelAdapter(
+            CachedConnectionFactory::createFor(new HttpReconnectableConnectionFactory($connectionFactory)),
             $this->queueName,
             $this->autoDeclare,
             new OutboundMessageConverter($headerMapper, $conversionService, $this->defaultConversionMediaType, $this->defaultDeliveryDelay, $this->defaultTimeToLive, $this->defaultPriority, [])

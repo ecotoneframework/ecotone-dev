@@ -236,5 +236,5 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         return $this->inboundEntrypoint instanceof NullEntrypointGateway;
     }
 
-    protected abstract function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter;
+    public abstract function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter;
 }

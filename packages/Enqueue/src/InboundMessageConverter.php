@@ -27,7 +27,7 @@ class InboundMessageConverter
      */
     private $inboundEndpointId;
 
-    public function __construct(string $inboundEndpointId, string $acknowledgeMode, string $acknowledgeHeaderName, HeaderMapper $headerMapper)
+    public function __construct(string $inboundEndpointId, string $acknowledgeMode, HeaderMapper $headerMapper, string $acknowledgeHeaderName = EnqueueHeader::HEADER_ACKNOWLEDGE)
     {
         $this->acknowledgeMode = $acknowledgeMode;
         $this->headerMapper = $headerMapper;

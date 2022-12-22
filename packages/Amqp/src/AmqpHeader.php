@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Enqueue\EnqueueHeader;
+
 /**
  * Interface AmqpHeader
  * @package Ecotone\Amqp
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-interface AmqpHeader
+interface AmqpHeader extends EnqueueHeader
 {
     public const PREFIX = 'amqp_';
     public const APP_ID = 'amqp_appId';
@@ -46,6 +48,5 @@ interface AmqpHeader
 
     public const HEADER_CONSUMER = 'amqp_originalConsumer';
     public const HEADER_AMQP_MESSAGE = 'amqp_originalMessage';
-    public const HEADER_ACKNOWLEDGE = 'amqp_acknowledge';
     public const HEADER_RELATED_AMQP_LIB_CHANNEL = 'amqp_libChannel';
 }

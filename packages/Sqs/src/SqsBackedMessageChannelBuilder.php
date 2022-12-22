@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Test\SqsDemo;
+namespace Ecotone\Sqs;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Enqueue\Sqs\SqsConnectionFactory;
 
 final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 {
@@ -25,7 +25,7 @@ final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         );
     }
 
-    public static function create(string $channelName, string $connectionReferenceName = DbalConnectionFactory::class): self
+    public static function create(string $channelName, string $connectionReferenceName = SqsConnectionFactory::class): self
     {
         return new self($channelName, $connectionReferenceName);
     }

@@ -75,6 +75,9 @@
             "Test\\Ecotone\\JMSConverter\\": [
                 "packages/JmsConverter/tests"
             ],
+            "Test\\Ecotone\\JMSConverter\\": [
+                "packages/JmsConverter/tests"
+            ],
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
             "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
             "Tests\\Ecotone\\": "tests"
@@ -86,6 +89,7 @@
         "doctrine/persistence": "^2.5",
         "enqueue/amqp-ext": "^0.10.4",
         "enqueue/dbal": "^0.10.17",
+        "enqueue/sqs": "^0.10.15",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0",
         "ext-amqp": "*",

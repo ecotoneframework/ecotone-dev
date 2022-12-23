@@ -5,7 +5,7 @@ namespace Test\Ecotone\Amqp\Configuration;
 use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Amqp\Publisher\AmqpPublisherModule;
+use Ecotone\Amqp\Publisher\AmqpMessagePublisherModule;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Configuration;
@@ -31,7 +31,7 @@ use ReflectionException;
 /**
  * @internal
  */
-class AmqpPublisherModuleTest extends TestCase
+class AmqpMessagePublisherModuleTest extends TestCase
 {
     public function test_registering_single_amqp_publisher()
     {
@@ -85,8 +85,7 @@ class AmqpPublisherModuleTest extends TestCase
                         ->withHeaderMapper('ecotone.*')
                         ->withDefaultRoutingKey('someRouting')
                         ->withDefaultConversionMediaType(MediaType::APPLICATION_JSON)
-                )
-                ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel(MessagePublisher::class)),
+                ),
             $this->prepareConfiguration(
                 [
                     AmqpMessagePublisherConfiguration::create(MessagePublisher::class, 'exchangeName', MediaType::APPLICATION_JSON, 'amqpConnection')
@@ -151,8 +150,7 @@ class AmqpPublisherModuleTest extends TestCase
                         ->withAutoDeclareOnSend(true)
                         ->withHeaderMapper('')
                         ->withDefaultConversionMediaType(MediaType::APPLICATION_JSON)
-                )
-                ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel(MessagePublisher::class)),
+                ),
             $this->prepareConfiguration(
                 [
                     AmqpMessagePublisherConfiguration::create(MessagePublisher::class, 'exchangeName', null, 'amqpConnection')
@@ -202,7 +200,7 @@ class AmqpPublisherModuleTest extends TestCase
      */
     private function prepareConfiguration(array $extensions): MessagingSystemConfiguration
     {
-        $cqrsMessagingModule = AmqpPublisherModule::create(InMemoryAnnotationFinder::createEmpty(), InterfaceToCallRegistry::createEmpty());
+        $cqrsMessagingModule = AmqpMessagePublisherModule::create(InMemoryAnnotationFinder::createEmpty(), InterfaceToCallRegistry::createEmpty());
 
         $extendedConfiguration        = $this->createMessagingSystemConfiguration();
         $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();

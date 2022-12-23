@@ -24,7 +24,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 
 #[ModuleAnnotation]
-class AmqpPublisherModule implements AnnotationModule
+class AmqpMessagePublisherModule implements AnnotationModule
 {
     /**
      * @inheritDoc
@@ -39,16 +39,11 @@ class AmqpPublisherModule implements AnnotationModule
      */
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $registeredReferences = [];
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         ;
 
+        /** @var AmqpMessagePublisherConfiguration $amqpPublisher */
         foreach (ExtensionObjectResolver::resolve(AmqpMessagePublisherConfiguration::class, $extensionObjects) as $amqpPublisher) {
-            if (in_array($amqpPublisher->getReferenceName(), $registeredReferences)) {
-                throw ConfigurationException::create("Registering two publishers under same reference name {$amqpPublisher->getReferenceName()}. You need to create publisher with specific reference using `createWithReferenceName`.");
-            }
-
-            $registeredReferences[] = $amqpPublisher->getReferenceName();
             $mediaType = $amqpPublisher->getOutputDefaultConversionMediaType() ? $amqpPublisher->getOutputDefaultConversionMediaType() : $applicationConfiguration->getDefaultSerializationMediaType();
 
             $configuration = $configuration
@@ -83,17 +78,16 @@ class AmqpPublisherModule implements AnnotationModule
                         ])
                 )
                 ->registerMessageHandler(
-                    AmqpOutboundChannelAdapterBuilder::create($amqpPublisher->getExchangeName(), $amqpPublisher->getAmqpConnectionReference())
+                    AmqpOutboundChannelAdapterBuilder::create($amqpPublisher->getExchangeName(), $amqpPublisher->getConnectionReference())
                         ->withEndpointId($amqpPublisher->getReferenceName() . '.handler')
                         ->withInputChannelName($amqpPublisher->getReferenceName())
                         ->withDefaultPersistentMode($amqpPublisher->getDefaultPersistentDelivery())
-                        ->withAutoDeclareOnSend($amqpPublisher->isAutoDeclareQueueOnSend())
+                        ->withAutoDeclareOnSend($amqpPublisher->isAutoDeclareOnSend())
                         ->withHeaderMapper($amqpPublisher->getHeaderMapper())
                         ->withDefaultRoutingKey($amqpPublisher->getDefaultRoutingKey())
                         ->withRoutingKeyFromHeader($amqpPublisher->getRoutingKeyFromHeader())
                         ->withDefaultConversionMediaType($mediaType)
-                )
-                ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($amqpPublisher->getReferenceName()));
+                );
         }
     }
 

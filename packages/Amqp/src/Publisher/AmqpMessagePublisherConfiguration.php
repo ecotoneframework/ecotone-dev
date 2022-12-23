@@ -15,7 +15,7 @@ class AmqpMessagePublisherConfiguration
     /**
      * @var string
      */
-    private $amqpConnectionReference;
+    private $connectionReference;
     /**
      * @var string|null
      */
@@ -31,7 +31,7 @@ class AmqpMessagePublisherConfiguration
     /**
      * @var bool
      */
-    private $autoDeclareQueueOnSend = true;
+    private $autoDeclareOnSend = true;
     /**
      * @var string
      */
@@ -49,39 +49,25 @@ class AmqpMessagePublisherConfiguration
      */
     private $defaultPersistentDelivery = true;
 
-    /**
-     * RegisterAmqpPublisher constructor.
-     * @param string $amqpConnectionReference
-     * @param string $exchangeName
-     * @param string|null $outputDefaultConversionMediaType
-     * @param string $referenceName
-     */
-    private function __construct(string $amqpConnectionReference, string $exchangeName, ?string $outputDefaultConversionMediaType, string $referenceName)
+    private function __construct(string $connectionReference, string $exchangeName, ?string $outputDefaultConversionMediaType, string $referenceName)
     {
-        $this->amqpConnectionReference = $amqpConnectionReference;
+        $this->connectionReference = $connectionReference;
         $this->outputDefaultConversionMediaType = $outputDefaultConversionMediaType;
         $this->referenceName = $referenceName;
         $this->exchangeName = $exchangeName;
     }
 
-    /**
-     * @param string $publisherReferenceName
-     * @param string $exchangeName
-     * @param string|null $outputDefaultConversionMediaType
-     * @param string $amqpConnectionReference
-     * @return AmqpMessagePublisherConfiguration
-     */
-    public static function create(string $publisherReferenceName = MessagePublisher::class, string $exchangeName = '', ?string $outputDefaultConversionMediaType = null, string $amqpConnectionReference = AmqpConnectionFactory::class): self
+    public static function create(string $publisherReferenceName = MessagePublisher::class, string $exchangeName = '', ?string $outputDefaultConversionMediaType = null, string $connectionReference = AmqpConnectionFactory::class): self
     {
-        return new self($amqpConnectionReference, $exchangeName, $outputDefaultConversionMediaType, $publisherReferenceName);
+        return new self($connectionReference, $exchangeName, $outputDefaultConversionMediaType, $publisherReferenceName);
     }
 
     /**
      * @return string
      */
-    public function getAmqpConnectionReference(): string
+    public function getConnectionReference(): string
     {
-        return $this->amqpConnectionReference;
+        return $this->connectionReference;
     }
 
     /**
@@ -90,7 +76,7 @@ class AmqpMessagePublisherConfiguration
      */
     public function withAutoDeclareQueueOnSend(bool $autoDeclareQueueOnSend): AmqpMessagePublisherConfiguration
     {
-        $this->autoDeclareQueueOnSend = $autoDeclareQueueOnSend;
+        $this->autoDeclareOnSend = $autoDeclareQueueOnSend;
 
         return $this;
     }
@@ -164,9 +150,9 @@ class AmqpMessagePublisherConfiguration
     /**
      * @return bool
      */
-    public function isAutoDeclareQueueOnSend(): bool
+    public function isAutoDeclareOnSend(): bool
     {
-        return $this->autoDeclareQueueOnSend;
+        return $this->autoDeclareOnSend;
     }
 
     /**

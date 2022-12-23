@@ -182,7 +182,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
             'some',
             $messageChannel->receiveWithTimeout(1)->getPayload()
         );
-        ;
+
+        $this->assertNull($messageChannel->receiveWithTimeout(1));
     }
 
     public function test_failing_to_receive_message_when_not_declared()

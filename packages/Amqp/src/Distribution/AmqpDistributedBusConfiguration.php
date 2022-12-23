@@ -17,7 +17,7 @@ class AmqpDistributedBusConfiguration
     private const DISTRIBUTION_TYPE_BOTH = 'both';
     public const DEFAULT_UNIQUE_DISTRIBUTION_KEY = 'distribution_bus_';
 
-    private string $amqpConnectionReference;
+    private string $connectionReference;
     private ?string $outputDefaultConversionMediaType;
     private string $referenceName;
     private string $headerMapper = '*';
@@ -26,7 +26,7 @@ class AmqpDistributedBusConfiguration
 
     private function __construct(string $amqpConnectionReference, ?string $outputDefaultConversionMediaType, string $referenceName, string $distributionType)
     {
-        $this->amqpConnectionReference = $amqpConnectionReference;
+        $this->connectionReference = $amqpConnectionReference;
         $this->outputDefaultConversionMediaType = $outputDefaultConversionMediaType;
         $this->referenceName = $referenceName;
         $this->distributionType = $distributionType;
@@ -55,9 +55,9 @@ class AmqpDistributedBusConfiguration
     /**
      * @return string
      */
-    public function getAmqpConnectionReference(): string
+    public function getConnectionReference(): string
     {
-        return $this->amqpConnectionReference;
+        return $this->connectionReference;
     }
 
     /**

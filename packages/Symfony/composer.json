@@ -24,7 +24,7 @@
     ],
     "description": "Extends Ecotone with Symfony integration",
     "require": {
-        "ecotone/ecotone": "1.62",
+        "ecotone/ecotone": "^1.63",
         "laminas/laminas-zendframework-bridge": "^1.0.0",
         "symfony/console": "^5.4|^6.0",
         "symfony/framework-bundle": "^5.4|^6.0"
@@ -73,7 +73,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.62-dev"
+            "dev-main": "1.63-dev"
         },
         "ecotone": {
             "repository": "symfony"

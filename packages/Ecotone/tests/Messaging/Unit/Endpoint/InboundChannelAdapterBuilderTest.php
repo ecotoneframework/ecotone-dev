@@ -363,6 +363,8 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
 
     public function test_acking_message_when_ack_available_in_message_header_in_inbound_channel_adapter()
     {
+        // write for real implementation tests, if is acked correctly
+
         $acknowledgementCallback = NullAcknowledgementCallback::create();
         $message = MessageBuilder::withPayload('some')
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')

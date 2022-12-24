@@ -30,7 +30,6 @@ use Exception;
  */
 class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 {
-    private \Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder $gatewayExecutor;
     private string $referenceName;
     private string $methodName;
     private string $requestChannelName;
@@ -45,7 +44,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     private function __construct(string $requestChannelName, string $referenceName, string $methodName)
     {
-        $this->gatewayExecutor = GatewayProxyBuilder::create($referenceName, InboundGatewayEntrypoint::class, 'executeEntrypoint', $requestChannelName);
+        $this->inboundGateway = GatewayProxyBuilder::create($referenceName, InboundGatewayEntrypoint::class, 'executeEntrypoint', $requestChannelName);
         $this->referenceName = $referenceName;
         $this->methodName = $methodName;
         $this->requestChannelName = $requestChannelName;
@@ -83,7 +82,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     public function getRequiredReferences(): array
     {
-        return array_merge([$this->referenceName], $this->gatewayExecutor->getRequiredReferences());
+        return array_merge([$this->referenceName], $this->inboundGateway->getRequiredReferences());
     }
 
     /**
@@ -110,7 +109,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     public function addBeforeInterceptor(MethodInterceptor $methodInterceptor): \Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder
     {
-        $this->gatewayExecutor->addBeforeInterceptor($methodInterceptor);
+        $this->inboundGateway->addBeforeInterceptor($methodInterceptor);
 
         return $this;
     }
@@ -120,7 +119,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     public function addAfterInterceptor(MethodInterceptor $methodInterceptor): \Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder
     {
-        $this->gatewayExecutor->addAfterInterceptor($methodInterceptor);
+        $this->inboundGateway->addAfterInterceptor($methodInterceptor);
 
         return $this;
     }
@@ -130,7 +129,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     public function addAroundInterceptor(AroundInterceptorReference $aroundInterceptorReference): self
     {
-        $this->gatewayExecutor->addAroundInterceptor($aroundInterceptorReference);
+        $this->inboundGateway->addAroundInterceptor($aroundInterceptorReference);
 
         return $this;
     }
@@ -140,7 +139,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
-        return array_merge([$interfaceToCallRegistry->getFor(InboundChannelAdapterEntrypoint::class, 'executeEntrypoint')], $this->gatewayExecutor->resolveRelatedInterfaces($interfaceToCallRegistry));
+        return array_merge([$interfaceToCallRegistry->getFor(InboundChannelAdapterEntrypoint::class, 'executeEntrypoint')], $this->inboundGateway->resolveRelatedInterfaces($interfaceToCallRegistry));
     }
 
     /**
@@ -158,7 +157,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     public function withEndpointAnnotations(iterable $endpointAnnotations): self
     {
-        $this->gatewayExecutor->withEndpointAnnotations($endpointAnnotations);
+        $this->inboundGateway->withEndpointAnnotations($endpointAnnotations);
 
         return $this;
     }
@@ -168,7 +167,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     public function getEndpointAnnotations(): array
     {
-        return $this->gatewayExecutor->getEndpointAnnotations();
+        return $this->inboundGateway->getEndpointAnnotations();
     }
 
     /**
@@ -176,7 +175,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     public function getRequiredInterceptorNames(): iterable
     {
-        return $this->gatewayExecutor->getRequiredInterceptorNames();
+        return $this->inboundGateway->getRequiredInterceptorNames();
     }
 
     /**
@@ -184,7 +183,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
      */
     public function withRequiredInterceptorNames(iterable $interceptorNames): self
     {
-        $this->gatewayExecutor->withRequiredInterceptorNames($interceptorNames);
+        $this->inboundGateway->withRequiredInterceptorNames($interceptorNames);
 
         return $this;
     }
@@ -216,7 +215,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
                 $registeredAnnotations[] = $annotation;
             }
         }
-        $this->gatewayExecutor->withEndpointAnnotations($registeredAnnotations);
+        $this->inboundGateway->withEndpointAnnotations($registeredAnnotations);
 
         if (! $interfaceToCall->hasNoParameters()) {
             throw InvalidArgumentException::create("{$interfaceToCall} for InboundChannelAdapter should not have any parameters");
@@ -232,12 +231,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             $methodName = 'execute';
         }
 
-        $this->gatewayExecutor->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor(
-            $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME),
-            $pollingMetadata
-        ));
-
-        $gateway = $this->gatewayExecutor
+        $gateway = $this->inboundGateway
             ->buildWithoutProxyObject($referenceSearchService, $channelResolver);
 
         return new InboundChannelTaskExecutor(

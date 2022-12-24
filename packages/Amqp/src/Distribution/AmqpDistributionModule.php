@@ -54,7 +54,7 @@ class AmqpDistributionModule
     {
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $amqpConfiguration = [];
-        /** @var AmqpMessagePublisherConfiguration $distributedBusConfiguration */
+        /** @var AmqpDistributedBusConfiguration $distributedBusConfiguration */
         foreach ($extensionObjects as $distributedBusConfiguration) {
             if (! ($distributedBusConfiguration instanceof AmqpDistributedBusConfiguration)) {
                 continue;
@@ -108,7 +108,7 @@ class AmqpDistributionModule
                 Assert::isFalse($applicationConfiguration->getServiceName() === ServiceConfiguration::DEFAULT_SERVICE_NAME, "Service name can't be default when using distribution. Set up correct Service Name");
 
                 $channelName = self::CHANNEL_PREFIX . $applicationConfiguration->getServiceName();
-                $configuration->registerMessageChannel(AmqpBackedMessageChannelBuilder::create($channelName, $distributedBusConfiguration->getAmqpConnectionReference()));
+                $configuration->registerMessageChannel(AmqpBackedMessageChannelBuilder::create($channelName, $distributedBusConfiguration->getConnectionReference()));
                 $configuration->registerMessageHandler(
                     BridgeBuilder::create()
                         ->withEndpointId($applicationConfiguration->getServiceName())
@@ -183,7 +183,7 @@ class AmqpDistributionModule
                     )
             )
             ->registerMessageHandler(
-                AmqpOutboundChannelAdapterBuilder::create(self::AMQP_DISTRIBUTED_EXCHANGE, $amqpPublisher->getAmqpConnectionReference())
+                AmqpOutboundChannelAdapterBuilder::create(self::AMQP_DISTRIBUTED_EXCHANGE, $amqpPublisher->getConnectionReference())
                     ->withEndpointId($amqpPublisher->getReferenceName() . '.handler')
                     ->withInputChannelName($amqpPublisher->getReferenceName())
                     ->withDefaultPersistentMode($amqpPublisher->getDefaultPersistentDelivery())

@@ -20,7 +20,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
 {
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = SqsConnectionFactory::class): self
     {
-        return new self($endpointId, $queueName, $requestChannelName, $connectionReferenceName);
+        return new self($queueName, $endpointId, $requestChannelName, $connectionReferenceName);
     }
 
     public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter

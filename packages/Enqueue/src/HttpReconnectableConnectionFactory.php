@@ -25,7 +25,6 @@ final class HttpReconnectableConnectionFactory implements ReconnectableConnectio
 
     public function reconnect(): void
     {
-
     }
 
     public function getConnectionInstanceId(): int

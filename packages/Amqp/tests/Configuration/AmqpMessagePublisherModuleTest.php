@@ -7,7 +7,6 @@ use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherModule;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;

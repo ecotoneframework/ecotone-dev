@@ -18,8 +18,7 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         protected Destination              $destination,
         protected bool                     $autoDeclare,
         protected OutboundMessageConverter $outboundMessageConverter
-    )
-    {
+    ) {
     }
 
     abstract public function initialize(): void;

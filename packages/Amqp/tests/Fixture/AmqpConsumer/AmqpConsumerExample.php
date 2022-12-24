@@ -6,7 +6,6 @@ use Ecotone\Messaging\Attribute\ClassReference;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use stdClass;
 
 #[ClassReference(AmqpConsumerExample::class)]
 class AmqpConsumerExample
@@ -23,7 +22,7 @@ class AmqpConsumerExample
     /**
      * @return string[]
      */
-    #[QueryHandler("consumer.getMessagePayloads")]
+    #[QueryHandler('consumer.getMessagePayloads')]
     public function getMessagePayloads(): array
     {
         return $this->messagePayloads;

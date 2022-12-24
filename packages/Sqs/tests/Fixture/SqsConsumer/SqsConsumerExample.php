@@ -21,7 +21,7 @@ final class SqsConsumerExample
     /**
      * @return string[]
      */
-    #[QueryHandler("consumer.getMessagePayloads")]
+    #[QueryHandler('consumer.getMessagePayloads')]
     public function getMessagePayloads(): array
     {
         return $this->messagePayloads;

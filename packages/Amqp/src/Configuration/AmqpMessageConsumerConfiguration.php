@@ -2,7 +2,6 @@
 
 namespace Ecotone\Amqp\Configuration;
 
-use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\EnqueueMessageConsumerConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 

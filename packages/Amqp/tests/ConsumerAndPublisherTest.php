@@ -15,11 +15,14 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 
+/**
+ * @internal
+ */
 final class ConsumerAndPublisherTest extends AmqpMessagingTest
 {
     public function testing_sending_message_using_publisher_and_receiving_using_consumer()
     {
-        $endpointId = "asynchronous_endpoint";
+        $endpointId = 'asynchronous_endpoint';
         $queueName = Uuid::uuid4()->toString();
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [AmqpConsumerExample::class],
@@ -33,18 +36,18 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTest
                     AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
-                        ->withDefaultRoutingKey($queueName)
+                        ->withDefaultRoutingKey($queueName),
                 ])
         );
 
-        $payload = "random_payload";
+        $payload = 'random_payload';
         $messagePublisher = $ecotoneLite->getMessagePublisher();
         $messagePublisher->send($payload);
 
         $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
-        $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting("consumer.getMessagePayloads"));
+        $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
 
         $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
-        $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting("consumer.getMessagePayloads"));
+        $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
     }
 }

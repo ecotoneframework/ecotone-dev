@@ -19,7 +19,7 @@ use Ecotone\Lite\Test\Configuration\EcotoneTestSupportModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\BasicMessagingModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsumerModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageConsumerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConverterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders\EndpointHeadersInterceptorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorHandlerModule;
@@ -66,7 +66,7 @@ class ModuleClassList
         ServiceActivatorModule::class,
         SplitterModule::class,
         TransformerModule::class,
-        ConsumerModule::class
+        MessageConsumerModule::class
     ];
 
     public const ASYNCHRONOUS_MODULE = [

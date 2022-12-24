@@ -16,7 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 
 #[ModuleAnnotation]
-final class ConsumerModule extends NoExternalConfigurationModule implements AnnotationModule
+final class MessageConsumerModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     private function __construct(private array $serviceActivators)
     {

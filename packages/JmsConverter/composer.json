@@ -12,7 +12,15 @@
             "email": "dgafka.mail@gmail.com"
         }
     ],
-    "keywords": ["messaging", "ecotone", "serializer", "integration", "json", "xml", "converter"],
+    "keywords": [
+        "messaging",
+        "ecotone",
+        "serializer",
+        "integration",
+        "json",
+        "xml",
+        "converter"
+    ],
     "description": "Provides serialization using JMS Serializer",
     "autoload": {
         "psr-4": {
@@ -27,7 +35,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.62",
+        "ecotone/ecotone": "1.62",
         "jms/serializer": "^3.17",
         "symfony/cache": "^5.4|^6.1"
     },

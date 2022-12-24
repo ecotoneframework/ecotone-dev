@@ -9,7 +9,13 @@
             "email": "dgafka.mail@gmail.com"
         }
     ],
-    "keywords": ["ddd", "cqrs", "EventSourcing", "ecotone", "service-bus"],
+    "keywords": [
+        "ddd",
+        "cqrs",
+        "EventSourcing",
+        "ecotone",
+        "service-bus"
+    ],
     "description": "Ecotone is Service Bus Implementation, which enables message driven architecture with DDD, CQRS, Event Sourcing in PHP",
     "autoload": {
         "psr-4": {
@@ -131,13 +137,13 @@
         }
     },
     "replace": {
-        "ecotone/amqp": "1.61.0",
-        "ecotone/dbal": "1.61.0",
-        "ecotone/enqueue": "1.61.0",
-        "ecotone/jms-converter": "1.61.0",
-        "ecotone/laravel": "1.61.0",
-        "ecotone/pdo-event-sourcing": "1.61.0",
-        "ecotone/symfony-bundle": "1.61.0"
+        "ecotone/amqp": "1.62.0",
+        "ecotone/dbal": "1.62.0",
+        "ecotone/enqueue": "1.62.0",
+        "ecotone/jms-converter": "1.62.0",
+        "ecotone/laravel": "1.62.0",
+        "ecotone/pdo-event-sourcing": "1.62.0",
+        "ecotone/symfony-bundle": "1.62.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

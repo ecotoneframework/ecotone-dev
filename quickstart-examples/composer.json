@@ -11,7 +11,16 @@
             "email": "dgafka.mail@gmail.com"
         }
     ],
-    "keywords": ["symfony", "ecotone", "ddd", "messaging", "message", "enterprise integration patterns", "eip", "distributed architecture"],
+    "keywords": [
+        "symfony",
+        "ecotone",
+        "ddd",
+        "messaging",
+        "message",
+        "enterprise integration patterns",
+        "eip",
+        "distributed architecture"
+    ],
     "description": "Extends Ecotone with Symfony integration",
     "scripts": {
         "tests:ci": [

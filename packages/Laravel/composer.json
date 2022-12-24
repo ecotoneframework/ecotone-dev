@@ -12,7 +12,15 @@
             "email": "dgafka.mail@gmail.com"
         }
     ],
-    "keywords": ["ddd", "cqrs", "messaging", "eip", "distributed architecture", "ecotone", "ddd and cqrs on top of eip"],
+    "keywords": [
+        "ddd",
+        "cqrs",
+        "messaging",
+        "eip",
+        "distributed architecture",
+        "ecotone",
+        "ddd and cqrs on top of eip"
+    ],
     "description": "Laravel integration for Ecotone",
     "autoload": {
         "psr-4": {
@@ -25,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.62",
+        "ecotone/ecotone": "1.62",
         "laravel/framework": "^9.0"
     },
     "require-dev": {

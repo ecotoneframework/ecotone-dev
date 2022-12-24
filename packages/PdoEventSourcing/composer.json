@@ -12,7 +12,10 @@
             "email": "dgafka.mail@gmail.com"
         }
     ],
-    "keywords": ["dbal", "ecotone"],
+    "keywords": [
+        "dbal",
+        "ecotone"
+    ],
     "description": "Extends Ecotone with Event Sourcing using Prooph PDO Event Store",
     "autoload": {
         "psr-4": {
@@ -27,7 +30,7 @@
         }
     },
     "require": {
-        "ecotone/dbal": "^1.62",
+        "ecotone/dbal": "1.62",
         "prooph/pdo-event-store": "^1.15.1"
     },
     "require-dev": {

@@ -54,7 +54,7 @@
             "dev-main": "1.63-dev"
         },
         "ecotone": {
-            "repository": "dbal"
+            "repository": "sqs"
         },
         "merge-plugin": {
             "include": [

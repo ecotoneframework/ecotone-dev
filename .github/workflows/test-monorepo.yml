@@ -55,7 +55,6 @@ jobs:
       localstack:
         image: localstack/localstack:0.8.10
         env:
-          HOSTNAME_EXTERNAL: 'localstack'
           SERVICES: 'sqs,sns'
         ports:
           - '4576:4576'

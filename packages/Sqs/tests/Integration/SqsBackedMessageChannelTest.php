@@ -18,7 +18,7 @@ use Test\Ecotone\Sqs\AbstractConnectionTest;
  */
 final class SqsBackedMessageChannelTest extends AbstractConnectionTest
 {
-    public function TODO_test_sending_and_receiving_message()
+    public function test_sending_and_receiving_message()
     {
         $queueName = Uuid::uuid4()->toString();
         $messagePayload = 'some';

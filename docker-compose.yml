@@ -20,6 +20,7 @@ services:
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest
     env_file:
       - ".env"
   database:

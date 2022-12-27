@@ -50,7 +50,7 @@
             "dev-main": "1.62-dev"
         },
         "ecotone": {
-            "repository": "dbal"
+            "repository": "_PackageTemplate"
         },
         "merge-plugin": {
             "include": [

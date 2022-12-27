@@ -20,7 +20,7 @@ use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsConsumerExample;
  */
 final class ConsumerAndPublisherTest extends AbstractConnectionTest
 {
-    public function TODO_testing_sending_message_using_publisher_and_receiving_using_consumer()
+    public function testing_sending_message_using_publisher_and_receiving_using_consumer()
     {
         $endpointId = 'sqs_consumer';
         $queueName = Uuid::uuid4()->toString();

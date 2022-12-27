@@ -77,8 +77,16 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      localstack:
+        image: localstack/localstack:0.8.10
+        env:
+          SERVICES: 'sqs,sns'
+        ports:
+          - '4576:4576'
+          - '4575:4575'
     env:
       RABBIT_HOST: amqp://127.0.0.1:5672
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4576&version=latest
     steps:
       - uses: actions/checkout@v2
 
@@ -107,6 +115,7 @@ jobs:
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
           DATABASE_DSN: pgsql://ecotone:secret@localhost:5432/ecotone
+          SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4576&version=latest
 
       - name: Run tests on Mysql
         run: composer tests:ci
@@ -114,3 +123,4 @@ jobs:
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
           DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
+          SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4576&version=latest

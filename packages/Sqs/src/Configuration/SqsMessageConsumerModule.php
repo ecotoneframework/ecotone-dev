@@ -33,6 +33,7 @@ final class SqsMessageConsumerModule extends NoExternalConfigurationModule imple
                     $extensionObject->getEndpointId(),
                     $extensionObject->getConnectionReferenceName()
                 )
+                    ->withDeclareOnStartup($extensionObject->isDeclaredOnStartup())
                     ->withHeaderMapper($extensionObject->getHeaderMapper())
                     ->withReceiveTimeout($extensionObject->getReceiveTimeoutInMilliseconds())
             );

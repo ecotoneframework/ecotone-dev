@@ -25,10 +25,11 @@ $messagingSystem->getCommandBus()->send(new PlaceOrder($orderId, "Milk", false))
 Assert::assertNotNull($orderRepository->findBy($orderId), "Order should be stored as there was no exception");
 
 echo "Running consumer for handling event:\n";
-$messagingSystem->run(Configuration::ASYNCHRONOUS_CHANNEL);
+$messagingSystem->run(Configuration::DATABASE_CHANNEL);
+$messagingSystem->run(Configuration::EXTERNAL_BROKER_CHANNEL);
 
 /**
- * Command handler fails after publishing an event, however not event will be published
+ * Command handler fails after publishing an event, so no event will be published
  */
 $orderId = 2;
 try {
@@ -40,6 +41,6 @@ try {
 Assert::assertNull($orderRepository->findBy($orderId), "Order should not be stored due to exception");
 
 echo "Running consumer for handling event after failure, will do nothing:\n";
-$messagingSystem->run(Configuration::ASYNCHRONOUS_CHANNEL);
+$messagingSystem->run(Configuration::DATABASE_CHANNEL);
 
 echo "Done.\n";

@@ -39,36 +39,26 @@ class ObjectManagerModule implements AnnotationModule
      */
     public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $connectionFactories = [DbalConnectionFactory::class];
-        $pointcut            = '(' . DbalTransaction::class . ')';
-
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
-        if ($dbalConfiguration->isTransactionOnCommandBus()) {
-            $pointcut .= '||(' . CommandBus::class . ')';
-        }
-        if ($dbalConfiguration->isTransactionOnConsoleCommands()) {
-            $pointcut .= '||(' . ConsoleCommand::class . ')';
-        }
-        if ($dbalConfiguration->isClearObjectManagerOnAsynchronousEndpoints()) {
-            $pointcut .= '||(' . AsynchronousRunningEndpoint::class . ')';
-        }
-
+        $connectionFactories = [DbalConnectionFactory::class];
         if ($dbalConfiguration->getDefaultConnectionReferenceNames()) {
             $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames();
         }
 
-        $configuration
-            ->requireReferences($connectionFactories)
-            ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                    $interfaceToCallRegistry,
-                    new ObjectManagerInterceptor($connectionFactories),
-                    'transactional',
-                    Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
-                    $pointcut
-                )
-            );
+        if ($dbalConfiguration->isClearObjectManagerOnAsynchronousEndpoints()) {
+            $configuration
+                ->requireReferences($connectionFactories)
+                ->registerAroundMethodInterceptor(
+                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                        $interfaceToCallRegistry,
+                        new ObjectManagerInterceptor($connectionFactories),
+                        'transactional',
+                        Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
+                        AsynchronousRunningEndpoint::class
+                    )
+                );
+        }
     }
 
     /**

@@ -231,6 +231,30 @@ class PollingConsumerBuilderTest extends MessagingTest
         $this->assertTrue($acknowledgementCallback->isRequeued());
     }
 
+    public function test_throwing_exception_and_rejecting_message()
+    {
+        $acknowledgementCallback = NullAcknowledgementCallback::create();
+        $message = MessageBuilder::withPayload('some')
+            ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
+            ->setHeader('amqpAcker', $acknowledgementCallback)
+            ->build();
+
+        $inputChannelName = 'inputChannel';
+        $inputChannel = QueueChannel::create();
+        $messageHandler = DataReturningService::createServiceActivatorBuilderWithRejectException()
+            ->withEndpointId('some-id')
+            ->withInputChannelName($inputChannelName);
+
+        $pollingConsumer = $this->createPollingConsumer($inputChannelName, $inputChannel, $messageHandler);
+
+        $inputChannel->send($message);
+
+        $pollingConsumer->run();
+
+        $this->assertTrue($acknowledgementCallback->isRejected());
+        $this->assertFalse($acknowledgementCallback->isRequeued());
+    }
+
     public function test_acking_on_gateway_failure_when_error_channel_defined()
     {
         $acknowledgementCallback = NullAcknowledgementCallback::create();

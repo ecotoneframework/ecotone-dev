@@ -68,7 +68,9 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
                 ])
         );
 
-        $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
+        try {
+            $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
+        }catch (\AMQPQueueException) {}
 
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "milk");
         /** Message should be waiting in the queue */

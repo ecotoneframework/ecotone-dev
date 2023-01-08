@@ -85,7 +85,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         try {
             $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
             $subscriptionConsumer->unsubscribe($consumer);
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             $subscriptionConsumer->unsubscribe($consumer);
 
             throw $exception;

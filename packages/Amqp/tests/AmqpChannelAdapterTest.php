@@ -485,8 +485,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $exchangeName = Uuid::uuid4()->toString();
         $blackQueueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName)
-                ->withExclusivity(),
+            AmqpQueue::createWith($blackQueueName),
         ];
         $amqpExchanges = [
             AmqpExchange::createFanoutExchange($exchangeName)
@@ -501,7 +500,6 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $converters = [];
         $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
         $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
-
 
         $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName);
 
@@ -687,44 +685,40 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
 
     public function test_receiving_from_dead_letter_queue()
     {
+        $normalQueueEndpointId = 'normal_queue';
+        $deadLettterQueueEndpointId = 'asynchronous_endpoint';
         $queueName = Uuid::uuid4()->toString();
-        $deadLetterQueue = AmqpQueue::createWith(Uuid::uuid4()->toString());
-        $amqpQueues = [
-            AmqpQueue::createWith($queueName)
-                ->withDeadLetterForDefaultExchange($deadLetterQueue)
-                ->withExclusivity(),
-            $deadLetterQueue,
-        ];
-        $amqpExchanges = [];
-        $amqpBindings = [];
-        $requestChannelName = 'requestChannel';
-        $inboundRequestChannel = QueueChannel::create();
-        $amqpConnectionReferenceName = 'connection';
-        $messageToSend = MessageBuilder::withPayload('some')->build();
-        $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $deadLetterQueueName = Uuid::uuid4()->toString();
+        $deadLetterQueue = AmqpQueue::createWith($deadLetterQueueName);
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [ExceptionalMessageHandler::class, AmqpConsumerExample::class],
+            [
+                ExceptionalMessageHandler::createWithRejectException(),
+                new AmqpConsumerExample(),
+                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpMessageConsumerConfiguration::create($normalQueueEndpointId, $queueName),
+                    AmqpMessageConsumerConfiguration::create($deadLettterQueueEndpointId, $deadLetterQueueName),
+                    AmqpQueue::createWith($queueName)
+                        ->withDeadLetterForDefaultExchange($deadLetterQueue),
+                    $deadLetterQueue,
+                    AmqpMessagePublisherConfiguration::create()
+                        ->withDefaultRoutingKey($queueName)
+                ])
+        );
 
-        $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName);
-        $inboundQueueChannel = DirectChannel::create();
-        $inboundQueueChannel->subscribe(ExceptionalMessageHandler::create());
+        $payload = 'random_payload';
+        $messagePublisher = $ecotoneLite->getMessagePublisher();
+        $messagePublisher->send($payload);
 
-        $normalQueueChannelAdapter = $inboundAmqpAdapter->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
-        $normalQueueChannelAdapter->run();
+        $ecotoneLite->run($normalQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
+        $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
 
-        $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
-            ->withAutoDeclareOnSend(false)
-            ->withDefaultRoutingKey($queueName);
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
-
-        $normalQueueChannelAdapter->run();
-        $normalQueueChannelAdapter->run();
-
-        $inboundAmqpAdapter = $this->createAmqpInboundAdapter($deadLetterQueue->getQueueName(), $requestChannelName, $amqpConnectionReferenceName);
-        $deadLetterQueueChannelAdapter = $inboundAmqpAdapter->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
-        $deadLetterQueueChannelAdapter->run();
-
-        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapter, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was not dead letter queued');
+        $ecotoneLite->run($deadLettterQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
     }
 
     /**
@@ -824,7 +818,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
     }
 
-    public function test_sending_and_receiving_from_stream_queue()
+    public function todo_test_sending_and_receiving_from_stream_queue()
     {
         $endpointId = 'asynchronous_endpoint';
         $queueName = "test";

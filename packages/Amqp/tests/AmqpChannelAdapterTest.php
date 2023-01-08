@@ -12,15 +12,22 @@ use Ecotone\Amqp\AmqpHeader;
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Amqp\Configuration\AmqpConfiguration;
+use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
+use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Enqueue\EnqueueMessageChannel;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
@@ -32,10 +39,12 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Exception;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use stdClass;
+use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 use Test\Ecotone\Amqp\Fixture\Handler\ExceptionalMessageHandler;
 
 /**
@@ -813,6 +822,40 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
 
         $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
         $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
+    }
+
+    public function test_sending_and_receiving_from_stream_queue()
+    {
+        $endpointId = 'asynchronous_endpoint';
+        $queueName = "test";
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [AmqpConsumerExample::class],
+            [
+                new AmqpConsumerExample(),
+                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpMessagePublisherConfiguration::create()
+                        ->withDefaultRoutingKey($queueName),
+                    AmqpConfiguration::createWithDefaults()
+                        ->withTransactionOnAsynchronousEndpoints(false)
+                        ->withTransactionOnCommandBus(false)
+                ])
+        );
+
+        $payload = 'random_payload';
+        $messagePublisher = $ecotoneLite->getMessagePublisher();
+        $messagePublisher->send($payload);
+
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
+
+//        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
+//        $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
     }
 
     /**

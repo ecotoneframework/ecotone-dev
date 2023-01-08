@@ -8,18 +8,21 @@ use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Interop\Amqp\Impl\AmqpQueue;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Amqp\Fixture\Order\OrderService;
 
 /**
  * @internal
  */
 final class AmqpMessageChannelTest extends AmqpMessagingTest
 {
-    public function test_sending_message()
+    public function test_sending_and_receiving_message_from_amqp_message_channel()
     {
         $queueName = Uuid::uuid4()->toString();
         $messagePayload = 'some';
@@ -48,6 +51,38 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
         $this->assertNull($messageChannel->receiveWithTimeout(1));
     }
 
+    public function test_sending_and_receiving_message_from_amqp_using_consumer()
+    {
+        $queueName = 'orders';
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpBackedMessageChannelBuilder::create($queueName),
+                ])
+        );
+
+        $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
+
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "milk");
+        /** Message should be waiting in the queue */
+        $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        /** Message should cosumed from the queue */
+        $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        /** Nothing should change, as we have not sent any new command message */
+        $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+    }
+
     public function test_failing_to_receive_message_when_not_declared()
     {
         $queueName = Uuid::uuid4()->toString();
@@ -70,8 +105,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
 
-        /** @TODO Ecotone 2.0 AMQPQueueException is previous exception should this be thrown directly? */
-        $this->expectException(ConnectionException::class);
+        $this->expectException(\AMQPQueueException::class);
 
         $messageChannel->receiveWithTimeout(1);
     }

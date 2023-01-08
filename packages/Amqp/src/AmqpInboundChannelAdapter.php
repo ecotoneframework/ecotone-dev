@@ -9,8 +9,11 @@ use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Amqp\AmqpMessage;
+use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
 
 /**
@@ -20,6 +23,8 @@ use Interop\Queue\Message as EnqueueMessage;
  */
 class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
+    private bool $initialized = false;
+
     public function __construct(
         CachedConnectionFactory         $cachedConnectionFactory,
         InboundChannelAdapterEntrypoint $inboundAmqpGateway,
@@ -54,5 +59,45 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         }
 
         return $targetMessage;
+    }
+
+    public function receiveMessage(int $timeout = 0): ?Message
+    {
+        if ($this->declareOnStartup && $this->initialized === false) {
+            $this->initialize();
+
+            $this->initialized = true;
+        }
+
+        $context = $this->connectionFactory->createContext();
+        $consumer = $this->connectionFactory->getConsumer(
+            $this->connectionFactory->createContext()->createQueue($this->queueName)
+        );
+        $subscriptionConsumer = $context->createSubscriptionConsumer();
+
+        $message = null;
+        $subscriptionConsumer->subscribe($consumer, function(EnqueueMessage $receivedMessage, Consumer $consumer) use (&$message) {
+            $message = $receivedMessage;
+
+            return false;
+        });
+
+        try {
+            $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
+            $subscriptionConsumer->unsubscribe($consumer);
+        } catch (\Exception $exception) {
+            $subscriptionConsumer->unsubscribe($consumer);
+
+            throw $exception;
+        }
+
+        if (! $message) {
+            return null;
+        }
+
+        $convertedMessage = $this->inboundMessageConverter->toMessage($message, $consumer);
+        $convertedMessage = $this->enrichMessage($message, $convertedMessage);
+
+        return $convertedMessage->build();
     }
 }

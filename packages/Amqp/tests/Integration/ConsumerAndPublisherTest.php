@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Amqp;
+namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 
 /**

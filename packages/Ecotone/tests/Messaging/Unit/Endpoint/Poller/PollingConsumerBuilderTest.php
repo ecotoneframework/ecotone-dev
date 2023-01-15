@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Endpoint\Poller;
 
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -19,6 +24,7 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use InvalidArgumentException;
 use RuntimeException;
+use Test\Ecotone\Amqp\Fixture\Handler\SuccessServiceActivator;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerStoppingService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerThrowingExceptionService;
 use Test\Ecotone\Messaging\Fixture\Handler\DataReturningService;
@@ -253,6 +259,40 @@ class PollingConsumerBuilderTest extends MessagingTest
 
         $this->assertTrue($acknowledgementCallback->isRejected());
         $this->assertFalse($acknowledgementCallback->isRequeued());
+    }
+
+    public function test_acking_message_with_fully_running_ecotone()
+    {
+        $messageChannelName = "async_channel";
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+            [SuccessServiceActivator::class],
+            [new SuccessServiceActivator()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel($messageChannelName)
+                ])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+        );
+
+        $acknowledgeCallback = NullAcknowledgementCallback::create();
+        $ecotoneTestSupport->sendMessage('handle_channel', metadata: [
+            MessageHeaders::CONSUMER_ACK_HEADER_LOCATION => 'ack',
+            'ack' => $acknowledgeCallback
+        ]);
+
+        $this->assertFalse($acknowledgeCallback->isAcked());
+        $ecotoneTestSupport->run($messageChannelName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        $this->assertTrue($acknowledgeCallback->isAcked());
+
+        $acknowledgeCallback = NullAcknowledgementCallback::create();
+        $ecotoneTestSupport->sendMessage('handle_channel', metadata: [
+            MessageHeaders::CONSUMER_ACK_HEADER_LOCATION => 'ack',
+            'ack' => $acknowledgeCallback
+        ]);
+
+        $this->assertFalse($acknowledgeCallback->isAcked());
+        $ecotoneTestSupport->run($messageChannelName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        $this->assertTrue($acknowledgeCallback->isAcked());
     }
 
     public function test_acking_on_gateway_failure_when_error_channel_defined()

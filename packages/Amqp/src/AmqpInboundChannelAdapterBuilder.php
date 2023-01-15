@@ -44,7 +44,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, [], $conversionService);
 
         return new AmqpInboundChannelAdapter(
-            CachedConnectionFactory::createFor(new AmqpConsumerConnectionFactory($amqpConnectionFactory)),
+            CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($amqpConnectionFactory, spl_object_id($this))),
             $inboundAmqpGateway,
             $amqpAdmin,
             $this->declareOnStartup,

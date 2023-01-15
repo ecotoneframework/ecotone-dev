@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Amqp;
+namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -15,6 +15,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
 
 /**
@@ -110,5 +112,53 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
         $this->expectException(\AMQPQueueException::class);
 
         $messageChannel->receiveWithTimeout(1);
+    }
+
+    public function test_sending_to_dead_letter_as_another_amqp_channel()
+    {
+        $queueName = ErrorConfigurationContext::INPUT_CHANNEL;
+        $errorQueueName = ErrorConfigurationContext::DEAD_LETTER_CHANNEL;
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [\Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService::class, ErrorConfigurationContext::class],
+            [
+                new \Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService(),
+                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withFailFast(false),
+        );
+
+        try {
+            $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
+        }catch (\AMQPQueueException) {}
+        try {
+            $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($errorQueueName));
+        }catch (\AMQPQueueException) {}
+
+        /** https://www.rabbitmq.com/channels.html */
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "milk");
+        /** Nothing was done yet */
+        $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
+        $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
+
+        /** We consume the message and fail. First retry is done to same queue */
+        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(failAtError: false));
+        $ecotoneLite->run('incorrectOrdersEndpoint', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(failAtError: false));
+        $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
+        $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
+
+        /** We consume the message and fail. Second retry is done to same queue */
+        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(failAtError: false));
+        $ecotoneLite->run('incorrectOrdersEndpoint', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(failAtError: false));
+        $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
+        $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
+
+        /** We consume the message and fail. Message moves to dead letter queue */
+        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(failAtError: false));
+        $ecotoneLite->run('incorrectOrdersEndpoint', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(failAtError: false));
+        $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
+        $this->assertEquals(1, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
     }
 }

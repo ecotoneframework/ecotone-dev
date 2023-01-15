@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Amqp;
+namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpAdmin;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
@@ -44,15 +44,15 @@ use Exception;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use stdClass;
+use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 use Test\Ecotone\Amqp\Fixture\Handler\ExceptionalMessageHandler;
+use Test\Ecotone\Amqp\Integration\ForwardMessageHandler;
 
 /**
  * Class InboundAmqpGatewayBuilder
  * @package Test\Amqp
  * @author  Dariusz Gafka <dgafka.mail@gmail.com>
- *
- * @internal
  */
 class AmqpChannelAdapterTest extends AmqpMessagingTest
 {
@@ -64,7 +64,6 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $queueName = Uuid::uuid4()->toString();
         $amqpQueues = [
             AmqpQueue::createWith($queueName)
-                ->withExclusivity(),
         ];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -96,7 +95,6 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $queueName = Uuid::uuid4()->toString();
         $amqpQueues = [
             AmqpQueue::createWith($queueName)
-                ->withExclusivity(),
         ];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -143,7 +141,6 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $queueName = Uuid::uuid4()->toString();
         $amqpQueues = [
             AmqpQueue::createWith($queueName)
-                ->withExclusivity(),
         ];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -297,7 +294,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     public function test_throwing_exception_if_sending_non_string_payload_without_media_type_information()
     {
         $queueName = Uuid::uuid4()->toString();
-        $amqpQueues = [AmqpQueue::createWith($queueName)->withExclusivity()];
+        $amqpQueues = [AmqpQueue::createWith($queueName)];
         $amqpExchanges = [];
         $amqpBindings = [];
         $requestChannelName = 'requestChannel';
@@ -321,7 +318,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     public function test_throwing_exception_if_sending_non_string_payload_with_media_type_but_no_converter_available()
     {
         $queueName = Uuid::uuid4()->toString();
-        $amqpQueues = [AmqpQueue::createWith($queueName)->withExclusivity()];
+        $amqpQueues = [AmqpQueue::createWith($queueName)];
         $amqpExchanges = [];
         $amqpBindings = [];
         $requestChannelName = 'requestChannel';
@@ -347,7 +344,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     public function test_converting_payload_to_string_if_converter_exists_and_media_type_passed()
     {
         $queueName = Uuid::uuid4()->toString();
-        $amqpQueues = [AmqpQueue::createWith($queueName)->withExclusivity()];
+        $amqpQueues = [AmqpQueue::createWith($queueName)];
         $amqpExchanges = [];
         $amqpBindings = [];
         $requestChannelName = 'requestChannel';
@@ -385,8 +382,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     {
         $queueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($queueName)
-                ->withExclusivity(),
+            AmqpQueue::createWith($queueName),
         ];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -411,10 +407,8 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $whiteQueueName = Uuid::uuid4()->toString();
         $blackQueueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName)
-                ->withExclusivity(),
-            AmqpQueue::createWith($whiteQueueName)
-                ->withExclusivity(),
+            AmqpQueue::createWith($blackQueueName),
+            AmqpQueue::createWith($whiteQueueName),
         ];
         $amqpExchanges = [
             AmqpExchange::createDirectExchange($exchangeName)
@@ -451,7 +445,6 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $blackQueueName = Uuid::uuid4()->toString();
         $amqpQueues = [
             AmqpQueue::createWith($blackQueueName)
-                ->withExclusivity(),
         ];
         $requestChannelName = 'requestChannel';
         $inboundRequestChannel = QueueChannel::create();
@@ -526,10 +519,8 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $whiteQueueName = Uuid::uuid4()->toString();
         $blackQueueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName)
-                ->withExclusivity(),
-            AmqpQueue::createWith($whiteQueueName)
-                ->withExclusivity(),
+            AmqpQueue::createWith($blackQueueName),
+            AmqpQueue::createWith($whiteQueueName),
         ];
         $amqpExchanges = [
             AmqpExchange::createTopicExchange($exchangeName)
@@ -565,8 +556,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     {
         $queueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($queueName)
-                ->withExclusivity(),
+            AmqpQueue::createWith($queueName),
         ];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -604,7 +594,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     public function test_sending_message_with_auto_acking()
     {
         $queueName = Uuid::uuid4()->toString();
-        $amqpQueues = [AmqpQueue::createWith($queueName)->withExclusivity()];
+        $amqpQueues = [AmqpQueue::createWith($queueName)];
         $amqpExchanges = [];
         $amqpBindings = [];
         $requestChannelName = 'requestChannel';
@@ -636,7 +626,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     public function test_sending_with_time_to_live()
     {
         $queueName = Uuid::uuid4()->toString();
-        $amqpQueues = [AmqpQueue::createWith($queueName)->withExclusivity()];
+        $amqpQueues = [AmqpQueue::createWith($queueName)];
         $amqpExchanges = [];
         $amqpBindings = [];
         $requestChannelName = 'requestChannel';
@@ -668,19 +658,29 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     public function test_delaying_the_message()
     {
         $queueName = Uuid::uuid4()->toString();
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [],
+            [
+                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpBackedMessageChannelBuilder::create($queueName)
+                ])
+        );
 
-        $amqpBackedMessageChannel = $this->createDirectAmqpBackendMessageChannel($queueName);
-        $amqpBackedMessageChannel->send(
+        /** @var PollableChannel $messageChannel */
+        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel->send(
             MessageBuilder::withPayload('some')
                 ->setHeader(MessageHeaders::DELIVERY_DELAY, 250)
                 ->build()
         );
 
-        $this->assertNull($amqpBackedMessageChannel->receive());
+        $this->assertNull($messageChannel->receiveWithTimeout(200));
 
-        usleep(300000);
-
-        $this->assertNotNull($amqpBackedMessageChannel->receive());
+        $this->assertNotNull($messageChannel->receiveWithTimeout(1000));
     }
 
     public function test_receiving_from_dead_letter_queue()
@@ -732,14 +732,32 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
+
+        /** @var AcknowledgementCallback $acknowledgeCallback */
+        $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
+        $acknowledgeCallback->requeue();
+
+        $this->assertNotNull($amqpBackedMessageChannel->receiveWithTimeout(1000));
+    }
+
+    public function test_receiving_message_second_time_with_different_timeouts_when_requeued()
+    {
+        $queueName = Uuid::uuid4()->toString();
+
+        $amqpBackedMessageChannel = $this->createDirectAmqpBackendMessageChannel($queueName);
+        $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
+
+        /** @var Message $message */
         $message = $amqpBackedMessageChannel->receive();
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
         $acknowledgeCallback->requeue();
 
-        $this->assertNotNull($amqpBackedMessageChannel->receive());
+        $this->assertNotNull($amqpBackedMessageChannel->receiveWithTimeout(1000));
     }
+
 
     /**
      * @throws MessagingException
@@ -787,10 +805,8 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $whiteQueueName = Uuid::uuid4()->toString();
         $blackQueueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName)
-                ->withExclusivity(),
-            AmqpQueue::createWith($whiteQueueName)
-                ->withExclusivity(),
+            AmqpQueue::createWith($blackQueueName),
+            AmqpQueue::createWith($whiteQueueName),
         ];
         $amqpExchanges = [
             AmqpExchange::createFanoutExchange($exchangeName)
@@ -818,6 +834,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
     }
 
+    /** @TODO Stream https://www.rabbitmq.com/stream.html */
     public function todo_test_sending_and_receiving_from_stream_queue()
     {
         $endpointId = 'asynchronous_endpoint';

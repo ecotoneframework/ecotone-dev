@@ -84,9 +84,14 @@ jobs:
         ports:
           - '4576:4576'
           - '4575:4575'
+      redis:
+        image: redis:7-alpine
+        ports:
+          - '6379:6379'
     env:
       RABBIT_HOST: amqp://127.0.0.1:5672
-      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4576&version=latest
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
+      REDIS_DSN: redis://127.0.0.1:6379
     steps:
       - uses: actions/checkout@v2
 
@@ -114,8 +119,9 @@ jobs:
         working-directory: ${{ matrix.package.directory }}
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
-          DATABASE_DSN: pgsql://ecotone:secret@localhost:5432/ecotone
-          SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4576&version=latest
+          DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+          SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
+          REDIS_DSN: redis://127.0.0.1:6379
 
       - name: Run tests on Mysql
         run: composer tests:ci
@@ -123,4 +129,5 @@ jobs:
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
           DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
-          SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4576&version=latest
+          SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
+          REDIS_DSN: redis://127.0.0.1:6379

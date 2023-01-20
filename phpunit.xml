@@ -50,5 +50,11 @@
     <testsuite name="Amqp tests">
       <directory>packages/Amqp/tests</directory>
     </testsuite>
+    <testsuite name="SQS tests">
+      <directory>packages/Sqs/tests</directory>
+    </testsuite>
+    <testsuite name="Redis tests">
+      <directory>packages/Redis/tests</directory>
+    </testsuite>
   </testsuites>
 </phpunit>

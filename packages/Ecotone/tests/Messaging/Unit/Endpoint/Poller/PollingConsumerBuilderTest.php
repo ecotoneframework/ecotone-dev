@@ -24,10 +24,10 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use InvalidArgumentException;
 use RuntimeException;
-use Test\Ecotone\Amqp\Fixture\Handler\SuccessServiceActivator;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerStoppingService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerThrowingExceptionService;
 use Test\Ecotone\Messaging\Fixture\Handler\DataReturningService;
+use Test\Ecotone\Messaging\Fixture\Handler\SuccessServiceActivator;
 use Test\Ecotone\Messaging\Unit\MessagingTest;
 
 /**

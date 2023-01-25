@@ -136,20 +136,20 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
 
         /** We consume the message and fail. First retry is done to same queue */
-        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(maxExecutionTimeInMilliseconds: 3000, failAtError: false));
-        $ecotoneLite->run('incorrectOrdersEndpoint', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(maxExecutionTimeInMilliseconds: 3000, failAtError: false));
+        $ecotoneLite->run($queueName);
+        $ecotoneLite->run('incorrectOrdersEndpoint');
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
 
         /** We consume the message and fail. Second retry is done to same queue */
-        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(maxExecutionTimeInMilliseconds: 3000, failAtError: false));
-        $ecotoneLite->run('incorrectOrdersEndpoint', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(maxExecutionTimeInMilliseconds: 3000, failAtError: false));
+        $ecotoneLite->run($queueName);
+        $ecotoneLite->run('incorrectOrdersEndpoint');
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
 
         /** We consume the message and fail. Message moves to dead letter queue */
-        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(maxExecutionTimeInMilliseconds: 3000, failAtError: false));
-        $ecotoneLite->run('incorrectOrdersEndpoint', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(maxExecutionTimeInMilliseconds: 3000, failAtError: false));
+        $ecotoneLite->run($queueName);
+        $ecotoneLite->run('incorrectOrdersEndpoint');
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
         $this->assertEquals(1, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));
     }

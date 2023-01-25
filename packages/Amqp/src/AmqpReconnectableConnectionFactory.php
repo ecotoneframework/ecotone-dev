@@ -13,10 +13,10 @@ use ReflectionProperty;
 
 class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
-    private int $connectionInstanceId;
+    private string $connectionInstanceId;
     private AmqpConnectionFactory $connectionFactory;
 
-    public function __construct(AmqpConnectionFactory $connectionFactory, ?int $connectionInstanceId = null)
+    public function __construct(AmqpConnectionFactory $connectionFactory, ?string $connectionInstanceId = null)
     {
         $this->connectionInstanceId = $connectionInstanceId !== null ? $connectionInstanceId : spl_object_id($connectionFactory);
         /** Each consumer and publisher requires separate connection to work correctly in all cases: https://www.rabbitmq.com/connections.html#flow-control */
@@ -32,7 +32,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         return $this->connectionFactory->createContext();
     }
 
-    public function getConnectionInstanceId(): int
+    public function getConnectionInstanceId(): string
     {
         return $this->connectionInstanceId;
     }

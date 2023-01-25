@@ -3,7 +3,7 @@
 namespace Ecotone\Amqp\Transaction;
 
 use AMQPChannel;
-use Ecotone\Amqp\AmqpPublisherConnectionFactory;
+use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -33,7 +33,7 @@ class AmqpTransactionInterceptor
         ;
         /** @var CachedConnectionFactory[] $connectionFactories */
         $connectionFactories = array_map(function (string $connectionReferenceName) use ($referenceSearchService) {
-            return CachedConnectionFactory::createFor(new AmqpPublisherConnectionFactory($referenceSearchService->get($connectionReferenceName)));
+            return CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($referenceSearchService->get($connectionReferenceName)));
         }, $amqpTransaction ? $amqpTransaction->connectionReferenceNames : $this->connectionReferenceNames);
 
         if ($this->isRunningTransaction) {

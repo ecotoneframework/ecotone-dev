@@ -8,7 +8,6 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 
 class TicketServiceReceiver
 {
-    public const CREATE_TICKET_ENDPOINT = 'createTicket';
     public const GET_TICKETS_COUNT      = 'getTicketsCount';
 
     private array $tickets = [];

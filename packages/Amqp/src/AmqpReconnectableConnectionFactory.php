@@ -11,16 +11,16 @@ use Interop\Queue\Context;
 use ReflectionClass;
 use ReflectionProperty;
 
-class AmqpConsumerConnectionFactory implements ReconnectableConnectionFactory
+class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
-    /**
-     * @var AmqpConnectionFactory
-     */
-    private $connectionFactory;
+    private string $connectionInstanceId;
+    private AmqpConnectionFactory $connectionFactory;
 
-    public function __construct(AmqpConnectionFactory $connectionFactory)
+    public function __construct(AmqpConnectionFactory $connectionFactory, ?string $connectionInstanceId = null)
     {
-        $this->connectionFactory = $connectionFactory;
+        $this->connectionInstanceId = $connectionInstanceId !== null ? $connectionInstanceId : spl_object_id($connectionFactory);
+        /** Each consumer and publisher requires separate connection to work correctly in all cases: https://www.rabbitmq.com/connections.html#flow-control */
+        $this->connectionFactory = new AmqpConnectionFactory($connectionFactory->getConfig()->getConfig());
     }
 
     public function createContext(): Context
@@ -32,9 +32,9 @@ class AmqpConsumerConnectionFactory implements ReconnectableConnectionFactory
         return $this->connectionFactory->createContext();
     }
 
-    public function getConnectionInstanceId(): int
+    public function getConnectionInstanceId(): string
     {
-        return spl_object_id($this->connectionFactory);
+        return $this->connectionInstanceId;
     }
 
     /**

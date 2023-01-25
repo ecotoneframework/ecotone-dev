@@ -1,12 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: dgafka
- * Date: 20.11.17
- * Time: 20:02
- */
 
-namespace Test\Ecotone\Amqp;
+namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;

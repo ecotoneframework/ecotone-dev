@@ -12,21 +12,15 @@ class CachedConnectionFactory implements ConnectionFactory
 {
     private static $instances = [];
 
-    /**
-     * @var ReconnectableConnectionFactory
-     */
-    private $connectionFactory;
-    /**
-     * @var null|Context
-     */
-    private $cachedContext = null;
+    private ReconnectableConnectionFactory $connectionFactory;
+    private ?Context $cachedContext = null;
 
     private function __construct(ReconnectableConnectionFactory $reconnectableConnectionFactory)
     {
         $this->connectionFactory = $reconnectableConnectionFactory;
     }
 
-    public static function createFor(ReconnectableConnectionFactory $reconnectableConnectionFactory)
+    public static function createFor(ReconnectableConnectionFactory $reconnectableConnectionFactory): self
     {
         if (! isset(self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()])) {
             self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()] = new self($reconnectableConnectionFactory);

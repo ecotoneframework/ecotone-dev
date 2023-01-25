@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Amqp;
+namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 
 /**
@@ -31,7 +32,7 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTest
                 AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
                     AmqpQueue::createWith($queueName),
@@ -44,10 +45,10 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTest
         $messagePublisher = $ecotoneLite->getMessagePublisher();
         $messagePublisher->send($payload);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
         $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
         $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
     }
 }

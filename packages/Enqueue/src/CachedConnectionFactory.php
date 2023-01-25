@@ -20,7 +20,7 @@ class CachedConnectionFactory implements ConnectionFactory
         $this->connectionFactory = $reconnectableConnectionFactory;
     }
 
-    public static function createFor(ReconnectableConnectionFactory $reconnectableConnectionFactory)
+    public static function createFor(ReconnectableConnectionFactory $reconnectableConnectionFactory): self
     {
         if (! isset(self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()])) {
             self::$instances[$reconnectableConnectionFactory->getConnectionInstanceId()] = new self($reconnectableConnectionFactory);
@@ -46,5 +46,10 @@ class CachedConnectionFactory implements ConnectionFactory
     public function getProducer(): Producer
     {
         return $this->createContext()->createProducer();
+    }
+
+    public function getInnerConnectionFactory(): ConnectionFactory
+    {
+        return $this->connectionFactory;
     }
 }

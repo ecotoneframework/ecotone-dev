@@ -10,14 +10,12 @@ use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
-use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpExt\AmqpConsumer;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
-use Interop\Queue\SubscriptionConsumer;
 
 /**
  * Class InboundEnqueueGateway
@@ -27,7 +25,6 @@ use Interop\Queue\SubscriptionConsumer;
 class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
     private bool $initialized = false;
-    private ?SubscriptionConsumer $subscriptionConsumer = null;
     private QueueChannel $queueChannel;
 
     public function __construct(
@@ -75,38 +72,19 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $this->initialized = true;
         }
 
-        $subscriptionConsumer = $this->subscriptionConsumer;
-        if (!$subscriptionConsumer) {
-            $context = $this->connectionFactory->createContext();
+        /** @var AmqpReconnectableConnectionFactory $connectionFactory */
+        $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
+        $queueChannel = $this->queueChannel;
+        $subscriptionConsumer = $connectionFactory->getSubscriptionConsumer($this->queueName, function(EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
+            $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer);
+            $message = $this->enrichMessage($receivedMessage, $message);
 
-            /** @var AmqpConsumer $consumer */
-            $consumer = $this->connectionFactory->getConsumer(
-                $context->createQueue($this->queueName)
-            );
-            $subscriptionConsumer = $this->subscriptionConsumer ?: $context->createSubscriptionConsumer();
+            $queueChannel->send($message->build());
 
-            $queueChannel = $this->queueChannel;
-            $subscriptionConsumer->subscribe($consumer, function(EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
-                $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer);
-                $message = $this->enrichMessage($receivedMessage, $message);
+            return false;
+        });
 
-                $queueChannel->send($message->build());
-
-                return false;
-            });
-            $this->subscriptionConsumer = $subscriptionConsumer;
-        }
-
-        try {
-            $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
-        } catch (\Throwable $exception) {
-            try {
-                $subscriptionConsumer->unsubscribeAll();
-            }catch (\Exception) {}
-            $this->subscriptionConsumer = null;
-
-            throw $exception;
-        }
+        $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
 
         return $this->queueChannel->receive();
     }

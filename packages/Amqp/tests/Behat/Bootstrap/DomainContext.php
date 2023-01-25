@@ -122,7 +122,7 @@ class DomainContext extends TestCase implements Context
         $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(ErrorConfigurationContext::INPUT_CHANNEL));
         $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(\Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext::INPUT_CHANNEL));
         $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(\Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext::DEAD_LETTER_CHANNEL));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(TicketServiceMessagingConfiguration::SERVICE_NAME));
+        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue('distributed_ticket_service'));
         $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(AmqpDistributionModule::CHANNEL_PREFIX . \Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver\TicketServiceMessagingConfiguration::SERVICE_NAME));
         $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue('ecotone_1_delay'));
     }

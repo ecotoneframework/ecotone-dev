@@ -13,6 +13,7 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Class InboundEnqueueGatewayBuilder
@@ -44,7 +45,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, [], $conversionService);
 
         return new AmqpInboundChannelAdapter(
-            CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($amqpConnectionFactory, spl_object_id($this))),
+            CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($amqpConnectionFactory, (int)hexdec(uniqid(Uuid::uuid4()->toString())))),
             $inboundAmqpGateway,
             $amqpAdmin,
             $this->declareOnStartup,

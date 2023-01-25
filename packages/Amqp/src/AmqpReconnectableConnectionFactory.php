@@ -6,10 +6,8 @@ use AMQPConnection;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Messaging\Support\Assert;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Enqueue\AmqpExt\AmqpConsumer;
 use Enqueue\AmqpExt\AmqpContext;
 use Interop\Queue\Context;
-use Interop\Queue\SubscriptionConsumer;
 use ReflectionClass;
 use ReflectionProperty;
 
@@ -17,7 +15,6 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 {
     private int $connectionInstanceId;
     private AmqpConnectionFactory $connectionFactory;
-    private ?SubscriptionConsumer $subscriptionConsumer = null;
 
     public function __construct(AmqpConnectionFactory $connectionFactory, ?int $connectionInstanceId = null)
     {
@@ -38,23 +35,6 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     public function getConnectionInstanceId(): int
     {
         return $this->connectionInstanceId;
-    }
-
-    public function getSubscriptionConsumer(string $queueName, callable $subscriptionCallback): SubscriptionConsumer
-    {
-        $context = $this->createContext();
-        if ($this->subscriptionConsumer === null) {
-            $this->subscriptionConsumer = $context->createSubscriptionConsumer();
-
-            /** @var AmqpConsumer $consumer */
-            $consumer = $context->createConsumer(
-                $context->createQueue($queueName)
-            );
-
-            $this->subscriptionConsumer->subscribe($consumer, $subscriptionCallback);
-        }
-
-        return $this->subscriptionConsumer;
     }
 
     /**
@@ -82,7 +62,6 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         }
 
         $connectionProperty->setValue($this->connectionFactory, null);
-        $this->subscriptionConsumer = null;
     }
 
     private function isConnected(): bool

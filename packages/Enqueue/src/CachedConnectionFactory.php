@@ -47,9 +47,4 @@ class CachedConnectionFactory implements ConnectionFactory
     {
         return $this->createContext()->createProducer();
     }
-
-    public function getInnerConnectionFactory(): ConnectionFactory
-    {
-        return $this->connectionFactory;
-    }
 }

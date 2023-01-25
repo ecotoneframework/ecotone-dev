@@ -8,6 +8,7 @@ use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
+use Exception;
 use RuntimeException;
 
 /**
@@ -17,7 +18,7 @@ use RuntimeException;
  */
 class ExceptionalMessageHandler implements MessageHandler
 {
-    private function __construct(private \Exception $exception)
+    private function __construct(private Exception $exception)
     {
     }
 

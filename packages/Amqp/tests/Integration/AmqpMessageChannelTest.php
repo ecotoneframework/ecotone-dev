@@ -72,9 +72,10 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         try {
             $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
-        }catch (\AMQPQueueException) {}
+        } catch (\AMQPQueueException) {
+        }
 
-        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "milk");
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
         /** Message should be waiting in the queue */
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
@@ -130,7 +131,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
         );
 
         /** https://www.rabbitmq.com/channels.html */
-        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "milk");
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
         /** Nothing was done yet */
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getOrderAmount'));
         $this->assertEquals(0, $ecotoneLite->getQueryBus()->sendWithRouting('getIncorrectOrderAmount'));

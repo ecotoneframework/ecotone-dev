@@ -12,7 +12,6 @@ use Ecotone\Amqp\AmqpHeader;
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Enqueue\EnqueueMessageChannel;
@@ -47,12 +46,13 @@ use stdClass;
 use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 use Test\Ecotone\Amqp\Fixture\Handler\ExceptionalMessageHandler;
-use Test\Ecotone\Amqp\Integration\ForwardMessageHandler;
 
 /**
  * Class InboundAmqpGatewayBuilder
  * @package Test\Amqp
  * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ *
+ * @internal
  */
 class AmqpChannelAdapterTest extends AmqpMessagingTest
 {
@@ -63,7 +63,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     {
         $queueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($queueName)
+            AmqpQueue::createWith($queueName),
         ];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -94,7 +94,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     {
         $queueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($queueName)
+            AmqpQueue::createWith($queueName),
         ];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -140,7 +140,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     {
         $queueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($queueName)
+            AmqpQueue::createWith($queueName),
         ];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -444,7 +444,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     {
         $blackQueueName = Uuid::uuid4()->toString();
         $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName)
+            AmqpQueue::createWith($blackQueueName),
         ];
         $requestChannelName = 'requestChannel';
         $inboundRequestChannel = QueueChannel::create();
@@ -666,7 +666,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
                 ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create($queueName)
+                    AmqpBackedMessageChannelBuilder::create($queueName),
                 ])
         );
 
@@ -706,7 +706,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                         ->withDeadLetterForDefaultExchange($deadLetterQueue),
                     $deadLetterQueue,
                     AmqpMessagePublisherConfiguration::create()
-                        ->withDefaultRoutingKey($queueName)
+                        ->withDefaultRoutingKey($queueName),
                 ])
         );
 

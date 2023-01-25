@@ -4,7 +4,6 @@ namespace Test\Ecotone\Amqp\Behat\Bootstrap;
 
 use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\TableNode;
-use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\Lite\EcotoneLiteConfiguration;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
@@ -14,19 +13,13 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Interop\Amqp\Impl\AmqpQueue;
 use InvalidArgumentException;
-use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher\UserService;
-use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceMessagingConfiguration;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceReceiver;
-use Test\Ecotone\Amqp\Fixture\ErrorChannel\ErrorConfigurationContext;
-use Test\Ecotone\Amqp\Fixture\FailureTransactionWithFatalError\ChannelConfiguration;
 use Test\Ecotone\Amqp\Fixture\Order\OrderErrorHandler;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
-use Test\Ecotone\Amqp\Fixture\Shop\MessagingConfiguration;
 use Test\Ecotone\Amqp\Fixture\Shop\ShoppingCart;
 
 /**

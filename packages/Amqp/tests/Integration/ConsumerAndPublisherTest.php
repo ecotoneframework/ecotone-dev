@@ -32,7 +32,7 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTest
                 AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
                     AmqpQueue::createWith($queueName),
@@ -45,10 +45,10 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTest
         $messagePublisher = $ecotoneLite->getMessagePublisher();
         $messagePublisher->send($payload);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
         $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
         $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
     }
 }

@@ -834,41 +834,6 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
     }
 
-    /** @TODO Stream https://www.rabbitmq.com/stream.html */
-    public function todo_test_sending_and_receiving_from_stream_queue()
-    {
-        $endpointId = 'asynchronous_endpoint';
-        $queueName = "test";
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
-            [AmqpConsumerExample::class],
-            [
-                new AmqpConsumerExample(),
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
-            ],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
-                ->withExtensionObjects([
-                    AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
-                    AmqpQueue::createStreamQueue($queueName),
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withDefaultRoutingKey($queueName),
-                    AmqpConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(false)
-                        ->withTransactionOnCommandBus(false)
-                ])
-        );
-
-        $payload = 'random_payload';
-        $messagePublisher = $ecotoneLite->getMessagePublisher();
-        $messagePublisher->send($payload);
-
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
-        $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
-
-//        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
-//        $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
-    }
-
     /**
      * @param string $queueName
      * @return EnqueueMessageChannel

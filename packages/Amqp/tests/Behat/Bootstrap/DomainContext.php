@@ -18,6 +18,7 @@ use Interop\Amqp\Impl\AmqpQueue;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher\UserService;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceMessagingConfiguration;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceReceiver;
@@ -33,7 +34,7 @@ use Test\Ecotone\Amqp\Fixture\Shop\ShoppingCart;
  *
  * @internal
  */
-class DomainContext extends TestCase implements Context
+class DomainContext extends AmqpMessagingTest implements Context
 {
     private static ConfiguredMessagingSystem $messagingSystem;
     /**
@@ -114,17 +115,7 @@ class DomainContext extends TestCase implements Context
             true
         );
 
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(ChannelConfiguration::QUEUE_NAME));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(\Test\Ecotone\Amqp\Fixture\FailureTransaction\ChannelConfiguration::QUEUE_NAME));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(\Test\Ecotone\Amqp\Fixture\SuccessTransaction\ChannelConfiguration::QUEUE_NAME));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(MessagingConfiguration::SHOPPING_QUEUE));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(\Test\Ecotone\Amqp\Fixture\Order\ChannelConfiguration::QUEUE_NAME));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(ErrorConfigurationContext::INPUT_CHANNEL));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(\Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext::INPUT_CHANNEL));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(\Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext::DEAD_LETTER_CHANNEL));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue('distributed_ticket_service'));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue(AmqpDistributionModule::CHANNEL_PREFIX . \Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver\TicketServiceMessagingConfiguration::SERVICE_NAME));
-        $amqpConnectionFactory->createContext()->deleteQueue(new AmqpQueue('ecotone_1_delay'));
+        $this->queueCleanUp();
     }
 
     /**

@@ -66,7 +66,7 @@ jobs:
       run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
     - name: Test Behat on 8.0
-      run: vendor/bin/behat packages/PdoEventSourcing/tests/Behat/features -vvv
+      run: vendor/bin/behat -vvv -s event-sourcing
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
         SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest

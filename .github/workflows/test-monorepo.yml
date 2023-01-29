@@ -16,7 +16,7 @@ jobs:
       matrix:
         operating-system: [ ubuntu-latest ]
         php-versions: [ '8.1', '8.0' ]
-        stability: [prefer-stable, prefer-lowest]
+        stability: [prefer-lowest, prefer-stable]
     services:
       rabbitmq:
         image: rabbitmq:3.8-alpine

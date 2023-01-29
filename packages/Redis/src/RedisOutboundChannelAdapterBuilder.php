@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Ecotone\Redis;
@@ -36,9 +37,11 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
         /** @var ConversionService $conversionService */
         $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
 
-        $headerMapper = DefaultHeaderMapper::createWith([],
+        $headerMapper = DefaultHeaderMapper::createWith(
+            [],
             $this->headerMapper,
-            $conversionService);
+            $conversionService
+        );
         return new RedisOutboundChannelAdapter(
             CachedConnectionFactory::createFor(new HttpReconnectableConnectionFactory($connectionFactory)),
             $this->queueName,

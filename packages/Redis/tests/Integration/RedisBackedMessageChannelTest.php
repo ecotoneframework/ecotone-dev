@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
@@ -16,6 +17,9 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Redis\AbstractConnectionTest;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisAsyncConsumerExample;
 
+/**
+ * @internal
+ */
 final class RedisBackedMessageChannelTest extends AbstractConnectionTest
 {
     public function test_sending_and_receiving_message(): void

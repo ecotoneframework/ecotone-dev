@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Ecotone\Redis;
@@ -8,7 +9,6 @@ use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Enqueue\OutboundMessageConverter;
 use Enqueue\Redis\RedisContext;
 use Enqueue\Redis\RedisDestination;
-use Interop\Queue\Destination;
 
 final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {

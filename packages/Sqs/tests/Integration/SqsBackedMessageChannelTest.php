@@ -12,7 +12,6 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Enqueue\Sqs\SqsConnectionFactory;
-use Enqueue\Sqs\SqsDestination;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Sqs\AbstractConnectionTest;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsAsyncConsumerExample;

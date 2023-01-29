@@ -17,7 +17,10 @@
             "homepage": "http://unixslayer.pl"
         }
     ],
-    "keywords": ["ecotone", "redis"],
+    "keywords": [
+        "ecotone",
+        "redis"
+    ],
     "description": "Extends Ecotone with redis integration",
     "autoload": {
         "psr-4": {
@@ -32,7 +35,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "^1.69",
+        "ecotone/enqueue": "1.70",
         "enqueue/redis": "^0.10.9"
     },
     "require-dev": {

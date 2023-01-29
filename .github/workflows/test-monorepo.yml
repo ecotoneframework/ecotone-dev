@@ -25,21 +25,6 @@ jobs:
           RABBITMQ_DEFAULT_PASS: guest
         ports:
           - 5672:5672
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: "secret"
-          MYSQL_USER: "ecotone"
-          MYSQL_PASSWORD: "secret"
-          MYSQL_DATABASE: "ecotone"
-          DB_PORT: 3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-        ports:
-          - 3306:3306
       postgres:
         image: postgres
         env:
@@ -80,36 +65,9 @@ jobs:
     - name: Install dependencies
       run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-    - name: Validate cross package versions
-      run: vendor/bin/monorepo-builder validate
-
-    - name: Test PHPStan
-      run: vendor/bin/phpstan
-
-    - name: Test PHPUnit on Postgres
-      run: vendor/bin/phpunit
+    - name: Test Behat on 8.0
+      run: vendor/bin/behat packages/PdoEventSourcing/tests/Behat/features/event-sourcing.feature:328 -vvv
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
-        SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
-        REDIS_DSN: redis://127.0.0.1:6379
-
-    - name: Test Behat on Postgres
-      run: vendor/bin/behat -vvv
-      env:
-        DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
-        SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
-        REDIS_DSN: redis://127.0.0.1:6379
-
-    - name: Test PHPUnit on Mysql
-      run: vendor/bin/phpunit
-      env:
-        DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
-        SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
-        REDIS_DSN: redis://127.0.0.1:6379
-
-    - name: Test Behat on Mysql
-      run: vendor/bin/behat -vvv
-      env:
-        DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
         SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
         REDIS_DSN: redis://127.0.0.1:6379

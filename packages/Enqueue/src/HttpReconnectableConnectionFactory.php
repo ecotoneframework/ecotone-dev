@@ -29,6 +29,6 @@ final class HttpReconnectableConnectionFactory implements ReconnectableConnectio
 
     public function getConnectionInstanceId(): string
     {
-        return (string)spl_object_id($this->connectionFactory);
+        return get_class($this->connectionFactory) . spl_object_id($this->connectionFactory);
     }
 }

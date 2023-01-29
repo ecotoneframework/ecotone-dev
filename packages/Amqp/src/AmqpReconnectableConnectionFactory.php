@@ -34,7 +34,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
     public function getConnectionInstanceId(): string
     {
-        return $this->connectionInstanceId;
+        return get_class($this->connectionFactory) . $this->connectionInstanceId;
     }
 
     /**

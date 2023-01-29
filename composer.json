@@ -37,6 +37,7 @@
                 "packages/PdoEventSourcing/src"
             ],
             "Ecotone\\JMSConverter\\": "packages/JmsConverter/src",
+            "Ecotone\\Redis\\": "packages/Redis/src",
             "Ecotone\\Sqs\\": "packages/Sqs/src",
             "Ecotone\\Laravel\\": "packages/Laravel/src",
             "Ecotone\\Lite\\": [
@@ -82,6 +83,9 @@
             "Test\\Ecotone\\JMSConverter\\": [
                 "packages/JmsConverter/tests"
             ],
+            "Test\\Ecotone\\Redis\\": [
+                "packages/Redis/tests"
+            ],
             "Test\\Ecotone\\Sqs\\": [
                 "packages/Sqs/tests"
             ],
@@ -96,6 +100,7 @@
         "doctrine/persistence": "^2.5",
         "enqueue/amqp-ext": "^0.10.4",
         "enqueue/dbal": "^0.10.17",
+        "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0",
@@ -126,6 +131,7 @@
         "php-coveralls/php-coveralls": "^2.5",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^9.5",
+        "predis/predis": "^1.1.10",
         "symfony/expression-language": "^6.0",
         "symplify/monorepo-builder": "^11.1.21"
     },

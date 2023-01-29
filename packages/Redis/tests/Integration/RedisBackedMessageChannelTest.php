@@ -1,8 +1,7 @@
 <?php
-
 declare(strict_types=1);
 
-namespace Test\Ecotone\Sqs\Integration;
+namespace Test\Ecotone\Redis\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -10,31 +9,28 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
-use Enqueue\Sqs\SqsConnectionFactory;
-use Enqueue\Sqs\SqsDestination;
+use Ecotone\Redis\RedisBackedMessageChannelBuilder;
+use Enqueue\Redis\RedisConnectionFactory;
+use Enqueue\Redis\RedisDestination;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Sqs\AbstractConnectionTest;
-use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsAsyncConsumerExample;
+use Test\Ecotone\Redis\AbstractConnectionTest;
+use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisAsyncConsumerExample;
 
-/**
- * @internal
- */
-final class SqsBackedMessageChannelTest extends AbstractConnectionTest
+final class RedisBackedMessageChannelTest extends AbstractConnectionTest
 {
-    public function test_sending_and_receiving_message()
+    public function test_sending_and_receiving_message(): void
     {
         $queueName = Uuid::uuid4()->toString();
-        $messagePayload = 'some';
+        $messagePayload = Uuid::uuid4()->toString();
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [
-                SqsConnectionFactory::class => $this->getConnectionFactory(),
+                RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE]))
                 ->withExtensionObjects([
-                    SqsBackedMessageChannelBuilder::create($queueName),
+                    RedisBackedMessageChannelBuilder::create($queueName),
                 ])
         );
 
@@ -53,23 +49,25 @@ final class SqsBackedMessageChannelTest extends AbstractConnectionTest
 
     public function test_sending_and_receiving_message_from_using_asynchronous_command_handler(): void
     {
-        $queueName = 'sqs';
+        $queueName = 'redis';
         $messagePayload = Uuid::uuid4()->toString();
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
-            classesToResolve: [SqsAsyncConsumerExample::class],
+            classesToResolve: [RedisAsyncConsumerExample::class],
             containerOrAvailableServices: [
-                new SqsAsyncConsumerExample(),
-                SqsConnectionFactory::class => $this->getConnectionFactory(),
+                new RedisAsyncConsumerExample(),
+                RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SqsBackedMessageChannelBuilder::create($queueName),
+                    RedisBackedMessageChannelBuilder::create($queueName),
                 ])
         );
 
-        $ecotoneLite->getCommandBus()->sendWithRouting('sqs_consumer', $messagePayload);
+        $this->getConnectionFactory()->createContext()->purgeQueue(new RedisDestination($queueName));
+
+        $ecotoneLite->getCommandBus()->sendWithRouting('redis_consumer', $messagePayload);
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
 
         $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()
@@ -77,10 +75,10 @@ final class SqsBackedMessageChannelTest extends AbstractConnectionTest
             ->withExecutionTimeLimitInMilliseconds(100)
         ;
 
-        $ecotoneLite->run('sqs', $executionPollingMetadata);
+        $ecotoneLite->run('redis', $executionPollingMetadata);
         $this->assertEquals([$messagePayload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
 
-        $ecotoneLite->run('sqs', $executionPollingMetadata);
+        $ecotoneLite->run('redis', $executionPollingMetadata);
         $this->assertEquals([$messagePayload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
     }
 }

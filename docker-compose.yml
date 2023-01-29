@@ -44,6 +44,7 @@ services:
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest
+      REDIS_DSN: redis://redis:6379
     env_file:
       - ".env"
   database:
@@ -86,6 +87,12 @@ services:
     ports:
       - '4576:4576'
       - '4575:4575'
+  redis:
+    image: redis:7-alpine
+    networks:
+      - default
+    ports:
+      - '6379:6379'
 networks:
   default:
     external:

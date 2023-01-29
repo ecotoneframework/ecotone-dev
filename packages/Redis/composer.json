@@ -1,0 +1,73 @@
+{
+    "name": "ecotone/redis",
+    "license": "MIT",
+    "homepage": "https://docs.ecotone.tech/",
+    "forum": "https://discord.gg/CctGMcrYnV",
+    "type": "library",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "dgafka.mail@gmail.com"
+        },
+        {
+            "name": "Piotr Zając",
+            "email": "piotr.zajac@unixslayer.pl",
+            "homepage": "http://unixslayer.pl"
+        }
+    ],
+    "keywords": ["ecotone", "redis"],
+    "description": "Extends Ecotone with redis integration",
+    "autoload": {
+        "psr-4": {
+            "Ecotone\\Redis\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\Ecotone\\Redis\\": [
+                "tests"
+            ]
+        }
+    },
+    "require": {
+        "ecotone/enqueue": "^1.69",
+        "enqueue/redis": "^0.10.9"
+    },
+    "require-dev": {
+        "behat/behat": "^3.10",
+        "phpstan/phpstan": "^1.8",
+        "phpunit/phpunit": "^9.5",
+        "predis/predis": "^1.1.10",
+        "wikimedia/composer-merge-plugin": "^2.0"
+    },
+    "scripts": {
+        "tests:phpstan": "vendor/bin/phpstan",
+        "tests:phpunit": "vendor/bin/phpunit",
+        "tests:behat": "vendor/bin/behat -vvv",
+        "tests:ci": [
+            "@tests:phpstan",
+            "@tests:phpunit",
+            "@tests:behat"
+        ]
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.62-dev"
+        },
+        "ecotone": {
+            "repository": "redis"
+        },
+        "merge-plugin": {
+            "include": [
+                "../config.json"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "wikimedia/composer-merge-plugin": true
+        }
+    }
+}

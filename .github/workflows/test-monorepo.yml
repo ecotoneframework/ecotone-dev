@@ -59,9 +59,14 @@ jobs:
         ports:
           - '4576:4576'
           - '4575:4575'
+      redis:
+        image: redis:7-alpine
+        ports:
+          - '6379:6379'
     env:
       RABBIT_HOST: amqp://127.0.0.1:5672
-      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4576&version=latest
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
+      REDIS_DSN: redis://127.0.0.1:6379
     steps:
     - name: PHP ${{ matrix.php-versions }} - ${{ matrix.stability }}
       uses: shivammathur/setup-php@v2
@@ -85,12 +90,12 @@ jobs:
     - name: Test PHPUnit on Postgres
       run: vendor/bin/phpunit
       env:
-        DATABASE_DSN: pgsql://ecotone:secret@localhost:5432/ecotone
+        DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
 
     - name: Test Behat on Postgres
       run: vendor/bin/behat -vvv
       env:
-        DATABASE_DSN: pgsql://ecotone:secret@localhost:5432/ecotone
+        DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
 
     - name: Test PHPUnit on Mysql
       run: vendor/bin/phpunit

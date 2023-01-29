@@ -1,6 +1,29 @@
 version: "3.8"
 
 services:
+  app8_0:
+    image: simplycodedsoftware/php:8.0
+    volumes:
+      - "$PWD:/data/app"
+    working_dir: "/data/app"
+    command: sleep 99999
+    container_name: "ecotone_development_8_0"
+    networks:
+      - default
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # 172.17.0.1
+    environment:
+      COMPOSER_HOME: /data/app
+      COMPOSE_HTTP_TIMEOUT: 9999
+      COMPOSER_ROOT_VERSION: 'dev-main'
+      RABBIT_HOST: "amqp://rabbitmq:5672"
+      DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest
+      REDIS_DSN: redis://redis:6379
+    env_file:
+      - ".env"
   app:
     image: simplycodedsoftware/php:8.1
     volumes:

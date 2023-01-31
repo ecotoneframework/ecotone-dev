@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\ReactiveSystem\Part_1\Infrastructure\InMemory;
+namespace App\ReactiveSystem\Part_2\Infrastructure\InMemory;
 
-use App\ReactiveSystem\Part_1\Domain\Order\Order;
-use App\ReactiveSystem\Part_1\Domain\Order\OrderRepository;
+use App\ReactiveSystem\Part_2\Domain\Order\Order;
+use App\ReactiveSystem\Part_2\Domain\Order\OrderRepository;
 use Ramsey\Uuid\UuidInterface;
 
 final class InMemoryOrderRepository implements OrderRepository
 {
     /** @var Order[] */
-    private array $orders = [];
+    private array $orders;
 
     public function __construct() {}
 

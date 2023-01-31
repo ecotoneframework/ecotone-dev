@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\ReactiveSystem\Part_1\Domain\Order;
+namespace App\ReactiveSystem\Part_2\Domain\Order;
 
-use App\ReactiveSystem\Part_1\Domain\Clock;
-use App\ReactiveSystem\Part_1\Domain\Product\ProductDetails;
+use App\ReactiveSystem\Part_2\Domain\Clock;
+use App\ReactiveSystem\Part_2\Domain\Product\ProductDetails;
 use Money\Money;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;

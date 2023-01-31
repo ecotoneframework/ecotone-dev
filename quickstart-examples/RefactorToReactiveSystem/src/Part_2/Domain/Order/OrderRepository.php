@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\ReactiveSystem\Part_1\Domain\Order;
+namespace App\ReactiveSystem\Part_2\Domain\Order;
 
 use Ramsey\Uuid\UuidInterface;
 

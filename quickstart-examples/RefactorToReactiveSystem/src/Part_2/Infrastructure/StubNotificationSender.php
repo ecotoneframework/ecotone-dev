@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\ReactiveSystem\Part_1\Infrastructure;
+namespace App\ReactiveSystem\Part_2\Infrastructure;
 
-use App\ReactiveSystem\Part_1\Domain\Notification\NotificationSender;
+use App\ReactiveSystem\Part_2\Domain\Notification\NotificationSender;
 
 final class StubNotificationSender implements NotificationSender
 {

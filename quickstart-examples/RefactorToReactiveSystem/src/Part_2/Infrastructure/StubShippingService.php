@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\ReactiveSystem\Part_1\Infrastructure;
+namespace App\ReactiveSystem\Part_2\Infrastructure;
 
-use App\ReactiveSystem\Part_1\Domain\Order\ShippingAddress;
-use App\ReactiveSystem\Part_1\Domain\Shipping\ShippingService;
+use App\ReactiveSystem\Part_2\Domain\Order\ShippingAddress;
+use App\ReactiveSystem\Part_2\Domain\Shipping\ShippingService;
 use Ramsey\Uuid\UuidInterface;
 
 final class StubShippingService implements ShippingService

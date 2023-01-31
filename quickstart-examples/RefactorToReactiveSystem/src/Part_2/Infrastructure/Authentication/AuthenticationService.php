@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\ReactiveSystem\Part_1\Infrastructure\Authentication;
+namespace App\ReactiveSystem\Part_2\Infrastructure\Authentication;
 
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -11,7 +11,7 @@ use Ramsey\Uuid\UuidInterface;
  * This is just an example.
  * Normally you would fetch it from Session or Access Token.
  */
-final class StubAuthenticationService implements AuthenticationService
+final class AuthenticationService
 {
     public function __construct(private UuidInterface $userId)
     {

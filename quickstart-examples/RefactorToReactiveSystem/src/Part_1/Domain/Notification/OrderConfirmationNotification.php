@@ -12,32 +12,9 @@ final class OrderConfirmationNotification
 {
     /** @param ProductDetails[] $productDetails */
     public function __construct(
-        private string $userFullName,
-        private UuidInterface $orderId,
-        private array $productDetails,
-        private Money $totalAmount
+        public readonly string $userFullName,
+        public readonly UuidInterface $orderId,
+        public readonly array $productDetails,
+        public readonly Money $totalAmount
     ) {}
-
-    public function getUserFullName(): string
-    {
-        return $this->userFullName;
-    }
-
-    public function getOrderId(): UuidInterface
-    {
-        return $this->orderId;
-    }
-
-    /**
-     * @return ProductDetails[]
-     */
-    public function getProductDetails(): array
-    {
-        return $this->productDetails;
-    }
-
-    public function getTotalAmount(): Money
-    {
-        return $this->totalAmount;
-    }
 }

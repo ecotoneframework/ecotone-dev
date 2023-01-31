@@ -8,15 +8,8 @@ use Money\Money;
 
 final class ProductDetails
 {
-    public function __construct(private string $productName, private Money $productPrice) {}
-
-    public function getProductName(): string
-    {
-        return $this->productName;
-    }
-
-    public function getProductPrice(): Money
-    {
-        return $this->productPrice;
-    }
+    public function __construct(
+        public readonly string $productName,
+        public readonly Money $productPrice
+    ) {}
 }

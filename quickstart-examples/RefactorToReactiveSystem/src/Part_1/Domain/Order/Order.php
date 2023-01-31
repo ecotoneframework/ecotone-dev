@@ -50,7 +50,7 @@ final class Order
         $totalPrice = Money::EUR(0);
 
         foreach ($this->productDetails as $productDetail) {
-            $totalPrice = $totalPrice->add($productDetail->getProductPrice());
+            $totalPrice = $totalPrice->add($productDetail->productPrice);
         }
 
         return $totalPrice;

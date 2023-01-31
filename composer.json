@@ -117,7 +117,7 @@
         "symfony/console": "^5.4|^6.0",
         "symfony/framework-bundle": "^5.4|^6.0",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "php-di/php-di": "^6.3"
+        "php-di/php-di": "^7.0.1"
     },
     "require-dev": {
         "behat/behat": "^3.10",

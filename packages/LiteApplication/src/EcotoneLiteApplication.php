@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 
 class EcotoneLiteApplication
 {
-    public static function bootstrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null): ConfiguredMessagingSystem
+    public static function bootstrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null, array $classesToRegister = []): ConfiguredMessagingSystem
     {
         if (! $serviceConfiguration) {
             $serviceConfiguration = ServiceConfiguration::createWithDefaults();
@@ -20,7 +20,7 @@ class EcotoneLiteApplication
                 ->withLoadCatalog('src');
         }
 
-        $container = new LiteDIContainer($serviceConfiguration, $cacheConfiguration, $configurationVariables);
+        $container = new LiteDIContainer($serviceConfiguration, $cacheConfiguration, $configurationVariables, $classesToRegister);
 
         foreach ($objectsToRegister as $referenceName => $object) {
             $container->set($referenceName, $object);

@@ -47,7 +47,7 @@ jobs:
 
     steps:
       -   uses: actions/checkout@v2
-      - run: git config --global --add safe.directory /tmp/monorepo_split/build_directory
+      - run: git config --global --add safe.directory /github/workspace
       # no tag
       -
         if: "!startsWith(github.ref, 'refs/tags/')"

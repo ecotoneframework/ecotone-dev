@@ -47,7 +47,6 @@ jobs:
 
     steps:
       -   uses: actions/checkout@v2
-      - run: sudo git config --system --add safe.directory /github/workspace
       # no tag
       -
         if: "!startsWith(github.ref, 'refs/tags/')"

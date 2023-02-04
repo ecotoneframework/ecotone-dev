@@ -46,7 +46,7 @@ class DeduplicationModule implements AnnotationModule
 
         $pointcut = Deduplicated::class;
         if ($isDeduplicatedEnabled) {
-            $pointcut .= "||" . AsynchronousRunningEndpoint::class;
+            $pointcut .= '||' . AsynchronousRunningEndpoint::class;
         }
 
         $messagingConfiguration

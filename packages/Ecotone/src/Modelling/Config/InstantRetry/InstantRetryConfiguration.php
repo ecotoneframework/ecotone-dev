@@ -8,13 +8,12 @@ final class InstantRetryConfiguration
 {
     private function __construct(private bool $isEnabledForCommandBus, private int $commandBusRetryTimes, private array $commandBuExceptions, private bool $isEnabledForAsynchronousEndpoints, private int $asynchronousRetryTimes, private array $asynchronousExceptions)
     {
-
     }
 
     public static function createWithDefaults(): self
     {
         /** @TODO Ecotone 2.0 asynchronous retries enabled by default */
-        return new self(false, 3, [], false,3, []);
+        return new self(false, 3, [], false, 3, []);
     }
 
     /**

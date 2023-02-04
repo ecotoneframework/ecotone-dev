@@ -7,7 +7,6 @@ namespace Test\Ecotone\Dbal\Integration\Deduplication;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -18,6 +17,9 @@ use Test\Ecotone\Dbal\DbalMessagingTest;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
 use Test\Ecotone\Dbal\Fixture\DeduplicationEventHandler\DeduplicatedEventHandler;
 
+/**
+ * @internal
+ */
 final class DbalDeduplicationModuleTest extends DbalMessagingTest
 {
     public function test_deduplicating_given_command_handler()
@@ -36,9 +38,9 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTest
         $this->assertEquals(
             1,
             $ecotoneLite
-                ->sendCommandWithRoutingKey("email_event_handler.handle", metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->sendCommandWithRoutingKey("email_event_handler.handle", metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->sendQueryWithRouting("email_event_handler.getCallCount")
+                ->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }
 
@@ -63,10 +65,10 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTest
         $this->assertEquals(
             2,
             $ecotoneLite
-                ->publishEventWithRoutingKey("order.was_cancelled", metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->publishEventWithRoutingKey("order.was_cancelled", metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
                 ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4))
-                ->sendQueryWithRouting("email_event_handler.getCallCount")
+                ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }
 
@@ -83,7 +85,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTest
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(false),
-                    DbalBackedMessageChannelBuilder::create($queueName)
+                    DbalBackedMessageChannelBuilder::create($queueName),
                 ])
         );
 
@@ -91,10 +93,10 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTest
         $this->assertEquals(
             2,
             $ecotoneLite
-                ->publishEventWithRoutingKey("order.was_placed", metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->publishEventWithRoutingKey("order.was_placed", metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRoutingKey('order.was_placed', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRoutingKey('order.was_placed', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
                 ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, maxExecutionTimeInMilliseconds: 1000000))
-                ->sendQueryWithRouting("email_event_handler.getCallCount")
+                ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }
 
@@ -120,9 +122,9 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTest
         $this->assertEquals(
             1,
             $ecotoneLite
-                ->sendCommandWithRoutingKey("email_event_handler.handle_with_custom_deduplication_header", metadata: ['emailId' => $emailId])
-                ->sendCommandWithRoutingKey("email_event_handler.handle_with_custom_deduplication_header", metadata: ['emailId' => $emailId])
-                ->sendQueryWithRouting("email_event_handler.getCallCount")
+                ->sendCommandWithRoutingKey('email_event_handler.handle_with_custom_deduplication_header', metadata: ['emailId' => $emailId])
+                ->sendCommandWithRoutingKey('email_event_handler.handle_with_custom_deduplication_header', metadata: ['emailId' => $emailId])
+                ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }
 }

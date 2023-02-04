@@ -10,9 +10,14 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
 
+/**
+ * @internal
+ */
 final class InstantRetryModuleTest extends TestCase
 {
     public function test_retrying_with_command_bus()
@@ -25,15 +30,15 @@ final class InstantRetryModuleTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(true, 3)
+                        ->withCommandBusRetry(true, 3),
                 ])
         );
 
         $this->assertEquals(
             4,
             $ecotoneLite
-                ->sendCommandWithRoutingKey("retried.synchronous", 4)
-                ->sendQueryWithRouting("retried.getCallCount")
+                ->sendCommandWithRoutingKey('retried.synchronous', 4)
+                ->sendQueryWithRouting('retried.getCallCount')
         );
     }
 
@@ -47,13 +52,13 @@ final class InstantRetryModuleTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(true, 2)
+                        ->withCommandBusRetry(true, 2),
                 ])
         );
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
 
-        $ecotoneLite->sendCommandWithRoutingKey("retried.synchronous", 4);
+        $ecotoneLite->sendCommandWithRoutingKey('retried.synchronous', 4);
     }
 
     public function test_retrying_with_command_bus_for_concrete_exception()
@@ -66,15 +71,15 @@ final class InstantRetryModuleTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(true, 3, [\RuntimeException::class])
+                        ->withCommandBusRetry(true, 3, [RuntimeException::class]),
                 ])
         );
 
         $this->assertEquals(
             4,
             $ecotoneLite
-                ->sendCommandWithRoutingKey("retried.synchronous", 4)
-                ->sendQueryWithRouting("retried.getCallCount")
+                ->sendCommandWithRoutingKey('retried.synchronous', 4)
+                ->sendQueryWithRouting('retried.getCallCount')
         );
     }
 
@@ -88,13 +93,13 @@ final class InstantRetryModuleTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(true, 3, [\InvalidArgumentException::class])
+                        ->withCommandBusRetry(true, 3, [InvalidArgumentException::class]),
                 ])
         );
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
 
-        $ecotoneLite->sendCommandWithRoutingKey("retried.synchronous", 2);
+        $ecotoneLite->sendCommandWithRoutingKey('retried.synchronous', 2);
     }
 
     public function test_retrying_with_asynchronous_handler()
@@ -107,18 +112,18 @@ final class InstantRetryModuleTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel("async"),
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
-                        ->withAsynchronousEndpointsRetry(true, 3)
+                        ->withAsynchronousEndpointsRetry(true, 3),
                 ])
         );
 
         $this->assertEquals(
             4,
             $ecotoneLite
-                ->sendCommandWithRoutingKey("retried.asynchronous", 4)
-                ->run("async", ExecutionPollingMetadata::createWithDefaults()->withTestingSetup())
-                ->sendQueryWithRouting("retried.getCallCount")
+                ->sendCommandWithRoutingKey('retried.asynchronous', 4)
+                ->run('async', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup())
+                ->sendQueryWithRouting('retried.getCallCount')
         );
     }
 
@@ -132,16 +137,16 @@ final class InstantRetryModuleTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel("async"),
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
-                        ->withAsynchronousEndpointsRetry(true, 2)
+                        ->withAsynchronousEndpointsRetry(true, 2),
                 ])
         );
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey("retried.asynchronous", 4)
-            ->run("async", ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+            ->sendCommandWithRoutingKey('retried.asynchronous', 4)
+            ->run('async', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
     }
 }

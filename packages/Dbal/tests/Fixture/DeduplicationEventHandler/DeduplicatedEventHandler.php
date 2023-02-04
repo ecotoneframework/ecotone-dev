@@ -14,36 +14,36 @@ final class DeduplicatedEventHandler
     private int $called = 0;
 
     #[Deduplicated]
-    #[Asynchronous("async")]
-    #[EventHandler("order.was_placed", 'handleOne')]
+    #[Asynchronous('async')]
+    #[EventHandler('order.was_placed', 'handleOne')]
     public function handleOne(): void
     {
         $this->called++;
     }
 
     #[Deduplicated]
-    #[Asynchronous("async")]
-    #[EventHandler("order.was_placed", 'handleTwo')]
+    #[Asynchronous('async')]
+    #[EventHandler('order.was_placed', 'handleTwo')]
     public function handleTwo(): void
     {
         $this->called++;
     }
 
-    #[Asynchronous("async")]
-    #[EventHandler("order.was_cancelled", 'handleGlobalOne')]
+    #[Asynchronous('async')]
+    #[EventHandler('order.was_cancelled', 'handleGlobalOne')]
     public function handleGlobalOne(): void
     {
         $this->called++;
     }
 
-    #[Asynchronous("async")]
-    #[EventHandler("order.was_cancelled", 'handleGlobalTwo')]
+    #[Asynchronous('async')]
+    #[EventHandler('order.was_cancelled', 'handleGlobalTwo')]
     public function handleGlobalTwo(): void
     {
         $this->called++;
     }
 
-    #[QueryHandler("email_event_handler.getCallCount")]
+    #[QueryHandler('email_event_handler.getCallCount')]
     public function getCallCount(): int
     {
         return $this->called;

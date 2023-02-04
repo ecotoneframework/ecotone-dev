@@ -13,20 +13,20 @@ final class EmailCommandHandler
     private int $called = 0;
 
     #[Deduplicated]
-    #[CommandHandler("email_event_handler.handle")]
+    #[CommandHandler('email_event_handler.handle')]
     public function handle(): void
     {
         $this->called++;
     }
 
     #[Deduplicated('emailId')]
-    #[CommandHandler("email_event_handler.handle_with_custom_deduplication_header")]
+    #[CommandHandler('email_event_handler.handle_with_custom_deduplication_header')]
     public function handleWithCustomDeduduplication(): void
     {
         $this->called++;
     }
 
-    #[QueryHandler("email_event_handler.getCallCount")]
+    #[QueryHandler('email_event_handler.getCallCount')]
     public function getCallCount(): int
     {
         return $this->called;

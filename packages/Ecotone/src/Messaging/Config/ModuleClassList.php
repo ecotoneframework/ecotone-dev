@@ -70,7 +70,7 @@ class ModuleClassList
         SplitterModule::class,
         TransformerModule::class,
         MessageConsumerModule::class,
-        InstantRetryModule::class
+        InstantRetryModule::class,
     ];
 
     public const ASYNCHRONOUS_MODULE = [

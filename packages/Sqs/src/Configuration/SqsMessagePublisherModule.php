@@ -32,7 +32,7 @@ final class SqsMessagePublisherModule extends NoExternalConfigurationModule impl
         return new self();
     }
 
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
@@ -40,7 +40,7 @@ final class SqsMessagePublisherModule extends NoExternalConfigurationModule impl
         foreach (ExtensionObjectResolver::resolve(SqsMessagePublisherConfiguration::class, $extensionObjects) as $messagePublisher) {
             $mediaType = $messagePublisher->getOutputDefaultConversionMediaType() ?: $serviceConfiguration->getDefaultSerializationMediaType();
 
-            $configuration
+            $messagingConfiguration
                 ->registerGatewayBuilder(
                     GatewayProxyBuilder::create($messagePublisher->getReferenceName(), MessagePublisher::class, 'send', $messagePublisher->getReferenceName())
                         ->withParameterConverters([

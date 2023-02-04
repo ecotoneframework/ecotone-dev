@@ -22,11 +22,11 @@ final class RedisMessageConsumerModule extends NoExternalConfigurationModule imp
         return new self();
     }
 
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         /** @var RedisMessageConsumerConfiguration $extensionObject */
         foreach ($extensionObjects as $extensionObject) {
-            $configuration->registerConsumer(
+            $messagingConfiguration->registerConsumer(
                 RedisInboundChannelAdapterBuilder::createWith(
                     $extensionObject->getEndpointId(),
                     $extensionObject->getQueueName(),

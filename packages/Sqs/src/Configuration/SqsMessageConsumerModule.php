@@ -22,11 +22,11 @@ final class SqsMessageConsumerModule extends NoExternalConfigurationModule imple
         return new self();
     }
 
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         /** @var SqsMessageConsumerConfiguration $extensionObject */
         foreach ($extensionObjects as $extensionObject) {
-            $configuration->registerConsumer(
+            $messagingConfiguration->registerConsumer(
                 SqsInboundChannelAdapterBuilder::createWith(
                     $extensionObject->getEndpointId(),
                     $extensionObject->getQueueName(),

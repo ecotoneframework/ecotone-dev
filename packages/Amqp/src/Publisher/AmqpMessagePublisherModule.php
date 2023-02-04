@@ -35,7 +35,7 @@ class AmqpMessagePublisherModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         ;
@@ -44,7 +44,7 @@ class AmqpMessagePublisherModule implements AnnotationModule
         foreach (ExtensionObjectResolver::resolve(AmqpMessagePublisherConfiguration::class, $extensionObjects) as $amqpPublisher) {
             $mediaType = $amqpPublisher->getOutputDefaultConversionMediaType() ? $amqpPublisher->getOutputDefaultConversionMediaType() : $applicationConfiguration->getDefaultSerializationMediaType();
 
-            $configuration = $configuration
+            $messagingConfiguration = $messagingConfiguration
                 ->registerGatewayBuilder(
                     GatewayProxyBuilder::create($amqpPublisher->getReferenceName(), MessagePublisher::class, 'send', $amqpPublisher->getReferenceName())
                         ->withParameterConverters([

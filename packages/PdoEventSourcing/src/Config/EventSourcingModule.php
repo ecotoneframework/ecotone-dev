@@ -239,7 +239,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         return new self($projectionSetupConfigurations, $projectionEventHandlers, AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry), $projectionLifeCyclesServiceActivators, EventMapper::createWith($fromClassToNameMapping, $fromNameToClassMapping), AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $relatedInterfaces, array_unique($requiredReferences), $projectionStateGateways);
     }
 
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
@@ -265,8 +265,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $moduleReferenceSearchService->store(EventMapper::class, $this->eventMapper);
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
-        $configuration->registerRelatedInterfaces($this->relatedInterfaces);
-        $configuration->requireReferences($this->requiredReferences);
+        $messagingConfiguration->registerRelatedInterfaces($this->relatedInterfaces);
+        $messagingConfiguration->requireReferences($this->requiredReferences);
 
         $projectionRunningConfigurations = [];
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
@@ -294,17 +294,17 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
             $projectionExecutorBuilder = new ProjectionExecutorBuilder($eventSourcingConfiguration, $projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'execute');
             $projectionExecutorBuilder = $projectionExecutorBuilder->withInputChannelName($generatedChannelName);
-            $configuration->registerMessageHandler($projectionExecutorBuilder);
+            $messagingConfiguration->registerMessageHandler($projectionExecutorBuilder);
 
             foreach ($projectionSetupConfiguration->getProjectionEventHandlerConfigurations() as $projectionEventHandler) {
-                $configuration->registerBeforeSendInterceptor(MethodInterceptor::create(
+                $messagingConfiguration->registerBeforeSendInterceptor(MethodInterceptor::create(
                     Uuid::uuid4()->toString(),
                     $interfaceToCallRegistry->getFor(ProjectionFlowController::class, 'preSend'),
                     ServiceActivatorBuilder::createWithDirectReference(new ProjectionFlowController($projectionRunningConfiguration->isPolling()), 'preSend'),
                     Precedence::SYSTEM_PRECEDENCE_BEFORE,
                     $projectionEventHandler->getClassName().'::'.$projectionEventHandler->getMethodName()
                 ));
-                $configuration->registerBeforeMethodInterceptor(MethodInterceptor::create(
+                $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptor::create(
                     Uuid::uuid4()->toString(),
                     $interfaceToCallRegistry->getFor(ProjectionEventHandler::class, 'beforeEventHandler'),
                     new ProjectionExecutorBuilder($eventSourcingConfiguration, $projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'beforeEventHandler'),
@@ -314,7 +314,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
 
             if ($projectionRunningConfiguration->isPolling()) {
-                $configuration->registerConsumer(
+                $messagingConfiguration->registerConsumer(
                     InboundChannelAdapterBuilder::createWithDirectObject(
                         $generatedChannelName,
                         new ProjectionChannelAdapter(),
@@ -325,12 +325,12 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
         }
         foreach ($this->projectionLifeCycleServiceActivators as $serviceActivator) {
-            $configuration->registerMessageHandler($serviceActivator);
+            $messagingConfiguration->registerMessageHandler($serviceActivator);
         }
 
-        $this->registerEventStore($configuration, $eventSourcingConfiguration);
-        $this->registerEventStreamEmitter($configuration, $eventSourcingConfiguration);
-        $this->registerProjectionManager($configuration, $eventSourcingConfiguration);
+        $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
+        $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
+        $this->registerProjectionManager($messagingConfiguration, $eventSourcingConfiguration);
     }
 
     public function canHandle($extensionObject): bool

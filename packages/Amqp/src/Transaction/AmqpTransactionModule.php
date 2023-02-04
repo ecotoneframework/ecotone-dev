@@ -36,7 +36,7 @@ class AmqpTransactionModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $connectionFactories = [AmqpConnectionFactory::class];
         $pointcut = AmqpTransaction::class;
@@ -61,10 +61,10 @@ class AmqpTransactionModule implements AnnotationModule
         }
 
         if ($isTransactionWrapperEnabled) {
-            $configuration->requireReferences($connectionFactories);
+            $messagingConfiguration->requireReferences($connectionFactories);
         }
 
-        $configuration
+        $messagingConfiguration
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
                     $interfaceToCallRegistry,

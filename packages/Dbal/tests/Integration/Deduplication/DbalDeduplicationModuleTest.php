@@ -18,7 +18,7 @@ use Test\Ecotone\Dbal\DbalMessagingTest;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
 use Test\Ecotone\Dbal\Fixture\DeduplicationEventHandler\DeduplicatedEventHandler;
 
-final class DbalDeduplicationTest extends DbalMessagingTest
+final class DbalDeduplicationModuleTest extends DbalMessagingTest
 {
     public function test_deduplicating_given_command_handler()
     {

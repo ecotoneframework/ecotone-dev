@@ -8,13 +8,14 @@ use App\ReactiveSystem\Stage_2\Application\OrderService;
 use App\ReactiveSystem\Stage_2\Application\PlaceOrder;
 use App\ReactiveSystem\Stage_2\Domain\Order\ShippingAddress;
 use App\ReactiveSystem\Stage_2\Infrastructure\Authentication\AuthenticationService;
+use Ecotone\Modelling\CommandBus;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 final class OrderController
 {
-    public function __construct(private AuthenticationService $authenticationService, private OrderService $orderService) {}
+    public function __construct(private AuthenticationService $authenticationService, private CommandBus $commandBus) {}
 
     public function placeOrder(Request $request): Response
     {
@@ -23,7 +24,7 @@ final class OrderController
         $shippingAddress = new ShippingAddress($data['address']['street'], $data['address']['houseNumber'], $data['address']['postCode'], $data['address']['country']);
         $productIds = array_map(fn(string $productId) => Uuid::fromString($productId), $data['productIds']);
 
-        $this->orderService->placeOrder(new PlaceOrder($currentUserId, $shippingAddress, $productIds));
+        $this->commandBus->send(new PlaceOrder($currentUserId, $shippingAddress, $productIds));
 
         return new Response();
     }

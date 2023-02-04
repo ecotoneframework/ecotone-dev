@@ -36,7 +36,7 @@ class DbalTransactionModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $connectionFactories = [DbalConnectionFactory::class];
         $pointcut            = '(' . DbalTransaction::class . ')';
@@ -56,7 +56,7 @@ class DbalTransactionModule implements AnnotationModule
             $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames();
         }
 
-        $configuration
+        $messagingConfiguration
             ->requireReferences($connectionFactories)
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(

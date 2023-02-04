@@ -39,7 +39,7 @@ class AmqpModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $extensionObjects = array_merge($this->amqpDistributionModule->getAmqpConfiguration($extensionObjects), $extensionObjects);
 
@@ -59,7 +59,7 @@ class AmqpModule implements AnnotationModule
             }
         }
 
-        $this->amqpDistributionModule->prepare($configuration, $extensionObjects);
+        $this->amqpDistributionModule->prepare($messagingConfiguration, $extensionObjects);
         $moduleReferenceSearchService->store(AmqpAdmin::REFERENCE_NAME, AmqpAdmin::createWith(
             $amqpExchanges,
             $amqpQueues,

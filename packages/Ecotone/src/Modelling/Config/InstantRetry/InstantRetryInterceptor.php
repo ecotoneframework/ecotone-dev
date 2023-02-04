@@ -4,6 +4,7 @@ namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Exception;
 
 class InstantRetryInterceptor
 {
@@ -21,7 +22,7 @@ class InstantRetryInterceptor
             try {
                 $result = $methodInvocation->proceed();
                 $isSuccessful = true;
-            } catch (\Exception $exception) {
+            } catch (Exception $exception) {
                 if (! $this->canRetryThrownException($exception) || $retries >= $this->maxRetryAttempts) {
                     throw $exception;
                 }
@@ -33,7 +34,7 @@ class InstantRetryInterceptor
         return $result;
     }
 
-    private function canRetryThrownException(\Exception $thrownException): bool
+    private function canRetryThrownException(Exception $thrownException): bool
     {
         if ($this->exceptions === []) {
             return true;

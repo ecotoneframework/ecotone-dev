@@ -16,7 +16,10 @@ final class MessageChannelConfiguration
     #[ServiceContext]
     public function asynchronousChannel()
     {
-        /** This is in memory asynchronous channel. In Production run you would have RabbitMQ / Redis / SQS etc in here */
+        /**
+         * This is in memory asynchronous channel. In Production run you would have RabbitMQ / Redis / SQS etc in here:
+         * https://docs.ecotone.tech/modelling/asynchronous-handling
+         */
         return SimpleMessageChannelBuilder::createQueueChannel(self::ASYNCHRONOUS_CHANNEL);
     }
 

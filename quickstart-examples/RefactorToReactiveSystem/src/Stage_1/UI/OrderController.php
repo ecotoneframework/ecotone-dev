@@ -20,9 +20,9 @@ final class OrderController
         $data = \json_decode($request->getContent(), true, flags: JSON_THROW_ON_ERROR);
         $currentUserId = $this->authenticationService->getCurrentUserId();
         $shippingAddress = new ShippingAddress($data['address']['street'], $data['address']['houseNumber'], $data['address']['postCode'], $data['address']['country']);
-        $productId = $data['productId'];
+        $productId = Uuid::fromString($data['productId']);
 
-        $this->orderService->placeOrder($currentUserId, $shippingAddress, Uuid::fromString($productId));
+        $this->orderService->placeOrder($currentUserId, $shippingAddress, $productId);
 
         return new Response();
     }

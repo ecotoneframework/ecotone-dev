@@ -18,7 +18,6 @@ final class InMemoryOrderRepository implements OrderRepository
 
     public function save(Order $order): void
     {
-        Assert::isFalse(isset($this->orders[$order->getOrderId()->toString()]), "Duplicated order");
         $this->orders[$order->getOrderId()->toString()] = $order;
     }
 

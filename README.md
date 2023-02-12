@@ -11,7 +11,7 @@
 > The term "Ecotone", in ecology means transition area between ecosystems, such as forest and grassland.  
 The Ecotone Framework functions as transition area between your components, modules and services. It glues things together, yet respects the boundaries of each area.
  
-Ecotone is `Service Bus` implementation, which makes it possible to build scalable, resilient and message driven applications in PHP.    
+Ecotone is `Service Bus` implementation, which makes it possible to build `scalable`, `resilient` and `message driven` applications in PHP.    
 On top of that provides supports for `DDD`, `CQRS` and `Event Sourcing`.
 
 > Ecotone can be used with [Symfony](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing) and [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing) frameworks.

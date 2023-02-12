@@ -9,7 +9,7 @@
 [![PHP Version Require](http://poser.pugx.org/ecotone/ecotone/require/php)](https://packagist.org/packages/ecotone/ecotone)
 
 `Ecotone Framework` is a `Service Bus` which enables `Message-Driven` architecture in `PHP`.  
-On top of that provides support for building applications that follows `Domain-Driven Design` (DDD), `Command Query Responsibility Segregation` (CQRS) and `Event Sourcing` (ES).
+Based on  resilient Message-Driven principles provides support for building applications that follows `Domain-Driven Design` (DDD), `Command Query Responsibility Segregation` (CQRS) and `Event Sourcing` (ES).
 
 > The term "Ecotone", in ecology means transition area between ecosystems, such as forest and grassland.  
 The Ecotone Framework functions as transition area between your components, modules and services. It glues things together, yet respects the boundaries of each area.

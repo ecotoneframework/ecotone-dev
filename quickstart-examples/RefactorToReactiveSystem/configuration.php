@@ -6,7 +6,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Money\Money;
 use Ramsey\Uuid\UuidInterface;
 
-function getConfiguredMessagingSystem(mixed $stageToRun, UuidInterface $userId, UuidInterface $chairProductId, UuidInterface $tableProductId): ConfiguredMessagingSystem
+function getConfiguredMessagingSystem(mixed $stageToRun, UuidInterface $userId, UuidInterface $tableProductId): ConfiguredMessagingSystem
 {
     $stubNotificationSender = sprintf('\App\ReactiveSystem\%s\Infrastructure\StubNotificationSender', $stageToRun);
     $stubShippingService = sprintf('\App\ReactiveSystem\%s\Infrastructure\StubShippingService', $stageToRun);
@@ -25,7 +25,7 @@ function getConfiguredMessagingSystem(mixed $stageToRun, UuidInterface $userId, 
         sprintf("App\ReactiveSystem\%s\Domain\Order\OrderRepository", $stageToRun) => new $inMemoryOrderRepository(),
         sprintf("App\ReactiveSystem\%s\Infrastructure\Authentication\AuthenticationService", $stageToRun) => new $authenticationService($userId),
         sprintf("App\ReactiveSystem\%s\Domain\User\UserRepository", $stageToRun) => new $inMemoryUserRepository([new $user($userId, "John Travolta")]),
-        sprintf("App\ReactiveSystem\%s\Domain\Product\ProductRepository", $stageToRun) => new $inMemoryProductRepository([new $product($chairProductId, new $productDetails("Chair", Money::EUR('50.00'))), new $product($tableProductId, new $productDetails("Table", Money::EUR('100.00')))])
+        sprintf("App\ReactiveSystem\%s\Domain\Product\ProductRepository", $stageToRun) => new $inMemoryProductRepository([new $product($tableProductId, new $productDetails("Table", Money::EUR('100.00')))])
     ];
 
     return EcotoneLiteApplication::bootstrap(

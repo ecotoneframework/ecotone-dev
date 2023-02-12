@@ -8,13 +8,12 @@ use Symfony\Component\HttpFoundation\Request;
 require __DIR__ . "/vendor/autoload.php";
 require __DIR__ . '/configuration.php';
 
-Assert::assertTrue(key_exists(1, $argv) && in_array($argv[1], ["Stage_1", "Stage_2", "Stage_3"]), sprintf('Pass correct part which you want to run for example: "php run_example Stage_1"'));
+Assert::assertTrue(key_exists(1, $argv) && in_array($argv[1], ["Stage_1", "Stage_2"]), sprintf('Pass correct part which you want to run for example: "php run_example Stage_1"'));
 $stageToRun = $argv[1];
 $userId = Uuid::uuid4();
 $tableProductId = Uuid::uuid4();
-$chairProductId = Uuid::uuid4();
 
-$messagingSystem = getConfiguredMessagingSystem($stageToRun, $userId, $chairProductId, $tableProductId);
+$messagingSystem = getConfiguredMessagingSystem($stageToRun, $userId, $tableProductId);
 
 /** Run Controller  */
 
@@ -28,7 +27,7 @@ $orderController->placeOrder(new Request(content: json_encode([
         'postCode' => '81-221',
         'country' => 'Netherlands'
     ],
-    'productIds' => [$tableProductId->toString(), $chairProductId->toString()]
+    'productId' => $tableProductId->toString()
 ])));
 
 if ($stageToRun !== 'Stage_1') {

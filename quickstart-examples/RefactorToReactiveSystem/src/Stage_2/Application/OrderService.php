@@ -18,19 +18,18 @@ final class OrderService
     public function __construct(
         private OrderRepository $orderRepository, private ProductRepository $productRepository,
         private Clock           $clock, private EventBus $eventBus
-    )
-    {
-    }
+    ) {}
 
     #[CommandHandler]
     public function placeOrder(PlaceOrder $command): void
     {
+        $productDetails = $this->productRepository->getBy($command->productId)->getProductDetails();
+
         /** Storing order in database */
-        $productsDetails = array_map(fn(UuidInterface $productId) => $this->productRepository->getBy($productId)->getProductDetails(), $command->productIds);
-        $order = Order::create($command->userId, $command->shippingAddress, $productsDetails, $this->clock);
+        $order = Order::create($command->userId, $command->shippingAddress, $productDetails, $this->clock);
         $this->orderRepository->save($order);
 
-        /** Publish event inditicating that Order Was Placed */
+        /** Publish event indicating that Order Was Placed */
         $this->eventBus->publish(new OrderWasPlaced($order->getOrderId()));
     }
 }

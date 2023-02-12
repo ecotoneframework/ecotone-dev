@@ -14,12 +14,15 @@ final class ShippingSubscriber
 {
     #[Asynchronous(MessageChannelConfiguration::ASYNCHRONOUS_CHANNEL)]
     #[EventHandler(endpointId: "shipWhenOrderWasPlaced")]
-    public function whenOrderWasPlaced(OrderWasPlaced $event, OrderRepository $orderRepository, ShippingService $shippingService): void
+    public function whenOrderWasPlaced(OrderWasPlaced $event, OrderRepository $orderRepository,
+                                       ShippingService $shippingService): void
     {
         /** Sending order confirmation notification */
         $order = $orderRepository->getBy($event->orderId);
 
         /** Calling Shipping Service over HTTP, to deliver products */
-        $shippingService->shipOrderFor($order->getUserId(), $order->getOrderId(), $order->getProductsDetails(), $order->getShippingAddress());
+        $shippingService->shipOrderFor(
+            $order->getUserId(), $order->getOrderId(), $order->getProductDetails(), $order->getShippingAddress()
+        );
     }
 }

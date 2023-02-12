@@ -22,9 +22,9 @@ final class OrderController
         $data = \json_decode($request->getContent(), true, flags: JSON_THROW_ON_ERROR);
         $currentUserId = $this->authenticationService->getCurrentUserId();
         $shippingAddress = new ShippingAddress($data['address']['street'], $data['address']['houseNumber'], $data['address']['postCode'], $data['address']['country']);
-        $productIds = array_map(fn(string $productId) => Uuid::fromString($productId), $data['productIds']);
+        $productId = Uuid::fromString($data['productId']);
 
-        $this->commandBus->send(new PlaceOrder($currentUserId, $shippingAddress, $productIds));
+        $this->commandBus->send(new PlaceOrder($currentUserId, $shippingAddress, $productId));
 
         return new Response();
     }

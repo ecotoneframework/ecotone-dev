@@ -20,7 +20,7 @@ On top of that provides supports for `DDD`, `CQRS` and `Event Sourcing`.
 
 The quickstart [page](https://docs.ecotone.tech/quick-start) of the 
 [reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.  
-Read more on the [Blog](https://blog.ecotone.tech).
+Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
 
 # Development
 

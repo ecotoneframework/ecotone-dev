@@ -12,14 +12,11 @@ use Ramsey\Uuid\UuidInterface;
 
 final class Order
 {
-    /**
-     * @param ProductDetails[] $productsDetails
-     */
-    private function __construct(private UuidInterface $orderId, private UuidInterface $userId, private ShippingAddress $shippingAddress, private array $productsDetails, private \DateTimeImmutable $orderAt) {}
+    private function __construct(private UuidInterface $orderId, private UuidInterface $userId, private ShippingAddress $shippingAddress, private ProductDetails $productDetails, private \DateTimeImmutable $orderAt) {}
 
-    public static function create(UuidInterface $userId, ShippingAddress $shippingAddress, array $productsDetails, Clock $clock): self
+    public static function create(UuidInterface $userId, ShippingAddress $shippingAddress, ProductDetails $productDetails, Clock $clock): self
     {
-        return new self(Uuid::uuid4(), $userId, $shippingAddress, $productsDetails, $clock->getCurrentTime());
+        return new self(Uuid::uuid4(), $userId, $shippingAddress, $productDetails, $clock->getCurrentTime());
     }
 
     public function getOrderId(): UuidInterface
@@ -37,22 +34,8 @@ final class Order
         return $this->shippingAddress;
     }
 
-    /**
-     * @return ProductDetails[]
-     */
-    public function getProductsDetails(): array
-    {
-        return $this->productsDetails;
-    }
-
     public function getTotalPrice(): Money
     {
-        $totalPrice = Money::EUR(0);
-
-        foreach ($this->productsDetails as $productDetail) {
-            $totalPrice = $totalPrice->add($productDetail->productPrice);
-        }
-
-        return $totalPrice;
+        return $this->productDetails->productPrice;
     }
 }

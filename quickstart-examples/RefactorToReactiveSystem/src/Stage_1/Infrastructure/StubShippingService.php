@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\ReactiveSystem\Stage_1\Infrastructure;
 
 use App\ReactiveSystem\Stage_1\Domain\Order\ShippingAddress;
+use App\ReactiveSystem\Stage_1\Domain\Product\ProductDetails;
 use App\ReactiveSystem\Stage_1\Domain\Shipping\ShippingService;
 use Ramsey\Uuid\UuidInterface;
 
 final class StubShippingService implements ShippingService
 {
-    public function shipOrderFor(UuidInterface $userId, UuidInterface $orderId, array $productDetails, ShippingAddress $shippingAddress): void
+    public function shipOrderFor(UuidInterface $userId, UuidInterface $orderId, ProductDetails $productDetails, ShippingAddress $shippingAddress): void
     {
         /** In production run we would Shipping Service over HTTP  */
 

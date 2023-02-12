@@ -10,8 +10,5 @@ use Ramsey\Uuid\UuidInterface;
 
 interface ShippingService
 {
-    /**
-     * @param ProductDetails[] $productDetails
-     */
-    public function shipOrderFor(UuidInterface $userId, UuidInterface $orderId, array $productDetails, ShippingAddress $shippingAddress): void;
+    public function shipOrderFor(UuidInterface $userId, UuidInterface $orderId, ProductDetails $productDetails, ShippingAddress $shippingAddress): void;
 }

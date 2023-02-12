@@ -10,11 +10,10 @@ use Ramsey\Uuid\UuidInterface;
 
 final class OrderConfirmationNotification
 {
-    /** @param ProductDetails[] $productDetails */
     public function __construct(
         public readonly string $userFullName,
         public readonly UuidInterface $orderId,
-        public readonly array $productDetails,
+        public readonly ProductDetails $productDetails,
         public readonly Money $totalAmount
     ) {}
 }

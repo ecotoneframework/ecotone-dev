@@ -23,21 +23,21 @@ final class OrderService
         private ShippingService   $shippingService, private Clock $clock
     ) {}
 
-    /**
-     * @param UuidInterface[] $productIds
-     */
-    public function placeOrder(UuidInterface $userId, ShippingAddress $shippingAddress, array $productIds): void
+    public function placeOrder(UuidInterface $userId, ShippingAddress $shippingAddress, UuidInterface $productId): void
     {
+        $productDetails = $this->productRepository->getBy($productId)->getProductDetails();
+
         /** Storing order in database */
-        $productsDetails = array_map(fn(UuidInterface $productId) => $this->productRepository->getBy($productId)->getProductDetails(), $productIds);
-        $order = Order::create($userId, $shippingAddress, $productsDetails, $this->clock);
+        $order = Order::create($userId, $shippingAddress, $productDetails, $this->clock);
         $this->orderRepository->save($order);
 
         /** Sending order confirmation notification */
         $user = $this->userRepository->getBy($order->getUserId());
-        $this->notifcationSender->send(new OrderConfirmationNotification($user->getFullName(), $order->getOrderId(), $productsDetails, $order->getTotalPrice()));
+        $this->notifcationSender->send(new OrderConfirmationNotification(
+            $user->getFullName(), $order->getOrderId(), $productDetails, $order->getTotalPrice())
+        );
 
         /** Calling Shipping Service over HTTP, to deliver products */
-        $this->shippingService->shipOrderFor($userId, $order->getOrderId(), $productsDetails, $shippingAddress);
+        $this->shippingService->shipOrderFor($userId, $order->getOrderId(), $productDetails, $shippingAddress);
     }
 }

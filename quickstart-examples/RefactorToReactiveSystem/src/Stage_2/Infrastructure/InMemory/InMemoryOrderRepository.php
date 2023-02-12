@@ -6,6 +6,7 @@ namespace App\ReactiveSystem\Stage_2\Infrastructure\InMemory;
 
 use App\ReactiveSystem\Stage_2\Domain\Order\Order;
 use App\ReactiveSystem\Stage_2\Domain\Order\OrderRepository;
+use Ecotone\Messaging\Support\Assert;
 use Ramsey\Uuid\UuidInterface;
 
 final class InMemoryOrderRepository implements OrderRepository

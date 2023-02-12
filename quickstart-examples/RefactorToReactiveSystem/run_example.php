@@ -20,7 +20,10 @@ $messagingSystem = getConfiguredMessagingSystem($stageToRun, $userId, $tableProd
 /** @var \App\ReactiveSystem\OrderController $controller */
 $orderController = $messagingSystem->getServiceFromContainer(sprintf("App\ReactiveSystem\%s\UI\OrderController", $stageToRun));
 
+$orderId = Uuid::uuid4()->toString();
+
 $orderController->placeOrder(new Request(content: json_encode([
+    'orderId' => $orderId, // used only in Stage_2 for deduplication
     'address' => [
         'street' => 'Washington',
         'houseNumber' => '15',

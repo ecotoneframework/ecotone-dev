@@ -13,7 +13,7 @@
         }
     },
     "require": {
-        "ecotone/lite-application-starter": "^1.0.1",
+        "ecotone/lite-dbal-starter": "^1.0.1",
         "symfony/http-foundation": "^6.0",
         "moneyphp/money": "^4.1.0"
     },

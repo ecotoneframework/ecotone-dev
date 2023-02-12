@@ -10,6 +10,7 @@ use Ramsey\Uuid\UuidInterface;
 final class PlaceOrder
 {
     public function __construct(
+      public readonly UuidInterface $orderId,
       public readonly UuidInterface $userId,
       public readonly ShippingAddress $shippingAddress,
       public readonly UuidInterface $productId

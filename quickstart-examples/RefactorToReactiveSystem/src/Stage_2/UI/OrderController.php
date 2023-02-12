@@ -21,10 +21,13 @@ final class OrderController
     {
         $data = \json_decode($request->getContent(), true, flags: JSON_THROW_ON_ERROR);
         $currentUserId = $this->authenticationService->getCurrentUserId();
+        $orderId = Uuid::fromString($data['orderId']);
         $shippingAddress = new ShippingAddress($data['address']['street'], $data['address']['houseNumber'], $data['address']['postCode'], $data['address']['country']);
         $productId = Uuid::fromString($data['productId']);
 
-        $this->commandBus->send(new PlaceOrder($currentUserId, $shippingAddress, $productId));
+        $this->commandBus->send(new PlaceOrder($orderId, $currentUserId, $shippingAddress, $productId), metadata: [
+            'orderId' => $orderId->toString()
+        ]);
 
         return new Response();
     }

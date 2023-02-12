@@ -14,9 +14,9 @@ final class Order
 {
     private function __construct(private UuidInterface $orderId, private UuidInterface $userId, private ShippingAddress $shippingAddress, private ProductDetails $productDetails, private \DateTimeImmutable $orderAt) {}
 
-    public static function create(UuidInterface $userId, ShippingAddress $shippingAddress, ProductDetails $productDetails, Clock $clock): self
+    public static function create(UuidInterface $orderId, UuidInterface $userId, ShippingAddress $shippingAddress, ProductDetails $productDetails, Clock $clock): self
     {
-        return new self(Uuid::uuid4(), $userId, $shippingAddress, $productDetails, $clock->getCurrentTime());
+        return new self($orderId, $userId, $shippingAddress, $productDetails, $clock->getCurrentTime());
     }
 
     public function getOrderId(): UuidInterface

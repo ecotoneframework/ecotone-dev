@@ -108,27 +108,28 @@ class EventSourcingRepository implements EventSourcedRepository
 
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
         $aggregateType = $this->getAggregateType($aggregateClassName);
+
+        $eventsWithMetadata = [];
+        $eventsCount = count($events);
+
         $metadata = OutboundMessageConverter::unsetEnqueueMetadata($metadata);
         $metadata = DistributedMetadata::unsetDistributionKeys($metadata);
         $metadata = MessageHeaders::unsetAsyncKeys($metadata);
 
-        $eventsWithMetadata = [];
-        $eventsCount = count($events);
         for ($eventNumber = 1; $eventNumber <= $eventsCount; $eventNumber++) {
+            /** @var Event $event */
             $event = $events[$eventNumber - 1];
-
-            $metadata = RevisionMetadataEnricher::enrich($metadata, $event);
             $metadata = array_merge(
                 $this->headerMapper->mapFromMessageHeaders($metadata),
+                $event->getMetadata(),
                 [
-                    MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
                     LazyProophEventStore::AGGREGATE_ID => $aggregateId,
                     LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
                     LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
                 ]
             );
 
-            $eventsWithMetadata[] = Event::create($event, $metadata);
+            $eventsWithMetadata[] = Event::create($event->getPayload(), $metadata);
         }
         $this->eventStore->appendTo($streamName, $eventsWithMetadata);
     }

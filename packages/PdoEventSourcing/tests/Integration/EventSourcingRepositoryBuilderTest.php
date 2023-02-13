@@ -13,6 +13,7 @@ use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
+use Ecotone\Modelling\Event;
 use Ecotone\Modelling\SaveAggregateService;
 use Ecotone\Modelling\SnapshotEvent;
 use Ramsey\Uuid\Uuid;
@@ -50,7 +51,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
                 ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegisteredEvent),
         ]));
 
-        $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [
+        $repository->save(['ticketId'=> $ticketId], Ticket::class, [Event::create($ticketWasRegisteredEvent)], [
             MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
@@ -97,7 +98,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
             DocumentStore::class => $documentStore,
         ]));
 
-        $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegistered, $workerWasAssigned], [
+        $repository->save(['ticketId'=> $ticketId], Ticket::class, [Event::create($ticketWasRegistered), Event::create($workerWasAssigned)], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
@@ -143,7 +144,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
             DocumentStore::class => $documentStore,
         ]));
 
-        $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegistered, $workerWasAssigned], [
+        $repository->save(['ticketId'=> $ticketId], Ticket::class, [Event::create($ticketWasRegistered), Event::create($workerWasAssigned)], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
@@ -185,12 +186,12 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
                 ->registerInPHPConversion($secondTicketWasRegisteredEventAsArray, $secondTicketWasRegisteredEvent),
         ]));
 
-        $repository->save(['ticketId'=> $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
+        $repository->save(['ticketId'=> $firstTicketAggregate], Ticket::class, [Event::create($firstTicketWasRegisteredEvent)], [
             MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
-        $repository->save(['ticketId'=> $secondTicketAggregate], Ticket::class, [$secondTicketWasRegisteredEvent], [
+        $repository->save(['ticketId'=> $secondTicketAggregate], Ticket::class, [Event::create($secondTicketWasRegisteredEvent)], [
             MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
@@ -237,12 +238,12 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
                 ->registerInPHPConversion($secondTicketWasRegisteredEventAsArray, $secondTicketWasRegisteredEvent),
         ]));
 
-        $repository->save(['ticketId'=> $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
+        $repository->save(['ticketId'=> $firstTicketAggregate], Ticket::class, [Event::create($firstTicketWasRegisteredEvent)], [
             MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
-        $repository->save(['ticketId'=> $secondTicketAggregate], Ticket::class, [$secondTicketWasRegisteredEvent], [
+        $repository->save(['ticketId'=> $secondTicketAggregate], Ticket::class, [Event::create($secondTicketWasRegisteredEvent)], [
             MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
@@ -280,7 +281,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
                 ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegisteredEvent),
         ], true));
 
-        $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [
+        $repository->save(['ticketId'=> $ticketId], Ticket::class, [Event::create($ticketWasRegisteredEvent)], [
             MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);

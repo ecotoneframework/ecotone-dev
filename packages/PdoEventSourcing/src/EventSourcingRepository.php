@@ -101,6 +101,15 @@ class EventSourcingRepository implements EventSourcedRepository
 
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
+        $metadata = $this->headerMapper->mapFromMessageHeaders($metadata);
+        $events = array_map(static function($event) use ($metadata): Event {
+            if ($event instanceof Event) {
+                return $event;
+            }
+
+            return Event::create($event, $metadata);
+        }, $events);
+
         $aggregateId = reset($identifiers);
         Assert::notNullAndEmpty($aggregateId, sprintf('There was a problem when retrieving identifier for %s', $aggregateClassName));
 
@@ -110,24 +119,12 @@ class EventSourcingRepository implements EventSourcedRepository
         $eventsWithMetadata = [];
         $eventsCount = count($events);
 
-        $metadata = OutboundMessageConverter::unsetEnqueueMetadata($metadata);
-        $metadata = DistributedMetadata::unsetDistributionKeys($metadata);
-        $metadata = MessageHeaders::unsetAsyncKeys($metadata);
-
         for ($eventNumber = 1; $eventNumber <= $eventsCount; $eventNumber++) {
-            /** @var Event $event */
-            $event = $events[$eventNumber - 1];
-            $metadata = array_merge(
-                $this->headerMapper->mapFromMessageHeaders($metadata),
-                $event->getMetadata(),
-                [
-                    LazyProophEventStore::AGGREGATE_ID => $aggregateId,
-                    LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
-                    LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
-                ]
-            );
-
-            $eventsWithMetadata[] = Event::create($event->getPayload(), $metadata);
+            $eventsWithMetadata[] = $events[$eventNumber - 1]->withAddedMetadata([
+                LazyProophEventStore::AGGREGATE_ID => $aggregateId,
+                LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
+                LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
+            ]);
         }
         $this->eventStore->appendTo($streamName, $eventsWithMetadata);
     }

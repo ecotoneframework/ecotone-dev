@@ -13,7 +13,6 @@ use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
-use Ecotone\Modelling\Event;
 use Ecotone\Modelling\SaveAggregateService;
 use Ecotone\Modelling\SnapshotEvent;
 use Ramsey\Uuid\Uuid;

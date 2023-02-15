@@ -2,7 +2,6 @@
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\Enqueue\OutboundMessageConverter;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -10,11 +9,9 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\AggregateVersion;
-use Ecotone\Modelling\DistributedMetadata;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
@@ -102,7 +99,7 @@ class EventSourcingRepository implements EventSourcedRepository
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
         $metadata = $this->headerMapper->mapFromMessageHeaders($metadata);
-        $events = array_map(static function($event) use ($metadata): Event {
+        $events = array_map(static function ($event) use ($metadata): Event {
             if ($event instanceof Event) {
                 return $event;
             }

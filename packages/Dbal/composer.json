@@ -30,7 +30,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "^1.74",
+        "ecotone/enqueue": "^1.75",
         "enqueue/dbal": "^0.10.17",
         "doctrine/dbal": "^3.3.7"
     },
@@ -56,7 +56,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.74-dev"
+            "dev-main": "1.75-dev"
         },
         "ecotone": {
             "repository": "dbal"

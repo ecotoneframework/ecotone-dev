@@ -13,10 +13,10 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
-use Ecotone\SymfonyBundle\EcotoneSymfonyBundle;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 
@@ -44,7 +44,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
         return realpath(($container->hasParameter('kernel.project_dir') ? $container->getParameter('kernel.project_dir') : $container->getParameter('kernel.root_dir') . '/..'));
     }
 
-    public function process(ContainerBuilder $container)
+    public static function getMassagingConfiguration(ContainerInterface $container, bool $useCachedVersion = false): MessagingSystemConfiguration
     {
         $ecotoneCacheDirectory    = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
@@ -85,13 +85,18 @@ class EcotoneCompilerPass implements CompilerPassInterface
         }
 
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
-        $messagingConfiguration       = MessagingSystemConfiguration::prepare(
+        return MessagingSystemConfiguration::prepare(
             self::getRootProjectPath($container),
             new SymfonyReferenceTypeResolver($container),
             $configurationVariableService,
             $serviceConfiguration,
-            false
+            $useCachedVersion,
         );
+    }
+
+    public function process(ContainerBuilder $container)
+    {
+        $messagingConfiguration = $this->getMassagingConfiguration($container);
 
         $definition = new Definition();
         $definition->setClass(SymfonyConfigurationVariableService::class);
@@ -118,7 +123,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
             $definition->addArgument($gatewayProxyBuilder->getReferenceName());
             $definition->addArgument(new Reference('service_container'));
             $definition->addArgument($gatewayProxyBuilder->getInterfaceName());
-            $definition->addArgument($ecotoneCacheDirectory);
+            $definition->addArgument("%kernel.cache_dir%".self::CACHE_DIRECTORY_SUFFIX);
             $definition->addArgument($container->getParameter(self::FAIL_FAST_CONFIG));
             $definition->setPublic(true);
 
@@ -158,7 +163,5 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
         }
-
-        $container->setParameter(EcotoneSymfonyBundle::APPLICATION_CONFIGURATION_CONTEXT, serialize($serviceConfiguration));
     }
 }

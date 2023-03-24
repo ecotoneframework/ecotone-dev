@@ -22,7 +22,7 @@ The quickstart [page](https://docs.ecotone.tech/quick-start) of the
 [reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.  
 Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
 
-# Contribution
+## Contribution
 
 Visit [Ecotone's Documentation](https://docs.ecotone.tech/messaging/contributing-to-ecotone) for more information about contributing.
 

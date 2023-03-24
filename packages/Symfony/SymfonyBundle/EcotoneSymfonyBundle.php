@@ -66,7 +66,7 @@ class EcotoneSymfonyBundle extends Bundle
 
     public function boot()
     {
-        $configuration = EcotoneCompilerPass::getMassagingConfiguration($this->container, true);
+        $configuration = EcotoneCompilerPass::getMessagingConfiguration($this->container, true);
 
         $messagingSystem = $configuration->buildMessagingSystemFromConfiguration($this->container->get('symfonyReferenceSearchService'));
 

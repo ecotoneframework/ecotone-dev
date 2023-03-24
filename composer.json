@@ -133,7 +133,7 @@
         "phpunit/phpunit": "^9.5",
         "predis/predis": "^1.1.10",
         "symfony/expression-language": "^6.0",
-        "symplify/monorepo-builder": "^11.1.21"
+        "symplify/monorepo-builder": "11.1.21"
     },
     "extra": {
         "laravel": {
@@ -143,13 +143,13 @@
         }
     },
     "replace": {
-        "ecotone/amqp": "1.76.0",
-        "ecotone/dbal": "1.76.0",
-        "ecotone/enqueue": "1.76.0",
-        "ecotone/jms-converter": "1.76.0",
-        "ecotone/laravel": "1.76.0",
-        "ecotone/pdo-event-sourcing": "1.76.0",
-        "ecotone/symfony-bundle": "1.76.0"
+        "ecotone/amqp": "1.76.1",
+        "ecotone/dbal": "1.76.1",
+        "ecotone/enqueue": "1.76.1",
+        "ecotone/jms-converter": "1.76.1",
+        "ecotone/laravel": "1.76.1",
+        "ecotone/pdo-event-sourcing": "1.76.1",
+        "ecotone/symfony-bundle": "1.76.1"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

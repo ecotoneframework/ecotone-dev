@@ -2,6 +2,7 @@
 
 namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
 
+use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -39,12 +40,12 @@ class EcotoneCompilerPass implements CompilerPassInterface
      *
      * @return bool|string
      */
-    public static function getRootProjectPath(Container $container)
+    public static function getRootProjectPath(ContainerInterface $container)
     {
         return realpath(($container->hasParameter('kernel.project_dir') ? $container->getParameter('kernel.project_dir') : $container->getParameter('kernel.root_dir') . '/..'));
     }
 
-    public static function getMassagingConfiguration(ContainerInterface $container, bool $useCachedVersion = false): MessagingSystemConfiguration
+    public static function getMessagingConfiguration(ContainerInterface $container, bool $useCachedVersion = false): Configuration
     {
         $ecotoneCacheDirectory    = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
@@ -96,7 +97,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
     public function process(ContainerBuilder $container)
     {
-        $messagingConfiguration = $this->getMassagingConfiguration($container);
+        $messagingConfiguration = $this->getMessagingConfiguration($container);
 
         $definition = new Definition();
         $definition->setClass(SymfonyConfigurationVariableService::class);

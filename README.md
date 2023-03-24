@@ -22,36 +22,9 @@ The quickstart [page](https://docs.ecotone.tech/quick-start) of the
 [reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.  
 Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
 
-# Development
+# Contribution
 
-Copy `.env.dist` to `.env` and start docker containers
-
-```php
-docker-compose up -d
-```
-
-To run tests for monorepo:
-
-```php
-docker exec -it ecotone_development composer tests:local
-```
-
-To run tests for given module
-```php
-docker exec -it -w=/data/app/packages/Dbal ecotone_development composer tests:ci
-```
-
-Clear environment
-```php
-docker-compose down
-```
-
-Debugging code with Xdebug.    
-To have enabled Xdebug all the time, change line in your .env file to `XDEBUG_ENABLED="1"`
-To enable xdebug conditionally for given test run:  
-```php
-docker exec -it ecotone_development xdebug vendor/bin/phpunit --filter test_calling_command_on_aggregate_and_receiving_aggregate_instance
-```
+Visit [Ecotone's Documentation](https://docs.ecotone.tech/messaging/contributing-to-ecotone) for more information about contributing.
 
 ## Feature requests and issue reporting
 

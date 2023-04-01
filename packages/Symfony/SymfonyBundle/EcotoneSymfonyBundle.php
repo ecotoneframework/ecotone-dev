@@ -58,8 +58,7 @@ class EcotoneSymfonyBundle extends Bundle
 
         $definition = new Definition();
         $definition->setClass(SymfonyExpressionEvaluationAdapter::class);
-        $definition->setFactory([SymfonyExpressionEvaluationAdapter::class, 'createWithExternalExpressionLanguage']);
-        $definition->addArgument(new Reference($expressionLanguageAdapter));
+        $definition->setFactory([SymfonyExpressionEvaluationAdapter::class, 'create']);
         $definition->setPublic(true);
         $container->setDefinition(ExpressionEvaluationService::REFERENCE, $definition);
     }

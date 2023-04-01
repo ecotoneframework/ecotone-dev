@@ -7,6 +7,7 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use OpenTelemetry\API\Common\Signal\Signals;
@@ -84,7 +85,10 @@ final class TracingTest extends TestCase
                 TracerInterface::class => $tracer
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE])),
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withExtensionObjects([
+                    TracingConfiguration::createWithDefaults()
+                ]),
             allowGatewaysToBeRegisteredInContainer: true
         );
 

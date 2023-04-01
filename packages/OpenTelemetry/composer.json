@@ -59,7 +59,7 @@
             "dev-main": "1.62-dev"
         },
         "ecotone": {
-            "repository": "OpenTelemetry"
+            "repository": "open-telemetry"
         },
         "merge-plugin": {
             "include": [

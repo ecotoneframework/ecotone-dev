@@ -21,4 +21,9 @@ final class TracingConfiguration
     {
         return new self();
     }
+
+    public function higherThanOrEqualTo(int $tracingLevel): bool
+    {
+        return $this->tracingLevel >= $tracingLevel;
+    }
 }

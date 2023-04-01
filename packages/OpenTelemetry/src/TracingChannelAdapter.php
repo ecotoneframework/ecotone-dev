@@ -36,7 +36,7 @@ final class TracingChannelAdapter implements ChannelInterceptor
          *  3. Framework tracing all possibility to trace all gateway
          */
 
-        $span = EcotoneSpanBuilder::create($message, 'channel: ' . (string)$messageChannel, $this->tracer)
+        $span = EcotoneSpanBuilder::create($message, 'Channel: ' . (string)$messageChannel, $this->tracer)
             ->startSpan();
 
         $scope = $span->activate();

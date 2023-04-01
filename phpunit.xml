@@ -47,6 +47,9 @@
     <testsuite name="Symfony tests">
       <directory>packages/Symfony/tests</directory>
     </testsuite>
+    <testsuite name="Enqueue tests">
+      <directory>packages/Enqueue/tests</directory>
+    </testsuite>
     <testsuite name="Amqp tests">
       <directory>packages/Amqp/tests</directory>
     </testsuite>

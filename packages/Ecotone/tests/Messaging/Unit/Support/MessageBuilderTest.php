@@ -193,7 +193,7 @@ class MessageBuilderTest extends MessagingTest
 
         $this->assertEquals(
             $correlationId,
-            MessageBuilder::fromMessageWithNewMessageId($message)->build()->getHeaders()->get(MessageHeaders::MESSAGE_CORRELATION_ID)
+            MessageBuilder::fromParentMessage($message)->build()->getHeaders()->get(MessageHeaders::MESSAGE_CORRELATION_ID)
         );
     }
 

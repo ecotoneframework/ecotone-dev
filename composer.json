@@ -133,7 +133,8 @@
         "phpunit/phpunit": "^9.5",
         "predis/predis": "^1.1.10",
         "symfony/expression-language": "^6.0",
-        "symplify/monorepo-builder": "11.1.21"
+        "symplify/monorepo-builder": "11.1.21",
+        "enqueue/null": "^0.10.18"
     },
     "extra": {
         "laravel": {

@@ -152,7 +152,7 @@ class RequestReplyProducer
                         );
                     } else {
                         $replyChannel->send(
-                            MessageBuilder::fromMessageWithNewMessageId($message)
+                            MessageBuilder::fromParentMessage($message)
                                 ->setPayload($payload)
                                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($payload)->toString()))
                                 ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, $message->getHeaders()->getCorrelationId())

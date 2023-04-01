@@ -18,6 +18,7 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\NamedEvent;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Class SaveAggregateService
@@ -75,12 +76,6 @@ class SaveAggregateService
 
     public function save(Message $message, array $metadata): Message
     {
-        $metadata = MessageHeaders::unsetEnqueueMetadata($metadata);
-        $metadata = MessageHeaders::unsetDistributionKeys($metadata);
-        $metadata = MessageHeaders::unsetAsyncKeys($metadata);
-        $metadata = MessageHeaders::unsetBusKeys($metadata);
-        $metadata = MessageHeaders::unsetAggregateKeys($metadata);
-
         $aggregate = $message->getHeaders()->get(AggregateMessage::AGGREGATE_OBJECT);
         $events = [];
 
@@ -91,13 +86,23 @@ class SaveAggregateService
             $events = call_user_func([$aggregate, $this->aggregateMethodWithEvents]);
         }
 
-        $events = array_map(function ($event) use ($metadata): Event {
+        $events = array_map(function ($event) use ($message, $metadata): Event {
             if (! is_object($event)) {
                 $typeDescriptor = TypeDescriptor::createFromVariable($event);
                 throw InvalidArgumentException::create("Events return by after calling {$this->aggregateInterface} must all be objects, {$typeDescriptor->toString()} given");
             }
+            if ($event instanceof Event) {
+                $metadata = $event->getMetadata();
+                $event = $event->getPayload();
+            }
 
+            $metadata = MessageHeaders::unsetAllFrameworkHeaders($metadata);
+            $metadata[MessageHeaders::MESSAGE_ID] = Uuid::uuid4()->toString();
             $metadata = RevisionMetadataEnricher::enrich($metadata, $event);
+            $metadata = MessageHeaders::propagateContextHeaders([
+                MessageHeaders::MESSAGE_ID => $message->getHeaders()->getMessageId(),
+                MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId()
+            ], $metadata);
 
             return Event::create($event, $metadata);
         }, $events);

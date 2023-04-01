@@ -22,6 +22,12 @@ class OrderService
         $eventBus->publish(new OrderWasPlaced());
     }
 
+    #[CommandHandler('placeOrderAndPropagateMetadata')]
+    public function doSomethingAndPropagateMetadata($command, array $headers, EventBus $eventBus): void
+    {
+        $eventBus->publish(new OrderWasPlaced(), $headers);
+    }
+
     #[CommandHandler('failAction')]
     public function failAction(): void
     {

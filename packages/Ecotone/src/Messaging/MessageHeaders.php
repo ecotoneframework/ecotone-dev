@@ -31,7 +31,7 @@ final class MessageHeaders
     /**
      * Used to point parent message
      */
-    public const CAUSATION_MESSAGE_ID = 'parentId';
+    public const PARENT_MESSAGE_ID = 'parentId';
     /**
      * content-type values are parsed as media types, e.g., application/json or text/plain;charset=UTF-8
      */
@@ -143,7 +143,7 @@ final class MessageHeaders
         return [
             self::MESSAGE_ID,
             self::MESSAGE_CORRELATION_ID,
-            self::CAUSATION_MESSAGE_ID,
+            self::PARENT_MESSAGE_ID,
             self::CONTENT_TYPE,
             self::TYPE_ID,
             self::CONTENT_ENCODING,
@@ -161,6 +161,39 @@ final class MessageHeaders
             self::REPLY_CONTENT_TYPE,
             self::CONSUMER_ENDPOINT_ID,
         ];
+    }
+
+    public static function propagateContextHeaders(array $context, array $headers)
+    {
+        $headers = array_merge($context, $headers);
+        if (array_key_exists(MessageHeaders::MESSAGE_CORRELATION_ID, $context)) {
+            $headers[MessageHeaders::MESSAGE_CORRELATION_ID] = $context[MessageHeaders::MESSAGE_CORRELATION_ID];
+        }
+        if (array_key_exists(MessageHeaders::MESSAGE_CORRELATION_ID, $context) && $headers[MessageHeaders::MESSAGE_ID] !== $context[MessageHeaders::MESSAGE_ID]) {
+            $headers[MessageHeaders::PARENT_MESSAGE_ID] = $context[MessageHeaders::MESSAGE_ID];
+        }
+
+        return $headers;
+    }
+
+    public static function unsetAllFrameworkHeaders(array $metadata): array
+    {
+        $metadata =  self::unsetCoreFrameworkHeaders($metadata);
+        $metadata = self::unsetAsyncKeys($metadata);
+        $metadata = self::unsetEnqueueMetadata($metadata);
+        $metadata = self::unsetDistributionKeys($metadata);
+        $metadata = self::unsetBusKeys($metadata);
+
+        return self::unsetAggregateKeys($metadata);
+    }
+
+    public static function unsetCoreFrameworkHeaders(array $metadata): array
+    {
+        foreach (self::getFrameworksHeaderNames() as $frameworksHeaderName) {
+            unset($metadata[$frameworksHeaderName]);
+        }
+
+        return $metadata;
     }
 
     public static function unsetAsyncKeys(array $metadata): array
@@ -350,6 +383,13 @@ final class MessageHeaders
     public function getCorrelationId(): string
     {
         return $this->get(MessageHeaders::MESSAGE_CORRELATION_ID);
+    }
+
+    public function getParentId(): ?string
+    {
+        return $this->containsKey(MessageHeaders::PARENT_MESSAGE_ID)
+            ? $this->get(MessageHeaders::PARENT_MESSAGE_ID)
+            : null;
     }
 
     /**

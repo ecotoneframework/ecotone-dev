@@ -55,7 +55,7 @@ final class MessageBuilder
         return new self($message->getPayload(), HeaderAccessor::createFrom($message->getHeaders()));
     }
 
-    public static function fromMessageWithNewMessageId(Message $message): self
+    public static function fromParentMessage(Message $message): self
     {
         return (new self($message->getPayload(), HeaderAccessor::createFrom($message->getHeaders())))
             ->setHeader(MessageHeaders::MESSAGE_ID, Uuid::uuid4()->toString())

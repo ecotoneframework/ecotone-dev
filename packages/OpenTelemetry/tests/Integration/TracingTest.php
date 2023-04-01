@@ -35,7 +35,7 @@ final class TracingTest extends TestCase
 {
     public function test_command_event_command_flow()
     {
-        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
+//        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
 
         putenv('OTEL_SDK_DISABLED=false');
 //        allow for set up based on environment variables and using CachedInstrumentation

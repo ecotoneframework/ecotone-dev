@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
+use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
+use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Context\ScopeInterface;
+use OpenTelemetry\SDK\Common\Log\LoggerHolder;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 final class TracerInterceptor
@@ -76,6 +80,12 @@ final class TracerInterceptor
 
     public function trace(string $type, MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
+        if (!LoggerHolder::isSet()) {
+            /** @var LoggerInterface $logger */
+            $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
+            LoggerHolder::set($logger);
+        }
+
         /** @var TracerInterface $tracer */
         $tracer = $referenceSearchService->get(TracerInterface::class);
 

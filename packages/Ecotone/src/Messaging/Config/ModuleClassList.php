@@ -40,6 +40,7 @@ use Ecotone\Modelling\Config\BusRoutingModule;
 use Ecotone\Modelling\Config\DistributedGatewayModule;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryModule;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
+use Ecotone\OpenTelemetry\Configuration\OpenTelemetryModule;
 use Ecotone\Redis\Configuration\RedisMessageConsumerModule;
 use Ecotone\Redis\Configuration\RedisMessagePublisherModule;
 use Ecotone\Sqs\Configuration\SqsMessageConsumerModule;
@@ -112,6 +113,10 @@ class ModuleClassList
         JMSDefaultSerialization::class,
     ];
 
+    public const TRACING_MODULES = [
+        OpenTelemetryModule::class
+    ];
+
     public const TEST_MODULES = [
         EcotoneTestSupportModule::class,
     ];
@@ -124,7 +129,8 @@ class ModuleClassList
             self::AMQP_MODULES,
             self::DBAL_MODULES,
             self::EVENT_SOURCING_MODULES,
-            self::JMS_CONVERTER_MODULES
+            self::JMS_CONVERTER_MODULES,
+            self::TRACING_MODULES
         );
     }
 }

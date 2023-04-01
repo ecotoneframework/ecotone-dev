@@ -140,13 +140,12 @@ class RequestReplyProducer
                 }
 
                 $sequenceSize = count($replyData);
-                $correlationId = Uuid::uuid4()->toString();
                 for ($sequenceNumber = 0; $sequenceNumber < $sequenceSize; $sequenceNumber++) {
                     $payload = $replyData[$sequenceNumber];
                     if ($payload instanceof Message) {
                         $replyChannel->send(
                             MessageBuilder::fromMessage($payload)
-                                ->setHeaderIfAbsent(MessageHeaders::MESSAGE_CORRELATION_ID, $correlationId)
+                                ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, $message->getHeaders()->getCorrelationId())
                                 ->setHeader(MessageHeaders::SEQUENCE_NUMBER, $sequenceNumber + 1)
                                 ->setHeader(MessageHeaders::SEQUENCE_SIZE, $sequenceSize)
                                 ->build()
@@ -156,7 +155,7 @@ class RequestReplyProducer
                             MessageBuilder::fromMessageWithNewMessageId($message)
                                 ->setPayload($payload)
                                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($payload)->toString()))
-                                ->setHeaderIfAbsent(MessageHeaders::MESSAGE_CORRELATION_ID, $correlationId)
+                                ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, $message->getHeaders()->getCorrelationId())
                                 ->setHeader(MessageHeaders::SEQUENCE_NUMBER, $sequenceNumber + 1)
                                 ->setHeader(MessageHeaders::SEQUENCE_SIZE, $sequenceSize)
                                 ->build()

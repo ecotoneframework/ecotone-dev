@@ -105,10 +105,12 @@ class MethodInvokerTest extends MessagingTest
             MessageConverterBuilder::create('message'),
         ], InMemoryReferenceSearchService::createEmpty());
 
-        $this->assertMessages(
-            MessageBuilder::withPayload('test')
-                ->build(),
-            $methodInvocation->processMessage(MessageBuilder::withPayload('some')->build())
+        $expectedMessage = MessageBuilder::withPayload('test')
+            ->build();
+
+        $this->assertEquals(
+            $expectedMessage,
+            $methodInvocation->processMessage($expectedMessage)
         );
     }
 
@@ -246,17 +248,16 @@ class MethodInvokerTest extends MessagingTest
                 $referenceSearchService
             );
 
-        $replyMessage = $methodInvocation->processMessage(
-            MessageBuilder::withPayload(serialize(Order::create('1', 'correct')))
-                ->setContentType(MediaType::createApplicationXPHPSerialized())
-                ->build()
-        );
+        $message = MessageBuilder::withPayload(serialize(Order::create('1', 'correct')))
+            ->setContentType(MediaType::createApplicationXPHPSerialized())
+            ->build();
 
         $this->assertMessages(
-            MessageBuilder::withPayload(OrderConfirmation::fromOrder(Order::create('1', 'correct')))
+            MessageBuilder::fromMessage($message)
+                ->setPayload(OrderConfirmation::fromOrder(Order::create('1', 'correct')))
                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(OrderConfirmation::class))
                 ->build(),
-            $replyMessage
+            $methodInvocation->processMessage($message)
         );
     }
 
@@ -1141,6 +1142,7 @@ class MethodInvokerTest extends MessagingTest
             [
                 'token' => '123',
                 MessageHeaders::CONTENT_TYPE => $mediaType->toString(),
+                MessageHeaders::MESSAGE_CORRELATION_ID => $requestMessage->getHeaders()->get(MessageHeaders::MESSAGE_CORRELATION_ID),
             ],
             $headers
         );

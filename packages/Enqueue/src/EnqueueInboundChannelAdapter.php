@@ -71,4 +71,9 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
 
         return $convertedMessage->build();
     }
+
+    public function getQueueName(): string
+    {
+        return $this->queueName;
+    }
 }

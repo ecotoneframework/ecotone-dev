@@ -347,6 +347,11 @@ final class MessageHeaders
         return $this->get(MessageHeaders::MESSAGE_ID);
     }
 
+    public function getCorrelationId(): string
+    {
+        return $this->get(MessageHeaders::MESSAGE_CORRELATION_ID);
+    }
+
     /**
      * @return int
      * @throws MessagingException
@@ -392,6 +397,9 @@ final class MessageHeaders
         }
         if (! array_key_exists(self::TIMESTAMP, $headers)) {
             $headers[self::TIMESTAMP] = (int)round(microtime(true));
+        }
+        if (! array_key_exists(self::MESSAGE_CORRELATION_ID, $headers)) {
+            $headers[self::MESSAGE_CORRELATION_ID] = Uuid::uuid4()->toString();
         }
 
         return new static($headers);

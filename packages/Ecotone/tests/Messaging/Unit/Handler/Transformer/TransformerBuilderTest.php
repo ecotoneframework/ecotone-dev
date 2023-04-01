@@ -58,10 +58,12 @@ class TransformerBuilderTest extends MessagingTest
                                 ])
                             );
 
-        $transformer->handle(MessageBuilder::withPayload('some123')->build());
+        $message = MessageBuilder::withPayload('some123')->build();
+        $transformer->handle($message);
 
         $this->assertMessages(
-            MessageBuilder::withPayload($payload)
+            MessageBuilder::fromMessage($message)
+                ->setPayload($payload)
                 ->build(),
             $outputChannel->receive()
         );
@@ -89,10 +91,12 @@ class TransformerBuilderTest extends MessagingTest
                                 ])
                             );
 
-        $transformer->handle(MessageBuilder::withPayload($payload)->build());
+        $message = MessageBuilder::withPayload($payload)->build();
+        $transformer->handle($message);
 
         $this->assertMessages(
-            MessageBuilder::withPayload($payload)
+            MessageBuilder::fromMessage($message)
+                ->setPayload($payload)
                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::STRING))
                 ->build(),
             $outputChannel->receive()
@@ -168,14 +172,14 @@ class TransformerBuilderTest extends MessagingTest
                                 ])
                             );
 
-        $transformer->handle(
-            MessageBuilder::withPayload($payload)
-                ->setContentType(MediaType::createApplicationXPHP())
-                ->build()
-        );
+        $message = MessageBuilder::withPayload($payload)
+            ->setContentType(MediaType::createApplicationXPHP())
+            ->build();
+        $transformer->handle($message);
 
         $this->assertMessages(
-            MessageBuilder::withPayload($payload)
+            MessageBuilder::fromMessage($message)
+                ->setPayload($payload)
                 ->setHeader('0', $payload)
                 ->setContentType(MediaType::createApplicationXPHP())
                 ->build(),
@@ -204,10 +208,12 @@ class TransformerBuilderTest extends MessagingTest
                             ])
                         );
 
-        $transformer->handle(MessageBuilder::withPayload($payload)->build());
+        $message = MessageBuilder::withPayload($payload)->build();
+        $transformer->handle($message);
 
         $this->assertMessages(
-            MessageBuilder::withPayload($payload)
+            MessageBuilder::fromMessage($message)
+                ->setPayload($payload)
                 ->setHeader('0', 'some payload')
                 ->build(),
             $outputChannel->receive()
@@ -242,14 +248,14 @@ class TransformerBuilderTest extends MessagingTest
                 ])
             );
 
-        $transformer->handle(
-            MessageBuilder::withPayload($payload)
-                ->setHeader('token', $headerValue)
-                ->build()
-        );
+        $message = MessageBuilder::withPayload($payload)
+            ->setHeader('token', $headerValue)
+            ->build();
+        $transformer->handle($message);
 
         $this->assertMessages(
-            MessageBuilder::withPayload($payload . $headerValue)
+            MessageBuilder::fromMessage($message)
+                ->setPayload($payload . $headerValue)
                 ->setHeader('token', $headerValue)
                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::STRING))
                 ->build(),
@@ -277,13 +283,12 @@ class TransformerBuilderTest extends MessagingTest
                 InMemoryReferenceSearchService::createEmpty()
             );
 
-        $transformer->handle(
-            MessageBuilder::withPayload($payload)
-                ->build()
-        );
+        $message = MessageBuilder::withPayload($payload)->build();
+        $transformer->handle($message);
 
         $this->assertMessages(
-            MessageBuilder::withPayload($payload)
+            MessageBuilder::fromMessage($message)
+                ->setPayload($payload)
                 ->setHeader('token', $headerValue)
                 ->setHeader('correlation-id', 1)
                 ->build(),
@@ -310,14 +315,14 @@ class TransformerBuilderTest extends MessagingTest
                 InMemoryReferenceSearchService::createEmpty()
             );
 
-        $transformer->handle(
-            MessageBuilder::withPayload($payload)
-                ->setHeader('token', $headerValue)
-                ->build()
-        );
+        $message = MessageBuilder::withPayload($payload)
+            ->setHeader('token', $headerValue)
+            ->build();
+        $transformer->handle($message);
 
         $this->assertMessages(
-            MessageBuilder::withPayload($payload)
+            MessageBuilder::fromMessage($message)
+                ->setPayload($payload)
                 ->setHeader('token', $headerValue)
                 ->setHeader('secret', $headerValue)
                 ->build(),
@@ -341,10 +346,12 @@ class TransformerBuilderTest extends MessagingTest
             );
 
         $replyChannel = QueueChannel::create();
-        $transformer->handle(MessageBuilder::withPayload('some')->setReplyChannel($replyChannel)->build());
+        $message = MessageBuilder::withPayload('some')->setReplyChannel($replyChannel)->build();
+        $transformer->handle($message);
 
         $this->assertMessages(
-            MessageBuilder::withPayload('johny')
+            MessageBuilder::fromMessage($message)
+                ->setPayload('johny')
                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::STRING))
                 ->setReplyChannel($replyChannel)
                 ->build(),

@@ -84,4 +84,9 @@ class PollableChannelInterceptorAdapter extends SendingInterceptorAdapter implem
 
         return $message;
     }
+
+    public function __toString()
+    {
+        return (string)$this->messageChannel;
+    }
 }

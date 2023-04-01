@@ -31,6 +31,6 @@ final class EnqueueMessageChannel implements PollableChannel
 
     public function __toString()
     {
-        return 'pollable channel: ' . $this->inboundChannelAdapter->getQueueName();
+        return 'enqueue: ' . $this->inboundChannelAdapter->getQueueName();
     }
 }

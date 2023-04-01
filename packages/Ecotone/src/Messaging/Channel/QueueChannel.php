@@ -45,6 +45,6 @@ class QueueChannel implements PollableChannel
 
     public function __toString()
     {
-        return 'in memory queue channel: ' . $this->name;
+        return 'in memory queue: ' . $this->name;
     }
 }

@@ -33,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.78",
+        "ecotone/ecotone": "1.77.1",
         "laravel/framework": "^9.0|^10.0"
     },
     "require-dev": {

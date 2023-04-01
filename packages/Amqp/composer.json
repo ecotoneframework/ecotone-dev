@@ -39,7 +39,7 @@
     },
     "require": {
         "ext-amqp": "*",
-        "ecotone/enqueue": "^1.78",
+        "ecotone/enqueue": "1.77.1",
         "enqueue/amqp-ext": "^0.10.4",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0"

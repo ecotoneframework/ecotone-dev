@@ -19,6 +19,7 @@ final class EcotoneSpanBuilder
             ->setSpanKind($type)
             ->setAttribute(MessageHeaders::MESSAGE_ID, $context->getHeaders()->getMessageId())
             ->setAttribute(MessageHeaders::MESSAGE_CORRELATION_ID, $context->getHeaders()->getCorrelationId())
-            ->setAttribute(MessageHeaders::PARENT_MESSAGE_ID, $context->getHeaders()->getParentId());
+            ->setAttribute(MessageHeaders::PARENT_MESSAGE_ID, $context->getHeaders()->getParentId())
+            ->setAttribute(MessageHeaders::TIMESTAMP, $context->getHeaders()->getTimestamp());
     }
 }

@@ -13,6 +13,7 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use OpenTelemetry\API\Common\Signal\Signals;
 use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Contrib\Grpc\GrpcTransportFactory;
 use OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory;
@@ -106,6 +107,12 @@ final class TracingTest extends TestCase
 //        $tracer->spanBuilder('inner')->startSpan()->end();
 
         $merchantId = '123';
+//        try {
+//            $ecotoneTestSupport
+//                ->sendCommand(new CreateMerchant($merchantId));
+//        }catch (\Exception) {
+//
+//        }
         $this->assertTrue(
             $ecotoneTestSupport
                 ->sendCommand(new CreateMerchant($merchantId))
@@ -223,6 +230,46 @@ final class TracingTest extends TestCase
         $this->assertSpanWith('Command Bus', $spans[5], $messageId, $correlationId, $timestamp);
     }
 
+    public function test_tracing_with_exception()
+    {
+        $exporter = new InMemoryExporter(new \ArrayObject());
+
+        $messageId = Uuid::uuid4()->toString();
+        $correlationId = Uuid::uuid4()->toString();
+        $timestamp = 1680436648;
+
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                [\Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class],
+                [TracerInterface::class => $this->prepareTracer($exporter)],
+                ServiceConfiguration::createWithDefaults()
+                    ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+            )
+                ->sendCommand(new RegisterUser('1'), metadata: [
+                    MessageHeaders::MESSAGE_ID => $messageId,
+                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
+                    MessageHeaders::TIMESTAMP => $timestamp
+                ]);
+        }catch (\InvalidArgumentException) {}
+
+        /** @var ImmutableSpan[] $spans */
+        $spans = $exporter->getSpans();
+        /** Command Bus and Command Handler */
+        $this->assertCount(2, $spans);
+
+        /** Command Handler */
+        $this->assertSame(StatusCode::STATUS_ERROR, $spans[0]->getStatus()->getCode());
+        $event = $spans[0]->getEvents()[0];
+        $this->assertSame('exception', $event->getName());
+        $this->assertSame('User already registered', $event->getAttributes()->get('exception.message'));
+
+        /** Command Bus */
+        $this->assertSame(StatusCode::STATUS_ERROR, $spans[1]->getStatus()->getCode());
+        $event = $spans[1]->getEvents()[0];
+        $this->assertSame('exception', $event->getName());
+        $this->assertSame('User already registered', $event->getAttributes()->get('exception.message'));
+    }
+
     private function prepareTracer(SpanExporterInterface $exporter): TracerInterface
     {
         $tracerProvider = new TracerProvider(
@@ -244,6 +291,7 @@ final class TracingTest extends TestCase
         $this->assertSame($messageId, $attributes[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($correlationId, $attributes[MessageHeaders::MESSAGE_CORRELATION_ID]);
         $this->assertSame($timestamp, $attributes[MessageHeaders::TIMESTAMP]);
+        $this->assertSame(StatusCode::STATUS_OK, $span->getStatus()->getCode());
     }
 
     private function assertChildSpan(string $expectedName, ImmutableSpan $span, string $messageId, string $correlationId): void

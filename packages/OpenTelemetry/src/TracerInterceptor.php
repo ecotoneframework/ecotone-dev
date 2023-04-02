@@ -10,6 +10,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Context\ScopeInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
@@ -102,18 +103,19 @@ final class TracerInterceptor
             //The library's code shouldn't be throwing unhandled exceptions (it should emit any errors via diagnostic events)
             //This is intended to illustrate a way you can capture unhandled exceptions coming from your app code
             $span->recordException($exception);
-            $this->closeSpan($span, $spanScope);
+            $this->closeSpan($span, $spanScope, StatusCode::STATUS_ERROR, $exception->getMessage());
 
             throw $exception;
         }
 
-        $this->closeSpan($span, $spanScope);
+        $this->closeSpan($span, $spanScope, StatusCode::STATUS_OK, null);
 
         return $result;
     }
 
-    private function closeSpan(SpanInterface $span, ScopeInterface $spanScope): void
+    private function closeSpan(SpanInterface $span, ScopeInterface $spanScope, string $statusCode, ?string $descriptionStatusCode): void
     {
+        $span->setStatus($statusCode, $descriptionStatusCode);
         $spanScope->detach();
         $span->end();
     }

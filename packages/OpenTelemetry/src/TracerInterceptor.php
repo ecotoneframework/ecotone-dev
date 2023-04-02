@@ -100,8 +100,6 @@ final class TracerInterceptor
 
             $result = $methodInvocation->proceed();
         } catch (Throwable $exception) {
-            //The library's code shouldn't be throwing unhandled exceptions (it should emit any errors via diagnostic events)
-            //This is intended to illustrate a way you can capture unhandled exceptions coming from your app code
             $span->recordException($exception);
             $this->closeSpan($span, $spanScope, StatusCode::STATUS_ERROR, $exception->getMessage());
 

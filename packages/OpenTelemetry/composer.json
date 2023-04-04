@@ -13,7 +13,7 @@
         }
     ],
     "keywords": ["ecotone", "Open telemetry", "tracing"],
-    "description": "Extends Ecotone with Open Telemetry integration",
+    "description": "Extends Ecotone with tracing using Open Telemetry",
     "autoload": {
         "psr-4": {
             "Ecotone\\OpenTelemetry\\": "src"

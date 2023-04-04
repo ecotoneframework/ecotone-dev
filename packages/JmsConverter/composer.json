@@ -35,7 +35,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.78",
+        "ecotone/ecotone": "1.77.3",
         "jms/serializer": "^3.17",
         "symfony/cache": "^5.4|^6.1"
     },

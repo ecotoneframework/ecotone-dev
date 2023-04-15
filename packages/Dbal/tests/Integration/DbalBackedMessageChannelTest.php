@@ -6,6 +6,7 @@ use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
@@ -206,10 +207,9 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
         /** @var PollableChannel $messageChannel */
         $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
 
-        $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
+        /** Dbal handle not declared queues as long as database table is created first */
+        $this->expectException(ConnectionException::class);
 
-        /** Dbal handle handle not declared queues as long as database table is created first */
-
-        $this->assertNotNull($messageChannel->receiveWithTimeout(1));
+        $messageChannel->receiveWithTimeout(1);
     }
 }

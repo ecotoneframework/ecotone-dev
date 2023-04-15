@@ -4,12 +4,9 @@ namespace Ecotone\SymfonyBundle;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\LazyConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\EcotoneCompilerPass;
-use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyConfigurationVariableService;
-use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyReferenceTypeResolver;
 use Ecotone\SymfonyBundle\DepedencyInjection\EcotoneExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -61,21 +58,14 @@ class EcotoneSymfonyBundle extends Bundle
 
         $definition = new Definition();
         $definition->setClass(SymfonyExpressionEvaluationAdapter::class);
-        $definition->setFactory([SymfonyExpressionEvaluationAdapter::class, 'createWithExternalExpressionLanguage']);
-        $definition->addArgument(new Reference($expressionLanguageAdapter));
+        $definition->setFactory([SymfonyExpressionEvaluationAdapter::class, 'create']);
         $definition->setPublic(true);
         $container->setDefinition(ExpressionEvaluationService::REFERENCE, $definition);
     }
 
     public function boot()
     {
-        $configuration = MessagingSystemConfiguration::prepare(
-            EcotoneCompilerPass::getRootProjectPath($this->container),
-            new SymfonyReferenceTypeResolver($this->container),
-            new SymfonyConfigurationVariableService($this->container),
-            unserialize($this->container->getParameter(self::APPLICATION_CONFIGURATION_CONTEXT)),
-            true
-        );
+        $configuration = EcotoneCompilerPass::getMessagingConfiguration($this->container, true);
 
         $messagingSystem = $configuration->buildMessagingSystemFromConfiguration($this->container->get('symfonyReferenceSearchService'));
 

@@ -51,7 +51,6 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
         ]));
 
         $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
@@ -186,12 +185,10 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
         ]));
 
         $repository->save(['ticketId'=> $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
         $repository->save(['ticketId'=> $secondTicketAggregate], Ticket::class, [$secondTicketWasRegisteredEvent], [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
@@ -238,12 +235,10 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
         ]));
 
         $repository->save(['ticketId'=> $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
         $repository->save(['ticketId'=> $secondTicketAggregate], Ticket::class, [$secondTicketWasRegisteredEvent], [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
@@ -281,7 +276,6 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
         ], true));
 
         $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 

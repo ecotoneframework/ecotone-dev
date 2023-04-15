@@ -88,7 +88,7 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
         return new self($converters);
     }
 
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $jmsConverterConfiguration = JMSConverterConfiguration::createWithDefaults();
         foreach ($extensionObjects as $extensionObject) {
@@ -103,7 +103,7 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
             }
         }
 
-        $configuration->registerConverter(new JMSConverterBuilder($this->jmsHandlerAdapters, $jmsConverterConfiguration, $cacheDirectoryPath));
+        $messagingConfiguration->registerConverter(new JMSConverterBuilder($this->jmsHandlerAdapters, $jmsConverterConfiguration, $cacheDirectoryPath));
     }
 
     public function canHandle($extensionObject): bool

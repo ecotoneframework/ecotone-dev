@@ -2,7 +2,6 @@
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\Enqueue\OutboundMessageConverter;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -10,12 +9,9 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\AggregateVersion;
-use Ecotone\Modelling\DistributedMetadata;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
@@ -25,7 +21,6 @@ use Prooph\EventStore\Exception\StreamNotFound;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
 use Prooph\EventStore\StreamName;
-use Ramsey\Uuid\Uuid;
 
 class EventSourcingRepository implements EventSourcedRepository
 {
@@ -103,32 +98,30 @@ class EventSourcingRepository implements EventSourcedRepository
 
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
+        $metadata = $this->headerMapper->mapFromMessageHeaders($metadata);
+        $events = array_map(static function ($event) use ($metadata): Event {
+            if ($event instanceof Event) {
+                return $event;
+            }
+
+            return Event::create($event, $metadata);
+        }, $events);
+
         $aggregateId = reset($identifiers);
         Assert::notNullAndEmpty($aggregateId, sprintf('There was a problem when retrieving identifier for %s', $aggregateClassName));
 
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
         $aggregateType = $this->getAggregateType($aggregateClassName);
-        $metadata = OutboundMessageConverter::unsetEnqueueMetadata($metadata);
-        $metadata = DistributedMetadata::unsetDistributionKeys($metadata);
-        $metadata = MessageHeaders::unsetAsyncKeys($metadata);
 
         $eventsWithMetadata = [];
         $eventsCount = count($events);
+
         for ($eventNumber = 1; $eventNumber <= $eventsCount; $eventNumber++) {
-            $event = $events[$eventNumber - 1];
-
-            $metadata = RevisionMetadataEnricher::enrich($metadata, $event);
-            $metadata = array_merge(
-                $this->headerMapper->mapFromMessageHeaders($metadata),
-                [
-                    MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
-                    LazyProophEventStore::AGGREGATE_ID => $aggregateId,
-                    LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
-                    LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
-                ]
-            );
-
-            $eventsWithMetadata[] = Event::create($event, $metadata);
+            $eventsWithMetadata[] = $events[$eventNumber - 1]->withAddedMetadata([
+                LazyProophEventStore::AGGREGATE_ID => $aggregateId,
+                LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
+                LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
+            ]);
         }
         $this->eventStore->appendTo($streamName, $eventsWithMetadata);
     }

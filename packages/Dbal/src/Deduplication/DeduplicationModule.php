@@ -5,6 +5,7 @@ namespace Ecotone\Dbal\Deduplication;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -36,18 +37,19 @@ class DeduplicationModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
         $isDeduplicatedEnabled = $dbalConfiguration->isDeduplicatedEnabled();
         $connectionFactory     = $dbalConfiguration->getDeduplicationConnectionReference();
 
-        if (! $isDeduplicatedEnabled) {
-            return;
+        $pointcut = Deduplicated::class;
+        if ($isDeduplicatedEnabled) {
+            $pointcut .= '||' . AsynchronousRunningEndpoint::class;
         }
 
-        $configuration
+        $messagingConfiguration
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
                     $interfaceToCallRegistry,
@@ -58,7 +60,7 @@ class DeduplicationModule implements AnnotationModule
                     ),
                     'deduplicate',
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE + 100,
-                    AsynchronousRunningEndpoint::class
+                    $pointcut
                 )
             );
     }

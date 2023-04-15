@@ -5,6 +5,7 @@ namespace Ecotone\AnnotationFinder\AnnotationResolver;
 use Ecotone\AnnotationFinder\AnnotationResolver;
 use Ecotone\AnnotationFinder\ConfigurationException;
 use Ecotone\AnnotationFinder\TypeResolver;
+use Ecotone\Messaging\Attribute\IsAbstract;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionException;
@@ -18,7 +19,8 @@ class AttributeResolver implements AnnotationResolver
     public function getAnnotationsForMethod(string $className, string $methodName): array
     {
         try {
-            $reflectionMethod = TypeResolver::getMethodOwnerClass(new ReflectionClass($className), $methodName)->getMethod($methodName);
+            $analyzedClass = new ReflectionClass($className);
+            $reflectionMethod = TypeResolver::getMethodOwnerClass($analyzedClass, $methodName)->getMethod($methodName);
 
             return array_reduce($reflectionMethod->getAttributes(), function (array $carry, ReflectionAttribute $attribute) {
                 if (! class_exists($attribute->getName())) {
@@ -39,7 +41,8 @@ class AttributeResolver implements AnnotationResolver
      */
     public function getAnnotationsForClass(string $className): array
     {
-        return array_reduce((new ReflectionClass($className))->getAttributes(), function (array $carry, ReflectionAttribute $attribute) {
+        $analyzedClass = new ReflectionClass($className);
+        $attributes = array_reduce(($analyzedClass)->getAttributes(), function (array $carry, ReflectionAttribute $attribute) {
             if (! class_exists($attribute->getName())) {
                 return $carry;
             }
@@ -48,6 +51,12 @@ class AttributeResolver implements AnnotationResolver
 
             return $carry;
         }, []);
+
+        if ($analyzedClass->isAbstract() && ! $analyzedClass->isInterface()) {
+            $attributes[] = new IsAbstract();
+        }
+
+        return $attributes;
     }
 
     /**

@@ -15,11 +15,11 @@ use ReflectionProperty;
 
 class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
-    private int $connectionInstanceId;
+    private string $connectionInstanceId;
     private AmqpConnectionFactory $connectionFactory;
     private ?SubscriptionConsumer $subscriptionConsumer = null;
 
-    public function __construct(AmqpConnectionFactory $connectionFactory, ?int $connectionInstanceId = null)
+    public function __construct(AmqpConnectionFactory $connectionFactory, ?string $connectionInstanceId = null)
     {
         $this->connectionInstanceId = $connectionInstanceId !== null ? $connectionInstanceId : spl_object_id($connectionFactory);
         /** Each consumer and publisher requires separate connection to work correctly in all cases: https://www.rabbitmq.com/connections.html#flow-control */
@@ -35,26 +35,9 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         return $this->connectionFactory->createContext();
     }
 
-    public function getConnectionInstanceId(): int
+    public function getConnectionInstanceId(): string
     {
-        return $this->connectionInstanceId;
-    }
-
-    public function getSubscriptionConsumer(string $queueName, callable $subscriptionCallback): SubscriptionConsumer
-    {
-        $context = $this->createContext();
-        if ($this->subscriptionConsumer === null) {
-            $this->subscriptionConsumer = $context->createSubscriptionConsumer();
-
-            /** @var AmqpConsumer $consumer */
-            $consumer = $context->createConsumer(
-                $context->createQueue($queueName)
-            );
-
-            $this->subscriptionConsumer->subscribe($consumer, $subscriptionCallback);
-        }
-
-        return $this->subscriptionConsumer;
+        return get_class($this->connectionFactory) . $this->connectionInstanceId;
     }
 
     /**
@@ -102,5 +85,22 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         $connectionProperty->setAccessible(true);
 
         return $connectionProperty;
+    }
+
+    public function getSubscriptionConsumer(string $queueName, callable $subscriptionCallback): SubscriptionConsumer
+    {
+        $context = $this->createContext();
+        if ($this->subscriptionConsumer === null) {
+            $this->subscriptionConsumer = $context->createSubscriptionConsumer();
+
+            /** @var AmqpConsumer $consumer */
+            $consumer = $context->createConsumer(
+                $context->createQueue($queueName)
+            );
+
+            $this->subscriptionConsumer->subscribe($consumer, $subscriptionCallback);
+        }
+
+        return $this->subscriptionConsumer;
     }
 }

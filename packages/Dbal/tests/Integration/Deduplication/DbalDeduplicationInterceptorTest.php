@@ -24,14 +24,14 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTest
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
             MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
             MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint2',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }
@@ -45,14 +45,14 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTest
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
             MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
             MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
     }
@@ -66,7 +66,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTest
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
             MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
@@ -74,7 +74,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTest
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
             MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }

@@ -147,7 +147,7 @@ class DbalDeadLetter
     {
         $this->initialize();
         if ($message instanceof ErrorMessage) {
-//            @TODO this should be handled inside Ecotone, as it's duplicate of ErrorHandler
+            //            @TODO this should be handled inside Ecotone, as it's duplicate of ErrorHandler
 
             $messagingException = $message->getPayload();
             $cause = $messagingException->getCause() ? $messagingException->getCause() : $messagingException;

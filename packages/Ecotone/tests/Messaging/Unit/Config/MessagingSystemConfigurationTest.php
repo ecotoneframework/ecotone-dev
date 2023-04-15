@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config;
 
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
@@ -17,6 +18,7 @@ use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\InMemoryReferenceTypeFromNameResolver;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\OptionalReference;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -57,6 +59,8 @@ use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithAnnotationFromMethodInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\StubCallSavingService;
+use Test\Ecotone\Messaging\Fixture\SameChannelAndRouting\SomeTestCommandHandler;
+use Test\Ecotone\Messaging\Fixture\SameChannelAndRouting\SomeTestEventHandler;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceCalculatingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceWithoutReturnValue;
@@ -2143,5 +2147,35 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $headers = $queueChannel->receive()->getHeaders()->headers();
         $this->assertEquals(1, $headers['header.id']);
         $this->assertEquals(1000, $headers['header.token']);
+    }
+
+    public function test_throwing_exception_if_registered_command_handler_with_same_routing_as_asynchronous_channel()
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        EcotoneLite::bootstrapForTesting(
+            [SomeTestCommandHandler::class],
+            [new SomeTestCommandHandler()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('input'),
+                ])
+        );
+    }
+
+    public function test_throwing_exception_if_registered_event_handler_with_same_routing_as_asynchronous_channel()
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        EcotoneLite::bootstrapForTesting(
+            [SomeTestEventHandler::class],
+            [new SomeTestEventHandler()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('input'),
+                ])
+        );
     }
 }

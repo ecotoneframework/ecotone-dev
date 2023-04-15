@@ -35,7 +35,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "^1.78",
+        "ecotone/enqueue": "1.77.4",
         "enqueue/redis": "^0.10.9"
     },
     "require-dev": {

@@ -12,7 +12,6 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
-use MongoDB\Driver\Exception\RuntimeException;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTest;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
@@ -56,7 +55,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTest
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('email')
+                    DbalBackedMessageChannelBuilder::create('email'),
                 ])
         );
 

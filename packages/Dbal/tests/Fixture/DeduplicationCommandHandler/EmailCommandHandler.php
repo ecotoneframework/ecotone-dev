@@ -8,12 +8,15 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use RuntimeException;
 
 final class EmailCommandHandler
 {
     private int $called = 0;
 
-    public function __construct(private ?int $failTillCall = null) {}
+    public function __construct(private ?int $failTillCall = null)
+    {
+    }
 
     #[Deduplicated]
     #[Asynchronous('email')]
@@ -23,7 +26,7 @@ final class EmailCommandHandler
         $this->called++;
 
         if ($this->failTillCall !== null && $this->called <= $this->failTillCall) {
-            throw new \RuntimeException("Failed");
+            throw new RuntimeException('Failed');
         }
     }
 

@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
+use MongoDB\Driver\Exception\RuntimeException;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTest;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
@@ -40,6 +41,33 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTest
             $ecotoneLite
                 ->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
                 ->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->sendQueryWithRouting('email_event_handler.getCallCount')
+        );
+    }
+
+    public function test_deduplicating_after_first_handling_was_failure_during_asynchronous_processing()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [EmailCommandHandler::class],
+            [
+                new EmailCommandHandler(1),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create('email')
+                ])
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString()]);
+
+        $this->assertEquals(
+            2,
+            $ecotoneLite
+                ->run('email', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(100))
+                ->run('email', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(100))
+                ->run('email', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(100))
                 ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }

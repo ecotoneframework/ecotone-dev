@@ -72,8 +72,14 @@ class DeduplicationInterceptor
             return;
         }
 
-        $result = $methodInvocation->proceed();
-        $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
+        try {
+            $result = $methodInvocation->proceed();
+            $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
+        }catch (\Throwable $exception) {
+            $this->isInitialized = false;
+
+            throw $exception;
+        }
 
         return $result;
     }

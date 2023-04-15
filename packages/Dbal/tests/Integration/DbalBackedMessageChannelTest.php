@@ -190,7 +190,6 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
     public function test_failing_to_receive_message_when_not_declared()
     {
         $queueName = Uuid::uuid4()->toString();
-        $messagePayload = 'some';
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [

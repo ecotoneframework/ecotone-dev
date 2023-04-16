@@ -16,7 +16,7 @@
         "ecotone/lite-dbal-starter": "^1.0.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.0"
+        "phpunit/phpunit": "^9.5"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

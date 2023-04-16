@@ -194,6 +194,8 @@ class DomainContext extends AmqpMessagingTest implements Context
                 false
             );
         }
+
+        $this->queueCleanUp();
     }
 
     /**
@@ -371,6 +373,7 @@ class DomainContext extends AmqpMessagingTest implements Context
 
     /**
      * @When using :serviceName process ticket with failure
+     * @When using :serviceName set up distributed consumer
      */
     public function usingProcessTicketWithFailure(string $serviceName)
     {

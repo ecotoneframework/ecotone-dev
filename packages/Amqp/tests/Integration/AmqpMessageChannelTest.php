@@ -110,7 +110,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
 
-        $this->expectException(ConnectionException::class);
+        $this->expectException(\AMQPQueueException::class);
 
         $messageChannel->receiveWithTimeout(1);
     }

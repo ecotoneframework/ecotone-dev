@@ -70,9 +70,6 @@ class AmqpDistributionModule
                 $amqpConfiguration[] = AmqpQueue::createWith($queueName);
                 $amqpConfiguration[] = AmqpBinding::createFromNames(self::AMQP_DISTRIBUTED_EXCHANGE, $queueName, $applicationConfiguration->getServiceName());
 
-                foreach ($this->distributedCommandHandlers as $distributedCommandHandler) {
-                    $amqpConfiguration[] = AmqpBinding::createFromNames(self::AMQP_DISTRIBUTED_EXCHANGE, $queueName, $distributedCommandHandler);
-                }
                 foreach ($this->distributedEventHandlers as $distributedEventHandler) {
                     $amqpConfiguration[] = AmqpBinding::createFromNames(self::AMQP_DISTRIBUTED_EXCHANGE, $queueName, $distributedEventHandler);
                 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Messaging\Support\Assert;
 use Interop\Amqp\Impl\AmqpQueue as EnqueueQueue;
 
 /**
@@ -19,6 +20,7 @@ class AmqpQueue
     private bool $withDurability = self::DEFAULT_DURABILITY;
     private ?string $withDeadLetterExchange = null;
     private ?string $withDeadLetterRoutingKey = null;
+    private bool $isStream = false;
 
     /**
      * AmqpQueue constructor.
@@ -44,6 +46,16 @@ class AmqpQueue
     public static function createWith(string $queueName): self
     {
         return new self($queueName);
+    }
+
+    public static function createStreamQueue(string $queueName): self
+    {
+        $self = self::createWith($queueName);
+        $self->enqueueQueue->setArgument('x-queue-type', 'stream');
+        $self->isStream = true;
+        $self->withDurability = true;
+
+        return $self;
     }
 
     /**
@@ -90,6 +102,7 @@ class AmqpQueue
      */
     public function withDurability(bool $isDurable): self
     {
+        Assert::isFalse($this->isStream, "Can't change durability for stream queue. It's always true.");
         $this->withDurability = $isDurable;
 
         return $this;
@@ -102,6 +115,7 @@ class AmqpQueue
      */
     public function withExclusivity(): self
     {
+        Assert::isFalse($this->isStream, "Can't change exclusivity for stream queue. It's always false.");
         $this->enqueueQueue->addFlag(EnqueueQueue::FLAG_EXCLUSIVE);
 
         return $this;
@@ -114,6 +128,7 @@ class AmqpQueue
      */
     public function withAutoDeletion(): self
     {
+        Assert::isFalse($this->isStream, "Can't change auto delete for stream queue. It's always false.");
         $this->enqueueQueue->addFlag(EnqueueQueue::FLAG_AUTODELETE);
 
         return $this;

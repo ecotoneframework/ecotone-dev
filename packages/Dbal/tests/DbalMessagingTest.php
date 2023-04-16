@@ -5,7 +5,7 @@ namespace Test\Ecotone\Dbal;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Dbal\Recoverability\DbalDeadLetter;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
@@ -45,19 +45,19 @@ abstract class DbalMessagingTest extends TestCase
     {
         $connection = $this->getConnectionFactory()->createContext()->getDbalConnection();
 
-        $this->deleteFromTableExists('enqueue', $connection);
-        $this->deleteFromTableExists(OrderService::ORDER_TABLE, $connection);
-        $this->deleteFromTableExists(DbalDeadLetter::DEFAULT_DEAD_LETTER_TABLE, $connection);
-        $this->deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
-        $this->deleteFromTableExists(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
+        $this->deleteTable('enqueue', $connection);
+        $this->deleteTable(OrderService::ORDER_TABLE, $connection);
+        $this->deleteTable(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
+        $this->deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
+        $this->deleteTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
     }
 
-    private function deleteFromTableExists(string $tableName, \Doctrine\DBAL\Connection $connection): void
+    private function deleteTable(string $tableName, \Doctrine\DBAL\Connection $connection): void
     {
         $doesExists = $this->checkIfTableExists($connection, $tableName);
 
         if ($doesExists) {
-            $connection->executeStatement('DELETE FROM ' . $tableName);
+            $connection->executeStatement('DROP TABLE ' . $tableName);
         }
     }
 

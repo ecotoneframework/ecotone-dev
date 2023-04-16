@@ -129,13 +129,13 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
-        return $interfaceToCallRegistry->getFor(DbalDeadLetter::class, $this->methodName);
+        return $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, $this->methodName);
     }
 
     public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
     {
         $messageHandler = ServiceActivatorBuilder::createWithDirectReference(
-            new DbalDeadLetter(
+            new DbalDeadLetterHandler(
                 CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName))),
                 DefaultHeaderMapper::createAllHeadersMapping($referenceSearchService->get(ConversionService::REFERENCE_NAME))
             ),
@@ -157,12 +157,12 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [
-            $interfaceToCallRegistry->getFor(DbalDeadLetter::class, 'list'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetter::class, 'show'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetter::class, 'reply'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetter::class, 'replyAll'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetter::class, 'delete'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetter::class, 'store'),
+            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'list'),
+            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'show'),
+            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'reply'),
+            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'replyAll'),
+            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'delete'),
+            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'store'),
         ];
     }
 

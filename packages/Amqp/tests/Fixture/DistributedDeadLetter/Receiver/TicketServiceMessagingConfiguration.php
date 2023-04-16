@@ -27,11 +27,11 @@ class TicketServiceMessagingConfiguration
     }
 
     #[ServiceContext]
-    public function errorConfiguration()
+    public function errorConfiguration(): ErrorHandlerConfiguration
     {
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             self::ERROR_CHANNEL,
-            RetryTemplateBuilder::exponentialBackoff(1, 1)
+            RetryTemplateBuilder::fixedBackOff(1)
                 ->maxRetryAttempts(1),
             self::DEAD_LETTER_CHANNEL
         );

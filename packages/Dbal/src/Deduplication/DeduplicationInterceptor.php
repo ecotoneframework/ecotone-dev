@@ -17,6 +17,7 @@ use Ecotone\Messaging\Scheduling\Clock;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
+use Throwable;
 
 /**
  * Class DbalTransactionInterceptor
@@ -72,8 +73,14 @@ class DeduplicationInterceptor
             return;
         }
 
-        $result = $methodInvocation->proceed();
-        $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
+        try {
+            $result = $methodInvocation->proceed();
+            $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
+        } catch (Throwable $exception) {
+            $this->isInitialized = false;
+
+            throw $exception;
+        }
 
         return $result;
     }

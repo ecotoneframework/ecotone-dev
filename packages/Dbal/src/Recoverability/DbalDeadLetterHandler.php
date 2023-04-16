@@ -25,7 +25,7 @@ use Interop\Queue\Exception\Exception;
 use function json_decode;
 use function json_encode;
 
-class DbalDeadLetter
+class DbalDeadLetterHandler
 {
     public const DEFAULT_DEAD_LETTER_TABLE = 'ecotone_error_messages';
     private ConnectionFactory $connectionFactory;
@@ -147,7 +147,7 @@ class DbalDeadLetter
     {
         $this->initialize();
         if ($message instanceof ErrorMessage) {
-//            @TODO this should be handled inside Ecotone, as it's duplicate of ErrorHandler
+            //            @TODO this should be handled inside Ecotone, as it's duplicate of ErrorHandler
 
             $messagingException = $message->getPayload();
             $cause = $messagingException->getCause() ? $messagingException->getCause() : $messagingException;

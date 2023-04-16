@@ -33,8 +33,8 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.78",
-        "ecotone/jms-converter": "^1.78",
+        "ecotone/ecotone": "1.78",
+        "ecotone/jms-converter": "1.78",
         "php-di/php-di": "^7.0.1"
     },
     "require-dev": {

@@ -9,7 +9,7 @@ use Doctrine\ORM\Tools\Setup;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Dbal\Recoverability\DbalDeadLetter;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLiteConfiguration;
 use Ecotone\Lite\InMemoryPSRContainer;
@@ -506,7 +506,7 @@ class DomainContext extends TestCase implements Context
         if ($this->checkIfTableExists($connection, $enqueueTable)) {
             $this->deleteFromTableExists($enqueueTable, $connection);
             $this->deleteFromTableExists(OrderService::ORDER_TABLE, $connection);
-            $this->deleteFromTableExists(DbalDeadLetter::DEFAULT_DEAD_LETTER_TABLE, $connection);
+            $this->deleteFromTableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
             $this->deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
             $this->deleteFromTableExists(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
             $this->deleteFromTableExists('persons', $connection);

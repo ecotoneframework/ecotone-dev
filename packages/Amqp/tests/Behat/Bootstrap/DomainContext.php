@@ -194,6 +194,8 @@ class DomainContext extends AmqpMessagingTest implements Context
                 false
             );
         }
+
+        $this->queueCleanUp();
     }
 
     /**

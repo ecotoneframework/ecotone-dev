@@ -2,39 +2,39 @@
     "repositories": [
       {
         "type": "path",
-        "url": "../../packages/Amqp"
+        "url": "packages/Amqp"
       },
       {
         "type": "path",
-        "url": "../../packages/Ecotone"
+        "url": "packages/Ecotone"
       },
       {
         "type": "path",
-        "url": "../../packages/Dbal"
+        "url": "packages/Dbal"
       },
       {
         "type": "path",
-        "url": "../../packages/Enqueue"
+        "url": "packages/Enqueue"
       },
       {
         "type": "path",
-        "url": "../../packages/PdoEventSourcing"
+        "url": "packages/PdoEventSourcing"
       },
       {
         "type": "path",
-        "url": "../../packages/JmsConverter"
+        "url": "packages/JmsConverter"
       },
       {
         "type": "path",
-        "url": "../../packages/Laravel"
+        "url": "packages/Laravel"
       },
       {
         "type": "path",
-        "url": "../../packages/Symfony"
+        "url": "packages/Symfony"
       },
       {
         "type": "path",
-        "url": "../../packages/LiteApplication"
+        "url": "packages/LiteApplication"
       }
     ]
 }

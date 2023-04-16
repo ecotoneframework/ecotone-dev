@@ -66,6 +66,7 @@ Feature: activating as aggregate order entity
       | name            | namespace |
       | user_service    | Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher |
       | ticket_service  | Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver  |
+    And using "ticket_service" set up distributed consumer
     When using "ticket_service" I should have 0 remaining ticket
     And using "user_service" I change billing details
     Then using "ticket_service" I should have 1 remaining ticket
@@ -75,6 +76,7 @@ Feature: activating as aggregate order entity
       | name            | namespace |
       | user_service    | Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher |
       | ticket_service  | Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver  |
+    And using "ticket_service" set up distributed consumer
     When using "ticket_service" I should have 0 remaining ticket
     And using "user_service" I change billing details
     Then using "ticket_service" I should have 1 remaining ticket
@@ -84,6 +86,7 @@ Feature: activating as aggregate order entity
       | name            | namespace |
       | user_service    | Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher |
       | ticket_service  | Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver  |
+    And using "ticket_service" set up distributed consumer
     When using "ticket_service" I should have 0 remaining ticket
     And using "user_service" I change billing details
     Then using "ticket_service" I should have 1 remaining ticket
@@ -93,6 +96,7 @@ Feature: activating as aggregate order entity
       | name            | namespace |
       | user_service    | Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Publisher |
       | ticket_service  | Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver  |
+    And using "ticket_service" set up distributed consumer
     When using "ticket_service" there are 0 error tickets
     And using "user_service" I change billing details
     And using "ticket_service" process ticket with failure
@@ -105,6 +109,7 @@ Feature: activating as aggregate order entity
       | name            | namespace |
       | user_service    | Test\Ecotone\Amqp\Fixture\DistributedMessage\Publisher |
       | ticket_service  | Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver  |
+    And using "ticket_service" set up distributed consumer
     When using "ticket_service" I should have 0 remaining ticket
     And using "user_service" I change billing details
     Then using "ticket_service" I should have 1 remaining ticket

@@ -12,7 +12,6 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Enqueue\AmqpExt\AmqpConsumer;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
@@ -75,7 +74,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         /** @var AmqpReconnectableConnectionFactory $connectionFactory */
         $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
         $queueChannel = $this->queueChannel;
-        $subscriptionConsumer = $connectionFactory->getSubscriptionConsumer($this->queueName, function(EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
+        $subscriptionConsumer = $connectionFactory->getSubscriptionConsumer($this->queueName, function (EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
             $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer);
             $message = $this->enrichMessage($receivedMessage, $message);
 

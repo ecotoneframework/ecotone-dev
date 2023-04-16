@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
+use AMQPQueueException;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
@@ -110,7 +110,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
 
-        $this->expectException(\AMQPQueueException::class);
+        $this->expectException(AMQPQueueException::class);
 
         $messageChannel->receiveWithTimeout(1);
     }

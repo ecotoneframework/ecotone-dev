@@ -411,7 +411,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             AmqpQueue::createWith($whiteQueueName),
         ];
         $amqpExchanges = [
-            AmqpExchange::createDirectExchange($exchangeName)
+            AmqpExchange::createDirectExchange($exchangeName),
         ];
         $amqpBindings = [
             AmqpBinding::createFromNames($exchangeName, $whiteQueueName, 'white'),
@@ -480,7 +480,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             AmqpQueue::createWith($blackQueueName),
         ];
         $amqpExchanges = [
-            AmqpExchange::createFanoutExchange($exchangeName)
+            AmqpExchange::createFanoutExchange($exchangeName),
         ];
         $amqpBindings = [
             AmqpBinding::createFromNames($exchangeName, $blackQueueName, null),
@@ -521,7 +521,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             AmqpQueue::createWith($whiteQueueName),
         ];
         $amqpExchanges = [
-            AmqpExchange::createTopicExchange($exchangeName)
+            AmqpExchange::createTopicExchange($exchangeName),
         ];
         $amqpBindings = [
             AmqpBinding::createFromNames($exchangeName, $whiteQueueName, '*.white'),
@@ -806,7 +806,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             AmqpQueue::createWith($whiteQueueName),
         ];
         $amqpExchanges = [
-            AmqpExchange::createFanoutExchange($exchangeName)
+            AmqpExchange::createFanoutExchange($exchangeName),
         ];
         $amqpBindings = [
             AmqpBinding::createFromNamesWithoutRoutingKey($exchangeName, $whiteQueueName),

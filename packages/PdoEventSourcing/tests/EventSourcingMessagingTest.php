@@ -5,7 +5,7 @@ namespace Test\Ecotone\EventSourcing;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Dbal\Recoverability\DbalDeadLetter;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
@@ -54,7 +54,7 @@ abstract class EventSourcingMessagingTest extends TestCase
     public static function clearDataTables(Connection $connection): void
     {
         EventSourcingMessagingTest::deleteFromTableExists('enqueue', $connection);
-        EventSourcingMessagingTest::deleteFromTableExists(DbalDeadLetter::DEFAULT_DEAD_LETTER_TABLE, $connection);
+        EventSourcingMessagingTest::deleteFromTableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
         EventSourcingMessagingTest::deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
         EventSourcingMessagingTest::deleteTable('in_progress_tickets', $connection);
         EventSourcingMessagingTest::deleteEventStreamTables($connection);

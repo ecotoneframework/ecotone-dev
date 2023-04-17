@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler;
 
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerChainProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageDeliveryException;
@@ -27,18 +31,13 @@ class RequestReplyProducer
     private ?\Ecotone\Messaging\MessageChannel $outputChannel;
     private bool $isReplyRequired;
     private \Ecotone\Messaging\Handler\ChannelResolver $channelResolver;
-    private \Ecotone\Messaging\Handler\MessageProcessor $messageProcessor;
+    private MessageProcessor $messageProcessor;
     private int $method;
 
-    /**
-     * RequestReplyProducer constructor.
-     * @param MessageChannel|null $outputChannel
-     * @param MessageProcessor $messageProcessor
-     * @param ChannelResolver $channelResolver
-     * @param bool $isReplyRequired
-     * @param int $method
-     */
-    private function __construct(?MessageChannel $outputChannel, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired, int $method)
+    private function __construct(
+        ?MessageChannel $outputChannel, MessageProcessor $messageProcessor,
+        ChannelResolver $channelResolver, bool $isReplyRequired, int $method,
+    )
     {
         $this->outputChannel = $outputChannel;
         $this->isReplyRequired = $isReplyRequired;
@@ -47,13 +46,6 @@ class RequestReplyProducer
         $this->method = $method;
     }
 
-    /**
-     * @param string|null $outputChannelName
-     * @param MessageProcessor $messageProcessor
-     * @param ChannelResolver $channelResolver
-     * @param bool $isReplyRequired
-     * @throws DestinationResolutionException
-     */
     public static function createRequestAndReply(?string $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired): RequestReplyProducer
     {
         $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
@@ -61,13 +53,6 @@ class RequestReplyProducer
         return new self($outputChannel, $messageProcessor, $channelResolver, $isReplyRequired, self::REQUEST_REPLY_METHOD);
     }
 
-    /**
-     * @param string|null $outputChannelName
-     * @param MessageProcessor $messageProcessor
-     * @param ChannelResolver $channelResolver
-     * @return RequestReplyProducer
-     * @throws DestinationResolutionException
-     */
     public static function createRequestAndSplit(?string $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver): self
     {
         $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
@@ -75,15 +60,27 @@ class RequestReplyProducer
         return new self($outputChannel, $messageProcessor, $channelResolver, true, self::REQUEST_SPLIT_METHOD);
     }
 
-    /**
-     * @param Message $message
-     * @throws DestinationResolutionException
-     * @throws MessageDeliveryException
-     * @throws MessageHandlingException
-     * @throws MessagingException
-     * @throws Exception
-     */
     public function handleWithReply(Message $message): void
+    {
+        $methodCall = $this->messageProcessor->getMethodCall($message);
+        if ($this->messageProcessor->getAroundMethodInterceptors() === []) {
+            $this->executeEndpointAndSendReply($methodCall, $message);
+
+            return;
+        }
+
+        $methodInvokerProcessor = new MethodInvokerChainProcessor(
+            $this->messageProcessor,
+            $methodCall,
+            $this->messageProcessor->getAroundMethodInterceptors(),
+            $message,
+            $this,
+        );
+
+        $methodInvokerProcessor->beginTheChain();
+    }
+
+    public function executeEndpointAndSendReply(MethodCall $methodCall, Message $message): void
     {
         $replyData = $this->messageProcessor->processMessage($message);
 
@@ -91,7 +88,7 @@ class RequestReplyProducer
             throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $message);
         }
 
-        if (! is_null($replyData)) {
+        if (!is_null($replyData)) {
             if ($replyData instanceof Message) {
                 $message = $replyData;
             }
@@ -110,8 +107,8 @@ class RequestReplyProducer
             }
             $routingSlip = implode(',', $routingSlipChannels);
 
-            if (! $replyChannel) {
-                if (! $this->isReplyRequired()) {
+            if (!$replyChannel) {
+                if (!$this->isReplyRequired()) {
                     return;
                 }
 
@@ -126,16 +123,16 @@ class RequestReplyProducer
                         ->setPayload($replyData);
                 }
 
-                if (! $routingSlip) {
+                if (!$routingSlip) {
                     $messageBuilder = $messageBuilder
-                                        ->removeHeader(MessageHeaders::ROUTING_SLIP);
+                        ->removeHeader(MessageHeaders::ROUTING_SLIP);
                 } else {
                     $messageBuilder = $messageBuilder
-                                        ->setHeader(MessageHeaders::ROUTING_SLIP, $routingSlip);
+                        ->setHeader(MessageHeaders::ROUTING_SLIP, $routingSlip);
                 }
                 $replyChannel->send($messageBuilder->build());
             } else {
-                if (! is_iterable($replyData)) {
+                if (!is_iterable($replyData)) {
                     throw MessageDeliveryException::createWithFailedMessage("Can't split message {$message}, payload to split is not iterable in {$this->messageProcessor}", $message);
                 }
 

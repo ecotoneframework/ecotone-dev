@@ -38,7 +38,7 @@ final class BridgeTest extends TestCase
             ServiceConfiguration::createWithAsynchronicityOnly()
         );
 
-        $ecotoneLite->sendMessage('async', MessageBuilder::withPayload(1)->build());
+        $ecotoneLite->sendMessage('bridgeExample', MessageBuilder::withPayload(1)->build());
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals(

@@ -457,16 +457,10 @@ final class MessagingSystemConfiguration implements Configuration
             /**
              * This is Bridge that will fetch the message and make use of routing_slip to target it
              * message handler.
-             * As by default all Around interceptors are wrapping only given Message Handler.
-             * It means that Bridge would return Message, it would end all Around interceptors.
-             * And then route the Message to routing slip, which is not ideal.
-             * That's why we want to have 2 of them, so we can be sure routing slip endpoint is in transaction.
              */
-            $this->messageHandlerBuilders[$asynchronousChannel] = ChainMessageHandlerBuilder::create()
+            $this->messageHandlerBuilders[$asynchronousChannel] = ServiceActivatorBuilder::createWithDirectReference(new Bridge(), 'handle')
                 ->withInputChannelName($asynchronousChannel)
-                ->withEndpointId($asynchronousChannel)
-                ->chain(ServiceActivatorBuilder::createWithDirectReference(new Bridge(), 'handle'))
-                ->chain(ServiceActivatorBuilder::createWithDirectReference(new Bridge(), 'handle'));
+                ->withEndpointId($asynchronousChannel);
         }
 
         foreach ($this->messageHandlerBuilders as $key => $messageHandlerBuilder) {

@@ -33,7 +33,7 @@ final class AsynchronousBridgeExample
     public function multiply(MethodInvocation $methodInvocation)
     {
         $result = $methodInvocation->proceed();
-        $this->result = $result->getPayload();
+        $this->result = $result->getPayload() * 3;
 
         return $result;
     }

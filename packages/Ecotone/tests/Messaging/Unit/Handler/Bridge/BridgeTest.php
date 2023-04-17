@@ -42,7 +42,7 @@ final class BridgeTest extends TestCase
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals(
-            2,
+            6,
             $asynchronousBridgeExample->result
         );
     }

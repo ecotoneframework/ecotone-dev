@@ -50,21 +50,21 @@ class MethodInvokerChainProcessor implements MethodInvocation
 
     public function beginTheChain(): void
     {
-        $bridge = QueueChannel::create();
-        $previousReplyChannel = $this->requestMessage->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL) ? $this->requestMessage->getHeaders()->getReplyChannel() : null;
-
-        /**
-         * This will ensure that after all connected output channels finish, we can fetch the result
-         * and pass it to origin reply channel
-         */
-        $this->requestMessage = MessageBuilder::fromMessage($this->requestMessage)
-            ->setReplyChannel($bridge)
-            ->build();
+//        $bridge = QueueChannel::create();
+//        $previousReplyChannel = $this->requestMessage->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL) ? $this->requestMessage->getHeaders()->getReplyChannel() : null;
+//
+//        /**
+//         * This will ensure that after all connected output channels finish, we can fetch the result
+//         * and pass it to origin reply channel
+//         */
+//        $this->requestMessage = MessageBuilder::fromMessage($this->requestMessage)
+//            ->setReplyChannel($bridge)
+//            ->build();
 
         $result = $this->proceed();
-        if ($previousReplyChannel && $result) {
-            $previousReplyChannel->send($result);
-        }
+//        if ($previousReplyChannel && $result) {
+//            $previousReplyChannel->send($result);
+//        }
     }
 
     /**

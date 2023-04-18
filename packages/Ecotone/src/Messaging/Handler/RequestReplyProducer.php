@@ -46,7 +46,7 @@ class RequestReplyProducer
         $this->method = $method;
     }
 
-    public static function createRequestAndReply(?string $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired): RequestReplyProducer
+    public static function createRequestAndReply(string|MessageChannel|null $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired): RequestReplyProducer
     {
         $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
 

@@ -80,12 +80,12 @@ class RequestReplyProducer
         $methodInvokerProcessor->beginTheChain();
     }
 
-    public function executeEndpointAndSendReply(MethodCall $methodCall, Message $message): void
+    public function executeEndpointAndSendReply(MethodCall $methodCall, Message $requestMessage): void
     {
-        $replyData = $this->messageProcessor->processMessage($message);
+        $replyData = $this->messageProcessor->processMessage($requestMessage);
 
         if ($this->isReplyRequired() && $this->isReplyDataEmpty($replyData)) {
-            throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $message);
+            throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $requestMessage);
         }
 
         if (!is_null($replyData)) {
@@ -101,8 +101,8 @@ class RequestReplyProducer
             } else {
                 if ($routingSlip) {
                     $replyChannel = $this->channelResolver->resolve(array_shift($routingSlipChannels));
-                }elseif ($message->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {
-                    $replyChannel = $this->channelResolver->resolve($message->getHeaders()->getReplyChannel());
+                }elseif ($requestMessage->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {
+                    $replyChannel = $this->channelResolver->resolve($requestMessage->getHeaders()->getReplyChannel());
                 }
             }
             $routingSlip = implode(',', $routingSlipChannels);

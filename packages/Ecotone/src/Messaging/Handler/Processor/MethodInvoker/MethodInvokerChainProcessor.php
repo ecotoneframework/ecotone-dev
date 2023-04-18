@@ -27,44 +27,22 @@ class MethodInvokerChainProcessor implements MethodInvocation
      */
     private iterable $aroundMethodInterceptors;
 
-    private QueueChannel $bridge;
-
-    private Message $requestMessage;
-
     public function __construct(
         private MessageProcessor $messageProcessor,
         private MethodCall $methodCall, array $aroundMethodInterceptors,
-        Message $requestMessage, private RequestReplyProducer $requestReplyProducer
+        private Message $requestMessage, private RequestReplyProducer $requestReplyProducer
     )
     {
         $this->aroundMethodInterceptors = new ArrayIterator($aroundMethodInterceptors);
-        /**
-         * This will ensure that after all connected output channels finish, we can fetch the result
-         * and pass it to origin reply channel
-         */
-        $this->bridge = QueueChannel::create();
-        $this->requestMessage = MessageBuilder::fromMessage($requestMessage)
-            ->setReplyChannel($this->bridge)
-            ->build();
     }
 
     public function beginTheChain(): void
     {
-//        $bridge = QueueChannel::create();
-//        $previousReplyChannel = $this->requestMessage->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL) ? $this->requestMessage->getHeaders()->getReplyChannel() : null;
-//
-//        /**
-//         * This will ensure that after all connected output channels finish, we can fetch the result
-//         * and pass it to origin reply channel
-//         */
-//        $this->requestMessage = MessageBuilder::fromMessage($this->requestMessage)
-//            ->setReplyChannel($bridge)
-//            ->build();
-
         $result = $this->proceed();
-//        if ($previousReplyChannel && $result) {
-//            $previousReplyChannel->send($result);
-//        }
+        if ($this->requestMessage->getHeaders()->hasReplyChannel() && !is_null($result)) {
+            $result = $result instanceof Message ? $result : MessageBuilder::fromMessage($this->requestMessage)->setPayload($result)->build();
+            $this->requestMessage->getHeaders()->getReplyChannel()->send($result);
+        }
     }
 
     /**
@@ -77,7 +55,11 @@ class MethodInvokerChainProcessor implements MethodInvocation
         $this->aroundMethodInterceptors->next();
 
         if (! $aroundMethodInterceptor) {
-            $bridge = $this->requestMessage->getHeaders()->getReplyChannel();
+            /**
+             * This will ensure that after all connected output channels finish, we can fetch the result
+             * and pass it to origin reply channel
+             */
+            $bridge = QueueChannel::create('request-reply-' . $this->getInterceptedClassName() . '::' . $this->getInterceptedMethodName());
             $message = MessageBuilder::fromMessage($this->requestMessage)
                 ->setReplyChannel($bridge)
                 ->build();

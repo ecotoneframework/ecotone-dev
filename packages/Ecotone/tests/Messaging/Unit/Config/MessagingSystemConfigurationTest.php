@@ -1921,6 +1921,123 @@ class MessagingSystemConfigurationTest extends MessagingTest
         );
     }
 
+    public function test_registering_single_after_interceptor_for_gateway()
+    {
+        $requestChannelName = 'inputChannel';
+
+        $messagingSystemConfiguration =
+            MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
+                ->registerGatewayBuilder(
+                    GatewayProxyBuilder::create('ref-name', ServiceInterfaceCalculatingService::class, 'calculate', $requestChannelName)
+                )
+                ->registerMessageHandler(
+                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                        ->withInputChannelName($requestChannelName)
+                )
+                ->registerAfterMethodInterceptor(
+                    MethodInterceptor::create(
+                        'interceptor3',
+                        InterfaceToCall::create(CalculatingService::class, 'sum'),
+                        ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'sum'),
+                        0,
+                        ServiceInterfaceCalculatingService::class
+                    )
+                )
+                ->registerConsumerFactory(new EventDrivenConsumerBuilder())
+                ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
+
+        /** @var ServiceInterfaceCalculatingService $gateway */
+        $gateway = $messagingSystemConfiguration->getGatewayByName('ref-name');
+
+        $this->assertEquals(
+            4,
+            $gateway->calculate(1)
+        );
+    }
+
+    public function test_registering_interceptors_for_gateway_single_around_interceptor()
+    {
+        $requestChannelName = 'inputChannel';
+        $aroundInterceptor = NoReturnMessageHandler::create();
+
+        $messagingSystemConfiguration =
+            MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
+                ->registerGatewayBuilder(
+                    GatewayProxyBuilder::create('ref-name', ServiceInterfaceCalculatingService::class, 'calculate', $requestChannelName)
+                )
+                ->registerMessageHandler(
+                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                        ->withInputChannelName($requestChannelName)
+                )
+                ->registerAroundMethodInterceptor(
+                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                        InterfaceToCallRegistry::createEmpty(),
+                        $aroundInterceptor,
+                        'handle',
+                        1,
+                        ServiceInterfaceCalculatingService::class
+                    )
+                )
+                ->registerConsumerFactory(new EventDrivenConsumerBuilder())
+                ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
+
+        /** @var ServiceInterfaceCalculatingService $gateway */
+        $gateway = $messagingSystemConfiguration->getGatewayByName('ref-name');
+
+        $this->assertEquals(
+            1,
+            $gateway->calculate(1)
+        );
+
+        $this->assertTrue($aroundInterceptor->wasCalled());
+    }
+
+    public function test_registering_interceptors_for_gateway_single_around_and_before_interceptor()
+    {
+        $requestChannelName = 'inputChannel';
+        $aroundInterceptor = NoReturnMessageHandler::create();
+
+        $messagingSystemConfiguration =
+            MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
+                ->registerGatewayBuilder(
+                    GatewayProxyBuilder::create('ref-name', ServiceInterfaceCalculatingService::class, 'calculate', $requestChannelName)
+                )
+                ->registerMessageHandler(
+                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                        ->withInputChannelName($requestChannelName)
+                )
+                ->registerBeforeMethodInterceptor(
+                    MethodInterceptor::create(
+                        'interceptor1',
+                        InterfaceToCall::create(CalculatingService::class, 'sum'),
+                        ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'sum'),
+                        1,
+                        ServiceInterfaceCalculatingService::class
+                    )
+                )
+                ->registerAroundMethodInterceptor(
+                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                        InterfaceToCallRegistry::createEmpty(),
+                        $aroundInterceptor,
+                        'handle',
+                        1,
+                        ServiceInterfaceCalculatingService::class
+                    )
+                )
+                ->registerConsumerFactory(new EventDrivenConsumerBuilder())
+                ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
+
+        /** @var ServiceInterfaceCalculatingService $gateway */
+        $gateway = $messagingSystemConfiguration->getGatewayByName('ref-name');
+
+        $this->assertEquals(
+            4,
+            $gateway->calculate(1)
+        );
+
+        $this->assertTrue($aroundInterceptor->wasCalled());
+    }
+
     public function test_registering_interceptors_for_gateway_using_pointcut()
     {
         $requestChannelName = 'inputChannel';

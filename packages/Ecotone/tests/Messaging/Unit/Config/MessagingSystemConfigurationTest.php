@@ -1364,7 +1364,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     'executeReturn'
                 )->withEndpointId($endpointName)
             )
-            ->registerMessageHandler(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply')->withInputChannelName($requestChannelName))
+            ->registerMessageHandler(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'sum')->withInputChannelName($requestChannelName))
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerPollingMetadata(
                 PollingMetadata::create($endpointName)
@@ -1379,6 +1379,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ConsumerContinuouslyWorkingService::class
                 )
             )
+            /** will not contribute to calculations, as will add after final service was called */
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
                     InterfaceToCallRegistry::createEmpty(),
@@ -1410,7 +1411,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $messagingSystem->run($endpointName);
 
-        $this->assertEquals(42, $lastServiceFromChain->getLastResult());
+        $this->assertEquals(24, $lastServiceFromChain->getLastResult());
     }
 
     public function test_intercepting_channel_adapter_with_void_services_by_passing_through_message()
@@ -1522,7 +1523,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         );
 
         $this->assertEquals(
-            15,
+            11,
             $outputChannel->receive()->getPayload()
         );
     }
@@ -1671,7 +1672,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         );
 
         $this->assertEquals(
-            10,
+            8,
             $outputChannel->receive()->getPayload()
         );
     }

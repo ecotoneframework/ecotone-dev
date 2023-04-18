@@ -45,10 +45,8 @@ class CalculatingServiceInterceptorExample
     #[Around(2, CalculatingServiceInterceptorExample::class)]
     public function sum(MethodInvocation $methodInvocation, int $amount)
     {
-        $result = $amount + $this->secondValueForMathOperations;
-
-        $methodInvocation->replaceArgument('amount', $result);
-        return $methodInvocation->proceed();
+        $result = $methodInvocation->proceed();
+        return $result->getPayload() + $this->secondValueForMathOperations;
     }
 
     /**

@@ -89,6 +89,7 @@ class RequestReplyProducer
         }
 
         if (!is_null($replyData)) {
+            $message = $requestMessage;
             if ($replyData instanceof Message) {
                 $message = $replyData;
             }

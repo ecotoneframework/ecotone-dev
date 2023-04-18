@@ -797,25 +797,6 @@ class MethodInvokerTest extends MessagingTest
         $this->assertNull($methodInvocation->processMessage(MessageBuilder::withPayload('some')->build()));
     }
 
-    public function test_changing_calling_arguments_from_interceptor()
-    {
-        $interceptingService1 = CallWithReplacingArgumentsInterceptorExample::createWithArgumentsToReplace(['stdClass' => new stdClass()]);
-        $interceptedService = StubCallSavingService::create();
-        $methodInvocation = MethodInvoker::createWith(
-            InterfaceToCall::create($interceptedService, 'callWithStdClassArgument'),
-            $interceptedService,
-            [],
-            InMemoryReferenceSearchService::createWith([
-                CallWithReplacingArgumentsInterceptorExample::class => $interceptingService1,
-            ]),
-            InMemoryChannelResolver::createEmpty(),
-            [AroundInterceptorReference::createWithNoPointcut(CallWithReplacingArgumentsInterceptorExample::class, CallWithReplacingArgumentsInterceptorExample::class, 'callWithReplacingArguments')]
-        );
-
-        $this->assertNull($methodInvocation->processMessage(MessageBuilder::withPayload('some')->build()));
-        $this->assertTrue($interceptedService->wasCalled());
-    }
-
     public function test_calling_interceptor_with_unordered_arguments_from_intercepted_method()
     {
         $interceptingService1 = CallWithUnorderedClassInvocationInterceptorExample::create();

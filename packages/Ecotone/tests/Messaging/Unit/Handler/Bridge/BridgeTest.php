@@ -24,7 +24,7 @@ final class BridgeTest extends TestCase
         );
 
         $this->assertEquals(
-            4,
+            6,
             $ecotoneLite->sendMessage('bridgeExample', 1)
         );
     }

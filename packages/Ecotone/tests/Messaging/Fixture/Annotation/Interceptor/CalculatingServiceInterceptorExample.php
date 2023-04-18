@@ -91,7 +91,7 @@ class CalculatingServiceInterceptorExample
     private function getResult(MethodInvocation $methodInvocation): mixed
     {
         $result = $methodInvocation->proceed();
-        
+
         return $result instanceof Message ? $result->getPayload() : $result;
     }
 }

@@ -93,78 +93,80 @@ class RequestReplyProducer
             throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $requestMessage);
         }
 
-        if (!is_null($replyData)) {
-            $message = $requestMessage;
+        if (is_null($replyData)) {
+            return;
+        }
+
+        $message = $requestMessage;
+        if ($replyData instanceof Message) {
+            $message = $replyData;
+        }
+        $replyChannel = null;
+        $routingSlip = $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP) ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP) : '';
+        $routingSlipChannels = explode(',', $routingSlip);
+
+        if ($this->hasOutputChannel()) {
+            $replyChannel = $this->getOutputChannel();
+        } else {
+            if ($routingSlip) {
+                $replyChannel = $this->channelResolver->resolve(array_shift($routingSlipChannels));
+            }elseif ($requestMessage->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {
+                $replyChannel = $this->channelResolver->resolve($requestMessage->getHeaders()->getReplyChannel());
+            }
+        }
+        $routingSlip = implode(',', $routingSlipChannels);
+
+        if (!$replyChannel) {
+            if (!$this->isReplyRequired()) {
+                return;
+            }
+
+            throw MessageDeliveryException::createWithFailedMessage("Can't process {$message}, no output channel during delivery in {$this->messageProcessor}", $message);
+        }
+
+        if ($this->method === self::REQUEST_REPLY_METHOD) {
             if ($replyData instanceof Message) {
-                $message = $replyData;
-            }
-            $replyChannel = null;
-            $routingSlip = $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP) ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP) : '';
-            $routingSlipChannels = explode(',', $routingSlip);
-
-            if ($this->hasOutputChannel()) {
-                $replyChannel = $this->getOutputChannel();
+                $messageBuilder = MessageBuilder::fromMessage($replyData);
             } else {
-                if ($routingSlip) {
-                    $replyChannel = $this->channelResolver->resolve(array_shift($routingSlipChannels));
-                }elseif ($requestMessage->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {
-                    $replyChannel = $this->channelResolver->resolve($requestMessage->getHeaders()->getReplyChannel());
-                }
-            }
-            $routingSlip = implode(',', $routingSlipChannels);
-
-            if (!$replyChannel) {
-                if (!$this->isReplyRequired()) {
-                    return;
-                }
-
-                throw MessageDeliveryException::createWithFailedMessage("Can't process {$message}, no output channel during delivery in {$this->messageProcessor}", $message);
+                $messageBuilder = MessageBuilder::fromMessage($message)
+                    ->setPayload($replyData);
             }
 
-            if ($this->method === self::REQUEST_REPLY_METHOD) {
-                if ($replyData instanceof Message) {
-                    $messageBuilder = MessageBuilder::fromMessage($replyData);
-                } else {
-                    $messageBuilder = MessageBuilder::fromMessage($message)
-                        ->setPayload($replyData);
-                }
-
-                if (!$routingSlip) {
-                    $messageBuilder = $messageBuilder
-                        ->removeHeader(MessageHeaders::ROUTING_SLIP);
-                } else {
-                    $messageBuilder = $messageBuilder
-                        ->setHeader(MessageHeaders::ROUTING_SLIP, $routingSlip);
-                }
-                $replyChannel->send($messageBuilder->build());
+            if (!$routingSlip) {
+                $messageBuilder = $messageBuilder
+                    ->removeHeader(MessageHeaders::ROUTING_SLIP);
             } else {
-                if (!is_iterable($replyData)) {
-                    throw MessageDeliveryException::createWithFailedMessage("Can't split message {$message}, payload to split is not iterable in {$this->messageProcessor}", $message);
-                }
+                $messageBuilder = $messageBuilder
+                    ->setHeader(MessageHeaders::ROUTING_SLIP, $routingSlip);
+            }
+            $replyChannel->send($messageBuilder->build());
+        } else {
+            if (!is_iterable($replyData)) {
+                throw MessageDeliveryException::createWithFailedMessage("Can't split message {$message}, payload to split is not iterable in {$this->messageProcessor}", $message);
+            }
 
-                $sequenceSize = count($replyData);
-                $correlationId = Uuid::uuid4()->toString();
-                for ($sequenceNumber = 0; $sequenceNumber < $sequenceSize; $sequenceNumber++) {
-                    $payload = $replyData[$sequenceNumber];
-                    if ($payload instanceof Message) {
-                        $replyChannel->send(
-                            MessageBuilder::fromMessage($payload)
-                                ->setHeaderIfAbsent(MessageHeaders::MESSAGE_CORRELATION_ID, $correlationId)
-                                ->setHeader(MessageHeaders::SEQUENCE_NUMBER, $sequenceNumber + 1)
-                                ->setHeader(MessageHeaders::SEQUENCE_SIZE, $sequenceSize)
-                                ->build()
-                        );
-                    } else {
-                        $replyChannel->send(
-                            MessageBuilder::fromMessageWithNewMessageId($message)
-                                ->setPayload($payload)
-                                ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($payload)->toString()))
-                                ->setHeaderIfAbsent(MessageHeaders::MESSAGE_CORRELATION_ID, $correlationId)
-                                ->setHeader(MessageHeaders::SEQUENCE_NUMBER, $sequenceNumber + 1)
-                                ->setHeader(MessageHeaders::SEQUENCE_SIZE, $sequenceSize)
-                                ->build()
-                        );
-                    }
+            $sequenceSize = count($replyData);
+            $correlationId = Uuid::uuid4()->toString();
+            for ($sequenceNumber = 0; $sequenceNumber < $sequenceSize; $sequenceNumber++) {
+                $payload = $replyData[$sequenceNumber];
+                if ($payload instanceof Message) {
+                    $replyChannel->send(
+                        MessageBuilder::fromMessage($payload)
+                            ->setHeaderIfAbsent(MessageHeaders::MESSAGE_CORRELATION_ID, $correlationId)
+                            ->setHeader(MessageHeaders::SEQUENCE_NUMBER, $sequenceNumber + 1)
+                            ->setHeader(MessageHeaders::SEQUENCE_SIZE, $sequenceSize)
+                            ->build()
+                    );
+                } else {
+                    $replyChannel->send(
+                        MessageBuilder::fromMessageWithNewMessageId($message)
+                            ->setPayload($payload)
+                            ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($payload)->toString()))
+                            ->setHeaderIfAbsent(MessageHeaders::MESSAGE_CORRELATION_ID, $correlationId)
+                            ->setHeader(MessageHeaders::SEQUENCE_NUMBER, $sequenceNumber + 1)
+                            ->setHeader(MessageHeaders::SEQUENCE_SIZE, $sequenceSize)
+                            ->build()
+                    );
                 }
             }
         }

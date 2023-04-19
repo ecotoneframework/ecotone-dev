@@ -82,7 +82,7 @@ class RequestReplyProducer
 
     public function executeEndpointAndSendReply(MethodCall $methodCall, Message $requestMessage): void
     {
-        $replyData = $this->messageProcessor->processMessage($requestMessage);
+        $replyData = $this->messageProcessor->processMessage($requestMessage, $methodCall);
 
         if ($this->isReplyRequired() && $this->isReplyDataEmpty($replyData)) {
             throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $requestMessage);

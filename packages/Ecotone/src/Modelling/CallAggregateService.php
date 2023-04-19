@@ -13,7 +13,7 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerChainProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -116,7 +116,7 @@ class CallAggregateService
             $noReplyMessage = MessageBuilder::fromMessage($message)
                                 ->removeHeaders([MessageHeaders::REPLY_CHANNEL, MessageHeaders::ROUTING_SLIP])
                                 ->build();
-            $methodInvokerChainProcessor = new MethodInvokerChainProcessor(
+            $methodInvokerChainProcessor = new AroundMethodInvoker(
                 $methodInvoker,
                 $methodInvoker->getMethodCall($noReplyMessage),
                 array_map(fn(AroundInterceptorReference $interceptorReference) => $interceptorReference->buildAroundInterceptor($this->referenceSearchService), $this->aroundMethodInterceptors),
@@ -129,7 +129,7 @@ class CallAggregateService
                 )
             );
 
-            $methodInvokerChainProcessor->beginTheChain();
+            $methodInvokerChainProcessor->proceed();
             $result = $outputChannel->receive();
             $result = !is_null($result) ? $result->getPayload() : null;
         }else {

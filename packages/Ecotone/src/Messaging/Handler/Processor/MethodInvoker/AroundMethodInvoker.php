@@ -16,11 +16,13 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
+ * Executes endpoint with around interceptors
+ *
  * Class MethodInvokerProcessor
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class MethodInvokerChainProcessor implements MethodInvocation
+class AroundMethodInvoker implements MethodInvocation
 {
     /**
      * @var ArrayIterator|AroundMethodInterceptor[]
@@ -34,15 +36,6 @@ class MethodInvokerChainProcessor implements MethodInvocation
     )
     {
         $this->aroundMethodInterceptors = new ArrayIterator($aroundMethodInterceptors);
-    }
-
-    public function beginTheChain(): void
-    {
-        $result = $this->proceed();
-        if ($this->requestMessage->getHeaders()->hasReplyChannel() && !is_null($result)) {
-            $result = $result instanceof Message ? $result : MessageBuilder::fromMessage($this->requestMessage)->setPayload($result)->build();
-            $this->requestMessage->getHeaders()->getReplyChannel()->send($result);
-        }
     }
 
     /**

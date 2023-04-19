@@ -8,7 +8,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerChainProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvoker;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageDeliveryException;
@@ -69,7 +69,7 @@ class RequestReplyProducer
             return;
         }
 
-        $methodInvokerProcessor = new MethodInvokerChainProcessor(
+        $aroundMethodInvoker = new AroundMethodInvoker(
             $this->messageProcessor,
             $methodCall,
             $this->messageProcessor->getAroundMethodInterceptors(),
@@ -77,7 +77,12 @@ class RequestReplyProducer
             $this,
         );
 
-        $methodInvokerProcessor->beginTheChain();
+        /** Execute endpoint with around and sends reply. Important as endpoint replay channel is replaced in AroundMethodInvoker */
+        $result = $aroundMethodInvoker->proceed();
+        if ($message->getHeaders()->hasReplyChannel() && !is_null($result)) {
+            $result = $result instanceof Message ? $result : MessageBuilder::fromMessage($message)->setPayload($result)->build();
+            $message->getHeaders()->getReplyChannel()->send($result);
+        }
     }
 
     public function executeEndpointAndSendReply(MethodCall $methodCall, Message $requestMessage): void

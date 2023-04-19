@@ -143,6 +143,14 @@ class DbalDeadLetterHandler
         }
     }
 
+    public function deleteAll(): void
+    {
+        $this->initialize();
+        $this->getConnection()->createQueryBuilder()
+            ->delete($this->getTableName())
+            ->executeStatement();
+    }
+
     public function store(Message $message): void
     {
         $this->initialize();

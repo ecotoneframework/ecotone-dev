@@ -30,6 +30,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public const REPLAY_CHANNEL     = 'ecotone.dbal.deadletter.reply';
     public const REPLAY_ALL_CHANNEL = 'ecotone.dbal.deadletter.replyAll';
     public const DELETE_CHANNEL     = 'ecotone.dbal.deadletter.delete';
+    public const DELETE_ALL_CHANNEL     = 'ecotone.dbal.deadletter.deleteAll';
     public const STORE_CHANNEL     = 'dbal_dead_letter';
 
     private string $methodName;
@@ -113,6 +114,16 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             'delete',
             $connectionReferenceName,
             self::getChannelName($referenceName, self::DELETE_CHANNEL),
+            []
+        );
+    }
+
+    public static function createDeleteAll(string $referenceName, string $connectionReferenceName): self
+    {
+        return new self(
+            'deleteAll',
+            $connectionReferenceName,
+            self::getChannelName($referenceName, self::DELETE_ALL_CHANNEL),
             []
         );
     }

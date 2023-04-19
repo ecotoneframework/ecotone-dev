@@ -44,9 +44,9 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
     /**
      * @inheritDoc
      */
-    public function processMessage(Message $message): ?Message
+    public function executeEndpoint(Message $message): ?Message
     {
-        $result = $this->messageProcessor->processMessage($message);
+        $result = $this->messageProcessor->executeEndpoint($message);
 
         if (is_null($result)) {
             return null;

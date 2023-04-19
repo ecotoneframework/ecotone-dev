@@ -32,7 +32,7 @@ class FakeReplyMessageProducer implements \Ecotone\Messaging\Handler\MessageProc
     /**
      * @inheritDoc
      */
-    public function processMessage(Message $message)
+    public function executeEndpoint(Message $message)
     {
         return $this->replyData;
     }

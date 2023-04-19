@@ -215,9 +215,10 @@ final class MethodInvoker implements MessageProcessor
     /**
      * @inheritDoc
      */
-    public function processMessage(Message $message, ?MethodCall $methodCall = null)
+    public function executeEndpoint(Message $message, ?MethodCall $methodCall = null)
     {
         $methodCall = $this->getMethodCall($message);
+
 
         return call_user_func_array([$this->objectToInvokeOn, $this->objectMethodName], $methodCall->getMethodArgumentValues());
     }

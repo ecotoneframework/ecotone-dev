@@ -86,7 +86,7 @@ class MethodInvokerTest extends MessagingTest
             PayloadBuilder::create('name'),
         ], InMemoryReferenceSearchService::createEmpty());
 
-        $methodInvocation->processMessage(MessageBuilder::withPayload('some')->build());
+        $methodInvocation->executeEndpoint(MessageBuilder::withPayload('some')->build());
 
         $this->assertTrue($serviceExpectingOneArgument->wasCalled(), 'Method was not called');
     }
@@ -108,7 +108,7 @@ class MethodInvokerTest extends MessagingTest
         $this->assertMessages(
             MessageBuilder::withPayload('test')
                 ->build(),
-            $methodInvocation->processMessage(MessageBuilder::withPayload('some')->build())
+            $methodInvocation->executeEndpoint(MessageBuilder::withPayload('some')->build())
         );
     }
 
@@ -130,7 +130,7 @@ class MethodInvokerTest extends MessagingTest
 
         $this->assertEquals(
             $headerValue,
-            $methodInvocation->processMessage(
+            $methodInvocation->executeEndpoint(
                 MessageBuilder::withPayload('some')
                     ->setHeader($headerName, $headerValue)
                     ->build()
@@ -154,7 +154,7 @@ class MethodInvokerTest extends MessagingTest
 
         $this->assertEquals(
             $payload,
-            $methodInvocation->processMessage(
+            $methodInvocation->executeEndpoint(
                 MessageBuilder::withPayload($payload)
                     ->build()
             )
@@ -177,7 +177,7 @@ class MethodInvokerTest extends MessagingTest
 
         $this->assertEquals(
             $payload,
-            $methodInvocation->processMessage(
+            $methodInvocation->executeEndpoint(
                 MessageBuilder::withPayload($payload)
                     ->build()
             )
@@ -219,7 +219,7 @@ class MethodInvokerTest extends MessagingTest
 
         $this->assertEquals(
             'johnybilbo13',
-            $methodInvocation->processMessage(
+            $methodInvocation->executeEndpoint(
                 MessageBuilder::withPayload('johny')
                     ->setHeader('personSurname', 'bilbo')
                     ->setHeader('personAge', 13)
@@ -246,7 +246,7 @@ class MethodInvokerTest extends MessagingTest
                 $referenceSearchService
             );
 
-        $replyMessage = $methodInvocation->processMessage(
+        $replyMessage = $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload(serialize(Order::create('1', 'correct')))
                 ->setContentType(MediaType::createApplicationXPHPSerialized())
                 ->build()
@@ -289,7 +289,7 @@ class MethodInvokerTest extends MessagingTest
 
         $this->expectException(InvalidArgumentException::class);
 
-        $methodInvocation->processMessage(
+        $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload(serialize(Order::create('1', 'correct')))
                 ->setContentType(MediaType::createApplicationXPHPSerialized())
                 ->build()
@@ -315,7 +315,7 @@ class MethodInvokerTest extends MessagingTest
                 $referenceSearchService
             );
 
-        $result = $methodInvocation->processMessage(
+        $result = $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload('some')
                 ->setContentType(MediaType::createApplicationXPHPSerialized())
                 ->build()
@@ -345,7 +345,7 @@ class MethodInvokerTest extends MessagingTest
                 $referenceSearchService
             );
 
-        $result = $methodInvocation->processMessage(
+        $result = $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload('some')
                 ->setContentType(MediaType::createApplicationXPHPSerialized())
                 ->build()
@@ -373,7 +373,7 @@ class MethodInvokerTest extends MessagingTest
             );
 
         $data      = '893a660c-0208-4140-8be6-95fb2dcd2fdd';
-        $replyMessage = $methodInvocation->processMessage(
+        $replyMessage = $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload($data)
                 ->setHeader(MessageHeaders::TYPE_ID, Uuid::class)
                 ->setContentType(MediaType::createApplicationXPHP())
@@ -405,7 +405,7 @@ class MethodInvokerTest extends MessagingTest
             );
 
         $data      = '["893a660c-0208-4140-8be6-95fb2dcd2fdd"]';
-        $replyMessage = $methodInvocation->processMessage(
+        $replyMessage = $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload($data)
                 ->setHeader(MessageHeaders::TYPE_ID, TypeDescriptor::ARRAY)
                 ->setContentType(MediaType::createApplicationJson())
@@ -438,7 +438,7 @@ class MethodInvokerTest extends MessagingTest
                 $referenceSearchService
             );
 
-        $methodInvocation->processMessage(
+        $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload('["893a660c-0208-4140-8be6-95fb2dcd2fdd"]')
                 ->setContentType(MediaType::createApplicationJson())
                 ->build()
@@ -462,7 +462,7 @@ class MethodInvokerTest extends MessagingTest
         );
 
         $uuid = 'fd825894-907c-4c6c-88a9-ae1ecdf3d307';
-        $replyMessage = $methodInvocation->processMessage(
+        $replyMessage = $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload('some')
                 ->setHeader('uuid', $uuid)
                 ->setContentType(MediaType::createTextPlain())
@@ -494,7 +494,7 @@ class MethodInvokerTest extends MessagingTest
                 $referenceSearchService
             );
 
-        $replyMessage = $methodInvocation->processMessage(MessageBuilder::withPayload(['test'])->build());
+        $replyMessage = $methodInvocation->executeEndpoint(MessageBuilder::withPayload(['test'])->build());
 
         $this->assertEquals(
             MediaType::createApplicationXPHPWithTypeParameter('array')->toString(),
@@ -521,7 +521,7 @@ class MethodInvokerTest extends MessagingTest
                 $referenceSearchService
             );
 
-        $replyMessage = $methodInvocation->processMessage(MessageBuilder::withPayload([new stdClass()])->build());
+        $replyMessage = $methodInvocation->executeEndpoint(MessageBuilder::withPayload([new stdClass()])->build());
 
         $this->assertEquals(
             MediaType::createApplicationXPHPWithTypeParameter('array<stdClass>')->toString(),
@@ -548,7 +548,7 @@ class MethodInvokerTest extends MessagingTest
                 $referenceSearchService
             );
 
-        $replyMessage = $methodInvocation->processMessage(MessageBuilder::withPayload(new stdClass())->build());
+        $replyMessage = $methodInvocation->executeEndpoint(MessageBuilder::withPayload(new stdClass())->build());
 
         $this->assertEquals(
             MediaType::createApplicationXPHPWithTypeParameter(stdClass::class)->toString(),
@@ -580,7 +580,7 @@ class MethodInvokerTest extends MessagingTest
         );
 
         $uuid = 'fd825894-907c-4c6c-88a9-ae1ecdf3d307';
-        $replyMessage = $methodInvocation->processMessage(
+        $replyMessage = $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload('some')
                 ->setHeader('uuid', $uuid)
                 ->setContentType(MediaType::createTextPlain())
@@ -616,7 +616,7 @@ class MethodInvokerTest extends MessagingTest
             ])
         );
 
-        $replyMessage = $methodInvocation->processMessage(
+        $replyMessage = $methodInvocation->executeEndpoint(
             MessageBuilder::withPayload(['fd825894-907c-4c6c-88a9-ae1ecdf3d307', 'fd825894-907c-4c6c-88a9-ae1ecdf3d308'])
                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter('array<string>'))
                 ->build()
@@ -653,7 +653,7 @@ class MethodInvokerTest extends MessagingTest
             ->setHeader('numbers', [5, 1])
             ->setHeader('strings', ['string1', 'string2'])
             ->build();
-        $methodInvocation->processMessage($message);
+        $methodInvocation->executeEndpoint($message);
 
         $this->assertTrue($interceptedService->wasCalled(), 'Intercepted Service was not called');
     }
@@ -677,7 +677,7 @@ class MethodInvokerTest extends MessagingTest
 
         $this->assertEquals(
             'some',
-            $methodInvocation->processMessage(MessageBuilder::withPayload(new stdClass())->build())
+            $methodInvocation->executeEndpoint(MessageBuilder::withPayload(new stdClass())->build())
         );
     }
 
@@ -698,7 +698,7 @@ class MethodInvokerTest extends MessagingTest
 
         $this->assertEquals(
             'some',
-            $methodInvocation->processMessage(MessageBuilder::withPayload(new stdClass())->build())
+            $methodInvocation->executeEndpoint(MessageBuilder::withPayload(new stdClass())->build())
         );
     }
 
@@ -718,7 +718,7 @@ class MethodInvokerTest extends MessagingTest
         );
 
         $requestMessage = MessageBuilder::withPayload('test')->build();
-        $this->assertNull($methodInvocation->processMessage($requestMessage));
+        $this->assertNull($methodInvocation->executeEndpoint($requestMessage));
     }
 
     public function test_calling_interceptor_with_endpoint_annotation()
@@ -737,7 +737,7 @@ class MethodInvokerTest extends MessagingTest
         );
 
         $requestMessage = MessageBuilder::withPayload('test')->build();
-        $this->assertNull($methodInvocation->processMessage($requestMessage));
+        $this->assertNull($methodInvocation->executeEndpoint($requestMessage));
     }
 
     public function test_calling_interceptor_with_reference_search_service()
@@ -756,7 +756,7 @@ class MethodInvokerTest extends MessagingTest
         );
 
         $requestMessage = MessageBuilder::withPayload('test')->build();
-        $this->assertNull($methodInvocation->processMessage($requestMessage));
+        $this->assertNull($methodInvocation->executeEndpoint($requestMessage));
     }
 
     public function test_throwing_exception_if_registering_around_method_interceptor_with_return_value_but_without_method_invocation()
@@ -798,7 +798,7 @@ class MethodInvokerTest extends MessagingTest
         );
 
         $requestMessage = MessageBuilder::withPayload('test')->build();
-        $this->assertNull($methodInvocation->processMessage($requestMessage));
+        $this->assertNull($methodInvocation->executeEndpoint($requestMessage));
     }
 
     public function test_passing_payload_if_compatible()
@@ -822,6 +822,6 @@ class MethodInvokerTest extends MessagingTest
         $requestMessage = MessageBuilder::withPayload(new stdClass())
             ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(stdClass::class))
             ->build();
-        $this->assertNull($methodInvocation->processMessage($requestMessage));
+        $this->assertNull($methodInvocation->executeEndpoint($requestMessage));
     }
 }

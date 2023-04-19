@@ -41,9 +41,9 @@ class TransformerMessageProcessor implements MessageProcessor
     /**
      * @inheritDoc
      */
-    public function processMessage(Message $message): ?Message
+    public function executeEndpoint(Message $message): ?Message
     {
-        $reply = $this->methodInvoker->processMessage($message);
+        $reply = $this->methodInvoker->executeEndpoint($message);
         $replyBuilder = MessageBuilder::fromMessage($message);
 
         if (is_null($reply)) {

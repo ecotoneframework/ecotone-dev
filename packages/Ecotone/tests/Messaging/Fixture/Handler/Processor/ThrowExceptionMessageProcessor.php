@@ -34,7 +34,7 @@ class ThrowExceptionMessageProcessor implements MessageProcessor
     /**
      * @inheritDoc
      */
-    public function processMessage(Message $message)
+    public function executeEndpoint(Message $message)
     {
         throw $this->exception;
     }
@@ -56,7 +56,7 @@ class ThrowExceptionMessageProcessor implements MessageProcessor
 
     public function getInterceptedInterface(): InterfaceToCall
     {
-        return InterfaceToCall::create(self::class, 'processMessage');
+        return InterfaceToCall::create(self::class, 'executeEndpoint');
     }
 
     public function getEndpointAnnotations(): array

@@ -133,7 +133,7 @@ class CallAggregateService
             $result = $outputChannel->receive();
             $result = !is_null($result) ? $result->getPayload() : null;
         }else {
-            $result = $methodInvoker->processMessage($message);
+            $result = $methodInvoker->executeEndpoint($message);
         }
 
         $resultType = TypeDescriptor::createFromVariable($result);

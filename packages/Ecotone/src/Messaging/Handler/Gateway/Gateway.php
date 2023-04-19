@@ -197,7 +197,6 @@ class Gateway implements NonProxyGateway
 
         $gatewayInternalHandler = ServiceActivatorBuilder::createWithDirectReference($gatewayInternalHandler, 'handle')
             ->withWrappingResultInMessage(false)
-            ->withPossibilityToReplaceArgumentsInAroundInterceptors(false)
             ->withEndpointAnnotations($this->endpointAnnotations);
         $aroundInterceptorReferences = $this->aroundInterceptors;
         $aroundInterceptorReferences[] = AroundInterceptorReference::createWithDirectObjectAndResolveConverters(

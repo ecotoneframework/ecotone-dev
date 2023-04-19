@@ -60,7 +60,7 @@ class RequestReplyProducer
         return new self($outputChannel, $messageProcessor, $channelResolver, true, self::REQUEST_SPLIT_METHOD);
     }
 
-    public function handleWithReply(Message $message): void
+    public function handleWithPossibleAroundInterceptors(Message $message): void
     {
         $methodCall = $this->messageProcessor->getMethodCall($message);
         if ($this->messageProcessor->getAroundMethodInterceptors() === []) {

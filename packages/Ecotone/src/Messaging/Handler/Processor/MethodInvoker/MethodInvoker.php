@@ -36,11 +36,8 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 final class MethodInvoker implements MessageProcessor
 {
-    /**
-     * @var object|string
-     */
-    public $objectToInvokeOn;
-    public string $objectMethodName;
+    private string|object $objectToInvokeOn;
+    private string $objectMethodName;
     /**
      * @var ParameterConverter[]
      */
@@ -48,7 +45,7 @@ final class MethodInvoker implements MessageProcessor
     private bool $isCalledStatically;
     private ConversionService $conversionService;
     private InterfaceToCall $interfaceToCall;
-    public array $aroundMethodInterceptors = [];
+    private array $aroundMethodInterceptors = [];
     /**
      * @var object[]
      */

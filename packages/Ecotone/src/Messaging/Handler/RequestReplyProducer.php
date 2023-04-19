@@ -64,7 +64,7 @@ class RequestReplyProducer
     {
         $methodCall = $this->messageProcessor->getMethodCall($message);
         if ($this->messageProcessor->getAroundMethodInterceptors() === []) {
-            $this->executeEndpointAndSendReply($methodCall, $message);
+            $this->executeEndpointAndSendReply($message);
 
             return;
         }
@@ -85,9 +85,9 @@ class RequestReplyProducer
         }
     }
 
-    public function executeEndpointAndSendReply(MethodCall $methodCall, Message $requestMessage): void
+    public function executeEndpointAndSendReply(Message $requestMessage): void
     {
-        $replyData = $this->messageProcessor->executeEndpoint($requestMessage, $methodCall);
+        $replyData = $this->messageProcessor->executeEndpoint($requestMessage);
 
         if ($this->isReplyRequired() && $this->isReplyDataEmpty($replyData)) {
             throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $requestMessage);

@@ -57,7 +57,7 @@ class AroundMethodInvoker implements MethodInvocation
                 ->setReplyChannel($bridge)
                 ->build();
 
-            $this->requestReplyProducer->executeEndpointAndSendReply($this->methodCall, $message);
+            $this->requestReplyProducer->executeEndpointAndSendReply($message);
 
             return $bridge->receive();
         }

@@ -21,6 +21,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaders
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\DistributedGatewayModule;
@@ -107,10 +108,11 @@ class AmqpDistributionModule
                 $channelName = self::CHANNEL_PREFIX . $applicationConfiguration->getServiceName();
                 $configuration->registerMessageChannel(AmqpBackedMessageChannelBuilder::create($channelName, $distributedBusConfiguration->getConnectionReference()));
                 $configuration->registerMessageHandler(
-                    BridgeBuilder::create()
+                    TransformerBuilder::createHeaderEnricher([
+                        MessageHeaders::ROUTING_SLIP => DistributionEntrypoint::DISTRIBUTED_CHANNEL
+                    ])
                         ->withEndpointId($applicationConfiguration->getServiceName())
                         ->withInputChannelName($channelName)
-                        ->withOutputMessageChannel(DistributionEntrypoint::DISTRIBUTED_CHANNEL)
                 );
             }
         }

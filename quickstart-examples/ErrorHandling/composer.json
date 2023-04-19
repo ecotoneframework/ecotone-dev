@@ -16,11 +16,22 @@
         "ecotone/lite-dbal-starter": "^1.0.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.5"
+        "phpunit/phpunit": "^9.5",
+        "wikimedia/composer-merge-plugin": "^2.0"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "wikimedia/composer-merge-plugin": true
+        }
+    },
+    "extra": {
+        "merge-plugin": {
+            "include": [
+                "../../config.json"
+            ]
+        }
     }
 }

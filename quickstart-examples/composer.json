@@ -36,7 +36,8 @@
             "(cd Schedule && composer update && php run_example.php)",
             "(cd StatefulProjection && composer update && php run_example.php)",
             "(cd OutboxPattern && composer update && php run_example.php)",
-            "(cd RefactorToReactiveSystem && composer update && php run_example.php Stage_1 && php run_example.php Stage_2 && php run_example.php Stage_3)"
+            "(cd RefactorToReactiveSystem && composer update && php run_example.php Stage_1 && php run_example.php Stage_2 && php run_example.php Stage_3)",
+            "(cd ErrorHandling && composer update && php run_example.php)"
         ]
     },
     "extra": {

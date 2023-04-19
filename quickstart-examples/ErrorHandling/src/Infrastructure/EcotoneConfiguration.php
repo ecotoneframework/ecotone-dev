@@ -39,7 +39,6 @@ final class EcotoneConfiguration
         return [
             AmqpDistributedBusConfiguration::createConsumer(),
             AmqpDistributedBusConfiguration::createPublisher(),
-            AmqpConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(false)->withTransactionOnCommandBus(false)
         ];
     }
 

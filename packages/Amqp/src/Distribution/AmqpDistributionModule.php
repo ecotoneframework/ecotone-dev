@@ -14,7 +14,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
@@ -109,7 +108,7 @@ class AmqpDistributionModule
                 $configuration->registerMessageChannel(AmqpBackedMessageChannelBuilder::create($channelName, $distributedBusConfiguration->getConnectionReference()));
                 $configuration->registerMessageHandler(
                     TransformerBuilder::createHeaderEnricher([
-                        MessageHeaders::ROUTING_SLIP => DistributionEntrypoint::DISTRIBUTED_CHANNEL
+                        MessageHeaders::ROUTING_SLIP => DistributionEntrypoint::DISTRIBUTED_CHANNEL,
                     ])
                         ->withEndpointId($applicationConfiguration->getServiceName())
                         ->withInputChannelName($channelName)

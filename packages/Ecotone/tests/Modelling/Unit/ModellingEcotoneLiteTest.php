@@ -15,6 +15,7 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestAbstractHandler;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestCommand;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestHandler;
+use Test\Ecotone\Modelling\Fixture\Outbox\OutboxWithMultipleChannels;
 
 /**
  * @internal
@@ -55,6 +56,35 @@ final class ModellingEcotoneLiteTest extends TestCase
         $this->assertEquals(
             1,
             $ecotoneLite->getCommandBus()->send(new TestCommand(1))
+        );
+    }
+
+    public function test_calling_asynchronous_command_handler_with_two_message_channels()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OutboxWithMultipleChannels::class],
+            [
+                new OutboxWithMultipleChannels(),
+            ],
+            ServiceConfiguration::createWithAsynchronicityOnly()
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('outboxWithMultipleChannels', 1);
+        $this->assertEquals(
+            0,
+            $ecotoneLite->sendQueryWithRouting('getResult')
+        );
+
+        $ecotoneLite->run('outbox');
+        $this->assertEquals(
+            0,
+            $ecotoneLite->sendQueryWithRouting('getResult')
+        );
+
+        $ecotoneLite->run('rabbitMQ');
+        $this->assertEquals(
+            1,
+            $ecotoneLite->sendQueryWithRouting('getResult')
         );
     }
 }

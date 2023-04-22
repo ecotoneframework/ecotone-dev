@@ -59,7 +59,7 @@ final class ModellingEcotoneLiteTest extends TestCase
         );
     }
 
-    public function test_calling_asynchronous_command_handler_with_two_message_channels()
+    public function test_calling_asynchronous_command_handler_with_pass_through_message_channels()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OutboxWithMultipleChannels::class],
@@ -70,6 +70,35 @@ final class ModellingEcotoneLiteTest extends TestCase
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('outboxWithMultipleChannels', 1);
+        $this->assertEquals(
+            0,
+            $ecotoneLite->sendQueryWithRouting('getResult')
+        );
+
+        $ecotoneLite->run('outbox');
+        $this->assertEquals(
+            0,
+            $ecotoneLite->sendQueryWithRouting('getResult')
+        );
+
+        $ecotoneLite->run('rabbitMQ');
+        $this->assertEquals(
+            1,
+            $ecotoneLite->sendQueryWithRouting('getResult')
+        );
+    }
+
+    public function test_calling_asynchronous_command_handler_with_combined_message_channel()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OutboxWithMultipleChannels::class],
+            [
+                new OutboxWithMultipleChannels(),
+            ],
+            ServiceConfiguration::createWithAsynchronicityOnly()
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('outboxWithCombinedChannels', 1);
         $this->assertEquals(
             0,
             $ecotoneLite->sendQueryWithRouting('getResult')

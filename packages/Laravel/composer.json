@@ -33,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "1.80",
+        "ecotone/ecotone": "^1.81",
         "laravel/framework": "^9.0|^10.0"
     },
     "require-dev": {
@@ -51,7 +51,7 @@
             ]
         },
         "branch-alias": {
-            "dev-main": "1.80-dev"
+            "dev-main": "1.81-dev"
         },
         "ecotone": {
             "repository": "laravel"

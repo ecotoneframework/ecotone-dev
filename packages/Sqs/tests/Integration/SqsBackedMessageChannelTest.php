@@ -18,10 +18,10 @@ use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Enqueue\Sqs\SqsConnectionFactory;
 use GuzzleHttp\Exception\ConnectException;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Amqp\Fixture\Support\Logger\LoggerExample;
 use Test\Ecotone\Sqs\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Sqs\AbstractConnectionTest;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsAsyncConsumerExample;
+use Test\Ecotone\Sqs\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal

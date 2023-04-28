@@ -17,9 +17,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Amqp\Fixture\Support\Logger\LoggerExample;
 use Test\Ecotone\Dbal\DbalMessagingTest;
 use Test\Ecotone\Dbal\Fixture\AsynchronousHandler\OrderService;
+use Test\Ecotone\Dbal\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal

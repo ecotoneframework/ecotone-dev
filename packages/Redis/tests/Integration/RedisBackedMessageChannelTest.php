@@ -17,10 +17,10 @@ use Ecotone\Redis\RedisBackedMessageChannelBuilder;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisDestination;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Amqp\Fixture\Support\Logger\LoggerExample;
 use Test\Ecotone\Redis\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Redis\AbstractConnectionTest;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisAsyncConsumerExample;
+use Test\Ecotone\Redis\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal

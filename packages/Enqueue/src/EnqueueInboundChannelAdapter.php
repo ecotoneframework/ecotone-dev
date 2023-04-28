@@ -45,30 +45,41 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
 
     public function receiveMessage(int $timeout = 0): ?Message
     {
-        if ($this->declareOnStartup && $this->initialized === false) {
-            $this->initialize();
-
-            $this->initialized = true;
-        }
-
-        $consumer = $this->connectionFactory->getConsumer(
-            $this->connectionFactory->createContext()->createQueue($this->queueName)
-        );
-
         try {
+            if ($this->declareOnStartup && $this->initialized === false) {
+                $this->initialize();
+
+                $this->initialized = true;
+            }
+
+            $consumer = $this->connectionFactory->getConsumer(
+                $this->connectionFactory->createContext()->createQueue($this->queueName)
+            );
+
             /** @var EnqueueMessage $message */
             $message = $consumer->receive($timeout ?: $this->receiveTimeoutInMilliseconds);
-        } catch (Exception $exception) {
-            throw new ConnectionException('There was a problem while polling channel', 0, $exception);
+
+            if (! $message) {
+                return null;
+            }
+
+            $convertedMessage = $this->inboundMessageConverter->toMessage($message, $consumer);
+            $convertedMessage = $this->enrichMessage($message, $convertedMessage);
+
+            return $convertedMessage->build();
+        }catch (\Exception $exception) {
+            if ($this->isConnectionException($exception) || ($exception->getPrevious() && $this->isConnectionException($exception->getPrevious()))) {
+                throw new ConnectionException("There was a problem while polling message channel", 0, $exception);
+            }
+
+            throw $exception;
         }
+    }
 
-        if (! $message) {
-            return null;
-        }
+    public abstract function connectionException(): string;
 
-        $convertedMessage = $this->inboundMessageConverter->toMessage($message, $consumer);
-        $convertedMessage = $this->enrichMessage($message, $convertedMessage);
-
-        return $convertedMessage->build();
+    private function isConnectionException(Exception $exception): bool
+    {
+        return is_subclass_of($exception, $this->connectionException()) || $exception::class === $this->connectionException();
     }
 }

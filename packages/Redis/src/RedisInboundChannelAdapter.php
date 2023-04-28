@@ -6,6 +6,7 @@ namespace Ecotone\Redis;
 
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Enqueue\Redis\RedisContext;
+use Predis\Connection\ConnectionException;
 
 final class RedisInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
@@ -14,5 +15,10 @@ final class RedisInboundChannelAdapter extends EnqueueInboundChannelAdapter
         /** @var RedisContext $context */
         $context = $this->connectionFactory->createContext();
         $context->createQueue($this->queueName);
+    }
+
+    public function connectionException(): string
+    {
+        return ConnectionException::class;
     }
 }

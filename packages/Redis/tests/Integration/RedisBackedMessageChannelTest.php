@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\RedisBackedMessageChannelBuilder;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisDestination;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Redis\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Redis\AbstractConnectionTest;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisAsyncConsumerExample;
+use Test\Ecotone\Redis\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal
@@ -84,5 +89,43 @@ final class RedisBackedMessageChannelTest extends AbstractConnectionTest
 
         $ecotoneLite->run('redis', $executionPollingMetadata);
         $this->assertEquals([$messagePayload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
+    }
+
+    public function test_failing_to_consume_due_to_connection_failure()
+    {
+        $loggerExample = LoggerExample::create();
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            containerOrAvailableServices: [
+                new OrderService(),
+                RedisConnectionFactory::class => new RedisConnectionFactory('redis://localhost:1000'),
+                'logger' => $loggerExample
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withConnectionRetryTemplate(
+                    RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
+                )
+                ->withExtensionObjects([
+                    RedisBackedMessageChannelBuilder::create('async')
+                ])
+        );
+
+        $wasFinallyRethrown = false;
+        try {
+            $ecotoneLite->run('async');
+        } catch (\Predis\Connection\ConnectionException) {
+            $wasFinallyRethrown = true;
+        }
+
+        $this->assertTrue($wasFinallyRethrown, 'Connection exception was not propagated');
+        $this->assertEquals(
+            [
+                ConnectionException::connectionRetryMessage(1, 1),
+                ConnectionException::connectionRetryMessage(2, 3),
+                ConnectionException::connectionRetryMessage(3, 9),
+            ],
+            $loggerExample->getInfo()
+        );
     }
 }

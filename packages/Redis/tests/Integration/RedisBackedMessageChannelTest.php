@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -17,8 +16,8 @@ use Ecotone\Redis\RedisBackedMessageChannelBuilder;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisDestination;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Redis\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Redis\AbstractConnectionTest;
+use Test\Ecotone\Redis\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisAsyncConsumerExample;
 use Test\Ecotone\Redis\Fixture\Support\Logger\LoggerExample;
 
@@ -99,7 +98,7 @@ final class RedisBackedMessageChannelTest extends AbstractConnectionTest
             containerOrAvailableServices: [
                 new OrderService(),
                 RedisConnectionFactory::class => new RedisConnectionFactory('redis://localhost:1000'),
-                'logger' => $loggerExample
+                'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -107,7 +106,7 @@ final class RedisBackedMessageChannelTest extends AbstractConnectionTest
                     RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
                 )
                 ->withExtensionObjects([
-                    RedisBackedMessageChannelBuilder::create('async')
+                    RedisBackedMessageChannelBuilder::create('async'),
                 ])
         );
 

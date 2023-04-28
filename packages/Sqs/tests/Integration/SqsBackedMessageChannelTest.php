@@ -13,13 +13,11 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Enqueue\Sqs\SqsConnectionFactory;
-use GuzzleHttp\Exception\ConnectException;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Sqs\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Sqs\AbstractConnectionTest;
+use Test\Ecotone\Sqs\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsAsyncConsumerExample;
 use Test\Ecotone\Sqs\Fixture\Support\Logger\LoggerExample;
 
@@ -98,7 +96,7 @@ final class SqsBackedMessageChannelTest extends AbstractConnectionTest
             containerOrAvailableServices: [
                 new OrderService(),
                 SqsConnectionFactory::class => new SqsConnectionFactory('sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:1000&version=latest'),
-                'logger' => $loggerExample
+                'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -106,7 +104,7 @@ final class SqsBackedMessageChannelTest extends AbstractConnectionTest
                     RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
                 )
                 ->withExtensionObjects([
-                    SqsBackedMessageChannelBuilder::create('async')
+                    SqsBackedMessageChannelBuilder::create('async'),
                 ])
         );
 

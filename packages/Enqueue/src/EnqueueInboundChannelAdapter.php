@@ -67,16 +67,16 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
             $convertedMessage = $this->enrichMessage($message, $convertedMessage);
 
             return $convertedMessage->build();
-        }catch (\Exception $exception) {
+        } catch (Exception $exception) {
             if ($this->isConnectionException($exception) || ($exception->getPrevious() && $this->isConnectionException($exception->getPrevious()))) {
-                throw new ConnectionException("There was a problem while polling message channel", 0, $exception);
+                throw new ConnectionException('There was a problem while polling message channel', 0, $exception);
             }
 
             throw $exception;
         }
     }
 
-    public abstract function connectionException(): string;
+    abstract public function connectionException(): string;
 
     private function isConnectionException(Exception $exception): bool
     {

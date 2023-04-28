@@ -126,7 +126,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
             containerOrAvailableServices: [
                 new \Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService(),
                 AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => 'amqp://guest:guest@localhost:1000/%2f']),
-                "logger" => $loggerExample
+                'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -134,18 +134,18 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
                     RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
                 )
                 ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create('correctOrders')
+                    AmqpBackedMessageChannelBuilder::create('correctOrders'),
                 ])
         );
 
         $wasFinallyRethrown = false;
         try {
             $ecotoneLite->run('correctOrders');
-        }catch (\AMQPConnectionException) {
+        } catch (\AMQPConnectionException) {
             $wasFinallyRethrown = true;
         }
 
-        $this->assertTrue($wasFinallyRethrown, "Connection exception was not propagated");
+        $this->assertTrue($wasFinallyRethrown, 'Connection exception was not propagated');
         $this->assertEquals(
             [
                 ConnectionException::connectionRetryMessage(1, 1),
@@ -158,7 +158,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
     private function connectionRetryLog(int $retry, int $time): string
     {
-        return sprintf("Retrying to connect to the Message Channel. Current number of retries: %d, Message Consumer will try to reconnect in %dms.", $retry, $time);
+        return sprintf('Retrying to connect to the Message Channel. Current number of retries: %d, Message Consumer will try to reconnect in %dms.', $retry, $time);
     }
 
     public function test_sending_to_dead_letter_as_another_amqp_channel()

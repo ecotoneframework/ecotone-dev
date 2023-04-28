@@ -3,7 +3,6 @@
 namespace Test\Ecotone\Dbal\Integration;
 
 use Doctrine\DBAL\Exception\TableNotFoundException;
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -224,7 +223,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
             containerOrAvailableServices: [
                 new OrderService(),
                 DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => 'pgsql://ecotone:secret@localhost:1000/ecotone']),
-                'logger' => $loggerExample
+                'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -232,7 +231,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
                     RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
                 )
                 ->withExtensionObjects([
-                    DbalBackedMessageChannelBuilder::create('async')
+                    DbalBackedMessageChannelBuilder::create('async'),
                 ])
         );
 

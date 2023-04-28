@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use AMQPConnectionException;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
@@ -88,13 +89,13 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
 
             return $this->queueChannel->receive();
-        }catch (\AMQPConnectionException $exception) {
-            throw new ConnectionException("Failed to connect to AMQP broker", 0, $exception);
+        } catch (AMQPConnectionException $exception) {
+            throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
         }
     }
 
     public function connectionException(): string
     {
-        return \AMQPConnectionException::class;
+        return AMQPConnectionException::class;
     }
 }

@@ -3,16 +3,14 @@
 namespace Test\Ecotone\Dbal\Fixture\AsynchronousHandler;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use InvalidArgumentException;
 
 class OrderService
 {
     private int $placedOrders = 0;
 
-    #[Asynchronous("async")]
+    #[Asynchronous('async')]
     #[CommandHandler('order.register', 'orderService')]
     public function order(string $orderName): void
     {

@@ -157,7 +157,7 @@ final class MessengerIntegrationTest extends WebTestCase
         ]);
         $messaging->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(100)->withStopOnError(true));
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
-        sleep(1);
+        sleep(2);
         $messaging->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(100)->withStopOnError(true));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }

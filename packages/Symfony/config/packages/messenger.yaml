@@ -1,0 +1,24 @@
+doctrine:
+  dbal:
+    connections:
+      default:
+        schema_filter: '~^(?!messenger_messages)~'
+        dbname: ecotone
+        host: database
+        port: 5432
+        user: ecotone
+        password: secret
+        driver: 'pdo_pgsql'
+
+framework:
+  messenger:
+    transports:
+      messenger_async:
+        dsn: 'doctrine://default?queue_name=async&use_notify=false'
+        options:
+          use_notify: false
+
+services:
+  Doctrine\DBAL\Connection-public:
+    alias: Doctrine\DBAL\Connection
+    public: true

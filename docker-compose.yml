@@ -8,6 +8,7 @@ services:
     working_dir: "/data/app"
     command: sleep 99999
     container_name: "ecotone_development_8_0"
+    user: "${USER_PID:-1000}:${USER_PID:-1000}"
     networks:
       - default
     extra_hosts:
@@ -31,6 +32,7 @@ services:
     working_dir: "/data/app"
     command: sleep 99999
     container_name: "ecotone_development"
+    user: "${USER_PID:-1000}:${USER_PID:-1000}"
     networks:
       - default
     extra_hosts:

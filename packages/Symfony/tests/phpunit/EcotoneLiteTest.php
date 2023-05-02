@@ -20,13 +20,11 @@ final class EcotoneLiteTest extends KernelTestCase
 {
     public function test_when_messaging_configured_in_container_replacing_it_with_test_one()
     {
-        $kernel = self::createKernel();
-        $kernel->boot();
-
         $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
             [User::class, UserRepository::class, UserService::class],
-            $kernel->getContainer(),
+            $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithDefaults()
+                ->doNotLoadCatalog()
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
                 ])

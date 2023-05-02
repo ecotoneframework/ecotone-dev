@@ -10,6 +10,7 @@ composer.lock
 .htaccess
 .php-cs-fixer.cache
 cache
+packages/cache
 auth.json
-config.json
+./config.json
 .env

@@ -4,11 +4,11 @@ doctrine:
       default:
         schema_filter: '~^(?!messenger_messages)~'
         dbname: ecotone
-        host: database
-        port: 5432
+        host: "%env(APP_DB_HOST)%"
+        port: "%env(APP_DB_PORT)%"
         user: ecotone
         password: secret
-        driver: 'pdo_pgsql'
+        driver: "%env(APP_DB_DRIVER)%"
 
 framework:
   messenger:

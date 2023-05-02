@@ -134,7 +134,7 @@
         "predis/predis": "^1.1.10",
         "symfony/expression-language": "^6.0",
         "symfony/messenger": "^5.4|^6.0",
-        "symfony/doctrine-messenger": "^6.2",
+        "symfony/doctrine-messenger": "^5.4|^6.0",
         "doctrine/doctrine-bundle": "^2.9",
         "symplify/monorepo-builder": "11.1.21"
     },

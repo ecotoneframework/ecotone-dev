@@ -143,6 +143,11 @@
             "providers": [
                 "Ecotone\\Laravel\\EcotoneProvider"
             ]
+        },
+        "merge-plugin": {
+            "include": [
+                "local-packages.json"
+            ]
         }
     },
     "replace": {

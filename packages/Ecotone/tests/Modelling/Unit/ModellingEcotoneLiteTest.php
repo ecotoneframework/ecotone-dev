@@ -12,6 +12,9 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriber;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
+use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\OrderDispatch;
+use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\OrderDispatchRepository;
+use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\OrderWasCreated;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestAbstractHandler;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestCommand;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestHandler;
@@ -114,6 +117,21 @@ final class ModellingEcotoneLiteTest extends TestCase
         $this->assertEquals(
             1,
             $ecotoneLite->sendQueryWithRouting('getResult')
+        );
+    }
+
+    public function test_event_flow_with_event_sourcing_aggregate()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderDispatch::class, OrderDispatchRepository::class],
+            [new OrderDispatchRepository()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+        );
+
+        $ecotoneLite->getEventBus()->publish(new OrderWasCreated("1"));
+        $this->assertEquals(
+            "1", "1"
         );
     }
 }

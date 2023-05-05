@@ -69,7 +69,7 @@
         },
         "merge-plugin": {
             "include": [
-                "local_packages.json"
+                "../local_packages.json"
             ]
         }
     },

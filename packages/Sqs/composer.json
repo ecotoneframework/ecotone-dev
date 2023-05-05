@@ -64,6 +64,7 @@
         }
     },
     "config": {
+        "sort-packages": true,
         "allow-plugins": {
             "wikimedia/composer-merge-plugin": true
         }

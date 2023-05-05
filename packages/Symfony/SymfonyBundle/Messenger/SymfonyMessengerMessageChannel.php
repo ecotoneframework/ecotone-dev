@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\SymfonyBundle\Messenger;
 
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
@@ -30,8 +31,13 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
 
     public function send(Message $message): void
     {
+        $payload = $message->getPayload();
+        if (!TypeDescriptor::createFromVariable($payload)->isClassOrInterface()) {
+            $payload = new WrappedPayload($payload);
+        }
+
         $headers = MessageHeaders::unsetEnqueueMetadata($message->getHeaders()->headers());
-        $envelopeToSend = new Envelope($message->getPayload(), [
+        $envelopeToSend = new Envelope($payload, [
             new MetadataStamp($this->headerMapper->mapFromMessageHeaders($headers))
         ]);
 
@@ -55,9 +61,15 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
         $symfonyEnvelope = $symfonyEnvelope[0];
 
         $headers = $symfonyEnvelope->last(MetadataStamp::class)->getMetadata();
-        $messageBuilder = MessageBuilder::withPayload($symfonyEnvelope->getMessage())
+
+        $payload = $symfonyEnvelope->getMessage();
+        if ($payload instanceof WrappedPayload) {
+            $payload = $payload->getPayload();
+        }
+        $type = TypeDescriptor::createFromVariable($payload);
+        $messageBuilder = MessageBuilder::withPayload($payload)
             ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($headers))
-            ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(get_class($symfonyEnvelope->getMessage())));
+            ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($type->toString()));
 
         if (in_array($this->acknowledgeMode, [SymfonyAcknowledgementCallback::AUTO_ACK, SymfonyAcknowledgementCallback::MANUAL_ACK])) {
             if ($this->acknowledgeMode == SymfonyAcknowledgementCallback::AUTO_ACK) {

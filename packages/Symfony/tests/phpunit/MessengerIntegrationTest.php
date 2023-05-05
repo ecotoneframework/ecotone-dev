@@ -138,6 +138,50 @@ final class MessengerIntegrationTest extends WebTestCase
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
+    public function test_sending_via_routing_without_payload()
+    {
+        $channelName = 'messenger_async';
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncMessageHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    SymfonyMessengerMessageChannelBuilder::create($channelName),
+                ])
+        );
+
+        $messaging->sendCommandWithRoutingKey('execute.noPayload');
+        $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+    }
+
+    public function test_sending_via_routing_with_array_payload()
+    {
+        $channelName = 'messenger_async';
+        $payload = ['token' => 'test'];
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncMessageHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    SymfonyMessengerMessageChannelBuilder::create($channelName),
+                ])
+        );
+
+        $messaging->sendCommandWithRoutingKey('execute.arrayPayload', $payload);
+        $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+        $this->assertEquals($payload, $messaging->sendQueryWithRouting('consumer.getMessages')[0]['payload']);
+    }
+
     public function test_sending_with_delay()
     {
         $channelName = 'messenger_async';
@@ -155,10 +199,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: [
             MessageHeaders::DELIVERY_DELAY => 1000
         ]);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(100)->withStopOnError(true));
-        $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
-        sleep(4);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(100)->withStopOnError(true));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 }

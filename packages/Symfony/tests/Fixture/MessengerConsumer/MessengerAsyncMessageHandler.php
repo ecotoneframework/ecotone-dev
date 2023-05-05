@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Fixture\MessengerConsumer;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -27,6 +28,20 @@ final class MessengerAsyncMessageHandler
     {
         $this->commands[] = ['payload' => $command, 'headers' => $headers];
         throw new \InvalidArgumentException("failed");
+    }
+
+    #[Asynchronous('messenger_async')]
+    #[CommandHandler('execute.noPayload', 'messenger_async_no_payload')]
+    public function routingNoPayload(#[Headers] $headers): void
+    {
+        $this->commands[] = ['payload' => [], 'headers' => $headers];
+    }
+
+    #[Asynchronous('messenger_async')]
+    #[CommandHandler('execute.arrayPayload', 'messenger_async_array_payload')]
+    public function routingArrayPayload(array $payload, array $headers): void
+    {
+        $this->commands[] = ['payload' => $payload, 'headers' => $headers];
     }
 
     #[QueryHandler('consumer.getMessages')]

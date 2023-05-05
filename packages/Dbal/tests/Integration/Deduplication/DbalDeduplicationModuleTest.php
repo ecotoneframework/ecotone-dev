@@ -59,6 +59,13 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTest
                 ])
         );
 
+        $this->assertTrue(
+            'new',
+            $ecotoneLite
+                ->publishEvent(new OrderWasCreated('1'))
+                ->sendQueryWithRouting('order_saga.getStatus', metadata: ['aggregate.id' => '1'])
+        );
+
         $ecotoneLite->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString()]);
 
         $this->assertEquals(

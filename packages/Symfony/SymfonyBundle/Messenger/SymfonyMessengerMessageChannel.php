@@ -41,7 +41,7 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
             if ($message->getHeaders()->hasContentType()) {
                 $contentType = $message->getHeaders()->getContentType();
             }
-        }else {
+        } else {
             $headers[MessageHeaders::TYPE_ID] = $type->toString();
         }
 

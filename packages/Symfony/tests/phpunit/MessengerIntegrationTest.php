@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Doctrine\DBAL\Connection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -27,7 +26,8 @@ final class MessengerIntegrationTest extends WebTestCase
     {
         try {
             self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
-        }catch (\Exception) {}
+        } catch (\Exception) {
+        }
     }
 
     public function test_no_message_in_the_channel()

@@ -13,13 +13,13 @@ final class MessengerAsyncEventHandler
 {
     private array $events = [];
 
-    #[EventHandler(endpointId: "first")]
+    #[EventHandler(endpointId: 'first')]
     public function handleOne(ExampleEvent $event): void
     {
         $this->events[] = $event;
     }
 
-    #[EventHandler(endpointId: "second")]
+    #[EventHandler(endpointId: 'second')]
     public function handleTwo(ExampleEvent $event): void
     {
         $this->events[] = $event;

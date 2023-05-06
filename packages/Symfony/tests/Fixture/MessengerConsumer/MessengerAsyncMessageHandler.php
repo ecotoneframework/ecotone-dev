@@ -44,6 +44,13 @@ final class MessengerAsyncMessageHandler
         $this->commands[] = ['payload' => $payload, 'headers' => $headers];
     }
 
+    #[Asynchronous('messenger_async')]
+    #[CommandHandler('execute.stringPayload', 'messenger_async_string_payload')]
+    public function routingStringPayload(string $payload, array $headers): void
+    {
+        $this->commands[] = ['payload' => $payload, 'headers' => $headers];
+    }
+
     #[QueryHandler('consumer.getMessages')]
     public function getCommandAtIndex(): array
     {

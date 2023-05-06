@@ -22,7 +22,7 @@ final class MessengerIntegrationTest extends WebTestCase
 {
     public function setUp(): void
     {
-        //        self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
+        self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
     }
 
     public function test_no_message_in_the_channel()
@@ -170,6 +170,54 @@ final class MessengerIntegrationTest extends WebTestCase
 
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
         $this->assertEquals($payload, $messaging->sendQueryWithRouting('consumer.getMessages')[0]['payload']);
+    }
+
+    public function test_keeping_content_type_when_non_object_payload()
+    {
+        $channelName = 'messenger_async';
+        $payload = '{"name":"johny"}';
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncMessageHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    SymfonyMessengerMessageChannelBuilder::create($channelName),
+                ])
+        );
+
+        $messaging->sendCommandWithRoutingKey('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $headers = $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'];
+        $this->assertEquals(
+            $headers[MessageHeaders::CONTENT_TYPE],
+            MediaType::APPLICATION_JSON
+        );
+    }
+
+    public function test_adding_type_id_header()
+    {
+        $channelName = 'messenger_async';
+        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncMessageHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    SymfonyMessengerMessageChannelBuilder::create($channelName),
+                ])
+        );
+
+        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertEquals(
+            ExampleCommand::class,
+            $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'][MessageHeaders::TYPE_ID]
+        );
     }
 
     public function test_sending_with_delay()

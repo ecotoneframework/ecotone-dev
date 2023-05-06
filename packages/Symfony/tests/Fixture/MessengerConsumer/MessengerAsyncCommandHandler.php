@@ -10,7 +10,7 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use InvalidArgumentException;
 
-final class MessengerAsyncMessageHandler
+final class MessengerAsyncCommandHandler
 {
     /** @var array<int, array{ExampleCommand, array<string, string>}> */
     private array $commands = [];

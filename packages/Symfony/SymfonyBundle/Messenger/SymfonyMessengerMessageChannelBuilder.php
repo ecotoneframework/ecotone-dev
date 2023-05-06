@@ -68,7 +68,7 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
     public function getRequiredReferenceNames(): array
     {
         return [
-            $this->getTransportServiceName()
+            $this->getTransportServiceName(),
         ];
     }
 

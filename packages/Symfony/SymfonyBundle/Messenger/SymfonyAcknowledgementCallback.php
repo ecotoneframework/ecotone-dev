@@ -6,8 +6,6 @@ namespace Ecotone\SymfonyBundle\Messenger;
 
 use Ecotone\Enqueue\EnqueueAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
-use Interop\Queue\Consumer as EnqueueConsumer;
-use Interop\Queue\Message as EnqueueMessage;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 
@@ -24,7 +22,7 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
 
     private function __construct(private bool $isAutoAck, private ReceiverInterface $symfonyReceiver, private Envelope $envelope)
     {
-        
+
     }
 
     public static function createWithAutoAck(ReceiverInterface $symfonyTransport, Envelope $envelope): self

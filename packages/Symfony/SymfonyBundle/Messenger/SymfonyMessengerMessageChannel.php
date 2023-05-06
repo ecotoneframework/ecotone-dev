@@ -18,27 +18,26 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 
 final class SymfonyMessengerMessageChannel implements PollableChannel
 {
-    const ECOTONE_SYMFONY_ACKNOWLEDGE_HEADER = 'ecotone.symfony.acknowledge';
+    public const ECOTONE_SYMFONY_ACKNOWLEDGE_HEADER = 'ecotone.symfony.acknowledge';
 
     public function __construct(
         private TransportInterface $symfonyTransport,
         private HeaderMapper $headerMapper,
         private string $acknowledgeMode
-    )
-    {
+    ) {
 
     }
 
     public function send(Message $message): void
     {
         $payload = $message->getPayload();
-        if (!TypeDescriptor::createFromVariable($payload)->isClassOrInterface()) {
+        if (! TypeDescriptor::createFromVariable($payload)->isClassOrInterface()) {
             $payload = new WrappedPayload($payload);
         }
 
         $headers = MessageHeaders::unsetEnqueueMetadata($message->getHeaders()->headers());
         $envelopeToSend = new Envelope($payload, [
-            new MetadataStamp($this->headerMapper->mapFromMessageHeaders($headers))
+            new MetadataStamp($this->headerMapper->mapFromMessageHeaders($headers)),
         ]);
 
         if ($message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY)) {
@@ -57,7 +56,7 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
             return null;
         }
 
-        Assert::isTrue(count($symfonyEnvelope) === 1, "Symfony messenger transport should be configured to return only one message at a time");
+        Assert::isTrue(count($symfonyEnvelope) === 1, 'Symfony messenger transport should be configured to return only one message at a time');
         $symfonyEnvelope = $symfonyEnvelope[0];
 
         $headers = $symfonyEnvelope->last(MetadataStamp::class)->getMetadata();
@@ -74,11 +73,13 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
         if (in_array($this->acknowledgeMode, [SymfonyAcknowledgementCallback::AUTO_ACK, SymfonyAcknowledgementCallback::MANUAL_ACK])) {
             if ($this->acknowledgeMode == SymfonyAcknowledgementCallback::AUTO_ACK) {
                 $amqpAcknowledgeCallback = SymfonyAcknowledgementCallback::createWithAutoAck(
-                    $this->symfonyTransport, $symfonyEnvelope
+                    $this->symfonyTransport,
+                    $symfonyEnvelope
                 );
             } else {
                 $amqpAcknowledgeCallback = SymfonyAcknowledgementCallback::createWithManualAck(
-                    $this->symfonyTransport, $symfonyEnvelope
+                    $this->symfonyTransport,
+                    $symfonyEnvelope
                 );
             }
 

@@ -4,35 +4,25 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Doctrine\DBAL\Connection;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\PollableChannel;
-use Ecotone\SymfonyBundle\Messenger\MetadataStamp;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
 use Fixture\MessengerConsumer\ExampleCommand;
-use Fixture\MessengerConsumer\MessagingConfiguration;
 use Fixture\MessengerConsumer\MessengerAsyncMessageHandler;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Output\BufferedOutput;
-use Symfony\Component\Console\Output\NullOutput;
-use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Stamp\DelayStamp;
-use Symfony\Component\Messenger\Transport\InMemoryTransport;
-use Symfony\Bundle\FrameworkBundle\Console\Application;
 
+/**
+ * @internal
+ */
 final class MessengerIntegrationTest extends WebTestCase
 {
     public function setUp(): void
     {
-//        self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
+        //        self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
     }
 
     public function test_no_message_in_the_channel()
@@ -197,7 +187,7 @@ final class MessengerIntegrationTest extends WebTestCase
         );
 
         $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: [
-            MessageHeaders::DELIVERY_DELAY => 1000
+            MessageHeaders::DELIVERY_DELAY => 1000,
         ]);
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));

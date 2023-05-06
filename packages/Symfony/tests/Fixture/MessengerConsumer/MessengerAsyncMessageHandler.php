@@ -6,9 +6,9 @@ namespace Fixture\MessengerConsumer;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use InvalidArgumentException;
 
 final class MessengerAsyncMessageHandler
 {
@@ -27,7 +27,7 @@ final class MessengerAsyncMessageHandler
     public function fail(ExampleCommand $command, array $headers): void
     {
         $this->commands[] = ['payload' => $command, 'headers' => $headers];
-        throw new \InvalidArgumentException("failed");
+        throw new InvalidArgumentException('failed');
     }
 
     #[Asynchronous('messenger_async')]

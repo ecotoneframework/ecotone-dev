@@ -12,6 +12,6 @@ final class MessagingConfiguration
     #[ServiceContext]
     public function inMemoryAsyncChannel()
     {
-        return SymfonyMessengerMessageChannelBuilder::create("messenger_async");
+        return SymfonyMessengerMessageChannelBuilder::create('messenger_async');
     }
 }

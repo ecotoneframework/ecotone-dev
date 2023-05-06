@@ -8,7 +8,7 @@ final class WrappedPayload
 {
     public function __construct(private mixed $payload)
     {
-        
+
     }
 
     public function getPayload(): mixed

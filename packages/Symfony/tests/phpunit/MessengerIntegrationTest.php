@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test;
 
+use Doctrine\DBAL\Connection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -11,7 +12,9 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
 use Fixture\MessengerConsumer\ExampleCommand;
-use Fixture\MessengerConsumer\MessengerAsyncMessageHandler;
+use Fixture\MessengerConsumer\ExampleEvent;
+use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;
+use Fixture\MessengerConsumer\MessengerAsyncEventHandler;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -22,7 +25,9 @@ final class MessengerIntegrationTest extends WebTestCase
 {
     public function setUp(): void
     {
-        //        self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
+        try {
+            self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
+        }catch (\Exception) {}
     }
 
     public function test_no_message_in_the_channel()
@@ -30,7 +35,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $channelName = 'messenger_async';
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncMessageHandler::class],
+            [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
@@ -52,7 +57,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncMessageHandler::class],
+            [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
@@ -88,7 +93,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncMessageHandler::class],
+            [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
@@ -112,7 +117,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncMessageHandler::class],
+            [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
@@ -133,7 +138,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $channelName = 'messenger_async';
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncMessageHandler::class],
+            [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
@@ -155,7 +160,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $payload = ['token' => 'test'];
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncMessageHandler::class],
+            [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
@@ -172,13 +177,95 @@ final class MessengerIntegrationTest extends WebTestCase
         $this->assertEquals($payload, $messaging->sendQueryWithRouting('consumer.getMessages')[0]['payload']);
     }
 
+    public function test_keeping_content_type_when_non_object_payload()
+    {
+        $channelName = 'messenger_async';
+        $payload = '{"name":"johny"}';
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncCommandHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    SymfonyMessengerMessageChannelBuilder::create($channelName),
+                ])
+        );
+
+        $messaging->sendCommandWithRoutingKey('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $headers = $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'];
+        $this->assertEquals(
+            $headers[MessageHeaders::CONTENT_TYPE],
+            MediaType::APPLICATION_JSON
+        );
+    }
+
+    public function test_adding_type_id_header()
+    {
+        $channelName = 'messenger_async';
+        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncCommandHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    SymfonyMessengerMessageChannelBuilder::create($channelName),
+                ])
+        );
+
+        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertEquals(
+            ExampleCommand::class,
+            $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'][MessageHeaders::TYPE_ID]
+        );
+    }
+
+    public function test_sending_and_receiving_events()
+    {
+        $channelName = 'messenger_async';
+        $messagePayload = new ExampleEvent(Uuid::uuid4()->toString());
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncEventHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    SymfonyMessengerMessageChannelBuilder::create($channelName),
+                ])
+        );
+
+        $messaging->publishEvent($messagePayload);
+        /** Consumer not yet run */
+        $this->assertEquals(
+            [],
+            $messaging->sendQueryWithRouting('consumer.getEvents')
+        );
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertEquals(
+            [$messagePayload],
+            $messaging->sendQueryWithRouting('consumer.getEvents')
+        );
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertEquals(
+            [$messagePayload, $messagePayload],
+            $messaging->sendQueryWithRouting('consumer.getEvents')
+        );
+    }
+
     public function test_sending_with_delay()
     {
         $channelName = 'messenger_async';
         $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncMessageHandler::class],
+            [MessengerAsyncCommandHandler::class],
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([

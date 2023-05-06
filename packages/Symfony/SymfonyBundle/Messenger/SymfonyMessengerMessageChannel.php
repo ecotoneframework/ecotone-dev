@@ -31,14 +31,22 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
     public function send(Message $message): void
     {
         $payload = $message->getPayload();
+        $headers = MessageHeaders::unsetEnqueueMetadata($message->getHeaders()->headers());
+        $headers = $this->headerMapper->mapFromMessageHeaders($headers);
+
+        $type = TypeDescriptor::createFromVariable($payload);
+        $contentType = MediaType::createApplicationXPHPWithTypeParameter($type->toString());
         if (! TypeDescriptor::createFromVariable($payload)->isClassOrInterface()) {
             $payload = new WrappedPayload($payload);
+            if ($message->getHeaders()->hasContentType()) {
+                $contentType = $message->getHeaders()->getContentType();
+            }
+        }else {
+            $headers[MessageHeaders::TYPE_ID] = $type->toString();
         }
 
-        $headers = MessageHeaders::unsetEnqueueMetadata($message->getHeaders()->headers());
-        $envelopeToSend = new Envelope($payload, [
-            new MetadataStamp($this->headerMapper->mapFromMessageHeaders($headers)),
-        ]);
+        $headers[MessageHeaders::CONTENT_TYPE] = $contentType->toString();
+        $envelopeToSend = new Envelope($payload, [new MetadataStamp($headers)]);
 
         if ($message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY)) {
             $envelopeToSend = $envelopeToSend->with(new DelayStamp($message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY)));
@@ -65,10 +73,13 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
         if ($payload instanceof WrappedPayload) {
             $payload = $payload->getPayload();
         }
-        $type = TypeDescriptor::createFromVariable($payload);
         $messageBuilder = MessageBuilder::withPayload($payload)
-            ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($headers))
-            ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($type->toString()));
+            ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($headers));
+
+        if (array_key_exists(MessageHeaders::CONTENT_TYPE, $headers)) {
+            $messageBuilder = $messageBuilder
+                ->setContentType(MediaType::parseMediaType($headers[MessageHeaders::CONTENT_TYPE]));
+        }
 
         if (in_array($this->acknowledgeMode, [SymfonyAcknowledgementCallback::AUTO_ACK, SymfonyAcknowledgementCallback::MANUAL_ACK])) {
             if ($this->acknowledgeMode == SymfonyAcknowledgementCallback::AUTO_ACK) {

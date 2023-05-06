@@ -10,7 +10,7 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use InvalidArgumentException;
 
-final class MessengerAsyncMessageHandler
+final class MessengerAsyncCommandHandler
 {
     /** @var array<int, array{ExampleCommand, array<string, string>}> */
     private array $commands = [];
@@ -40,6 +40,13 @@ final class MessengerAsyncMessageHandler
     #[Asynchronous('messenger_async')]
     #[CommandHandler('execute.arrayPayload', 'messenger_async_array_payload')]
     public function routingArrayPayload(array $payload, array $headers): void
+    {
+        $this->commands[] = ['payload' => $payload, 'headers' => $headers];
+    }
+
+    #[Asynchronous('messenger_async')]
+    #[CommandHandler('execute.stringPayload', 'messenger_async_string_payload')]
+    public function routingStringPayload(string $payload, array $headers): void
     {
         $this->commands[] = ['payload' => $payload, 'headers' => $headers];
     }

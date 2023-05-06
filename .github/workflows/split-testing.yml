@@ -101,15 +101,12 @@ jobs:
           php-version: 8.1
           coverage: none
 
-      - name: Make use of local packages
-        run: mv config_ci.json config.json
-
       - name: Enable merge-plugin
         run: composer global config --no-interaction allow-plugins.wikimedia/composer-merge-plugin true && composer global require wikimedia/composer-merge-plugin
         working-directory: ${{ matrix.package.directory }}
 
       - name: Install dependencies
-        run: composer update --no-interaction -vvv
+        run: composer update --no-interaction
         working-directory: ${{ matrix.package.directory }}
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
@@ -120,6 +117,9 @@ jobs:
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
           DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+          APP_DB_HOST: 127.0.0.1
+          APP_DB_PORT: 5432
+          APP_DB_DRIVER: pdo_pgsql
 
       - name: Run tests on Mysql
         run: composer tests:ci
@@ -127,3 +127,6 @@ jobs:
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
           DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
+          APP_DB_HOST: 127.0.0.1
+          APP_DB_PORT: 3306
+          APP_DB_DRIVER: pdo_mysql

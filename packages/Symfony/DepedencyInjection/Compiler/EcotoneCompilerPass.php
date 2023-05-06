@@ -137,7 +137,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
                 continue;
             }
 
-            $alias = $container->setAlias($requiredReference . '-proxy', $requiredReference);
+            $alias = $container->setAlias(SymfonyReferenceSearchService::getServiceNameWithSuffix($requiredReference), $requiredReference);
 
             if ($alias) {
                 $alias->setPublic(true);
@@ -146,7 +146,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
         foreach ($messagingConfiguration->getOptionalReferences() as $requiredReference) {
             if ($container->has($requiredReference)) {
-                $alias = $container->setAlias($requiredReference . '-proxy', $requiredReference);
+                $alias = $container->setAlias(SymfonyReferenceSearchService::getServiceNameWithSuffix($requiredReference), $requiredReference);
 
                 if ($alias) {
                     $alias->setPublic(true);

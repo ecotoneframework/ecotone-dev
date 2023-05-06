@@ -13,13 +13,18 @@ class SymfonyReferenceSearchService implements ReferenceSearchService
     {
     }
 
-    public function get(string $reference): object
+    public function get(string $referenceName): object
     {
-        return $this->container->get($reference . self::REFERENCE_SUFFIX);
+        return $this->container->get(self::getServiceNameWithSuffix($referenceName));
     }
 
     public function has(string $referenceName): bool
     {
-        return $this->container->has($referenceName . self::REFERENCE_SUFFIX);
+        return $this->container->has(self::getServiceNameWithSuffix($referenceName));
+    }
+
+    public static function getServiceNameWithSuffix(string $referenceName): string
+    {
+        return $referenceName . self::REFERENCE_SUFFIX;
     }
 }

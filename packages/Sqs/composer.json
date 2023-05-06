@@ -59,11 +59,12 @@
         },
         "merge-plugin": {
             "include": [
-                "../config.json"
+                "../local_packages.json"
             ]
         }
     },
     "config": {
+        "sort-packages": true,
         "allow-plugins": {
             "wikimedia/composer-merge-plugin": true
         }

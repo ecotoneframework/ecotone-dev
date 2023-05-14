@@ -35,7 +35,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "^1.79",
+        "ecotone/enqueue": "^1.82",
         "enqueue/redis": "^0.10.9"
     },
     "require-dev": {
@@ -57,14 +57,14 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.79-dev"
+            "dev-main": "1.82-dev"
         },
         "ecotone": {
             "repository": "redis"
         },
         "merge-plugin": {
             "include": [
-                "../config.json"
+                "../local_packages.json"
             ]
         }
     },

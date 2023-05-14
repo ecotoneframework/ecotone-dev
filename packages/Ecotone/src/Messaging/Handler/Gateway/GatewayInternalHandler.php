@@ -4,7 +4,6 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
@@ -79,16 +78,10 @@ class GatewayInternalHandler
             $replyMessage = $replyCallable();
         }
 
-        if ($replyMessage) {
-            if ($this->interfaceToCall->getReturnType()->equals(TypeDescriptor::create(Message::class))) {
-                if ($previousReplyChannel) {
-                    return MessageBuilder::fromMessage($replyMessage)
-                            ->setReplyChannel($previousReplyChannel)
-                            ->build();
-                }
-
-                return $replyMessage;
-            }
+        if ($replyMessage instanceof Message && $previousReplyChannel) {
+            $replyMessage = MessageBuilder::fromMessage($replyMessage)
+                ->setReplyChannel($previousReplyChannel)
+                ->build();
         }
 
         return $replyMessage;

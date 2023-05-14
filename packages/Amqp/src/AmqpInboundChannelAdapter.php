@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use AMQPConnectionException;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Amqp\AmqpMessage;
@@ -65,26 +67,35 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
     public function receiveMessage(int $timeout = 0): ?Message
     {
-        if ($this->declareOnStartup && $this->initialized === false) {
-            $this->initialize();
+        try {
+            if ($this->declareOnStartup && $this->initialized === false) {
+                $this->initialize();
 
-            $this->initialized = true;
+                $this->initialized = true;
+            }
+
+            /** @var AmqpReconnectableConnectionFactory $connectionFactory */
+            $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
+            $queueChannel = $this->queueChannel;
+            $subscriptionConsumer = $connectionFactory->getSubscriptionConsumer($this->queueName, function (EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
+                $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer);
+                $message = $this->enrichMessage($receivedMessage, $message);
+
+                $queueChannel->send($message->build());
+
+                return false;
+            });
+
+            $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
+
+            return $this->queueChannel->receive();
+        } catch (AMQPConnectionException $exception) {
+            throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
         }
+    }
 
-        /** @var AmqpReconnectableConnectionFactory $connectionFactory */
-        $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
-        $queueChannel = $this->queueChannel;
-        $subscriptionConsumer = $connectionFactory->getSubscriptionConsumer($this->queueName, function (EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
-            $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer);
-            $message = $this->enrichMessage($receivedMessage, $message);
-
-            $queueChannel->send($message->build());
-
-            return false;
-        });
-
-        $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
-
-        return $this->queueChannel->receive();
+    public function connectionException(): string
+    {
+        return AMQPConnectionException::class;
     }
 }

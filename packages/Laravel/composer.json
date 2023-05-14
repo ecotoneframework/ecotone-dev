@@ -33,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.79",
+        "ecotone/ecotone": "^1.82",
         "laravel/framework": "^9.0|^10.0"
     },
     "require-dev": {
@@ -51,14 +51,14 @@
             ]
         },
         "branch-alias": {
-            "dev-main": "1.79-dev"
+            "dev-main": "1.82-dev"
         },
         "ecotone": {
             "repository": "laravel"
         },
         "merge-plugin": {
             "include": [
-                "../config.json"
+                "../local_packages.json"
             ]
         }
     },

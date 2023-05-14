@@ -8,6 +8,7 @@ services:
     working_dir: "/data/app"
     command: sleep 99999
     container_name: "ecotone_development_8_0"
+    user: "${USER_PID:-1000}:${USER_PID:-1000}"
     networks:
       - default
     extra_hosts:
@@ -19,6 +20,9 @@ services:
       COMPOSER_ROOT_VERSION: 'dev-main'
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      APP_DB_HOST: database-mysql
+      APP_DB_PORT: 3306
+      APP_DB_DRIVER: pdo_mysql
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest
       REDIS_DSN: redis://redis:6379
@@ -31,6 +35,7 @@ services:
     working_dir: "/data/app"
     command: sleep 99999
     container_name: "ecotone_development"
+    user: "${USER_PID:-1000}:${USER_PID:-1000}"
     networks:
       - default
     extra_hosts:
@@ -42,6 +47,9 @@ services:
       COMPOSER_ROOT_VERSION: 'dev-main'
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      APP_DB_HOST: database
+      APP_DB_PORT: 5432
+      APP_DB_DRIVER: pdo_pgsql
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest
       REDIS_DSN: redis://redis:6379

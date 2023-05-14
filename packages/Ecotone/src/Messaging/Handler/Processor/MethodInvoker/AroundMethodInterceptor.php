@@ -53,22 +53,13 @@ class AroundMethodInterceptor
         return new self($referenceToCall, $interfaceToCall, $referenceSearchService, $parameterConverters);
     }
 
-    /**
-     * @param MethodInvocation $methodInvocation
-     * @param MethodCall       $methodCall
-     * @param Message          $requestMessage
-     *
-     * @return mixed
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     */
     public function invoke(MethodInvocation $methodInvocation, MethodCall $methodCall, Message $requestMessage)
     {
         $methodInvocationType = TypeDescriptor::create(MethodInvocation::class);
 
         $hasMethodInvocation                  = false;
         $argumentsToCallInterceptor           = [];
-        $interceptedInstanceType              = is_string($methodInvocation->getObjectToInvokeOn()) ? TypeDescriptor::create($methodInvocation->getObjectToInvokeOn()) : TypeDescriptor::createFromVariable($methodInvocation->getObjectToInvokeOn());
+        $interceptedInstanceType              = $methodInvocation->getInterceptedInterface()->getInterfaceType();
         $referenceSearchServiceTypeDescriptor = TypeDescriptor::create(ReferenceSearchService::class);
         $messageType                          = TypeDescriptor::create(Message::class);
         $messagePayloadType                   = $requestMessage->getHeaders()->hasContentType() && $requestMessage->getHeaders()->getContentType()->hasTypeParameter()

@@ -62,10 +62,15 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.79-dev"
+            "dev-main": "1.82-dev"
         },
         "ecotone": {
             "repository": "ecotone"
+        },
+        "merge-plugin": {
+            "include": [
+                "../local_packages.json"
+            ]
         }
     },
     "config": {

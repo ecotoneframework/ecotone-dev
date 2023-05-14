@@ -22,6 +22,8 @@ $ecotoneLite = EcotoneLiteApplication::bootstrap([ShippingService::class => $shi
 /** @var AmqpConnectionFactory $amqpConnectionFactory */
 $amqpConnectionFactory = $ecotoneLite->getServiceFromContainer(AmqpConnectionFactory::class);
 $amqpConnectionFactory->createContext()->deleteQueue(new \Interop\Amqp\Impl\AmqpQueue('orders'));
+$amqpConnectionFactory->createContext()->deleteQueue(new \Interop\Amqp\Impl\AmqpQueue('distributed_example_service'));
+$ecotoneLite->getGatewayByName(DeadLetterGateway::class)->deleteAll();
 $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(1000)->withHandledMessageLimit(1);
 
 $commandBus = $ecotoneLite->getCommandBus();

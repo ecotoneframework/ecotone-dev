@@ -39,7 +39,7 @@
     },
     "require": {
         "ext-amqp": "*",
-        "ecotone/enqueue": "^1.79",
+        "ecotone/enqueue": "^1.82",
         "enqueue/amqp-ext": "^0.10.4",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0"
@@ -67,14 +67,14 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.79-dev"
+            "dev-main": "1.82-dev"
         },
         "ecotone": {
             "repository": "amqp"
         },
         "merge-plugin": {
             "include": [
-                "../config.json"
+                "../local_packages.json"
             ]
         }
     },

@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [ ubuntu-latest ]
-        php-versions: [ '8.0', '8.1' ]
+        php-versions: [ '8.0', '8.2' ]
         stability: [prefer-lowest, prefer-stable]
     services:
       rabbitmq:
@@ -91,18 +91,30 @@ jobs:
       run: vendor/bin/phpunit
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+        APP_DB_HOST: 127.0.0.1
+        APP_DB_PORT: 5432
+        APP_DB_DRIVER: pdo_pgsql
 
     - name: Test Behat on Postgres
       run: vendor/bin/behat -vvv
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+        APP_DB_HOST: 127.0.0.1
+        APP_DB_PORT: 5432
+        APP_DB_DRIVER: pdo_pgsql
 
     - name: Test PHPUnit on Mysql
       run: vendor/bin/phpunit
       env:
         DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
+        APP_DB_HOST: 127.0.0.1
+        APP_DB_PORT: 3306
+        APP_DB_DRIVER: pdo_mysql
 
     - name: Test Behat on Mysql
       run: vendor/bin/behat -vvv
       env:
         DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
+        APP_DB_HOST: 127.0.0.1
+        APP_DB_PORT: 3306
+        APP_DB_DRIVER: pdo_mysql

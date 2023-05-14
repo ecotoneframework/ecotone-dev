@@ -371,6 +371,11 @@ final class MessageHeaders
         return $this->containsKey(self::CONTENT_TYPE);
     }
 
+    public function hasReplyChannel(): bool
+    {
+        return $this->containsKey(self::REPLY_CHANNEL);
+    }
+
     /**
      * @return string
      * @throws MessagingException
@@ -420,6 +425,9 @@ final class MessageHeaders
         foreach ($headers as $headerName => $headerValue) {
             if (is_null($headerName) || $headerName === '') {
                 throw InvalidMessageHeaderException::create('Passed empty header name');
+            }
+            if (! is_string($headerName)) {
+                throw InvalidMessageHeaderException::create(sprintf('Passed header name must be string `%s` given, with value `%s`', $headerName, $headerValue));
             }
         }
 

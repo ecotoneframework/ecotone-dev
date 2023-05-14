@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Sqs\Integration;
 
+use Aws\Sqs\Exception\SqsException;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Enqueue\Sqs\SqsConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Sqs\AbstractConnectionTest;
+use Test\Ecotone\Sqs\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsAsyncConsumerExample;
+use Test\Ecotone\Sqs\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal
@@ -81,5 +86,43 @@ final class SqsBackedMessageChannelTest extends AbstractConnectionTest
 
         $ecotoneLite->run('sqs', $executionPollingMetadata);
         $this->assertEquals([$messagePayload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
+    }
+
+    public function test_failing_to_consume_due_to_connection_failure()
+    {
+        $loggerExample = LoggerExample::create();
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            containerOrAvailableServices: [
+                new OrderService(),
+                SqsConnectionFactory::class => new SqsConnectionFactory('sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:1000&version=latest'),
+                'logger' => $loggerExample,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withConnectionRetryTemplate(
+                    RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
+                )
+                ->withExtensionObjects([
+                    SqsBackedMessageChannelBuilder::create('async'),
+                ])
+        );
+
+        $wasFinallyRethrown = false;
+        try {
+            $ecotoneLite->run('async');
+        } catch (SqsException) {
+            $wasFinallyRethrown = true;
+        }
+
+        $this->assertTrue($wasFinallyRethrown, 'Connection exception was not propagated');
+        $this->assertEquals(
+            [
+                ConnectionException::connectionRetryMessage(1, 1),
+                ConnectionException::connectionRetryMessage(2, 3),
+                ConnectionException::connectionRetryMessage(3, 9),
+            ],
+            $loggerExample->getInfo()
+        );
     }
 }

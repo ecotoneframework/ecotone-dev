@@ -318,7 +318,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     InboundChannelAdapterBuilder::createWithDirectObject(
                         $generatedChannelName,
                         new ProjectionChannelAdapter(),
-                        'run'
+                        $interfaceToCallRegistry->getFor(ProjectionChannelAdapter::class, 'run')
                     )
                         ->withEndpointId($projectionSetupConfiguration->getProjectionName())
                 );

@@ -1331,14 +1331,14 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 InboundChannelAdapterBuilder::createWithDirectObject(
                     $requestChannelName,
                     ConsumerContinuouslyWorkingService::createWithReturn(5),
-                    'executeReturn'
+                    InterfaceToCall::create(ConsumerContinuouslyWorkingService::class, 'executeReturn')
                 )->withEndpointId($endpointName)
             )
             ->registerConsumer(
                 InboundChannelAdapterBuilder::createWithDirectObject(
                     $requestChannelName,
                     ConsumerContinuouslyWorkingService::createWithReturn(5),
-                    'executeReturn'
+                    InterfaceToCall::create(ConsumerContinuouslyWorkingService::class, 'executeReturn')
                 )->withEndpointId($endpointName)
             );
     }
@@ -1361,7 +1361,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 InboundChannelAdapterBuilder::createWithDirectObject(
                     $requestChannelName,
                     ConsumerContinuouslyWorkingService::createWithReturn(5),
-                    'executeReturn'
+                    InterfaceToCall::create(ConsumerContinuouslyWorkingService::class, 'executeReturn')
                 )->withEndpointId($endpointName)
             )
             ->registerMessageHandler(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'sum')->withInputChannelName($requestChannelName))
@@ -1426,7 +1426,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 InboundChannelAdapterBuilder::createWithDirectObject(
                     $requestChannelName,
                     ConsumerContinuouslyWorkingService::createWithReturn(5),
-                    'executeReturn'
+                    InterfaceToCall::create(ConsumerContinuouslyWorkingService::class, 'executeReturn')
                 )->withEndpointId($endpointName)
             )
             ->registerMessageHandler(ServiceActivatorBuilder::createWithDirectReference(ServiceWithReturnValue::create(), 'getName')->withInputChannelName($requestChannelName))

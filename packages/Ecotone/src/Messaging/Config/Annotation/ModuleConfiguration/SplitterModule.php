@@ -26,7 +26,7 @@ class SplitterModule extends MessageHandlerRegisterConfiguration
         return
             SplitterBuilder::create(
                 AnnotatedDefinitionReference::getReferenceFor($annotationRegistration),
-                $annotationRegistration->getMethodName()
+                $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName())
             )
                 ->withEndpointId($annotation->getEndpointId())
                 ->withInputChannelName($annotation->getInputChannelName())

@@ -58,9 +58,9 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         }
 
         return [
-            $this->directObject
-                ? $interfaceToCallRegistry->getFor($this->directObject, $this->getMethodName())
-                : $interfaceToCallRegistry->getForReferenceName($this->objectToInvokeReferenceName, $this->getMethodName()),
+            $this->methodNameOrInterface instanceof InterfaceToCall
+                ? $this->methodNameOrInterface
+                : $interfaceToCallRegistry->getFor($this->directObject, $this->getMethodName())
         ];
     }
 
@@ -128,7 +128,9 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             return $interfaceToCallRegistry->getFor(ExpressionTransformer::class, 'transform');
         }
 
-        return $this->objectToInvokeReferenceName ? $interfaceToCallRegistry->getForReferenceName($this->objectToInvokeReferenceName, $this->getMethodName()) : $interfaceToCallRegistry->getFor($this->directObject, $this->getMethodName());
+        return $this->methodNameOrInterface instanceof InterfaceToCall
+            ? $this->methodNameOrInterface
+            : $interfaceToCallRegistry->getFor($this->directObject, $this->getMethodName());
     }
 
     /**

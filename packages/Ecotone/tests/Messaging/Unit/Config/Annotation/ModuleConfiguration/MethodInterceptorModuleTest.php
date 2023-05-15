@@ -146,7 +146,7 @@ class MethodInterceptorModuleTest extends AnnotationConfigurationTest
                 MethodInterceptor::create(
                     'someMethodInterceptor',
                     InterfaceToCall::create(TransformerInterceptorExample::class, 'beforeSend'),
-                    TransformerBuilder::create('someMethodInterceptor', 'beforeSend')
+                    TransformerBuilder::create('someMethodInterceptor', InterfaceToCall::create(TransformerInterceptorExample::class, 'beforeSend'))
                         ->withMethodParameterConverters([
                             PayloadBuilder::create('name'),
                             HeaderBuilder::create('surname', 'surname'),
@@ -160,7 +160,7 @@ class MethodInterceptorModuleTest extends AnnotationConfigurationTest
                 MethodInterceptor::create(
                     'someMethodInterceptor',
                     InterfaceToCall::create(TransformerInterceptorExample::class, 'doSomethingBefore'),
-                    TransformerBuilder::create('someMethodInterceptor', 'doSomethingBefore')
+                    TransformerBuilder::create('someMethodInterceptor', InterfaceToCall::create(TransformerInterceptorExample::class, 'doSomethingBefore'))
                         ->withMethodParameterConverters([
                             PayloadBuilder::create('name'),
                             HeaderBuilder::create('surname', 'surname'),
@@ -173,7 +173,7 @@ class MethodInterceptorModuleTest extends AnnotationConfigurationTest
                 MethodInterceptor::create(
                     'someMethodInterceptor',
                     InterfaceToCall::create(TransformerInterceptorExample::class, 'doSomethingAfter'),
-                    TransformerBuilder::create('someMethodInterceptor', 'doSomethingAfter')
+                    TransformerBuilder::create('someMethodInterceptor', InterfaceToCall::create(TransformerInterceptorExample::class, 'doSomethingAfter'))
                         ->withMethodParameterConverters([
                             PayloadBuilder::create('name'),
                             HeaderBuilder::create('surname', 'surname'),

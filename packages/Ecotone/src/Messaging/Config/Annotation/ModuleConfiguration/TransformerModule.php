@@ -9,6 +9,7 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\Transformer;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
@@ -26,7 +27,7 @@ class TransformerModule extends MessageHandlerRegisterConfiguration
 
         return TransformerBuilder::create(
             AnnotatedDefinitionReference::getReferenceFor($annotationRegistration),
-            $annotationRegistration->getMethodName()
+            $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName())
         )
             ->withEndpointId($annotation->getEndpointId())
             ->withInputChannelName($annotation->getInputChannelName())

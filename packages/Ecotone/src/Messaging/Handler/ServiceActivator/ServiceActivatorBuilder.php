@@ -118,8 +118,8 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
      */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
-        return $this->objectToInvokeReferenceName
-            ? $interfaceToCallRegistry->getForReferenceName($this->objectToInvokeReferenceName, $this->getMethodName())
+        return $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
+            ? $this->methodNameOrInterfaceToCall
             : $interfaceToCallRegistry->getFor($this->directObjectReference, $this->getMethodName());
     }
 
@@ -129,9 +129,9 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [
-            $this->directObjectReference
-                ? $interfaceToCallRegistry->getFor($this->directObjectReference, $this->getMethodName())
-                : $interfaceToCallRegistry->getForReferenceName($this->objectToInvokeReferenceName, $this->getMethodName()),
+            $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
+                ? $this->methodNameOrInterfaceToCall
+                : $interfaceToCallRegistry->getFor($this->directObjectReference, $this->getMethodName()),
             $interfaceToCallRegistry->getFor(PassThroughService::class, 'invoke'),
         ];
     }

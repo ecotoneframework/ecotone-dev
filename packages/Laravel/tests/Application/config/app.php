@@ -172,7 +172,7 @@ return [
          * Application Service Providers...
          */
         \Test\Ecotone\Laravel\Fixture\User\LaravelProvider::class,
-        \Ecotone\Laravel\EcotoneProvider::class
+        \Ecotone\Laravel\EcotoneProvider::class,
     ],
 
     /*

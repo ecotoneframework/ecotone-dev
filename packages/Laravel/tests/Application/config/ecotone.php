@@ -4,7 +4,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 
 return [
     'namespaces' => [
-        'Test\Ecotone\Laravel\Fixture'
+        'Test\Ecotone\Laravel\Fixture',
     ],
-    'skippedModulePackageNames' => ModulePackageList::allPackages()
+    'skippedModulePackageNames' => ModulePackageList::allPackages(),
 ];

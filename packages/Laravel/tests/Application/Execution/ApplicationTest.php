@@ -10,6 +10,9 @@ use Illuminate\Foundation\Testing\TestCase;
 use Test\Ecotone\Laravel\Fixture\User\User;
 use Test\Ecotone\Laravel\Fixture\User\UserRepository;
 
+/**
+ * @internal
+ */
 final class ApplicationTest extends TestCase
 {
     public function test_boot_application_with_ecotone()
@@ -35,10 +38,10 @@ final class ApplicationTest extends TestCase
     {
         $app = $this->createApplication();
 
-        $userId = "123";
+        $userId = '123';
         /** @var CommandBus $commandBus */
         $commandBus = $app->get(CommandBus::class);
-        $commandBus->sendWithRouting("user.register", $userId);
+        $commandBus->sendWithRouting('user.register', $userId);
 
         /** @var UserRepository $userRepository */
         $userRepository = $app->get(UserRepository::class);

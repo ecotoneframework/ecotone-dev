@@ -9,7 +9,11 @@
     ],
     "autoload": {
         "psr-4": {
-            "App\\": "src/"
+            "App\\": "src/",
+            "Ecotone\\": "../../packages/Ecotone/src",
+            "Ecotone\\EventSourcing\\": "../../packages/PdoEventSourcing/src",
+            "Ecotone\\JMSConverter\\": "../../packages/JmsConverter/src",
+            "Ecotone\\Lite\\": "../../packages/LiteApplication/src"
         }
     },
     "require": {

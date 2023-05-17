@@ -152,7 +152,7 @@ class EcotoneProvider extends ServiceProvider
                         $self      = $this;
 
                         /** @var ConsoleCommandResultSet $result */
-                        $result = $consoleCommandRunner->execute($self->getName(), $self->arguments());
+                        $result = $consoleCommandRunner->execute($self->getName(), array_merge($self->arguments(), $self->options()));
 
                         if ($result) {
                             $self->table($result->getColumnHeaders(), $result->getRows());

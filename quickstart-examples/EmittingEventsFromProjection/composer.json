@@ -9,11 +9,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "App\\": "src/",
-            "Ecotone\\": "../../packages/Ecotone/src",
-            "Ecotone\\EventSourcing\\": "../../packages/PdoEventSourcing/src",
-            "Ecotone\\JMSConverter\\": "../../packages/JmsConverter/src",
-            "Ecotone\\Lite\\": "../../packages/LiteApplication/src"
+            "App\\": "src/"
         }
     },
     "require": {
@@ -34,7 +30,7 @@
     "extra": {
         "merge-plugin": {
             "include": [
-                "../../config.json"
+                "../../packages/local_packages.json"
             ]
         }
     }

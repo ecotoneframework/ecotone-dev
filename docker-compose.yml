@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  app8_2:
+  app:
     image: simplycodedsoftware/php:8.2
     volumes:
       - "$PWD:/data/app"
@@ -28,8 +28,8 @@ services:
       REDIS_DSN: redis://redis:6379
     env_file:
       - ".env"
-  app8_0:
-    image: simplycodedsoftware/php:8.0
+  app8_1:
+    image: simplycodedsoftware/php:8.1
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
@@ -55,8 +55,8 @@ services:
       REDIS_DSN: redis://redis:6379
     env_file:
       - ".env"
-  app:
-    image: simplycodedsoftware/php:8.1
+  app8_0:
+    image: simplycodedsoftware/php:8.0
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"

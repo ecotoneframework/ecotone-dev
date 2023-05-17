@@ -95,7 +95,6 @@ class EcotoneProvider extends ServiceProvider
 
         $configuration = MessagingSystemConfiguration::prepare(
             $rootCatalog,
-            new LaravelReferenceSearchService($this->app),
             new LaravelConfigurationVariableService(),
             $applicationConfiguration,
             $isCachingConfiguration

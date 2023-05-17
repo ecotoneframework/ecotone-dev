@@ -36,19 +36,4 @@ class LaravelReferenceSearchServiceTest extends TestCase
         $service = new LaravelReferenceSearchService($mockContainer);
         $service->has('config');
     }
-
-    public function test_it_resolves_items_from_the_laravel_container()
-    {
-        $mockContainer = $this->getMockBuilder(Application::class)->getMock();
-        $mockContainer
-            ->expects($this->once())
-            ->method('get')
-            ->with('config')
-            ->willReturn(
-                $this->app->has('config')
-            );
-
-        $service = new LaravelReferenceSearchService($mockContainer);
-        $service->resolve('config');
-    }
 }

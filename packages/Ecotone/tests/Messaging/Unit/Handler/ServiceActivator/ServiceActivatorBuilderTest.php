@@ -214,7 +214,7 @@ class ServiceActivatorBuilderTest extends MessagingTest
                 InterfaceToCall::create(PassThroughService::class, 'invoke'),
             ],
             $serviceActivator->resolveRelatedInterfaces(
-                InterfaceToCallRegistry::createWith(InMemoryReferenceTypeFromNameResolver::createEmpty(), InMemoryAnnotationFinder::createFrom([CalculatingServiceInterceptorExample::class])),
+                InterfaceToCallRegistry::createWith(InMemoryAnnotationFinder::createFrom([CalculatingServiceInterceptorExample::class])),
             )
         );
     }
@@ -233,9 +233,6 @@ class ServiceActivatorBuilderTest extends MessagingTest
             ],
             $serviceActivator->resolveRelatedInterfaces(
                 InterfaceToCallRegistry::createWith(
-                    InMemoryReferenceTypeFromNameResolver::createFromAssociativeArray([
-                        $objectToInvokeOnReference => CalculatingServiceInterceptorExample::class,
-                    ]),
                     InMemoryAnnotationFinder::createFrom([CalculatingServiceInterceptorExample::class])
                 )
             )

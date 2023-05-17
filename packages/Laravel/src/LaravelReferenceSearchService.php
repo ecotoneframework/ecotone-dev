@@ -8,7 +8,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Illuminate\Contracts\Foundation\Application;
 
-class LaravelReferenceSearchService implements ReferenceSearchService, ReferenceTypeFromNameResolver
+class LaravelReferenceSearchService implements ReferenceSearchService
 {
     /**
      * @var Application
@@ -28,10 +28,5 @@ class LaravelReferenceSearchService implements ReferenceSearchService, Reference
     public function has(string $referenceName): bool
     {
         return $this->application->has($referenceName);
-    }
-
-    public function resolve(string $referenceName): Type
-    {
-        return TypeDescriptor::createFromVariable($this->application->get($referenceName));
     }
 }

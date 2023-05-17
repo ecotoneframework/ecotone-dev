@@ -88,7 +88,6 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
         return MessagingSystemConfiguration::prepare(
             self::getRootProjectPath($container),
-            new SymfonyReferenceTypeResolver($container),
             $configurationVariableService,
             $serviceConfiguration,
             $useCachedVersion,

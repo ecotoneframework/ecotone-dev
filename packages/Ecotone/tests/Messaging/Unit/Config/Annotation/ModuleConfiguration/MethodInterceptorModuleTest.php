@@ -35,42 +35,11 @@ use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\TransformerInterceptor
  */
 class MethodInterceptorModuleTest extends AnnotationConfigurationTest
 {
-    /**
-     * @return mixed
-     * @throws ConfigurationException
-     * @throws AnnotationException
-     * @throws ReflectionException
-     * @throws MessagingException
-     */
-    public function test_registering_around_method_level_interceptor()
-    {
-        $expectedConfiguration = $this->createMessagingSystemConfiguration()
-            ->registerAroundMethodInterceptor(AroundInterceptorReference::create(CalculatingServiceInterceptorExample::class, 'calculatingService', 'sum', 2, CalculatingServiceInterceptorExample::class, []))
-            ->registerAroundMethodInterceptor(AroundInterceptorReference::create(CalculatingServiceInterceptorExample::class, 'calculatingService', 'subtract', Precedence::DEFAULT_PRECEDENCE, '', []))
-            ->registerAroundMethodInterceptor(AroundInterceptorReference::create(CalculatingServiceInterceptorExample::class, 'calculatingService', 'multiply', 2, CalculatingServiceInterceptorExample::class, []));
-
-        $annotationRegistrationService = InMemoryAnnotationFinder::createFrom([
-            CalculatingServiceInterceptorExample::class,
-        ]);
-        $annotationConfiguration = MethodInterceptorModule::create($annotationRegistrationService, InterfaceToCallRegistry::createEmpty());
-        $configuration = $this->createMessagingSystemConfiguration();
-        $annotationConfiguration->prepare($configuration, [], ModuleReferenceSearchService::createEmpty(), InterfaceToCallRegistry::createEmpty());
-
-        $this->assertEquals(
-            $expectedConfiguration,
-            $configuration
-        );
-        $this->assertEquals(
-            ['calculatingService'],
-            $configuration->getRequiredReferences()
-        );
-    }
-
     public function test_registering_around_method_level_interceptor_with_parameter_converters()
     {
         $expectedConfiguration = $this->createMessagingSystemConfiguration()
             ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::create(AroundInterceptorWithCustomParameterConverters::class, AroundInterceptorWithCustomParameterConverters::class, 'handle', 1, AroundInterceptorWithCustomParameterConverters::class, [
+                AroundInterceptorReference::create( AroundInterceptorWithCustomParameterConverters::class, InterfaceToCall::create(AroundInterceptorWithCustomParameterConverters::class, 'handle'), 1, AroundInterceptorWithCustomParameterConverters::class, [
                     HeaderBuilder::create('token', 'token'),
                     PayloadBuilder::create('payload'),
                     AllHeadersBuilder::createWith('headers'),

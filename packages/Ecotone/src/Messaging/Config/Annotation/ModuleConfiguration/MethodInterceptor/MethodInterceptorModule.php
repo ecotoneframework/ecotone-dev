@@ -87,9 +87,8 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
                 /** @var Around $aroundInterceptor */
                 $aroundInterceptor    = $interceptorInterface->getMethodAnnotation($aroundAnnotation);
                 $aroundInterceptors[] = AroundInterceptorReference::create(
-                    $methodInterceptor->getClassName(),
                     AnnotatedDefinitionReference::getReferenceFor($methodInterceptor),
-                    $methodInterceptor->getMethodName(),
+                    $interceptorInterface,
                     $aroundInterceptor->precedence,
                     $aroundInterceptor->pointcut,
                     $parameterConverterFactory->createParameterConverters($interceptorInterface)

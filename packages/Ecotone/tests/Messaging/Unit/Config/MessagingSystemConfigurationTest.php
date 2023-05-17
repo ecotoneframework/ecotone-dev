@@ -258,9 +258,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
             )
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithNoPointcut(
-                    CalculatingService::class,
                     'reference2',
-                    'multiply'
+                    InterfaceToCall::create(CalculatingService::class, 'multiply')
                 )
             )
             ->registerAfterMethodInterceptor(
@@ -1623,9 +1622,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 )
                 ->registerAroundMethodInterceptor(
                     AroundInterceptorReference::create(
-                        CalculatingService::class,
                         $calculatorWithOne,
-                        'sum',
+                        InterfaceToCall::create(CalculatingService::class,'sum'),
                         1,
                         '',
                         []
@@ -1633,9 +1631,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 )
                 ->registerAroundMethodInterceptor(
                     AroundInterceptorReference::create(
-                        CalculatingServiceInterceptorExample::class,
                         $calculatorWithTwoAround,
-                        'sum',
+                        InterfaceToCall::create(CalculatingServiceInterceptorExample::class,'sum'),
                         1,
                         '',
                         []

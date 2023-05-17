@@ -98,7 +98,7 @@
         "php": "^8.0",
         "doctrine/dbal": "^3.3.7",
         "doctrine/persistence": "^2.5",
-        "enqueue/amqp-ext": "^0.10.4",
+        "enqueue/amqp-ext": "^0.10.18",
         "enqueue/dbal": "^0.10.17",
         "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",

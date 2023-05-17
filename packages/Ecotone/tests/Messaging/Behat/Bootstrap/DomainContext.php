@@ -98,7 +98,7 @@ class DomainContext implements Context
      */
     private function createServiceActivatorBuilder(string $endpointName, string $className, string $methodName, string $channelName): MessageHandlerBuilder
     {
-        return ServiceActivatorBuilder::create($className, $methodName)
+        return ServiceActivatorBuilder::create($className, InterfaceToCall::create($className, $methodName))
             ->withInputChannelName($channelName)
             ->withEndpointId($endpointName);
     }

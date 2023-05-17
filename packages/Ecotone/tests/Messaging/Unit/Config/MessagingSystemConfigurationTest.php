@@ -251,7 +251,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 MethodInterceptor::create(
                     'some',
                     InterfaceToCall::create(CalculatingService::class, 'sum'),
-                    ServiceActivatorBuilder::create('reference1', 'sum'),
+                    ServiceActivatorBuilder::create('reference1', InterfaceToCall::create(CalculatingService::class, 'sum')),
                     Precedence::DEFAULT_PRECEDENCE,
                     CalculatingService::class
                 )
@@ -266,7 +266,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 MethodInterceptor::create(
                     'some',
                     InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                    ServiceActivatorBuilder::create('reference3', 'multiply'),
+                    ServiceActivatorBuilder::create('reference3', InterfaceToCall::create(CalculatingService::class, 'multiply')),
                     Precedence::DEFAULT_PRECEDENCE,
                     CalculatingService::class
                 )
@@ -769,7 +769,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 [
                     ExampleModuleConfiguration::createWithHandlers(
                         [
-                            ServiceActivatorBuilder::create('reference0', 'doAction')
+                            ServiceActivatorBuilder::create('reference0', InterfaceToCall::create(TransactionalInterceptorExample::class, 'doAction'))
                                 ->withInputChannelName('some'),
                         ]
                     ),
@@ -1606,7 +1606,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     MethodInterceptor::create(
                         $calculatorWithOne,
                         InterfaceToCall::create(CalculatingService::class, 'sum'),
-                        ServiceActivatorBuilder::create($calculatorWithOne, 'sum'),
+                        ServiceActivatorBuilder::create($calculatorWithOne, InterfaceToCall::create(CalculatingService::class, 'sum')),
                         Precedence::DEFAULT_PRECEDENCE,
                         ''
                     )
@@ -1615,7 +1615,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     MethodInterceptor::create(
                         $calculatorWithTwo,
                         InterfaceToCall::create(CalculatingService::class, 'sum'),
-                        ServiceActivatorBuilder::create($calculatorWithTwo, 'sum'),
+                        ServiceActivatorBuilder::create($calculatorWithTwo, InterfaceToCall::create(CalculatingService::class, 'sum')),
                         Precedence::DEFAULT_PRECEDENCE,
                         ''
                     )
@@ -1642,7 +1642,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     MethodInterceptor::create(
                         $calculatorWithOne,
                         InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                        ServiceActivatorBuilder::create($calculatorWithOne, 'multiply'),
+                        ServiceActivatorBuilder::create($calculatorWithOne, InterfaceToCall::create(CalculatingService::class, 'multiply')),
                         Precedence::DEFAULT_PRECEDENCE,
                         ''
                     )
@@ -1651,7 +1651,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     MethodInterceptor::create(
                         $calculatorWithTwo,
                         InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                        ServiceActivatorBuilder::create($calculatorWithTwo, 'multiply'),
+                        ServiceActivatorBuilder::create($calculatorWithTwo, InterfaceToCall::create(CalculatingService::class, 'multiply')),
                         Precedence::DEFAULT_PRECEDENCE,
                         ''
                     )

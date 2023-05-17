@@ -176,7 +176,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         $projectionLifeCycle = $projectionLifeCycle->withInitializationRequestChannel($requestChannel);
                         $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
                             $referenceName,
-                            $publicMethodName
+                            $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName)
                         )->withInputChannelName($requestChannel);
                     }
                     if ($attributeType->equals($projectionDelete)) {
@@ -184,7 +184,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         $projectionLifeCycle = $projectionLifeCycle->withDeleteRequestChannel($requestChannel);
                         $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
                             $referenceName,
-                            $publicMethodName
+                            $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName)
                         )->withInputChannelName($requestChannel);
                     }
                     if ($attributeType->equals($projectionReset)) {
@@ -192,7 +192,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         $projectionLifeCycle = $projectionLifeCycle->withResetRequestChannel($requestChannel);
                         $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
                             $referenceName,
-                            $publicMethodName
+                            $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName)
                         )->withInputChannelName($requestChannel);
                     }
                 }

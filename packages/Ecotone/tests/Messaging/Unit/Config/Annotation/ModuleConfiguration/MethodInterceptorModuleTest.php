@@ -66,7 +66,7 @@ class MethodInterceptorModuleTest extends AnnotationConfigurationTest
                 MethodInterceptor::create(
                     'someMethodInterceptor',
                     InterfaceToCall::create(ServiceActivatorInterceptorExample::class, 'doSomethingBefore'),
-                    ServiceActivatorBuilder::create('someMethodInterceptor', 'doSomethingBefore')
+                    ServiceActivatorBuilder::create('someMethodInterceptor', InterfaceToCall::create(ServiceActivatorInterceptorExample::class, 'doSomethingBefore'))
                         ->withPassThroughMessageOnVoidInterface(true)
                         ->withMethodParameterConverters([
                             PayloadBuilder::create('name'),
@@ -80,7 +80,7 @@ class MethodInterceptorModuleTest extends AnnotationConfigurationTest
                 MethodInterceptor::create(
                     'someMethodInterceptor',
                     InterfaceToCall::create(ServiceActivatorInterceptorExample::class, 'doSomethingAfter'),
-                    ServiceActivatorBuilder::create('someMethodInterceptor', 'doSomethingAfter')
+                    ServiceActivatorBuilder::create('someMethodInterceptor', InterfaceToCall::create(ServiceActivatorInterceptorExample::class, 'doSomethingAfter'))
                         ->withPassThroughMessageOnVoidInterface(true)
                         ->withMethodParameterConverters([
                             PayloadBuilder::create('name'),

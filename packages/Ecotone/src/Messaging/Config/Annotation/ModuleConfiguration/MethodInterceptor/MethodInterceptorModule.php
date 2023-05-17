@@ -151,7 +151,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
                 ->withMethodParameterConverters($methodParameterConverterBuilders);
         }
 
-        return ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($methodInterceptor), $methodInterceptor->getMethodName())
+        return ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($methodInterceptor), $interfaceToCallRegistry->getFor($methodInterceptor->getClassName(), $methodInterceptor->getMethodName()))
             ->withPassThroughMessageOnVoidInterface(true)
             ->withMethodParameterConverters($methodParameterConverterBuilders);
     }

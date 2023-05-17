@@ -627,7 +627,7 @@ class ModellingHandlerModule implements AnnotationModule
 
         $handler = $registration->hasMethodAnnotation(ChangingHeaders::class)
             ? TransformerBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()))
-            : ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $registration->getMethodName());
+            : ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()));
 
         $configuration->registerMessageHandler(
             $handler

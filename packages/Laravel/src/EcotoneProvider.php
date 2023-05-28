@@ -4,10 +4,11 @@ namespace Ecotone\Laravel;
 
 use const DIRECTORY_SEPARATOR;
 
+use Ecotone\Lite\PsrContainerReferenceSearchService;
+
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
-use Ecotone\Messaging\Config\LazyConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -166,15 +167,11 @@ class EcotoneProvider extends ServiceProvider
 
         $this->app->singleton(
             ConfiguredMessagingSystem::class,
-            function () {
-                return new LazyConfiguredMessagingSystem($this->app);
-            }
-        );
-
-        $this->app->singleton(
-            LazyConfiguredMessagingSystem::class,
             function () use ($configuration) {
-                return $configuration->buildMessagingSystemFromConfiguration(new LaravelReferenceSearchService($this->app));
+                $referenceSearchService = new PsrContainerReferenceSearchService($this->app);
+                $messagingSystem = $configuration->buildMessagingSystemFromConfiguration($referenceSearchService);
+                $referenceSearchService->setConfiguredMessagingSystem($messagingSystem);
+                return $messagingSystem;
             }
         );
     }

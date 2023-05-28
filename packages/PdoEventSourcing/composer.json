@@ -51,7 +51,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.83-dev"
+            "dev-main": "1.83.0-dev"
         },
         "ecotone": {
             "repository": "pdo-event-sourcing"

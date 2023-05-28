@@ -41,9 +41,11 @@ function getPackages(): array {
             continue;
         }
 
+        $name = getPackageNameFromComposerFile($file);
         $packages[] = [
             'directory'  => $directory->getRealPath(),
-            'name' => getPackageNameFromComposerFile($file),
+            'name' => $name,
+            'package' => 'ecotone/' . $name,
             'organisation' => 'ecotoneframework',
             'repository' => getRepositoryFromComposerFile($file)
         ];
@@ -52,6 +54,7 @@ function getPackages(): array {
     $packages[] = [
         'directory'  => realpath(__DIR__ . "/../quickstart-examples"),
         'name' => "quickstart-examples",
+        'package' => 'ecotone/quickstart-examples',
         'organisation' => 'ecotoneframework',
         'repository' => "quickstart-examples"
     ];

@@ -8,13 +8,14 @@ if (!$version) {
     throw new \InvalidArgumentException("Pass version to update branch alias");
 }
 $packageNames = array_map(function ($package) {
-    return $package['organisation'] . '/' . $package['name'];
+    return $package['package'];
 }, $packages);
 
 foreach ($packages as $package) {
     $composerFile = $package['directory'] . DIRECTORY_SEPARATOR . 'composer.json';
     $composer = json_decode(file_get_contents($composerFile), true);
     $composer['extra']['branch-alias']['dev-main'] = $version . '-dev';
+
     foreach ($composer['require'] as $requiredPackage => $requiredVersion) {
         if (in_array($requiredPackage, $packageNames)) {
             $composer['require'][$requiredPackage] = "~" . $version;

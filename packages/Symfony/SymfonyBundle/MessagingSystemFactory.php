@@ -3,8 +3,6 @@
 namespace Ecotone\SymfonyBundle;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\LazyConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\MessagingSystem;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\EcotoneCompilerPass;
 use Symfony\Component\DependencyInjection\ContainerInterface;

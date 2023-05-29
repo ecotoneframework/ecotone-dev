@@ -3,15 +3,10 @@
 namespace Ecotone\SymfonyBundle;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\EcotoneCompilerPass;
 use Ecotone\SymfonyBundle\DepedencyInjection\EcotoneExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
-use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**

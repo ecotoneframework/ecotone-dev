@@ -4,6 +4,7 @@ namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -11,16 +12,20 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
+use Ecotone\SymfonyBundle\MessagingSystemFactory;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 
 class EcotoneCompilerPass implements CompilerPassInterface
 {
@@ -117,9 +122,6 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $definition->addArgument(new Reference('service_container'));
         $container->setDefinition(ReferenceSearchService::class, $definition);
 
-        // TODO: Remove this alias used for backward compatibility ?
-        $container->setAlias('symfonyReferenceSearchService', ReferenceSearchService::class)->setPublic(true);
-
         foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
             $definition = new Definition();
             $definition->setFactory([ProxyGenerator::class, 'createFor']);
@@ -167,5 +169,36 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
         }
+
+        $definition = new Definition();
+        $definition->setClass(MessagingSystemFactory::class);
+        $definition->addArgument(new Reference('service_container'));
+        $definition->addArgument(new Reference(ReferenceSearchService::class));
+        $container->setDefinition(MessagingSystemFactory::class, $definition);
+
+        $definition = new Definition();
+        $definition->setClass(ConfiguredMessagingSystem::class);
+        $definition->setPublic(true);
+        $definition->setFactory(new Reference(MessagingSystemFactory::class));
+        $container->setDefinition(ConfiguredMessagingSystem::class, $definition);
+
+        $this->setUpExpressionLanguage($container);
+    }
+
+    /**
+     * @param ContainerBuilder $container
+     * @return void
+     */
+    private function setUpExpressionLanguage(ContainerBuilder $container): void
+    {
+        $definition = new Definition();
+        $definition->setClass(ExpressionLanguage::class);
+        $container->setDefinition(ExpressionEvaluationService::REFERENCE . '_adapter', $definition);
+
+        $definition = new Definition();
+        $definition->setClass(SymfonyExpressionEvaluationAdapter::class);
+        $definition->setFactory([SymfonyExpressionEvaluationAdapter::class, 'create']);
+        $definition->setPublic(true);
+        $container->setDefinition(ExpressionEvaluationService::REFERENCE, $definition);
     }
 }

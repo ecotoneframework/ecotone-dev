@@ -57,6 +57,7 @@ final class EcotoneLiteTest extends KernelTestCase
             $ecotoneTestSupport
                 ->sendCommandWithRoutingKey('setAmount', ['amount' => $amount])
                 ->sendQueryWithRouting('getAmount')
-        );;
+        );
+        ;
     }
 }

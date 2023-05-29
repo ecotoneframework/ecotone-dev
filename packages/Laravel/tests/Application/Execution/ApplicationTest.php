@@ -66,6 +66,7 @@ final class ApplicationTest extends TestCase
         $this->assertEquals(
             $amount,
             $queryBus->sendWithRouting('getAmount')
-        );;
+        );
+        ;
     }
 }

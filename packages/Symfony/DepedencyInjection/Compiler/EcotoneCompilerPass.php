@@ -191,7 +191,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
      */
     private function setUpExpressionLanguage(ContainerBuilder $container): void
     {
-        if (!class_exists(ExpressionLanguage::class)) {
+        if (! class_exists(ExpressionLanguage::class)) {
             return;
         }
 

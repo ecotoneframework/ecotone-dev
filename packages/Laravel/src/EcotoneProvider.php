@@ -2,31 +2,32 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
-use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
-
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
-
 use Illuminate\Support\ServiceProvider;
+
+use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 
 class EcotoneProvider extends ServiceProvider
 {
@@ -171,7 +172,7 @@ class EcotoneProvider extends ServiceProvider
         if (class_exists(ExpressionLanguage::class)) {
             $this->app->singleton(
                 ExpressionEvaluationService::REFERENCE,
-                fn() => SymfonyExpressionEvaluationAdapter::create()
+                fn () => SymfonyExpressionEvaluationAdapter::create()
             );
         }
 

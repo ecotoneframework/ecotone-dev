@@ -2,6 +2,9 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
+use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
@@ -163,6 +166,13 @@ class EcotoneProvider extends ServiceProvider
                     }
                 );
             }
+        }
+
+        if (class_exists(ExpressionLanguage::class)) {
+            $this->app->bind(
+                ExpressionEvaluationService::REFERENCE,
+                fn() => SymfonyExpressionEvaluationAdapter::create()
+            );
         }
 
         $this->app->singleton(

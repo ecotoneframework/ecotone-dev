@@ -172,6 +172,7 @@ return [
          * Application Service Providers...
          */
         \Test\Ecotone\Laravel\Fixture\User\LaravelProvider::class,
+        \Test\Ecotone\Laravel\Fixture\ExpressionLanguage\LaravelProvider::class,
         \Ecotone\Laravel\EcotoneProvider::class,
     ],
 

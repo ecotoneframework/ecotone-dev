@@ -3,7 +3,6 @@
 namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
-use ProxyManager\Factory\RemoteObject\AdapterInterface;
 use ProxyManager\Factory\RemoteObjectFactory;
 use Psr\Container\ContainerInterface;
 

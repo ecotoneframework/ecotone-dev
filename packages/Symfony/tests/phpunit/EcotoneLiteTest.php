@@ -8,6 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Fixture\ExpressionLanguage\ExpressionLanguageCommandHandler;
 use Fixture\User\User;
 use Fixture\User\UserRepository;
 use Fixture\User\UserService;
@@ -38,5 +39,24 @@ final class EcotoneLiteTest extends KernelTestCase
         $userRepository = $ecotoneTestSupport->getGatewayByName(UserRepository::class);
 
         $this->assertEquals(User::register($userId), $userRepository->getUser($userId));
+    }
+
+    public function test_sending_command_using_expression_language()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [ExpressionLanguageCommandHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithDefaults()
+                ->doNotLoadCatalog()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+        );
+
+        $amount = 123;
+        $this->assertEquals(
+            $amount,
+            $ecotoneTestSupport
+                ->sendCommandWithRoutingKey('setAmount', ['amount' => $amount])
+                ->sendQueryWithRouting('getAmount')
+        );;
     }
 }

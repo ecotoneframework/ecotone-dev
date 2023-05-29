@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\Application\Execution;
 
 use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Foundation\Testing\TestCase;
 use Test\Ecotone\Laravel\Fixture\User\User;
@@ -49,5 +50,22 @@ final class ApplicationTest extends TestCase
             User::register($userId),
             $userRepository->getUser($userId)
         );
+    }
+
+    public function test_sending_command_using_expression_language()
+    {
+        $app = $this->createApplication();
+        /** @var CommandBus $commandBus */
+        $commandBus = $app->get(CommandBus::class);
+        /** @var QueryBus $queryBus */
+        $queryBus = $app->get(QueryBus::class);
+
+        $amount = 123;
+        $commandBus->sendWithRouting('setAmount', ['amount' => $amount]);
+
+        $this->assertEquals(
+            $amount,
+            $queryBus->sendWithRouting('getAmount')
+        );;
     }
 }

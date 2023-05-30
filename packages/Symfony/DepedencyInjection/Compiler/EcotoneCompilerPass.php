@@ -181,24 +181,5 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $definition->setPublic(true);
         $definition->setFactory(new Reference(MessagingSystemFactory::class));
         $container->setDefinition(ConfiguredMessagingSystem::class, $definition);
-
-        $this->setUpExpressionLanguage($container);
-    }
-
-    /**
-     * @param ContainerBuilder $container
-     * @return void
-     */
-    private function setUpExpressionLanguage(ContainerBuilder $container): void
-    {
-        if (! class_exists(ExpressionLanguage::class)) {
-            return;
-        }
-
-        $definition = new Definition();
-        $definition->setClass(SymfonyExpressionEvaluationAdapter::class);
-        $definition->setFactory([SymfonyExpressionEvaluationAdapter::class, 'create']);
-        $definition->setPublic(true);
-        $container->setDefinition(ExpressionEvaluationService::REFERENCE, $definition);
     }
 }

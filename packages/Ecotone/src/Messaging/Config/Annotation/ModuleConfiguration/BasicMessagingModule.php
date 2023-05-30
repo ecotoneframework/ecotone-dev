@@ -235,7 +235,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
     public function getRelatedReferences(): array
     {
         return [
-            RequiredReference::create(ExpressionEvaluationService::REFERENCE),
             RequiredReference::create(InterfaceToCallRegistry::REFERENCE_NAME),
         ];
     }

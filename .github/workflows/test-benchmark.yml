@@ -1,0 +1,35 @@
+name: 'Ecotone Framework'
+
+on:
+  pull_request:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
+
+jobs:
+  run:
+    name: "Testing Monorepo"
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ ubuntu-latest ]
+        php-versions: [ '8.2' ]
+        stability: [prefer-stable]
+    steps:
+    - name: PHP ${{ matrix.php-versions }} - ${{ matrix.stability }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+
+    - uses: actions/checkout@v2
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+
+    - name: Install dependencies
+      run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+    - name: Validate cross package versions
+      run: composer tests:phpbench

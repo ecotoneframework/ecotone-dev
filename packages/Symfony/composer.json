@@ -34,6 +34,7 @@
         "doctrine/doctrine-bundle": "^2.9",
         "friends-of-behat/symfony-extension": "^2.1",
         "monolog/monolog": "^2.9|^3.3",
+        "phpbench/phpbench": "^1.2",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^9.5",
         "symfony/doctrine-messenger": "^5.4|^6.0",
@@ -68,6 +69,9 @@
         ],
         "tests:behat": [
             "vendor/bin/behat -vvv"
+        ],
+        "tests:phpbench": [
+            "vendor/bin/phpbench run tests/Benchmark --bootstrap=./vendor/autoload.php"
         ],
         "tests:ci": [
             "@tests:phpstan",

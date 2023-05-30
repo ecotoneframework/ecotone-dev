@@ -15,19 +15,15 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
-
-use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 
 class EcotoneProvider extends ServiceProvider
 {

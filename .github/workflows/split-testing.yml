@@ -1,4 +1,4 @@
-name: 'Ecotone Framework'
+name: 'Test split packages'
 
 on:
   pull_request:

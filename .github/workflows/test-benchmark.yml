@@ -1,4 +1,4 @@
-name: 'Ecotone Framework'
+name: 'Benchmark'
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   run:
-    name: "Testing Monorepo"
+    name: "Benchmarking"
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:

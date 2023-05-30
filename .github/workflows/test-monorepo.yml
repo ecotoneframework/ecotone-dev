@@ -1,4 +1,4 @@
-name: 'Test Monorepo'
+name: 'Tests'
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   run:
-    name: "Testing Monorepo"
+    name: "Monorepo"
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:

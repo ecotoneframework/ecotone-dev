@@ -1,4 +1,4 @@
-name: 'Ecotone Framework'
+name: 'Tests'
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   get_packages:
-    name: Package testing
+    name: Get packages
     runs-on: ubuntu-latest
 
     steps:

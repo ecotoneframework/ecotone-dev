@@ -43,7 +43,8 @@
         "phpstan/phpstan": "^1.8",
         "orchestra/testbench": "^7.6",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "symfony/expression-language": "^6.0"
+        "symfony/expression-language": "^6.0",
+        "phpbench/phpbench": "^1.2"
     },
     "extra": {
         "laravel": {
@@ -67,6 +68,9 @@
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": [
             "vendor/bin/phpunit"
+        ],
+        "tests:phpbench": [
+            "vendor/bin/phpbench run tests/Application/Benchmark --bootstrap=./vendor/autoload.php"
         ],
         "tests:ci": [
             "@tests:phpstan",

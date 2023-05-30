@@ -142,6 +142,10 @@ class EcotoneCompilerPass implements CompilerPassInterface
                 continue;
             }
 
+            if (! $container->has($requiredReference)) {
+                continue;
+            }
+
             $alias = $container->setAlias(PsrContainerReferenceSearchService::getServiceNameWithSuffix($requiredReference), $requiredReference);
 
             if ($alias) {

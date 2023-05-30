@@ -169,13 +169,6 @@ class EcotoneProvider extends ServiceProvider
             }
         }
 
-        if (class_exists(ExpressionLanguage::class)) {
-            $this->app->singleton(
-                ExpressionEvaluationService::REFERENCE,
-                fn () => SymfonyExpressionEvaluationAdapter::create()
-            );
-        }
-
         $this->app->singleton(
             ConfiguredMessagingSystem::class,
             function () use ($configuration) {

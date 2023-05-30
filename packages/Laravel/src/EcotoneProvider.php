@@ -43,7 +43,7 @@ class EcotoneProvider extends ServiceProvider
 
         $environment            = App::environment();
         $rootCatalog            = App::basePath();
-        $isCachingConfiguration = $environment === 'prod' ? true : Config::get('ecotone.cacheConfiguration');
+        $isCachingConfiguration = in_array($environment, ['prod', 'production']) ? true : Config::get('ecotone.cacheConfiguration');
         $cacheDirectory         = App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'ecotone';
 
         if (! is_dir($cacheDirectory)) {

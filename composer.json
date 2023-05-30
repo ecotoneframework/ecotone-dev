@@ -177,9 +177,9 @@
             "@tests:behat"
         ],
         "tests:phpbench": [
-            "(cd packages/Ecotone && composer tests:phpbench)",
-            "(cd packages/Laravel && composer tests:phpbench)",
-            "(cd packages/Symfony && composer tests:phpbench)"
+            "(cd packages/Ecotone && composer update --prefer-stable --prefer-dist --no-interaction && tests:phpbench)",
+            "(cd packages/Laravel && composer update --prefer-stable --prefer-dist --no-interaction && composer tests:phpbench)",
+            "(cd packages/Symfony && composer update --prefer-stable --prefer-dist --no-interaction && composer tests:phpbench)"
         ]
     },
     "config": {

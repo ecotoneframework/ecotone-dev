@@ -9,7 +9,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService;
+use Test\Ecotone\Modelling\Fixture\MetadataPropagatingWithDoubleEventHandlers\OrderService;
 
 final class MetadataPropagatingTest extends TestCase
 {

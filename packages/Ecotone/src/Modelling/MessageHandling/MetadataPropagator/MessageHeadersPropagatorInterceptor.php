@@ -30,11 +30,11 @@ class MessageHeadersPropagatorInterceptor
 
     public function propagateHeaders(array $headers): array
     {
-        try{
-            return array_merge($this->getLastHeaders(), $headers);
-        } finally {
-            array_shift($this->currentlyPropagatedHeaders);
+        if (isset($headers[MessageHeaders::PROTECT_FROM_PROPAGATED_HEADERS]) && $headers[MessageHeaders::PROTECT_FROM_PROPAGATED_HEADERS]) {
+            return $headers;
         }
+
+        return array_merge($this->getLastHeaders(), $headers);
     }
 
     public function getLastHeaders(): array

@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\Modelling\Fixture\MetadataPropagating;
+namespace Test\Ecotone\Modelling\Fixture\MetadataPropagatingWithDoubleEventHandlers;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -29,13 +29,15 @@ class OrderService
         throw new InvalidArgumentException('failed action');
     }
 
-    #[EventHandler]
+    #[Asynchronous("orders")]
+    #[EventHandler(endpointId: 'notifyOne')]
     public function notifyOne(OrderWasPlaced $event, array $headers, CommandBus $commandBus): void
     {
         $commandBus->sendWithRouting('sendNotification', [], MediaType::APPLICATION_X_PHP_ARRAY, $this->notifyWithCustomHeaders);
     }
 
-    #[EventHandler]
+    #[Asynchronous('orders')]
+    #[EventHandler(endpointId: 'notifyTwo')]
     public function notifyTwo(OrderWasPlaced $event, array $headers, CommandBus $commandBus): void
     {
         $commandBus->sendWithRouting('sendNotification', [], MediaType::APPLICATION_X_PHP_ARRAY, $this->notifyWithCustomHeaders);

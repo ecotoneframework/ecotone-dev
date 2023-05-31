@@ -14,23 +14,15 @@ class MessageHeadersPropagatorInterceptor
     public function storeHeaders(MethodInvocation $methodInvocation, Message $message)
     {
         $headers = $message->getHeaders()->headers();
-        foreach (MessageHeaders::getFrameworksHeaderNames() as $frameworksHeaderName) {
-            unset($headers[$frameworksHeaderName]);
-        }
-        if (isset($headers[MessageHeaders::CONSUMER_ACK_HEADER_LOCATION])) {
-            unset($headers[$headers[MessageHeaders::CONSUMER_ACK_HEADER_LOCATION]]);
-        }
-        unset($headers[MessageHeaders::CONSUMER_ACK_HEADER_LOCATION]);
+        $headers = MessageHeaders::unsetFrameworkKeys($headers);
+        $headers = MessageHeaders::unsetNonUserKeys($headers);
 
         $this->currentlyPropagatedHeaders[] = $headers;
 
         try {
             $reply = $methodInvocation->proceed();
+        } finally {
             array_shift($this->currentlyPropagatedHeaders);
-        } catch (Throwable $exception) {
-            array_shift($this->currentlyPropagatedHeaders);
-
-            throw $exception;
         }
 
         return $reply;
@@ -38,7 +30,11 @@ class MessageHeadersPropagatorInterceptor
 
     public function propagateHeaders(array $headers): array
     {
-        return array_merge($this->getLastHeaders(), $headers);
+        try{
+            return array_merge($this->getLastHeaders(), $headers);
+        } finally {
+            array_shift($this->currentlyPropagatedHeaders);
+        }
     }
 
     public function getLastHeaders(): array

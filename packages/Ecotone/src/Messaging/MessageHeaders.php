@@ -163,6 +163,15 @@ final class MessageHeaders
         ];
     }
 
+    public static function unsetFrameworkKeys(array $metadata): array
+    {
+        foreach (self::getFrameworksHeaderNames() as $frameworksHeaderName) {
+            unset($metadata[$frameworksHeaderName]);
+        }
+
+        return $metadata;
+    }
+
     public static function unsetTransportMessageKeys(array $metadata): array
     {
         unset($metadata[self::MESSAGE_ID]);
@@ -231,6 +240,16 @@ final class MessageHeaders
         );
 
         return $metadata;
+    }
+
+    public static function unsetNonUserKeys(array $metadata): array
+    {
+        $metadata = self::unsetEnqueueMetadata($metadata);
+        $metadata = self::unsetDistributionKeys($metadata);
+        $metadata = self::unsetAsyncKeys($metadata);
+        $metadata = self::unsetBusKeys($metadata);
+
+        return self::unsetAggregateKeys($metadata);
     }
 
     /**

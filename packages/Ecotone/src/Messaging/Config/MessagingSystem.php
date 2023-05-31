@@ -14,8 +14,10 @@ use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\Gateway\CombinedGatewayBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
+use Ecotone\Messaging\Handler\Gateway\Proxy\ProxyWithCombinedGateways;
+use Ecotone\Messaging\Handler\Gateway\Proxy\ProxyWithDirectReference;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageChannel;
@@ -109,7 +111,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
     ): MessagingSystem {
         $channelResolver = self::createChannelResolver($messageChannelInterceptors, $messageChannelBuilders, $referenceSearchService);
 
-        [$gateways, $nonProxyGateways] = self::configureGateways($gatewayBuilders, $referenceSearchService, $channelResolver, $isLazyConfiguration);
+        [$gateways, $nonProxyGateways] = self::configureGateways($gatewayBuilders, $referenceSearchService, $channelResolver);
 
         $gatewayReferences = [];
         foreach ($gateways as $gateway) {
@@ -188,38 +190,31 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      * @return GatewayReference[]
      * @throws MessagingException
      */
-    private static function configureGateways(array $preparedGateways, ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver, bool $isLazyConfiguration): array
+    private static function configureGateways(array $preparedGateways, ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): array
     {
         $gateways = [];
         $nonProxyCombinedGateways = [];
+        /** @var ProxyFactory $proxyFactory */
+        $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
+
         foreach ($preparedGateways as $referenceName => $preparedGatewaysForReference) {
             $referenceName = $preparedGatewaysForReference[0]->getReferenceName();
-
-            if (count($preparedGatewaysForReference) === 1) {
-                $gatewayProxyBuilder = $preparedGatewaysForReference[0]
-                    ->withLazyBuild($isLazyConfiguration);
-                $nonProxyCombinedGateways[$referenceName] = NonProxyCombinedGateway::createWith($referenceName, [$gatewayProxyBuilder->getRelatedMethodName() => $gatewayProxyBuilder->buildWithoutProxyObject($referenceSearchService, $channelResolver)]);
-                $gateways[$referenceName] = GatewayReference::createWith(
-                    $referenceName,
-                    $gatewayProxyBuilder->build($referenceSearchService, $channelResolver)
-                );
-            } else {
-                $nonProxyCombinedGatewaysMethods = [];
-                foreach ($preparedGatewaysForReference as $proxyBuilder) {
-                    $nonProxyCombinedGatewaysMethods[$proxyBuilder->getRelatedMethodName()] =
-                        $proxyBuilder
-                            ->withLazyBuild($isLazyConfiguration)
-                            ->buildWithoutProxyObject($referenceSearchService, $channelResolver);
-                }
-
-                $nonProxyCombinedGateways[$referenceName] = NonProxyCombinedGateway::createWith($referenceName, $nonProxyCombinedGatewaysMethods);
-                $gateways[$referenceName] =
-                    GatewayReference::createWith(
-                        $referenceName,
-                        CombinedGatewayBuilder::create($preparedGatewaysForReference[0]->getInterfaceName(), $nonProxyCombinedGatewaysMethods)
-                            ->build($referenceSearchService, $channelResolver)
-                    );
+            $nonProxyCombinedGatewaysMethods = [];
+            foreach ($preparedGatewaysForReference as $proxyBuilder) {
+                $nonProxyCombinedGatewaysMethods[$proxyBuilder->getRelatedMethodName()] =
+                    $proxyBuilder->buildWithoutProxyObject($referenceSearchService, $channelResolver);
             }
+
+            $nonProxyCombinedGateways[$referenceName] = NonProxyCombinedGateway::createWith($referenceName, $nonProxyCombinedGatewaysMethods);
+            $interfaceName = $preparedGatewaysForReference[0]->getInterfaceName();
+            $proxyAdapter = count($preparedGatewaysForReference) === 1
+                ? new ProxyWithDirectReference(reset($nonProxyCombinedGatewaysMethods))
+                : new ProxyWithCombinedGateways($nonProxyCombinedGatewaysMethods);
+            $gateways[$referenceName] =
+                GatewayReference::createWith(
+                    $referenceName,
+                    $proxyFactory->createProxyClassWithAdapter($interfaceName, $proxyAdapter)
+                );
         }
         return [$gateways, $nonProxyCombinedGateways];
     }

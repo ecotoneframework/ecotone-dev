@@ -11,6 +11,8 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaders
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadExpressionBuilder;
+use Ecotone\Messaging\Handler\Gateway\Proxy\ProxyWithBuildCallback;
+use Ecotone\Messaging\Handler\Gateway\Proxy\ProxyWithDirectReference;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -334,17 +336,15 @@ class GatewayProxyBuilder implements GatewayBuilder
         $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
 
         if ($this->withLazyBuild) {
-            $buildCallback = function () use ($referenceSearchService, $channelResolver) {
+            $adapter = new ProxyWithBuildCallback(function () use ($referenceSearchService, $channelResolver) {
                 return $this->buildWithoutProxyObject($referenceSearchService, $channelResolver);
-            };
+            });
         } else {
             $gateway = $this->buildWithoutProxyObject($referenceSearchService, $channelResolver);
-            $buildCallback = function () use ($gateway) {
-                return $gateway;
-            };
+            $adapter = new ProxyWithDirectReference($gateway);
         }
 
-        return $proxyFactory->createProxyClass($this->interfaceName, $buildCallback);
+        return $proxyFactory->createProxyClassWithAdapter($this->interfaceName, $adapter);
     }
 
     public function buildWithoutProxyObject(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): NonProxyGateway

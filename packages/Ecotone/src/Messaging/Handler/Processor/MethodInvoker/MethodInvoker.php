@@ -90,7 +90,7 @@ final class MethodInvoker implements MessageProcessor
             $methodParameterConverters[] = $methodParameter->build($referenceSearchService);
         }
         if ($aroundInterceptors) {
-            $aroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($channelResolver, $referenceSearchService, $aroundInterceptors);
+            $aroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $aroundInterceptors);
         }
 
         /** @var ConversionService $conversionService */

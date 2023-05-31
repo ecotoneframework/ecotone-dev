@@ -39,7 +39,7 @@ class EcotoneLiteConfiguration
 
         if ($container instanceof GatewayAwareContainer) {
             foreach ($configuredMessagingSystem->getGatewayList() as $gatewayReference) {
-                $container->addGateway($gatewayReference->getReferenceName(), $gatewayReference->getGateway());
+                $container->addGateway($gatewayReference, $configuredMessagingSystem->getGatewayByName($gatewayReference));
             }
         }
 

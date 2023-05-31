@@ -3,13 +3,14 @@
 namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Handler\ReferenceNotFoundException;
+use Ecotone\Messaging\Handler\ServiceProviderInterface;
 
 /**
  * Class InMemoryPSRContainer
  * @package Ecotone\Lite
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class InMemoryPSRContainer implements GatewayAwareContainer
+class InMemoryPSRContainer implements GatewayAwareContainer, ServiceProviderInterface
 {
     private array $objects;
 
@@ -82,5 +83,10 @@ class InMemoryPSRContainer implements GatewayAwareContainer
     public function has($id): bool
     {
         return array_key_exists($id, $this->objects);
+    }
+
+    public function getProvidedServices(): array
+    {
+        return array_keys($this->objects);
     }
 }

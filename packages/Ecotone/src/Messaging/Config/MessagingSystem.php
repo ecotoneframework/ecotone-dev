@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
@@ -19,6 +20,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\Handler\ServiceProviderInterface;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\MessagingException;
@@ -29,6 +31,7 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
+use Psr\Container\ContainerInterface;
 
 /**
  * Class Application
@@ -46,8 +49,8 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      * @param ConsumerLifecycle[] $eventDrivenConsumers
      * @param MessageHandlerBuilder[] $pollingConsumerBuilders
      * @param InboundChannelAdapterBuilder[] $inboundChannelAdapterBuilders
-     * @param GatewayReference[]|array $gatewayReferences
-     * @param NonProxyCombinedGateway[]|array $nonProxyCombinedGateways
+     * @param ContainerInterface $gatewayLocator
+     * @param ContainerInterface $nonProxyCombinedGatewaysLocator
      * @param ConsoleCommandConfiguration[] $consoleCommands
      * @param ChannelResolver $channelResolver
      * @param PollingMetadata[] $pollingMetadataConfigurations
@@ -56,8 +59,8 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         private array                  $eventDrivenConsumers,
         private array                  $pollingConsumerBuilders,
         private array                  $inboundChannelAdapterBuilders,
-        private array                  $gatewayReferences,
-        private array                  $nonProxyCombinedGateways,
+        private ContainerInterface     $gatewayLocator,
+        private ContainerInterface     $nonProxyCombinedGatewaysLocator,
         private ChannelResolver        $channelResolver,
         private ReferenceSearchService $referenceSearchService,
         private array                  $pollingMetadataConfigurations,
@@ -75,8 +78,8 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         $this->eventDrivenConsumers = $messagingSystem->eventDrivenConsumers;
         $this->pollingConsumerBuilders = $messagingSystem->pollingConsumerBuilders;
         $this->inboundChannelAdapterBuilders = $messagingSystem->inboundChannelAdapterBuilders;
-        $this->gatewayReferences = $messagingSystem->gatewayReferences;
-        $this->nonProxyCombinedGateways = $messagingSystem->nonProxyCombinedGateways;
+        $this->gatewayLocator = $messagingSystem->gatewayLocator;
+        $this->nonProxyCombinedGatewaysLocator = $messagingSystem->nonProxyCombinedGatewaysLocator;
         $this->channelResolver = $messagingSystem->channelResolver;
         $this->referenceSearchService = $messagingSystem->referenceSearchService;
         $this->pollingMetadataConfigurations = $messagingSystem->pollingMetadataConfigurations;
@@ -142,7 +145,10 @@ final class MessagingSystem implements ConfiguredMessagingSystem
             $inboundChannelAdapterBuilders[$endpointId][self::CONSUMER_BUILDER] = $channelAdapter;
         }
 
-        return new self($eventDrivenConsumers, $pollingConsumerBuilders, $inboundChannelAdapterBuilders, $gateways, $nonProxyGateways, $channelResolver, $referenceSearchService, $pollingMetadataConfigurations, $consoleCommands);
+        $gatewayLocator = InMemoryPSRContainer::createFromAssociativeArray($gatewayReferences);
+        $nonProxyGatewaysLocator = InMemoryPSRContainer::createFromAssociativeArray($nonProxyGateways);
+
+        return new self($eventDrivenConsumers, $pollingConsumerBuilders, $inboundChannelAdapterBuilders, $gatewayLocator, $nonProxyGatewaysLocator, $channelResolver, $referenceSearchService, $pollingMetadataConfigurations, $consoleCommands);
     }
 
     /**
@@ -183,7 +189,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      * @param GatewayProxyBuilder[][] $preparedGateways
      * @param ReferenceSearchService $referenceSearchService
      * @param ChannelResolver $channelResolver
-     * @return GatewayReference[]
+     * @return array{0: GatewayReference[], 1: array<string, NonProxyCombinedGateway>}
      * @throws MessagingException
      */
     private static function configureGateways(array $preparedGateways, ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): array
@@ -269,20 +275,16 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      */
     public function getGatewayByName(string $gatewayReferenceName): object
     {
-        foreach ($this->gatewayReferences as $gatewayReference) {
-            if ($gatewayReference->hasReferenceName($gatewayReferenceName)) {
-                return $gatewayReference->getGateway();
-            }
-        }
+        Assert::isTrue($this->gatewayLocator->has($gatewayReferenceName), "Gateway with reference {$gatewayReferenceName} does not exists");
 
-        throw InvalidArgumentException::create("Gateway with reference {$gatewayReferenceName} does not exists");
+        return $this->gatewayLocator->get($gatewayReferenceName);
     }
 
     public function getNonProxyGatewayByName(string $gatewayReferenceName): NonProxyCombinedGateway
     {
-        Assert::keyExists($this->nonProxyCombinedGateways, $gatewayReferenceName, "Gateway with reference {$gatewayReferenceName} does not exists");
+        Assert::isTrue($this->nonProxyCombinedGatewaysLocator->has($gatewayReferenceName), "Gateway with reference {$gatewayReferenceName} does not exists");
 
-        return $this->nonProxyCombinedGateways[$gatewayReferenceName];
+        return $this->nonProxyCombinedGatewaysLocator->get($gatewayReferenceName);
     }
 
     public function runConsoleCommand(string $commandName, array $parameters): mixed
@@ -324,7 +326,10 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      */
     public function getGatewayList(): iterable
     {
-        return $this->gatewayReferences;
+        if ($this->gatewayLocator instanceof ServiceProviderInterface) {
+            return $this->gatewayLocator->getProvidedServices();
+        }
+        return [];
     }
 
     public function getCommandBus(): CommandBus

@@ -1,12 +1,12 @@
 <?php
 
-namespace Ecotone\Messaging\Handler\Gateway\Proxy;
+namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use InvalidArgumentException;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
 
-class ProxyWithCombinedGateways implements AdapterInterface {
+class GatewayProxyAdapter implements AdapterInterface {
     /**
      * @var NonProxyGateway[]
      */
@@ -15,7 +15,7 @@ class ProxyWithCombinedGateways implements AdapterInterface {
     /**
      *  constructor.
      *
-     * @param NonProxyGateway[] $gateways
+     * @param array<string, NonProxyGateway> $gateways
      */
     public function __construct(array $gateways)
     {

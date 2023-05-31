@@ -1241,7 +1241,6 @@ final class MessagingSystemConfiguration implements Configuration
             $this->pollingMetadata,
             $this->messageHandlerBuilders,
             $this->channelAdapters,
-            $this->isLazyConfiguration,
             $this->consoleCommands
         );
     }

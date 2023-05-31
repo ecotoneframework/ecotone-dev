@@ -11,8 +11,6 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaders
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadExpressionBuilder;
-use Ecotone\Messaging\Handler\Gateway\Proxy\ProxyWithBuildCallback;
-use Ecotone\Messaging\Handler\Gateway\Proxy\ProxyWithDirectReference;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -79,7 +77,6 @@ class GatewayProxyBuilder implements GatewayBuilder
      * @var string[]
      */
     private array $requiredInterceptorNames = [];
-    private bool $withLazyBuild = false;
 
     /**
      * GatewayProxyBuilder constructor.
@@ -147,17 +144,6 @@ class GatewayProxyBuilder implements GatewayBuilder
     public function withReplyMillisecondTimeout(int $replyMillisecondsTimeout): self
     {
         $this->replyMilliSecondsTimeout = $replyMillisecondsTimeout;
-
-        return $this;
-    }
-
-    /**
-     * @param bool $withLazyBuild
-     * @return GatewayProxyBuilder
-     */
-    public function withLazyBuild(bool $withLazyBuild): GatewayBuilder
-    {
-        $this->withLazyBuild = $withLazyBuild;
 
         return $this;
     }
@@ -335,14 +321,8 @@ class GatewayProxyBuilder implements GatewayBuilder
         /** @var ProxyFactory $proxyFactory */
         $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
 
-        if ($this->withLazyBuild) {
-            $adapter = new ProxyWithBuildCallback(function () use ($referenceSearchService, $channelResolver) {
-                return $this->buildWithoutProxyObject($referenceSearchService, $channelResolver);
-            });
-        } else {
-            $gateway = $this->buildWithoutProxyObject($referenceSearchService, $channelResolver);
-            $adapter = new ProxyWithDirectReference($gateway);
-        }
+        $gateway = $this->buildWithoutProxyObject($referenceSearchService, $channelResolver);
+        $adapter = new GatewayProxyAdapter([$this->getRelatedMethodName() => $gateway]);
 
         return $proxyFactory->createProxyClassWithAdapter($this->interfaceName, $adapter);
     }

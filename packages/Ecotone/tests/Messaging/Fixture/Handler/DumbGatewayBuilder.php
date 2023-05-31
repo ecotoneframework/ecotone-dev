@@ -43,14 +43,6 @@ class DumbGatewayBuilder implements GatewayBuilder
     /**
      * @inheritDoc
      */
-    public function withLazyBuild(bool $withLazyBuild): self
-    {
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getReferenceName(): string
     {
         return 'dumb';

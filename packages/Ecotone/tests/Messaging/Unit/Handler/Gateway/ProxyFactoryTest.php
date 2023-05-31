@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
-use Ecotone\Messaging\Handler\Gateway\Proxy\ProxyWithBuildCallback;
+use Ecotone\Messaging\Handler\Gateway\GatewayProxyAdapter;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -21,7 +21,7 @@ class ProxyFactoryTest extends TestCase
         $proxyFactory = unserialize(serialize($proxyFactory));
 
         /** @var StringReturningGateway $proxy */
-        $proxy = $proxyFactory->createProxyClassWithAdapter(StringReturningGateway::class, new ProxyWithBuildCallback(GatewayExecuteClass::createBuildClosure($data)));
+        $proxy = $proxyFactory->createProxyClassWithAdapter(StringReturningGateway::class, new GatewayProxyAdapter(['executeNoParams' => new GatewayExecuteClass($data)]));
 
         $this->assertEquals($data, $proxy->executeNoParams());
     }
@@ -39,7 +39,7 @@ class ProxyFactoryTest extends TestCase
         $proxyFactory = unserialize(serialize($proxyFactory));
 
         /** @var StringReturningGateway $proxy */
-        $proxy = $proxyFactory->createProxyClassWithAdapter(StringReturningGateway::class, new ProxyWithBuildCallback(GatewayExecuteClass::createBuildClosure($data)));
+        $proxy = $proxyFactory->createProxyClassWithAdapter(StringReturningGateway::class, new GatewayProxyAdapter(['executeNoParams' => new GatewayExecuteClass($data)]));
 
         $this->assertEquals($data, $proxy->executeNoParams());
     }

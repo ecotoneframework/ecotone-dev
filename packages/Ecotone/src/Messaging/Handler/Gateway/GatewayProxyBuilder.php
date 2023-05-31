@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderV
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadExpressionBuilder;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
+use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\NonProxyGateway;
@@ -33,7 +34,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  * @package Ecotone\Messaging\Config
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class GatewayProxyBuilder implements GatewayBuilder
+class GatewayProxyBuilder implements InterceptedEndpoint
 {
     public const DEFAULT_REPLY_MILLISECONDS_TIMEOUT = -1;
 
@@ -182,7 +183,7 @@ class GatewayProxyBuilder implements GatewayBuilder
 
     /**
      * @param GatewayParameterConverterBuilder[] $methodArgumentConverters
-     * @return GatewayProxyBuilder
+     * @return $this
      * @throws MessagingException
      */
     public function withParameterConverters(array $methodArgumentConverters): self
@@ -201,9 +202,9 @@ class GatewayProxyBuilder implements GatewayBuilder
 
     /**
      * @param string[] $messageConverterReferenceNames
-     * @return GatewayProxyBuilder
+     * @return $this
      */
-    public function withMessageConverters(array $messageConverterReferenceNames): GatewayBuilder
+    public function withMessageConverters(array $messageConverterReferenceNames): self
     {
         $this->messageConverterReferenceNames = $messageConverterReferenceNames;
         foreach ($messageConverterReferenceNames as $messageConverterReferenceName) {
@@ -237,7 +238,7 @@ class GatewayProxyBuilder implements GatewayBuilder
      * @param MethodInterceptor $methodInterceptor
      * @return $this
      */
-    public function addBeforeInterceptor(MethodInterceptor $methodInterceptor): GatewayBuilder
+    public function addBeforeInterceptor(MethodInterceptor $methodInterceptor): self
     {
         $this->beforeInterceptors[] = $methodInterceptor;
 
@@ -248,7 +249,7 @@ class GatewayProxyBuilder implements GatewayBuilder
      * @param MethodInterceptor $methodInterceptor
      * @return $this
      */
-    public function addAfterInterceptor(MethodInterceptor $methodInterceptor): GatewayBuilder
+    public function addAfterInterceptor(MethodInterceptor $methodInterceptor): self
     {
         $this->afterInterceptors[] = $methodInterceptor;
 

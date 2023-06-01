@@ -106,8 +106,6 @@ final class MessageHeaders
      */
     public const REVISION = 'revision';
 
-    public const PROTECT_FROM_PROPAGATED_HEADERS = 'protectFromPropagatedHeaders';
-
     private array $headers;
 
     /**
@@ -163,7 +161,6 @@ final class MessageHeaders
             self::POLLED_CHANNEL_NAME,
             self::REPLY_CONTENT_TYPE,
             self::CONSUMER_ENDPOINT_ID,
-            self::PROTECT_FROM_PROPAGATED_HEADERS,
             MessagingEntrypoint::ENTRYPOINT
         ];
     }

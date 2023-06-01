@@ -13,11 +13,11 @@ use Test\Ecotone\Modelling\Fixture\MetadataPropagatingWithDoubleEventHandlers\Or
 
 final class MetadataPropagatingTest extends TestCase
 {
-    public function test_propagating_headers_to_all_published_event_handlers()
+    public function test_propagating_headers_to_all_published_synchronous_event_handlers(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
-            [new OrderService()]
+            classesToResolve: [OrderService::class],
+            containerOrAvailableServices: [new OrderService()]
         );
 
         $ecotoneTestSupport->sendCommandWithRoutingKey(
@@ -33,12 +33,12 @@ final class MetadataPropagatingTest extends TestCase
         $this->assertEquals('123', $notifications[1]['userId']);
     }
 
-    public function test_propagating_headers_to_all_published_asynchronous_event_handlers()
+    public function test_propagating_headers_to_all_published_asynchronous_event_handlers(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
-            [new OrderService()],
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            classesToResolve: [OrderService::class],
+            containerOrAvailableServices: [new OrderService()],
+            configuration: ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders')
                 ])

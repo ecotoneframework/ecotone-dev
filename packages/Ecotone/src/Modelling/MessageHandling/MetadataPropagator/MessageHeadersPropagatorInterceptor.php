@@ -5,7 +5,6 @@ namespace Ecotone\Modelling\MessageHandling\MetadataPropagator;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Throwable;
 
 class MessageHeadersPropagatorInterceptor
 {
@@ -30,11 +29,11 @@ class MessageHeadersPropagatorInterceptor
 
     public function propagateHeaders(array $headers): array
     {
-        if (isset($headers[MessageHeaders::PROTECT_FROM_PROPAGATED_HEADERS]) && $headers[MessageHeaders::PROTECT_FROM_PROPAGATED_HEADERS]) {
-            return $headers;
+        try {
+            return array_merge($this->getLastHeaders(), $headers);
+        } finally {
+            array_shift($this->currentlyPropagatedHeaders);
         }
-
-        return array_merge($this->getLastHeaders(), $headers);
     }
 
     public function getLastHeaders(): array

@@ -32,7 +32,6 @@ final class ChannelProjectionExecutor implements ProjectionExecutor
                     ProjectionEventHandler::PROJECTION_IS_REBUILDING => $this->projectionStatus == ProjectionStatus::REBUILDING(),
                     ProjectionEventHandler::PROJECTION_NAME => $this->projectionSetupConfiguration->getProjectionName(),
                     ProjectionEventHandler::PROJECTION_IS_POLLING => true,
-                    MessageHeaders::PROTECT_FROM_PROPAGATED_HEADERS => true
                 ]
             ),
             $projectionEventHandler->getSynchronousRequestChannelName()

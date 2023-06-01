@@ -21,11 +21,4 @@ interface ChannelResolver
      * @throws DestinationResolutionException
      */
     public function resolve($channelName): MessageChannel;
-
-    /**
-     * @param string $channelName
-     *
-     * @return bool
-     */
-    public function hasChannelWithName(string $channelName): bool;
 }

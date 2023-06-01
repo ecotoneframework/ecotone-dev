@@ -100,22 +100,6 @@ class InMemoryChannelResolver implements ChannelResolver
     }
 
     /**
-     * @inheritDoc
-     */
-    public function hasChannelWithName(string $channelName): bool
-    {
-        if (array_key_exists($channelName, $this->resolvableChannels)) {
-            return true;
-        }
-
-        if ($this->externalChannelResolver) {
-            return $this->externalChannelResolver->hasChannelWithName($channelName);
-        }
-
-        return false;
-    }
-
-    /**
      * @param array|NamedMessageChannel[] $namedMessageChannels
      * @throws \Ecotone\Messaging\MessagingException
      */

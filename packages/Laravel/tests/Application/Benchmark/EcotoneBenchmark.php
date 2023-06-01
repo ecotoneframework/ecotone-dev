@@ -7,8 +7,10 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
 use PHPUnit\Framework\TestCase;
 
-class
-EcotoneBenchmark extends TestCase
+/**
+ * @internal
+ */
+class EcotoneBenchmark extends TestCase
 {
     /**
      * @Revs(10)
@@ -17,7 +19,7 @@ EcotoneBenchmark extends TestCase
      */
     public function bench_kernel_boot_on_prod()
     {
-        putenv("APP_ENV=production");
+        putenv('APP_ENV=production');
         $this->createApplication();
     }
 

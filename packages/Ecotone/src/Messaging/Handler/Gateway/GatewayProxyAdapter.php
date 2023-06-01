@@ -6,7 +6,8 @@ use Ecotone\Messaging\Handler\NonProxyGateway;
 use InvalidArgumentException;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
 
-class GatewayProxyAdapter implements AdapterInterface {
+class GatewayProxyAdapter implements AdapterInterface
+{
     /**
      * @var NonProxyGateway[]
      */

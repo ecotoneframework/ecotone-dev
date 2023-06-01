@@ -12,6 +12,9 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriber;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 
+/**
+ * @internal
+ */
 class EcotoneBenchmark extends TestCase
 {
     /**
@@ -65,7 +68,7 @@ class EcotoneBenchmark extends TestCase
         $ecotoneApplication = EcotoneLite::bootstrap(
             [Merchant::class, User::class, MerchantSubscriber::class, InMemoryStandardRepository::class],
             [
-                new MerchantSubscriber(), InMemoryStandardRepository::createEmpty()
+                new MerchantSubscriber(), InMemoryStandardRepository::createEmpty(),
             ],
             $serviceConfiguration,
             useCachedVersion: $useCachedVersion,

@@ -229,7 +229,7 @@ class Gateway implements NonProxyGateway
 
         return $chainHandler
             ->build(
-                InMemoryChannelResolver::createWithChannelResolver($this->channelResolver, []),
+                $this->channelResolver,
                 $this->referenceSearchService
             );
     }

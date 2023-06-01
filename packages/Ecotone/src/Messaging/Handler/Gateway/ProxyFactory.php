@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
+use ProxyManager\Autoloader\AutoloaderInterface;
 use ProxyManager\Configuration;
 use ProxyManager\Factory\LazyLoadingValueHolderFactory;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
@@ -108,6 +109,15 @@ class ProxyFactory implements Serializable
         $factory = new RemoteObjectFactory($adapter, $this->getConfiguration());
 
         return $factory->createProxy($interfaceName);
+    }
+
+    public function registerAutoloader(): AutoloaderInterface
+    {
+        $autoloader = $this->getConfiguration()->getProxyAutoloader();
+
+        \spl_autoload_register($autoloader);
+
+        return $autoloader;
     }
 
     /**

@@ -89,7 +89,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
     /**
      * @param ReferenceSearchService $referenceSearchService
      * @param MessageChannelBuilder[] $messageChannelBuilders
-     * @param ChannelInterceptorBuilder[] $messageChannelInterceptors
+     * @param array<string, ChannelInterceptorBuilder[]> $messageChannelInterceptors
      * @param GatewayProxyBuilder[][] $gatewayBuilders
      * @param MessageHandlerConsumerBuilder[] $messageHandlerConsumerFactories
      * @param PollingMetadata[] $pollingMetadataConfigurations
@@ -187,7 +187,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
     }
 
     /**
-     * @param ChannelInterceptorBuilder[] $channelInterceptorBuilders
+     * @param array<string, ChannelInterceptorBuilder[]> $channelInterceptorBuilders
      * @param MessageChannelBuilder[] $channelBuilders
      * @param ReferenceSearchService $referenceSearchService
      * @throws MessagingException
@@ -197,16 +197,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         $channels = [];
         foreach ($channelBuilders as $channelsBuilder) {
             $messageChannel = $channelsBuilder->build($referenceSearchService);
-            $interceptorsForChannel = [];
-            foreach ($channelInterceptorBuilders as $channelName => $interceptors) {
-                $regexChannel = str_replace('*', '.*', $channelName);
-                $regexChannel = str_replace('\\', '\\\\', $regexChannel);
-                if (preg_match("#^{$regexChannel}$#", $channelsBuilder->getMessageChannelName())) {
-                    $interceptorsForChannel = array_merge($interceptorsForChannel, array_map(function (ChannelInterceptorBuilder $channelInterceptorBuilder) use ($referenceSearchService) {
-                        return $channelInterceptorBuilder->build($referenceSearchService);
-                    }, $interceptors));
-                }
-            }
+            $interceptorsForChannel = array_map(fn ($channelInterceptorBuilder) => $channelInterceptorBuilder->build($referenceSearchService), $channelInterceptorBuilders[$channelsBuilder->getMessageChannelName()] ?? []);
 
             if ($messageChannel instanceof PollableChannel && $interceptorsForChannel) {
                 $messageChannel = new PollableChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);

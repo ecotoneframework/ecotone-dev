@@ -57,10 +57,9 @@ class InterfaceToCallRegistry
     /**
      * @param InterfaceToCall[] $interfacesToCall
      * @param bool $isLocked
-     * @param ReferenceSearchService $referenceSearchService
      * @return InterfaceToCallRegistry
      */
-    public static function createWithInterfaces(iterable $interfacesToCall, bool $isLocked, ReferenceSearchService $referenceSearchService): self
+    public static function createWithInterfaces(iterable $interfacesToCall, bool $isLocked): self
     {
         $self = new self(null, $isLocked);
         foreach ($interfacesToCall as $interfaceToCall) {

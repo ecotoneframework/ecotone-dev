@@ -1200,7 +1200,7 @@ final class MessagingSystemConfiguration implements Configuration
 
     public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService): ConfiguredMessagingSystem
     {
-        $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration, $referenceSearchService);
+        $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration);
         if (! $this->isLazyConfiguration) {
             $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $this->applicationConfiguration);
         }
@@ -1213,8 +1213,25 @@ final class MessagingSystemConfiguration implements Configuration
         /** @var ProxyFactory $proxyFactory */
         $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
         $proxyFactory->warmUpCacheFor($this->gatewayClassesToGenerateProxies);
-        spl_autoload_register($proxyFactory->getConfiguration()->getProxyAutoloader());
+        $proxyFactory->registerAutoloader();
 
+        return MessagingSystem::createFrom(
+            $referenceSearchService,
+            $this->channelBuilders,
+            $this->getChannelInterceptorsByChannel(),
+            $this->getPreparedGateways(),
+            $this->consumerFactories,
+            $this->pollingMetadata,
+            $this->messageHandlerBuilders,
+            $this->channelAdapters,
+            $this->consoleCommands
+        );
+    }
+
+    /**
+     * @return array<string, ChannelInterceptorBuilder[]>
+     */
+    public function getChannelInterceptorsByChannel(): array {
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         arsort($channelInterceptorsByImportance);
         $channelInterceptorsByChannelName = [];
@@ -1225,23 +1242,31 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
+        $channelInterceptorsByName = [];
+        foreach ($this->channelBuilders as $channelsBuilder) {
+            /** @var ChannelInterceptorBuilder[] $interceptorsForChannel */
+            $interceptorsForChannel = [];
+            foreach ($channelInterceptorsByChannelName as $channelName => $channelInterceptors) {
+                $regexChannel = str_replace('*', '.*', $channelName);
+                $regexChannel = str_replace('\\', '\\\\', $regexChannel);
+                if (preg_match("#^{$regexChannel}$#", $channelsBuilder->getMessageChannelName())) {
+                    $interceptorsForChannel = array_merge($interceptorsForChannel, $channelInterceptors);
+                }
+            }
+            $channelInterceptorsByName[$channelsBuilder->getMessageChannelName()] = $interceptorsForChannel;
+        }
+        return $channelInterceptorsByName;
+    }
+
+    /** @return GatewayProxyBuilder[][] */
+    public function getPreparedGateways(): array
+    {
         /** @var GatewayProxyBuilder[][] $preparedGateways */
         $preparedGateways = [];
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
             $preparedGateways[$gatewayBuilder->getReferenceName()][] = $gatewayBuilder->withMessageConverters($this->messageConverterReferenceNames);
         }
-
-        return MessagingSystem::createFrom(
-            $referenceSearchService,
-            $this->channelBuilders,
-            $channelInterceptorsByChannelName,
-            $preparedGateways,
-            $this->consumerFactories,
-            $this->pollingMetadata,
-            $this->messageHandlerBuilders,
-            $this->channelAdapters,
-            $this->consoleCommands
-        );
+        return $preparedGateways;
     }
 
     /**

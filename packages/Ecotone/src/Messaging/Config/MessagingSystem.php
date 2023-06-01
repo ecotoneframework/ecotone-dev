@@ -192,7 +192,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      * @param ReferenceSearchService $referenceSearchService
      * @throws MessagingException
      */
-    private static function createChannelResolver(array $channelInterceptorBuilders, array $channelBuilders, ReferenceSearchService $referenceSearchService): InMemoryChannelResolver
+    private static function createChannelResolver(array $channelInterceptorBuilders, array $channelBuilders, ReferenceSearchService $referenceSearchService): ChannelResolver
     {
         $channels = [];
         foreach ($channelBuilders as $channelsBuilder) {
@@ -214,10 +214,10 @@ final class MessagingSystem implements ConfiguredMessagingSystem
                 $messageChannel = new EventDrivenChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);
             }
 
-            $channels[] = NamedMessageChannel::create($channelsBuilder->getMessageChannelName(), $messageChannel);
+            $channels[$channelsBuilder->getMessageChannelName()] = $messageChannel;
         }
 
-        return InMemoryChannelResolver::create($channels);
+        return new ContainerChannelResolver(InMemoryPSRContainer::createFromAssociativeArray($channels));
     }
 
     /**

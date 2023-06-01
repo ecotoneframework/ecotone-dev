@@ -29,11 +29,11 @@ class MessageHeadersPropagatorInterceptor
 
     public function propagateHeaders(array $headers): array
     {
-        try {
-            return array_merge($this->getLastHeaders(), $headers);
-        } finally {
-            array_shift($this->currentlyPropagatedHeaders);
+        if (array_key_exists(MessageHeaders::STREAM_BASED_SOURCED, $headers) && $headers[MessageHeaders::STREAM_BASED_SOURCED]) {
+            return $headers;
         }
+
+        return array_merge($this->getLastHeaders(), $headers);
     }
 
     public function getLastHeaders(): array

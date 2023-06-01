@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
+
+use function end;
+
 use InvalidArgumentException;
 
 class OrderService
@@ -29,7 +32,7 @@ class OrderService
         throw new InvalidArgumentException('failed action');
     }
 
-    #[Asynchronous("orders")]
+    #[Asynchronous('orders')]
     #[EventHandler(endpointId: 'notifyOne')]
     public function notifyOne(OrderWasPlaced $event, array $headers, CommandBus $commandBus): void
     {
@@ -58,7 +61,7 @@ class OrderService
     #[QueryHandler('getNotificationHeaders')]
     public function getNotificationHeaders(): array
     {
-        return \end($this->notificationHeaders);
+        return end($this->notificationHeaders);
     }
 
     #[QueryHandler('getAllNotificationHeaders')]

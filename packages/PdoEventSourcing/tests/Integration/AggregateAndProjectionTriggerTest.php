@@ -17,16 +17,20 @@ use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\NotificationService
 use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\StateAndEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\TicketCounterProjection;
 
+/**
+ * @internal
+ */
 final class AggregateAndProjectionTriggerTest extends EventSourcingMessagingTest
 {
     public function test_triggering_projection_with_state_synchronously()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [], [new TicketEventConverter(), new StateAndEventConverter(), new NotificationService(), new TicketCounterProjection(), DbalConnectionFactory::class => $this->getConnectionFactory()],
+            [],
+            [new TicketEventConverter(), new StateAndEventConverter(), new NotificationService(), new TicketCounterProjection(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\Ticket', 'Test\Ecotone\EventSourcing\Fixture\TicketProjectionState']),
-            pathToRootCatalog: __DIR__ . "/../../",
+            pathToRootCatalog: __DIR__ . '/../../',
             addEventSourcedRepository: false
         );
 

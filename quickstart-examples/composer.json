@@ -42,7 +42,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.85.4-dev"
+            "dev-main": "1.86.0-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"

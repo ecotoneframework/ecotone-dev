@@ -2,13 +2,15 @@
 
 namespace Test\Ecotone\Modelling\Fixture\MetadataPropagating;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
+
+use function end;
+
 use InvalidArgumentException;
 
 class OrderService
@@ -56,7 +58,7 @@ class OrderService
     #[QueryHandler('getNotificationHeaders')]
     public function getNotificationHeaders(): array
     {
-        return \end($this->notificationHeaders);
+        return end($this->notificationHeaders);
     }
 
     #[QueryHandler('getAllNotificationHeaders')]

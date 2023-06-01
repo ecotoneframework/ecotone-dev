@@ -11,6 +11,9 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\MetadataPropagatingWithDoubleEventHandlers\OrderService;
 
+/**
+ * @internal
+ */
 final class MetadataPropagatingTest extends TestCase
 {
     public function test_propagating_headers_to_all_published_synchronous_event_handlers(): void
@@ -23,7 +26,7 @@ final class MetadataPropagatingTest extends TestCase
         $ecotoneTestSupport->sendCommandWithRoutingKey(
             'placeOrder',
             metadata: [
-                'userId' => '123'
+                'userId' => '123',
             ]
         );
 
@@ -40,14 +43,14 @@ final class MetadataPropagatingTest extends TestCase
             containerOrAvailableServices: [new OrderService()],
             configuration: ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('orders')
+                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ])
         );
 
         $ecotoneTestSupport->sendCommandWithRoutingKey(
             'placeOrder',
             metadata: [
-                'userId' => '123'
+                'userId' => '123',
             ]
         );
 

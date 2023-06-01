@@ -30,7 +30,7 @@ final class NotificationService
         }
     }
 
-    #[QueryHandler("getNotificationCountWithFoo")]
+    #[QueryHandler('getNotificationCountWithFoo')]
     public function getNotificationCountWithFoo(): int
     {
         return $this->fooCounter;

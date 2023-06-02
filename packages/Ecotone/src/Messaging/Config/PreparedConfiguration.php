@@ -137,10 +137,6 @@ class PreparedConfiguration
             $converters[] = $converterBuilder->build($referenceSearchService);
         }
         $referenceSearchService = $this->prepareReferenceSearchServiceWithInternalReferences($referenceSearchService, $converters, $this->interfaceToCallRegistry);
-        /** @var ProxyFactory $proxyFactory */
-        $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
-        $proxyFactory->warmUpCacheFor($this->gatewayClassesToGenerateProxies);
-        $proxyFactory->registerAutoloader();
 
         return MessagingSystem::createFrom(
             $referenceSearchService,

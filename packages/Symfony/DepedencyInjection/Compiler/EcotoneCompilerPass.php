@@ -13,6 +13,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
@@ -49,7 +50,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
         return realpath(($container->hasParameter('kernel.project_dir') ? $container->getParameter('kernel.project_dir') : $container->getParameter('kernel.root_dir') . '/..'));
     }
 
-    public static function getMessagingConfiguration(ContainerInterface $container): MessagingSystemConfiguration
+    private static function getMessagingConfiguration(ContainerInterface $container): MessagingSystemConfiguration
     {
         $ecotoneCacheDirectory    = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
@@ -98,7 +99,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
         );
     }
 
-    private function dumpConfiguration(MessagingSystemConfiguration $messagingConfiguration, string $filename): void
+    private static function dumpConfiguration(MessagingSystemConfiguration $messagingConfiguration, string $filename): void
     {
         $preparedConfiguration = $messagingConfiguration->getPreparedConfiguration();
         $code = VarExporter::export($preparedConfiguration);
@@ -111,6 +112,7 @@ return ' . $code . ';');
         $messagingConfiguration = $this->getMessagingConfiguration($container);
         $cacheDirectoryPath = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
         $preparedConfigurationFilename = $cacheDirectoryPath . DIRECTORY_SEPARATOR . 'prepared_configuration.php';
+        $container->setParameter('ecotone.cache_directory', '%kernel.cache_dir%'.self::CACHE_DIRECTORY_SUFFIX);
 
         $this->dumpConfiguration($messagingConfiguration, $preparedConfigurationFilename);
 
@@ -119,6 +121,15 @@ return ' . $code . ';');
         $definition->setPublic(true);
         $definition->addArgument(new Reference('service_container'));
         $container->setDefinition(ConfigurationVariableService::REFERENCE_NAME, $definition);
+
+        $definition =( new Definition())
+            ->setClass(ProxyFactory::class)
+            ->setFactory([null, 'createWithCache'])
+            ->addArgument("%ecotone.cache_directory%")
+            ->setPublic(true)
+            ->addTag('container.preload', ['class' => ProxyFactory::class]);
+        $container->setDefinition(ProxyFactory::class, $definition);
+
 
         $definition = new $definition();
         $definition->setClass(CacheCleaner::class);
@@ -139,7 +150,7 @@ return ' . $code . ';');
             $definition->addArgument($gatewayProxyBuilder->getReferenceName());
             $definition->addArgument(new Reference('service_container'));
             $definition->addArgument($gatewayProxyBuilder->getInterfaceName());
-            $definition->addArgument('%kernel.cache_dir%'.self::CACHE_DIRECTORY_SUFFIX);
+            $definition->addArgument("%ecotone.cache_directory%");
             $definition->addArgument($container->getParameter(self::FAIL_FAST_CONFIG));
             $definition->setPublic(true);
 

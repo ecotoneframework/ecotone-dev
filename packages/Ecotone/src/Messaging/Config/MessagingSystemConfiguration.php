@@ -1225,6 +1225,11 @@ final class MessagingSystemConfiguration implements Configuration
 
     public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService): ConfiguredMessagingSystem
     {
+        /** @var ProxyFactory $proxyFactory */
+        $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
+        $proxyFactory->warmUpCacheFor($this->gatewayClassesToGenerateProxies);
+        $proxyFactory->registerAutoloader();
+
         return $this->getPreparedConfiguration()->buildMessagingSystemFromConfiguration($referenceSearchService);
     }
 

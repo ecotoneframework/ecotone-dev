@@ -56,7 +56,7 @@
             "vendor/bin/behat -vvv"
         ],
         "tests:phpbench": [
-            "vendor/bin/phpbench run tests/Benchmark --bootstrap=./vendor/autoload.php"
+            "vendor/bin/phpbench run"
         ],
         "tests:ci": [
             "@tests:phpstan",

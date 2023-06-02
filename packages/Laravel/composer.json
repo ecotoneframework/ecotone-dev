@@ -70,7 +70,7 @@
             "vendor/bin/phpunit"
         ],
         "tests:phpbench": [
-            "vendor/bin/phpbench run tests/Application/Benchmark --bootstrap=./vendor/autoload.php"
+            "vendor/bin/phpbench run"
         ],
         "tests:ci": [
             "@tests:phpstan",

@@ -23,6 +23,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\VarExporter\VarExporter;
 
 class EcotoneCompilerPass implements CompilerPassInterface
 {
@@ -48,7 +49,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
         return realpath(($container->hasParameter('kernel.project_dir') ? $container->getParameter('kernel.project_dir') : $container->getParameter('kernel.root_dir') . '/..'));
     }
 
-    public static function getMessagingConfiguration(ContainerInterface $container, bool $useCachedVersion = false): Configuration
+    public static function getMessagingConfiguration(ContainerInterface $container): MessagingSystemConfiguration
     {
         $ecotoneCacheDirectory    = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
@@ -93,13 +94,25 @@ class EcotoneCompilerPass implements CompilerPassInterface
             self::getRootProjectPath($container),
             $configurationVariableService,
             $serviceConfiguration,
-            $useCachedVersion,
+            false,
         );
+    }
+
+    private function dumpConfiguration(MessagingSystemConfiguration $messagingConfiguration, string $filename): void
+    {
+        $preparedConfiguration = $messagingConfiguration->getPreparedConfiguration();
+        $code = VarExporter::export($preparedConfiguration);
+        file_put_contents($filename, '<?php
+return ' . $code . ';');
     }
 
     public function process(ContainerBuilder $container)
     {
         $messagingConfiguration = $this->getMessagingConfiguration($container);
+        $cacheDirectoryPath = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
+        $preparedConfigurationFilename = $cacheDirectoryPath . DIRECTORY_SEPARATOR . 'prepared_configuration.php';
+
+        $this->dumpConfiguration($messagingConfiguration, $preparedConfigurationFilename);
 
         $definition = new Definition();
         $definition->setClass(SymfonyConfigurationVariableService::class);
@@ -167,16 +180,13 @@ class EcotoneCompilerPass implements CompilerPassInterface
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
         }
 
-        $definition = new Definition();
-        $definition->setClass(MessagingSystemFactory::class);
-        $definition->addArgument(new Reference('service_container'));
-        $definition->addArgument(new Reference(ReferenceSearchService::class));
-        $container->setDefinition(MessagingSystemFactory::class, $definition);
-
-        $definition = new Definition();
-        $definition->setClass(ConfiguredMessagingSystem::class);
-        $definition->setPublic(true);
-        $definition->setFactory(new Reference(MessagingSystemFactory::class));
+        $definition = (new Definition())
+            ->setClass(ConfiguredMessagingSystem::class)
+            ->setPublic(true)
+            ->setFactory([MessagingSystemFactory::class, 'create'])
+            ->addArgument(new Reference(ReferenceSearchService::class))
+            ->addArgument($preparedConfigurationFilename)
+        ;
         $container->setDefinition(ConfiguredMessagingSystem::class, $definition);
     }
 }

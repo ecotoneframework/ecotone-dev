@@ -711,7 +711,7 @@ final class MessagingSystemConfiguration implements Configuration
         return new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults());
     }
 
-    public static function prepare(string $rootPathToSearchConfigurationFor, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $serviceConfiguration, bool $useCachedVersion, array $userLandClassesToRegister = [], bool $enableTestPackage = false): Configuration
+    public static function prepare(string $rootPathToSearchConfigurationFor, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $serviceConfiguration, bool $useCachedVersion, array $userLandClassesToRegister = [], bool $enableTestPackage = false): self
     {
         if ($useCachedVersion) {
             Assert::isTrue((bool)$serviceConfiguration->getCacheDirectoryPath(), "Can't make use of cached version of messaging if no cache path is defined");
@@ -756,7 +756,7 @@ final class MessagingSystemConfiguration implements Configuration
         return $cachedVersion;
     }
 
-    public static function prepareWithAnnotationFinder(AnnotationFinder $annotationFinder, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $serviceConfiguration): Configuration
+    public static function prepareWithAnnotationFinder(AnnotationFinder $annotationFinder, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $serviceConfiguration): self
     {
         $preparationInterfaceRegistry = InterfaceToCallRegistry::createWith($annotationFinder);
 
@@ -771,7 +771,7 @@ final class MessagingSystemConfiguration implements Configuration
         );
     }
 
-    public static function getCachedVersion(?string $cacheDirectoryPath): ?MessagingSystemConfiguration
+    public static function getCachedVersion(?string $cacheDirectoryPath): ?self
     {
         if (! $cacheDirectoryPath) {
             return null;
@@ -785,7 +785,7 @@ final class MessagingSystemConfiguration implements Configuration
         return null;
     }
 
-    public static function prepareWithModuleRetrievingService(ModuleRetrievingService $moduleConfigurationRetrievingService, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): MessagingSystemConfiguration
+    public static function prepareWithModuleRetrievingService(ModuleRetrievingService $moduleConfigurationRetrievingService, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): self
     {
         $cacheDirectoryPath = $applicationConfiguration->getCacheDirectoryPath();
         if ($cacheDirectoryPath) {
@@ -1198,25 +1198,18 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService): ConfiguredMessagingSystem
+    public function getPreparedConfiguration(): PreparedConfiguration
     {
         $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration);
+
         if (! $this->isLazyConfiguration) {
             $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $this->applicationConfiguration);
         }
 
-        $converters = [];
-        foreach ($this->converterBuilders as $converterBuilder) {
-            $converters[] = $converterBuilder->build($referenceSearchService);
-        }
-        $referenceSearchService = $this->prepareReferenceSearchServiceWithInternalReferences($referenceSearchService, $converters, $interfaceToCallRegistry);
-        /** @var ProxyFactory $proxyFactory */
-        $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
-        $proxyFactory->warmUpCacheFor($this->gatewayClassesToGenerateProxies);
-        $proxyFactory->registerAutoloader();
-
-        return MessagingSystem::createFrom(
-            $referenceSearchService,
+        return new PreparedConfiguration(
+            $interfaceToCallRegistry,
+            $this->applicationConfiguration,
+            $this->converterBuilders,
             $this->channelBuilders,
             $this->getChannelInterceptorsByChannel(),
             $this->getPreparedGateways(),
@@ -1224,8 +1217,15 @@ final class MessagingSystemConfiguration implements Configuration
             $this->pollingMetadata,
             $this->messageHandlerBuilders,
             $this->channelAdapters,
-            $this->consoleCommands
+            $this->consoleCommands,
+            $this->moduleReferenceSearchService->getAllRegisteredReferences(),
+            $this->gatewayClassesToGenerateProxies,
         );
+    }
+
+    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService): ConfiguredMessagingSystem
+    {
+        return $this->getPreparedConfiguration()->buildMessagingSystemFromConfiguration($referenceSearchService);
     }
 
     /**
@@ -1267,30 +1267,6 @@ final class MessagingSystemConfiguration implements Configuration
             $preparedGateways[$gatewayBuilder->getReferenceName()][] = $gatewayBuilder->withMessageConverters($this->messageConverterReferenceNames);
         }
         return $preparedGateways;
-    }
-
-    /**
-     * @param ReferenceSearchService $referenceSearchService
-     * @param array $converters
-     * @param InterfaceToCallRegistry $interfaceToCallRegistry
-     *
-     * @return InMemoryReferenceSearchService|ReferenceSearchService
-     * @throws MessagingException
-     * @throws ReferenceNotFoundException
-     */
-    private function prepareReferenceSearchServiceWithInternalReferences(ReferenceSearchService $referenceSearchService, array $converters, InterfaceToCallRegistry $interfaceToCallRegistry): InMemoryReferenceSearchService
-    {
-        return InMemoryReferenceSearchService::createWithReferenceService(
-            $referenceSearchService,
-            array_merge(
-                $this->moduleReferenceSearchService->getAllRegisteredReferences(),
-                [
-                    ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createWith($converters),
-                    InterfaceToCallRegistry::REFERENCE_NAME => $interfaceToCallRegistry,
-                    ServiceConfiguration::class => $this->applicationConfiguration,
-                ]
-            )
-        );
     }
 
     public function getRegisteredConsoleCommands(): array

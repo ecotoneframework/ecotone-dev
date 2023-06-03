@@ -130,13 +130,20 @@ class PreparedConfiguration
         return $this->serviceConfiguration;
     }
 
-    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService): ConfiguredMessagingSystem
+    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService, bool $registerAutoloader = false): ConfiguredMessagingSystem
     {
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {
             $converters[] = $converterBuilder->build($referenceSearchService);
         }
         $referenceSearchService = $this->prepareReferenceSearchServiceWithInternalReferences($referenceSearchService, $converters, $this->interfaceToCallRegistry);
+
+        if ($registerAutoloader) {
+            /** @var ProxyFactory $proxyFactory */
+            $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
+            $proxyFactory->warmUpCacheFor($this->gatewayClassesToGenerateProxies);
+            $proxyFactory->registerAutoloader();
+        }
 
         return MessagingSystem::createFrom(
             $referenceSearchService,

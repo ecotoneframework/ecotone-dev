@@ -3,18 +3,53 @@
   "core.profiles": {
     "ecotone": {
       "runner.bootstrap": "packages/Ecotone/vendor/autoload.php",
-      "runner.path": "packages/Ecotone/tests/Benchmark"
+      "runner.path": "packages/Ecotone/tests/Benchmark",
+      "runner.php_config": {
+        "opcache.enable": 0,
+        "opcache.enable_cli": 0
+      }
     },
     "symfony": {
       "runner.bootstrap": "packages/Symfony/vendor/autoload.php",
-      "runner.path": "packages/Symfony/tests/Benchmark"
+      "runner.path": "packages/Symfony/tests/Benchmark",
+      "runner.php_config": {
+        "opcache.enable": 0,
+        "opcache.enable_cli": 0
+      }
     },
     "laravel": {
       "runner.bootstrap": "packages/Laravel/vendor/autoload.php",
-      "runner.path": "packages/Laravel/tests/Application/Benchmark"
+      "runner.path": "packages/Laravel/tests/Application/Benchmark",
+      "runner.php_config": {
+        "opcache.enable": 0,
+        "opcache.enable_cli": 0
+      }
+    },
+    "ecotone.opcache": {
+      "runner.bootstrap": "packages/Ecotone/vendor/autoload.php",
+      "runner.path": "packages/Ecotone/tests/Benchmark",
+      "runner.php_config": {
+        "opcache.enable": 1,
+        "opcache.enable_cli": 1
+      }
+    },
+    "symfony.opcache": {
+      "runner.bootstrap": "packages/Symfony/vendor/autoload.php",
+      "runner.path": "packages/Symfony/tests/Benchmark",
+      "runner.php_config": {
+        "opcache.enable": 1,
+        "opcache.enable_cli": 1
+      }
+    },
+    "laravel.opcache": {
+      "runner.bootstrap": "packages/Laravel/vendor/autoload.php",
+      "runner.path": "packages/Laravel/tests/Application/Benchmark",
+      "runner.php_config": {
+        "opcache.enable": 1,
+        "opcache.enable_cli": 1
+      }
     }
   },
-  "core.extensions": ["Monorepo\\PhpBenchExtension"],
   "report.generators": {
     "github-report": {
       "generator": "expression",
@@ -22,9 +57,5 @@
       "cols": ["subject", "mem_peak", "mode", "rstdev"]
     }
   },
-  "runner.file_pattern": "*Benchmark.php",
-  "runner.php_config": {
-    "opcache.enable": 1,
-    "opcache.enable_cli": 1
-  }
+  "runner.file_pattern": "*Benchmark.php"
 }

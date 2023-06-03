@@ -1,23 +1,24 @@
 #!/usr/bin/env php
 <?php
 
-use Monorepo\PhpBenchExtension;
-use PhpBench\Console\Application;
-use PhpBench\PhpBench;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Input\StringInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\ConsoleOutput;
 
-require __DIR__ . "/../vendor/autoload.php";
+$vendorDir = __DIR__ . "/../vendor/";
+
+require $vendorDir . "autoload.php";
 
 $profilesToBenchmark = [
     'ecotone',
     'symfony',
-    'laravel'
+    'laravel',
+    'ecotone.opcache',
+    'symfony.opcache',
+    'laravel.opcache'
 ];
 
 $commandInput = new ArgvInput(definition: new InputDefinition([
@@ -32,23 +33,29 @@ $refBaseline = $commandInput->getOption('ref');
 $console = new ConsoleOutput();
 $buffer = new BufferedOutput();
 $buffer->writeln("# PR stats");
-PhpBenchExtension::setDefaultOutput($buffer);
+
 foreach ($profilesToBenchmark as $profile) {
     $buffer->writeln("<details><summary>$profile benchmarks</summary>");
     $buffer->writeln("");
     $inputString = $generateBaseline
-        ? "run --profile=$profile --report=github-report --tag=main.$profile"
-        : "run --profile=$profile --report=github-report";
+        ? "run --profile=$profile --progress=none --report=github-report --tag=main.$profile"
+        : "run --profile=$profile --progress=none --report=github-report";
     if ($refBaseline) {
         $inputString .= " --ref=$refBaseline.$profile";
     }
-    $input = new StringInput($inputString);
 
-    $container = PhpBench::loadContainer($input);
+    $output = [];
+    exec("$vendorDir/bin/phpbench $inputString", $output);
 
-    $app = $container->get(Application::class);
-    $app->setAutoExit(false);
-    $app->run($input, $console);
+    array_shift($output);
+    array_pop($output);
+    array_pop($output);
+
+    $output = array_map(fn($line) => str_replace("-+-", " | ", $line), $output);
+    $output = array_map(fn($line) => str_replace("+-", "| ", $line), $output);
+    $output = array_map(fn($line) => str_replace("-+", " |", $line), $output);
+
+    $buffer->writeln(implode("\n", $output));
     $buffer->writeln("");
     $buffer->writeln("</details>");
 }

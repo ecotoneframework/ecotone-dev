@@ -35,11 +35,12 @@ $buffer->writeln("# PR stats");
 PhpBenchExtension::setDefaultOutput($buffer);
 foreach ($profilesToBenchmark as $profile) {
     $buffer->writeln("<details><summary>$profile benchmarks</summary>");
+    $buffer->writeln("");
     $inputString = $generateBaseline
-        ? "run --profile=$profile --report=aggregate --tag=main"
-        : "run --profile=$profile --report=aggregate";
+        ? "run --profile=$profile --report=github-report --tag=main.$profile"
+        : "run --profile=$profile --report=github-report";
     if ($refBaseline) {
-        $inputString .= " --ref=$refBaseline";
+        $inputString .= " --ref=$refBaseline.$profile";
     }
     $input = new StringInput($inputString);
 
@@ -48,6 +49,7 @@ foreach ($profilesToBenchmark as $profile) {
     $app = $container->get(Application::class);
     $app->setAutoExit(false);
     $app->run($input, $console);
+    $buffer->writeln("");
     $buffer->writeln("</details>");
 }
 

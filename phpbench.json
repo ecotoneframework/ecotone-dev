@@ -15,6 +15,13 @@
     }
   },
   "core.extensions": ["Monorepo\\PhpBenchExtension"],
+  "report.generators": {
+    "github-report": {
+      "generator": "expression",
+      "aggregate": ["benchmark_class", "subject_name", "variant_name"],
+      "cols": ["subject", "mem_peak", "mode", "rstdev"]
+    }
+  },
   "runner.file_pattern": "*Benchmark.php",
   "runner.php_config": {
     "opcache.enable": 1,

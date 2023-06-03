@@ -1,0 +1,101 @@
+name: 'PR stats'
+
+on:
+  pull_request:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  run:
+    name: "Benchmark"
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ ubuntu-latest ]
+        php-versions: [ 8.2 ]
+        stability: [prefer-stable]
+    services:
+      rabbitmq:
+        image: rabbitmq:3.8-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "secret"
+          MYSQL_USER: "ecotone"
+          MYSQL_PASSWORD: "secret"
+          MYSQL_DATABASE: "ecotone"
+          DB_PORT: 3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 3306:3306
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: ecotone
+          POSTGRES_PASSWORD: secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      localstack:
+        image: localstack/localstack:0.8.10
+        env:
+          SERVICES: 'sqs,sns'
+        ports:
+          - '4576:4576'
+          - '4575:4575'
+      redis:
+        image: redis:7-alpine
+        ports:
+          - '6379:6379'
+    env:
+      RABBIT_HOST: amqp://127.0.0.1:5672
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
+      REDIS_DSN: redis://127.0.0.1:6379
+    steps:
+      - name: PHP ${{ matrix.php-versions }} - ${{ matrix.stability }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          coverage: none
+
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+          composer update --working-dir=packages/Ecotone --${{ matrix.stability }} --prefer-dist --no-interaction
+          composer update --working-dir=packages/Symfony --${{ matrix.stability }} --prefer-dist --no-interaction
+          composer update --working-dir=packages/Laravel --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: Download main branch benchmark data
+        uses: actions/cache@v3
+        with:
+          path: ./.phpbench
+          key: ${{ runner.os }}-benchmark-main
+
+      - name: Benchmarks
+        run: bin/run-benchmarks.php pr-stats.md
+        env:
+          DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+          APP_DB_HOST: 127.0.0.1
+          APP_DB_PORT: 5432
+          APP_DB_DRIVER: pdo_pgsql
+
+      - name: Comment PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: pr-stats.md

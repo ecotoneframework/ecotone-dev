@@ -43,11 +43,11 @@ final class ProjectionSetupConfiguration
         return $this->keepStateBetweenEvents;
     }
 
-    public function withProjectionEventHandler(string $eventName, string $className, string $methodName, string $synchronousEventHandlerRequestChannel, string $asynchronousEventHandlerRequestChannel): static
+    public function withProjectionEventHandler(string $eventBusRoutingKey, string $className, string $methodName, string $eventHandlerInputChannel, string $asynchronousEventHandlerRequestChannel): static
     {
-        Assert::keyNotExists($this->projectionEventHandlerConfigurations, $eventName, "Projection {$this->projectionName} has incorrect configuration. Can't register event handler twice for the same event {$eventName}");
+        Assert::keyNotExists($this->projectionEventHandlerConfigurations, $eventBusRoutingKey, "Projection {$this->projectionName} has incorrect configuration. Can't register event handler twice for the same event {$eventBusRoutingKey}");
 
-        $this->projectionEventHandlerConfigurations[$eventName] = new ProjectionEventHandlerConfiguration($className, $methodName, $synchronousEventHandlerRequestChannel, $asynchronousEventHandlerRequestChannel);
+        $this->projectionEventHandlerConfigurations[$eventBusRoutingKey] = new ProjectionEventHandlerConfiguration($className, $methodName, $eventBusRoutingKey, $eventHandlerInputChannel, $asynchronousEventHandlerRequestChannel);
 
         return $this;
     }
@@ -79,6 +79,9 @@ final class ProjectionSetupConfiguration
         return $this->projectionLifeCycleConfiguration;
     }
 
+    /**
+     * @return ProjectionEventHandlerConfiguration[]
+     */
     public function getProjectionEventHandlerConfigurations(): array
     {
         return $this->projectionEventHandlerConfigurations;

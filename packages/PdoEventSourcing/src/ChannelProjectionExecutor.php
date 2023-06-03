@@ -35,7 +35,7 @@ final class ChannelProjectionExecutor implements ProjectionExecutor
                     MessageHeaders::STREAM_BASED_SOURCED => true,
                 ]
             ),
-            $projectionEventHandler->getSynchronousRequestChannelName()
+            $projectionEventHandler->getEventHandlerSynchronousInputChannel()
         );
 
         if (! is_null($state)) {

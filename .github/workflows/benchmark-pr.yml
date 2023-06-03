@@ -82,13 +82,19 @@ jobs:
           composer update --working-dir=packages/Laravel --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Download main branch benchmark data
+        id: cache-benchmark
         uses: actions/cache@v3
         with:
           path: ./.phpbench
           key: ${{ runner.os }}-benchmark-main
 
       - name: Benchmarks
-        run: bin/run-benchmarks.php pr-stats.md
+        run: |
+          if [[ "${{ steps.cache-benchmark.outputs.cache-hit }}" == 'true' ]]; then
+            bin/run-benchmarks.php pr-stats.md --ref=main
+          else
+            bin/run-benchmarks.php pr-stats.md
+          fi
         env:
           DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
           APP_DB_HOST: 127.0.0.1

@@ -23,9 +23,11 @@ $profilesToBenchmark = [
 $commandInput = new ArgvInput(definition: new InputDefinition([
     new InputArgument('output', InputArgument::OPTIONAL),
     new InputOption('--baseline', null, InputOption::VALUE_NONE, 'generate baseline'),
+    new InputOption('--ref', null, InputOption::VALUE_OPTIONAL, 'baseline tag'),
 ]));
 $outputToStream = $commandInput->getArgument('output');
 $generateBaseline = $commandInput->getOption('baseline');
+$refBaseline = $commandInput->getOption('ref');
 
 $console = new ConsoleOutput();
 $buffer = new BufferedOutput();
@@ -33,9 +35,13 @@ $buffer->writeln("# PR stats");
 PhpBenchExtension::setDefaultOutput($buffer);
 foreach ($profilesToBenchmark as $profile) {
     $buffer->writeln("<details><summary>$profile benchmarks</summary>");
-    $input = $generateBaseline
-        ? new StringInput("run --profile=$profile --report=aggregate --tag=main")
-        : new StringInput("run --profile=$profile --report=aggregate --ref=main");
+    $inputString = $generateBaseline
+        ? "run --profile=$profile --report=aggregate --tag=main"
+        : "run --profile=$profile --report=aggregate";
+    if ($refBaseline) {
+        $inputString .= " --ref=$refBaseline";
+    }
+    $input = new StringInput($inputString);
 
     $container = PhpBench::loadContainer($input);
 

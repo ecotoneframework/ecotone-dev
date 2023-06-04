@@ -8,7 +8,7 @@ use Ecotone\Messaging\Attribute\StreamBasedSource;
 use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-class Projection implements StreamBasedSource
+class Projection extends StreamBasedSource
 {
     private string $name;
     private array $fromStreams;

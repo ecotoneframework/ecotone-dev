@@ -25,17 +25,6 @@ class ProjectionEventHandler
     {
     }
 
-    public function beforeEventHandler(Message $message, MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): ?Message
-    {
-        if ($this->shouldBePassedToEventHandler($message)) {
-            return $message;
-        }
-
-        $this->execute($messagingEntrypoint);
-
-        return null;
-    }
-
     public function execute(MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): void
     {
         if (! $this->wasInitialized && $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel()) {
@@ -72,12 +61,5 @@ class ProjectionEventHandler
                 $this->lazyProophProjectionManager->getLazyProophEventStore()->delete($projectionStreamName);
             }
         }
-    }
-
-    private function shouldBePassedToEventHandler(Message $message)
-    {
-        return $message->getHeaders()->containsKey(ProjectionEventHandler::PROJECTION_IS_POLLING)
-            ? $message->getHeaders()->get(ProjectionEventHandler::PROJECTION_IS_POLLING)
-            : false;
     }
 }

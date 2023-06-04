@@ -14,6 +14,8 @@ final class ProjectionSetupConfiguration
     /** @var array http://docs.getprooph.org/event-store/projections.html#Options https://github.com/prooph/pdo-event-store/pull/221/files */
     private array $projectionOptions;
     private bool $keepStateBetweenEvents = true;
+    private string $projectionInputChannel;
+    private string $projectionEndpointId;
 
     private function __construct(
         private string $projectionName,
@@ -25,6 +27,8 @@ final class ProjectionSetupConfiguration
         $this->projectionOptions = [
             PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(),
         ];
+        $this->projectionInputChannel = 'projection_handler_' . $this->projectionName;
+        $this->projectionEndpointId = $this->projectionInputChannel . '_endpoint';
     }
 
     public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource, ?string $asynchronousChannelName): static
@@ -44,11 +48,11 @@ final class ProjectionSetupConfiguration
         return $this->keepStateBetweenEvents;
     }
 
-    public function withProjectionEventHandler(string $eventBusRoutingKey, string $className, string $methodName, string $eventHandlerInputChannel, string $asynchronousEventHandlerRequestChannel): static
+    public function withProjectionEventHandler(string $eventBusRoutingKey, string $className, string $methodName, string $eventHandlerInputChannel): static
     {
         Assert::keyNotExists($this->projectionEventHandlerConfigurations, $eventBusRoutingKey, "Projection {$this->projectionName} has incorrect configuration. Can't register event handler twice for the same event {$eventBusRoutingKey}");
 
-        $this->projectionEventHandlerConfigurations[$eventBusRoutingKey] = new ProjectionEventHandlerConfiguration($className, $methodName, $eventBusRoutingKey, $eventHandlerInputChannel, $asynchronousEventHandlerRequestChannel);
+        $this->projectionEventHandlerConfigurations[$eventBusRoutingKey] = new ProjectionEventHandlerConfiguration($className, $methodName, $eventBusRoutingKey, $eventHandlerInputChannel);
 
         return $this;
     }
@@ -103,20 +107,23 @@ final class ProjectionSetupConfiguration
         return $this->asynchronousChannelName !== null;
     }
 
+    public function getProjectionInputChannel(): string
+    {
+        return $this->projectionInputChannel;
+    }
+
+    public function getProjectionEndpointId(): string
+    {
+        return $this->projectionEndpointId;
+    }
+
     /**
      * If projection is running in asynchronous mode, this channel allows to send
      * a message to trigger it to perform specific action
      */
     public function getTriggeringChannelName(): string
     {
-        if ($this->getProjectionEventHandlerConfigurations()) {
-            /** @var ProjectionEventHandlerConfiguration $first */
-            $first = reset($this->projectionEventHandlerConfigurations);
-
-            return $first->getEventHandlerAsynchronousInputChannel();
-        }
-
-        return NullableMessageChannel::CHANNEL_NAME;
+        return $this->getProjectionInputChannel();
     }
 
     public function getInitializationChannelName(): string

@@ -19,16 +19,17 @@ final class ProjectionSetupConfiguration
         private string $projectionName,
         private ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration,
         private string $eventStoreReferenceName,
-        private ProjectionStreamSource $projectionStreamSource
+        private ProjectionStreamSource $projectionStreamSource,
+        private ?string $asynchronousChannelName
     ) {
         $this->projectionOptions = [
             PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(),
         ];
     }
 
-    public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource): static
+    public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource, ?string $asynchronousChannelName): static
     {
-        return new static($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource);
+        return new static($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource, $asynchronousChannelName);
     }
 
     public function withKeepingStateBetweenEvents(bool $keepState): static
@@ -92,6 +93,16 @@ final class ProjectionSetupConfiguration
         return $this->projectionOptions;
     }
 
+    public function getAsynchronousChannelName(): ?string
+    {
+        return $this->asynchronousChannelName;
+    }
+
+    public function isAsynchronous(): bool
+    {
+        return $this->asynchronousChannelName !== null;
+    }
+
     /**
      * If projection is running in asynchronous mode, this channel allows to send
      * a message to trigger it to perform specific action
@@ -102,7 +113,7 @@ final class ProjectionSetupConfiguration
             /** @var ProjectionEventHandlerConfiguration $first */
             $first = reset($this->projectionEventHandlerConfigurations);
 
-            return $first->getTriggeringChannelName();
+            return $first->getEventHandlerAsynchronousInputChannel();
         }
 
         return NullableMessageChannel::CHANNEL_NAME;

@@ -26,6 +26,7 @@ use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
@@ -202,10 +203,16 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
             /** @var Projection $projectionAttribute */
             $projectionAttribute = null;
+            /** @var Asynchronous|null $asynchronousChannelName */
+            $asynchronousChannelName = null;
             foreach ($attributes as $attribute) {
                 if ($attribute instanceof Projection) {
                     $projectionAttribute = $attribute;
-                    break;
+                }
+                if ($attribute instanceof Asynchronous) {
+                    $asynchronousChannelName = $attribute->getChannelName();
+                    Assert::isTrue(count($asynchronousChannelName) === 1, "Make use of single channel name in Asynchronous annotation for Projection: {$projectionClassName}");
+                    $asynchronousChannelName = array_pop($asynchronousChannelName);
                 }
             }
 
@@ -216,21 +223,24 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     $projectionAttribute->getName(),
                     $projectionLifeCycle,
                     $projectionAttribute->getEventStoreReferenceName(),
-                    ProjectionStreamSource::forAllStreams()
+                    ProjectionStreamSource::forAllStreams(),
+                    $asynchronousChannelName
                 );
             } elseif ($projectionAttribute->getFromStreams()) {
                 $projectionConfiguration = ProjectionSetupConfiguration::create(
                     $projectionAttribute->getName(),
                     $projectionLifeCycle,
                     $projectionAttribute->getEventStoreReferenceName(),
-                    ProjectionStreamSource::fromStreams($projectionAttribute->getFromStreams())
+                    ProjectionStreamSource::fromStreams($projectionAttribute->getFromStreams()),
+                    $asynchronousChannelName
                 );
             } else {
                 $projectionConfiguration = ProjectionSetupConfiguration::create(
                     $projectionAttribute->getName(),
                     $projectionLifeCycle,
                     $projectionAttribute->getEventStoreReferenceName(),
-                    ProjectionStreamSource::fromCategories($projectionAttribute->getFromCategories())
+                    ProjectionStreamSource::fromCategories($projectionAttribute->getFromCategories()),
+                    $asynchronousChannelName
                 );
             }
 
@@ -524,6 +534,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         foreach ($this->projectionSetupConfigurations as $index => $projectionSetupConfiguration) {
             $projectionChannelName = "projection_handler_" . $projectionSetupConfiguration->getProjectionName();
+            $projectionEndpointId = $projectionChannelName . '_endpoint';
             $projectionRunningConfiguration = ProjectionRunningConfiguration::createEventDriven($projectionSetupConfiguration->getProjectionName());
             if (array_key_exists($projectionSetupConfiguration->getProjectionName(), $projectionRunningConfigurations)) {
                 $projectionRunningConfiguration = $projectionRunningConfigurations[$projectionSetupConfiguration->getProjectionName()];
@@ -540,6 +551,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             /** Our main entrypoint for projection execution */
             $messagingConfiguration->registerMessageHandler(
                 (new ProjectionExecutorBuilder($eventSourcingConfiguration, $projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'execute'))
+                    ->withEndpointId($projectionEndpointId)
                     ->withInputChannelName($projectionChannelName)
             );
 
@@ -581,6 +593,13 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         ->withInputChannelName($eventHandlerConfiguration->getEventBusRoutingKey())
                         ->withOutputMessageChannel($projectionChannelName)
                 );
+
+                if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) && $projectionSetupConfiguration->isAsynchronous()) {
+                    $messagingConfiguration->registerAsynchronousEndpoint(
+                        $projectionSetupConfiguration->getAsynchronousChannelName(),
+                        $projectionEndpointId
+                    );
+                }
             }
         }
     }

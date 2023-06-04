@@ -23,9 +23,14 @@ class ProjectionEventHandlerConfiguration
         return $this->eventHandlerSynchronousInputChannel;
     }
 
-    public function getTriggeringChannelName(): string
+    public function getEventHandlerAsynchronousInputChannel(): string
     {
         return $this->asynchronousRequestChannelName;
+    }
+
+    public function isAsynchronous(): bool
+    {
+        return $this->getEventHandlerSynchronousInputChannel() !== $this->getEventHandlerAsynchronousInputChannel();
     }
 
     public function getEventBusRoutingKey(): string

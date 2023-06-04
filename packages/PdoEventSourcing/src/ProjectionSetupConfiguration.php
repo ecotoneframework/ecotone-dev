@@ -14,21 +14,27 @@ final class ProjectionSetupConfiguration
     /** @var array http://docs.getprooph.org/event-store/projections.html#Options https://github.com/prooph/pdo-event-store/pull/221/files */
     private array $projectionOptions;
     private bool $keepStateBetweenEvents = true;
+    private string $projectionInputChannel;
+    private string $projectionEndpointId;
 
     private function __construct(
         private string $projectionName,
         private ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration,
         private string $eventStoreReferenceName,
-        private ProjectionStreamSource $projectionStreamSource
+        private ProjectionStreamSource $projectionStreamSource,
+        private ?string $asynchronousChannelName,
+        private bool $isPolling = false
     ) {
         $this->projectionOptions = [
             PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(),
         ];
+        $this->projectionInputChannel = 'projection_handler_' . $this->projectionName;
+        $this->projectionEndpointId = $this->projectionInputChannel . '_endpoint';
     }
 
-    public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource): static
+    public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource, ?string $asynchronousChannelName): static
     {
-        return new static($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource);
+        return new static($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource, $asynchronousChannelName);
     }
 
     public function withKeepingStateBetweenEvents(bool $keepState): static
@@ -38,16 +44,23 @@ final class ProjectionSetupConfiguration
         return $this;
     }
 
+    public function withPolling(bool $isPolling): self
+    {
+        $this->isPolling = $isPolling;
+
+        return $this;
+    }
+
     public function isKeepingStateBetweenEvents(): bool
     {
         return $this->keepStateBetweenEvents;
     }
 
-    public function withProjectionEventHandler(string $eventName, string $className, string $methodName, string $synchronousEventHandlerRequestChannel, string $asynchronousEventHandlerRequestChannel): static
+    public function withProjectionEventHandler(string $eventBusRoutingKey, string $className, string $methodName, string $eventHandlerInputChannel): static
     {
-        Assert::keyNotExists($this->projectionEventHandlerConfigurations, $eventName, "Projection {$this->projectionName} has incorrect configuration. Can't register event handler twice for the same event {$eventName}");
+        Assert::keyNotExists($this->projectionEventHandlerConfigurations, $eventBusRoutingKey, "Projection {$this->projectionName} has incorrect configuration. Can't register event handler twice for the same event {$eventBusRoutingKey}");
 
-        $this->projectionEventHandlerConfigurations[$eventName] = new ProjectionEventHandlerConfiguration($className, $methodName, $synchronousEventHandlerRequestChannel, $asynchronousEventHandlerRequestChannel);
+        $this->projectionEventHandlerConfigurations[$eventBusRoutingKey] = new ProjectionEventHandlerConfiguration($className, $methodName, $eventBusRoutingKey, $eventHandlerInputChannel);
 
         return $this;
     }
@@ -79,6 +92,9 @@ final class ProjectionSetupConfiguration
         return $this->projectionLifeCycleConfiguration;
     }
 
+    /**
+     * @return ProjectionEventHandlerConfiguration[]
+     */
     public function getProjectionEventHandlerConfigurations(): array
     {
         return $this->projectionEventHandlerConfigurations;
@@ -89,20 +105,36 @@ final class ProjectionSetupConfiguration
         return $this->projectionOptions;
     }
 
+    public function getAsynchronousChannelName(): ?string
+    {
+        return $this->asynchronousChannelName;
+    }
+
+    public function isAsynchronous(): bool
+    {
+        return $this->asynchronousChannelName !== null;
+    }
+
+    public function getProjectionInputChannel(): string
+    {
+        return $this->projectionInputChannel;
+    }
+
+    public function getProjectionEndpointId(): string
+    {
+        return $this->projectionEndpointId;
+    }
+
     /**
-     * If projection is running in asynchronous mode, this channel allows to send
-     * a message to trigger it to perform specific action
+     * If projection in non polling, we need to trigger it in order to make given action like rebuild, initialize, delete
      */
     public function getTriggeringChannelName(): string
     {
-        if ($this->getProjectionEventHandlerConfigurations()) {
-            /** @var ProjectionEventHandlerConfiguration $first */
-            $first = reset($this->projectionEventHandlerConfigurations);
-
-            return $first->getTriggeringChannelName();
+        if ($this->isPolling) {
+            return NullableMessageChannel::CHANNEL_NAME;
         }
 
-        return NullableMessageChannel::CHANNEL_NAME;
+        return $this->getProjectionInputChannel();
     }
 
     public function getInitializationChannelName(): string

@@ -4,7 +4,7 @@ namespace Ecotone\EventSourcing;
 
 class ProjectionEventHandlerConfiguration
 {
-    public function __construct(private string $className, private string $methodName, private string $synchronousRequestChannelName, private string $asynchronousRequestChannelName)
+    public function __construct(private string $className, private string $methodName, private string $eventBusRoutingKey, private string $eventHandlerSynchronousInputChannel)
     {
     }
 
@@ -18,13 +18,13 @@ class ProjectionEventHandlerConfiguration
         return $this->methodName;
     }
 
-    public function getSynchronousRequestChannelName(): string
+    public function getEventHandlerSynchronousInputChannel(): string
     {
-        return $this->synchronousRequestChannelName;
+        return $this->eventHandlerSynchronousInputChannel;
     }
 
-    public function getTriggeringChannelName(): string
+    public function getEventBusRoutingKey(): string
     {
-        return $this->asynchronousRequestChannelName;
+        return $this->eventBusRoutingKey;
     }
 }

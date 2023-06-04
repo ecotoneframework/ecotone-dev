@@ -8,18 +8,19 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\ProductWasAddedToBasket;
-use Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\Saga;
 use Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\SagaEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\SagaProjection;
 use Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\SagaStarted;
 use Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\SynchronousBasketList;
 
+/**
+ * @internal
+ */
 final class SynchronousEventDrivenSagaTest extends TestCase
 {
     public function test_product_is_added_by_synchronous_event_driven_saga(): void
@@ -32,7 +33,7 @@ final class SynchronousEventDrivenSagaTest extends TestCase
                     'Test\Ecotone\EventSourcing\Fixture\Basket',
                     'Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga',
                 ]),
-            pathToRootCatalog: __DIR__ . "/../../"
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $testSupport->sendCommand(new CreateBasket('1000'));

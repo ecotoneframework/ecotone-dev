@@ -27,7 +27,7 @@ class Saga
     #[EventHandler]
     public function whenSagaStarted(SagaStarted $event, CommandBus $commandBus): array
     {
-        if ($event->getId() === "1000") {
+        if ($event->getId() === '1000') {
             $commandBus->send(new AddProduct($event->getId(), 'chocolate'));
         }
 

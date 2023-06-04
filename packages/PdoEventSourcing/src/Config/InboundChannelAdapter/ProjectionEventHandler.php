@@ -9,7 +9,6 @@ use Ecotone\EventSourcing\ProjectionStatus;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
-use Ecotone\Messaging\Message;
 use Prooph\EventStore\StreamName;
 
 class ProjectionEventHandler

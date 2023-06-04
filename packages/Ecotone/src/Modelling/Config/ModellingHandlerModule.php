@@ -623,7 +623,7 @@ class ModellingHandlerModule implements AnnotationModule
          * We want to connect Event Handler directly to Event Bus channel only if it's not fetched from Stream Based Source.
          * This allows to connecting Event Handlers via Projection Event Handler that lead the way.
          */
-        if (!$isStreamBasedSource) {
+        if (! $isStreamBasedSource) {
             $configuration->registerMessageHandler(
                 BridgeBuilder::create()
                     ->withInputChannelName($inputChannelName)

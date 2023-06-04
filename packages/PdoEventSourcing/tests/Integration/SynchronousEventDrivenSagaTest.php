@@ -31,7 +31,8 @@ final class SynchronousEventDrivenSagaTest extends TestCase
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Basket',
                     'Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga',
-                ])
+                ]),
+            pathToRootCatalog: __DIR__ . "/../../"
         );
 
         $testSupport->sendCommand(new CreateBasket('1000'));

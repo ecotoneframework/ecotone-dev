@@ -76,7 +76,12 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           coverage: none
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - uses: actions/checkout@v3
         with:
           ref: main
 
@@ -85,7 +90,7 @@ jobs:
           vendor/bin/phpbench --profile=opcache_enabled --tag=main.opcache_enabled
           vendor/bin/phpbench --profile=opcache_disabled --tag=main.opcache_disabled
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Benchmark PR with opcache enabled
         id: opcache_enabled

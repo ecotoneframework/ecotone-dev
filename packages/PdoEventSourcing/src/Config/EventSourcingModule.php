@@ -499,6 +499,12 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     private function registerProjections(ServiceConfiguration $serviceConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry, ModuleReferenceSearchService $moduleReferenceSearchService, Configuration $messagingConfiguration, array $extensionObjects, EventSourcingConfiguration $eventSourcingConfiguration): void
     {
+        $projectionRunningConfigurations = [];
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof ProjectionRunningConfiguration) {
+                $projectionRunningConfigurations[$extensionObject->getProjectionName()] = $extensionObject;
+            }
+        }
         foreach ($this->projectionEventHandlers as $projectionEventHandler) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
@@ -516,6 +522,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $projectionEventHandler->getMethodName(),
                 $eventHandlerSynchronousInputChannel
             );
+            if (array_key_exists($projectionAttribute->getName(), $projectionRunningConfigurations)) {
+                $projectionRunningConfiguration = $projectionRunningConfigurations[$projectionAttribute->getName()];
+                $this->projectionSetupConfigurations[$projectionAttribute->getName()] = $this->projectionSetupConfigurations[$projectionAttribute->getName()]
+                    ->withPolling($projectionRunningConfiguration->isPolling());
+            }
         }
 
         $moduleReferenceSearchService->store(EventMapper::class, $this->eventMapper);
@@ -523,14 +534,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
         $messagingConfiguration->registerRelatedInterfaces($this->relatedInterfaces);
         $messagingConfiguration->requireReferences($this->requiredReferences);
-
-        $projectionRunningConfigurations = [];
-
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof ProjectionRunningConfiguration) {
-                $projectionRunningConfigurations[$extensionObject->getProjectionName()] = $extensionObject;
-            }
-        }
 
         foreach ($this->projectionSetupConfigurations as $index => $projectionSetupConfiguration) {
             $projectionRunningConfiguration = ProjectionRunningConfiguration::createEventDriven($projectionSetupConfiguration->getProjectionName());

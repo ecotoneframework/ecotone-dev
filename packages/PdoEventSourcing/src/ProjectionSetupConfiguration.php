@@ -22,7 +22,8 @@ final class ProjectionSetupConfiguration
         private ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration,
         private string $eventStoreReferenceName,
         private ProjectionStreamSource $projectionStreamSource,
-        private ?string $asynchronousChannelName
+        private ?string $asynchronousChannelName,
+        private bool $isPolling = false
     ) {
         $this->projectionOptions = [
             PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(),
@@ -39,6 +40,13 @@ final class ProjectionSetupConfiguration
     public function withKeepingStateBetweenEvents(bool $keepState): static
     {
         $this->keepStateBetweenEvents = $keepState;
+
+        return $this;
+    }
+
+    public function withPolling(bool $isPolling): self
+    {
+        $this->isPolling = $isPolling;
 
         return $this;
     }
@@ -118,11 +126,14 @@ final class ProjectionSetupConfiguration
     }
 
     /**
-     * If projection is running in asynchronous mode, this channel allows to send
-     * a message to trigger it to perform specific action
+     * If projection in non polling, we need to trigger it in order to make given action like rebuild, initialize, delete
      */
     public function getTriggeringChannelName(): string
     {
+        if ($this->isPolling) {
+            return NullableMessageChannel::CHANNEL_NAME;
+        }
+
         return $this->getProjectionInputChannel();
     }
 

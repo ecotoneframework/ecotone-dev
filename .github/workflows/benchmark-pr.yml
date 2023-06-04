@@ -65,6 +65,10 @@ jobs:
       RABBIT_HOST: amqp://127.0.0.1:5672
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4576&version=latest
       REDIS_DSN: redis://127.0.0.1:6379
+      DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+      APP_DB_HOST: 127.0.0.1
+      APP_DB_PORT: 5432
+      APP_DB_DRIVER: pdo_pgsql
     steps:
       - name: PHP ${{ matrix.php-versions }} - ${{ matrix.stability }}
         uses: shivammathur/setup-php@v2
@@ -73,35 +77,44 @@ jobs:
           coverage: none
 
       - uses: actions/checkout@v2
-
-      - name: Install dependencies
-        run: |
-          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
-          composer update --working-dir=packages/Ecotone --${{ matrix.stability }} --prefer-dist --no-interaction
-          composer update --working-dir=packages/Symfony --${{ matrix.stability }} --prefer-dist --no-interaction
-          composer update --working-dir=packages/Laravel --${{ matrix.stability }} --prefer-dist --no-interaction
-
-      - name: Download main branch benchmark data
-        id: cache-benchmark
-        uses: actions/cache@v3
         with:
-          path: ./.phpbench
-          key: ${{ runner.os }}-benchmark-main
+          ref: main
 
-      - name: Benchmarks
+      - name: Benchmark main as baseline
         run: |
-          if [[ "${{ steps.cache-benchmark.outputs.cache-hit }}" == 'true' ]]; then
-            bin/run-benchmarks.php pr-stats.md --ref=main
-          else
-            bin/run-benchmarks.php pr-stats.md
-          fi
-        env:
-          DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
-          APP_DB_HOST: 127.0.0.1
-          APP_DB_PORT: 5432
-          APP_DB_DRIVER: pdo_pgsql
+          vendor/bin/phpbench --profile=opcache_enabled --tag=main.opcache_enabled
+          vendor/bin/phpbench --profile=opcache_disabled --tag=main.opcache_disabled
+
+      - uses: actions/checkout@v2
+
+      - name: Benchmark PR with opcache enabled
+        id: opcache_enabled
+        run: |
+          RESULT=$(vendor/bin/phpbench --profile=opcache_enabled --ref=main.opcache_enabled | bin/pr-stats.php)
+          echo "result=$RESULT" >> $GITHUB_OUTPUT
+          echo $RESULT >> $GITHUB_STEP_SUMMARY
+
+      - name: Benchmark PR with opcache disabled
+        id: opcache_disabled
+        run: |
+          RESULT=$(vendor/bin/phpbench --profile=opcache_disabled --ref=main.opcache_disabled | bin/pr-stats.php)
+          echo "result=$RESULT" >> $GITHUB_OUTPUT
+          echo $RESULT >> $GITHUB_STEP_SUMMARY
 
       - name: Comment PR
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          path: pr-stats.md
+          message: |
+            # PR stats
+            
+            <details><summary>opcache enabled</summary>
+            
+            ${{ steps.opcache_enabled.outputs.result }}
+            
+            </details>
+            
+            <details><summary>opcache disabled</summary>
+            
+            ${{ steps.opcache_disabled.outputs.result }}
+            
+            </details>

@@ -44,8 +44,7 @@
         "phpunit/phpunit": "^9.5",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
-        "symfony/expression-language": "^6.0",
-        "phpbench/phpbench": "^1.2"
+        "symfony/expression-language": "^6.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

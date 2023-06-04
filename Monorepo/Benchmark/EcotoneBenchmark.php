@@ -1,11 +1,11 @@
 <?php
 
-namespace Test\Ecotone\Benchmark;
+namespace Monorepo\Benchmark;
 
+use Assert\Assertion;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriber;
@@ -13,15 +13,12 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 
 /**
- * @internal
+ * @Revs(10)
+ * @Iterations(5)
+ * @Warmup(1)
  */
-class EcotoneBenchmark extends TestCase
+class EcotoneBenchmark
 {
-    /**
-     * @Revs(10)
-     * @Iterations(5)
-     * @Warmup(1)
-     */
     public function bench_running_ecotone_lite()
     {
         $this->execute(
@@ -32,11 +29,6 @@ class EcotoneBenchmark extends TestCase
         );
     }
 
-    /**
-     * @Revs(10)
-     * @Iterations(5)
-     * @Warmup(1)
-     */
     public function bench_running_ecotone_lite_with_fail_fast()
     {
         $this->execute(
@@ -47,11 +39,6 @@ class EcotoneBenchmark extends TestCase
         );
     }
 
-    /**
-     * @Revs(10)
-     * @Iterations(5)
-     * @Warmup(1)
-     */
     public function bench_running_ecotone_lite_with_cache()
     {
         $this->execute(
@@ -78,7 +65,7 @@ class EcotoneBenchmark extends TestCase
         $merchantId = '123';
         $ecotoneApplication->getCommandBus()->send(new CreateMerchant($merchantId));
 
-        $this->assertTrue(
+        Assertion::true(
             $ecotoneApplication->getQueryBus()->sendWithRouting('user.get', metadata: ['aggregate.id' => $merchantId])
         );
     }

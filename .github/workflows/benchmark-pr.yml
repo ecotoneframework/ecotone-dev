@@ -84,8 +84,8 @@ jobs:
         id: baseline
         continue-on-error: true
         run: |
-          vendor/bin/phpbench --profile=opcache_enabled --tag=main.opcache_enabled
-          vendor/bin/phpbench --profile=opcache_disabled --tag=main.opcache_disabled
+          vendor/bin/phpbench --profile=opcache_enabled --retry-threshold=5 --tag=main.opcache_enabled
+          vendor/bin/phpbench --profile=opcache_disabled --retry-threshold=5 --tag=main.opcache_disabled
 
       - uses: actions/checkout@v3
         with:
@@ -99,7 +99,7 @@ jobs:
         env:
           PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main.opcache_enabled' || '' }}"
         run: |
-          vendor/bin/phpbench run --profile=opcache_enabled --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_enabled.md
+          vendor/bin/phpbench run --profile=opcache_enabled --retry-threshold=5 --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_enabled.md
           cat opcache_enabled.md
           echo '## Opcache enabled' >> "$GITHUB_STEP_SUMMARY"
           cat opcache_enabled.md >> "$GITHUB_STEP_SUMMARY"
@@ -109,7 +109,7 @@ jobs:
         env:
           PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main.opcache_disabled' || '' }}"
         run: |
-          vendor/bin/phpbench run --profile=opcache_disabled --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_disabled.md
+          vendor/bin/phpbench run --profile=opcache_disabled --retry-threshold=5 --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_disabled.md
           cat opcache_disabled.md
           echo '## Opcache disabled' >> "$GITHUB_STEP_SUMMARY"
           cat opcache_disabled.md >> "$GITHUB_STEP_SUMMARY"

@@ -16,6 +16,9 @@ use Test\Ecotone\EventSourcing\Fixture\BasketListProjection\BasketListConfigurat
 use Test\Ecotone\EventSourcing\Fixture\ProductsProjection\Products;
 use Test\Ecotone\EventSourcing\Fixture\ProductsProjection\ProductsConfiguration;
 
+/**
+ * @internal
+ */
 final class PollingProjectionTest extends TestCase
 {
     public function test_running_polling_projection(): void

@@ -3,9 +3,6 @@ name: 'PR stats'
 on:
   pull_request:
 
-permissions:
-  pull-requests: write
-
 jobs:
   run:
     name: "Benchmark"
@@ -104,10 +101,8 @@ jobs:
         run: |
           vendor/bin/phpbench run --profile=opcache_enabled --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_enabled.md
           cat opcache_enabled.md
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "RESULT<<$EOF" >> "$GITHUB_OUTPUT"
-          cat opcache_enabled.md >> "$GITHUB_OUTPUT"
-          echo $EOF >> "$GITHUB_OUTPUT"
+          echo '## Opcache enabled' >> "$GITHUB_STEP_SUMMARY"
+          cat opcache_enabled.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Benchmark PR with opcache disabled
         id: opcache_disabled
@@ -116,25 +111,5 @@ jobs:
         run: |
           vendor/bin/phpbench run --profile=opcache_disabled --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_disabled.md
           cat opcache_disabled.md
-          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "RESULT<<$EOF" >> "$GITHUB_OUTPUT"
-          cat opcache_disabled.md >> "$GITHUB_OUTPUT"
-          echo $EOF >> "$GITHUB_OUTPUT"
-
-      - name: Comment PR
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          message: |
-            # PR stats
-            
-            <details><summary>opcache enabled</summary>
-            
-            ${{ steps.opcache_enabled.outputs.RESULT }}
-            
-            </details>
-            
-            <details><summary>opcache disabled</summary>
-            
-            ${{ steps.opcache_disabled.outputs.RESULT }}
-            
-            </details>
+          echo '## Opcache disabled' >> "$GITHUB_STEP_SUMMARY"
+          cat opcache_disabled.md >> "$GITHUB_STEP_SUMMARY"

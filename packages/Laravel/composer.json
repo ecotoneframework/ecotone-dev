@@ -68,9 +68,6 @@
         "tests:phpunit": [
             "vendor/bin/phpunit"
         ],
-        "tests:phpbench": [
-            "vendor/bin/phpbench run"
-        ],
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit"

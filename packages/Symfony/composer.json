@@ -69,9 +69,6 @@
         "tests:behat": [
             "vendor/bin/behat -vvv"
         ],
-        "tests:phpbench": [
-            "vendor/bin/phpbench run"
-        ],
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit",

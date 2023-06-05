@@ -102,7 +102,7 @@ jobs:
         env:
           PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main.opcache_enabled' || '' }}"
         run: |
-          vendor/bin/phpbench run --profile=opcache_enabled $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_enabled.md
+          vendor/bin/phpbench run --profile=opcache_enabled --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_enabled.md
           cat opcache_enabled.md
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "RESULT<<$EOF" >> "$GITHUB_OUTPUT"
@@ -114,7 +114,7 @@ jobs:
         env:
           PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main.opcache_disabled' || '' }}"
         run: |
-          vendor/bin/phpbench run --profile=opcache_disabled $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_disabled.md
+          vendor/bin/phpbench run --profile=opcache_disabled --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_disabled.md
           cat opcache_disabled.md
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "RESULT<<$EOF" >> "$GITHUB_OUTPUT"

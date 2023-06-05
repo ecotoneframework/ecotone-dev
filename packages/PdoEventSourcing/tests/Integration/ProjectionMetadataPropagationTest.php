@@ -23,8 +23,6 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
 {
     public function test_metadata_propagation_with_synchronous_projection(): void
     {
-        $this->markTestSkipped('This fails and it seems it reproduces: https://github.com/ecotoneframework/ecotone-dev/issues/104');
-
         $ecotoneLite = $this->getBootstrapFlowTesting(
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))

@@ -25,11 +25,14 @@ use function json_decode;
 
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTest;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
 use Test\Ecotone\EventSourcing\Fixture\BasketListProjection\BasketList;
+use Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\SagaEventConverter;
+use Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\SynchronousBasketList;
 use Test\Ecotone\EventSourcing\Fixture\CustomEventStream\CustomEventStreamProjection;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionFromCategoryUsingAggregatePerStream\FromCategoryUsingAggregatePerStreamProjection;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionFromMultipleStreams\MultipleStreamsProjection;
@@ -232,6 +235,10 @@ class DomainContext extends TestCase implements Context
                         $objects = array_merge($objects, [new BasketList()]);
                         break;
                     }
+                case "Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga": {
+                    $objects = array_merge($objects, [new \Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\SagaProjection(),  new SagaEventConverter(), new SynchronousBasketList()]);
+                    break;
+                }
                 case "Test\Ecotone\EventSourcing\Fixture\Snapshots":
                     {
                         $objects = array_merge($objects, [new TicketMediaTypeConverter(), new BasketMediaTypeConverter()]);

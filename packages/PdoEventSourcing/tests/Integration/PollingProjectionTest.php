@@ -23,7 +23,8 @@ final class PollingProjectionTest extends TestCase
             classesToResolve: [BasketListConfiguration::class, BasketList::class],
             containerOrAvailableServices: [new BasketList(), new BasketEventConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\Basket'])
+                ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\Basket']),
+            pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $ecotoneLite->sendCommand(new CreateBasket('1000'));

@@ -564,7 +564,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         ->withEndpointId($projectionSetupConfiguration->getProjectionName())
                 );
 
-                return;
+                continue;
             }
 
             /** Projection will be called sync or async triggered by Event Bus. In that case we need to connect them to event related channels */

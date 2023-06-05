@@ -84,27 +84,42 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: main
+          clean: false
 
       - name: Benchmark main as baseline
+        id: baseline
+        continue-on-error: true
         run: |
           vendor/bin/phpbench --profile=opcache_enabled --tag=main.opcache_enabled
           vendor/bin/phpbench --profile=opcache_disabled --tag=main.opcache_disabled
 
       - uses: actions/checkout@v3
+        with:
+          clean: false
 
       - name: Benchmark PR with opcache enabled
         id: opcache_enabled
+        env:
+          PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main.opcache_enabled' || '' }}"
         run: |
-          RESULT=$(vendor/bin/phpbench --profile=opcache_enabled --ref=main.opcache_enabled | bin/pr-stats.php)
-          echo "result=$RESULT" >> $GITHUB_OUTPUT
-          echo $RESULT >> $GITHUB_STEP_SUMMARY
+          vendor/bin/phpbench run --profile=opcache_enabled $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_enabled.md
+          cat opcache_enabled.md
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "RESULT<<$EOF" >> "$GITHUB_OUTPUT"
+          cat opcache_enabled.md >> "$GITHUB_OUTPUT"
+          echo $EOF >> "$GITHUB_OUTPUT"
 
       - name: Benchmark PR with opcache disabled
         id: opcache_disabled
+        env:
+          PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main.opcache_disabled' || '' }}"
         run: |
-          RESULT=$(vendor/bin/phpbench --profile=opcache_disabled --ref=main.opcache_disabled | bin/pr-stats.php)
-          echo "result=$RESULT" >> $GITHUB_OUTPUT
-          echo $RESULT >> $GITHUB_STEP_SUMMARY
+          vendor/bin/phpbench run --profile=opcache_disabled $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_disabled.md
+          cat opcache_disabled.md
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "RESULT<<$EOF" >> "$GITHUB_OUTPUT"
+          cat opcache_disabled.md >> "$GITHUB_OUTPUT"
+          echo $EOF >> "$GITHUB_OUTPUT"
 
       - name: Comment PR
         uses: marocchino/sticky-pull-request-comment@v2
@@ -114,12 +129,12 @@ jobs:
             
             <details><summary>opcache enabled</summary>
             
-            ${{ steps.opcache_enabled.outputs.result }}
+            ${{ steps.opcache_enabled.outputs.RESULT }}
             
             </details>
             
             <details><summary>opcache disabled</summary>
             
-            ${{ steps.opcache_disabled.outputs.result }}
+            ${{ steps.opcache_disabled.outputs.RESULT }}
             
             </details>

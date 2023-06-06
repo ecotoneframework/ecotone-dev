@@ -6,3 +6,4 @@ tests/coverage
 file
 .phpunit.result.cache
 composer.lock
+phpunit.xml

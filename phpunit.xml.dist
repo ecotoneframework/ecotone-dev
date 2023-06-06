@@ -3,27 +3,24 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
   backupGlobals="true"
-  backupStaticAttributes="false"
-  colors="false"
-  convertErrorsToExceptions="true"
-  convertNoticesToExceptions="true"
-  convertWarningsToExceptions="true"
-  forceCoversAnnotation="false"
-  processIsolation="false"
-  stopOnError="false"
-  stopOnFailure="false"
-  stopOnIncomplete="false"
-  stopOnSkipped="false"
-  stopOnRisky="false"
-  timeoutForSmallTests="1"
-  timeoutForMediumTests="10"
-  timeoutForLargeTests="60"
-  verbose="false"
 >
   <coverage processUncoveredFiles="true">
     <include>
-      <directory suffix=".php">./packages/**/*</directory>
+      <directory suffix=".php">packages/Ecotone/src</directory>
+      <directory suffix=".php">packages/Dbal/src</directory>
+      <directory suffix=".php">packages/PdoEventSourcing/src</directory>
+      <directory suffix=".php">packages/JmsConverter/src</directory>
+      <directory suffix=".php">packages/Laravel/src</directory>
+      <directory suffix=".php">packages/Symfony/App</directory>
+      <directory suffix=".php">packages/Symfony/DependencyInjection</directory>
+      <directory suffix=".php">packages/Symfony/SymfonyBundle</directory>
+      <directory suffix=".php">packages/Amqp/src</directory>
+      <directory suffix=".php">packages/Sqs/src</directory>
+      <directory suffix=".php">packages/Redis/src</directory>
     </include>
+    <report>
+      <text outputFile="php://stdout" showOnlySummary="true" />
+    </report>
   </coverage>
   <php>
     <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />

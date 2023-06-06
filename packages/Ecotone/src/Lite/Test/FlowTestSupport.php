@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test;
 
+use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
@@ -159,6 +160,36 @@ final class FlowTestSupport
     public function triggerProjection(string $projectionName): self
     {
         $this->getGateway(ProjectionManager::class)->triggerProjection($projectionName);
+
+        return $this;
+    }
+
+    public function initializeProjection(string $projectionName): self
+    {
+        $this->getGateway(ProjectionManager::class)->initializeProjection($projectionName);
+
+        return $this;
+    }
+
+    public function stopProjection(string $projectionName): self
+    {
+        $this->getGateway(ProjectionManager::class)->stopProjection($projectionName);
+
+        return $this;
+    }
+
+    public function resetProjection(string $projectionName): self
+    {
+        $this->getGateway(ProjectionManager::class)->resetProjection($projectionName);
+
+        return $this;
+    }
+
+    public function deleteProjection(string $projectionName): self
+    {
+        // fixme Calling ProjectionManager to delete the projection throws `Header with name ecotone.eventSourcing.manager.deleteEmittedEvents does not exists` exception
+        //$this->getGateway(ProjectionManager::class)->deleteProjection($projectionName);
+        $this->configuredMessagingSystem->runConsoleCommand('ecotone:es:delete-projection', ['name' => $projectionName]);
 
         return $this;
     }

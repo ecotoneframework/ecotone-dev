@@ -13,7 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\PollableChannel;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Test\Ecotone\EventSourcing\EventSourcingMessagingTest;
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
@@ -23,7 +23,7 @@ use Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDriven
 /**
  * @internal
  */
-final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTest
+final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
 {
     public function test_registering_in_memory_event_sourcing_repository()
     {

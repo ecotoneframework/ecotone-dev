@@ -15,3 +15,4 @@ auth.json
 ./config.json
 .env
 .phpbench/
+phpunit.xml

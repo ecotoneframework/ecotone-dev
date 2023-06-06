@@ -16,7 +16,7 @@ use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Modelling\SaveAggregateService;
 use Ecotone\Modelling\SnapshotEvent;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\EventSourcing\EventSourcingMessagingTest;
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\AssignedPersonWasChanged;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
@@ -24,7 +24,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 /**
  * @internal
  */
-class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTest
+class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
 {
     public function test_storing_and_retrieving()
     {

@@ -14,3 +14,4 @@ packages/cache
 auth.json
 ./config.json
 .env
+.phpbench/

@@ -1,44 +1,30 @@
 <?php
 
-namespace Test\Ecotone\Laravel\Application\Benchmark;
+namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
-use PHPUnit\Framework\TestCase;
 
 /**
- * @internal
+ * @Revs(10)
+ * @Iterations(5)
+ * @Warmup(1)
  */
-class EcotoneBenchmark extends TestCase
+class LaravelBenchmark
 {
-    /**
-     * @Revs(10)
-     * @Iterations(5)
-     * @Warmup(1)
-     */
     public function bench_kernel_boot_on_prod()
     {
         putenv('APP_ENV=production');
         $this->createApplication();
     }
 
-    /**
-     * @Revs(10)
-     * @Iterations(5)
-     * @Warmup(1)
-     */
     public function bench_kernel_boot_on_dev()
     {
         putenv('APP_ENV=development');
         $this->createApplication();
     }
 
-    /**
-     * @Revs(10)
-     * @Iterations(5)
-     * @Warmup(1)
-     */
     public function bench_messaging_boot_on_prod()
     {
         putenv('APP_ENV=production');
@@ -46,11 +32,6 @@ class EcotoneBenchmark extends TestCase
         $app->make(ConfiguredMessagingSystem::class);
     }
 
-    /**
-     * @Revs(10)
-     * @Iterations(5)
-     * @Warmup(1)
-     */
     public function bench_messaging_boot_on_dev()
     {
         putenv('APP_ENV=development');
@@ -60,7 +41,7 @@ class EcotoneBenchmark extends TestCase
 
     public function createApplication(): Application
     {
-        $app = require __DIR__ . '/../bootstrap/app.php';
+        $app = require \dirname(__DIR__, 2) . '/packages/Laravel/tests/Application/bootstrap/app.php';
 
         $app->make(Kernel::class)->bootstrap();
 

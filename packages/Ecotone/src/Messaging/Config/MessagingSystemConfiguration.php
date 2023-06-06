@@ -229,9 +229,6 @@ final class MessagingSystemConfiguration implements Configuration
 
         $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $applicationConfiguration);
 
-        $proxyFactory->warmUpCacheFor($this->gatewayClassesToGenerateProxies);
-        $this->gatewayClassesToGenerateProxies = [];
-
         $this->interfacesToCall = array_unique($this->interfacesToCall);
         $this->moduleReferenceSearchService = $moduleReferenceSearchService;
     }

@@ -26,6 +26,7 @@ use Ecotone\SymfonyBundle\MessagingSystemFactory;
 use Ecotone\SymfonyBundle\PreparedConfigurationFromDumpFactory;
 use Ecotone\SymfonyBundle\Proxy\Autoloader;
 use Psr\Log\NullLogger;
+use Symfony\Component\DependencyInjection\Alias;
 use Symfony\Component\DependencyInjection\Argument\ServiceLocatorArgument;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -212,12 +213,12 @@ return ' . $code . ';');
             $container->setDefinition('logger', $definition);
         }
         foreach ($messagingConfiguration->getRequiredReferences() as $requiredReference) {
-            $container->getDefinition($requiredReference)->setPublic(true);
+            $container->setAlias($requiredReference.'-proxy', new Alias($requiredReference, true));
         }
 
         foreach ($messagingConfiguration->getOptionalReferences() as $optionalReference) {
             if ($container->has($optionalReference)) {
-                $container->getDefinition($optionalReference)->setPublic(true);
+                $container->setAlias($optionalReference.'-proxy', new Alias($optionalReference, true));
             }
         }
     }

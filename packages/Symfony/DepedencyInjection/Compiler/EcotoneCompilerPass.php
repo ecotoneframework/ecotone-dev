@@ -2,22 +2,32 @@
 
 namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
 
+use Closure;
 use Ecotone\Lite\PsrContainerReferenceSearchService;
-use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\ContainerChannelResolver;
+use Ecotone\Messaging\Config\MessagingComponentsFactory;
+use Ecotone\Messaging\Config\MessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ProxyGenerator;
+use Ecotone\Messaging\Config\PreparedConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
+use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
+use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\Support\Assert;
+use Ecotone\SymfonyBundle\CacheWarmer\ProxyCacheWarmer;
 use Ecotone\SymfonyBundle\MessagingSystemFactory;
+use Ecotone\SymfonyBundle\PreparedConfigurationFromDumpFactory;
+use Ecotone\SymfonyBundle\Proxy\Autoloader;
+use Psr\Log\NullLogger;
+use Symfony\Component\DependencyInjection\Argument\ServiceLocatorArgument;
+use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -99,9 +109,8 @@ class EcotoneCompilerPass implements CompilerPassInterface
         );
     }
 
-    private static function dumpConfiguration(MessagingSystemConfiguration $messagingConfiguration, string $filename): void
+    private static function dumpConfiguration(PreparedConfiguration $preparedConfiguration, string $filename): void
     {
-        $preparedConfiguration = $messagingConfiguration->getPreparedConfiguration();
         $code = VarExporter::export($preparedConfiguration);
         file_put_contents($filename, '<?php
 return ' . $code . ';');
@@ -113,8 +122,26 @@ return ' . $code . ';');
         $cacheDirectoryPath = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
         $preparedConfigurationFilename = $cacheDirectoryPath . DIRECTORY_SEPARATOR . 'prepared_configuration.php';
         $container->setParameter('ecotone.cache_directory', '%kernel.cache_dir%'.self::CACHE_DIRECTORY_SUFFIX);
+        $container->setParameter('ecotone.proxy_directory', '%ecotone.cache_directory%/proxy');
+        $container->setParameter('ecotone.auto_generate_proxy', true);
 
-        $this->dumpConfiguration($messagingConfiguration, $preparedConfigurationFilename);
+        $preparedConfiguration = $messagingConfiguration->getPreparedConfiguration();
+
+        $this->dumpConfiguration($preparedConfiguration, $preparedConfigurationFilename);
+
+        $definition = (new Definition())
+            ->setClass(PreparedConfiguration::class)
+            ->setFactory([PreparedConfigurationFromDumpFactory::class, 'get'])
+            ->addArgument("%ecotone.cache_directory%" . DIRECTORY_SEPARATOR . 'prepared_configuration.php')
+        ;
+        $container->setDefinition(PreparedConfiguration::class, $definition);
+
+        $definition = (new Definition())
+            ->setClass(MessagingComponentsFactory::class)
+            ->addArgument(new Reference(PreparedConfiguration::class))
+            ->addArgument(new Reference(ReferenceSearchService::class))
+        ;
+        $container->setDefinition('ecotone.messaging.factory', $definition);
 
         $definition = new Definition();
         $definition->setClass(SymfonyConfigurationVariableService::class);
@@ -122,6 +149,81 @@ return ' . $code . ';');
         $definition->addArgument(new Reference('service_container'));
         $container->setDefinition(ConfigurationVariableService::REFERENCE_NAME, $definition);
 
+        $definition = new Definition();
+        $definition->setClass(PsrContainerReferenceSearchService::class);
+        $definition->setPublic(true);
+        $definition->addArgument(new Reference('service_container'));
+        $container->setDefinition(ReferenceSearchService::class, $definition);
+
+        $definition = (new Definition())
+            ->setPublic(true)
+            ->setClass(InterfaceToCallRegistry::class)
+            ->setFactory([new Reference('ecotone.messaging.factory'), 'getInterfaceToCallRegistry']);
+        $container->setDefinition(InterfaceToCallRegistry::REFERENCE_NAME, $definition);
+
+        $definition = (new Definition())
+            ->setPublic(true)
+            ->setClass(ConversionService::class)
+            ->setFactory([new Reference('ecotone.messaging.factory'), 'buildConversionService']);
+        $container->setDefinition(ConversionService::REFERENCE_NAME, $definition);
+
+        $this->buildProxyFactory($container);
+        $this->buildChannels($container, $preparedConfiguration);
+        $this->buildGateways($container, $preparedConfiguration);
+        $this->buildEventDrivenConsumers($container, $preparedConfiguration);
+        $this->buildEndpointConsumers($container, $preparedConfiguration);
+
+//        foreach ($messagingConfiguration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
+//            $definition = new Definition();
+//            $definition->setClass(MessagingEntrypointCommand::class);
+//            $definition->addArgument($oneTimeCommandConfiguration->getName());
+//            $definition->addArgument(serialize($oneTimeCommandConfiguration->getParameters()));
+//            $definition->addArgument(new Reference(ConsoleCommandRunner::class));
+//            $definition->addTag('console.command', ['command' => $oneTimeCommandConfiguration->getName()]);
+//
+//            $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
+//        }
+
+//        $definition = (new Definition())
+//            ->setClass(ConfiguredMessagingSystem::class)
+//            ->setPublic(true)
+//            ->setFactory([new Reference('ecotone.messaging.factory'), 'buildMessagingSystem'])
+//        ;
+
+
+        $definition = (new Definition())
+            ->setClass(MessagingSystem::class)
+            ->setPublic(true)
+            ->addArgument(new Reference('ecotone.event_driven_consumers'))
+            ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.polling_consumer', 'endpointId')))
+            ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.gateway_proxy', 'name')))
+            ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.gateway_combined', 'name')))
+            ->addArgument(new Reference(ChannelResolver::class))
+            ->addArgument(new Reference(ReferenceSearchService::class))
+            ->addArgument([]) // todo: add polling metadata
+            ->addArgument([]) // todo: add console commands
+        ;
+        $container->setDefinition(ConfiguredMessagingSystem::class, $definition);
+
+        if (! $container->has('logger')) {
+            $definition = (new Definition())
+                ->setClass(NullLogger::class)
+                ->setPublic(true);
+            $container->setDefinition('logger', $definition);
+        }
+        foreach ($messagingConfiguration->getRequiredReferences() as $requiredReference) {
+            $container->getDefinition($requiredReference)->setPublic(true);
+        }
+
+        foreach ($messagingConfiguration->getOptionalReferences() as $optionalReference) {
+            if ($container->has($optionalReference)) {
+                $container->getDefinition($optionalReference)->setPublic(true);
+            }
+        }
+    }
+
+    private function buildProxyFactory(ContainerBuilder $container): void
+    {
         $definition =( new Definition())
             ->setClass(ProxyFactory::class)
             ->setFactory([null, 'createWithCache'])
@@ -130,74 +232,115 @@ return ' . $code . ';');
             ->addTag('container.preload', ['class' => ProxyFactory::class]);
         $container->setDefinition(ProxyFactory::class, $definition);
 
+        $definition =( new Definition())
+            ->setClass(\Ecotone\SymfonyBundle\Proxy\ProxyFactory::class)
+            ->addArgument(Autoloader::PROXY_NAMESPACE);
+        $container->setDefinition(\Ecotone\SymfonyBundle\Proxy\ProxyFactory::class, $definition);
+    }
 
-        $definition = new $definition();
-        $definition->setClass(CacheCleaner::class);
-        $definition->setPublic(true);
-        $definition->addTag('kernel.cache_clearer');
-        $container->setDefinition(CacheCleaner::class, $definition);
-
-        $definition = new Definition();
-        $definition->setClass(PsrContainerReferenceSearchService::class);
-        $definition->setPublic(true);
-        $definition->addArgument(new Reference('service_container'));
-        $container->setDefinition(ReferenceSearchService::class, $definition);
-
-        foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
-            $definition = new Definition();
-            $definition->setFactory([ProxyGenerator::class, 'createFor']);
-            $definition->setClass($gatewayProxyBuilder->getInterfaceName());
-            $definition->addArgument($gatewayProxyBuilder->getReferenceName());
-            $definition->addArgument(new Reference('service_container'));
-            $definition->addArgument($gatewayProxyBuilder->getInterfaceName());
-            $definition->addArgument("%ecotone.cache_directory%");
-            $definition->addArgument($container->getParameter(self::FAIL_FAST_CONFIG));
-            $definition->setPublic(true);
-
-            $container->setDefinition($gatewayProxyBuilder->getReferenceName(), $definition);
+    private function buildChannels(ContainerBuilder $container, PreparedConfiguration $preparedConfiguration): void
+    {
+        foreach ($preparedConfiguration->getChannelBuilders() as $channelName => $channelBuilder) {
+            $definition = (new Definition())
+                ->setClass(MessageChannel::class)
+                ->setPublic(true)
+                ->setFactory([new Reference('ecotone.messaging.factory'), 'buildChannel'])
+                ->addArgument($channelName)
+            ;
+            $container
+                ->setDefinition("ecotone.channel.$channelName", $definition)
+                ->addTag('ecotone.channel', ['name' => $channelName]);
         }
 
-        foreach ($messagingConfiguration->getRequiredReferences() as $requiredReference) {
-            /** Set alias only for non gateways */
-            if (in_array($requiredReference, array_merge(array_map(fn (GatewayProxyBuilder $gatewayProxyBuilder) => $gatewayProxyBuilder->getInterfaceName(), $messagingConfiguration->getRegisteredGateways()), [ReferenceSearchService::class, ChannelResolver::class, ConversionService::class]))) {
-                continue;
-            }
+        $definition = (new Definition())
+            ->setClass(ContainerChannelResolver::class)
+            ->setPublic(true)
+            ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.channel', 'name')));
+        $container->setDefinition(ChannelResolver::class, $definition);
+    }
 
-            $alias = $container->setAlias(PsrContainerReferenceSearchService::getServiceNameWithSuffix($requiredReference), $requiredReference);
-
-            if ($alias) {
-                $alias->setPublic(true);
+    private function buildGateways(ContainerBuilder $container, PreparedConfiguration $preparedConfiguration): void
+    {
+        $proxyFactory = new \Ecotone\SymfonyBundle\Proxy\ProxyFactory('Ecotone\\__Proxy__');
+        foreach ($preparedConfiguration->getGatewayBuilders() as $referenceName => $preparedGatewaysForReference) {
+            foreach ($preparedGatewaysForReference as $gatewayBuilder) {
+                $methodName = $gatewayBuilder->getRelatedMethodName();
+                $definition = (new Definition())
+                    ->setClass(NonProxyGateway::class)
+                    ->setPublic(true)
+                    ->setFactory([new Reference('ecotone.messaging.factory'), 'buildGateway'])
+                    ->addArgument($referenceName)
+                    ->addArgument($methodName)
+                    ->addArgument(new Reference(ChannelResolver::class))
+                ;
+                $container
+                    ->setDefinition("ecotone.gateway.$referenceName.$methodName", $definition)
+                    ->addTag("ecotone.gateway.$referenceName", ['method' => $methodName]);
             }
+            $definition = (new Definition())
+                ->setClass($proxyFactory->getFullClassNameFor($referenceName))
+                ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument("ecotone.gateway.$referenceName", 'method')));
+            $container->setDefinition($referenceName, $definition)
+                ->setPublic(true)
+                ->addTag('ecotone.gateway_proxy', ['name' => $referenceName]);
         }
 
-        foreach ($messagingConfiguration->getOptionalReferences() as $requiredReference) {
-            if ($container->has($requiredReference)) {
-                $alias = $container->setAlias(PsrContainerReferenceSearchService::getServiceNameWithSuffix($requiredReference), $requiredReference);
+        $definition = (new Definition())
+            ->setClass(ProxyCacheWarmer::class)
+            ->addArgument(array_keys($preparedConfiguration->getGatewayBuilders()))
+            ->addArgument(new Reference(\Ecotone\SymfonyBundle\Proxy\ProxyFactory::class))
+            ->addArgument("%ecotone.proxy_directory%")
+            ->addTag('kernel.cache_warmer');
+        $container->setDefinition(ProxyCacheWarmer::class, $definition);
+    }
 
-                if ($alias) {
-                    $alias->setPublic(true);
+    private function buildEventDrivenConsumers(ContainerBuilder $container, PreparedConfiguration $preparedConfiguration): void
+    {
+        $definition = (new Definition())
+            ->setClass('array')
+            ->setFactory([new Reference('ecotone.messaging.factory'), 'buildEventDrivenConsumers'])
+            ->addArgument(new Reference(ChannelResolver::class))
+            ->addArgument(new Reference(ReferenceSearchService::class))
+        ;
+        $container->setDefinition('ecotone.event_driven_consumers', $definition);
+    }
+
+    private function buildEndpointConsumers(ContainerBuilder $container, PreparedConfiguration $preparedConfiguration): void
+    {
+        $messageHandlerBuilders = $preparedConfiguration->getMessageHandlerBuilders();
+        $messageChannelBuilders = $preparedConfiguration->getChannelBuilders();
+        $messageConsumerFactories = $preparedConfiguration->getConsumerFactories();
+        foreach ($messageHandlerBuilders as $messageHandlerBuilder) {
+            Assert::keyExists($messageChannelBuilders, $messageHandlerBuilder->getInputMessageChannelName(), "Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
+            $messageChannel = $messageChannelBuilders[$messageHandlerBuilder->getInputMessageChannelName()];
+            foreach ($messageConsumerFactories as $messageHandlerConsumerBuilder) {
+                if ($messageHandlerConsumerBuilder->isSupporting($messageHandlerBuilder, $messageChannel)) {
+                    if ($messageHandlerConsumerBuilder->isPollingConsumer()) {
+                        $endpointId = $messageHandlerBuilder->getEndpointId();
+                        $definition = (new Definition())
+                            ->setClass(Closure::class)
+                            ->setFactory([new Reference('ecotone.messaging.factory'), 'buildEndpointConsumer'])
+                            ->addArgument($endpointId)
+                            ->addArgument(new Reference(ChannelResolver::class))
+                            ->addArgument(new Reference(ReferenceSearchService::class));
+                        $container->setDefinition("ecotone.polling_consumer.$endpointId", $definition)
+                            ->addTag('ecotone.polling_consumer', ['endpointId' => $endpointId]);
+                    }
                 }
             }
         }
 
-        foreach ($messagingConfiguration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
-            $definition = new Definition();
-            $definition->setClass(MessagingEntrypointCommand::class);
-            $definition->addArgument($oneTimeCommandConfiguration->getName());
-            $definition->addArgument(serialize($oneTimeCommandConfiguration->getParameters()));
-            $definition->addArgument(new Reference(ConsoleCommandRunner::class));
-            $definition->addTag('console.command', ['command' => $oneTimeCommandConfiguration->getName()]);
-
-            $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
+        $channelAdapterConsumerBuilders = $preparedConfiguration->getChannelAdaptersBuilders();
+        foreach ($channelAdapterConsumerBuilders as $channelAdapterBuilder) {
+            $endpointId = $channelAdapterBuilder->getEndpointId();
+            $definition = (new Definition())
+                ->setFactory([new Reference('ecotone.messaging.factory'), 'buildEndpointConsumer'])
+                ->addArgument($endpointId)
+                ->addArgument(new Reference(ChannelResolver::class))
+                ->addArgument(new Reference(ReferenceSearchService::class));
+            $container->setDefinition("ecotone.polling_consumer.$endpointId", $definition)
+                ->addTag('ecotone.polling_consumer', ['endpointId' => $endpointId]);
+            ;
         }
-
-        $definition = (new Definition())
-            ->setClass(ConfiguredMessagingSystem::class)
-            ->setPublic(true)
-            ->setFactory([MessagingSystemFactory::class, 'create'])
-            ->addArgument(new Reference(ReferenceSearchService::class))
-            ->addArgument($preparedConfigurationFilename)
-        ;
-        $container->setDefinition(ConfiguredMessagingSystem::class, $definition);
     }
 }

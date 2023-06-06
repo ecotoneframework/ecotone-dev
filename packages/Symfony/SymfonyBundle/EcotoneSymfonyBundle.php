@@ -3,10 +3,9 @@
 namespace Ecotone\SymfonyBundle;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\EcotoneCompilerPass;
 use Ecotone\SymfonyBundle\DepedencyInjection\EcotoneExtension;
-use ProxyManager\Autoloader\AutoloaderInterface;
+use Ecotone\SymfonyBundle\Proxy\Autoloader;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
@@ -24,7 +23,7 @@ class EcotoneSymfonyBundle extends Bundle
     public const CONFIGURED_MESSAGING_SYSTEM                 = ConfiguredMessagingSystem::class;
     public const APPLICATION_CONFIGURATION_CONTEXT   = 'messaging_system_application_context';
 
-    private ?AutoloaderInterface $autoloader = null;
+    private ?Autoloader $autoloader = null;
 
     public function build(ContainerBuilder $container)
     {
@@ -38,9 +37,11 @@ class EcotoneSymfonyBundle extends Bundle
 
     public function boot()
     {
-        /** @var ProxyFactory $proxyFactory */
-        $proxyFactory = $this->container->get(ProxyFactory::class);
-        $this->autoloader = $proxyFactory->registerAutoloader();
+        $proxyDirectoryPath = $this->container->getParameter("ecotone.proxy_directory");
+        $this->autoloader = Autoloader::register($proxyDirectoryPath);
+
+        // Start event driven consumers
+        $this->container->get(ConfiguredMessagingSystem::class);
     }
 
     public function shutdown()

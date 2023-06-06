@@ -48,6 +48,7 @@
             "Ecotone\\Modelling\\": "packages/Ecotone/src/Modelling/",
             "Ecotone\\SymfonyBundle\\": "packages/Symfony/SymfonyBundle",
             "Ecotone\\SymfonyBundle\\DepedencyInjection\\": "packages/Symfony/DepedencyInjection",
+            "Ecotone\\SymfonyBundle\\CacheWarmer\\": "packages/Symfony/CacheWarmer",
             "Monorepo\\": "Monorepo"
         }
     },

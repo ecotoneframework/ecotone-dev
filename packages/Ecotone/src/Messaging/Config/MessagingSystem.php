@@ -47,18 +47,15 @@ final class MessagingSystem implements ConfiguredMessagingSystem
     /**
      * Application constructor.
      * @param ConsumerLifecycle[] $eventDrivenConsumers
-     * @param MessageHandlerBuilder[] $pollingConsumerBuilders
-     * @param InboundChannelAdapterBuilder[] $inboundChannelAdapterBuilders
      * @param ContainerInterface $gatewayLocator
      * @param ContainerInterface $nonProxyCombinedGatewaysLocator
      * @param ConsoleCommandConfiguration[] $consoleCommands
      * @param ChannelResolver $channelResolver
      * @param PollingMetadata[] $pollingMetadataConfigurations
      */
-    private function __construct(
-        private array     $eventDrivenConsumers,
-        private ContainerInterface     $pollingConsumerBuilders,
-        private ContainerInterface     $inboundChannelAdapterBuilders,
+    public function __construct(
+        iterable     $eventDrivenConsumers,
+        private ContainerInterface     $endpointConsumersLocator,
         private ContainerInterface     $gatewayLocator,
         private ContainerInterface     $nonProxyCombinedGatewaysLocator,
         private ChannelResolver        $channelResolver,
@@ -75,9 +72,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
     {
         Assert::isTrue($messagingSystem instanceof MessagingSystem, 'Can only replace with ' . self::class);
 
-        $this->eventDrivenConsumers = $messagingSystem->eventDrivenConsumers;
-        $this->pollingConsumerBuilders = $messagingSystem->pollingConsumerBuilders;
-        $this->inboundChannelAdapterBuilders = $messagingSystem->inboundChannelAdapterBuilders;
+        $this->endpointConsumersLocator = $messagingSystem->endpointConsumersLocator;
         $this->gatewayLocator = $messagingSystem->gatewayLocator;
         $this->nonProxyCombinedGatewaysLocator = $messagingSystem->nonProxyCombinedGatewaysLocator;
         $this->channelResolver = $messagingSystem->channelResolver;
@@ -169,14 +164,11 @@ final class MessagingSystem implements ConfiguredMessagingSystem
 
         $gatewayLocator = InMemoryPSRContainer::createFromAssociativeArray($gatewayReferences);
         $nonProxyGatewaysLocator = InMemoryPSRContainer::createFromAssociativeArray($nonProxyGateways);
-        $pollingConsumersFactoriesLocator = InMemoryPSRContainer::createFromAssociativeArray($pollingConsumerBuilders);
-        $inboundChannelFactoriesLocator = InMemoryPSRContainer::createFromAssociativeArray($inboundChannelAdapterBuilders);
-
+        $endpointConsumersLocator = InMemoryPSRContainer::createFromAssociativeArray(array_merge($pollingConsumerBuilders, $inboundChannelAdapterBuilders));
 
         return new self(
             $eventDrivenConsumers, // should remain an array
-            $pollingConsumersFactoriesLocator, // done
-            $inboundChannelFactoriesLocator, // done
+            $endpointConsumersLocator, // done
             $gatewayLocator, // done
             $nonProxyGatewaysLocator, // done
             $channelResolver, // todo
@@ -255,13 +247,11 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         $pollingMetadata = self::getPollingMetadata($name, $this->pollingMetadataConfigurations)
             ->applyExecutionPollingMetadata($executionPollingMetadata);
 
-        if (! $this->pollingConsumerBuilders->has($name) && ! $this->inboundChannelAdapterBuilders->has($name)) {
+        if (! $this->endpointConsumersLocator->has($name)) {
             throw InvalidArgumentException::create("Can't run `{$name}` as it does not exists. Please verify, if the name is correct using `ecotone:list`.");
         }
 
-        $consumerFactory = $this->pollingConsumerBuilders->has($name)
-            ? $this->pollingConsumerBuilders->get($name)
-            : $this->inboundChannelAdapterBuilders->get($name);
+        $consumerFactory = $this->endpointConsumersLocator->get($name);
         $consumer = $consumerFactory($pollingMetadata);
         $consumer->run();
     }
@@ -373,8 +363,8 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      */
     public function list(): array
     {
-        if ($this->pollingConsumerBuilders instanceof ServiceProviderInterface && $this->inboundChannelAdapterBuilders instanceof ServiceProviderInterface) {
-            return array_merge($this->pollingConsumerBuilders->getProvidedServices(), $this->inboundChannelAdapterBuilders->getProvidedServices());
+        if ($this->endpointConsumersLocator instanceof ServiceProviderInterface) {
+            return $this->endpointConsumersLocator->getProvidedServices();
         }
         return [];
     }

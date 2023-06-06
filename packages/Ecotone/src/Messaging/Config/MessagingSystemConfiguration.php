@@ -1264,7 +1264,7 @@ final class MessagingSystemConfiguration implements Configuration
         /** @var GatewayProxyBuilder[][] $preparedGateways */
         $preparedGateways = [];
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
-            $preparedGateways[$gatewayBuilder->getReferenceName()][] = $gatewayBuilder->withMessageConverters($this->messageConverterReferenceNames);
+            $preparedGateways[$gatewayBuilder->getReferenceName()][$gatewayBuilder->getRelatedMethodName()] = $gatewayBuilder->withMessageConverters($this->messageConverterReferenceNames);
         }
         return $preparedGateways;
     }

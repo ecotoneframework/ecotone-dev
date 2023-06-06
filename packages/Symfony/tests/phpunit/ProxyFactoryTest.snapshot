@@ -1,0 +1,26 @@
+namespace TestingNamespace;
+
+class Test_InterfaceForProxyGeneration implements \Test\InterfaceForProxyGeneration
+{
+    private \Psr\Container\ContainerInterface $gateways;
+
+    public function __construct(\Psr\Container\ContainerInterface $gateways)
+    {
+        $this->gateways = $gateways;
+    }
+
+    public function doSomething() : void
+    {
+        $this->gateways->get('doSomething')->execute([]);
+    }
+
+    public function doSomethingAndReturnSomething() : mixed
+    {
+        return $this->gateways->get('doSomethingAndReturnSomething')->execute([]);
+    }
+
+    public function doSomethingWithDefaultParameter(array $param = []) : mixed
+    {
+        return $this->gateways->get('doSomethingWithDefaultParameter')->execute([$param]);
+    }
+}

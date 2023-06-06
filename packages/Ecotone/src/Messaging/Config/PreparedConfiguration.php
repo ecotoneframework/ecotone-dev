@@ -21,11 +21,11 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 class PreparedConfiguration
 {
     /**
-     * @param InterfaceToCall[] $interfacesToCall
+     * @param InterfaceToCallRegistry $interfaceToCallRegistry
      * @param ConverterBuilder[] $converterBuilders
-     * @param MessageChannelBuilder[] $channelBuilders
+     * @param array<string, MessageChannelBuilder> $channelBuilders
      * @param array<string, ChannelInterceptorBuilder[]> $channelInterceptorsBuilders
-     * @param GatewayProxyBuilder[][] $gatewayBuilders
+     * @param array<string, array<string, GatewayProxyBuilder>> $gatewayBuilders
      * @param MessageHandlerConsumerBuilder[] $consumerFactories
      * @param PollingMetadata[] $pollingMetadata
      * @param MessageHandlerBuilder[] $messageHandlerBuilders
@@ -132,6 +132,7 @@ class PreparedConfiguration
 
     public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService, bool $registerAutoloader = false): ConfiguredMessagingSystem
     {
+//        $factory = new MessagingComponentsFactory($this, $referenceSearchService);
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {
             $converters[] = $converterBuilder->build($referenceSearchService);
@@ -145,11 +146,18 @@ class PreparedConfiguration
             $proxyFactory->registerAutoloader();
         }
 
+        $gatewayBuildersByInterface = [];
+        foreach ($this->gatewayBuilders as $gatewayName => $gatewayBuilders) {
+            foreach ($gatewayBuilders as $gatewayBuilder) {
+                $gatewayBuildersByInterface[$gatewayBuilder->getReferenceName()][] = $gatewayBuilder;
+            }
+        }
+
         return MessagingSystem::createFrom(
             $referenceSearchService,
             $this->channelBuilders,
             $this->channelInterceptorsBuilders,
-            $this->gatewayBuilders,
+            $gatewayBuildersByInterface,
             $this->consumerFactories,
             $this->pollingMetadata,
             $this->messageHandlerBuilders,
@@ -171,5 +179,10 @@ class PreparedConfiguration
                 ]
             )
         );
+    }
+
+    public function getInterfaceToCallRegistry(): InterfaceToCallRegistry
+    {
+        return $this->interfaceToCallRegistry;
     }
 }

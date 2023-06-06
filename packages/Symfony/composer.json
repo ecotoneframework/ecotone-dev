@@ -50,6 +50,7 @@
     "autoload": {
         "psr-4": {
             "Ecotone\\SymfonyBundle\\DepedencyInjection\\": "DepedencyInjection",
+            "Ecotone\\SymfonyBundle\\CacheWarmer\\": "CacheWarmer",
             "Ecotone\\SymfonyBundle\\": "SymfonyBundle"
         }
     },

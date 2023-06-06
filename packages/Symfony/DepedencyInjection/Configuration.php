@@ -19,6 +19,10 @@ class Configuration implements ConfigurationInterface
                         ->defaultNull()
                     ->end()
 
+                    ->booleanNode('test')
+                        ->defaultFalse()
+                    ->end()
+
                     ->booleanNode('failFast')
                     ->defaultTrue()
                     ->end()

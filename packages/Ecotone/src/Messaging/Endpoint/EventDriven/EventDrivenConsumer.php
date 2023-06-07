@@ -30,11 +30,12 @@ class EventDrivenConsumer implements ConsumerLifecycle
         $this->consumerName = $consumerName;
         $this->subscribableChannel = $subscribableChannel;
         $this->messageHandler = $messageHandler;
+        $this->subscribableChannel->subscribe($this->messageHandler);
     }
 
     public function run(): void
     {
-        $this->subscribableChannel->subscribe($this->messageHandler);
+//        $this->subscribableChannel->subscribe($this->messageHandler);
     }
 
     public function stop(): void

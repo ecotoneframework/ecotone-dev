@@ -63,9 +63,9 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         private array                  $pollingMetadataConfigurations,
         private array                  $consoleCommands
     ) {
-        foreach ($eventDrivenConsumers as $consumer) {
-            $consumer->run();
-        }
+//        foreach ($eventDrivenConsumers as $consumer) {
+//            $consumer->run();
+//        }
     }
 
     public function replaceWith(ConfiguredMessagingSystem $messagingSystem): void

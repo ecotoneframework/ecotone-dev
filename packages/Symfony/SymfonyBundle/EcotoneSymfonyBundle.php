@@ -41,7 +41,7 @@ class EcotoneSymfonyBundle extends Bundle
         $this->autoloader = Autoloader::register($proxyDirectoryPath);
 
         // Start event driven consumers
-        $this->container->get(ConfiguredMessagingSystem::class);
+//        $this->container->get(ConfiguredMessagingSystem::class);
     }
 
     public function shutdown()

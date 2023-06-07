@@ -84,8 +84,8 @@ jobs:
         id: baseline
         continue-on-error: true
         run: |
-          vendor/bin/phpbench --profile=opcache_enabled --retry-threshold=5 --tag=main.opcache_enabled
-          vendor/bin/phpbench --profile=opcache_disabled --retry-threshold=5 --tag=main.opcache_disabled
+          vendor/bin/phpbench run --profile=opcache_enabled --retry-threshold=5 --tag=main.opcache_enabled
+          vendor/bin/phpbench run --profile=opcache_disabled --retry-threshold=5 --tag=main.opcache_disabled
 
       - uses: actions/checkout@v3
         with:

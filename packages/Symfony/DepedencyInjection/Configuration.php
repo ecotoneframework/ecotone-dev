@@ -23,6 +23,10 @@ class Configuration implements ConfigurationInterface
                         ->defaultFalse()
                     ->end()
 
+                    ->scalarNode('configuration_search_path')
+                        ->defaultNull()
+                    ->end()
+
                     ->booleanNode('failFast')
                     ->defaultTrue()
                     ->end()

@@ -4,6 +4,7 @@ namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
 
 use Closure;
 use Ecotone\Lite\PsrContainerReferenceSearchService;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ContainerChannelResolver;
 use Ecotone\Messaging\Config\MessagingComponentsFactory;
@@ -40,6 +41,7 @@ use Symfony\Component\VarExporter\VarExporter;
 class EcotoneCompilerPass implements CompilerPassInterface
 {
     public const  SERVICE_NAME                           = 'ecotone.service_name';
+    public const  CONFIGURATION_SEARCH_PATH = "ecotone.configuration_search_path";
     public const  WORKING_NAMESPACES_CONFIG          = 'ecotone.namespaces';
     public const  FAIL_FAST_CONFIG                   = 'ecotone.fail_fast';
     public const  LOAD_SRC                           = 'ecotone.load_src';
@@ -102,8 +104,13 @@ class EcotoneCompilerPass implements CompilerPassInterface
         }
 
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
+        $configurationSearchPath = $container->getParameter(self::CONFIGURATION_SEARCH_PATH) ?? self::getRootProjectPath($container);
+        $rootPathToSearchConfigurationFor = \realpath($configurationSearchPath);
+        if (!$rootPathToSearchConfigurationFor) {
+            throw ConfigurationException::create(\sprintf("Root path to search configuration for was not found: %s", $configurationSearchPath));
+        }
         return MessagingSystemConfiguration::prepare(
-            self::getRootProjectPath($container),
+            $rootPathToSearchConfigurationFor,
             $configurationVariableService,
             $serviceConfiguration,
             false,
@@ -220,6 +227,14 @@ return ' . $code . ';');
             if ($container->has($optionalReference)) {
                 $container->setAlias($optionalReference.'-proxy', new Alias($optionalReference, true));
             }
+        }
+
+        foreach ($preparedConfiguration->getReferencesToRegister() as $id => $referenceToRegister) {
+            $definition = (new Definition())
+                ->setClass('object')
+                ->setFactory([new Reference('ecotone.messaging.factory'), 'getReferenceToRegister'])
+                ->addArgument($id);
+            $container->setDefinition($id, $definition)->setPublic(true);
         }
     }
 

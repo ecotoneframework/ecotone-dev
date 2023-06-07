@@ -185,4 +185,12 @@ class PreparedConfiguration
     {
         return $this->interfaceToCallRegistry;
     }
+
+    /**
+     * @return object[]
+     */
+    public function getReferencesToRegister(): array
+    {
+        return $this->referencesToRegister;
+    }
 }

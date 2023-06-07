@@ -64,6 +64,11 @@ class MessagingComponentsFactory
         return AutoCollectionConversionService::createWith($converters);
     }
 
+    public function getReferenceToRegister(string $referenceName): object
+    {
+        return $this->configuration->getReferencesToRegister()[$referenceName];
+    }
+
     /**
      * @return ConsumerLifecycle[]
      */

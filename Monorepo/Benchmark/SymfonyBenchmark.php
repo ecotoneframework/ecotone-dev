@@ -3,7 +3,10 @@
 namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\SymfonyBundle\App\Kernel;
+use Monorepo\ExampleApp\Symfony\Kernel;
+use PhpBench\Benchmark\Metadata\Annotations\Iterations;
+use PhpBench\Benchmark\Metadata\Annotations\Revs;
+use PhpBench\Benchmark\Metadata\Annotations\Warmup;
 
 /**
  * @Revs(10)

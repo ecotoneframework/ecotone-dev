@@ -5,6 +5,9 @@ namespace Monorepo\Benchmark;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
+use PhpBench\Benchmark\Metadata\Annotations\Iterations;
+use PhpBench\Benchmark\Metadata\Annotations\Revs;
+use PhpBench\Benchmark\Metadata\Annotations\Warmup;
 
 /**
  * @Revs(10)
@@ -41,7 +44,7 @@ class LaravelBenchmark
 
     public function createApplication(): Application
     {
-        $app = require \dirname(__DIR__, 2) . '/packages/Laravel/tests/Application/bootstrap/app.php';
+        $app = require \dirname(__DIR__, 1) . '/ExampleApp/Laravel//bootstrap/app.php';
 
         $app->make(Kernel::class)->bootstrap();
 

@@ -39,9 +39,6 @@ class EcotoneSymfonyBundle extends Bundle
     {
         $proxyDirectoryPath = $this->container->getParameter("ecotone.proxy_directory");
         $this->autoloader = Autoloader::register($proxyDirectoryPath);
-
-        // Start event driven consumers
-//        $this->container->get(ConfiguredMessagingSystem::class);
     }
 
     public function shutdown()

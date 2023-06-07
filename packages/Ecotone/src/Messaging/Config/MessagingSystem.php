@@ -63,9 +63,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         private array                  $pollingMetadataConfigurations,
         private array                  $consoleCommands
     ) {
-//        foreach ($eventDrivenConsumers as $consumer) {
-//            $consumer->run();
-//        }
     }
 
     public function replaceWith(ConfiguredMessagingSystem $messagingSystem): void
@@ -165,6 +162,10 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         $gatewayLocator = InMemoryPSRContainer::createFromAssociativeArray($gatewayReferences);
         $nonProxyGatewaysLocator = InMemoryPSRContainer::createFromAssociativeArray($nonProxyGateways);
         $endpointConsumersLocator = InMemoryPSRContainer::createFromAssociativeArray(array_merge($pollingConsumerBuilders, $inboundChannelAdapterBuilders));
+
+        foreach ($eventDrivenConsumers as $consumer) {
+            $consumer->run();
+        }
 
         return new self(
             $eventDrivenConsumers, // should remain an array

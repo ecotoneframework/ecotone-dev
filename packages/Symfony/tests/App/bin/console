@@ -1,10 +1,9 @@
 #!/usr/bin/env php
 <?php
 
+use Ecotone\SymfonyBundle\App\Kernel;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;
-use Symfony\Component\Dotenv\Dotenv;
-use Symfony\Component\ErrorHandler\Debug;
 
 if (!in_array(PHP_SAPI, ['cli', 'phpdbg', 'embed'], true)) {
     echo 'Warning: The console should be invoked via the CLI version of PHP, not the '.PHP_SAPI.' SAPI'.PHP_EOL;
@@ -12,9 +11,9 @@ if (!in_array(PHP_SAPI, ['cli', 'phpdbg', 'embed'], true)) {
 
 set_time_limit(0);
 
-require dirname(__DIR__).'/vendor/autoload.php';
+require dirname(__DIR__, 3).'/vendor/autoload.php';
 
 $input = new ArgvInput();
-$kernel = new Ecotone\SymfonyBundle\App\Kernel("dev", true);
+$kernel = new Kernel("dev", true);
 $application = new Application($kernel);
 $application->run($input);

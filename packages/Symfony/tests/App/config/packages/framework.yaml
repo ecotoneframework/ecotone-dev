@@ -42,3 +42,4 @@ ecotone:
     defaultSerializationMediaType: "application/json"
     loadSrcNamespaces: false
     skippedModulePackageNames: ["dbal","amqp","eventSourcing","jmsConverter"]
+    configuration_search_path: "%kernel.project_dir%/../Fixture"

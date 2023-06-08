@@ -18,7 +18,7 @@ use Monorepo\ExampleApp\Common\Infrastructure\StubNotificationSender;
 use Monorepo\ExampleApp\Common\Infrastructure\StubShippingService;
 use Monorepo\ExampleApp\Common\Infrastructure\SystemClock;
 
-return function (): ConfiguredMessagingSystem {
+return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $output = new Output();
 
     $configuration = new Configuration();
@@ -40,7 +40,7 @@ return function (): ConfiguredMessagingSystem {
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
             ->withNamespaces(['Monorepo\\ExampleApp\\Common\\']),
-        cacheConfiguration: true,
+        cacheConfiguration: $useCachedVersion,
         pathToRootCatalog: __DIR__.'/../Common',
         classesToRegister: $classesToRegister,
     );

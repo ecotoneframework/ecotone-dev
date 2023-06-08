@@ -55,7 +55,7 @@
     "autoload-dev": {
         "psr-4": {
             "Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
-            "Ecotone\\SymfonyBundle\\App\\": "packages/Symfony/App",
+            "Ecotone\\SymfonyBundle\\App\\": "packages/Symfony/tests/App",
             "Fixture\\": "packages/Symfony/tests/Fixture",
             "IncorrectAttribute\\": [
                 "packages/Ecotone/tests/AnnotationFinder/Fixture/Usage/Attribute/TestingNamespace/IncorrectAttribute/TestingNamespace",
@@ -91,7 +91,7 @@
                 "packages/Sqs/tests"
             ],
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
-            "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
+            "Test\\Ecotone\\Symfony\\": "packages/Symfony/tests/Behat/Bootstrap",
             "Tests\\Ecotone\\": "tests"
         }
     },

@@ -4,6 +4,7 @@ namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
 
 use Closure;
 use Ecotone\Lite\PsrContainerReferenceSearchService;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ContainerChannelResolver;
@@ -21,6 +22,7 @@ use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\SymfonyBundle\CacheWarmer\ProxyCacheWarmer;
 use Ecotone\SymfonyBundle\MessagingSystemFactory;
@@ -178,8 +180,7 @@ return ' . $code . ';');
         $this->buildProxyFactory($container);
         $this->buildChannels($container, $preparedConfiguration);
         $this->buildGateways($container, $preparedConfiguration);
-        $this->buildEventDrivenConsumers($container, $preparedConfiguration);
-        $this->buildEndpointConsumers($container, $preparedConfiguration);
+        $this->buildPollableConsumers($container, $preparedConfiguration);
 
 //        foreach ($messagingConfiguration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
 //            $definition = new Definition();
@@ -202,7 +203,6 @@ return ' . $code . ';');
         $definition = (new Definition())
             ->setClass(MessagingSystem::class)
             ->setPublic(true)
-            ->addArgument(new Reference('ecotone.event_driven_consumers'))
             ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.polling_consumer', 'endpointId')))
             ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.gateway_proxy', 'name')))
             ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.gateway_combined', 'name')))
@@ -257,15 +257,36 @@ return ' . $code . ';');
     private function buildChannels(ContainerBuilder $container, PreparedConfiguration $preparedConfiguration): void
     {
         foreach ($preparedConfiguration->getChannelBuilders() as $channelName => $channelBuilder) {
-            $definition = (new Definition())
+            $channelDefinition = (new Definition())
                 ->setClass(MessageChannel::class)
                 ->setPublic(true)
                 ->setFactory([new Reference('ecotone.messaging.factory'), 'buildChannel'])
                 ->addArgument($channelName)
             ;
             $container
-                ->setDefinition("ecotone.channel.$channelName", $definition)
+                ->setDefinition("ecotone.channel.$channelName", $channelDefinition)
                 ->addTag('ecotone.channel', ['name' => $channelName]);
+
+            // Eventually subscribe event driven message handlers when this channel is loaded
+            if ($channelBuilder instanceof SimpleMessageChannelBuilder && !$channelBuilder->isPollable()) {
+                $messageHandlerBuilders = $preparedConfiguration->getMessageHandlerBuilders();
+                foreach ($messageHandlerBuilders as $messageHandlerBuilder) {
+                    if ($messageHandlerBuilder->getInputMessageChannelName() === $channelName) {
+                        $endpointReferenceId = 'ecotone.handler.'.$messageHandlerBuilder->getEndpointId();
+                        if (!$container->hasDefinition($endpointReferenceId)) {
+                            $endpointDefinition = (new Definition())
+                                ->setClass(MessageHandler::class)
+                                ->setFactory([new Reference('ecotone.messaging.factory'), 'buildMessageHandler'])
+                                ->addArgument($messageHandlerBuilder->getEndpointId())
+                                ->addArgument(new Reference(ChannelResolver::class))
+                                ->addArgument(new Reference(ReferenceSearchService::class));
+                            $container->setDefinition($endpointReferenceId, $endpointDefinition);
+                        }
+                        // subscribe event driven message handlers when this channel is loaded
+                        $channelDefinition->addMethodCall('subscribe', [new Reference($endpointReferenceId)]);
+                    }
+                }
+            }
         }
 
         $definition = (new Definition())
@@ -310,18 +331,7 @@ return ' . $code . ';');
         $container->setDefinition(ProxyCacheWarmer::class, $definition);
     }
 
-    private function buildEventDrivenConsumers(ContainerBuilder $container, PreparedConfiguration $preparedConfiguration): void
-    {
-        $definition = (new Definition())
-            ->setClass('array')
-            ->setFactory([new Reference('ecotone.messaging.factory'), 'buildEventDrivenConsumers'])
-            ->addArgument(new Reference(ChannelResolver::class))
-            ->addArgument(new Reference(ReferenceSearchService::class))
-        ;
-        $container->setDefinition('ecotone.event_driven_consumers', $definition);
-    }
-
-    private function buildEndpointConsumers(ContainerBuilder $container, PreparedConfiguration $preparedConfiguration): void
+    private function buildPollableConsumers(ContainerBuilder $container, PreparedConfiguration $preparedConfiguration): void
     {
         $messageHandlerBuilders = $preparedConfiguration->getMessageHandlerBuilders();
         $messageChannelBuilders = $preparedConfiguration->getChannelBuilders();
@@ -335,7 +345,7 @@ return ' . $code . ';');
                         $endpointId = $messageHandlerBuilder->getEndpointId();
                         $definition = (new Definition())
                             ->setClass(Closure::class)
-                            ->setFactory([new Reference('ecotone.messaging.factory'), 'buildEndpointConsumer'])
+                            ->setFactory([new Reference('ecotone.messaging.factory'), 'buildPollableConsumer'])
                             ->addArgument($endpointId)
                             ->addArgument(new Reference(ChannelResolver::class))
                             ->addArgument(new Reference(ReferenceSearchService::class));

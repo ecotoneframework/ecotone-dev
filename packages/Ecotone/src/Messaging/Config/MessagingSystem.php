@@ -46,7 +46,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
 
     /**
      * Application constructor.
-     * @param ConsumerLifecycle[] $eventDrivenConsumers
      * @param ContainerInterface $gatewayLocator
      * @param ContainerInterface $nonProxyCombinedGatewaysLocator
      * @param ConsoleCommandConfiguration[] $consoleCommands
@@ -54,7 +53,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      * @param PollingMetadata[] $pollingMetadataConfigurations
      */
     public function __construct(
-        iterable     $eventDrivenConsumers,
         private ContainerInterface     $endpointConsumersLocator,
         private ContainerInterface     $gatewayLocator,
         private ContainerInterface     $nonProxyCombinedGatewaysLocator,
@@ -168,7 +166,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         }
 
         return new self(
-            $eventDrivenConsumers, // should remain an array
             $endpointConsumersLocator, // done
             $gatewayLocator, // done
             $nonProxyGatewaysLocator, // done

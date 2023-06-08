@@ -5,6 +5,7 @@ namespace Ecotone\Messaging\Config;
 use Closure;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
@@ -14,6 +15,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 
@@ -69,31 +71,13 @@ class MessagingComponentsFactory
         return $this->configuration->getReferencesToRegister()[$referenceName];
     }
 
-    /**
-     * @return ConsumerLifecycle[]
-     */
-    public function buildEventDrivenConsumers(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): array
+    public function buildMessageHandler(string $endpointId, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
     {
-        $messageHandlerBuilders = $this->configuration->getMessageHandlerBuilders();
-        $messageChannelBuilders = $this->configuration->getChannelBuilders();
-        $messageConsumerFactories = $this->configuration->getConsumerFactories();
-        $eventDrivenConsumers = [];
-        foreach ($messageHandlerBuilders as $messageHandlerBuilder) {
-            Assert::keyExists($messageChannelBuilders, $messageHandlerBuilder->getInputMessageChannelName(), "Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
-            $messageChannel = $messageChannelBuilders[$messageHandlerBuilder->getInputMessageChannelName()];
-            foreach ($messageConsumerFactories as $messageHandlerConsumerBuilder) {
-                if ($messageHandlerConsumerBuilder->isSupporting($messageHandlerBuilder, $messageChannel)) {
-                    if (! $messageHandlerConsumerBuilder->isPollingConsumer()) {
-                        $consumer = $messageHandlerConsumerBuilder->build($channelResolver, $referenceSearchService, $messageHandlerBuilder, $this->getPollingMetadata($messageHandlerBuilder->getEndpointId()));
-                        $eventDrivenConsumers[] = $consumer;
-                    }
-                }
-            }
-        }
-        return $eventDrivenConsumers;
+        $messageHandlerBuilder = $this->configuration->getMessageHandlerBuilders()[$endpointId];
+        return $messageHandlerBuilder->build($channelResolver, $referenceSearchService);
     }
 
-    public function buildEndpointConsumer(string $endpointId, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): Closure
+    public function buildPollableConsumer(string $endpointId, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): Closure
     {
         $messageHandlerBuilders = $this->configuration->getMessageHandlerBuilders();
         $messageChannelBuilders = $this->configuration->getChannelBuilders();

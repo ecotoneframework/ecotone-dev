@@ -13,6 +13,8 @@ class ProxyFactoryTest extends TestCase
         $proxyFactory = new ProxyFactory("TestingNamespace");
         $code = $proxyFactory->generateProxyFor(InterfaceForProxyGeneration::class);
 
+        \file_put_contents(__DIR__ . "/ProxyFactoryTest.snapshot", $code);
+
         $this->assertEquals(
             \file_get_contents(__DIR__ . "/ProxyFactoryTest.snapshot"),
             $code);

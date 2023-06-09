@@ -29,7 +29,7 @@ class ProxyCacheWarmer implements CacheWarmerInterface
         foreach ($this->proxiedInterfaces as $interface) {
             $classname = $this->proxyFactory->getClassNameFor($interface);
             $code = $this->proxyFactory->generateProxyFor($interface);
-            file_put_contents($this->proxyDirectoryPath . "/" . $classname . ".php", "<?php \n" . $code);
+            file_put_contents($this->proxyDirectoryPath . "/" . $classname . ".php", $code);
         }
     }
 }

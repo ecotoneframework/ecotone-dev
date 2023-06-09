@@ -3,6 +3,7 @@
 namespace Ecotone\SymfonyBundle\Proxy;
 
 use Laminas\Code\Generator\ClassGenerator;
+use Laminas\Code\Generator\FileGenerator;
 use Laminas\Code\Generator\MethodGenerator;
 use Laminas\Code\Generator\ParameterGenerator;
 use Laminas\Code\Generator\PropertyGenerator;
@@ -31,7 +32,7 @@ class ProxyFactory
         $classGenerator = new ClassGenerator($className, $this->namespace);
         $classGenerator->setImplementedInterfaces([$interfaceName]);
         $gatewaysParameter = new ParameterGenerator("gateways", ContainerInterface::class);
-        $gatewaysProperty = new PropertyGenerator("gateways", null, PropertyGenerator::FLAG_PRIVATE, TypeGenerator::fromTypeString(ContainerInterface::class));
+        $gatewaysProperty = new PropertyGenerator("gateways", null, PropertyGenerator::FLAG_PRIVATE);
         $gatewaysProperty->omitDefaultValue(true);
         $classGenerator->addPropertyFromGenerator($gatewaysProperty);
         $classGenerator->addMethod("__construct", [
@@ -54,6 +55,9 @@ class ProxyFactory
             $classGenerator->addMethodFromGenerator($methodGenerator);
         }
 
-        return $classGenerator->generate();
+        $file = new FileGenerator();
+        $file->setClass($classGenerator);
+
+        return $file->generate();
     }
 }

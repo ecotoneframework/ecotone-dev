@@ -5,10 +5,8 @@ namespace Ecotone\Messaging\Config;
 use Closure;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -18,6 +16,7 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
+use Psr\Container\ContainerInterface;
 
 class MessagingComponentsFactory
 {
@@ -133,8 +132,22 @@ class MessagingComponentsFactory
         throw new \InvalidArgumentException("No polling consumer or inbound adapter found for endpoint {$endpointId}");
     }
 
-    private function getPollingMetadata(string $endpointId): PollingMetadata
+    public function buildMessagingSystem(
+        ContainerInterface     $pollingConsumersLocator,
+        ContainerInterface     $gatewayLocator,
+        ContainerInterface     $nonProxyCombinedGatewaysLocator,
+        ChannelResolver        $channelResolver,
+        ReferenceSearchService $referenceSearchService,
+    ): MessagingSystem
     {
-        return $this->configuration->getPollingMetadata()[$endpointId] ?? PollingMetadata::create($endpointId);
+        return new MessagingSystem(
+            $pollingConsumersLocator,
+            $gatewayLocator,
+            $nonProxyCombinedGatewaysLocator,
+            $channelResolver,
+            $referenceSearchService,
+            $this->configuration->getPollingMetadata(),
+            $this->configuration->getConsoleCommands(),
+        );
     }
 }

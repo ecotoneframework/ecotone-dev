@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\PreparedConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -25,6 +26,7 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\SymfonyBundle\CacheWarmer\ProxyCacheWarmer;
+use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
 use Ecotone\SymfonyBundle\MessagingSystemFactory;
 use Ecotone\SymfonyBundle\PreparedConfigurationFromDumpFactory;
 use Ecotone\SymfonyBundle\Proxy\Autoloader;
@@ -181,35 +183,17 @@ return ' . $code . ';');
         $this->buildChannels($container, $preparedConfiguration);
         $this->buildGateways($container, $preparedConfiguration);
         $this->buildPollableConsumers($container, $preparedConfiguration);
-
-//        foreach ($messagingConfiguration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
-//            $definition = new Definition();
-//            $definition->setClass(MessagingEntrypointCommand::class);
-//            $definition->addArgument($oneTimeCommandConfiguration->getName());
-//            $definition->addArgument(serialize($oneTimeCommandConfiguration->getParameters()));
-//            $definition->addArgument(new Reference(ConsoleCommandRunner::class));
-//            $definition->addTag('console.command', ['command' => $oneTimeCommandConfiguration->getName()]);
-//
-//            $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
-//        }
-
-//        $definition = (new Definition())
-//            ->setClass(ConfiguredMessagingSystem::class)
-//            ->setPublic(true)
-//            ->setFactory([new Reference('ecotone.messaging.factory'), 'buildMessagingSystem'])
-//        ;
-
+        $this->buildConsoleCommands($container, $preparedConfiguration);
 
         $definition = (new Definition())
             ->setClass(MessagingSystem::class)
             ->setPublic(true)
+            ->setFactory([new Reference('ecotone.messaging.factory'), 'buildMessagingSystem'])
             ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.polling_consumer', 'endpointId')))
             ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.gateway_proxy', 'name')))
             ->addArgument(new ServiceLocatorArgument(new TaggedIteratorArgument('ecotone.gateway_combined', 'name')))
             ->addArgument(new Reference(ChannelResolver::class))
             ->addArgument(new Reference(ReferenceSearchService::class))
-            ->addArgument([]) // todo: add polling metadata
-            ->addArgument([]) // todo: add console commands
         ;
         $container->setDefinition(ConfiguredMessagingSystem::class, $definition);
 
@@ -367,6 +351,20 @@ return ' . $code . ';');
             $container->setDefinition("ecotone.polling_consumer.$endpointId", $definition)
                 ->addTag('ecotone.polling_consumer', ['endpointId' => $endpointId]);
             ;
+        }
+    }
+
+    private function buildConsoleCommands(ContainerBuilder $container, PreparedConfiguration $preparedConfiguration)
+    {
+        foreach ($preparedConfiguration->getConsoleCommands() as $oneTimeCommandConfiguration) {
+            $definition = new Definition();
+            $definition->setClass(MessagingEntrypointCommand::class);
+            $definition->addArgument($oneTimeCommandConfiguration->getName());
+            $definition->addArgument(serialize($oneTimeCommandConfiguration->getParameters()));
+            $definition->addArgument(new Reference(ConsoleCommandRunner::class));
+            $definition->addTag('console.command', ['command' => $oneTimeCommandConfiguration->getName()]);
+
+            $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
         }
     }
 }

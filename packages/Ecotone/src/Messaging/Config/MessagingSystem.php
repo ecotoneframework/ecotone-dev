@@ -53,7 +53,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      * @param PollingMetadata[] $pollingMetadataConfigurations
      */
     public function __construct(
-        private ContainerInterface     $endpointConsumersLocator,
+        private ContainerInterface     $pollingConsumersLocator,
         private ContainerInterface     $gatewayLocator,
         private ContainerInterface     $nonProxyCombinedGatewaysLocator,
         private ChannelResolver        $channelResolver,
@@ -67,7 +67,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
     {
         Assert::isTrue($messagingSystem instanceof MessagingSystem, 'Can only replace with ' . self::class);
 
-        $this->endpointConsumersLocator = $messagingSystem->endpointConsumersLocator;
+        $this->pollingConsumersLocator = $messagingSystem->pollingConsumersLocator;
         $this->gatewayLocator = $messagingSystem->gatewayLocator;
         $this->nonProxyCombinedGatewaysLocator = $messagingSystem->nonProxyCombinedGatewaysLocator;
         $this->channelResolver = $messagingSystem->channelResolver;
@@ -245,11 +245,11 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         $pollingMetadata = self::getPollingMetadata($name, $this->pollingMetadataConfigurations)
             ->applyExecutionPollingMetadata($executionPollingMetadata);
 
-        if (! $this->endpointConsumersLocator->has($name)) {
+        if (! $this->pollingConsumersLocator->has($name)) {
             throw InvalidArgumentException::create("Can't run `{$name}` as it does not exists. Please verify, if the name is correct using `ecotone:list`.");
         }
 
-        $consumerFactory = $this->endpointConsumersLocator->get($name);
+        $consumerFactory = $this->pollingConsumersLocator->get($name);
         $consumer = $consumerFactory($pollingMetadata);
         $consumer->run();
     }
@@ -361,8 +361,8 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      */
     public function list(): array
     {
-        if ($this->endpointConsumersLocator instanceof ServiceProviderInterface) {
-            return $this->endpointConsumersLocator->getProvidedServices();
+        if ($this->pollingConsumersLocator instanceof ServiceProviderInterface) {
+            return $this->pollingConsumersLocator->getProvidedServices();
         }
         return [];
     }

@@ -107,7 +107,7 @@ class PreparedConfiguration
     }
 
     /**
-     * @return array
+     * @return ConsoleCommandConfiguration[]
      */
     public function getConsoleCommands(): array
     {

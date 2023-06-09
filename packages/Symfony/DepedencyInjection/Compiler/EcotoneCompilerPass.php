@@ -2,7 +2,9 @@
 
 namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
 
+use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -14,6 +16,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
+use Ecotone\SymfonyBundle\MessagingSystemFactory;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -88,7 +91,6 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
         return MessagingSystemConfiguration::prepare(
             self::getRootProjectPath($container),
-            new SymfonyReferenceTypeResolver($container),
             $configurationVariableService,
             $serviceConfiguration,
             $useCachedVersion,
@@ -112,10 +114,10 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $container->setDefinition(CacheCleaner::class, $definition);
 
         $definition = new Definition();
-        $definition->setClass(SymfonyReferenceSearchService::class);
+        $definition->setClass(PsrContainerReferenceSearchService::class);
         $definition->setPublic(true);
         $definition->addArgument(new Reference('service_container'));
-        $container->setDefinition('symfonyReferenceSearchService', $definition);
+        $container->setDefinition(ReferenceSearchService::class, $definition);
 
         foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
             $definition = new Definition();
@@ -137,7 +139,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
                 continue;
             }
 
-            $alias = $container->setAlias(SymfonyReferenceSearchService::getServiceNameWithSuffix($requiredReference), $requiredReference);
+            $alias = $container->setAlias(PsrContainerReferenceSearchService::getServiceNameWithSuffix($requiredReference), $requiredReference);
 
             if ($alias) {
                 $alias->setPublic(true);
@@ -146,7 +148,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
         foreach ($messagingConfiguration->getOptionalReferences() as $requiredReference) {
             if ($container->has($requiredReference)) {
-                $alias = $container->setAlias(SymfonyReferenceSearchService::getServiceNameWithSuffix($requiredReference), $requiredReference);
+                $alias = $container->setAlias(PsrContainerReferenceSearchService::getServiceNameWithSuffix($requiredReference), $requiredReference);
 
                 if ($alias) {
                     $alias->setPublic(true);
@@ -164,5 +166,17 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
         }
+
+        $definition = new Definition();
+        $definition->setClass(MessagingSystemFactory::class);
+        $definition->addArgument(new Reference('service_container'));
+        $definition->addArgument(new Reference(ReferenceSearchService::class));
+        $container->setDefinition(MessagingSystemFactory::class, $definition);
+
+        $definition = new Definition();
+        $definition->setClass(ConfiguredMessagingSystem::class);
+        $definition->setPublic(true);
+        $definition->setFactory(new Reference(MessagingSystemFactory::class));
+        $container->setDefinition(ConfiguredMessagingSystem::class, $definition);
     }
 }

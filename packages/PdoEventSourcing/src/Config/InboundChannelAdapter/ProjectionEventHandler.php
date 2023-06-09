@@ -9,7 +9,6 @@ use Ecotone\EventSourcing\ProjectionStatus;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
-use Ecotone\Messaging\Message;
 use Prooph\EventStore\StreamName;
 
 class ProjectionEventHandler
@@ -23,17 +22,6 @@ class ProjectionEventHandler
 
     public function __construct(private LazyProophProjectionManager $lazyProophProjectionManager, private ProjectionSetupConfiguration $projectionSetupConfiguration, private ProjectionRunningConfiguration $projectionRunningConfiguration, private ConversionService $conversionService)
     {
-    }
-
-    public function beforeEventHandler(Message $message, MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): ?Message
-    {
-        if ($this->shouldBePassedToEventHandler($message)) {
-            return $message;
-        }
-
-        $this->execute($messagingEntrypoint);
-
-        return null;
     }
 
     public function execute(MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): void
@@ -72,12 +60,5 @@ class ProjectionEventHandler
                 $this->lazyProophProjectionManager->getLazyProophEventStore()->delete($projectionStreamName);
             }
         }
-    }
-
-    private function shouldBePassedToEventHandler(Message $message)
-    {
-        return $message->getHeaders()->containsKey(ProjectionEventHandler::PROJECTION_IS_POLLING)
-            ? $message->getHeaders()->get(ProjectionEventHandler::PROJECTION_IS_POLLING)
-            : false;
     }
 }

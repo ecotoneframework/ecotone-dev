@@ -5,7 +5,6 @@ namespace Ecotone\Modelling\MessageHandling\MetadataPropagator;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Throwable;
 
 class MessageHeadersPropagatorInterceptor
 {
@@ -16,15 +15,13 @@ class MessageHeadersPropagatorInterceptor
         $userlandHeaders = MessageHeaders::unsetAllFrameworkHeaders($message->getHeaders()->headers());
         $userlandHeaders[MessageHeaders::MESSAGE_ID] = $message->getHeaders()->getMessageId();
         $userlandHeaders[MessageHeaders::MESSAGE_CORRELATION_ID] = $message->getHeaders()->getCorrelationId();
+
         $this->currentlyPropagatedHeaders[] = $userlandHeaders;
 
         try {
             $reply = $methodInvocation->proceed();
+        } finally {
             array_shift($this->currentlyPropagatedHeaders);
-        } catch (Throwable $exception) {
-            array_shift($this->currentlyPropagatedHeaders);
-
-            throw $exception;
         }
 
         return $reply;
@@ -32,6 +29,10 @@ class MessageHeadersPropagatorInterceptor
 
     public function propagateHeaders(array $headers): array
     {
+        if (array_key_exists(MessageHeaders::STREAM_BASED_SOURCED, $headers) && $headers[MessageHeaders::STREAM_BASED_SOURCED]) {
+            return $headers;
+        }
+
         return MessageHeaders::propagateContextHeaders($this->getLastHeaders(), $headers);
     }
 

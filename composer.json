@@ -98,7 +98,7 @@
         "php": "^8.0",
         "doctrine/dbal": "^3.3.7",
         "doctrine/persistence": "^2.5",
-        "enqueue/amqp-ext": "^0.10.4",
+        "enqueue/amqp-ext": "^0.10.18",
         "enqueue/dbal": "^0.10.17",
         "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",
@@ -138,6 +138,7 @@
         "symfony/messenger": "^5.4|^6.0",
         "symfony/doctrine-messenger": "^5.4|^6.0",
         "doctrine/doctrine-bundle": "^2.9",
+        "phpbench/phpbench": "^1.2",
         "enqueue/null": "^0.10.18"
     },
     "extra": {
@@ -153,13 +154,13 @@
         }
     },
     "replace": {
-        "ecotone/amqp": "1.81.1",
-        "ecotone/dbal": "1.81.1",
-        "ecotone/enqueue": "1.81.1",
-        "ecotone/jms-converter": "1.81.1",
-        "ecotone/laravel": "1.81.1",
-        "ecotone/pdo-event-sourcing": "1.81.1",
-        "ecotone/symfony-bundle": "1.81.1"
+        "ecotone/amqp": "1.82.0",
+        "ecotone/dbal": "1.82.0",
+        "ecotone/enqueue": "1.82.0",
+        "ecotone/jms-converter": "1.82.0",
+        "ecotone/laravel": "1.82.0",
+        "ecotone/pdo-event-sourcing": "1.82.0",
+        "ecotone/symfony-bundle": "1.82.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
@@ -175,6 +176,11 @@
             "@tests:phpstan",
             "@tests:phpunit",
             "@tests:behat"
+        ],
+        "tests:phpbench": [
+            "(cd packages/Ecotone && composer update --prefer-stable --prefer-dist --no-interaction && composer tests:phpbench)",
+            "(cd packages/Laravel && composer update --prefer-stable --prefer-dist --no-interaction && composer tests:phpbench)",
+            "(cd packages/Symfony && composer update --prefer-stable --prefer-dist --no-interaction && composer tests:phpbench)"
         ]
     },
     "config": {

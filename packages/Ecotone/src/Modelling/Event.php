@@ -18,6 +18,9 @@ class Event
 
         $this->eventType = $eventType;
         $this->payload = $payload;
+
+        $metadata[MessageHeaders::MESSAGE_ID] ??= Uuid::uuid4()->toString();
+        $metadata[MessageHeaders::TIMESTAMP] ??= (int)round(microtime(true));
         $this->metadata = $metadata;
     }
 

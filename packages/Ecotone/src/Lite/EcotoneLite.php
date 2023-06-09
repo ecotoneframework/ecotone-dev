@@ -12,13 +12,11 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\InMemoryReferenceTypeFromNameResolver;
 use Ecotone\Messaging\Config\MessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Config\StubConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
@@ -162,7 +160,6 @@ final class EcotoneLite
 
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
             $pathToRootCatalog,
-            InMemoryReferenceTypeFromNameResolver::createFromReferenceSearchService(new PsrContainerReferenceSearchService($container)),
             InMemoryConfigurationVariableService::create($configurationVariables),
             $serviceConfiguration,
             $useCachedVersion,
@@ -183,9 +180,11 @@ final class EcotoneLite
             }
         }
 
-        $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration(
-            new PsrContainerReferenceSearchService($container, ['logger' => new NullLogger(), ConfiguredMessagingSystem::class => new StubConfiguredMessagingSystem()])
-        );
+        $referenceSearchService = new PsrContainerReferenceSearchService($container, ['logger' => new NullLogger()]);
+
+        $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration($referenceSearchService);
+
+        $referenceSearchService->setConfiguredMessagingSystem($messagingSystem);
 
         if ($allowGatewaysToBeRegisteredInContainer) {
             $container->set(ConfiguredMessagingSystem::class, $messagingSystem);

@@ -12,7 +12,7 @@
             "email": "dgafka.mail@gmail.com"
         },
         {
-            "name": "Piotr Zając",
+            "name": "Piotr Zaj\u0105c",
             "email": "piotr.zajac@unixslayer.pl",
             "homepage": "http://unixslayer.pl"
         }
@@ -35,7 +35,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "^1.82",
+        "ecotone/enqueue": "~1.87.1",
         "enqueue/redis": "^0.10.9"
     },
     "require-dev": {
@@ -57,7 +57,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.82-dev"
+            "dev-main": "1.87.1-dev"
         },
         "ecotone": {
             "repository": "redis"

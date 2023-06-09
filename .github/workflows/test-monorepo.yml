@@ -1,4 +1,4 @@
-name: 'Ecotone Framework'
+name: 'Tests'
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   run:
-    name: "Testing Monorepo"
+    name: "Monorepo"
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
@@ -72,6 +72,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
+        coverage: none
 
     - uses: actions/checkout@v2
 

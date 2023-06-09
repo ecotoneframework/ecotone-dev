@@ -38,8 +38,6 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\Chain\ChainForwardPublisher;
 use Ecotone\Messaging\Handler\Enricher\EnrichGateway;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\Gateway\GatewayBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
@@ -79,7 +77,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
                 $messagingConfiguration->registerMessageHandler($extensionObject);
             } elseif ($extensionObject instanceof MessageChannelBuilder) {
                 $messagingConfiguration->registerMessageChannel($extensionObject);
-            } elseif ($extensionObject instanceof GatewayBuilder) {
+            } elseif ($extensionObject instanceof GatewayProxyBuilder) {
                 $messagingConfiguration->registerGatewayBuilder($extensionObject);
             } elseif ($extensionObject instanceof ChannelAdapterConsumerBuilder) {
                 $messagingConfiguration->registerConsumer($extensionObject);
@@ -222,7 +220,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
             ||
             $extensionObject instanceof MessageChannelBuilder
             ||
-            $extensionObject instanceof GatewayBuilder
+            $extensionObject instanceof GatewayProxyBuilder
             ||
             $extensionObject instanceof ChannelAdapterConsumerBuilder
             ||
@@ -235,7 +233,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
     public function getRelatedReferences(): array
     {
         return [
-            RequiredReference::create(ExpressionEvaluationService::REFERENCE),
             RequiredReference::create(InterfaceToCallRegistry::REFERENCE_NAME),
         ];
     }

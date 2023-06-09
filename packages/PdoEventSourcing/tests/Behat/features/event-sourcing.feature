@@ -350,3 +350,13 @@ Feature: activating as aggregate order entity
     Then I should see ticket count equal 2 and ticket closed count equal 2
     When I register "alert" ticket 12345 with assignation to "Johny"
     Then I should see ticket count equal 3 and ticket closed count equal 2
+
+  Scenario: I verify building synchronous event driven projection using in memory event store and synchronous saga
+    Given I active messaging for namespaces
+      | Test\Ecotone\EventSourcing\Fixture\Basket                      |
+      | Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga                      |
+      | Test\Ecotone\EventSourcing\Fixture\InMemoryEventStore                      |
+    When I create basket with id 1000
+    Then I should see baskets:
+      | id    | products    |
+      | 1000  | ["chocolate"]          |

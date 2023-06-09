@@ -76,6 +76,8 @@ class SaveAggregateService
 
     public function save(Message $message, array $metadata): Message
     {
+        $metadata = MessageHeaders::unsetNonUserKeys($metadata);
+
         $aggregate = $message->getHeaders()->get(AggregateMessage::AGGREGATE_OBJECT);
         $events = [];
 

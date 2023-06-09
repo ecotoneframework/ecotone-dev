@@ -84,32 +84,28 @@ jobs:
         id: baseline
         continue-on-error: true
         run: |
-          vendor/bin/phpbench --profile=opcache_enabled --retry-threshold=5 --tag=main.opcache_enabled
-          vendor/bin/phpbench --profile=opcache_disabled --retry-threshold=5 --tag=main.opcache_disabled
+          vendor/bin/phpbench run --retry-threshold=5 --tag=main --report=github-report
 
       - uses: actions/checkout@v3
         with:
           clean: false
 
+      - name: Remove cached files
+        working-directory:
+        run: |
+          rm -rf Monorepo/ExampleApp/Lite/var/cache
+          rm -rf Monorepo/ExampleApp/Symfony/var/cache
+          rm -rf Monorepo/ExampleApp/Laravel/framework/cache
+
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-      - name: Benchmark PR with opcache enabled
-        id: opcache_enabled
+      - name: Benchmark PR
         env:
-          PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main.opcache_enabled' || '' }}"
+          PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main' || '' }}"
         run: |
-          vendor/bin/phpbench run --profile=opcache_enabled --retry-threshold=5 --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_enabled.md
-          cat opcache_enabled.md
-          echo '## Opcache enabled' >> "$GITHUB_STEP_SUMMARY"
-          cat opcache_enabled.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Benchmark PR with opcache disabled
-        id: opcache_disabled
-        env:
-          PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main.opcache_disabled' || '' }}"
-        run: |
-          vendor/bin/phpbench run --profile=opcache_disabled --retry-threshold=5 --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > opcache_disabled.md
-          cat opcache_disabled.md
-          echo '## Opcache disabled' >> "$GITHUB_STEP_SUMMARY"
-          cat opcache_disabled.md >> "$GITHUB_STEP_SUMMARY"
+          echo "Baseline: $PHPBENCH_REF_OPTION"
+          vendor/bin/phpbench run --retry-threshold=5 --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > benchmark.md
+          cat benchmark.md
+          echo '## Benchmark' >> "$GITHUB_STEP_SUMMARY"
+          cat benchmark.md >> "$GITHUB_STEP_SUMMARY"

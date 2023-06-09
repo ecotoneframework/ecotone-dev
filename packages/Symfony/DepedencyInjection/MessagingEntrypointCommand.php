@@ -2,6 +2,8 @@
 
 namespace Ecotone\SymfonyBundle\DepedencyInjection;
 
+use Ecotone\Lite\PsrContainerReferenceSearchService;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
@@ -22,8 +24,9 @@ class MessagingEntrypointCommand extends Command
     /**
      * @var ConsoleCommandParameter[] $parameters
      */
-    public function __construct(string $name, string $parameters, ConsoleCommandRunner $consoleCommandRunner)
+    public function __construct(string $name, string $parameters, ConsoleCommandRunner $consoleCommandRunner, PsrContainerReferenceSearchService $referenceSearchService, ConfiguredMessagingSystem $configuredMessagingSystem)
     {
+        $referenceSearchService->setConfiguredMessagingSystem($configuredMessagingSystem);
         $this->name = $name;
         $this->parameters = unserialize($parameters);
         $this->consoleCommandRunner = $consoleCommandRunner;

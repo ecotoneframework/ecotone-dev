@@ -362,6 +362,8 @@ return ' . $code . ';');
             $definition->addArgument($oneTimeCommandConfiguration->getName());
             $definition->addArgument(serialize($oneTimeCommandConfiguration->getParameters()));
             $definition->addArgument(new Reference(ConsoleCommandRunner::class));
+            $definition->addArgument(new Reference(ReferenceSearchService::class));
+            $definition->addArgument(new Reference(ConfiguredMessagingSystem::class));
             $definition->addTag('console.command', ['command' => $oneTimeCommandConfiguration->getName()]);
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);

@@ -3,11 +3,11 @@
 namespace Ecotone\Messaging\Config;
 
 use Closure;
+use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\NonProxyGateway;
@@ -140,7 +140,7 @@ class MessagingComponentsFactory
         ReferenceSearchService $referenceSearchService,
     ): MessagingSystem
     {
-        return new MessagingSystem(
+        $messagingSystem = new MessagingSystem(
             $pollingConsumersLocator,
             $gatewayLocator,
             $nonProxyCombinedGatewaysLocator,
@@ -149,5 +149,7 @@ class MessagingComponentsFactory
             $this->configuration->getPollingMetadata(),
             $this->configuration->getConsoleCommands(),
         );
+        $referenceSearchService->setConfiguredMessagingSystem($messagingSystem);
+        return $messagingSystem;
     }
 }

@@ -74,7 +74,7 @@
             "@tests:phpstan",
             "@tests:phpunit",
             "@tests:behat",
-            "bin/console ecotone:list"
+            "tests/App/bin/console ecotone:list"
         ]
     },
     "extra": {

@@ -27,7 +27,6 @@ final class Order
         $this->recordThat(new OrderWasPlaced($this->orderId));
     }
 
-    #[Deduplicated('orderId')]
     #[CommandHandler]
     public static function create(PlaceOrder $command, ProductRepository $productRepository, Clock $clock): self
     {

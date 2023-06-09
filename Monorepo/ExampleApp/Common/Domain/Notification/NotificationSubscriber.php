@@ -17,7 +17,6 @@ final class NotificationSubscriber
         private readonly UserRepository $userRepository, private readonly NotificationSender $notificationSender)
     {}
 
-    #[Asynchronous(MessageChannelConfiguration::ASYNCHRONOUS_CHANNEL)]
     #[EventHandler(endpointId: "notifyWhenOrderWasPlaced")]
     public function whenOrderWasPlaced(OrderWasPlaced $event): void
     {

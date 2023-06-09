@@ -16,7 +16,6 @@ final class ShippingSubscriber
     {
     }
 
-    #[Asynchronous(MessageChannelConfiguration::ASYNCHRONOUS_CHANNEL)]
     #[EventHandler(endpointId: "shipWhenOrderWasPlaced")]
     public function when(OrderWasPlaced $event): void
     {

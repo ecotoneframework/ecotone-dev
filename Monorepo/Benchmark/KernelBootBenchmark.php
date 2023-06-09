@@ -2,16 +2,12 @@
 
 namespace Monorepo\Benchmark;
 
-use PhpBench\Benchmark\Metadata\Annotations\Iterations;
-use PhpBench\Benchmark\Metadata\Annotations\Revs;
-use PhpBench\Benchmark\Metadata\Annotations\Warmup;
+use PhpBench\Attributes\Iterations;
+use PhpBench\Attributes\Revs;
+use PhpBench\Attributes\Warmup;
 use Psr\Container\ContainerInterface;
 
-/**
- * @Revs(10)
- * @Iterations(5)
- * @Warmup(1)
- */
+#[Warmup(1), Revs(10), Iterations(5)]
 class KernelBootBenchmark extends FullAppBenchmarkCase
 {
     protected function execute(ContainerInterface $container): void

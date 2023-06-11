@@ -3,7 +3,6 @@ vendor/
 bin/
 tests/coverage
 !tests/coverage/.gitkeep
-file
 .phpunit.result.cache
 composer.lock
 phpunit.xml

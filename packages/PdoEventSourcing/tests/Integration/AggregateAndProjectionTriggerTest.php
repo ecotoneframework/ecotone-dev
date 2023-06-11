@@ -8,7 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Test\Ecotone\EventSourcing\EventSourcingMessagingTest;
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
@@ -20,7 +20,7 @@ use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\TicketCounterProjec
 /**
  * @internal
  */
-final class AggregateAndProjectionTriggerTest extends EventSourcingMessagingTest
+final class AggregateAndProjectionTriggerTest extends EventSourcingMessagingTestCase
 {
     public function test_triggering_projection_with_state_synchronously()
     {

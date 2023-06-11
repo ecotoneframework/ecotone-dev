@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
+        backupGlobals="true"
+>
+    <php>
+        <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
+    </php>
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">./App</directory>
+            <directory suffix=".php">./DependencyInjection</directory>
+            <directory suffix=".php">./SymfonyBundle</directory>
+        </include>
+        <report>
+            <text outputFile="php://stdout" showOnlySummary="true" />
+        </report>
+    </coverage>
+    <testsuites>
+        <testsuite name="Unit Tests">
+            <directory>tests/phpunit</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

@@ -198,21 +198,6 @@ final class MethodInvoker implements MessageProcessor
     }
 
     /**
-     * @param ParameterConverterBuilder[] $methodParameterConverterBuilders
-     * @param InterfaceParameter $interfaceParameter
-     * @return bool
-     */
-    public static function hasParameterConverterFor(array $methodParameterConverterBuilders, InterfaceParameter $interfaceParameter): bool
-    {
-        foreach ($methodParameterConverterBuilders as $methodParameterConverterBuilder) {
-            if ($methodParameterConverterBuilder->isHandling($interfaceParameter)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * @inheritDoc
      */
     public function executeEndpoint(Message $message)

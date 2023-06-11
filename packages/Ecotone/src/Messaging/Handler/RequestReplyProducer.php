@@ -59,13 +59,13 @@ class RequestReplyProducer
 
     public function handleWithPossibleAroundInterceptors(Message $message): void
     {
-        $methodCall = $this->messageProcessor->getMethodCall($message);
         if ($this->messageProcessor->getAroundMethodInterceptors() === []) {
             $this->executeEndpointAndSendReply($message);
 
             return;
         }
 
+        $methodCall = $this->messageProcessor->getMethodCall($message);
         $aroundMethodInvoker = new AroundMethodInvoker(
             $this->messageProcessor,
             $methodCall,

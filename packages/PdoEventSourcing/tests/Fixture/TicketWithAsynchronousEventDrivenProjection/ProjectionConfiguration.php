@@ -9,16 +9,16 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 class ProjectionConfiguration
 {
     #[ServiceContext]
-    public function setMaximumLimitedTimeForProjections()
+    public function setMaximumLimitedTimeForProjections(): PollingMetadata
     {
-        return PollingMetadata::create('asynchronous_projections')
+        return PollingMetadata::create(InProgressTicketList::PROJECTION_CHANNEL)
             ->setExecutionAmountLimit(3)
             ->setExecutionTimeLimitInMilliseconds(300);
     }
 
     #[ServiceContext]
-    public function enableAsynchronousProjection()
+    public function enableAsynchronousProjection(): SimpleMessageChannelBuilder
     {
-        return SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections');
+        return SimpleMessageChannelBuilder::createQueueChannel(InProgressTicketList::PROJECTION_CHANNEL);
     }
 }

@@ -13,12 +13,17 @@ use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
-abstract class EventSourcingMessagingTest extends TestCase
+abstract class EventSourcingMessagingTestCase extends TestCase
 {
     /**
      * @var DbalConnectionFactory|ManagerRegistryConnectionFactory
      */
     private $dbalConnectionFactory;
+
+    /**
+     * @var Connection
+     */
+    private $connection;
 
     protected function setUp(): void
     {
@@ -41,6 +46,15 @@ abstract class EventSourcingMessagingTest extends TestCase
         return $this->dbalConnectionFactory;
     }
 
+    public function getConnection(bool $fromRegistry = false): Connection
+    {
+        if (! $this->connection) {
+            $this->connection = $this->getConnectionFactory($fromRegistry)->createContext()->getDbalConnection();
+        }
+
+        return $this->connection;
+    }
+
     protected function getReferenceSearchServiceWithConnection(array $objects = [], bool $connectionAsRegistry = false)
     {
         return InMemoryReferenceSearchService::createWith(
@@ -53,11 +67,11 @@ abstract class EventSourcingMessagingTest extends TestCase
 
     public static function clearDataTables(Connection $connection): void
     {
-        EventSourcingMessagingTest::deleteFromTableExists('enqueue', $connection);
-        EventSourcingMessagingTest::deleteFromTableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
-        EventSourcingMessagingTest::deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
-        EventSourcingMessagingTest::deleteTable('in_progress_tickets', $connection);
-        EventSourcingMessagingTest::deleteEventStreamTables($connection);
+        EventSourcingMessagingTestCase::deleteFromTableExists('enqueue', $connection);
+        EventSourcingMessagingTestCase::deleteFromTableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
+        EventSourcingMessagingTestCase::deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
+        EventSourcingMessagingTestCase::deleteTable('in_progress_tickets', $connection);
+        EventSourcingMessagingTestCase::deleteEventStreamTables($connection);
     }
 
     public static function tableExists(Connection $connection, string $table): bool

@@ -14,11 +14,13 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
-#[Asynchronous('asynchronous_projections')]
+#[Asynchronous(self::PROJECTION_CHANNEL)]
 #[Projection(self::IN_PROGRESS_TICKET_PROJECTION, Ticket::class)]
 class InProgressTicketList
 {
     public const IN_PROGRESS_TICKET_PROJECTION = 'inProgressTicketList';
+    public const PROJECTION_CHANNEL = 'asynchronous_projections';
+
     private Connection $connection;
 
     public function __construct(Connection $connection)

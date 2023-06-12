@@ -154,7 +154,7 @@ class TransformerBuilderTest extends MessagingTest
         $this->assertMessages(
             MessageBuilder::fromMessage($message)
                 ->setPayload($payload)
-                ->setHeader('0', $payload)
+                ->setHeader('some', $payload)
                 ->setContentType(MediaType::createApplicationXPHP())
                 ->build(),
             $outputChannel->receive()

@@ -17,6 +17,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection\InProgressTicketList;
 
+/**
+ * @internal
+ */
 final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessagingTestCase
 {
     public function test_building_asynchronous_event_driven_projection(): void
@@ -109,7 +112,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
                     EventSourcingConfiguration::createWithDefaults(),
                     ProjectionRunningConfiguration::createEventDriven(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
                         ->withTestingSetup()
-                        ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 2)
+                        ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 2),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );

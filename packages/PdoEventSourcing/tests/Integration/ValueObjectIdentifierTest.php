@@ -12,9 +12,12 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier\ArticleEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier\PublishArticle;
 
+/**
+ * @internal
+ */
 final class ValueObjectIdentifierTest extends TestCase
 {
-    public function test_handling_events_and_commands_with_value_objectIdentifiers(): void
+    public function test_handling_events_and_commands_with_value_object_identifiers(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new ArticleEventConverter()],

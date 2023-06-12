@@ -19,6 +19,9 @@ use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\NotificationService
 use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\StateAndEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\TicketCounterProjection;
 
+/**
+ * @internal
+ */
 final class ProjectionWithStateTest extends EventSourcingMessagingTestCase
 {
     public function test_projection_should_be_able_to_keep_the_state_between_runs(): void

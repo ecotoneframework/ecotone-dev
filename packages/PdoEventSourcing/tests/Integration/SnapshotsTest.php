@@ -19,6 +19,9 @@ use Test\Ecotone\EventSourcing\Fixture\Snapshots\TicketMediaTypeConverter;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 
+/**
+ * @internal
+ */
 final class SnapshotsTest extends EventSourcingMessagingTestCase
 {
     public function test_snapshotting_aggregates_called_in_turn(): void
@@ -34,7 +37,7 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
-                        ->withSnapshots([Ticket::class, Basket::class], 1)
+                        ->withSnapshots([Ticket::class, Basket::class], 1),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../'
         );

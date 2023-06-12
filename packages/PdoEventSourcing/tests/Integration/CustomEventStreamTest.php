@@ -19,6 +19,9 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
 use Test\Ecotone\EventSourcing\Fixture\CustomEventStream\CustomEventStreamProjection;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 
+/**
+ * @internal
+ */
 final class CustomEventStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_handling_custom_event_stream_when_custom_stream_persistence_is_enabled(): void
@@ -39,7 +42,7 @@ final class CustomEventStreamTest extends EventSourcingMessagingTestCase
                             $this->isPostgres()
                                 ? new PostgresSingleStreamStrategy(new FromProophMessageToArrayConverter())
                                 : new MySqlSingleStreamStrategy(new FromProophMessageToArrayConverter())
-                        )
+                        ),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../'
         );

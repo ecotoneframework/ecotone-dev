@@ -15,6 +15,9 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionFromCategoryUsingAggregatePerStream\FromCategoryUsingAggregatePerStreamProjection;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 
+/**
+ * @internal
+ */
 final class CategoryStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_handling_category_stream_when_stream_per_aggregate_persistence_is_enabled(): void
@@ -31,7 +34,7 @@ final class CategoryStreamTest extends EventSourcingMessagingTestCase
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
-                        ->withStreamPerAggregatePersistenceStrategy()
+                        ->withStreamPerAggregatePersistenceStrategy(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../'
         );

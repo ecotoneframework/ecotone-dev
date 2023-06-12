@@ -20,6 +20,9 @@ use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\InProgressTicket
 use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\NotificationService;
 use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdatedConverter;
 
+/**
+ * @internal
+ */
 final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 {
     public function test_projection_emitting_events(): void

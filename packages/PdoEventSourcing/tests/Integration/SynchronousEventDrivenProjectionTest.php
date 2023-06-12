@@ -22,6 +22,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList;
 
+/**
+ * @internal
+ */
 final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingTestCase
 {
     public function test_building_synchronous_event_driven_projection(): void
@@ -36,7 +39,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
                 ])
             ->withExtensionObjects([
-                EventSourcingConfiguration::createWithDefaults()
+                EventSourcingConfiguration::createWithDefaults(),
             ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -67,7 +70,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
                 ])
             ->withExtensionObjects([
-                EventSourcingConfiguration::createWithDefaults()
+                EventSourcingConfiguration::createWithDefaults(),
             ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -104,7 +107,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
-                        ->withSnapshots([Ticket::class, Basket::class], 1)
+                        ->withSnapshots([Ticket::class, Basket::class], 1),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -167,7 +170,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                     EventSourcingConfiguration::createWithDefaults(),
                     ProjectionRunningConfiguration::createEventDriven(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
                         ->withTestingSetup()
-                        ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 2)
+                        ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 2),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
         );

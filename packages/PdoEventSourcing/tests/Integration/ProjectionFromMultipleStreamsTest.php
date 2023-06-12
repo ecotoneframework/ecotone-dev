@@ -16,6 +16,9 @@ use Test\Ecotone\EventSourcing\Fixture\ProjectionFromMultipleStreams\MultipleStr
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 
+/**
+ * @internal
+ */
 final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTestCase
 {
     public function test_handling_multiple_streams_for_projection(): void
@@ -31,7 +34,7 @@ final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTest
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ])
                 ->withExtensionObjects([
-                    EventSourcingConfiguration::createWithDefaults()
+                    EventSourcingConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../'
         );

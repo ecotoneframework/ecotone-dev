@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test;
 
-use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;

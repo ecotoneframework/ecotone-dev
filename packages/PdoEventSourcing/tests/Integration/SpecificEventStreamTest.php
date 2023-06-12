@@ -15,6 +15,9 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
 use Test\Ecotone\EventSourcing\Fixture\SpecificEventStream\SpecificEventStreamProjection;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 
+/**
+ * @internal
+ */
 final class SpecificEventStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_handling_specific_event_stream_when_stream_per_aggregate_persistence_is_enabled(): void
@@ -31,7 +34,7 @@ final class SpecificEventStreamTest extends EventSourcingMessagingTestCase
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
-                        ->withStreamPerAggregatePersistenceStrategy()
+                        ->withStreamPerAggregatePersistenceStrategy(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../'
         );

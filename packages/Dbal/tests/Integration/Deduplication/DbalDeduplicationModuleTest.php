@@ -13,14 +13,14 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
 use Test\Ecotone\Dbal\Fixture\DeduplicationEventHandler\DeduplicatedEventHandler;
 
 /**
  * @internal
  */
-final class DbalDeduplicationModuleTest extends DbalMessagingTest
+final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 {
     public function test_deduplicating_given_command_handler()
     {

@@ -16,14 +16,14 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Dbal\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal
  */
-class DbalBackedMessageChannelTest extends DbalMessagingTest
+class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 {
     public function test_sending_and_receiving_via_channel()
     {

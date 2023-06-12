@@ -10,13 +10,13 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
 
 /**
  * @internal
  */
-class DbalDeadLetterTest extends DbalMessagingTest
+class DbalDeadLetterTest extends DbalMessagingTestCase
 {
     public function test_retrieving_error_message_details()
     {

@@ -12,11 +12,6 @@ default:
             - Test\Ecotone\Messaging\Behat\Bootstrap\DomainContext
             - Test\Ecotone\Modelling\Behat\Bootstrap\DomainContext
             - Test\Ecotone\Messaging\Behat\Bootstrap\AnnotationBasedMessagingContext
-      dbal:
-          paths:
-            - packages/Dbal/tests/Behat/features
-          contexts:
-            - Test\Ecotone\Dbal\Behat\Bootstrap\DomainContext
       amqp:
           paths:
             - packages/Amqp/tests/Behat/features

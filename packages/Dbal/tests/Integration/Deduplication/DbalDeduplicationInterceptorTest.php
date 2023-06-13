@@ -7,13 +7,13 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\StubMethodInvocation;
 
 /**
  * @internal
  */
-class DbalDeduplicationInterceptorTest extends DbalMessagingTest
+class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 {
     public function test_not_deduplicating_for_different_endpoints()
     {

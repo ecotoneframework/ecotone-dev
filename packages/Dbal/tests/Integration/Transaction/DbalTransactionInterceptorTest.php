@@ -12,14 +12,14 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\PollableChannel;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderRegisteringGateway;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderService;
 
 /**
  * @internal
  */
-final class DbalTransactionInterceptorTest extends DbalMessagingTest
+final class DbalTransactionInterceptorTest extends DbalMessagingTestCase
 {
     public function test_turning_off_transactions_for_polling_consumer()
     {

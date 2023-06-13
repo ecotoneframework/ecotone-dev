@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Dbal;
 
+use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
@@ -13,7 +14,7 @@ use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
-abstract class DbalMessagingTest extends TestCase
+abstract class DbalMessagingTestCase extends TestCase
 {
     /**
      * @var DbalConnectionFactory|ManagerRegistryConnectionFactory
@@ -34,6 +35,11 @@ abstract class DbalMessagingTest extends TestCase
         return $this->dbalConnectionFactory;
     }
 
+    protected function getConnection(bool $fromRegistry = false): Connection
+    {
+        return $this->getConnectionFactory($fromRegistry)->createContext()->getDbalConnection();
+    }
+
     protected function getReferenceSearchServiceWithConnection()
     {
         return InMemoryReferenceSearchService::createWith([
@@ -50,21 +56,22 @@ abstract class DbalMessagingTest extends TestCase
         $this->deleteTable(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
         $this->deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
         $this->deleteTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
+        $this->deleteTable('persons', $connection);
     }
 
-    private function deleteTable(string $tableName, \Doctrine\DBAL\Connection $connection): void
+    protected function checkIfTableExists(Connection $connection, string $table): bool
+    {
+        $schemaManager = $connection->createSchemaManager();
+
+        return $schemaManager->tablesExist([$table]);
+    }
+
+    private function deleteTable(string $tableName, Connection $connection): void
     {
         $doesExists = $this->checkIfTableExists($connection, $tableName);
 
         if ($doesExists) {
             $connection->executeStatement('DROP TABLE ' . $tableName);
         }
-    }
-
-    private function checkIfTableExists(\Doctrine\DBAL\Connection $connection, string $table): bool
-    {
-        $schemaManager = $connection->createSchemaManager();
-
-        return $schemaManager->tablesExist([$table]);
     }
 }

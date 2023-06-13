@@ -15,12 +15,12 @@ use function json_decode;
 use function json_encode;
 
 use stdClass;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
  * @internal
  */
-final class DbalDocumentStoreTest extends DbalMessagingTest
+final class DbalDocumentStoreTest extends DbalMessagingTestCase
 {
     private CachedConnectionFactory $cachedConnectionFactory;
 

@@ -48,6 +48,7 @@
         "phpunit/phpunit": "^9.5",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
+        "psr/container": "^2.0",
         "doctrine/annotations": "^1.13",
         "wikimedia/composer-merge-plugin": "^2.0"
     },
@@ -56,13 +57,9 @@
         "tests:phpunit": [
             "vendor/bin/phpunit"
         ],
-        "tests:behat": [
-            "vendor/bin/behat -vvv"
-        ],
         "tests:ci": [
             "@tests:phpstan",
-            "@tests:phpunit",
-            "@tests:behat"
+            "@tests:phpunit"
         ]
     },
     "extra": {

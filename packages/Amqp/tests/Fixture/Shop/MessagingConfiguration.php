@@ -17,7 +17,7 @@ class MessagingConfiguration
     #[ServiceContext]
     public function registerPublisher()
     {
-        return AmqpMessagePublisherConfiguration::create(MessagePublisher::class)
+        return AmqpMessagePublisherConfiguration::create()
             ->withAutoDeclareQueueOnSend(true)
             ->withDefaultRoutingKey(self::SHOPPING_QUEUE);
     }

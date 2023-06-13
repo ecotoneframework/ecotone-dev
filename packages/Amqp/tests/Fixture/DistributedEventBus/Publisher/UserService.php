@@ -12,9 +12,9 @@ class UserService
     public const BILLING_DETAILS_WERE_CHANGED = 'userService.billingDetailsWereChanged';
 
     #[CommandHandler(self::CHANGE_BILLING_DETAILS)]
-    public function changeBillingDetails(#[Reference] DistributedBus $commandBus)
+    public function changeBillingDetails(#[Reference] DistributedBus $distributedBus)
     {
-        $commandBus->publishEvent(
+        $distributedBus->publishEvent(
             self::BILLING_DETAILS_WERE_CHANGED,
             'ticket was created'
         );

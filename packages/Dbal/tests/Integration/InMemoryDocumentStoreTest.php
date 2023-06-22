@@ -12,6 +12,9 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
 
+/**
+ * @internal
+ */
 final class InMemoryDocumentStoreTest extends DbalMessagingTestCase
 {
     public function test_support_for_in_memory_document_store(): void

@@ -13,6 +13,9 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInterceptor;
 
+/**
+ * @internal
+ */
 final class AsynchronousChannelTest extends DbalMessagingTestCase
 {
     public function test_it_will_rollback_the_message_when_it_fails_at_second_time_to_add_the_order(): void
@@ -103,8 +106,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withNamespaces($namespaces)
-            ,
+                ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }

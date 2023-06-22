@@ -13,6 +13,9 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\RegisterPerson;
 
+/**
+ * @internal
+ */
 final class DocumentStoreAggregateTest extends DbalMessagingTestCase
 {
     public function test_support_for_document_store_aggregate(): void

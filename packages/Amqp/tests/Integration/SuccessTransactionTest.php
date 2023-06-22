@@ -11,6 +11,9 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\SuccessTransaction\OrderService;
 
+/**
+ * @internal
+ */
 final class SuccessTransactionTest extends AmqpMessagingTest
 {
     public function test_order_is_placed_when_transaction_is_successful(): void

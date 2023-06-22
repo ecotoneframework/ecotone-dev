@@ -30,7 +30,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.88.1",
+        "ecotone/ecotone": "~1.88.2",
         "queue-interop/queue-interop": "^0.8",
         "enqueue/dsn": "^0.10.4"
     },
@@ -48,7 +48,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.88.1-dev"
+            "dev-main": "1.88.2-dev"
         },
         "ecotone": {
             "repository": "enqueue"

@@ -13,6 +13,9 @@ use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher\UserService;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver\TicketServiceReceiver;
 
+/**
+ * @internal
+ */
 final class DistributedEventBusTest extends AmqpMessagingTest
 {
     public function test_distributing_command_to_another_service(): void

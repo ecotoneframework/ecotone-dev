@@ -11,6 +11,9 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTest;
 
+/**
+ * @internal
+ */
 final class FailureTransactionTest extends AmqpMessagingTest
 {
     public function test_order_is_never_placed_when_transaction_is_failed(): void
@@ -20,13 +23,15 @@ final class FailureTransactionTest extends AmqpMessagingTest
             [new \Test\Ecotone\Amqp\Fixture\FailureTransaction\OrderService()]
         );
 
-        try{
+        try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
-        try{
+        try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         self::assertNull(
             $ecotone

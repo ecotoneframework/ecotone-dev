@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -19,6 +16,9 @@ use Test\Ecotone\Dbal\Fixture\Deduplication\OrderPlaced;
 use Test\Ecotone\Dbal\Fixture\Deduplication\OrderService;
 use Test\Ecotone\Dbal\Fixture\Deduplication\OrderSubscriber;
 
+/**
+ * @internal
+ */
 final class DeduplicationTest extends DbalMessagingTestCase
 {
     private const CHANNEL_NAME = 'processOrders';

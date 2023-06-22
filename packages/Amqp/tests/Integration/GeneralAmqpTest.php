@@ -14,6 +14,9 @@ use Test\Ecotone\Amqp\Fixture\Order\OrderErrorHandler;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
 use Test\Ecotone\Amqp\Fixture\Shop\ShoppingCart;
 
+/**
+ * @internal
+ */
 final class GeneralAmqpTest extends AmqpMessagingTest
 {
     public function test_products_are_on_list_after_being_ordered(): void

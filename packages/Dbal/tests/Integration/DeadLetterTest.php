@@ -16,6 +16,9 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderGateway;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderService;
 
+/**
+ * @internal
+ */
 final class DeadLetterTest extends DbalMessagingTestCase
 {
     public function test_exception_handling_with_custom_handling_1_retry(): void
@@ -128,14 +131,14 @@ final class DeadLetterTest extends DbalMessagingTestCase
     {
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $gateway->delete(array_map(fn(ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
+        $gateway->delete(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
     private function replyAllErrorMessagesById(FlowTestSupport $ecotone): void
     {
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $gateway->reply(array_map(fn(ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
+        $gateway->reply(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
     private function replyAllErrorMessages(FlowTestSupport $ecotone): void

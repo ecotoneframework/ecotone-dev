@@ -39,7 +39,7 @@
     },
     "require": {
         "ext-amqp": "*",
-        "ecotone/enqueue": "~1.88.2",
+        "ecotone/enqueue": "~1.89.0",
         "enqueue/amqp-ext": "^0.10.18",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0"
@@ -63,7 +63,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.88.2-dev"
+            "dev-main": "1.89.0-dev"
         },
         "ecotone": {
             "repository": "amqp"

@@ -127,7 +127,7 @@ final class EcotoneLite
     ): FlowTestSupport {
         $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]), $classesToResolve, $addInMemoryStateStoredRepository);
 
-        if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && !$runForProductionEventStore) {
+        if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && ! $runForProductionEventStore) {
             Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
 
             $configuration = $configuration

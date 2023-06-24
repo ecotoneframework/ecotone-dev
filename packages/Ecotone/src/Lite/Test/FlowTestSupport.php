@@ -125,7 +125,7 @@ final class FlowTestSupport
     public function deleteEventStream(string $streamName): self
     {
         $gateway = $this->getGateway(EventStore::class);
-        if (!$gateway->hasStream($streamName)) {
+        if (! $gateway->hasStream($streamName)) {
             return $this;
         }
 

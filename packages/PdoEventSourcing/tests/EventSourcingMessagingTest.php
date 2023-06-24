@@ -4,8 +4,6 @@ namespace Test\Ecotone\EventSourcing;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;

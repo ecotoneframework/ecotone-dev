@@ -44,7 +44,8 @@ final class CustomEventStreamTest extends EventSourcingMessagingTestCase
                                 : new MySqlSingleStreamStrategy(new FromProophMessageToArrayConverter())
                         ),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone

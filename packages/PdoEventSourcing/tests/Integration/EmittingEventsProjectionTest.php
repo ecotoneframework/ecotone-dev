@@ -80,7 +80,8 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection',
                 ])
                 ->withExtensionObjects(array_merge([EventSourcingConfiguration::createWithDefaults()], $extensionObjects)),
-            pathToRootCatalog: __DIR__ . '/../../'
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
     }
 

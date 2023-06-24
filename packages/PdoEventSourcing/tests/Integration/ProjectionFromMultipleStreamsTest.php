@@ -36,7 +36,8 @@ final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTest
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone

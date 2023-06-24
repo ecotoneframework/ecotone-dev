@@ -4,8 +4,6 @@ namespace Test\Ecotone\EventSourcing;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
@@ -67,34 +65,15 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 
     public static function clearDataTables(Connection $connection): void
     {
-        EventSourcingMessagingTestCase::deleteFromTableExists('enqueue', $connection);
-        EventSourcingMessagingTestCase::deleteFromTableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
-        EventSourcingMessagingTestCase::deleteFromTableExists(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
-        EventSourcingMessagingTestCase::deleteTable('in_progress_tickets', $connection);
-        EventSourcingMessagingTestCase::deleteEventStreamTables($connection);
+        foreach ($connection->createSchemaManager()->listTableNames() as $tableNames) {
+            $sql = 'DROP TABLE ' . $tableNames;
+            $connection->prepare($sql)->executeStatement();
+        }
     }
 
     public static function tableExists(Connection $connection, string $table): bool
     {
         return $connection->createSchemaManager()->tablesExist([$table]);
-    }
-
-    private static function deleteEventStreamTables(Connection $connection): void
-    {
-        if (self::tableExists($connection, 'event_streams')) {
-            $projections = $connection->createQueryBuilder()
-                ->select('*')
-                ->from('event_streams')
-                ->executeQuery()
-                ->fetchAllAssociative();
-
-            foreach ($projections as $projection) {
-                self::deleteTable($projection['stream_name'], $connection);
-            }
-        }
-
-        self::deleteTable('event_streams', $connection);
-        self::deleteTable('projections', $connection);
     }
 
     private static function deleteFromTableExists(string $tableName, Connection $connection): void

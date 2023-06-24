@@ -36,7 +36,8 @@ final class SpecificEventStreamTest extends EventSourcingMessagingTestCase
                     EventSourcingConfiguration::createWithDefaults()
                         ->withStreamPerAggregatePersistenceStrategy(),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone

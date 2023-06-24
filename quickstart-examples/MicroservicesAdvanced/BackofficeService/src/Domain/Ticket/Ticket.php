@@ -7,14 +7,12 @@ use App\Microservices\BackofficeService\Domain\Ticket\Command\PrepareTicket;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasAssigned;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasCancelled;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasPrepared;
-use Ecotone\Modelling\Attribute\AggregateFactory;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
-use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
 
 #[EventSourcingAggregate]

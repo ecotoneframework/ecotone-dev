@@ -78,41 +78,17 @@ class SaveAggregateService
     {
         $metadata = MessageHeaders::unsetNonUserKeys($metadata);
 
-        $aggregate = $message->getHeaders()->get(AggregateMessage::AGGREGATE_OBJECT);
-        $events = [];
+        $events = $this->resolveEvents($message, $metadata);
 
-        if ($this->isEventSourced) {
-            $events = $message->getPayload();
-            Assert::isIterable($events, "Return value Event Sourced Aggregate {$this->aggregateInterface} must return array of events");
-        } elseif ($this->aggregateMethodWithEvents) {
-            $events = call_user_func([$aggregate, $this->aggregateMethodWithEvents]);
+        if ($this->isEventSourced && $events === []) {
+            return MessageBuilder::fromMessage($message)->build();
         }
-
-        $events = array_map(function ($event) use ($message, $metadata): Event {
-            if (! is_object($event)) {
-                $typeDescriptor = TypeDescriptor::createFromVariable($event);
-                throw InvalidArgumentException::create("Events return by after calling {$this->aggregateInterface} must all be objects, {$typeDescriptor->toString()} given");
-            }
-            if ($event instanceof Event) {
-                $metadata = $event->getMetadata();
-                $event = $event->getPayload();
-            }
-
-            $metadata = MessageHeaders::unsetAllFrameworkHeaders($metadata);
-            $metadata[MessageHeaders::MESSAGE_ID] = Uuid::uuid4()->toString();
-            $metadata = RevisionMetadataEnricher::enrich($metadata, $event);
-            $metadata = MessageHeaders::propagateContextHeaders([
-                MessageHeaders::MESSAGE_ID => $message->getHeaders()->getMessageId(),
-                MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId()
-            ], $metadata);
-
-            return Event::create($event, $metadata);
-        }, $events);
 
         $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION)
             ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION)
             : null;
 
+        $aggregate = $message->getHeaders()->get(AggregateMessage::AGGREGATE_OBJECT);
         if ($this->aggregateVersionProperty && $this->isAggregateVersionAutomaticallyIncreased) {
             $this->propertyEditorAccessor->enrichDataWith(
                 PropertyPath::createWith($this->aggregateVersionProperty),
@@ -219,5 +195,45 @@ class SaveAggregateService
         }
 
         return AggregateIdResolver::resolveArrayOfIdentifiers(get_class($aggregate), $aggregateIds);
+    }
+
+    /**
+     * @return array<Event>
+     */
+    private function resolveEvents(Message $message, array $metadata): array
+    {
+        $events = [];
+
+        if ($this->isEventSourced) {
+            $events = $message->getPayload();
+            Assert::isIterable($events, "Return value Event Sourced Aggregate {$this->aggregateInterface} must return array of events");
+        }
+
+        if ($events === [] && $this->aggregateMethodWithEvents) {
+            $aggregate = $message->getHeaders()->get(AggregateMessage::AGGREGATE_OBJECT);
+            $events = call_user_func([$aggregate, $this->aggregateMethodWithEvents]);
+        }
+
+        return array_map(function ($event) use ($message, $metadata): Event {
+            if (! is_object($event)) {
+                $typeDescriptor = TypeDescriptor::createFromVariable($event);
+                throw InvalidArgumentException::create("Events return by after calling {$this->aggregateInterface} must all be objects, {$typeDescriptor->toString()} given");
+            }
+            if ($event instanceof Event) {
+                $metadata = $event->getMetadata();
+                $event = $event->getPayload();
+            }
+
+            $metadata = MessageHeaders::unsetAllFrameworkHeaders($metadata);
+            $metadata = RevisionMetadataEnricher::enrich($metadata, $event);
+            $metadata[MessageHeaders::MESSAGE_ID] ??= Uuid::uuid4()->toString();
+            $metadata[MessageHeaders::TIMESTAMP] ??= (int)round(microtime(true));
+            $metadata = MessageHeaders::propagateContextHeaders([
+                MessageHeaders::MESSAGE_ID => $message->getHeaders()->getMessageId(),
+                MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId()
+            ], $metadata);
+
+            return Event::create($event, $metadata);
+        }, $events);
     }
 }

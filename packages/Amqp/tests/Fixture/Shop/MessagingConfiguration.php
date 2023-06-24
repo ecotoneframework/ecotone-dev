@@ -7,7 +7,6 @@ use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\MessagePublisher;
 
 class MessagingConfiguration
 {
@@ -17,7 +16,7 @@ class MessagingConfiguration
     #[ServiceContext]
     public function registerPublisher()
     {
-        return AmqpMessagePublisherConfiguration::create(MessagePublisher::class)
+        return AmqpMessagePublisherConfiguration::create()
             ->withAutoDeclareQueueOnSend(true)
             ->withDefaultRoutingKey(self::SHOPPING_QUEUE);
     }

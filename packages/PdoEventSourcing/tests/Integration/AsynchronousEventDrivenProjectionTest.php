@@ -37,6 +37,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
@@ -68,6 +69,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
@@ -115,6 +117,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
                         ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 2),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));

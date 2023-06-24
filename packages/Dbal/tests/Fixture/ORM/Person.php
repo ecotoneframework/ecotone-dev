@@ -10,23 +10,17 @@ use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
-/**
- * @ORM\Entity
- * @ORM\Table(name="persons")
- */
+#[ORM\Entity]
+#[ORM\Table(name: 'persons')]
 #[Aggregate]
 class Person
 {
-    /**
-     * @ORM\Id()
-     * @ORM\Column(name="person_id", type="integer")
-     */
+    #[ORM\Id]
+    #[ORM\Column(name: 'person_id', type: 'integer')]
     #[AggregateIdentifier]
     private int $personId;
-    /**
-     * @ORM\Id
-     * @ORM\Column(name="name", type="string")
-     */
+
+    #[ORM\Column(name: 'name', type: 'string')]
     private string $name;
 
     private function __construct(int $personId, string $name)

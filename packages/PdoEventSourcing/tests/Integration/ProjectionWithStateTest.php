@@ -99,7 +99,8 @@ final class ProjectionWithStateTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                     'Test\Ecotone\EventSourcing\Fixture\TicketProjectionState',
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
     }
 }

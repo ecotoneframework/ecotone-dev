@@ -48,6 +48,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotoneLite->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);

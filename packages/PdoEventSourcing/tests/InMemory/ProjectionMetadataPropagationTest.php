@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\EventSourcing\Integration;
+namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;

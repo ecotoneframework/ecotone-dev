@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\EventSourcing\Integration;
+namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\EventSourcingConfiguration;

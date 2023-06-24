@@ -39,7 +39,8 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
                     EventSourcingConfiguration::createWithDefaults()
                         ->withSnapshots([Ticket::class, Basket::class], 1),
                 ]),
-            pathToRootCatalog: __DIR__ . '/../../'
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone

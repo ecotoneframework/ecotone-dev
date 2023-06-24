@@ -42,6 +42,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 EventSourcingConfiguration::createWithDefaults(),
             ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -73,6 +74,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 EventSourcingConfiguration::createWithDefaults(),
             ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Marcus', 'alert'));
@@ -110,6 +112,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                         ->withSnapshots([Ticket::class, Basket::class], 1),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -139,6 +142,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                     'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -173,6 +177,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                         ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 2),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
         );
 
         $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));

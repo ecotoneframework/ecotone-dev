@@ -3,41 +3,40 @@
 namespace Test\Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\Tools\Setup;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 abstract class DbalMessagingTestCase extends TestCase
 {
-    /**
-     * @var DbalConnectionFactory|ManagerRegistryConnectionFactory
-     */
-    private $dbalConnectionFactory;
-
     public function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
-        if (! $this->dbalConnectionFactory) {
-            $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
 
-            $dbalConnectionFactory = new DbalConnectionFactory($dsn);
-            $this->dbalConnectionFactory = $isRegistry
-                ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)
-                : $dbalConnectionFactory;
-        }
-
-        return $this->dbalConnectionFactory;
+        $dbalConnectionFactory = new DbalConnectionFactory($dsn);
+        return $isRegistry
+            ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)
+            : $dbalConnectionFactory;
     }
 
-    protected function getConnection(bool $fromRegistry = false): Connection
+    public function getORMConnectionFactory(array $paths): ConnectionFactory
     {
-        return $this->getConnectionFactory($fromRegistry)->createContext()->getDbalConnection();
+        $config = Setup::createAttributeMetadataConfiguration($paths, true);
+
+        return DbalConnection::createEntityManager(EntityManager::create($this->getConnection(), $config));
+    }
+
+    protected function getConnection(): Connection
+    {
+        return $this->getConnectionFactory()->createContext()->getDbalConnection();
     }
 
     protected function getReferenceSearchServiceWithConnection()
@@ -49,7 +48,7 @@ abstract class DbalMessagingTestCase extends TestCase
 
     public function setUp(): void
     {
-        $connection = $this->getConnectionFactory()->createContext()->getDbalConnection();
+        $connection = $this->getConnection();
 
         $this->deleteTable('enqueue', $connection);
         $this->deleteTable(OrderService::ORDER_TABLE, $connection);

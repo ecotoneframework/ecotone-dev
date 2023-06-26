@@ -45,7 +45,7 @@ final class ORMTest extends DbalMessagingTestCase
         }
 
         return EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM'])],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
@@ -57,6 +57,7 @@ final class ORMTest extends DbalMessagingTestCase
                         ->withDoctrineORMRepositories(true, [Person::class]),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            addInMemoryStateStoredRepository: false
         );
     }
 }

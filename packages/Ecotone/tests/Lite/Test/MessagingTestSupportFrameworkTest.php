@@ -153,7 +153,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
                         ->withSpyOnChannel('orders'),
                 ]),
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders')
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
             ],
         );
 

@@ -9,8 +9,6 @@ use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
@@ -268,7 +266,7 @@ class PollingConsumerBuilderTest extends MessagingTest
             [SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel($messageChannelName)
+                SimpleMessageChannelBuilder::createQueueChannel($messageChannelName),
             ]
         );
 

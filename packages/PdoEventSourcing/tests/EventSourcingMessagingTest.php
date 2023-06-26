@@ -6,7 +6,6 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -20,14 +19,14 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 
     public function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
-            $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
-            if (! $dsn) {
-                throw new InvalidArgumentException('Missing env `DATABASE_DSN` pointing to test database');
-            }
-            $dbalConnectionFactory = new DbalConnectionFactory($dsn);
-            return $isRegistry
-                ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)
-                : $dbalConnectionFactory;
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
+        if (! $dsn) {
+            throw new InvalidArgumentException('Missing env `DATABASE_DSN` pointing to test database');
+        }
+        $dbalConnectionFactory = new DbalConnectionFactory($dsn);
+        return $isRegistry
+            ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)
+            : $dbalConnectionFactory;
     }
 
     public function getConnection(): Connection

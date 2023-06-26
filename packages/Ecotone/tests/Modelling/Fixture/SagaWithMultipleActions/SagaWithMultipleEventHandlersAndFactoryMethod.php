@@ -12,10 +12,11 @@ use Ecotone\Modelling\Attribute\SagaIdentifier;
 final class SagaWithMultipleEventHandlersAndFactoryMethod
 {
     public function __construct(
-       #[SagaIdentifier] private string $orderId,
+        #[SagaIdentifier] private string $orderId,
         private int $actionOneCalled = 0,
         private int $actionTwoCalled = 0
-    ) {}
+    ) {
+    }
 
     #[EventHandler]
     public function actionOne(RandomEvent $event): void

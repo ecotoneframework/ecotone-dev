@@ -9,9 +9,11 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\SagaWithMultipleActions\RandomEvent;
 use Test\Ecotone\Modelling\Fixture\SagaWithMultipleActions\SagaWithMultipleEventHandlers;
-use Test\Ecotone\Modelling\Fixture\SagaWithMultipleActions\SagaWithMultipleEventHandlersRepository;
 use Test\Ecotone\Modelling\Fixture\SagaWithMultipleActions\SagaWithMultipleEventHandlersAndFactoryMethod;
 
+/**
+ * @internal
+ */
 final class SagaTest extends TestCase
 {
     public function test_throwing_exception_if_registering_multiple_actions_with_factory_method(): void

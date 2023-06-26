@@ -26,6 +26,9 @@ final class OrderSaga
 {
     use WithEvents;
 
+    /**
+     * @param UuidInterface[] $productIds
+     */
     public function __construct(
         #[SagaIdentifier] private UuidInterface $orderId,
         private array $productIds,

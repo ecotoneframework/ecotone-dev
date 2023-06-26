@@ -16,8 +16,7 @@ use Ramsey\Uuid\Uuid;
 
 final class CustomerTest extends TestCase
 {
-    #[Test]
-    public function changing_email_for_new_registered_customer()
+    public function test_changing_email_for_new_registered_customer()
     {
         $customerId = Uuid::uuid4();
 

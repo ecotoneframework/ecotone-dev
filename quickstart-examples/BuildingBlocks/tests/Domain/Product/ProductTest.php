@@ -20,8 +20,7 @@ use Ramsey\Uuid\Uuid;
 
 final class ProductTest extends TestCase
 {
-    #[Test]
-    public function adding_new_product()
+    public function test_adding_new_product()
     {
         $productId = Uuid::uuid4();
 
@@ -38,8 +37,7 @@ final class ProductTest extends TestCase
         );
     }
 
-    #[Test]
-    public function changing_product_price()
+    public function test_changing_product_price()
     {
         $productId = Uuid::uuid4();
 
@@ -61,8 +59,7 @@ final class ProductTest extends TestCase
         );
     }
 
-    #[Test]
-    public function approving_product()
+    public function test_approving_product()
     {
         $productId = Uuid::uuid4();
 

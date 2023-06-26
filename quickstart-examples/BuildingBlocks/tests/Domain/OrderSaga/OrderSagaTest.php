@@ -22,8 +22,7 @@ use Ramsey\Uuid\Uuid;
 
 final class OrderSagaTest extends TestCase
 {
-    #[Test]
-    public function complete_with_order_process_with_success()
+    public function test_complete_with_order_process_with_success()
     {
         $orderId = Uuid::uuid4();
         $customerId = Uuid::uuid4()->toString();
@@ -40,8 +39,7 @@ final class OrderSagaTest extends TestCase
         );
     }
 
-    #[Test]
-    public function order_fails_on_reserving_products()
+    public function test_order_fails_on_reserving_products()
     {
         $orderId = Uuid::uuid4();
         $customerId = Uuid::uuid4()->toString();
@@ -66,8 +64,7 @@ final class OrderSagaTest extends TestCase
         );
     }
 
-    #[Test]
-    public function order_reserves_products_on_second_attempt_and_finish_successfully()
+    public function test_order_reserves_products_on_second_attempt_and_finish_successfully()
     {
         $orderId = Uuid::uuid4();
         $customerId = Uuid::uuid4()->toString();

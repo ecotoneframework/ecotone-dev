@@ -17,8 +17,7 @@ use Ramsey\Uuid\Uuid;
 
 final class UnapprovedProductListTest extends TestCase
 {
-    #[Test]
-    public function list_unapproved_products_when_there_is_none()
+    public function test_list_unapproved_products_when_there_is_none()
     {
         $this->assertEquals(
             [],
@@ -27,8 +26,7 @@ final class UnapprovedProductListTest extends TestCase
         );
     }
 
-    #[Test]
-    public function list_unapproved_products()
+    public function test_list_unapproved_products()
     {
         $productId = Uuid::uuid4()->toString();
         $productName = 'Wooden table';
@@ -50,8 +48,7 @@ final class UnapprovedProductListTest extends TestCase
         );
     }
 
-    #[Test]
-    public function list_when_product_was_approved()
+    public function test_list_when_product_was_approved()
     {
         $productId = Uuid::uuid4()->toString();
         $productName = 'Wooden table';

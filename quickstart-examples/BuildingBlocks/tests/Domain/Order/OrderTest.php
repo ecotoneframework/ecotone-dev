@@ -17,8 +17,7 @@ use Ramsey\Uuid\Uuid;
 
 final class OrderTest extends TestCase
 {
-    #[Test]
-    public function placing_order()
+    public function test_placing_order()
     {
         $orderId = Uuid::uuid4();
         $customerId = Uuid::uuid4()->toString();

@@ -48,7 +48,7 @@ final class OrderSaga
 
     // first attempt to reserve products will happen asynchronous right away after Saga was started
     #[Asynchronous("orders")]
-    #[EventHandler(endpointId: 'order.saga.whenStarted')]
+    #[EventHandler(endpointId: 'order.saga.whenFirstAttempt')]
     public function whenFirstAttempt(OrderSagaStarted $event, ProductReservationService $productReservationService, CommandBus $commandBus): void
     {
         if ($productReservationService->reserveProducts($this->orderId, $this->productIds)) {
@@ -60,7 +60,7 @@ final class OrderSaga
     // second attempt to reserve products will happen asynchronous right away after Saga was started
     #[Delayed(1000 * 60)] // 1 seconds * 60 minutes = 1 hour
     #[Asynchronous("orders")]
-    #[EventHandler(endpointId: "order.saga.whenCancel")]
+    #[EventHandler(endpointId: "order.saga.whenSecondAttempt")]
     public function whenSecondAttempt(OrderSagaStarted $event, ProductReservationService $productReservationService, CommandBus $commandBus): void
     {
         if ($this->isSuccessful) {

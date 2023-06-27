@@ -47,7 +47,7 @@ $commandBus->send(new PlaceOrder(
     [$productId]
 ), metadata: ['executorId' => $customerId->toString()]);
 
-$ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+$ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 100));
 
 /** @var OrderStatus $orderStatus */
 $orderStatus = $queryBus->sendWithRouting('order.get_status', metadata: ['aggregate.id' => $orderId]);

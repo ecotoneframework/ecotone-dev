@@ -13,6 +13,7 @@ use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateEvents;
+use Ecotone\Modelling\WithEvents;
 use Money\Money;
 use Ramsey\Uuid\UuidInterface;
 
@@ -22,7 +23,7 @@ use Ramsey\Uuid\UuidInterface;
 #[Aggregate]
 final class Order
 {
-    use WithAggregateEvents;
+    use WithEvents;
 
     /**
      * @param UuidInterface[] $productIds
@@ -34,8 +35,6 @@ final class Order
         private Money $totalPrice,
         private OrderStatus $status
     ) {
-        Assert::that($productIds)->notEmpty("Order must have at least one product");
-
         $this->recordThat(new Event\OrderWasPlaced($this->orderId, $this->productIds));
     }
 

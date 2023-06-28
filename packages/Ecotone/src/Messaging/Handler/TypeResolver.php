@@ -68,7 +68,11 @@ class TypeResolver
 
             $parameterAttributes = [];
             foreach ($parameter->getAttributes() as $attribute) {
-                $parameterAttributes[] = $attribute->newInstance();
+                try {
+                    $parameterAttributes[] = $attribute->newInstance();
+                } catch (\Error $e) {
+                    // ignore errors (e.g. when attribute target property and we are retrieving constructor parameters)
+                }
             }
 
             $parameters[] = InterfaceParameter::create(

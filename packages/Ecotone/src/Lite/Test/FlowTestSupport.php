@@ -157,7 +157,7 @@ final class FlowTestSupport
             ModellingHandlerModule::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass)
         );
 
-        return $this;
+        return $this->discardRecordedMessages();
     }
 
     /**
@@ -302,6 +302,14 @@ final class FlowTestSupport
     public function getSaga(string $className, string|array $identifiers): object
     {
         return $this->getAggregate($className, $identifiers);
+    }
+
+    public function sendMessage(string $targetChannel, mixed $payload = '', array $metadata = []): mixed
+    {
+        /** @var MessagingEntrypoint $messagingEntrypoint */
+        $messagingEntrypoint = $this->configuredMessagingSystem->getGatewayByName(MessagingEntrypoint::class);
+
+        return $messagingEntrypoint->sendWithHeaders($payload, $metadata, $targetChannel);
     }
 
     /**

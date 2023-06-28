@@ -6,51 +6,32 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 abstract class EventSourcingMessagingTestCase extends TestCase
 {
-    /**
-     * @var DbalConnectionFactory|ManagerRegistryConnectionFactory
-     */
-    private $dbalConnectionFactory;
-
-    /**
-     * @var Connection
-     */
-    private $connection;
-
     protected function setUp(): void
     {
-        self::clearDataTables($this->getConnectionFactory()->createContext()->getDbalConnection());
+        self::clearDataTables($this->getConnection());
     }
 
     public function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
-        if (! $this->dbalConnectionFactory) {
-            $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
-            if (! $dsn) {
-                throw new InvalidArgumentException('Missing env `DATABASE_DSN` pointing to test database');
-            }
-            $dbalConnectionFactory = new DbalConnectionFactory($dsn);
-            $this->dbalConnectionFactory = $isRegistry
-                ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)
-                : $dbalConnectionFactory;
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
+        if (! $dsn) {
+            throw new InvalidArgumentException('Missing env `DATABASE_DSN` pointing to test database');
         }
-
-        return $this->dbalConnectionFactory;
+        $dbalConnectionFactory = new DbalConnectionFactory($dsn);
+        return $isRegistry
+            ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)
+            : $dbalConnectionFactory;
     }
 
-    public function getConnection(bool $fromRegistry = false): Connection
+    public function getConnection(): Connection
     {
-        if (! $this->connection) {
-            $this->connection = $this->getConnectionFactory($fromRegistry)->createContext()->getDbalConnection();
-        }
-
-        return $this->connection;
+        return $this->getConnectionFactory()->createContext()->getDbalConnection();
     }
 
     protected function getReferenceSearchServiceWithConnection(array $objects = [], bool $connectionAsRegistry = false)

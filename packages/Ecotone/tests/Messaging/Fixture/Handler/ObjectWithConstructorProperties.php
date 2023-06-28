@@ -8,7 +8,8 @@ use Ecotone\Modelling\Attribute\AggregateIdentifier;
 class ObjectWithConstructorProperties
 {
     public function __construct(
-        #[ExampleAttribute, AggregateIdentifier] public string $id
+        #[ExampleAttribute,
+            AggregateIdentifier] public string $id
     ) {
     }
 }

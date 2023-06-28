@@ -5,6 +5,7 @@ namespace Ecotone\Messaging\Handler;
 use Ecotone\AnnotationFinder\AnnotationResolver;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Messaging\Attribute\IgnoreDocblockTypeHint;
+use Error;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -70,7 +71,7 @@ class TypeResolver
             foreach ($parameter->getAttributes() as $attribute) {
                 try {
                     $parameterAttributes[] = $attribute->newInstance();
-                } catch (\Error $e) {
+                } catch (Error $e) {
                     // ignore errors (e.g. when attribute target property and we are retrieving constructor parameters)
                 }
             }

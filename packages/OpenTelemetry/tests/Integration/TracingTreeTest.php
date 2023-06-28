@@ -170,11 +170,74 @@ final class TracingTreeTest extends TracingTest
         $this->assertSame(
             [
                 'Event Bus' => [
-                    'Event Handler: ' . MerchantSubscriber::class . '::onMerchantCreated' => [
+                    'Event Handler: ' . MerchantSubscriber::class . '::merchantToUser' => [
                         'Command Bus' => [
                             'Command Handler: ' . User::class . '::register' => []
                         ]
                     ]
+                ]
+            ],
+            $this->buildTree($exporter->getSpans())
+        );
+    }
+
+    public function test_tracing_with_three_levels_of_nesting()
+    {
+        $exporter = new InMemoryExporter(new \ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [Merchant::class, User::class, MerchantSubscriber::class],
+            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriber()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+        )
+            ->sendCommand(new CreateMerchant('1'));
+
+        $this->assertSame(
+            [
+                'Command Bus' => [
+                    'Command Handler: ' . Merchant::class . '::create' => [
+                        'Event Bus' => [
+                            'Event Handler: ' . MerchantSubscriber::class . '::merchantToUser' => [
+                                'Command Bus' => [
+                                    'Command Handler: ' . User::class . '::register' => []
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            $this->buildTree($exporter->getSpans())
+        );
+    }
+
+    public function test_tracing_with_exception()
+    {
+        $exporter = new InMemoryExporter(new \ArrayObject());
+
+        $messageId = Uuid::uuid4()->toString();
+        $correlationId = Uuid::uuid4()->toString();
+        $timestamp = 1680436648;
+
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                [\Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class],
+                [TracerInterface::class => $this->prepareTracer($exporter)],
+                ServiceConfiguration::createWithDefaults()
+                    ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+            )
+                ->sendCommand(new RegisterUser('1'), metadata: [
+                    MessageHeaders::MESSAGE_ID => $messageId,
+                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
+                    MessageHeaders::TIMESTAMP => $timestamp
+                ]);
+        } catch (\InvalidArgumentException) {
+        }
+
+        $this->assertSame(
+            [
+                'Command Bus' => [
+                    'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class . '::register' => []
                 ]
             ],
             $this->buildTree($exporter->getSpans())
@@ -186,25 +249,54 @@ final class TracingTreeTest extends TracingTest
      */
     public function buildTree(array $spans): array
     {
-        $tree = [];
-        $parentReferences = [];
+        $tree = new \ArrayObject();
+        $spanIdNameMapping = [];
 
         foreach (array_reverse($spans) as $span) {
+            $spanId = $span->getSpanId();
             $spanName = $span->getName();
             $spanParent = $span->getParentSpanId();
-            $parentReferences[$span->getSpanId()] = $spanName;
+            $spanIdNameMapping[$spanId] = $spanName;
 
             if (!$span->getParentContext()->isValid()) {
-                $tree[$spanName] = [];
+                $tree[$spanId] = new \ArrayObject();
             }else {
-                if (array_key_exists($spanParent, $parentReferences)) {
+                $parentTree = $this->getSpanParentTree($spanParent, $tree);
+                $this->assertNotNull($parentTree, "Parent tree not found for span: $spanId");
 
-                }
-                $tree[$parentReferences[$spanParent]][$spanName] = [];
+                $parentTree[$spanId] = new \ArrayObject();
             }
         }
 
-        return $tree;
+        return $this->rebuildTreeWithNames($tree, $spanIdNameMapping);
+    }
+
+    private function getSpanParentTree(string $spanIdToFind, \ArrayObject $treeOnGivenLevel): ?\ArrayObject
+    {
+        foreach ($treeOnGivenLevel as $spanId => $children) {
+            if ($spanIdToFind === $spanId) {
+                return $children;
+            }else {
+                $innerTree = $this->getSpanParentTree($spanIdToFind, $children);
+
+                if ($innerTree !== null) {
+                    return $innerTree;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function rebuildTreeWithNames(\ArrayObject $tree, array $spanIdNameMapping): array
+    {
+        $treeWithNames = [];
+
+        foreach ($tree as $spanId => $children) {
+            $treeWithNames[$spanIdNameMapping[$spanId]] = $this->rebuildTreeWithNames($children, $spanIdNameMapping);
+        }
+
+        return $treeWithNames;
     }
 
     /** @var string[] */

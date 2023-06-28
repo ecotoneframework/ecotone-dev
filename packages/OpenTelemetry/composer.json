@@ -42,7 +42,8 @@
         "php-http/message-factory": "^1.0",
         "nyholm/psr7": "^1.5",
         "psr/http-client": "^1.0.1",
-        "monolog/monolog": "^3.3.1"
+        "monolog/monolog": "^3.3.1",
+        "php-http/httplug": "^2.4"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

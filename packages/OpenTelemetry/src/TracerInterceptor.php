@@ -81,6 +81,7 @@ final class TracerInterceptor
 
     public function trace(string $type, MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
+        /** @TODO this should be moved somewhere else */
         if (!LoggerHolder::isSet()) {
             /** @var LoggerInterface $logger */
             $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);

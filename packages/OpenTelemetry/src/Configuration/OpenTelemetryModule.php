@@ -7,6 +7,7 @@ namespace Ecotone\OpenTelemetry\Configuration;
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -36,10 +37,16 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults());
+        $messageChannelBuilders = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
 
         if ($tracingConfiguration->higherThanOrEqualTo(TracingConfiguration::TRACING_LEVEL_FRAMEWORK)) {
-            $messagingConfiguration->registerChannelInterceptor(new TracingChannelAdapterBuilder());
             $this->registerTracerFor('trace', "*", $messagingConfiguration, $interfaceToCallRegistry);
+        }
+
+        foreach ($messageChannelBuilders as $messageChannelBuilder) {
+            if ($messageChannelBuilder->isPollable()) {
+                $messagingConfiguration->registerChannelInterceptor(new TracingChannelAdapterBuilder($messageChannelBuilder->getMessageChannelName()));
+            }
         }
 
         $this->registerTracerFor('traceCommandHandler', CommandHandler::class, $messagingConfiguration, $interfaceToCallRegistry);
@@ -52,7 +59,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
 
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof TracingConfiguration;
+        return $extensionObject instanceof TracingConfiguration || $extensionObject instanceof MessageChannelBuilder;
     }
 
     public function getModulePackageName(): string

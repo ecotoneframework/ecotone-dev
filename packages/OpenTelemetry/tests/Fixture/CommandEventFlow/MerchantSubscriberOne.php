@@ -7,7 +7,7 @@ namespace Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\CommandBus;
 
-final class MerchantSubscriber
+final class MerchantSubscriberOne
 {
     #[EventHandler]
     public function merchantToUser(MerchantCreated $event, CommandBus $commandBus): void

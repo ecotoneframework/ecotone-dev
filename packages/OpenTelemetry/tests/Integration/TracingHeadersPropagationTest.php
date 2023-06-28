@@ -17,7 +17,7 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantCreated;
-use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriber;
+use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberOne;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
 
@@ -61,8 +61,8 @@ final class TracingHeadersPropagationTest extends TracingTest
         $timestamp = 1680436648;
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, MerchantSubscriber::class],
-            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriber()],
+            [User::class, MerchantSubscriberOne::class],
+            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -80,7 +80,7 @@ final class TracingHeadersPropagationTest extends TracingTest
         $this->assertChildSpan('Command Handler: ' . User::class . '::register', $spans[0], $messageId, $correlationId);
         $this->assertChildSpan('Command Bus', $spans[1], $messageId, $correlationId);
 
-        $this->assertSpanWith('Event Handler: ' . MerchantSubscriber::class . '::merchantToUser', $spans[2], $messageId, $correlationId, $timestamp);
+        $this->assertSpanWith('Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser', $spans[2], $messageId, $correlationId, $timestamp);
         $this->assertSpanWith('Event Bus', $spans[3], $messageId, $correlationId, $timestamp);
     }
 
@@ -93,8 +93,8 @@ final class TracingHeadersPropagationTest extends TracingTest
         $timestamp = 1680436648;
 
         EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, User::class, MerchantSubscriber::class],
-            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriber()],
+            [Merchant::class, User::class, MerchantSubscriberOne::class],
+            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -112,7 +112,7 @@ final class TracingHeadersPropagationTest extends TracingTest
         $this->assertChildSpan('Command Handler: ' . User::class . '::register', $spans[0], $spans[2]->getAttributes()->get(MessageHeaders::MESSAGE_ID), $correlationId);
         $this->assertChildSpan('Command Bus', $spans[1], $spans[2]->getAttributes()->get(MessageHeaders::MESSAGE_ID), $correlationId);
 
-        $this->assertChildSpan('Event Handler: ' . MerchantSubscriber::class . '::merchantToUser', $spans[2], $messageId, $correlationId);
+        $this->assertChildSpan('Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser', $spans[2], $messageId, $correlationId);
         $this->assertChildSpan('Event Bus', $spans[3], $messageId, $correlationId);
 
         $this->assertSpanWith('Command Handler: ' . Merchant::class . '::create', $spans[4], $messageId, $correlationId, $timestamp);

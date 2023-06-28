@@ -11,14 +11,16 @@ use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Precedence;
-use Ecotone\OpenTelemetry\TracingChannelAdapter;
+use Ecotone\OpenTelemetry\TracingChannelInterceptor;
 use OpenTelemetry\API\Trace\TracerInterface;
 
 final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
 {
+    public function __construct(private string $channelName) {}
+
     public function relatedChannelName(): string
     {
-        return "*";
+        return $this->channelName;
     }
 
     public function getRequiredReferenceNames(): array
@@ -38,6 +40,6 @@ final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
 
     public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
     {
-        return new TracingChannelAdapter($referenceSearchService->get(TracerInterface::class));
+        return new TracingChannelInterceptor($this->channelName, $referenceSearchService->get(TracerInterface::class));
     }
 }

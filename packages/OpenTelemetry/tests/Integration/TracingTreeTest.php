@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
 use Ecotone\OpenTelemetry\Support\JaegerTracer;
@@ -35,7 +37,8 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantCreated;
-use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriber;
+use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberOne;
+use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberTwo;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
 
@@ -77,9 +80,9 @@ final class TracingTreeTest extends TracingTest
         $tracer = $tracerProvider->getTracer('io.opentelemetry.contrib.php');
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, User::class, MerchantSubscriber::class],
+            [Merchant::class, User::class, MerchantSubscriberOne::class],
             [
-                new MerchantSubscriber(),
+                new MerchantSubscriberOne(),
                 TracerInterface::class => $tracer
             ],
             ServiceConfiguration::createWithDefaults()
@@ -160,8 +163,8 @@ final class TracingTreeTest extends TracingTest
         $exporter = new InMemoryExporter(new \ArrayObject());
 
         EcotoneLite::bootstrapFlowTesting(
-            [User::class, MerchantSubscriber::class],
-            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriber()],
+            [User::class, MerchantSubscriberOne::class],
+            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -170,7 +173,38 @@ final class TracingTreeTest extends TracingTest
         $this->assertSame(
             [
                 'Event Bus' => [
-                    'Event Handler: ' . MerchantSubscriber::class . '::merchantToUser' => [
+                    'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser' => [
+                        'Command Bus' => [
+                            'Command Handler: ' . User::class . '::register' => []
+                        ]
+                    ]
+                ]
+            ],
+            $this->buildTree($exporter->getSpans())
+        );
+    }
+
+    public function test_tracing_with_two_levels_of_nesting_and_two_branches_on_same_level()
+    {
+        $exporter = new InMemoryExporter(new \ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [User::class, MerchantSubscriberOne::class, MerchantSubscriberTwo::class],
+            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriberOne(), new MerchantSubscriberTwo()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+        )
+            ->publishEvent(new MerchantCreated('1'));
+
+        $this->assertSame(
+            [
+                'Event Bus' => [
+                    'Event Handler: ' . MerchantSubscriberTwo::class . '::merchantToUser' => [
+                        'Command Bus' => [
+                            'Command Handler: ' . User::class . '::register' => []
+                        ]
+                    ],
+                    'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser' => [
                         'Command Bus' => [
                             'Command Handler: ' . User::class . '::register' => []
                         ]
@@ -186,8 +220,8 @@ final class TracingTreeTest extends TracingTest
         $exporter = new InMemoryExporter(new \ArrayObject());
 
         EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, User::class, MerchantSubscriber::class],
-            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriber()],
+            [Merchant::class, User::class, MerchantSubscriberOne::class],
+            [TracerInterface::class => $this->prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -198,13 +232,56 @@ final class TracingTreeTest extends TracingTest
                 'Command Bus' => [
                     'Command Handler: ' . Merchant::class . '::create' => [
                         'Event Bus' => [
-                            'Event Handler: ' . MerchantSubscriber::class . '::merchantToUser' => [
+                            'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser' => [
                                 'Command Bus' => [
                                     'Command Handler: ' . User::class . '::register' => []
                                 ]
                             ]
                         ]
                     ]
+                ]
+            ],
+            $this->buildTree($exporter->getSpans())
+        );
+    }
+
+    public function test_tracing_with_asynchronous_handler()
+    {
+        $storage = new \ArrayObject();
+        $exporter = new InMemoryExporter($storage);
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
+            [TracerInterface::class => $this->prepareTracer($exporter)],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel')
+                ])
+        )
+            ->sendCommand(new RegisterUser('1'));
+
+        $this->assertSame(
+            [
+                'Command Bus' => [
+                    'Asynchronous Channel: async_channel' => []
+                ]
+            ],
+            $this->buildTree($exporter->getSpans())
+        );
+
+        foreach ($storage as $key => $value) {
+            unset($storage[$key]);
+        }
+        /** @TODO close the tracer before starting async consumer */
+
+        $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+
+        $this->assertSame(
+            [
+                'Command Bus' => [
+                    'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register' => []
                 ]
             ],
             $this->buildTree($exporter->getSpans())

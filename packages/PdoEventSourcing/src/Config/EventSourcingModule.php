@@ -112,6 +112,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
             /** @var NamedEvent $attribute */
             $attribute = $annotationRegistrationService->getAttributeForClass($namedEventClass, NamedEvent::class);
 
+            if (array_key_exists($attribute->getName(), $fromNameToClassMapping)) {
+                throw new \RuntimeException(sprintf('Named Events should have unique names. However, `%s` is used more than once.', $attribute->getName()));
+            }
+
             $fromClassToNameMapping[$namedEventClass] = $attribute->getName();
             $fromNameToClassMapping[$attribute->getName()] = $namedEventClass;
         }

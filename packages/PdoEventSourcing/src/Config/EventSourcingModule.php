@@ -47,6 +47,7 @@ use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Filter\MessageFilterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
+use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -491,6 +492,26 @@ class EventSourcingModule extends NoExternalConfigurationModule
             GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'emit', $streamNameMapperChannel)
                 ->withEndpointAnnotations([new PropagateHeaders()])
                 ->withParameterConverters([GatewayPayloadBuilder::create('streamEvents')])
+        );
+
+        $copyHandler =
+            ChainMessageHandlerBuilder::create()
+                ->withInputChannelName('copy-'.Uuid::uuid4()->toString())
+                ->chain(MessageFilterBuilder::createBoolHeaderFilter(ProjectionEventHandler::PROJECTION_IS_REBUILDING))
+                ->withOutputMessageHandler(RouterBuilder::createRecipientListRouter([
+                    $eventStoreHandler->getInputMessageChannelName(),
+                    $eventBusChannelName,
+                ]))
+        ;
+        $configuration->registerMessageHandler($copyHandler);
+
+        $configuration->registerGatewayBuilder(
+            GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'copyTo', $copyHandler->getInputMessageChannelName())
+                ->withParameterConverters([
+                    GatewayHeaderBuilder::create('aggregateClass', 'ecotone.eventSourcing.eventStore.aggregateClass'),
+                    GatewayPayloadBuilder::create('streamEvents'),
+                    GatewayHeadersBuilder::create('metadata')
+                ])
         );
     }
 

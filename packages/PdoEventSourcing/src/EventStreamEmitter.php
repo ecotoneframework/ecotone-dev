@@ -7,6 +7,13 @@ use Ecotone\Modelling\Event;
 interface EventStreamEmitter
 {
     /**
+     * Copy given event to chosen aggregate stream.
+     *
+     * @param Event[]|object[] $streamEvents
+     */
+    public function copyTo(string $aggregateClass, array $streamEvents, array $metadata): void;
+
+    /**
      * Link given events to chosen stream.
      *
      * @param Event[]|object[]|array[] $streamEvents

@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\BusModule;
@@ -295,6 +296,36 @@ final class CollectorModuleTest extends TestCase
         $this->assertNull($ecotoneLite->getMessageChannel('push')->receive());
     }
 
+    public function test_failure_while_sending_which_can_not_be_recovered_goes_to_error_channel_if_defined()
+    {
+        $loggerExample = LoggerExample::create();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class],
+            [new OrderService(), 'logger' => $loggerExample],
+            ServiceConfiguration::createWithDefaults()
+                ->withDefaultErrorChannel('customerErrorChannel')
+                ->withExtensionObjects([CollectorConfiguration::createWithOutboundChannel(['orders'], 'push')]),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                ExceptionalQueueChannel::createWithExceptionOnSend('push', 3),
+                SimpleMessageChannelBuilder::createQueueChannel('customerErrorChannel')
+            ]
+        );
+
+        $this->assertCount(0, $loggerExample->getCritical());
+
+        $ecotoneLite->sendCommand(new PlaceOrder('1'));
+
+        $this->assertCount(1, $loggerExample->getCritical());
+        /** @var MessageHandlingException $payload */
+        $payload = $ecotoneLite->getMessageChannel('customerErrorChannel')->receive()->getPayload();
+        $this->assertEquals(
+            new PlaceOrder('1'),
+            $payload->getFailedMessage()->getPayload()
+        );
+    }
+
+
     public function test_failure_during_sending_should_not_affect_handling_original_command()
     {
         $ecotoneLite = $this->bootstrapEcotone(
@@ -357,13 +388,6 @@ final class CollectorModuleTest extends TestCase
                 ->withExtensionObjects($collectorConfigurations),
             enableAsynchronousProcessing: $channelBuilders
         );
-    }
-
-    private function constructMessage(PlaceOrder $payload): \Ecotone\Messaging\Support\GenericMessage
-    {
-        return MessageBuilder::withPayload($payload)
-            ->setHeader(MessagingEntrypoint::ENTRYPOINT, BusModule::COMMAND_CHANNEL_NAME_BY_OBJECT)
-            ->build();
     }
 
     /**

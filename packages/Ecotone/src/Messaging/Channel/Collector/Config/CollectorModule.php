@@ -20,6 +20,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
@@ -39,6 +40,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $collectorConfigurations = ExtensionObjectResolver::resolve(CollectorConfiguration::class, $extensionObjects);
 
         $takenChannelNames = [];
@@ -58,7 +60,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
             $messagingConfiguration->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
                     $interfaceToCallRegistry,
-                    new CollectorSenderInterceptor($collector, $collectorConfiguration->getSendCollectedToMessageChannelName()),
+                    new CollectorSenderInterceptor($collector, $collectorConfiguration->getSendCollectedToMessageChannelName(), $serviceConfiguration->getDefaultErrorChannel()),
                     'send',
                     Precedence::COLLECTOR_SENDER_PRECEDENCE,
                     CommandBus::class . '||' . AsynchronousRunningEndpoint::class
@@ -82,7 +84,10 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
 
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof CollectorConfiguration;
+        return
+            $extensionObject instanceof CollectorConfiguration
+            ||
+            $extensionObject instanceof ServiceConfiguration;
     }
 
     public function getModulePackageName(): string

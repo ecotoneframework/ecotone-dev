@@ -6,16 +6,18 @@ namespace Ecotone\Messaging\Channel\Collector;
 
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Psr\Log\LoggerInterface;
 
 final class CollectorSenderInterceptor
 {
-    public function __construct(private Collector $collector, private string $targetChannel)
+    public function __construct(private Collector $collector, private string $targetChannel, private ?string $defaultErrorChannel)
     {
     }
 
@@ -45,6 +47,18 @@ final class CollectorSenderInterceptor
                         1
                     );
                 }catch (\Exception $exception) {
+                    if ($this->defaultErrorChannel !== null) {
+                        $errorChannel = $configuredMessagingSystem->getMessageChannelByName($this->defaultErrorChannel);
+                        foreach ($collectedMessages as $collectedMessage) {
+                            $errorChannel->send(
+                                ErrorMessage::create(MessageHandlingException::fromOtherException(
+                                    $exception,
+                                    $collectedMessage->getMessage())
+                                )
+                            );
+                        }
+                    }
+
                     $this->logException($logger, $exception, $collectedMessages);
                 }
             }

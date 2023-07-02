@@ -16,6 +16,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -40,9 +41,15 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
     {
         $collectorConfigurations = ExtensionObjectResolver::resolve(CollectorConfiguration::class, $extensionObjects);
 
+        $takenChannelNames = [];
         foreach ($collectorConfigurations as $collectorConfiguration) {
             $collector = new Collector();
             foreach ($collectorConfiguration->getTogetherCollectedChannelNames() as $collectedChannelName) {
+                if (in_array($collectedChannelName, $takenChannelNames)) {
+                    throw ConfigurationException::create("Channel {$collectedChannelName} is already taken by another collector");
+                }
+
+                $takenChannelNames[] = $collectedChannelName;
                 $messagingConfiguration->registerChannelInterceptor(
                     new CollectorChannelInterceptorBuilder($collectedChannelName, $collector),
                 );

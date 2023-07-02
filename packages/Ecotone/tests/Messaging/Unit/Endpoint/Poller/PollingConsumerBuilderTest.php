@@ -143,7 +143,7 @@ class PollingConsumerBuilderTest extends MessagingTest
     {
         $pollingConsumerBuilder = new PollingConsumerBuilder(InterfaceToCallRegistry::createEmpty());
         $inputChannelName = 'inputChannelName';
-        $inputChannel = ExceptionalQueueChannel::create();
+        $inputChannel = ExceptionalQueueChannel::createWithExceptionOnReceive();
 
         $serviceHandler = DataReturningService::createServiceActivatorBuilder('some')
             ->withEndpointId('test')

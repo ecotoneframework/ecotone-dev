@@ -8,8 +8,10 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\Collector\CollectedMessage;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
+use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
@@ -17,6 +19,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\BusModule;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
@@ -25,6 +28,7 @@ use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\PushStatistics;
 use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\ShippingEventHandler;
 use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\SmsNotifier;
 use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\StatisticsHandler;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 
 final class CollectorModuleTest extends TestCase
 {
@@ -82,28 +86,6 @@ final class CollectorModuleTest extends TestCase
 
         $this->assertCount(1, $collectedMessages);
         $this->assertTrue($this->containsMessageFor($collectedMessages, 'notifications', new OrderWasPlaced('1')));
-    }
-
-    public function test_using_default_collector_proxy_for_messages()
-    {
-        $ecotoneLite = $this->bootstrapEcotone(
-            [OrderService::class],
-            [new OrderService()],
-            [
-                SimpleMessageChannelBuilder::createQueueChannel('orders')
-            ],
-            [CollectorConfiguration::createWithDefaultProxy(['orders'])]
-        );
-
-        $ecotoneLite->sendCommandWithRoutingKey('order.register', new PlaceOrder('1'));
-        $this->assertCount(0, $ecotoneLite->sendQueryWithRouting('order.getOrders'));
-        $this->assertCount(0, $ecotoneLite->sendQueryWithRouting('order.getNotifiedOrders'));
-        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertCount(1, $ecotoneLite->sendQueryWithRouting('order.getOrders'));
-        $this->assertCount(0, $ecotoneLite->sendQueryWithRouting('order.getNotifiedOrders'));
-        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertCount(1, $ecotoneLite->sendQueryWithRouting('order.getOrders'));
-        $this->assertCount(1, $ecotoneLite->sendQueryWithRouting('order.getNotifiedOrders'));
     }
 
     public function test_receiving_multiple_collected_messages_in_one_batch()
@@ -225,38 +207,99 @@ final class CollectorModuleTest extends TestCase
         $this->assertCount(2, $collectedMessages);
     }
 
+    public function test_throwing_exception_if_multiple_collector_registered_for_same_channel()
+    {
+        $this->expectException(ConfigurationException::class);
+
+        $this->bootstrapEcotone(
+            [OrderService::class],
+            [new OrderService()],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('push1'),
+                SimpleMessageChannelBuilder::createQueueChannel('push2'),
+            ],
+            [
+                CollectorConfiguration::createWithOutboundChannel(['orders'], 'push1'),
+                CollectorConfiguration::createWithOutboundChannel(['orders'], 'push2'),
+            ]
+        );
+    }
+
+    public function test_using_default_collector_proxy_for_messages()
+    {
+        $ecotoneLite = $this->bootstrapEcotone(
+            [OrderService::class],
+            [new OrderService()],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('orders')
+            ],
+            [CollectorConfiguration::createWithDefaultProxy(['orders'])]
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('order.register', new PlaceOrder('1'));
+        $this->assertCount(0, $ecotoneLite->sendQueryWithRouting('order.getOrders'));
+        $this->assertCount(0, $ecotoneLite->sendQueryWithRouting('order.getNotifiedOrders'));
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertCount(1, $ecotoneLite->sendQueryWithRouting('order.getOrders'));
+        $this->assertCount(0, $ecotoneLite->sendQueryWithRouting('order.getNotifiedOrders'));
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertCount(1, $ecotoneLite->sendQueryWithRouting('order.getOrders'));
+        $this->assertCount(1, $ecotoneLite->sendQueryWithRouting('order.getNotifiedOrders'));
+    }
+
     public function test_failure_while_sending_to_collect_use_retry_strategy()
     {
-        $this->markTestSkipped('Not implemented yet');
+        $loggerExample = LoggerExample::create();
+        $ecotoneLite = $this->bootstrapEcotone(
+            [OrderService::class],
+            [new OrderService(), 'logger' => $loggerExample],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                ExceptionalQueueChannel::createWithExceptionOnSend('push', 2)
+            ],
+            [CollectorConfiguration::createWithOutboundChannel(['orders'], 'push')]
+        );
+
+        $ecotoneLite->sendCommand(new PlaceOrder('1'));
+
+        /** @var CollectedMessage[] $collectedMessages */
+        $collectedMessages = $ecotoneLite->getMessageChannel('push')->receive()->getPayload();
+
+        $this->assertCount(1, $loggerExample->getInfo());
+        $this->assertCount(1, $loggerExample->getWarning());
+        $this->assertCount(1, $collectedMessages);
+        $this->assertTrue($this->containsMessageFor($collectedMessages, 'orders', new PlaceOrder('1')));
     }
 
     public function test_failure_while_sending_which_can_not_be_recovered_should_be_logged()
     {
-        $this->markTestSkipped('Not implemented yet');
+        $loggerExample = LoggerExample::create();
+        $ecotoneLite = $this->bootstrapEcotone(
+            [OrderService::class],
+            [new OrderService(), "logger" => $loggerExample],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                ExceptionalQueueChannel::createWithExceptionOnSend('push', 3)
+            ],
+            [CollectorConfiguration::createWithOutboundChannel(['orders'], 'push')]
+        );
+
+        $this->assertCount(0, $loggerExample->getCritical());
+
+        $ecotoneLite->sendCommand(new PlaceOrder('1'));
+
+        $this->assertCount(1, $loggerExample->getCritical());
+        $messages = \json_decode($loggerExample->getCritical()[0]['context']['messages'], true);
+        $this->assertArrayHasKey('payload', $messages[0]);
+        $this->assertArrayHasKey('headers', $messages[0]);
+        $this->assertEquals('orders', $messages[0]['targetChannel']);
+        $this->assertNull($ecotoneLite->getMessageChannel('push')->receive());
     }
 
-    public function test_collected_messages_will_be_discarded_in_case_of_error()
+    public function test_collected_messages_will_be_discarded_in_case_error_of_message_handler()
     {
         $this->markTestSkipped('Not implemented yet');
-    }
-
-    public function test_throwing_exception_if_multiple_collector_registered_for_same_channel()
-    {
-        $this->markTestSkipped("Not implemented yet");
-        $extensionObjects = [
-            new CollectorConfiguration(
-                'test_1',
-                "some",
-                ['orders']
-            ),
-            new CollectorConfiguration(
-                'test_2',
-                'some',
-                ['orders']
-            )
-        ];
-
-        $this->bootstrapEcotone($extensionObjects);
     }
 
     /**

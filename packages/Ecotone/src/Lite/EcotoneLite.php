@@ -266,6 +266,7 @@ final class EcotoneLite
             $configuration = $configuration
                 ->addExtensionObject(InMemoryRepositoryBuilder::createForAllStateStoredAggregates());
         }
+
         return $configuration;
     }
 }

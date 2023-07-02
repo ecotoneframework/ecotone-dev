@@ -21,8 +21,10 @@ use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
 use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\GenericNotifier;
+use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\PushStatistics;
 use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\ShippingEventHandler;
 use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\SmsNotifier;
+use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\StatisticsHandler;
 
 final class CollectorModuleTest extends TestCase
 {
@@ -200,12 +202,35 @@ final class CollectorModuleTest extends TestCase
         $this->assertTrue($this->containsMessageFor($collectedMessages, 'shipping', new OrderWasPlaced('1')));
     }
 
-    public function test_when_command_bus_inside_command_bus_it_will_send_only_on_the_most_outer_one()
+    public function test_when_command_bus_inside_command_bus_it_will_still_be_sent_in_batch()
+    {
+        $ecotoneLite = $this->bootstrapEcotone(
+            [OrderService::class, StatisticsHandler::class],
+            [new OrderService(), new StatisticsHandler()],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('pushStatistics'),
+                SimpleMessageChannelBuilder::createQueueChannel('push')
+            ],
+            [CollectorConfiguration::createWithOutboundChannel(['pushStatistics'], 'push')]
+        );
+
+        $ecotoneLite->sendCommand(new PlaceOrder('1'));
+
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+
+        /** @var CollectedMessage[] $collectedMessages */
+        $collectedMessages = $ecotoneLite->getMessageChannel('push')->receive()->getPayload();
+
+        $this->assertCount(2, $collectedMessages);
+    }
+
+    public function test_failure_while_sending_to_collect_use_retry_strategy()
     {
         $this->markTestSkipped('Not implemented yet');
     }
 
-    public function test_one_failure_while_sending_to_collect_use_retry_strategy()
+    public function test_failure_while_sending_which_can_not_be_recovered_should_be_logged()
     {
         $this->markTestSkipped('Not implemented yet');
     }

@@ -18,6 +18,11 @@ final class CollectorSenderInterceptor
 
     public function send(MethodInvocation $methodInvocation, #[Reference] ConfiguredMessagingSystem $configuredMessagingSystem): mixed
     {
+        /** For example Command Bus inside Command Bus */
+        if ($this->collector->isEnabled()) {
+            return $methodInvocation->proceed();
+        }
+
         $this->collector->enable();
         try {
             $result = $methodInvocation->proceed();

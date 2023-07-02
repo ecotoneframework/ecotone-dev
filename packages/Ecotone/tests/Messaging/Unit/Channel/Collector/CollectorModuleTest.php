@@ -29,6 +29,7 @@ use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\ShippingEventHa
 use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\SmsNotifier;
 use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\StatisticsHandler;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Test\Ecotone\Modelling\Fixture\PublishAndThrowException\FailureOrderService;
 
 final class CollectorModuleTest extends TestCase
 {
@@ -46,10 +47,7 @@ final class CollectorModuleTest extends TestCase
 
         $ecotoneLite->sendCommand(new PlaceOrder('1'));
 
-        $this->assertEquals(
-            [],
-            $ecotoneLite->sendQueryWithRouting('order.getOrders')
-        );
+        $this->assertCount(0, $ecotoneLite->sendQueryWithRouting('order.getOrders'));
 
         /** @var CollectedMessage[] $collectedMessages */
         $collectedMessages = $ecotoneLite->getMessageChannel('push')->receive()->getPayload();
@@ -297,9 +295,51 @@ final class CollectorModuleTest extends TestCase
         $this->assertNull($ecotoneLite->getMessageChannel('push')->receive());
     }
 
-    public function test_collected_messages_will_be_discarded_in_case_error_of_message_handler()
+    public function test_failure_during_sending_should_not_affect_handling_original_command()
     {
-        $this->markTestSkipped('Not implemented yet');
+        $ecotoneLite = $this->bootstrapEcotone(
+            [OrderService::class, GenericNotifier::class],
+            [new OrderService(), new GenericNotifier()],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+                ExceptionalQueueChannel::createWithExceptionOnSend('push', 3)
+            ],
+            [
+                CollectorConfiguration::createWithOutboundChannel(['notifications'], 'push')
+            ]
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey(
+            'order.register',
+            new PlaceOrder('1')
+        );
+
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertNull($ecotoneLite->getMessageChannel('push')->receive());
+        $this->assertNull($ecotoneLite->getMessageChannel('notifications')->receive());
+        $this->assertCount(1, $ecotoneLite->sendQueryWithRouting('order.getOrders'));
+    }
+
+    public function test_collected_messages_will_be_discarded_in_case_of_error_in_message_handler()
+    {
+        $ecotoneLite = $this->bootstrapEcotone(
+            [FailureOrderService::class],
+            [new FailureOrderService()],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('push')
+            ],
+            [CollectorConfiguration::createWithOutboundChannel(['orders'], 'push')]
+        );
+
+        try {
+            $ecotoneLite->sendCommand(new PlaceOrder('1'));
+        }catch (\Exception $exception) {}
+
+        /** @var CollectedMessage[] $collectedMessages */
+        $this->assertNull($ecotoneLite->getMessageChannel('push')->receive());
     }
 
     /**

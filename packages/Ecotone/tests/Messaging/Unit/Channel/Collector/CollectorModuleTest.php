@@ -325,6 +325,34 @@ final class CollectorModuleTest extends TestCase
         );
     }
 
+    public function test_fatal_error_when_failed_to_send_even_to_the_error_channel_should_log_exception()
+    {
+        $loggerExample = LoggerExample::create();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class],
+            [new OrderService(), 'logger' => $loggerExample],
+            ServiceConfiguration::createWithDefaults()
+                ->withDefaultErrorChannel('customerErrorChannel')
+                ->withExtensionObjects([CollectorConfiguration::createWithOutboundChannel(['orders'], 'push')]),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                ExceptionalQueueChannel::createWithExceptionOnSend('push', 3),
+                ExceptionalQueueChannel::createWithExceptionOnSend('customerErrorChannel')
+            ]
+        );
+
+        $this->assertCount(0, $loggerExample->getCritical());
+
+        $hadFatalFailure = false;
+        try {
+            $ecotoneLite->sendCommand(new PlaceOrder('1'));
+        }catch (\RuntimeException $exception) {
+            $hadFatalFailure = true;
+        }
+
+        $this->assertTrue($hadFatalFailure);
+        $this->assertCount(1, $loggerExample->getCritical());
+    }
 
     public function test_failure_during_sending_should_not_affect_handling_original_command()
     {

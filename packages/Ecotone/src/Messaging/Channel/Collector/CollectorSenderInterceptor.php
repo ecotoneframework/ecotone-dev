@@ -47,19 +47,21 @@ final class CollectorSenderInterceptor
                         1
                     );
                 }catch (\Exception $exception) {
-                    if ($this->defaultErrorChannel !== null) {
-                        $errorChannel = $configuredMessagingSystem->getMessageChannelByName($this->defaultErrorChannel);
-                        foreach ($collectedMessages as $collectedMessage) {
-                            $errorChannel->send(
-                                ErrorMessage::create(MessageHandlingException::fromOtherException(
-                                    $exception,
-                                    $collectedMessage->getMessage())
-                                )
-                            );
+                    try {
+                        if ($this->defaultErrorChannel !== null) {
+                            $errorChannel = $configuredMessagingSystem->getMessageChannelByName($this->defaultErrorChannel);
+                            foreach ($collectedMessages as $collectedMessage) {
+                                $errorChannel->send(
+                                    ErrorMessage::create(MessageHandlingException::fromOtherException(
+                                        $exception,
+                                        $collectedMessage->getMessage())
+                                    )
+                                );
+                            }
                         }
+                    } finally {
+                        $this->logException($logger, $exception, $collectedMessages);
                     }
-
-                    $this->logException($logger, $exception, $collectedMessages);
                 }
             }
         } finally {

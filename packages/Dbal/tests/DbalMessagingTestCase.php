@@ -73,4 +73,16 @@ abstract class DbalMessagingTestCase extends TestCase
             $connection->executeStatement('DROP TABLE ' . $tableName);
         }
     }
+
+    protected function setupUserTable(): void
+    {
+        if (! $this->checkIfTableExists($this->getConnection(), 'persons')) {
+            $this->getConnection()->executeStatement(<<<SQL
+                    CREATE TABLE persons (
+                        person_id INTEGER PRIMARY KEY,
+                        name VARCHAR(255)
+                    )
+                SQL);
+        }
+    }
 }

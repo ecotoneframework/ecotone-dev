@@ -8,5 +8,5 @@ interface PrecedenceChannelInterceptor
 {
     public const DEFAULT_PRECEDENCE = 0;
 
-    public const COLLECTOR_PRECEDENCE = 2000;
+    public const COLLECTOR_PRECEDENCE = -2000;
 }

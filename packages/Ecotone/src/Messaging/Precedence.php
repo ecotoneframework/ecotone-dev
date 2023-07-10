@@ -48,4 +48,10 @@ interface Precedence
     public const AGGREGATE_MESSAGE_PAYLOAD_CONVERTER = Precedence::DEFAULT_PRECEDENCE + 10000;
 
     public const GATEWAY_REPLY_CONVERSION_PRECEDENCE = 1000000;
+
+    /**
+     * Collects messages to be sent to asynchronous channels.
+     * It provides it own retry mechanism and in case of failure will push to error channel.
+     */
+    public const COLLECTOR_SENDER_PRECEDENCE = self::AROUND_INSTANT_RETRY_PRECEDENCE - 1;
 }

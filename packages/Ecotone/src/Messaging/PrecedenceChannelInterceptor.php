@@ -8,5 +8,7 @@ interface PrecedenceChannelInterceptor
 {
     public const DEFAULT_PRECEDENCE = 0;
 
-    public const COLLECTOR_PRECEDENCE = -2000;
+    public const MESSAGE_SEND_PREPARATION = 2000;
+
+    public const COLLECTOR_PRECEDENCE = self::MESSAGE_SEND_PREPARATION + 1;
 }

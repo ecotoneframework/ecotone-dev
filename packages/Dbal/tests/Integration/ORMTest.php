@@ -11,8 +11,8 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
-use Test\Ecotone\Dbal\Fixture\ORM\Person;
-use Test\Ecotone\Dbal\Fixture\ORM\RegisterPerson;
+use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
+use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 
 /**
  * @internal
@@ -33,24 +33,15 @@ final class ORMTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        $connection = $this->getConnection();
-
-        if (! $this->checkIfTableExists($connection, 'persons')) {
-            $connection->executeStatement(<<<SQL
-                    CREATE TABLE persons (
-                        person_id INTEGER PRIMARY KEY,
-                        name VARCHAR(255)
-                    )
-                SQL);
-        }
+        $this->setupUserTable();
 
         return EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM'])],
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\ORM',
+                    'Test\Ecotone\Dbal\Fixture\ORM\Person',
                 ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()

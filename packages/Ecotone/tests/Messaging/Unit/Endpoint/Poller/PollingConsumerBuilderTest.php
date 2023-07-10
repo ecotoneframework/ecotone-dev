@@ -143,7 +143,7 @@ class PollingConsumerBuilderTest extends MessagingTest
     {
         $pollingConsumerBuilder = new PollingConsumerBuilder(InterfaceToCallRegistry::createEmpty());
         $inputChannelName = 'inputChannelName';
-        $inputChannel = ExceptionalQueueChannel::create();
+        $inputChannel = ExceptionalQueueChannel::createWithExceptionOnReceive();
 
         $serviceHandler = DataReturningService::createServiceActivatorBuilder('some')
             ->withEndpointId('test')
@@ -271,7 +271,7 @@ class PollingConsumerBuilderTest extends MessagingTest
         );
 
         $acknowledgeCallback = NullAcknowledgementCallback::create();
-        $ecotoneTestSupport->sendMessage('handle_channel', metadata: [
+        $ecotoneTestSupport->sendDirectToChannel('handle_channel', metadata: [
             MessageHeaders::CONSUMER_ACK_HEADER_LOCATION => 'ack',
             'ack' => $acknowledgeCallback,
         ]);
@@ -281,7 +281,7 @@ class PollingConsumerBuilderTest extends MessagingTest
         $this->assertTrue($acknowledgeCallback->isAcked());
 
         $acknowledgeCallback = NullAcknowledgementCallback::create();
-        $ecotoneTestSupport->sendMessage('handle_channel', metadata: [
+        $ecotoneTestSupport->sendDirectToChannel('handle_channel', metadata: [
             MessageHeaders::CONSUMER_ACK_HEADER_LOCATION => 'ack',
             'ack' => $acknowledgeCallback,
         ]);

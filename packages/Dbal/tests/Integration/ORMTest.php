@@ -41,7 +41,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\ORM',
+                    'Test\Ecotone\Dbal\Fixture\ORM\Person',
                 ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()

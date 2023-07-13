@@ -11,7 +11,9 @@ use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
@@ -81,6 +83,54 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
         $this->assertTrue($exception);
         $this->assertNull($message);
         $this->assertCount(2, $loggerExample->getInfo());
+        $this->assertCount(1, $loggerExample->getError());
+    }
+
+    public function test_with_custom_retry_strategy()
+    {
+        $loggerExample = LoggerExample::create();
+        $ecotoneLite = $this->bootstrapEcotone(
+            [OrderService::class],
+            [new OrderService(), 'logger' => $loggerExample],
+            [
+                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 2)
+            ],
+            [
+                PollableChannelConfiguration::create('orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build())
+            ]
+        );
+
+        $this->expectException(\RuntimeException::class);
+
+        $ecotoneLite->sendCommand(new PlaceOrder('1'));
+    }
+
+    public function test_disabling_retries()
+    {
+        $loggerExample = LoggerExample::create();
+
+        $ecotoneLite = $this->bootstrapEcotone(
+            [OrderService::class],
+            [new OrderService(), 'logger' => $loggerExample],
+            [
+                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 1)
+            ],
+            [
+                PollableChannelConfiguration::neverRetry('orders')
+            ]
+        );
+
+        $exception = false;
+        try {
+            $ecotoneLite->sendCommand(new PlaceOrder('1'));
+        }catch (\Exception $exception) {
+            $exception = true;
+        }
+
+        $message = $ecotoneLite->getMessageChannel('orders')->receive();
+
+        $this->assertTrue($exception);
+        $this->assertNull($message);
         $this->assertCount(1, $loggerExample->getError());
     }
 

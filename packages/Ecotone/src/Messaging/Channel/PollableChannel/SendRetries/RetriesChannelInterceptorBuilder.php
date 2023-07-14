@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\PollableChannel\SendRetries;
+namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;

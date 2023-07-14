@@ -28,7 +28,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\LoggingModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageConsumerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\MethodInterceptorModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\PollableChannel\SendRetries\PollableChannelSendRetriesModule;
+use Ecotone\Messaging\Channel\PollableChannel\SendRetries\PollableChannelSendRetriesModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\PollerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RequiredConsumersModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RouterModule;

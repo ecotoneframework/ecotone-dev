@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\PollableChannel;
+namespace Ecotone\Messaging\Channel\PollableChannel;
 
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 

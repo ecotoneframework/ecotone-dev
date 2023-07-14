@@ -28,7 +28,7 @@ final class RetryTemplate
         $this->maxAttempts = $maxAttempts;
     }
 
-    public static function createNeverRetryTemplate(): self
+    public static function createNeverRetry(): self
     {
         return new self(0, 0, null, 0);
     }

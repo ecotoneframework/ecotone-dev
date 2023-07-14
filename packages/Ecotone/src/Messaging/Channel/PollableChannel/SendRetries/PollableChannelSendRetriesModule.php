@@ -31,20 +31,18 @@ final class PollableChannelSendRetriesModule extends NoExternalConfigurationModu
         $pollableChannelConfigurations = ExtensionObjectResolver::resolve(PollableChannelConfiguration::class, $extensionObjects);
 
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
-            $retryTemplate = RetryTemplateBuilder::exponentialBackoff(1, 20)
-                                ->maxRetryAttempts(2)
-                                ->build();
+            $channelConfiguration = PollableChannelConfiguration::createWithDefaultRetry($pollableMessageChannel->getMessageChannelName());
 
             foreach ($pollableChannelConfigurations as $pollableChannelConfiguration) {
                 if ($pollableChannelConfiguration->getChannelName() === $pollableMessageChannel->getMessageChannelName()) {
-                    $retryTemplate = $pollableChannelConfiguration->getRetryTemplate();
+                    $channelConfiguration = $pollableChannelConfiguration;
                 }
             }
 
             $messagingConfiguration->registerChannelInterceptor(
                 new RetriesChannelInterceptorBuilder(
                     $pollableMessageChannel->getMessageChannelName(),
-                    $retryTemplate
+                    $channelConfiguration->getRetryTemplate()
                 )
             );
         }

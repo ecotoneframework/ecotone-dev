@@ -74,8 +74,6 @@ class InterceptedConsumer implements ConsumerLifecycle
     }
 
     /**
-     * @param PollingMetadata $pollingMetadata
-     * @param array $interceptor
      * @return ConsumerInterceptor[]
      * @throws \Ecotone\Messaging\MessagingException
      */

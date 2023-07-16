@@ -8,11 +8,6 @@ use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Throwable;
 
-/**
- * Class LimitConsumedMessagesExtension
- * @package Ecotone\Messaging\Endpoint\Extension
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
- */
 class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor
 {
     private bool $shouldBeStopped = false;

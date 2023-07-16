@@ -10,6 +10,7 @@ use Ecotone\Messaging\Channel\Collector\CollectedMessage;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -21,6 +22,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Config\BusModule;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
+use Test\Ecotone\Modelling\Fixture\Collector\BetService;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
@@ -36,59 +38,67 @@ final class CollectorModuleTest extends TestCase
 {
     public function test_receiving_collected_message_from_command_handler()
     {
-        $this->markTestSkipped("Not implemented yet");
-
         $ecotoneLite = $this->bootstrapEcotone(
             [OrderService::class],
             [new OrderService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
-                SimpleMessageChannelBuilder::createQueueChannel('push')
+                SimpleMessageChannelBuilder::createQueueChannel('orders')
             ],
-            [CollectorConfiguration::createWithOutboundChannel(['orders'], 'push')]
+            [PollableChannelConfiguration::neverRetry('orders')->withCollector(true)]
         );
 
-        $ecotoneLite->sendCommand(new PlaceOrder('1'));
+        $command = new PlaceOrder('1');
+        $ecotoneLite->sendCommand($command);
 
         $this->assertCount(0, $ecotoneLite->sendQueryWithRouting('order.getOrders'));
-
-        /** @var CollectedMessage[] $collectedMessages */
-        $collectedMessages = $ecotoneLite->getMessageChannel('push')->receive()->getPayload();
-
-        $this->assertCount(1, $collectedMessages);
-        $this->assertTrue($this->containsMessageFor($collectedMessages, 'orders', new PlaceOrder('1')));
+        $this->assertEquals($command, $ecotoneLite->getMessageChannel('orders')->receive()->getPayload());
     }
 
-    public function test_receiving_collected_message_from_event_handler()
+    public function test_collected_message_is_delayed_so_messages_are_not_sent_on_failure()
     {
-        $this->markTestSkipped('Not implemented yet');
-
         $ecotoneLite = $this->bootstrapEcotone(
-            [OrderService::class, GenericNotifier::class],
-            [new OrderService(), new GenericNotifier()],
+            [BetService::class],
+            [new BetService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
-                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-                SimpleMessageChannelBuilder::createQueueChannel('push')
+                SimpleMessageChannelBuilder::createQueueChannel('bets')
             ],
+            [PollableChannelConfiguration::neverRetry('bets')->withCollector(true)]
+        );
+
+        try {
+            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
+        }catch (\RuntimeException) {}
+
+        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), "No message should be collected yet");
+
+        /** Previous messages should be cleared and not sent */
+        $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
+        $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
+        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
+    }
+
+    public function test_not_collected_message_will_be_sent_to_channel_before_exception()
+    {
+        $ecotoneLite = $this->bootstrapEcotone(
+            [BetService::class],
+            [new BetService()],
             [
-                CollectorConfiguration::createWithOutboundChannel(['notifications'], 'push')
-            ]
+                SimpleMessageChannelBuilder::createQueueChannel('bets')
+            ],
+            [PollableChannelConfiguration::neverRetry('bets')->withCollector(false)]
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey(
-            'order.register',
-            new PlaceOrder('1')
-        );
+        try {
+            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
+        } catch (\RuntimeException) {
+        }
 
-        $this->assertNull($ecotoneLite->getMessageChannel('push')->receive(), "No message should be collected yet");
+        $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
 
-        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
-        /** @var CollectedMessage[] $collectedMessages */
-        $collectedMessages = $ecotoneLite->getMessageChannel('push')->receive()->getPayload();
-
-        $this->assertCount(1, $collectedMessages);
-        $this->assertTrue($this->containsMessageFor($collectedMessages, 'notifications', new OrderWasPlaced('1')));
+        /** Previous messages should be cleared and not sent */
+        $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
+        $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
+        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
     }
 
     public function test_receiving_multiple_collected_messages_in_one_batch()

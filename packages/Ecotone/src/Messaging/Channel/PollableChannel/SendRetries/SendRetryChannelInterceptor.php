@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
-use Ecotone\Messaging\Channel\Collector\Collector;
+use Ecotone\Messaging\Channel\Collector\CollectorStorage;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;

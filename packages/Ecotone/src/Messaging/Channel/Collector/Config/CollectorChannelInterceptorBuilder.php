@@ -6,8 +6,8 @@ namespace Ecotone\Messaging\Channel\Collector\Config;
 
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\Collector\Collector;
-use Ecotone\Messaging\Channel\Collector\CollectorChannelInterceptor;
+use Ecotone\Messaging\Channel\Collector\CollectorStorage;
+use Ecotone\Messaging\Channel\Collector\MessageCollectorChannelInterceptor;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -15,7 +15,7 @@ use Ecotone\Messaging\PrecedenceChannelInterceptor;
 
 final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
-    public function __construct(private string $collectedChannel, private Collector $collector) {}
+    public function __construct(private string $collectedChannel, private CollectorStorage $collector) {}
 
     public function relatedChannelName(): string
     {
@@ -39,6 +39,6 @@ final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuil
 
     public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
     {
-        return new CollectorChannelInterceptor($this->collectedChannel, $this->collector);
+        return new MessageCollectorChannelInterceptor($this->collector);
     }
 }

@@ -7,11 +7,12 @@ namespace Ecotone\Messaging\Channel\Collector\Config;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Channel\Collector\Collector;
-use Ecotone\Messaging\Channel\Collector\CollectorChannelInterceptor;
+use Ecotone\Messaging\Channel\Collector\CollectorStorage;
+use Ecotone\Messaging\Channel\Collector\MessageCollectorChannelInterceptor;
 use Ecotone\Messaging\Channel\Collector\CollectorSenderInterceptor;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\Collector\DefaultCollectorProxy;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -41,26 +42,28 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
-        $collectorConfigurations = ExtensionObjectResolver::resolve(CollectorConfiguration::class, $extensionObjects);
+        $pollableChannelConfigurations = ExtensionObjectResolver::resolve(PollableChannelConfiguration::class, $extensionObjects);
 
         $takenChannelNames = [];
-        foreach ($collectorConfigurations as $collectorConfiguration) {
-            $collector = new Collector();
-            foreach ($collectorConfiguration->getTogetherCollectedChannelNames() as $collectedChannelName) {
-                if (in_array($collectedChannelName, $takenChannelNames)) {
-                    throw ConfigurationException::create("Channel {$collectedChannelName} is already taken by another collector");
-                }
-
-                $takenChannelNames[] = $collectedChannelName;
-                $messagingConfiguration->registerChannelInterceptor(
-                    new CollectorChannelInterceptorBuilder($collectedChannelName, $collector),
-                );
+        foreach ($pollableChannelConfigurations as $pollableChannelConfiguration) {
+            if (!$pollableChannelConfiguration->isCollectorEnabled()) {
+                continue;
             }
+
+            $collector = new CollectorStorage();
+            if (in_array($pollableChannelConfiguration->getChannelName(), $takenChannelNames)) {
+                throw ConfigurationException::create("Channel {$pollableChannelConfiguration->getChannelName()} is already taken by another collector");
+            }
+
+            $takenChannelNames[] = $pollableChannelConfiguration->getChannelName();
+            $messagingConfiguration->registerChannelInterceptor(
+                new CollectorChannelInterceptorBuilder($pollableChannelConfiguration->getChannelName(), $collector),
+            );
 
             $messagingConfiguration->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
                     $interfaceToCallRegistry,
-                    new CollectorSenderInterceptor($collector, $collectorConfiguration->getSendCollectedToMessageChannelName(), $serviceConfiguration->getDefaultErrorChannel()),
+                    new CollectorSenderInterceptor($collector, $pollableChannelConfiguration->getChannelName(), $serviceConfiguration->getDefaultErrorChannel()),
                     'send',
                     Precedence::COLLECTOR_SENDER_PRECEDENCE,
                     CommandBus::class . '||' . AsynchronousRunningEndpoint::class
@@ -68,7 +71,8 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
             );
         }
 
-        if ($collectorConfigurations !== []) {
+        /** @TODO remove */
+        if ($pollableChannelConfigurations !== []) {
             $messagingConfiguration->registerMessageHandler(
                 ServiceActivatorBuilder::createWithDirectReference(
                     new DefaultCollectorProxy(),
@@ -85,7 +89,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
     public function canHandle($extensionObject): bool
     {
         return
-            $extensionObject instanceof CollectorConfiguration
+            $extensionObject instanceof PollableChannelConfiguration
             ||
             $extensionObject instanceof ServiceConfiguration;
     }

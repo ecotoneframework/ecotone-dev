@@ -48,10 +48,10 @@ abstract class SendingInterceptorAdapter implements MessageChannelInterceptorAda
         $messageToSend = $message;
         foreach ($this->sortedChannelInterceptors as $channelInterceptor) {
             $messageToSend = $channelInterceptor->preSend($messageToSend, $this->messageChannel);
-        }
 
-        if (! $messageToSend) {
-            return;
+            if ($messageToSend === null) {
+                return;
+            }
         }
 
         $exception = null;

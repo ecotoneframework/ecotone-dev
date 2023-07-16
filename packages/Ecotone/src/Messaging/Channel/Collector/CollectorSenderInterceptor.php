@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
 
 final class CollectorSenderInterceptor
 {
-    public function __construct(private CollectorStorage $collectorStorage, private string $targetChannel, private ?string $defaultErrorChannel)
+    public function __construct(private CollectorStorage $collectorStorage, private string $targetChannel)
     {
     }
 

@@ -12,17 +12,17 @@ class PollableChannelConfiguration
     private function __construct(
         private string        $channelName,
         private RetryTemplate $retryTemplate,
-        private bool          $collectorEnabled = false,
+        private bool          $collectorEnabled = true,
         private ?string       $dlqChannelName = null
     )
     {
     }
 
-    public static function createWithDefaultRetry(string $channelName): self
+    public static function createWithDefaults(string $channelName): self
     {
         return new self(
             $channelName,
-            self::defaultRetry()
+            self::defaultRetry(),
         );
     }
 

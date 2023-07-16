@@ -31,7 +31,7 @@ final class PollableChannelSendRetriesModule extends NoExternalConfigurationModu
         $pollableChannelConfigurations = ExtensionObjectResolver::resolve(PollableChannelConfiguration::class, $extensionObjects);
 
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
-            $channelConfiguration = PollableChannelConfiguration::createWithDefaultRetry($pollableMessageChannel->getMessageChannelName());
+            $channelConfiguration = PollableChannelConfiguration::createWithDefaults($pollableMessageChannel->getMessageChannelName());
 
             foreach ($pollableChannelConfigurations as $pollableChannelConfiguration) {
                 if ($pollableChannelConfiguration->getChannelName() === $pollableMessageChannel->getMessageChannelName()) {

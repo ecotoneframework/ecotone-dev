@@ -26,12 +26,11 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 
 final class CollectorModuleTest extends DbalMessagingTestCase
 {
-    public function test_no_failure_during_sending_should_commit_transaction()
+    public function test_no_failure_during_sending_should_commit_transaction_and_send_messages()
     {
         $ecotoneLite = $this->bootstrapEcotone(
             [Person::class, NotificationService::class],
             [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
-            'customErrorChannel',
             [
                 SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 SimpleMessageChannelBuilder::createQueueChannel('notifications'),
@@ -47,12 +46,11 @@ final class CollectorModuleTest extends DbalMessagingTestCase
         $this->assertNotNull($ecotoneLite->getMessageChannel("notifications")->receive());
     }
 
-    public function test_failure_during_sending_should_rollback_transaction()
+    public function test_failure_during_sending_should_rollback_transaction_and_not_send_messages()
     {
         $ecotoneLite = $this->bootstrapEcotone(
             [Person::class, NotificationService::class],
             [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
-            'customErrorChannel',
             [
                 SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ExceptionalQueueChannel::createWithExceptionOnSend('notifications')
@@ -79,7 +77,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
      * @param MessageChannelBuilder[] $channelBuilders
      * @param CollectorConfiguration[] $extensionObjects
      */
-    private function bootstrapEcotone(array $classesToResolve, array $services, string $errorChannel, array $channelBuilders, array $extensionObjects): FlowTestSupport
+    private function bootstrapEcotone(array $classesToResolve, array $services, array $channelBuilders, array $extensionObjects): FlowTestSupport
     {
         $this->setupUserTable();
 
@@ -88,7 +86,6 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             $services,
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withDefaultErrorChannel($errorChannel)
                 ->withDefaultSerializationMediaType('application/json')
                 ->withExtensionObjects(array_merge(
                     $extensionObjects,

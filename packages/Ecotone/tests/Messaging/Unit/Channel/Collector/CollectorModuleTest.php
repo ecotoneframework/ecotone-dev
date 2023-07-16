@@ -55,7 +55,7 @@ final class CollectorModuleTest extends TestCase
         $this->assertEquals($command, $ecotoneLite->getMessageChannel('orders')->receive()->getPayload());
     }
 
-    public function test_collected_message_is_delayed_so_messages_are_not_sent_handler_exception()
+    public function test_collected_message_is_delayed_so_messages_are_not_sent_on_handler_exception()
     {
         $ecotoneLite = $this->bootstrapEcotone(
             [BetService::class],
@@ -76,7 +76,26 @@ final class CollectorModuleTest extends TestCase
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
     }
 
-    public function test_collected_message_is_delayed_so_messages_are_not_sent_handler_exception_when_async_scenario()
+    public function test_collected_message_is_delayed_so_messages_are_not_sent_on_handler_exception_with_default_configuration()
+    {
+        $ecotoneLite = $this->bootstrapEcotone(
+            [BetService::class],
+            [new BetService()],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('bets')
+            ],
+            [] // no config needed
+        );
+
+        try {
+            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
+        } catch (\RuntimeException) {
+        }
+
+        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No message should not be sent due to exception');
+    }
+
+    public function test_collected_message_is_delayed_so_messages_are_not_sent_on_handler_exception_when_async_scenario()
     {
         $ecotoneLite = $this->bootstrapEcotone(
             [BetService::class],
@@ -191,7 +210,7 @@ final class CollectorModuleTest extends TestCase
             [
                 ExceptionalQueueChannel::createWithExceptionOnSend('bets', 1)
             ],
-            [PollableChannelConfiguration::createWithDefaultRetry('bets')->withCollector(true)]
+            [PollableChannelConfiguration::createWithDefaults('bets')->withCollector(true)]
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);

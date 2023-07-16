@@ -37,7 +37,12 @@ class Person
     #[CommandHandler]
     public static function register(RegisterPerson $command): static
     {
-        return new self($command->getPersonId(), $command->getName());
+        $person = new self($command->getPersonId(), $command->getName());
+        if ($command->isException()) {
+            throw new \RuntimeException("Exception");
+        }
+
+        return $person;
     }
 
     #[QueryHandler('person.getName')]

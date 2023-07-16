@@ -40,12 +40,14 @@ final class DbalTransactionInterceptorTest extends DbalMessagingTestCase
             addInMemoryStateStoredRepository: false
         );
 
+        /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
+        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
         $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
             ['personId' => 100, 'personName' => 'Johny', 'exception' => true],
         ]);
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, failAtError: false));
 
         /** First should be rolled back */
         $aggregateCommitted = true;

@@ -51,7 +51,6 @@ interface Precedence
 
     /**
      * Collects messages to be sent to asynchronous channels.
-     * It provides it own retry mechanism and in case of failure will push to error channel.
      */
-    public const COLLECTOR_SENDER_PRECEDENCE = self::AROUND_INSTANT_RETRY_PRECEDENCE - 1;
+    public const COLLECTOR_SENDER_PRECEDENCE = self::DATABASE_TRANSACTION_PRECEDENCE + 1;
 }

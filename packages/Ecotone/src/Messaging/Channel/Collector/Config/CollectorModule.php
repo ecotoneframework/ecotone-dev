@@ -70,20 +70,6 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
                 )
             );
         }
-
-        /** @TODO remove */
-        if ($pollableChannelConfigurations !== []) {
-            $messagingConfiguration->registerMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(
-                    new DefaultCollectorProxy(),
-                    'proxy'
-                )
-                    ->withInputChannelName(self::ECOTONE_COLLECTOR_DEFAULT_PROXY)
-                    ->withMethodParameterConverters([
-                        ReferenceBuilder::create('configuredMessagingSystem', ConfiguredMessagingSystem::class)
-                    ])
-            );
-        }
     }
 
     public function canHandle($extensionObject): bool

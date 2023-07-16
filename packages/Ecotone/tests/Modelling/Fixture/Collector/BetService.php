@@ -8,6 +8,7 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 
 final class BetService
@@ -19,6 +20,16 @@ final class BetService
 
         if ($shouldThrowException) {
             throw new \RuntimeException("test");
+        }
+    }
+
+    #[CommandHandler('makeBlindBet')]
+    public function makeBlindBet(bool $shouldThrowException, #[Reference] CommandBus $commandBus): void
+    {
+        $commandBus->sendWithRouting("makeBet", false);
+
+        if ($shouldThrowException) {
+            throw new \RuntimeException('test');
         }
     }
 

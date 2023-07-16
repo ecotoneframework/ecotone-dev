@@ -21,7 +21,7 @@ class TicketServiceMessagingConfiguration
             AmqpDistributedBusConfiguration::createConsumer(),
             PollingMetadata::create(self::SERVICE_NAME)
                 ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(1000)
+                ->setExecutionTimeLimitInMilliseconds(5000)
                 ->setErrorChannelName(self::ERROR_CHANNEL),
         ];
     }

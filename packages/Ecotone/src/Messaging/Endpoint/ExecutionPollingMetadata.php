@@ -24,7 +24,7 @@ final class ExecutionPollingMetadata
      * @param int $maxExecutionTimeInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
      * @return $this
      */
-    public static function createWithTestingSetup(int $amountOfMessagesToHandle = 1, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
+    public static function createWithTestingSetup(int $amountOfMessagesToHandle = 1, int $maxExecutionTimeInMilliseconds = 1000, bool $failAtError = true): self
     {
         return self::createWithDefaults()->withTestingSetup($amountOfMessagesToHandle, $maxExecutionTimeInMilliseconds, $failAtError);
     }

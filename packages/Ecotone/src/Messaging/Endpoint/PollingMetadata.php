@@ -295,6 +295,9 @@ final class PollingMetadata
     }
 
     /**
+     * How many times Consumer should be executed before it will be stopped.
+     * It takes under consideration polling when no messages are received.
+     *
      * @param int $executionAmountLimit
      * @return PollingMetadata
      */

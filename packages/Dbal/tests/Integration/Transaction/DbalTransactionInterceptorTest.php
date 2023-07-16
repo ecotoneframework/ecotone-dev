@@ -32,6 +32,7 @@ final class DbalTransactionInterceptorTest extends DbalMessagingTestCase
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
+                        ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])

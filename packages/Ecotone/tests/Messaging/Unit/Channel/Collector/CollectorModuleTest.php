@@ -55,7 +55,7 @@ final class CollectorModuleTest extends TestCase
         $this->assertEquals($command, $ecotoneLite->getMessageChannel('orders')->receive()->getPayload());
     }
 
-    public function test_collected_message_is_delayed_so_messages_are_not_sent_on_failure()
+    public function test_collected_message_is_delayed_so_messages_are_not_sent_handler_exception()
     {
         $ecotoneLite = $this->bootstrapEcotone(
             [BetService::class],
@@ -66,14 +66,34 @@ final class CollectorModuleTest extends TestCase
             [PollableChannelConfiguration::neverRetry('bets')->withCollector(true)]
         );
 
-        try {
-            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
-        }catch (\RuntimeException) {}
+        try { $ecotoneLite->sendCommandWithRoutingKey('makeBet', true); }catch (\RuntimeException) {}
 
-        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), "No message should be collected yet");
+        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), "No message should not be sent due to exception");
 
         /** Previous messages should be cleared and not resent */
         $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
+        $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
+        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
+    }
+
+    public function test_collected_message_is_delayed_so_messages_are_not_sent_handler_exception_when_async_scenario()
+    {
+        $ecotoneLite = $this->bootstrapEcotone(
+            [BetService::class],
+            [new BetService()],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('bets')
+            ],
+            [PollableChannelConfiguration::neverRetry('bets')->withCollector(true)]
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', true);
+        try { $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup()); } catch (\RuntimeException) {}
+        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No message should not be sent due to exception');
+
+        /** Previous messages should be cleared and not resent */
+        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false);
+        $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
     }
@@ -89,10 +109,7 @@ final class CollectorModuleTest extends TestCase
             [PollableChannelConfiguration::neverRetry('bets')->withCollector(false)]
         );
 
-        try {
-            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
-        } catch (\RuntimeException) {
-        }
+        try { $ecotoneLite->sendCommandWithRoutingKey('makeBet', true); } catch (\RuntimeException) {}
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
 

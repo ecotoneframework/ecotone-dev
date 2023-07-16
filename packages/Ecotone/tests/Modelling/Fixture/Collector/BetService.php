@@ -23,6 +23,17 @@ final class BetService
         }
     }
 
+    #[Asynchronous("bets")]
+    #[CommandHandler('asyncMakeBet', endpointId: "asyncMakeBetEndpoint")]
+    public function asyncMakeBet(bool $shouldThrowException, #[Reference] EventBus $eventBus): void
+    {
+        $eventBus->publish(new BetPlaced());
+
+        if ($shouldThrowException) {
+            throw new \RuntimeException('test');
+        }
+    }
+
     #[CommandHandler('makeBlindBet')]
     public function makeBlindBet(bool $shouldThrowException, #[Reference] CommandBus $commandBus): void
     {

@@ -8,14 +8,15 @@ use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\Collector\CollectorStorage;
 use Ecotone\Messaging\Channel\Collector\MessageCollectorChannelInterceptor;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
 
 final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
-    public function __construct(private string $collectedChannel, private CollectorStorage $collector) {}
+    public function __construct(private string $collectedChannel, private CollectorStorage $collector)
+    {
+    }
 
     public function relatedChannelName(): string
     {

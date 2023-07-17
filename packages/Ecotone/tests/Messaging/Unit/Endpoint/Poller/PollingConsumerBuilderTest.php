@@ -20,7 +20,6 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use InvalidArgumentException;
 use RuntimeException;
@@ -399,7 +398,7 @@ class PollingConsumerBuilderTest extends MessagingTest
     {
         $inputChannelName = 'inputChannel';
         $inputChannel = QueueChannel::create();
-        $objectToInvokeOn = new class {
+        $objectToInvokeOn = new class () {
             public array $receivedMessages = [];
             public function handle(Message $message): void
             {

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel;
 
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\PollableChannel;
+use RuntimeException;
 
 class ExceptionalQueueChannel implements PollableChannel, MessageChannelBuilder
 {
@@ -39,7 +39,7 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelBuilder
     {
         if ($this->exceptionOnSend && $this->exceptionCount < $this->recoverAtAttempt) {
             $this->exceptionCount++;
-            throw new \RuntimeException('Exception on send');
+            throw new RuntimeException('Exception on send');
         }
 
         $this->queueChannel->send($message);

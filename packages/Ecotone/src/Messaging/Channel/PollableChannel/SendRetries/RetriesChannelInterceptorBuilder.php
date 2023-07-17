@@ -6,9 +6,6 @@ namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\Collector\CollectorStorage;
-use Ecotone\Messaging\Channel\Collector\MessageCollectorChannelInterceptor;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
@@ -17,7 +14,9 @@ use Ecotone\Messaging\PrecedenceChannelInterceptor;
 
 final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
-    public function __construct(private string $relatedChannel, private RetryTemplate $retryTemplate) {}
+    public function __construct(private string $relatedChannel, private RetryTemplate $retryTemplate)
+    {
+    }
 
     public function relatedChannelName(): string
     {

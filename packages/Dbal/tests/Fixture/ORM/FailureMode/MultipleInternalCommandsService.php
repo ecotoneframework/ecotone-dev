@@ -11,15 +11,15 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 
 final class MultipleInternalCommandsService
 {
-    #[Asynchronous("async")]
-    #[CommandHandler("multipleInternalCommands", endpointId: "multipleInternalCommandsEndpoint")]
+    #[Asynchronous('async')]
+    #[CommandHandler('multipleInternalCommands', endpointId: 'multipleInternalCommandsEndpoint')]
     public function execute(array $commands, CommandBus $commandBus): void
     {
         foreach ($commands as $command) {
             $commandBus->send(new RegisterPerson(
-                $command["personId"],
-                $command["personName"],
-                $command["exception"] ?? false
+                $command['personId'],
+                $command['personName'],
+                $command['exception'] ?? false
             ));
         }
     }

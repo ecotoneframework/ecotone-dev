@@ -15,8 +15,8 @@ final class CollectorConfiguration
         private array  $togetherCollectedChannelNames,
         private string $sendCollectedToMessageChannelName,
     ) {
-        Assert::notNullAndEmpty($togetherCollectedChannelNames, "At least one channel name must be provided for Collector.");
-        Assert::notNullAndEmpty($sendCollectedToMessageChannelName, "Targeted message channel name must be provided for Collector.");
+        Assert::notNullAndEmpty($togetherCollectedChannelNames, 'At least one channel name must be provided for Collector.');
+        Assert::notNullAndEmpty($sendCollectedToMessageChannelName, 'Targeted message channel name must be provided for Collector.');
     }
 
     /**

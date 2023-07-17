@@ -14,8 +14,7 @@ class PollableChannelConfiguration
         private RetryTemplate $retryTemplate,
         private bool          $collectorEnabled = true,
         private ?string       $dlqChannelName = null
-    )
-    {
+    ) {
     }
 
     public static function createWithDefaults(string $channelName): self

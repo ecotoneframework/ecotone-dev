@@ -16,7 +16,7 @@ final class ShippingEventHandler
      */
     private $shippings = [];
 
-    #[Asynchronous("shipping")]
+    #[Asynchronous('shipping')]
     #[EventHandler(endpointId: 'shipping.ship')]
     public function ship(OrderWasPlaced $event): void
     {

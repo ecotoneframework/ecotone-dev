@@ -167,7 +167,7 @@ final class MessageHeaders
             self::CONSUMER_ENDPOINT_ID,
             self::STREAM_BASED_SOURCED,
             MessagingEntrypoint::ENTRYPOINT,
-            self::CHANNEL_SEND_RETRY_NUMBER
+            self::CHANNEL_SEND_RETRY_NUMBER,
         ];
     }
 

@@ -18,7 +18,7 @@ final class GenericNotifier
     #[EventHandler(endpointId: 'orderNotifierOrderWasPlaced')]
     public function handle(OrderWasPlaced $event): void
     {
-       $this->notifiedOrders[] = $event;
+        $this->notifiedOrders[] = $event;
     }
 
     /**

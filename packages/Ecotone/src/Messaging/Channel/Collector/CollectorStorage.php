@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\Collector;
 
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Message;
 
 /**
@@ -17,7 +16,9 @@ final class CollectorStorage
     /**
      * @param CollectedMessage[] $collectedMessages
      */
-    public function __construct(private bool $enabled = false, private array $collectedMessages = []) {}
+    public function __construct(private bool $enabled = false, private array $collectedMessages = [])
+    {
+    }
 
     public function enable(): void
     {

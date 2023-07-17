@@ -26,7 +26,7 @@ use Ecotone\Modelling\CommandBus;
 #[ModuleAnnotation]
 final class CollectorModule extends NoExternalConfigurationModule implements AnnotationModule
 {
-    const ECOTONE_COLLECTOR_DEFAULT_PROXY = 'ecotone.collector.default_proxy';
+    public const ECOTONE_COLLECTOR_DEFAULT_PROXY = 'ecotone.collector.default_proxy';
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
@@ -52,7 +52,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
                 }
             }
 
-            if (!$channelConfiguration->isCollectorEnabled()) {
+            if (! $channelConfiguration->isCollectorEnabled()) {
                 continue;
             }
 

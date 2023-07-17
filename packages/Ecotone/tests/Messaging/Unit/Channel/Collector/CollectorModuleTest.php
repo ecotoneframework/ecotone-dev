@@ -15,26 +15,19 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Config\BusModule;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
+
+use function str_contains;
+
 use Test\Ecotone\Modelling\Fixture\Collector\BetNotificator;
 use Test\Ecotone\Modelling\Fixture\Collector\BetService;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
-use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
-use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\GenericNotifier;
-use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\PushStatistics;
-use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\ShippingEventHandler;
-use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\SmsNotifier;
-use Test\Ecotone\Modelling\Fixture\OrderAsynchronousEventHandler\StatisticsHandler;
-use Ecotone\Messaging\Support\InvalidArgumentException;
-use Test\Ecotone\Modelling\Fixture\PublishAndThrowException\FailureOrderService;
 
+/**
+ * @internal
+ */
 final class CollectorModuleTest extends TestCase
 {
     public function test_receiving_collected_message_from_command_handler()
@@ -43,7 +36,7 @@ final class CollectorModuleTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('orders')
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
             ],
             [PollableChannelConfiguration::neverRetry('orders')->withCollector(true)]
         );
@@ -61,14 +54,17 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('bets')
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [PollableChannelConfiguration::neverRetry('bets')->withCollector(true)]
         );
 
-        try { $ecotoneLite->sendCommandWithRoutingKey('makeBet', true); }catch (\RuntimeException) {}
+        try {
+            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
+        } catch (\RuntimeException) {
+        }
 
-        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), "No message should not be sent due to exception");
+        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No message should not be sent due to exception');
 
         /** Previous messages should be cleared and not resent */
         $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
@@ -82,7 +78,7 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('bets')
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [] // no config needed
         );
@@ -101,13 +97,16 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('bets')
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [PollableChannelConfiguration::neverRetry('bets')->withCollector(true)]
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', true);
-        try { $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup()); } catch (\RuntimeException) {}
+        try {
+            $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup());
+        } catch (\RuntimeException) {
+        }
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No message should not be sent due to exception');
 
         /** Previous messages should be cleared and not resent */
@@ -123,12 +122,15 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('bets')
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [PollableChannelConfiguration::neverRetry('bets')->withCollector(false)]
         );
 
-        try { $ecotoneLite->sendCommandWithRoutingKey('makeBet', true); } catch (\RuntimeException) {}
+        try {
+            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
+        } catch (\RuntimeException) {
+        }
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
 
@@ -167,7 +169,7 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('bets')
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [PollableChannelConfiguration::neverRetry('bets')->withCollector(true)]
         );
@@ -193,7 +195,7 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('bets')
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [
                 PollableChannelConfiguration::neverRetry('bets')->withCollector(true),
@@ -208,7 +210,7 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                ExceptionalQueueChannel::createWithExceptionOnSend('bets', 1)
+                ExceptionalQueueChannel::createWithExceptionOnSend('bets', 1),
             ],
             [PollableChannelConfiguration::createWithDefaults('bets')->withCollector(true)]
         );
@@ -255,7 +257,7 @@ final class CollectorModuleTest extends TestCase
     private function containsMessageWithRoutingKeyFor(array $collectedMessages, string $channelName, object $payload, string $routingKey): bool
     {
         foreach ($collectedMessages as $collectedMessage) {
-            if ($collectedMessage->getChannelName() === $channelName && $collectedMessage->getMessage()->getPayload() == $payload && \str_contains($collectedMessage->getMessage()->getHeaders()->get(MessageHeaders::ROUTING_SLIP), $routingKey)) {
+            if ($collectedMessage->getChannelName() === $channelName && $collectedMessage->getMessage()->getPayload() == $payload && str_contains($collectedMessage->getMessage()->getHeaders()->get(MessageHeaders::ROUTING_SLIP), $routingKey)) {
                 return true;
             }
         }

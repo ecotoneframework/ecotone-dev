@@ -53,14 +53,18 @@ final class DbalTransactionInterceptorTest extends DbalMessagingTestCase
         $aggregateCommitted = true;
         try {
             $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100]);
-        } catch (AggregateNotFoundException) { $aggregateCommitted = false; }
+        } catch (AggregateNotFoundException) {
+            $aggregateCommitted = false;
+        }
         $this->assertFalse($aggregateCommitted);
 
         /** Second after exception should not */
         $aggregateCommitted = true;
         try {
             $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 101]);
-        } catch (AggregateNotFoundException) { $aggregateCommitted = false; }
+        } catch (AggregateNotFoundException) {
+            $aggregateCommitted = false;
+        }
         $this->assertFalse($aggregateCommitted);
     }
 
@@ -93,14 +97,18 @@ final class DbalTransactionInterceptorTest extends DbalMessagingTestCase
         $aggregateCommitted = true;
         try {
             $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100]);
-        } catch (AggregateNotFoundException) { $aggregateCommitted = false; }
+        } catch (AggregateNotFoundException) {
+            $aggregateCommitted = false;
+        }
         $this->assertTrue($aggregateCommitted);
 
         /** Second after exception should not */
         $aggregateCommitted = true;
         try {
             $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 101]);
-        } catch (AggregateNotFoundException) { $aggregateCommitted = false; }
+        } catch (AggregateNotFoundException) {
+            $aggregateCommitted = false;
+        }
         $this->assertFalse($aggregateCommitted);
     }
 }

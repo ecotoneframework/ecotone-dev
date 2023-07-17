@@ -10,7 +10,7 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonRegistered;
 
 final class NotificationService
 {
-    #[Asynchronous("notifications")]
+    #[Asynchronous('notifications')]
     #[EventHandler(endpointId: 'personNotifierPersonRegistered')]
     public function handle(PersonRegistered $event): void
     {

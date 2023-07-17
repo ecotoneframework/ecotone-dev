@@ -21,7 +21,7 @@ final class StatisticsHandler
         $commandBus->send(new PushStatistics('2'));
     }
 
-    #[Asynchronous("pushStatistics")]
+    #[Asynchronous('pushStatistics')]
     #[CommandHandler(endpointId: 'StatisticsHandler::handleStatistics')]
     public function handleStatistics(PushStatistics $command): void
     {

@@ -10,42 +10,43 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
+use RuntimeException;
 
 final class BetService
 {
-    #[CommandHandler("makeBet")]
+    #[CommandHandler('makeBet')]
     public function makeBet(bool $shouldThrowException, #[Reference] EventBus $eventBus): void
     {
         $eventBus->publish(new BetPlaced());
 
         if ($shouldThrowException) {
-            throw new \RuntimeException("test");
+            throw new RuntimeException('test');
         }
     }
 
-    #[Asynchronous("bets")]
-    #[CommandHandler('asyncMakeBet', endpointId: "asyncMakeBetEndpoint")]
+    #[Asynchronous('bets')]
+    #[CommandHandler('asyncMakeBet', endpointId: 'asyncMakeBetEndpoint')]
     public function asyncMakeBet(bool $shouldThrowException, #[Reference] EventBus $eventBus): void
     {
         $eventBus->publish(new BetPlaced());
 
         if ($shouldThrowException) {
-            throw new \RuntimeException('test');
+            throw new RuntimeException('test');
         }
     }
 
     #[CommandHandler('makeBlindBet')]
     public function makeBlindBet(bool $shouldThrowException, #[Reference] CommandBus $commandBus): void
     {
-        $commandBus->sendWithRouting("makeBet", false);
+        $commandBus->sendWithRouting('makeBet', false);
 
         if ($shouldThrowException) {
-            throw new \RuntimeException('test');
+            throw new RuntimeException('test');
         }
     }
 
-    #[Asynchronous("bets")]
-    #[EventHandler(endpointId: "whenBetPlaced")]
+    #[Asynchronous('bets')]
+    #[EventHandler(endpointId: 'whenBetPlaced')]
     public function when(BetPlaced $event): void
     {
 

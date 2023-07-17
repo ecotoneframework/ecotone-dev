@@ -158,7 +158,7 @@ class ServiceConfiguration
     public function withExtensionObjects(array $extensionObjects): self
     {
         foreach ($extensionObjects as $extensionObject) {
-            Assert::isObject($extensionObject, "Extension object must be an object, given: " . gettype($extensionObject));
+            Assert::isObject($extensionObject, 'Extension object must be an object, given: ' . gettype($extensionObject));
         }
         $clone              = clone $this;
         $clone->extensionObjects = $extensionObjects;

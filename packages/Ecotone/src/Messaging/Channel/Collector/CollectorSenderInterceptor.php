@@ -6,13 +6,8 @@ namespace Ecotone\Messaging\Channel\Collector;
 
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\Support\ErrorMessage;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Psr\Log\LoggerInterface;
 
 final class CollectorSenderInterceptor
@@ -21,7 +16,7 @@ final class CollectorSenderInterceptor
     {
     }
 
-    public function send(MethodInvocation $methodInvocation, #[Reference] ConfiguredMessagingSystem $configuredMessagingSystem, #[Reference("logger")] LoggerInterface $logger): mixed
+    public function send(MethodInvocation $methodInvocation, #[Reference] ConfiguredMessagingSystem $configuredMessagingSystem, #[Reference('logger')] LoggerInterface $logger): mixed
     {
         /** For example Command Bus inside Command Bus */
         if ($this->collectorStorage->isEnabled()) {

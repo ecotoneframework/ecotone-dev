@@ -10,6 +10,7 @@ use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
+use RuntimeException;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'persons')]
@@ -39,7 +40,7 @@ class Person
     {
         $person = new self($command->getPersonId(), $command->getName());
         if ($command->isException()) {
-            throw new \RuntimeException("Exception");
+            throw new RuntimeException('Exception');
         }
 
         return $person;

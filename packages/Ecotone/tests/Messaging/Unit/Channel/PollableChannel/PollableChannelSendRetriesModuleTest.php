@@ -6,19 +6,21 @@ namespace Test\Ecotone\Messaging\Unit\Channel\PollableChannel;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\Collector\CollectedMessage;
-use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Exception;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
 
+/**
+ * @internal
+ */
 final class PollableChannelSendRetriesModuleTest extends TestCase
 {
     public function test_retrying_on_failure_with_success()
@@ -28,7 +30,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [OrderService::class],
             [new OrderService(), 'logger' => $loggerExample],
             [
-                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 1)
+                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 1),
             ]
         );
 
@@ -47,7 +49,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [OrderService::class],
             [new OrderService(), 'logger' => $loggerExample],
             [
-                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 2)
+                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 2),
             ]
         );
 
@@ -67,14 +69,14 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [OrderService::class],
             [new OrderService(), 'logger' => $loggerExample],
             [
-                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 3)
+                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 3),
             ]
         );
 
         $exception = false;
         try {
             $ecotoneLite->sendCommand(new PlaceOrder('1'));
-        }catch (\Exception $exception) {
+        } catch (Exception $exception) {
             $exception = true;
         }
 
@@ -93,14 +95,14 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [OrderService::class],
             [new OrderService(), 'logger' => $loggerExample],
             [
-                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 2)
+                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 2),
             ],
             [
-                PollableChannelConfiguration::create('orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build())
+                PollableChannelConfiguration::create('orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build()),
             ]
         );
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
 
         $ecotoneLite->sendCommand(new PlaceOrder('1'));
     }
@@ -113,17 +115,17 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [OrderService::class],
             [new OrderService(), 'logger' => $loggerExample],
             [
-                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 1)
+                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 1),
             ],
             [
-                PollableChannelConfiguration::neverRetry('orders')
+                PollableChannelConfiguration::neverRetry('orders'),
             ]
         );
 
         $exception = false;
         try {
             $ecotoneLite->sendCommand(new PlaceOrder('1'));
-        }catch (\Exception $exception) {
+        } catch (Exception $exception) {
             $exception = true;
         }
 

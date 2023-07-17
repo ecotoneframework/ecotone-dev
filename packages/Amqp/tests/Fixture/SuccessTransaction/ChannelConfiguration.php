@@ -24,7 +24,7 @@ class ChannelConfiguration
             AmqpConfiguration::createWithDefaults()
                 ->withTransactionOnAsynchronousEndpoints(true)
                 ->withTransactionOnCommandBus(true),
-            PollableChannelConfiguration::neverRetry(self::QUEUE_NAME)->withCollector(false)
+            PollableChannelConfiguration::neverRetry(self::QUEUE_NAME)->withCollector(false),
         ];
     }
 }

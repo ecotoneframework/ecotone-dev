@@ -11,7 +11,9 @@ use Ecotone\Messaging\MessageChannel;
 
 final class MessageCollectorChannelInterceptor extends AbstractChannelInterceptor implements ChannelInterceptor
 {
-    public function __construct(private CollectorStorage $collectorStorage) {}
+    public function __construct(private CollectorStorage $collectorStorage)
+    {
+    }
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {

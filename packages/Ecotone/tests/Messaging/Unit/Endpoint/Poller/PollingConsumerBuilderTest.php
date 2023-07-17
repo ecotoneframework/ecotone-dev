@@ -398,29 +398,7 @@ class PollingConsumerBuilderTest extends MessagingTest
     public function test_finish_when_no_messages(): void
     {
         $inputChannelName = 'inputChannel';
-        $inputChannel = new class implements PollableChannel {
-            private array $queue = [];
-
-            public function receive(): ?Message
-            {
-                return array_shift($this->queue);
-            }
-
-            public function send(Message $message): void
-            {
-                $this->queue[] = $message;
-            }
-
-            public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
-            {
-                return $this->receive();
-            }
-
-            public function queueSize(): int
-            {
-                return count($this->queue);
-            }
-        };
+        $inputChannel = QueueChannel::create();
         $objectToInvokeOn = new class {
             public array $receivedMessages = [];
             public function handle(Message $message): void
@@ -445,7 +423,7 @@ class PollingConsumerBuilderTest extends MessagingTest
         $inputChannel->send(MessageBuilder::withPayload('some')->build());
         $pollingConsumer->run();
 
-        $this->assertSame(0, $inputChannel->queueSize());
+        $this->assertNull($inputChannel->receive());
         $this->assertCount(2, $objectToInvokeOn->receivedMessages);
     }
 

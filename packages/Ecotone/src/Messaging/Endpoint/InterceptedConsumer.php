@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Endpoint;
 
 use Ecotone\Messaging\Endpoint\Interceptor\ConnectionExceptionRetryInterceptor;
+use Ecotone\Messaging\Endpoint\Interceptor\FinishWhenNoMessagesInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitConsumedMessagesInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitExecutionAmountInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitMemoryUsageInterceptor;
@@ -70,8 +71,6 @@ class InterceptedConsumer implements ConsumerLifecycle
     }
 
     /**
-     * @param PollingMetadata $pollingMetadata
-     * @param array $interceptor
      * @return ConsumerInterceptor[]
      * @throws \Ecotone\Messaging\MessagingException
      */
@@ -92,6 +91,9 @@ class InterceptedConsumer implements ConsumerLifecycle
         }
         if ($pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0) {
             $interceptors[] = new TimeLimitInterceptor($pollingMetadata->getExecutionTimeLimitInMilliseconds());
+        }
+        if ($pollingMetadata->finishWhenNoMessages()) {
+            $interceptors[] = new FinishWhenNoMessagesInterceptor();
         }
         $interceptors[] = new ConnectionExceptionRetryInterceptor($referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE), $pollingMetadata->getConnectionRetryTemplate(), $pollingMetadata->isStoppedOnError());
 

@@ -46,14 +46,4 @@ class ErrorConfigurationContext
                 ->setErrorChannelName(self::ERROR_CHANNEL),
         ];
     }
-
-    #[ServiceContext]
-    public function registerAmqpConfig(): array
-    {
-        return [
-            AmqpConfiguration::createWithDefaults()
-                ->withTransactionOnAsynchronousEndpoints(true)
-                ->withTransactionOnCommandBus(true),
-        ];
-    }
 }

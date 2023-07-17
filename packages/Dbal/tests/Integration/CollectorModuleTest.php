@@ -11,6 +11,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -25,20 +26,37 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 
 final class CollectorModuleTest extends DbalMessagingTestCase
 {
-    public function test_failure_during_sending_should_not_affect_transaction()
+    public function test_no_failure_during_sending_should_commit_transaction_and_send_messages()
     {
         $ecotoneLite = $this->bootstrapEcotone(
             [Person::class, NotificationService::class],
             [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
-            'customErrorChannel',
             [
                 SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-                ExceptionalQueueChannel::createWithExceptionOnSend('push'),
-                ExceptionalQueueChannel::createWithExceptionOnSend('customErrorChannel'),
             ],
             [
-                CollectorConfiguration::createWithOutboundChannel(['notifications'], 'push'),
+                PollableChannelConfiguration::neverRetry('notifications')->withCollector(true)
+            ]
+        );
+
+        $ecotoneLite->sendCommand(new RegisterPerson(100, 'Johny'));
+
+        $this->assertNotNull($ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100]));
+        $this->assertNotNull($ecotoneLite->getMessageChannel("notifications")->receive());
+    }
+
+    public function test_failure_during_sending_should_rollback_transaction_and_not_send_messages()
+    {
+        $ecotoneLite = $this->bootstrapEcotone(
+            [Person::class, NotificationService::class],
+            [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                ExceptionalQueueChannel::createWithExceptionOnSend('notifications')
+            ],
+            [
+                PollableChannelConfiguration::neverRetry('notifications')->withCollector(true)
             ]
         );
 
@@ -46,74 +64,11 @@ final class CollectorModuleTest extends DbalMessagingTestCase
         try {
             $ecotoneLite->sendCommand(new RegisterPerson(100, 'Johny'));
         }catch (\RuntimeException) {$exception = true;}
-        $this->assertTrue($exception);
-
-        $this->assertSame(
-            'Johny',
-            $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100])
-        );
-    }
-
-    /**
-     * @TODO
-     */
-    public function test_failure_during_serialization_should_rollback_transaction()
-    {
-        $this->markTestSkipped("Not implemented yet");
-        $ecotoneLite = $this->bootstrapEcotone(
-            [Person::class, NotificationService::class],
-            [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
-            'errorChannel',
-            [
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
-                DbalBackedMessageChannelBuilder::create('notifications')
-            ],
-            [
-                CollectorConfiguration::createWithDefaultProxy(['notifications']),
-            ]
-        );
-
-
-        $exception = false;
-        try {
-            $ecotoneLite->sendCommand(new RegisterPerson(100, 'Johny'));
-        }catch (\InvalidArgumentException) {$exception = true;}
         $this->assertTrue($exception);
 
         $this->expectException(AggregateNotFoundException::class);
 
         $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100]);
-    }
-
-    public function test_collected_message_is_pushed_to_dead_letter_and_replayed_with_success()
-    {
-        $this->markTestIncomplete('to finish');
-
-        $ecotoneLite = $this->bootstrapEcotone(
-            [Person::class, NotificationService::class],
-            [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
-            'errorChannel',
-            [
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
-                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-                ExceptionalQueueChannel::createWithExceptionOnSend('push'),
-                ExceptionalQueueChannel::createWithExceptionOnSend('customErrorChannel'),
-            ],
-            [
-                CollectorConfiguration::createWithOutboundChannel(['notifications'], 'push'),
-            ]
-        );
-
-        $exception = false;
-        try {
-            $ecotoneLite->sendCommand(new RegisterPerson(100, 'Johny'));
-        }catch (\RuntimeException) {$exception = true;}
-        $this->assertTrue($exception);
-
-        $this->assertSame(
-            'Johny',
-            $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100])
-        );
     }
 
     /**
@@ -122,7 +77,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
      * @param MessageChannelBuilder[] $channelBuilders
      * @param CollectorConfiguration[] $extensionObjects
      */
-    private function bootstrapEcotone(array $classesToResolve, array $services, string $errorChannel, array $channelBuilders, array $extensionObjects): FlowTestSupport
+    private function bootstrapEcotone(array $classesToResolve, array $services, array $channelBuilders, array $extensionObjects): FlowTestSupport
     {
         $this->setupUserTable();
 
@@ -131,7 +86,6 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             $services,
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withDefaultErrorChannel($errorChannel)
                 ->withDefaultSerializationMediaType('application/json')
                 ->withExtensionObjects(array_merge(
                     $extensionObjects,

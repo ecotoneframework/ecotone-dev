@@ -10,10 +10,9 @@ use Ecotone\Messaging\Message;
 /**
  * This is responsible for collecting message in order to send them later.
  * This is useful in scenario where we given publisher is not transactional (e.g. SQS, Redis)
- * and we want to send the messages after database transaction is committed
- * or if we want to send messages in batch, instead of sending one by one.
+ * and we want to delay sending messages so it's done just before transaction is committed
  */
-final class Collector
+final class CollectorStorage
 {
     /**
      * @param CollectedMessage[] $collectedMessages
@@ -36,13 +35,13 @@ final class Collector
         return $this->enabled;
     }
 
-    public function send(string $collectedChannel, Message $message): void
+    public function collect(Message $message): void
     {
-        $this->collectedMessages[] = new CollectedMessage($collectedChannel, $message);
+        $this->collectedMessages[] = $message;
     }
 
     /**
-     * @return CollectedMessage[]
+     * @return Message[]
      */
     public function getCollectedMessages(): array
     {

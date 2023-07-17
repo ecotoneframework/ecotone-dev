@@ -29,7 +29,7 @@ class MessagingConfiguration
             AmqpMessageConsumerConfiguration::create(self::CONSUMER_ID, self::SHOPPING_QUEUE)
                 ->withReceiveTimeoutInMilliseconds(1),
             PollingMetadata::create(self::CONSUMER_ID)
-                ->setExecutionTimeLimitInMilliseconds(1),
+                ->setExecutionTimeLimitInMilliseconds(1000),
         ];
     }
 }

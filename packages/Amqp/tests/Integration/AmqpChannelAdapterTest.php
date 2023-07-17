@@ -644,7 +644,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundRequestChannel->subscribe(ForwardMessageHandler::create($inboundQueueChannel));
 
         $inboundAmqpGateway = $inboundAmqpAdapter
-            ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
+            ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1000));
 
         usleep(1500);
         $inboundAmqpGateway->run();

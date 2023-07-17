@@ -14,7 +14,7 @@ jobs:
         stability: [prefer-stable]
     services:
       rabbitmq:
-        image: rabbitmq:3.8-alpine
+        image: rabbitmq:3.11-management-alpine
         env:
           RABBITMQ_DEFAULT_USER: guest
           RABBITMQ_DEFAULT_PASS: guest

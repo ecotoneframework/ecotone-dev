@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Enqueue;
+namespace Ecotone\Messaging\Channel\Serialization;
 
 class OutboundMessage
 {

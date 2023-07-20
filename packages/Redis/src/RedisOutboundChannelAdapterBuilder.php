@@ -7,7 +7,7 @@ namespace Ecotone\Redis;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
-use Ecotone\Enqueue\OutboundMessageConverter;
+use Ecotone\Messaging\Channel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -48,13 +48,13 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
             $this->autoDeclare,
             new OutboundMessageConverter(
                 $headerMapper,
-                $conversionService,
                 $this->defaultConversionMediaType,
                 $this->defaultDeliveryDelay,
                 $this->defaultTimeToLive,
                 $this->defaultPriority,
                 []
-            )
+            ),
+            $conversionService
         );
     }
 }

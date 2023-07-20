@@ -8,6 +8,7 @@ use DateTime;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandler;
@@ -28,14 +29,14 @@ use function json_encode;
 class DbalDeadLetterHandler
 {
     public const DEFAULT_DEAD_LETTER_TABLE = 'ecotone_error_messages';
-    private ConnectionFactory $connectionFactory;
     private bool $isInitialized = false;
-    private HeaderMapper $headerMapper;
 
-    public function __construct(ConnectionFactory $connectionFactory, HeaderMapper $headerMapper)
+    public function __construct(
+        private ConnectionFactory $connectionFactory,
+        private HeaderMapper $headerMapper,
+        private ConversionService $conversionService
+    )
     {
-        $this->connectionFactory = $connectionFactory;
-        $this->headerMapper = $headerMapper;
     }
 
     /**
@@ -191,7 +192,7 @@ class DbalDeadLetterHandler
                 'message_id' => $headers[MessageHeaders::MESSAGE_ID],
                 'failed_at' =>  new DateTime(date('Y-m-d H:i:s.u', $headers[MessageHeaders::TIMESTAMP])),
                 'payload' => $payload,
-                'headers' => json_encode($this->headerMapper->mapFromMessageHeaders($headers), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE),
+                'headers' => json_encode($this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE),
             ],
             [
                 'message_id' => Types::STRING,

@@ -2,6 +2,7 @@
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -27,7 +28,7 @@ class InboundMessageConverter
      */
     private $inboundEndpointId;
 
-    public function __construct(string $inboundEndpointId, string $acknowledgeMode, HeaderMapper $headerMapper, string $acknowledgeHeaderName = EnqueueHeader::HEADER_ACKNOWLEDGE)
+    public function __construct(string $inboundEndpointId, string $acknowledgeMode, HeaderMapper $headerMapper, string $acknowledgeHeaderName)
     {
         $this->acknowledgeMode = $acknowledgeMode;
         $this->headerMapper = $headerMapper;
@@ -35,11 +36,11 @@ class InboundMessageConverter
         $this->inboundEndpointId = $inboundEndpointId;
     }
 
-    public function toMessage(EnqueueMessage $source, EnqueueConsumer $consumer): MessageBuilder
+    public function toMessage(EnqueueMessage $source, EnqueueConsumer $consumer, ConversionService $conversionService): MessageBuilder
     {
         $enqueueMessageHeaders = $source->getProperties();
         $messageBuilder = MessageBuilder::withPayload($source->getBody())
-            ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($enqueueMessageHeaders));
+            ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($enqueueMessageHeaders, $conversionService));
 
         if (in_array($this->acknowledgeMode, [EnqueueAcknowledgementCallback::AUTO_ACK, EnqueueAcknowledgementCallback::MANUAL_ACK])) {
             if ($this->acknowledgeMode == EnqueueAcknowledgementCallback::AUTO_ACK) {

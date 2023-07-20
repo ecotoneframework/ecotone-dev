@@ -37,11 +37,7 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
         /** @var ConversionService $conversionService */
         $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
 
-        $headerMapper = DefaultHeaderMapper::createWith(
-            [],
-            $this->headerMapper,
-            $conversionService
-        );
+        $headerMapper = DefaultHeaderMapper::createWith([], $this->headerMapper);
         return new RedisOutboundChannelAdapter(
             CachedConnectionFactory::createFor(new HttpReconnectableConnectionFactory($connectionFactory)),
             $this->queueName,

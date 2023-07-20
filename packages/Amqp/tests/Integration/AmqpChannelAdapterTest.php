@@ -133,7 +133,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             )
             ->run();
 
-        $this->assertNotNull($successChannel->receive());
+        $this->assertNotNull($successChannel->receiveWithTimeout(1000));
     }
 
     public function test_throwing_exception_and_rejecting_when_stop_on_error_is_defined_with_error_channel()
@@ -746,7 +746,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receive();
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
@@ -767,7 +767,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receive();
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
         $this->acceptMessage($message);
 
         $this->assertNull($amqpBackedMessageChannel->receive());
@@ -784,7 +784,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receiveWithTimeout(2000);
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);

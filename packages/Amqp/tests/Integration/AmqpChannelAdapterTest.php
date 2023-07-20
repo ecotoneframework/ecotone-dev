@@ -784,7 +784,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receive();
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(2000);
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);

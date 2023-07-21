@@ -44,7 +44,7 @@ final class DbalTransactionInterceptorTest extends DbalMessagingTestCase
         $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
         $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
-            ['personId' => 100, 'personName' => 'Johny', 'exception' => true],
+            ['personId' => 101, 'personName' => 'Johny', 'exception' => true],
         ]);
 
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, failAtError: false));
@@ -89,7 +89,7 @@ final class DbalTransactionInterceptorTest extends DbalMessagingTestCase
 
         $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
-            ['personId' => 100, 'personName' => 'Johny', 'exception' => true],
+            ['personId' => 101, 'personName' => 'Johny', 'exception' => true],
         ]);
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 

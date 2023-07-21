@@ -9,6 +9,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
@@ -35,7 +36,8 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         bool                            $declareOnStartup,
         string                          $queueName,
         int                             $receiveTimeoutInMilliseconds,
-        InboundMessageConverter         $inboundMessageConverter
+        InboundMessageConverter         $inboundMessageConverter,
+        ConversionService $conversionService
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -43,7 +45,8 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $declareOnStartup,
             $queueName,
             $receiveTimeoutInMilliseconds,
-            $inboundMessageConverter
+            $inboundMessageConverter,
+            $conversionService
         );
         $this->queueChannel = QueueChannel::create();
     }
@@ -78,7 +81,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
             $queueChannel = $this->queueChannel;
             $subscriptionConsumer = $connectionFactory->getSubscriptionConsumer($this->queueName, function (EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
-                $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer);
+                $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer, $this->conversionService);
                 $message = $this->enrichMessage($receivedMessage, $message);
 
                 $queueChannel->send($message->build());

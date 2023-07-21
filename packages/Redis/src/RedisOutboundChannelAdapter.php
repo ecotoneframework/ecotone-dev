@@ -6,19 +6,21 @@ namespace Ecotone\Redis;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
-use Ecotone\Enqueue\OutboundMessageConverter;
+use Ecotone\Messaging\Channel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Enqueue\Redis\RedisContext;
 use Enqueue\Redis\RedisDestination;
 
 final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {
-    public function __construct(CachedConnectionFactory $connectionFactory, private string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter)
+    public function __construct(CachedConnectionFactory $connectionFactory, private string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter, ConversionService $conversionService)
     {
         parent::__construct(
             $connectionFactory,
             new RedisDestination($queueName),
             $autoDeclare,
-            $outboundMessageConverter
+            $outboundMessageConverter,
+            $conversionService
         );
     }
 

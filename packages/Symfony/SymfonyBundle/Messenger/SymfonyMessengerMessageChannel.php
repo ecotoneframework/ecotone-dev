@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyBundle\Messenger;
 
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -23,7 +24,8 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
     public function __construct(
         private TransportInterface $symfonyTransport,
         private HeaderMapper $headerMapper,
-        private string $acknowledgeMode
+        private string $acknowledgeMode,
+        private ConversionService $conversionService
     ) {
 
     }
@@ -32,7 +34,7 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
     {
         $payload = $message->getPayload();
         $headers = MessageHeaders::unsetEnqueueMetadata($message->getHeaders()->headers());
-        $headers = $this->headerMapper->mapFromMessageHeaders($headers);
+        $headers = $this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService);
 
         $type = TypeDescriptor::createFromVariable($payload);
         $contentType = MediaType::createApplicationXPHPWithTypeParameter($type->toString());
@@ -74,7 +76,7 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
             $payload = $payload->getPayload();
         }
         $messageBuilder = MessageBuilder::withPayload($payload)
-            ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($headers));
+            ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($headers, $this->conversionService));
 
         if (array_key_exists(MessageHeaders::CONTENT_TYPE, $headers)) {
             $messageBuilder = $messageBuilder

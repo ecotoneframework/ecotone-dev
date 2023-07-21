@@ -60,8 +60,9 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
 
         return new SymfonyMessengerMessageChannel(
             $transport,
-            DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper, $conversionService),
-            $this->acknowledgeMode
+            DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper),
+            $this->acknowledgeMode,
+            $conversionService
         );
     }
 

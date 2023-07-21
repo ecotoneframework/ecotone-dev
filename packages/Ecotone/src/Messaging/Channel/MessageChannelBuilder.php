@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Channel;
 
+use Ecotone\Messaging\Channel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;

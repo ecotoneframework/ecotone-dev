@@ -119,7 +119,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 $referenceSearchService,
                 PollingMetadata::create('')
                     ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1)
+                    ->setExecutionAmountLimit(1000)
             )
             ->run();
 
@@ -129,11 +129,11 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 $referenceSearchService,
                 PollingMetadata::create('')
                     ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1)
+                    ->setExecutionAmountLimit(1000)
             )
             ->run();
 
-        $this->assertNotNull($successChannel->receive());
+        $this->assertNotNull($successChannel->receiveWithTimeout(1000));
     }
 
     public function test_throwing_exception_and_rejecting_when_stop_on_error_is_defined_with_error_channel()
@@ -173,7 +173,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 PollingMetadata::create('')
                     ->setErrorChannelName('errorChannel')
                     ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1)
+                    ->setExecutionAmountLimit(1000)
             );
 
         $inboundAmqpGateway->run();
@@ -267,7 +267,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      */
     private function receiveOnce(AmqpInboundChannelAdapterBuilder $inboundAmqpGatewayBuilder, QueueChannel $inboundRequestChannel, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): ?Message
     {
-        return $this->receiveWithPollingMetadata($inboundAmqpGatewayBuilder, $inboundRequestChannel, $channelResolver, $referenceSearchService, PollingMetadata::create('someId')->setExecutionAmountLimit(1)->setExecutionTimeLimitInMilliseconds(100));
+        return $this->receiveWithPollingMetadata($inboundAmqpGatewayBuilder, $inboundRequestChannel, $channelResolver, $referenceSearchService, PollingMetadata::create('someId')->setExecutionAmountLimit(100)->setExecutionTimeLimitInMilliseconds(100));
     }
 
     /**
@@ -746,7 +746,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receive();
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
@@ -767,7 +767,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receive();
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
         $this->acceptMessage($message);
 
         $this->assertNull($amqpBackedMessageChannel->receive());
@@ -784,7 +784,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receive();
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);

@@ -119,7 +119,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 $referenceSearchService,
                 PollingMetadata::create('')
                     ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1)
+                    ->setExecutionAmountLimit(1000)
             )
             ->run();
 
@@ -129,7 +129,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 $referenceSearchService,
                 PollingMetadata::create('')
                     ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1)
+                    ->setExecutionAmountLimit(1000)
             )
             ->run();
 
@@ -173,7 +173,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 PollingMetadata::create('')
                     ->setErrorChannelName('errorChannel')
                     ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1)
+                    ->setExecutionAmountLimit(1000)
             );
 
         $inboundAmqpGateway->run();
@@ -267,7 +267,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      */
     private function receiveOnce(AmqpInboundChannelAdapterBuilder $inboundAmqpGatewayBuilder, QueueChannel $inboundRequestChannel, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): ?Message
     {
-        return $this->receiveWithPollingMetadata($inboundAmqpGatewayBuilder, $inboundRequestChannel, $channelResolver, $referenceSearchService, PollingMetadata::create('someId')->setExecutionAmountLimit(1)->setExecutionTimeLimitInMilliseconds(100));
+        return $this->receiveWithPollingMetadata($inboundAmqpGatewayBuilder, $inboundRequestChannel, $channelResolver, $referenceSearchService, PollingMetadata::create('someId')->setExecutionAmountLimit(100)->setExecutionTimeLimitInMilliseconds(100));
     }
 
     /**

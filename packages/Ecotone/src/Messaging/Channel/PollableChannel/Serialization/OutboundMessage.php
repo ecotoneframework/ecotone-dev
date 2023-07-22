@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Messaging\Channel\Serialization;
+namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
 class OutboundMessage
 {

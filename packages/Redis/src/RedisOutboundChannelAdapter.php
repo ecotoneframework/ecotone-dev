@@ -6,7 +6,7 @@ namespace Ecotone\Redis;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
-use Ecotone\Messaging\Channel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Enqueue\Redis\RedisContext;
 use Enqueue\Redis\RedisDestination;

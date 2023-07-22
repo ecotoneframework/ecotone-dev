@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
-use Ecotone\Messaging\Channel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;

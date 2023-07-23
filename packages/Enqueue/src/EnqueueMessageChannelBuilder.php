@@ -3,6 +3,7 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Channel\PollableMessageChannelBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -11,7 +12,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\PollableChannel;
 
-abstract class EnqueueMessageChannelBuilder implements MessageChannelBuilder
+abstract class EnqueueMessageChannelBuilder implements PollableMessageChannelBuilder
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;
     protected EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapter;
@@ -108,10 +109,10 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelBuilder
 
     public function build(ReferenceSearchService $referenceSearchService): PollableChannel
     {
-        /** @var ServiceConfiguration|null $serviceConfiguration */
-        $serviceConfiguration = $referenceSearchService->has(ServiceConfiguration::class) ? $referenceSearchService->get(ServiceConfiguration::class) : null;
         $pollingMetadata = PollingMetadata::create('');
 
+        /** @var ServiceConfiguration|null $serviceConfiguration */
+        $serviceConfiguration = $referenceSearchService->has(ServiceConfiguration::class) ? $referenceSearchService->get(ServiceConfiguration::class) : null;
         if (! $this->getDefaultConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
             $this->withDefaultConversionMediaType($serviceConfiguration->getDefaultSerializationMediaType());
         }

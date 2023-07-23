@@ -67,7 +67,7 @@ class AmqpModuleTest extends AmqpMessagingTest
             ->buildMessagingSystemFromConfiguration(
                 InMemoryReferenceSearchService::createWith(
                     [
-                        AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                        AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
                     ]
                 )
             );

@@ -19,12 +19,17 @@ abstract class DbalMessagingTestCase extends TestCase
 {
     public function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
-
-        $dbalConnectionFactory = new DbalConnectionFactory($dsn);
+        $dbalConnectionFactory = self::prepareConnection();
         return $isRegistry
             ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)
             : $dbalConnectionFactory;
+    }
+
+    public static function prepareConnection(): DbalConnectionFactory
+    {
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
+
+        return new DbalConnectionFactory($dsn);
     }
 
     public function getORMConnectionFactory(array $paths): ConnectionFactory

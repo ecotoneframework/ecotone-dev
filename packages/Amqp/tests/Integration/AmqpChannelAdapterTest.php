@@ -658,7 +658,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [],
             [
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
@@ -692,7 +692,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             [
                 ExceptionalMessageHandler::createWithRejectException(),
                 new AmqpConsumerExample(),
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))

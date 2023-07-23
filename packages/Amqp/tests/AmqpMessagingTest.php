@@ -26,13 +26,13 @@ abstract class AmqpMessagingTest extends TestCase
      */
     public function getCachedConnectionFactory(): AmqpConnectionFactory
     {
-        return $this->getRabbitConnectionFactory();
+        return self::getRabbitConnectionFactory();
     }
 
     /**
      * @return AmqpConnectionFactory
      */
-    public function getRabbitConnectionFactory(): AmqpConnectionFactory
+    public static function getRabbitConnectionFactory(): AmqpConnectionFactory
     {
         return new AmqpLibConnection(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f']);
     }
@@ -60,7 +60,7 @@ abstract class AmqpMessagingTest extends TestCase
     private function deleteQueue(AmqpQueue $queue): void
     {
         try {
-            $this->getRabbitConnectionFactory()->createContext()->deleteQueue($queue);
+            self::getRabbitConnectionFactory()->createContext()->deleteQueue($queue);
         } catch (AMQPQueueException) {
         }
     }

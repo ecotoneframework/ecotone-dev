@@ -14,7 +14,6 @@ use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
@@ -99,11 +98,11 @@ final class CollectorModuleTest extends TestCase
             [new BetService()],
             [
                 SimpleMessageChannelBuilder::createQueueChannel('bets'),
-                SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel')
+                SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
             ],
             [
                 PollableChannelConfiguration::neverRetry('bets')->withCollector(true),
-                PollingMetadata::create('bets')->withTestingSetup(failAtError: false)->setErrorChannelName('customErrorChannel')
+                PollingMetadata::create('bets')->withTestingSetup(failAtError: false)->setErrorChannelName('customErrorChannel'),
             ]
         );
 

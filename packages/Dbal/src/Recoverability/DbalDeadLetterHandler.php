@@ -35,8 +35,7 @@ class DbalDeadLetterHandler
         private ConnectionFactory $connectionFactory,
         private HeaderMapper $headerMapper,
         private ConversionService $conversionService
-    )
-    {
+    ) {
     }
 
     /**

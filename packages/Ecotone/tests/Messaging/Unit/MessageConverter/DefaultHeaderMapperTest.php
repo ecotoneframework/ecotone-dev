@@ -75,7 +75,8 @@ class DefaultHeaderMapperTest extends TestCase
                 [
                     'firstKey' => 1,
                     'secondKey' => 2,
-                ], $this->getConversionService()
+                ],
+                $this->getConversionService()
             )
         );
     }
@@ -108,7 +109,8 @@ class DefaultHeaderMapperTest extends TestCase
                     'firstKey' => 1,
                     'secondKey' => 2,
                     'x-prefixed' => 3,
-                ], $this->getConversionService()
+                ],
+                $this->getConversionService()
             )
         );
     }

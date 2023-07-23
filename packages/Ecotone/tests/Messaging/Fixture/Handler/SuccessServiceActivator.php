@@ -20,7 +20,7 @@ final class SuccessServiceActivator
         $this->calls++;
     }
 
-    #[QueryHandler("get_number_of_calls")]
+    #[QueryHandler('get_number_of_calls')]
     public function getNumberOfCalls(): int
     {
         return $this->calls;

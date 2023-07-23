@@ -6,10 +6,7 @@ namespace Ecotone\Messaging\Channel\PollableChannel\InMemory;
 
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\PollableChannel\SendRetries\SendRetryChannelInterceptor;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
 

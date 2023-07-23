@@ -2,7 +2,6 @@
 
 namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
-use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessage;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\TypeDescriptor;

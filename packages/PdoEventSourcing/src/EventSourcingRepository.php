@@ -35,8 +35,8 @@ class EventSourcingRepository implements EventSourcedRepository
         private array $snapshotedAggregates,
         private DocumentStore $documentStore,
         private ConversionService $conversionService
-    )
-    {}
+    ) {
+    }
 
     public function canHandle(string $aggregateClassName): bool
     {

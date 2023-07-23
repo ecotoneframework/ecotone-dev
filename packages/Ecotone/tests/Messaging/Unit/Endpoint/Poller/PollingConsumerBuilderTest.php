@@ -17,7 +17,6 @@ use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -401,7 +400,7 @@ class PollingConsumerBuilderTest extends MessagingTest
             [SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel($inputChannelName)
+                SimpleMessageChannelBuilder::createQueueChannel($inputChannelName),
             ]
         );
 

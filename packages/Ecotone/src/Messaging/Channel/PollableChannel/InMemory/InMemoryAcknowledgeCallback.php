@@ -7,11 +7,13 @@ namespace Ecotone\Messaging\Channel\PollableChannel\InMemory;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
+use RuntimeException;
 
 final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
 {
     public function __construct(private PollableChannel $queueChannel, private Message $message, private bool $isAutoAck = true)
-    {}
+    {
+    }
 
     /**
      * @return bool
@@ -42,7 +44,7 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
     public function reject(): void
     {
     }
-    
+
     private int $requeueCount = 0;
 
     /**
@@ -53,7 +55,7 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
         $this->requeueCount++;
 
         if ($this->requeueCount > 100) {
-            throw new \RuntimeException('Requeue loop was detected');
+            throw new RuntimeException('Requeue loop was detected');
         }
 
         $this->queueChannel->send($this->message);

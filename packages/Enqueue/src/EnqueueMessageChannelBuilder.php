@@ -2,7 +2,6 @@
 
 namespace Ecotone\Enqueue;
 
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableMessageChannelBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\ServiceConfiguration;

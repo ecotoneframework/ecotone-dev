@@ -35,8 +35,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private bool $autoDeclare,
         private OutboundMessageConverter $outboundMessageConverter,
         private ConversionService $conversionService
-    )
-    {
+    ) {
     }
 
     /**

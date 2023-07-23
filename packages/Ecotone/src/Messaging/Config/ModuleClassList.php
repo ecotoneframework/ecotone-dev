@@ -76,7 +76,7 @@ class ModuleClassList
         MessageConsumerModule::class,
         InstantRetryModule::class,
         PollableChannelSendRetriesModule::class,
-        InMemoryQueueAcknowledgeModule::class
+        InMemoryQueueAcknowledgeModule::class,
     ];
 
     public const ASYNCHRONOUS_MODULE = [

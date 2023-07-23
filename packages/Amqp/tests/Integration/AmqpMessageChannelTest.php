@@ -34,7 +34,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
@@ -64,7 +64,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
             [OrderService::class],
             [
                 new OrderService(),
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -98,7 +98,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
@@ -169,7 +169,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
             [\Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService::class, ErrorConfigurationContext::class],
             [
                 new \Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService(),
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

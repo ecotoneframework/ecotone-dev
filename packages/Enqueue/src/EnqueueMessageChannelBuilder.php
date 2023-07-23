@@ -109,10 +109,10 @@ abstract class EnqueueMessageChannelBuilder implements PollableMessageChannelBui
 
     public function build(ReferenceSearchService $referenceSearchService): PollableChannel
     {
-        /** @var ServiceConfiguration|null $serviceConfiguration */
-        $serviceConfiguration = $referenceSearchService->has(ServiceConfiguration::class) ? $referenceSearchService->get(ServiceConfiguration::class) : null;
         $pollingMetadata = PollingMetadata::create('');
 
+        /** @var ServiceConfiguration|null $serviceConfiguration */
+        $serviceConfiguration = $referenceSearchService->has(ServiceConfiguration::class) ? $referenceSearchService->get(ServiceConfiguration::class) : null;
         if (! $this->getDefaultConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
             $this->withDefaultConversionMediaType($serviceConfiguration->getDefaultSerializationMediaType());
         }

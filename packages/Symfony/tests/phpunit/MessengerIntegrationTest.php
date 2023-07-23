@@ -109,7 +109,7 @@ final class MessengerIntegrationTest extends WebTestCase
 
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
-    
+
     public function test_requeing_message_when_fails()
     {
         $channelName = 'messenger_async';

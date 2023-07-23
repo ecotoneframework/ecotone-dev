@@ -35,9 +35,11 @@ final class MessageChannelConfigurationTest extends TestCase
     public function test_using_requeuing_on_failure(
         PollableMessageChannelBuilder $messageChannelBuilder,
         array $services = [],
-        array $skippedModulePackageNames = []
+        array $skippedModulePackageNames = [],
+        \Closure $closure
     ): void
     {
+        $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
@@ -59,9 +61,11 @@ final class MessageChannelConfigurationTest extends TestCase
     public function test_using_default_error_channel(
         PollableMessageChannelBuilder $messageChannelBuilder,
         array $services = [],
-        array $skippedModulePackageNames = []
+        array $skippedModulePackageNames = [],
+        \Closure $closure
     ): void
     {
+        $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             array_merge($services, [new ExampleFailureCommandHandler()]),
@@ -76,7 +80,7 @@ final class MessageChannelConfigurationTest extends TestCase
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('handler.fail')
-            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $this->assertNotNull($ecotoneLite->getMessageChannel(self::ERROR_CHANNEL)->receive());
         $this->assertNull($ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive());
@@ -87,31 +91,44 @@ final class MessageChannelConfigurationTest extends TestCase
         yield "in memory" => [
             SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),
             [],
-            ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE])
+            ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]),
+            function() {}
         ];
-//        yield "dbal" => [
-//            DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
-//                ->withReceiveTimeout(100),
-//            [DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection()],
-//            ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])
-//        ];
-//        yield "amqp" => [
-//            AmqpBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
-//                ->withReceiveTimeout(100),
-//            [AmqpConnectionFactory::class => AmqpMessagingTest::getRabbitConnectionFactory()],
-//            ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])
-//        ];
-//        yield "redis" => [
-//            RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
-//                ->withReceiveTimeout(100),
-//            [RedisConnectionFactory::class => \Test\Ecotone\Redis\AbstractConnectionTest::getConnection()],
-//            ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])
-//        ];
-//        yield "sqs" => [
-//            SqsBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
-//                ->withReceiveTimeout(100),
-//            [SqsConnectionFactory::class => AbstractConnectionTest::getConnection()],
-//            ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])
-//        ];
+        yield "dbal" => [
+            DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
+                ->withReceiveTimeout(100),
+            [DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection()],
+            ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]),
+            function() {
+                MessagingTestCase::cleanUpDbal();
+            }
+        ];
+        yield "amqp" => [
+            AmqpBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
+                ->withReceiveTimeout(100),
+            [AmqpConnectionFactory::class => AmqpMessagingTest::getRabbitConnectionFactory()],
+            ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]),
+            function() {
+                MessagingTestCase::cleanRabbitMQ();
+            }
+        ];
+        yield "redis" => [
+            RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
+                ->withReceiveTimeout(100),
+            [RedisConnectionFactory::class => \Test\Ecotone\Redis\AbstractConnectionTest::getConnection()],
+            ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]),
+            function() {
+                MessagingTestCase::cleanUpRedis();
+            }
+        ];
+        yield "sqs" => [
+            SqsBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
+                ->withReceiveTimeout(100),
+            [SqsConnectionFactory::class => AbstractConnectionTest::getConnection()],
+            ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]),
+            function() {
+                MessagingTestCase::cleanUpSqs();
+            }
+        ];
     }
 }

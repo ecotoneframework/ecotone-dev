@@ -49,10 +49,14 @@ final class MessageChannelConfigurationTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('handler.fail')
+            ->sendCommandWithRoutingKey('handler.fail', ["command" => 2])
             ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
-        $this->assertNotNull($ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive());
+        $this->assertFalse($ecotoneLite->sendQueryWithRouting("handler.isSuccessful"));
+
+        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+
+        $this->assertTrue($ecotoneLite->sendQueryWithRouting('handler.isSuccessful'));
     }
 
     /**
@@ -79,7 +83,7 @@ final class MessageChannelConfigurationTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('handler.fail')
+            ->sendCommandWithRoutingKey('handler.fail', 0)
             ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $this->assertNotNull($ecotoneLite->getMessageChannel(self::ERROR_CHANNEL)->receive());

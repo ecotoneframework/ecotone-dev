@@ -9,7 +9,7 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 
 interface MessageChannelWithSerializationBuilder extends MessageChannelBuilder
 {
-    public function getDefaultConversionMediaType(): ?MediaType;
+    public function getConversionMediaType(): ?MediaType;
 
     public function getHeaderMapper(): HeaderMapper;
 }

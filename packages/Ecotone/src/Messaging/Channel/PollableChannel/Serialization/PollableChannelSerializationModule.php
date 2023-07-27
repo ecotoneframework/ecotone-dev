@@ -19,6 +19,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
+#[ModuleAnnotation]
 final class PollableChannelSerializationModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
@@ -35,7 +36,7 @@ final class PollableChannelSerializationModule extends NoExternalConfigurationMo
                 new OutboundSerializationChannelBuilder(
                     $pollableMessageChannel->getMessageChannelName(),
                     $pollableMessageChannel->getHeaderMapper(),
-                    $pollableMessageChannel->getDefaultConversionMediaType()
+                    $pollableMessageChannel->getConversionMediaType()
                 )
             );
         }

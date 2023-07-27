@@ -11,6 +11,7 @@ use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Exception;
 use PHPUnit\Framework\TestCase;
@@ -24,14 +25,16 @@ use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
  */
 final class PollableChannelSerializationModuleTest extends TestCase
 {
-    public function test_serializing_message_using_default_serialization()
+    public function test_serializing_message_using_channel_serialization()
     {
-        $this->markTestSkipped('skipped');
         $ecotoneLite = $this->bootstrapEcotone(
             [OrderService::class],
             [new OrderService()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelWithSerializationBuilder::createQueueChannel(
+                    'orders',
+                    conversionMediaType: MediaType::createApplicationXPHPSerialized()->toString()
+                ),
             ]
         );
 

@@ -84,7 +84,7 @@ abstract class EnqueueMessageChannelWithSerializationBuilder implements MessageC
         return $this;
     }
 
-    public function getDefaultConversionMediaType(): ?MediaType
+    public function getConversionMediaType(): ?MediaType
     {
         return $this->getOutboundChannelAdapter()->getDefaultConversionMediaType();
     }
@@ -101,9 +101,9 @@ abstract class EnqueueMessageChannelWithSerializationBuilder implements MessageC
 
     public function getHeaderMapper(): HeaderMapper
     {
-        // TODO: Implement getHeaderMapper() method.
+        /** Header Mappers are the same for inbound and outbound in case of Message Channel */
+        return $this->getOutboundChannelAdapter()->getHeaderMapper();
     }
-
 
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
@@ -119,7 +119,7 @@ abstract class EnqueueMessageChannelWithSerializationBuilder implements MessageC
 
         /** @var ServiceConfiguration|null $serviceConfiguration */
         $serviceConfiguration = $referenceSearchService->has(ServiceConfiguration::class) ? $referenceSearchService->get(ServiceConfiguration::class) : null;
-        if (! $this->getDefaultConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
+        if (! $this->getConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
             $this->withDefaultConversionMediaType($serviceConfiguration->getDefaultSerializationMediaType());
         }
 

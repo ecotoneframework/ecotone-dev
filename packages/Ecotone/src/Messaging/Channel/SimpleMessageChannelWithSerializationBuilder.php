@@ -20,42 +20,45 @@ use Ecotone\Messaging\PollableChannel;
  */
 class SimpleMessageChannelWithSerializationBuilder implements MessageChannelWithSerializationBuilder
 {
-    private string $messageChannelName;
-    private MessageChannel $messageChannel;
-    private bool $isPollable;
-
-    private function __construct(string $messageChannelName, MessageChannel $messageChannel, bool $isPollable)
+    private function __construct(
+        private string $messageChannelName,
+        private MessageChannel $messageChannel,
+        private bool $isPollable,
+        private MediaType $conversionMediaType
+    )
     {
-        $this->messageChannelName = $messageChannelName;
-        $this->messageChannel = $messageChannel;
-        $this->isPollable = $isPollable;
     }
 
-    public static function create(string $messageChannelName, MessageChannel $messageChannel): self
+    public static function create(string $messageChannelName, MessageChannel $messageChannel, ?MediaType $conversionMediaType = null): self
     {
-        return new self($messageChannelName, $messageChannel, $messageChannel instanceof PollableChannel);
+        return new self(
+            $messageChannelName,
+            $messageChannel,
+            $messageChannel instanceof PollableChannel,
+            $conversionMediaType ?? MediaType::createApplicationXPHP()
+        );
     }
 
     public static function createDirectMessageChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, DirectChannel::create($messageChannelName));
+        return self::create($messageChannelName, DirectChannel::create($messageChannelName), MediaType::createApplicationXPHP());
     }
 
     public static function createPublishSubscribeChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, PublishSubscribeChannel::create($messageChannelName));
+        return self::create($messageChannelName, PublishSubscribeChannel::create($messageChannelName), MediaType::createApplicationXPHP());
     }
 
-    public static function createQueueChannel(string $messageChannelName, bool $delayable = false): self
+    public static function createQueueChannel(string $messageChannelName, bool $delayable = false, ?string $conversionMediaType = null): self
     {
         $messageChannel = $delayable ? DelayableQueueChannel::create($messageChannelName) : QueueChannel::create($messageChannelName);
 
-        return self::create($messageChannelName, $messageChannel);
+        return self::create($messageChannelName, $messageChannel, $conversionMediaType ? MediaType::parseMediaType($conversionMediaType) : MediaType::createApplicationXPHP());
     }
 
     public static function createNullableChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, NullableMessageChannel::create());
+        return self::create($messageChannelName, NullableMessageChannel::create(), MediaType::createApplicationXPHP());
     }
 
     /**
@@ -90,9 +93,9 @@ class SimpleMessageChannelWithSerializationBuilder implements MessageChannelWith
         return $this->messageChannelName;
     }
 
-    public function getDefaultConversionMediaType(): ?MediaType
+    public function getConversionMediaType(): ?MediaType
     {
-        return null;
+        return $this->conversionMediaType;
     }
 
     public function getHeaderMapper(): HeaderMapper

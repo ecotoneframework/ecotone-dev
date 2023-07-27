@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Modelling\Fixture\TwoAsynchronousSagas;
 
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 
 class MessagingConfiguration
@@ -22,6 +22,6 @@ class MessagingConfiguration
     #[ServiceContext]
     public function asynchronous()
     {
-        return SimpleMessageChannelBuilder::createQueueChannel(self::ASYNCHRONOUS_CHANNEL);
+        return SimpleMessageChannelWithSerializationBuilder::createQueueChannel(self::ASYNCHRONOUS_CHANNEL);
     }
 }

@@ -13,7 +13,7 @@ use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -427,13 +427,13 @@ class ModellingHandlerModule implements AnnotationModule
         $aggregateCommandOrEventHandlers = [];
         foreach ($this->aggregateCommandHandlers as $registration) {
             $channelName = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
-            $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
+            $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelWithSerializationBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
 
         foreach ($this->aggregateEventHandlers as $registration) {
             $channelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
-            $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
+            $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelWithSerializationBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
 
@@ -586,7 +586,7 @@ class ModellingHandlerModule implements AnnotationModule
 
 
         $inputChannelName = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
-        $configuration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($inputChannelName));
+        $configuration->registerDefaultChannelFor(SimpleMessageChannelWithSerializationBuilder::createPublishSubscribeChannel($inputChannelName));
         $configuration->registerMessageHandler(
             BridgeBuilder::create()
                 ->withInputChannelName($inputChannelName)
@@ -623,7 +623,7 @@ class ModellingHandlerModule implements AnnotationModule
         $relatedClassInterface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
         $parameterConverters   = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface, (bool)$relatedClassInterface->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class)));
 
-        $configuration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($inputChannelName));
+        $configuration->registerDefaultChannelFor(SimpleMessageChannelWithSerializationBuilder::createPublishSubscribeChannel($inputChannelName));
         /**
          * We want to connect Event Handler directly to Event Bus channel only if it's not fetched from Stream Based Source.
          * This allows to connecting Event Handlers via Projection Event Handler that lead the way.

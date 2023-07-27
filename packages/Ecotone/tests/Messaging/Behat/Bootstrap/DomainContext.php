@@ -6,7 +6,7 @@ use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\TableNode;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
@@ -54,13 +54,13 @@ class DomainContext implements Context
             case 'Direct Channel':
                 {
                     $this->getMessagingSystemConfiguration()
-                        ->registerMessageChannel(SimpleMessageChannelBuilder::create($channelName, DirectChannel::create()));
+                        ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create($channelName, DirectChannel::create()));
                     break;
                 }
             case 'Pollable Channel':
                 {
                     $this->getMessagingSystemConfiguration()
-                        ->registerMessageChannel(SimpleMessageChannelBuilder::create($channelName, QueueChannel::create()));
+                        ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create($channelName, QueueChannel::create()));
                     break;
                 }
         }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Redis;
 
-use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Enqueue\EnqueueMessageChannelWithSerializationBuilder;
 use Enqueue\Redis\RedisConnectionFactory;
 
-final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
+final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelWithSerializationBuilder
 {
     private function __construct(string $channelName, string $connectionReferenceName)
     {

@@ -7,7 +7,7 @@ namespace Test\Ecotone\Modelling\Fixture\Outbox;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -41,9 +41,9 @@ final class OutboxWithMultipleChannels
     {
         /** faking asynchronous message channels */
         return [
-            SimpleMessageChannelBuilder::createQueueChannel('outbox'),
+            SimpleMessageChannelWithSerializationBuilder::createQueueChannel('outbox'),
             PollingMetadata::create('outbox')->withTestingSetup(),
-            SimpleMessageChannelBuilder::createQueueChannel('rabbitMQ'),
+            SimpleMessageChannelWithSerializationBuilder::createQueueChannel('rabbitMQ'),
             PollingMetadata::create('rabbitMQ')->withTestingSetup(),
         ];
     }

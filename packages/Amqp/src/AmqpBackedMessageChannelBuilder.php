@@ -2,7 +2,7 @@
 
 namespace Ecotone\Amqp;
 
-use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Enqueue\EnqueueMessageChannelWithSerializationBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**
@@ -10,7 +10,7 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  * @package Ecotone\Amqp
  * @author  Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
+class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelWithSerializationBuilder
 {
     private function __construct(string $channelName, string $amqpConnectionReferenceName)
     {

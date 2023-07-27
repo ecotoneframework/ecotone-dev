@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Channel\PollableChannel\InMemory;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -39,7 +39,7 @@ final class InMemoryQueueAcknowledgeModule extends NoExternalConfigurationModule
 
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof SimpleMessageChannelBuilder && $extensionObject->isPollable();
+        return $extensionObject instanceof SimpleMessageChannelWithSerializationBuilder && $extensionObject->isPollable();
     }
 
     public function getModulePackageName(): string

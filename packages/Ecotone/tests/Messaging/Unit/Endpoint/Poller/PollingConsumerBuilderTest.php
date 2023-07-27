@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Endpoint\Poller;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
@@ -266,7 +266,7 @@ class PollingConsumerBuilderTest extends MessagingTest
             [SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel($messageChannelName),
+                SimpleMessageChannelWithSerializationBuilder::createQueueChannel($messageChannelName),
             ]
         );
 
@@ -400,7 +400,7 @@ class PollingConsumerBuilderTest extends MessagingTest
             [SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel($inputChannelName),
+                SimpleMessageChannelWithSerializationBuilder::createQueueChannel($inputChannelName),
             ]
         );
 

@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Messaging\Fixture\Behat\Presend;
 
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 
 class PresendConfiguration
@@ -12,7 +12,7 @@ class PresendConfiguration
     public function shopBuyConfiguration()
     {
         return [
-            SimpleMessageChannelBuilder::createQueueChannel('shop'),
+            SimpleMessageChannelWithSerializationBuilder::createQueueChannel('shop'),
             PollingMetadata::create('shop')
                 ->setExecutionAmountLimit(1)
                 ->setHandledMessageLimit(1),

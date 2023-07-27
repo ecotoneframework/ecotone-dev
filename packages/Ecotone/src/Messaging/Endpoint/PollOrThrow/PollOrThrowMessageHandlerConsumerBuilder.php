@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\PollOrThrow;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -34,7 +34,7 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
      */
     public function isSupporting(MessageHandlerBuilder $messageHandlerBuilder, MessageChannelBuilder $relatedMessageChannel): bool
     {
-        return $relatedMessageChannel instanceof SimpleMessageChannelBuilder && $relatedMessageChannel->isPollable();
+        return $relatedMessageChannel instanceof SimpleMessageChannelWithSerializationBuilder && $relatedMessageChannel->isPollable();
     }
 
     public function isPollingConsumer(): bool

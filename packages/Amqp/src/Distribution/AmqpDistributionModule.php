@@ -9,7 +9,7 @@ use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -204,6 +204,6 @@ class AmqpDistributionModule
                         ]
                     )
             )
-            ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($amqpPublisher->getReferenceName()));
+            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel($amqpPublisher->getReferenceName()));
     }
 }

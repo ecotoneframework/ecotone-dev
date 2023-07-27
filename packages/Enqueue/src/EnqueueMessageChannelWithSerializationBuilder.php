@@ -2,16 +2,17 @@
 
 namespace Ecotone\Enqueue;
 
-use Ecotone\Messaging\Channel\PollableMessageChannelBuilder;
+use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\PollableChannel;
 
-abstract class EnqueueMessageChannelBuilder implements PollableMessageChannelBuilder
+abstract class EnqueueMessageChannelWithSerializationBuilder implements MessageChannelWithSerializationBuilder
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;
     protected EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapter;
@@ -97,6 +98,12 @@ abstract class EnqueueMessageChannelBuilder implements PollableMessageChannelBui
     {
         return $this->getInboundChannelAdapter()->getMessageChannelName();
     }
+
+    public function getHeaderMapper(): HeaderMapper
+    {
+        // TODO: Implement getHeaderMapper() method.
+    }
+
 
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {

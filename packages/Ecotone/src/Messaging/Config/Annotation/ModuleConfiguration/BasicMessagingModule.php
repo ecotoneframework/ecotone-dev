@@ -7,7 +7,7 @@ use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendGateway;
@@ -93,8 +93,8 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         }
         $messagingConfiguration->registerConsumerFactory(new PollingConsumerBuilder($interfaceToCallRegistry));
 
-        $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(MessageHeaders::ERROR_CHANNEL));
-        $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::create(NullableMessageChannel::CHANNEL_NAME, NullableMessageChannel::create()));
+        $messagingConfiguration->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createPublishSubscribeChannel(MessageHeaders::ERROR_CHANNEL));
+        $messagingConfiguration->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create(NullableMessageChannel::CHANNEL_NAME, NullableMessageChannel::create()));
         $messagingConfiguration->registerConverter(new UuidToStringConverterBuilder());
         $messagingConfiguration->registerConverter(new StringToUuidConverterBuilder());
         $messagingConfiguration->registerConverter(new SerializingConverterBuilder());

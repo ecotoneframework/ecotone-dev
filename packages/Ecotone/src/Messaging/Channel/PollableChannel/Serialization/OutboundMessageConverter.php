@@ -12,21 +12,15 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 
 class OutboundMessageConverter
 {
-    private HeaderMapper $headerMapper;
-    private ?MediaType $defaultConversionMediaType;
-    private ?int $defaultDeliveryDelay;
-    private ?int $defaultTimeToLive;
-    private ?int $defaultPriority;
-    private array $staticHeadersToAdd;
-
-    public function __construct(HeaderMapper $headerMapper, ?MediaType $defaultConversionMediaType, ?int $defaultDeliveryDelay, ?int $defaultTimeToLive, ?int $defaultPriority, array $staticHeadersToAdd)
+    public function __construct(
+        private HeaderMapper $headerMapper,
+        private ?MediaType $defaultConversionMediaType,
+        private ?int $defaultDeliveryDelay = null,
+        private ?int $defaultTimeToLive = null,
+        private ?int $defaultPriority = null,
+        private array $staticHeadersToAdd = []
+    )
     {
-        $this->headerMapper               = $headerMapper;
-        $this->defaultConversionMediaType = $defaultConversionMediaType;
-        $this->defaultDeliveryDelay       = $defaultDeliveryDelay;
-        $this->defaultTimeToLive          = $defaultTimeToLive;
-        $this->defaultPriority            = $defaultPriority;
-        $this->staticHeadersToAdd = $staticHeadersToAdd;
     }
 
     public function prepare(Message $messageToConvert, ConversionService $conversionService): OutboundMessage
@@ -82,11 +76,12 @@ class OutboundMessageConverter
         if ($messageToConvert->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)) {
             $applicationHeaders[MessageHeaders::ROUTING_SLIP] = $messageToConvert->getHeaders()->get(MessageHeaders::ROUTING_SLIP);
         }
+        $applicationHeaders[MessageHeaders::CONTENT_TYPE] = $mediaType?->toString();
 
         return new OutboundMessage(
             $messagePayload,
             array_merge($applicationHeaders, $this->staticHeadersToAdd),
-            $mediaType ? $mediaType->toString() : null,
+            $applicationHeaders[MessageHeaders::CONTENT_TYPE],
             $messageToConvert->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) ? $messageToConvert->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) : $this->defaultDeliveryDelay,
             $messageToConvert->getHeaders()->containsKey(MessageHeaders::TIME_TO_LIVE) ? $messageToConvert->getHeaders()->get(MessageHeaders::TIME_TO_LIVE) : $this->defaultTimeToLive,
             $messageToConvert->getHeaders()->containsKey(MessageHeaders::PRIORITY) ? $messageToConvert->getHeaders()->get(MessageHeaders::PRIORITY) : $this->defaultPriority,

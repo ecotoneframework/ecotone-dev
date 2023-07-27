@@ -9,7 +9,7 @@ use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 final class AsynchronousBridgeExample
@@ -41,6 +41,6 @@ final class AsynchronousBridgeExample
     #[ServiceContext]
     public function config()
     {
-        return SimpleMessageChannelBuilder::createQueueChannel('async');
+        return SimpleMessageChannelWithSerializationBuilder::createQueueChannel('async');
     }
 }

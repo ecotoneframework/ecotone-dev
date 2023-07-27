@@ -10,7 +10,7 @@ use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\WithRequiredReferenceNameList;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
@@ -411,7 +411,7 @@ final class MessagingSystemConfiguration implements Configuration
                     $busRoutingChannel = $messageHandlerBuilder->getInputMessageChannelName();
                     $handlerExecutionChannel        = AsynchronousModule::getHandlerExecutionChannel($busRoutingChannel);
                     $this->messageHandlerBuilders[$key] = $messageHandlerBuilder->withInputChannelName($handlerExecutionChannel);
-                    $this->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($handlerExecutionChannel));
+                    $this->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel($handlerExecutionChannel));
 
                     $consequentialChannels = $asynchronousMessageChannels;
                     $consequentialChannels[] = $handlerExecutionChannel;
@@ -482,7 +482,7 @@ final class MessagingSystemConfiguration implements Configuration
                 if (array_key_exists($messageHandlerBuilder->getInputMessageChannelName(), $this->defaultChannelBuilders)) {
                     $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] = $this->defaultChannelBuilders[$messageHandlerBuilder->getInputMessageChannelName()];
                 } else {
-                    $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] = SimpleMessageChannelBuilder::createDirectMessageChannel($messageHandlerBuilder->getInputMessageChannelName());
+                    $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] = SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel($messageHandlerBuilder->getInputMessageChannelName());
                 }
             }
         }

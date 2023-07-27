@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Fixture\Behat\ErrorHandling\DeadLetter;
 
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -19,7 +19,7 @@ class ErrorConfigurationContext
     #[ServiceContext]
     public function getInputChannel()
     {
-        return SimpleMessageChannelBuilder::createQueueChannel(self::INPUT_CHANNEL);
+        return SimpleMessageChannelWithSerializationBuilder::createQueueChannel(self::INPUT_CHANNEL);
     }
 
     #[ServiceContext]

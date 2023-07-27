@@ -6,7 +6,7 @@ namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -49,7 +49,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
+                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel(OrderProjection::CHANNEL),
                 ])
         );
 
@@ -70,7 +70,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection'])
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel(OrderProjection::CHANNEL),
+                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel(OrderProjection::CHANNEL),
                 ])
         );
 

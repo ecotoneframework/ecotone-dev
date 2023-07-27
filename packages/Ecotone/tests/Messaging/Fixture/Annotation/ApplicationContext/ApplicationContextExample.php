@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Fixture\Annotation\ApplicationContext;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
@@ -27,7 +27,7 @@ class ApplicationContextExample
     #[ServiceContext]
     public function httpEntryChannel(): MessageChannelBuilder
     {
-        return SimpleMessageChannelBuilder::createDirectMessageChannel(self::HTTP_INPUT_CHANNEL);
+        return SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel(self::HTTP_INPUT_CHANNEL);
     }
 
     #[ServiceContext]

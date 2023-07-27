@@ -8,6 +8,8 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
+use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\PollableChannel;
 
@@ -16,7 +18,7 @@ use Ecotone\Messaging\PollableChannel;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class SimpleMessageChannelBuilder implements PollableMessageChannelBuilder
+class SimpleMessageChannelWithSerializationBuilder implements MessageChannelWithSerializationBuilder
 {
     private string $messageChannelName;
     private MessageChannel $messageChannel;
@@ -90,7 +92,12 @@ class SimpleMessageChannelBuilder implements PollableMessageChannelBuilder
 
     public function getDefaultConversionMediaType(): ?MediaType
     {
-        return MediaType::createApplicationXPHP();
+        return null;
+    }
+
+    public function getHeaderMapper(): HeaderMapper
+    {
+        return DefaultHeaderMapper::createAllHeadersMapping();
     }
 
     /**

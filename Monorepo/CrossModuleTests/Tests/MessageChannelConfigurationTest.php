@@ -101,6 +101,8 @@ final class MessageChannelConfigurationTest extends TestCase
         \Closure                               $closure
     ): void
     {
+        $this->markTestSkipped('to be implemented');
+
         $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],

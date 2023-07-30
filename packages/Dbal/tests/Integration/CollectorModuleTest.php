@@ -46,7 +46,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
         $this->assertNotNull($ecotoneLite->getMessageChannel('notifications')->receive());
     }
 
-    public function test_failure_during_sending_should_rollback_transaction_and_not_send_messages()
+    public function test_failure_during_sending_should_rollback_transaction()
     {
         $ecotoneLite = $this->bootstrapEcotone(
             [Person::class, NotificationService::class],

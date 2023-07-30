@@ -44,7 +44,7 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
 
     public function getPrecedence(): int
     {
-        return PrecedenceChannelInterceptor::COLLECTOR_PRECEDENCE;
+        return PrecedenceChannelInterceptor::MESSAGE_SERIALIZATION;
     }
 
     public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor

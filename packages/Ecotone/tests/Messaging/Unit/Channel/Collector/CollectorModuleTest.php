@@ -14,11 +14,13 @@ use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
 
+use Test\Ecotone\Modelling\Fixture\Collector\BetStatistics;
 use function str_contains;
 
 use Test\Ecotone\Modelling\Fixture\Collector\BetNotificator;
@@ -221,6 +223,34 @@ final class CollectorModuleTest extends TestCase
         $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
+    }
+
+    public function test_failure_during_serialization_of_given_message_should_result_in_not_sending_any_message()
+    {
+        $ecotoneLite = $this->bootstrapEcotone(
+            [BetService::class, BetNotificator::class, BetStatistics::class],
+            [new BetService(), new BetNotificator(), new BetStatistics()],
+            [
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
+                /** Lack of media type conversion for this */
+                SimpleMessageChannelBuilder::createQueueChannel('notifications', conversionMediaType: MediaType::createApplicationJson()),
+                SimpleMessageChannelBuilder::createQueueChannel('statistics'),
+            ],
+            [
+                PollableChannelConfiguration::createWithDefaults('bets')->withCollector(true),
+                PollableChannelConfiguration::createWithDefaults('notifications')->withCollector(true),
+                PollableChannelConfiguration::createWithDefaults('statistics')->withCollector(true),
+            ]
+        );
+
+        try {
+            $ecotoneLite
+                ->sendCommandWithRoutingKey('makeBet', false);
+        }catch (ConversionException) {}
+
+        $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was sent');
+        $this->assertNull($ecotoneLite->getMessageChannel('notifications')->receive(), 'Message was sent');
+        $this->assertNull($ecotoneLite->getMessageChannel('statistics')->receive(), 'Message was sent');
     }
 
     /**

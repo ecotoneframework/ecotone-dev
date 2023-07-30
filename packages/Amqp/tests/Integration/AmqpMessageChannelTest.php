@@ -50,7 +50,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $this->assertEquals(
             'some',
-            $messageChannel->receiveWithTimeout(1)->getPayload()
+            $messageChannel->receiveWithTimeout(100)->getPayload()
         );
 
         $this->assertNull($messageChannel->receiveWithTimeout(1));

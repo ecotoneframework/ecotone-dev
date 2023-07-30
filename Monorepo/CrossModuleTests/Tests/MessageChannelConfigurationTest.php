@@ -7,10 +7,11 @@ namespace Monorepo\CrossModuleTests\Tests;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\PollableMessageChannelBuilder;
+use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
@@ -33,10 +34,10 @@ final class MessageChannelConfigurationTest extends TestCase
      * @dataProvider channelProvider
      */
     public function test_using_requeuing_on_failure(
-        PollableMessageChannelBuilder $messageChannelBuilder,
-        array $services = [],
-        array $skippedModulePackageNames = [],
-        \Closure $closure
+        MessageChannelWithSerializationBuilder $messageChannelBuilder,
+        array                                  $services,
+        array                                  $skippedModulePackageNames,
+        \Closure                               $closure
     ): void
     {
         $closure();
@@ -49,20 +50,24 @@ final class MessageChannelConfigurationTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('handler.fail')
+            ->sendCommandWithRoutingKey('handler.fail', ["command" => 2])
             ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
-        $this->assertNotNull($ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive());
+        $this->assertFalse($ecotoneLite->sendQueryWithRouting("handler.isSuccessful"));
+
+        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+
+        $this->assertTrue($ecotoneLite->sendQueryWithRouting('handler.isSuccessful'));
     }
 
     /**
      * @dataProvider channelProvider
      */
     public function test_using_default_error_channel(
-        PollableMessageChannelBuilder $messageChannelBuilder,
-        array $services = [],
-        array $skippedModulePackageNames = [],
-        \Closure $closure
+        MessageChannelWithSerializationBuilder $messageChannelBuilder,
+        array                                  $services,
+        array                                  $skippedModulePackageNames,
+        \Closure                               $closure
     ): void
     {
         $closure();
@@ -77,13 +82,44 @@ final class MessageChannelConfigurationTest extends TestCase
                 ])
                 ->withDefaultErrorChannel(self::ERROR_CHANNEL)
         );
+        $ecotoneLite->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
 
-        $ecotoneLite
-            ->sendCommandWithRoutingKey('handler.fail')
-            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $this->assertNotNull($ecotoneLite->getMessageChannel(self::ERROR_CHANNEL)->receive());
         $this->assertNull($ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive());
+    }
+
+    /**
+     * @dataProvider channelProvider
+     */
+    public function test_default_serialization(
+        MessageChannelWithSerializationBuilder $messageChannelBuilder,
+        array                                  $services,
+        array                                  $skippedModulePackageNames,
+        \Closure                               $closure
+    ): void
+    {
+        $closure();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ExampleFailureCommandHandler::class],
+            array_merge($services, [new ExampleFailureCommandHandler()]),
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(array_diff($skippedModulePackageNames, [ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withExtensionObjects([
+                    $messageChannelBuilder
+                ])
+                ->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)
+        );
+
+        $ecotoneLite
+            ->sendCommandWithRoutingKey('handler.fail', ['command' => 0])
+            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+
+        $this->assertEquals(
+            MediaType::createApplicationJson(),
+            $ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive()->getHeaders()->getContentType()
+        );
     }
 
     public function channelProvider()

@@ -5,18 +5,25 @@ declare(strict_types=1);
 namespace Ecotone\SymfonyBundle\Messenger;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
+use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
+/**
+ * Symfony Channel does not implements MessageChannelWithSerializationBuilder to avoid
+ * using PollableChannelSerializationModule, as serialization is done on the symfony transport layer instead.
+ */
 final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder
 {
     private const TRANSPORT_SERVICE_PREFIX = 'messenger.transport.';
 
-    private array $headerMapper = [];
+    private HeaderMapper $headerMapper;
 
     private $acknowledgeMode = SymfonyAcknowledgementCallback::AUTO_ACK;
 
@@ -46,7 +53,8 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
      */
     public function withHeaderMapping(string $headerMapper): self
     {
-        $this->headerMapper = explode(',', $headerMapper);
+        $headerMapper = explode(',', $headerMapper);
+        $this->headerMapper = DefaultHeaderMapper::createWith($headerMapper, $headerMapper);
 
         return $this;
     }
@@ -61,7 +69,7 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
         return new SymfonyMessengerMessageChannel(
             $transport,
             new SymfonyMessageConverter(
-                DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper),
+                $this->headerMapper,
                 $this->acknowledgeMode,
                 $conversionService
             )

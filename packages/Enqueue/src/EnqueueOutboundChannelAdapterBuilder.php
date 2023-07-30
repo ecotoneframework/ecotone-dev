@@ -117,6 +117,11 @@ abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBui
         return $this;
     }
 
+    public function getHeaderMapper(): HeaderMapper
+    {
+        return $this->headerMapper;
+    }
+
     /**
      * @param bool $toDeclare
      *

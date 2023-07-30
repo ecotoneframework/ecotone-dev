@@ -46,7 +46,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
         $this->assertNotNull($ecotoneLite->getMessageChannel('notifications')->receive());
     }
 
-    public function test_failure_during_sending_should_rollback_transaction_and_not_send_messages()
+    public function test_failure_during_sending_should_rollback_transaction()
     {
         $ecotoneLite = $this->bootstrapEcotone(
             [Person::class, NotificationService::class],
@@ -88,7 +88,6 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             $services,
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withDefaultSerializationMediaType('application/json')
                 ->withExtensionObjects(array_merge(
                     $extensionObjects,
                     $channelBuilders,

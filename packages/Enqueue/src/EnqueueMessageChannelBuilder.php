@@ -2,16 +2,17 @@
 
 namespace Ecotone\Enqueue;
 
-use Ecotone\Messaging\Channel\PollableMessageChannelBuilder;
+use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\PollableChannel;
 
-abstract class EnqueueMessageChannelBuilder implements PollableMessageChannelBuilder
+abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;
     protected EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapter;
@@ -83,7 +84,7 @@ abstract class EnqueueMessageChannelBuilder implements PollableMessageChannelBui
         return $this;
     }
 
-    public function getDefaultConversionMediaType(): ?MediaType
+    public function getConversionMediaType(): ?MediaType
     {
         return $this->getOutboundChannelAdapter()->getDefaultConversionMediaType();
     }
@@ -96,6 +97,12 @@ abstract class EnqueueMessageChannelBuilder implements PollableMessageChannelBui
     public function getMessageChannelName(): string
     {
         return $this->getInboundChannelAdapter()->getMessageChannelName();
+    }
+
+    public function getHeaderMapper(): HeaderMapper
+    {
+        /** Header Mappers are the same for inbound and outbound in case of Message Channel */
+        return $this->getOutboundChannelAdapter()->getHeaderMapper();
     }
 
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
@@ -112,7 +119,7 @@ abstract class EnqueueMessageChannelBuilder implements PollableMessageChannelBui
 
         /** @var ServiceConfiguration|null $serviceConfiguration */
         $serviceConfiguration = $referenceSearchService->has(ServiceConfiguration::class) ? $referenceSearchService->get(ServiceConfiguration::class) : null;
-        if (! $this->getDefaultConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
+        if (! $this->getConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
             $this->withDefaultConversionMediaType($serviceConfiguration->getDefaultSerializationMediaType());
         }
 

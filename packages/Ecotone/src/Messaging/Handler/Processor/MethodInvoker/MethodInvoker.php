@@ -28,6 +28,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Modelling\MessageHandling\Distribution\DistributedMessageHandler;
 
 /**
  * Class MethodInvocation
@@ -246,7 +247,7 @@ final class MethodInvoker implements MessageProcessor
             $sourceMediaType = $isPayloadConverter ? $sourceMediaType : MediaType::createApplicationXPHP();
             $parameterType = $this->interfaceToCall->getParameterAtIndex($index)->getTypeDescriptor();
 
-            if (! ($sourceTypeDescriptor->isCompatibleWith($parameterType) && ($parameterType->isMessage() || $sourceMediaType->isCompatibleWith($parameterMediaType)))) {
+            if (! ($sourceTypeDescriptor->isCompatibleWith($parameterType) && ($parameterType->isMessage() || $parameterType->isAnything() || $sourceMediaType->isCompatibleWith($parameterMediaType)))) {
                 $convertedData = null;
                 if (! $parameterType->isCompoundObjectType() && ! $parameterType->isAbstractClass() && ! $parameterType->isInterface() && ! $parameterType->isAnything() && ! $parameterType->isUnionType() && $this->canConvertParameter(
                     $sourceTypeDescriptor,

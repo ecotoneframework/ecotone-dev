@@ -7,7 +7,6 @@ namespace Ecotone\SymfonyBundle\Messenger;
 use Ecotone\Enqueue\EnqueueAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
 /**
@@ -22,11 +21,10 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
     public const NONE = 'none';
 
     private function __construct(
-        private bool $isAutoAck, 
+        private bool $isAutoAck,
         private TransportInterface $symfonyTransport,
         private Envelope $envelope
-    )
-    {
+    ) {
 
     }
 

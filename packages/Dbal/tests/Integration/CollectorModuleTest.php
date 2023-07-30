@@ -88,7 +88,6 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             $services,
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withDefaultSerializationMediaType('application/json')
                 ->withExtensionObjects(array_merge(
                     $extensionObjects,
                     $channelBuilders,

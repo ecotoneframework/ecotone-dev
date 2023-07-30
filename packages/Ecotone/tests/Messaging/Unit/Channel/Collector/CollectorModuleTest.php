@@ -14,6 +14,7 @@ use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
@@ -36,7 +37,7 @@ final class CollectorModuleTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             [
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHP()),
             ],
             [PollableChannelConfiguration::neverRetry('orders')->withCollector(true)]
         );

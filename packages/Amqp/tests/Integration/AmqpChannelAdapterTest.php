@@ -22,6 +22,7 @@ use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
+use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
@@ -307,7 +308,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConversionException::class);
 
         $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
     }
@@ -333,7 +334,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConversionException::class);
 
         $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
     }

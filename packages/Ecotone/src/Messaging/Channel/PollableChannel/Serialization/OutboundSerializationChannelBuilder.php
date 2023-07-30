@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\SendRetries\SendRetryChannelInterceptor;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -48,12 +49,13 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
 
     public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
     {
-        
+        /** @var ServiceConfiguration $serviceConfiguration */
+        $serviceConfiguration = $referenceSearchService->get(ServiceConfiguration::class);
 
         return new OutboundSerializationChannelInterceptor(
             new OutboundMessageConverter(
                 $this->headerMapper,
-                $this->channelConversionMediaType
+                $this->channelConversionMediaType ?: MediaType::parseMediaType($serviceConfiguration->getDefaultSerializationMediaType())
             ),
             $referenceSearchService->get(ConversionService::REFERENCE_NAME)
         );

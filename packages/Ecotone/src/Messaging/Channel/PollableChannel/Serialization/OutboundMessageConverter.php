@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
+use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -9,6 +10,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Messaging\Handler\Type;
 
 class OutboundMessageConverter
 {
@@ -40,14 +42,19 @@ class OutboundMessageConverter
                 $sourceMediaType = MediaType::createApplicationXPHP();
             }
             if (! $sourceMediaType) {
-                throw new InvalidArgumentException("Can't send outside of application. Payload has incorrect type, that can't be converted: " . TypeDescriptor::createFromVariable($messagePayload)->toString());
+                throw new ConversionException("Can't send outside of application. Payload has incorrect type, that can't be converted: " . TypeDescriptor::createFromVariable($messagePayload)->toString());
             }
 
             $sourceType      = $sourceMediaType->hasTypeParameter() ? $sourceMediaType->getTypeParameter() : TypeDescriptor::createFromVariable($messagePayload);
-            $targetType      = TypeDescriptor::createStringType();
-
             $targetConversionMediaType = $this->defaultConversionMediaType ?: MediaType::createApplicationXPHPSerialized();
-            if ($this->doesRequireConversion($sourceMediaType, $targetConversionMediaType)) {
+            $targetType = TypeDescriptor::createStringType();
+            if ($targetConversionMediaType->hasTypeParameter()) {
+                $targetType = $targetConversionMediaType->getTypeParameter();
+            }else if ($targetConversionMediaType->isCompatibleWith(MediaType::createApplicationXPHP())) {
+                $targetType = TypeDescriptor::createAnythingType();
+            }
+
+            if ($this->doesRequireConversion($sourceMediaType, $sourceType, $targetConversionMediaType, $targetType)) {
                 if ($conversionService->canConvert(
                     $sourceType,
                     $sourceMediaType,
@@ -69,7 +76,7 @@ class OutboundMessageConverter
                         $sourceMediaType = MediaType::createTextPlain();
                     }
                 } else {
-                    throw new InvalidArgumentException(
+                    throw new ConversionException(
                         "Can't send message to external channel. Payload has incorrect non-convertable type or converter is missing for:
                  From {$sourceMediaType}:{$sourceType} to {$targetConversionMediaType}:{$targetType}"
                     );
@@ -92,8 +99,13 @@ class OutboundMessageConverter
         );
     }
 
-    private function doesRequireConversion(MediaType $sourceMediaType, MediaType $defaultConversionMediaType): bool
+    private function doesRequireConversion(
+        MediaType $sourceMediaType,
+        Type $sourceType,
+        MediaType $targetConversionMediaType,
+        Type $targetType
+    ): bool
     {
-        return !$sourceMediaType->isCompatibleWith($defaultConversionMediaType);
+        return !($sourceMediaType->isCompatibleWith($targetConversionMediaType) && $sourceType->isCompatibleWith($targetType));
     }
 }

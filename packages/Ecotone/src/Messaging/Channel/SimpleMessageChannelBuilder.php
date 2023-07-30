@@ -24,41 +24,41 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         private string $messageChannelName,
         private MessageChannel $messageChannel,
         private bool $isPollable,
-        private MediaType $conversionMediaType
+        private ?MediaType $conversionMediaType
     )
     {
     }
 
-    public static function create(string $messageChannelName, MessageChannel $messageChannel, ?MediaType $conversionMediaType = null): self
+    public static function create(string $messageChannelName, MessageChannel $messageChannel, string|MediaType|null $conversionMediaType = null): self
     {
         return new self(
             $messageChannelName,
             $messageChannel,
             $messageChannel instanceof PollableChannel,
-            $conversionMediaType ?? MediaType::createApplicationXPHP()
+            $conversionMediaType ? (is_string($conversionMediaType) ? MediaType::parseMediaType($conversionMediaType) : $conversionMediaType) : null
         );
     }
 
     public static function createDirectMessageChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, DirectChannel::create($messageChannelName), MediaType::createApplicationXPHP());
+        return self::create($messageChannelName, DirectChannel::create($messageChannelName), null);
     }
 
     public static function createPublishSubscribeChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, PublishSubscribeChannel::create($messageChannelName), MediaType::createApplicationXPHP());
+        return self::create($messageChannelName, PublishSubscribeChannel::create($messageChannelName), null);
     }
 
-    public static function createQueueChannel(string $messageChannelName, bool $delayable = false, ?string $conversionMediaType = null): self
+    public static function createQueueChannel(string $messageChannelName, bool $delayable = false, string|MediaType|null $conversionMediaType = null): self
     {
         $messageChannel = $delayable ? DelayableQueueChannel::create($messageChannelName) : QueueChannel::create($messageChannelName);
 
-        return self::create($messageChannelName, $messageChannel, $conversionMediaType ? MediaType::parseMediaType($conversionMediaType) : MediaType::createApplicationXPHP());
+        return self::create($messageChannelName, $messageChannel, $conversionMediaType);
     }
 
     public static function createNullableChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, NullableMessageChannel::create(), MediaType::createApplicationXPHP());
+        return self::create($messageChannelName, NullableMessageChannel::create(), null);
     }
 
     /**

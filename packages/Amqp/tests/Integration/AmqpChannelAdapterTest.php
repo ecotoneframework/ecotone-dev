@@ -712,7 +712,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $messagePublisher = $ecotoneLite->getMessagePublisher();
         $messagePublisher->send($payload);
 
-        $ecotoneLite->run($normalQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
+        $ecotoneLite->run($normalQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(200));
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
 
         $ecotoneLite->run($deadLettterQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());

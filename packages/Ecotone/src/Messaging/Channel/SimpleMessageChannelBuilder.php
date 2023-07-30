@@ -25,8 +25,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         private MessageChannel $messageChannel,
         private bool $isPollable,
         private ?MediaType $conversionMediaType
-    )
-    {
+    ) {
     }
 
     public static function create(string $messageChannelName, MessageChannel $messageChannel, string|MediaType|null $conversionMediaType = null): self

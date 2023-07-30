@@ -129,7 +129,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()),
                     PollingMetadata::create('orders')
-                        ->withTestingSetup(2)
+                        ->withTestingSetup(2),
                 ]),
         );
 

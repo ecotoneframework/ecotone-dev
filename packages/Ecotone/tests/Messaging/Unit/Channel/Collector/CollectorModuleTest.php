@@ -20,11 +20,12 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
 
-use Test\Ecotone\Modelling\Fixture\Collector\BetStatistics;
 use function str_contains;
 
 use Test\Ecotone\Modelling\Fixture\Collector\BetNotificator;
+
 use Test\Ecotone\Modelling\Fixture\Collector\BetService;
+use Test\Ecotone\Modelling\Fixture\Collector\BetStatistics;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
 
@@ -246,7 +247,8 @@ final class CollectorModuleTest extends TestCase
         try {
             $ecotoneLite
                 ->sendCommandWithRoutingKey('makeBet', false);
-        }catch (ConversionException) {}
+        } catch (ConversionException) {
+        }
 
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was sent');
         $this->assertNull($ecotoneLite->getMessageChannel('notifications')->receive(), 'Message was sent');

@@ -6,16 +6,11 @@ namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
-use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryAcknowledgeCallback;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ErrorMessage;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 final class OutboundSerializationChannelInterceptor extends AbstractChannelInterceptor implements ChannelInterceptor
@@ -23,7 +18,8 @@ final class OutboundSerializationChannelInterceptor extends AbstractChannelInter
     public function __construct(
         private OutboundMessageConverter $outboundMessageConverter,
         private ConversionService $conversionService
-    ) {}
+    ) {
+    }
 
     /**
      * @inheritDoc

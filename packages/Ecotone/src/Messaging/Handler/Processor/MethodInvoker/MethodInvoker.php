@@ -28,7 +28,6 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\MessageHandling\Distribution\DistributedMessageHandler;
 
 /**
  * Class MethodInvocation
@@ -272,7 +271,7 @@ final class MethodInvoker implements MessageProcessor
                 if (! is_null($convertedData)) {
                     $data = $convertedData;
                 } else {
-                    if (!($sourceTypeDescriptor->isNullType() && $interfaceParameter->doesAllowNulls()) && !$sourceTypeDescriptor->isCompatibleWith($parameterType)) {
+                    if (! ($sourceTypeDescriptor->isNullType() && $interfaceParameter->doesAllowNulls()) && ! $sourceTypeDescriptor->isCompatibleWith($parameterType)) {
                         if ($parameterType->isUnionType()) {
                             throw InvalidArgumentException::create("Can not call {$this->interfaceToCall} lack of information which type should be used to deserialization. Consider adding __TYPE__ header to indicate which union type it should be resolved to.");
                         }

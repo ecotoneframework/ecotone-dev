@@ -6,17 +6,11 @@ namespace Test\Ecotone\Messaging\Unit\Channel\Serialization;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Exception;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
-use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
 

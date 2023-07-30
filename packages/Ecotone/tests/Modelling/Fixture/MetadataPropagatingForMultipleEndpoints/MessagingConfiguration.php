@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Modelling\Fixture\MetadataPropagatingForMultipleEndpoints;
 
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 
 class MessagingConfiguration
@@ -12,7 +12,7 @@ class MessagingConfiguration
     public function asyncChannel()
     {
         return [
-            SimpleMessageChannelWithSerializationBuilder::createQueueChannel('notifications'),
+            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
             PollingMetadata::create('notifications')
                 ->setHandledMessageLimit(1)
                 ->setExecutionTimeLimitInMilliseconds(1),

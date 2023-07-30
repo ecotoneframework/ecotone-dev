@@ -7,7 +7,7 @@ use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -154,7 +154,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
                     EventSourcingConfiguration::createInMemory(),
                     PollingMetadata::create($channelName)
                         ->withTestingSetup(),
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel($channelName),
+                    SimpleMessageChannelBuilder::createQueueChannel($channelName),
                 ]),
         );
 

@@ -2,10 +2,10 @@
 
 namespace Ecotone\Dbal;
 
-use Ecotone\Enqueue\EnqueueMessageChannelWithSerializationBuilder;
+use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 
-class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelWithSerializationBuilder
+class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private function __construct(string $channelName, string $connectionReferenceName)
     {

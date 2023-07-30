@@ -12,7 +12,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\PollableChannel;
 
-abstract class EnqueueMessageChannelWithSerializationBuilder implements MessageChannelWithSerializationBuilder
+abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;
     protected EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapter;

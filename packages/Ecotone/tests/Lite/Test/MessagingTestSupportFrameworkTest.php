@@ -6,7 +6,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
@@ -127,7 +127,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel('orders'),
+                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
                     PollingMetadata::create('orders')
                         ->withTestingSetup(2),
                     TestConfiguration::createWithDefaults()
@@ -153,7 +153,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
                         ->withSpyOnChannel('orders'),
                 ]),
             enableAsynchronousProcessing: [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
             ],
         );
 
@@ -178,7 +178,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel('orders'),
+                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
                     PollingMetadata::create('orders')
                         ->withTestingSetup(2),
                     TestConfiguration::createWithDefaults()
@@ -495,7 +495,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel('orders', true),
+                    SimpleMessageChannelBuilder::createQueueChannel('orders', true),
                     PollingMetadata::create('orders')
                         ->withTestingSetup(2),
                     TestConfiguration::createWithDefaults()

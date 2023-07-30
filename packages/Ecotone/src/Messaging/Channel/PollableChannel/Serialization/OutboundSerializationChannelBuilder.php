@@ -48,7 +48,7 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
 
     public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
     {
-
+        
 
         return new OutboundSerializationChannelInterceptor(
             new OutboundMessageConverter(

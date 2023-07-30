@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -57,11 +57,11 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
             if ($extensionObject->getDeadLetterQueueChannel()) {
                 $errorHandler = $errorHandler->withOutputMessageChannel($extensionObject->getDeadLetterQueueChannel());
                 $messagingConfiguration
-                    ->registerDefaultChannelFor(SimpleMessageChannelWithSerializationBuilder::createPublishSubscribeChannel($extensionObject->getDeadLetterQueueChannel()));
+                    ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getDeadLetterQueueChannel()));
             }
             $messagingConfiguration
                 ->registerMessageHandler($errorHandler)
-                ->registerDefaultChannelFor(SimpleMessageChannelWithSerializationBuilder::createPublishSubscribeChannel($extensionObject->getErrorChannelName()))
+                ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getErrorChannelName()))
                 ->registerMessageHandler(
                     RouterBuilder::createHeaderRouter(MessageHeaders::POLLED_CHANNEL_NAME)
                         ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName() . '.router')

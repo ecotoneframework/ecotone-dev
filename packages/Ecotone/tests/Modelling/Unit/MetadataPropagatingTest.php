@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use PHPUnit\Framework\TestCase;
@@ -43,7 +43,7 @@ final class MetadataPropagatingTest extends TestCase
             containerOrAvailableServices: [new OrderService()],
             configuration: ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel('orders'),
+                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ])
         );
 

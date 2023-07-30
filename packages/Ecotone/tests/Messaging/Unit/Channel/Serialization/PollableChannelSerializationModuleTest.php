@@ -9,7 +9,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -31,7 +31,7 @@ final class PollableChannelSerializationModuleTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel(
+                SimpleMessageChannelBuilder::createQueueChannel(
                     'orders',
                     conversionMediaType: MediaType::createApplicationXPHPSerialized()->toString()
                 ),

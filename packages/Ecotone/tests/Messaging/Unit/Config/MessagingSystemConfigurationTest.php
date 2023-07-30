@@ -11,7 +11,7 @@ use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PublishSubscribeChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
@@ -87,7 +87,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $this->createMessagingSystemConfiguration()
             ->registerMessageHandler(DumbMessageHandlerBuilder::create($messageHandler, $subscribableChannelName))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create($subscribableChannelName, $subscribableChannel))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create($subscribableChannelName, $subscribableChannel))
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
@@ -169,7 +169,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $messagingSystem = $this->createMessagingSystemConfiguration()
             ->registerMessageHandler(DumbMessageHandlerBuilder::create($messageHandler, $messageChannelName))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create($messageChannelName, $pollableChannel))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create($messageChannelName, $pollableChannel))
             ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder())
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
@@ -188,7 +188,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $messagingSystem = $this->createMessagingSystemConfiguration()
             ->registerMessageHandler(DumbMessageHandlerBuilder::create($messageHandler, $messageChannelName)->withEndpointId('executor'))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create($messageChannelName, $pollableChannel))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create($messageChannelName, $pollableChannel))
             ->registerConsumerFactory(new PollingConsumerBuilder(InterfaceToCallRegistry::createEmpty()))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
@@ -229,7 +229,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
     {
         $config = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createWith([], []))
             ->registerMessageHandler(DumbMessageHandlerBuilder::create(NoReturnMessageHandler::create(), 'queue'))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create('queue', QueueChannel::create()))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create('queue', QueueChannel::create()))
             ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder())
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create('queue', 'interceptor'));
 
@@ -314,7 +314,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
             )
             ->registerAsynchronousEndpoint('asyncChannel', 'endpointId')
             ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->setExecutionAmountLimit(1))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('asyncChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('asyncChannel'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         $message = MessageBuilder::withPayload(2)
@@ -346,8 +346,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->registerAsynchronousEndpoint([$channelNameOne, $channelNameTwo], 'endpointId')
             ->registerPollingMetadata(PollingMetadata::create($channelNameOne)->withTestingSetup())
             ->registerPollingMetadata(PollingMetadata::create($channelNameTwo)->withTestingSetup())
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($channelNameOne))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($channelNameTwo))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($channelNameOne))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($channelNameTwo))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         /** @var MessageChannel $channel */
@@ -380,9 +380,9 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->registerPollingMetadata(PollingMetadata::create($channelNameOne)->withTestingSetup())
             ->registerPollingMetadata(PollingMetadata::create($channelNameTwo)->withTestingSetup())
             ->registerPollingMetadata(PollingMetadata::create($channelNameThree)->withTestingSetup())
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($channelNameOne))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($channelNameTwo))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($channelNameThree))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($channelNameOne))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($channelNameTwo))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($channelNameThree))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         /** @var MessageChannel $channel */
@@ -418,7 +418,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 CalculatingService::class
             ))
             ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->setExecutionAmountLimit(1))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('asyncChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('asyncChannel'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         $message = MessageBuilder::withPayload(2)
@@ -456,8 +456,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ))
             ->registerPollingMetadata(PollingMetadata::create($asyncChannelNameOne)->withTestingSetup())
             ->registerPollingMetadata(PollingMetadata::create($asyncChannelNameTwo)->withTestingSetup())
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($asyncChannelNameOne))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($asyncChannelNameTwo))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($asyncChannelNameOne))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($asyncChannelNameTwo))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         /** @var MessageChannel $channel */
@@ -491,7 +491,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ->withInputChannelName('inputChannel')
             )
             ->registerAsynchronousEndpoint('asyncChannel', 'endpointId')
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('asyncChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('asyncChannel'))
             ->registerBeforeSendInterceptor(
                 MethodInterceptor::create(
                     '',
@@ -532,8 +532,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->registerAsynchronousEndpoint([$asyncChannelOne, $asyncChannelTwo], 'endpointId')
             ->registerPollingMetadata(PollingMetadata::create($asyncChannelOne)->withTestingSetup())
             ->registerPollingMetadata(PollingMetadata::create($asyncChannelTwo)->withTestingSetup())
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($asyncChannelOne))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($asyncChannelTwo))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($asyncChannelOne))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($asyncChannelTwo))
             ->registerBeforeSendInterceptor(
                 MethodInterceptor::create(
                     '',
@@ -563,7 +563,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ->withEndpointId('endpointId')
                     ->withInputChannelName('inputChannel')
             )
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('inputChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('inputChannel'))
             ->registerBeforeSendInterceptor(
                 MethodInterceptor::create(
                     '',
@@ -598,7 +598,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ->withEndpointId('endpointId1')
                     ->withInputChannelName('inputChannel1')
             )
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('inputChannel1'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('inputChannel1'))
             ->registerBeforeSendInterceptor(
                 MethodInterceptor::create(
                     '1',
@@ -647,7 +647,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ->withEndpointId('endpointId2')
                     ->withInputChannelName('inputChannel1')
             )
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('inputChannel1'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('inputChannel1'))
             ->registerBeforeSendInterceptor(
                 MethodInterceptor::create(
                     '1',
@@ -693,7 +693,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ->withInputChannelName('inputChannel')
             )
             ->registerAsynchronousEndpoint('fakeAsyncChannel', 'endpointId')
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('fakeAsyncChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('fakeAsyncChannel'))
             ->registerPollingMetadata(PollingMetadata::create('fakeAsyncChannel')->withTestingSetup())
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
@@ -726,7 +726,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
             )
             ->registerAsynchronousEndpoint('asyncChannel', 'endpointId')
             ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->setExecutionAmountLimit(1))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('asyncChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('asyncChannel'))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::createWithDirectObject('inputChannel', $channelInterceptor))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
@@ -841,7 +841,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messageChannelName = 'requestChannel';
         $referenceName = 'ref-name';
         $messagingSystemConfiguration
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($messageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceName));
 
         $channelInterceptor = $this->createMock(ChannelInterceptor::class);
@@ -885,7 +885,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $referenceNameSecondToCall = 'interceptor-1';
         $referenceNameFirstToCall = 'interceptor-2';
         $messagingSystemConfiguration
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($messageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceNameSecondToCall)->withPrecedence(1))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceNameFirstToCall)->withPrecedence(2));
 
@@ -940,7 +940,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messageChannelName = 'requestChannel';
         $referenceName = 'ref-name';
         $messagingSystemConfiguration
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($messageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceName));
 
         $channelInterceptor = $this->createMock(ChannelInterceptor::class);
@@ -980,7 +980,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messageChannelName = 'requestChannel';
         $referenceName = 'ref-name';
         $messagingSystemConfiguration
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($messageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceName));
 
         $channelInterceptor = $this->createMock(ChannelInterceptor::class);
@@ -1020,7 +1020,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messageChannelName = 'requestChannel';
         $referenceName = 'ref-name';
         $messagingSystemConfiguration
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel($messageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($messageChannelName))
             ->registerMessageHandler(DumbMessageHandlerBuilder::create(ExceptionMessageHandler::create(), $messageChannelName))
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceName));
@@ -1061,8 +1061,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $referenceName1 = 'ref-name1';
         $referenceName2 = 'ref-name2';
         $messagingSystemConfiguration
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createPublishSubscribeChannel($messageChannelName1))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($messageChannelName2))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel($messageChannelName1))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName2))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName1, $referenceName1))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName2, $referenceName2));
 
@@ -1112,7 +1112,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messageChannelName = 'requestChannel';
         $referenceName = 'ref-name';
         $messagingSystemConfiguration
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($messageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create('request*', $referenceName));
 
         $channelInterceptor = $this->createMock(ChannelInterceptor::class);
@@ -1178,7 +1178,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $inputMessageChannelName = 'inputChannelName';
         $messageHandler = NoReturnMessageHandler::create();
         $messagingSystem = $messagingSystemConfiguration
-            ->registerDefaultChannelFor(SimpleMessageChannelWithSerializationBuilder::createPublishSubscribeChannel($inputMessageChannelName))
+            ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($inputMessageChannelName))
             ->registerMessageHandler(DumbMessageHandlerBuilder::create($messageHandler, $inputMessageChannelName))
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
@@ -1203,7 +1203,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messagingSystem = $messagingSystemConfiguration
             ->registerMessageHandler(DumbMessageHandlerBuilder::create($messageHandler, $inputMessageChannelName))
             ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder())
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($inputMessageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($inputMessageChannelName))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         $messagingSystem->getMessageChannelByName($inputMessageChannelName)
@@ -1226,8 +1226,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ->withEndpointId($endpointName)
             )
             ->registerConsumerFactory(new PollingConsumerBuilder(InterfaceToCallRegistry::createEmpty()))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($inputMessageChannelName))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create('error', $errorChannel))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($inputMessageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create('error', $errorChannel))
             ->registerPollingMetadata(
                 PollingMetadata::create($endpointName)
                     ->setHandledMessageLimit(1)
@@ -1259,8 +1259,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ->withEndpointId($endpointName)
             )
             ->registerConsumerFactory(new PollingConsumerBuilder(InterfaceToCallRegistry::createEmpty()))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($inputMessageChannelName))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create('error', $errorChannel))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($inputMessageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create('error', $errorChannel))
             ->registerPollingMetadata(
                 PollingMetadata::create($endpointName)
                     ->setHandledMessageLimit(1)
@@ -1291,8 +1291,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ->withEndpointId($endpointName)
             )
             ->registerConsumerFactory(new PollingConsumerBuilder(InterfaceToCallRegistry::createEmpty()))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel($inputMessageChannelName))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create('error', $errorChannel))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($inputMessageChannelName))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create('error', $errorChannel))
             ->registerPollingMetadata(
                 PollingMetadata::create($endpointName)
                     ->setExecutionTimeLimitInMilliseconds(1)
@@ -1673,8 +1673,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messagingSystem = $this->createMessagingSystemConfiguration()
             ->registerGatewayBuilder($buyGateway)
             ->registerGatewayBuilder($sellGateway)
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('buy'))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('sell'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('buy'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('sell'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         /** @var CombinedGatewayExample $combinedGateway */
@@ -1698,8 +1698,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messagingSystem = $this->createMessagingSystemConfiguration()
             ->registerGatewayBuilder($buyGateway)
             ->registerGatewayBuilder($sellGateway)
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('buy'))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('sell'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('buy'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('sell'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         $combinedGateway = $messagingSystem
@@ -1724,8 +1724,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->registerGatewayBuilder($buyGateway)
             ->registerGatewayBuilder($sellGateway)
             ->registerGatewayBuilder($buyGateway2)
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('buy'))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('sell'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('buy'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('sell'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         $this->assertNotNull($messagingSystem->getNonProxyGatewayByName('combinedGateway'));
@@ -1739,9 +1739,9 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $messagingSystem = $this->createMessagingSystemConfiguration()
             ->registerGatewayBuilder($buyGateway)
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('buy'))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('sell'))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('replyChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('buy'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('sell'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('replyChannel'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         $messagingSystem->getMessageChannelByName('replyChannel')->send(MessageBuilder::withPayload('some')->build());
@@ -1803,7 +1803,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     ->withInputChannelName('some')
                     ->withEndpointId('order.register')
             )
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel('order.register'));
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel('order.register'));
     }
 
     public function test_throwing_exception_if_registering_message_channel_name_with_same_name_as_endpoint_id()
@@ -1811,7 +1811,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $this->expectException(ConfigurationException::class);
 
         MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel('order.register'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel('order.register'))
             ->registerMessageHandler(
                 ServiceActivatorBuilder::createWithDirectReference(new OrderService(), 'order')
                     ->withInputChannelName('some')
@@ -1824,7 +1824,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $this->expectException(ConfigurationException::class);
 
         MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
-            ->registerDefaultChannelFor(SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel('order.register'))
+            ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createDirectMessageChannel('order.register'))
             ->registerMessageHandler(
                 ServiceActivatorBuilder::createWithDirectReference(new OrderService(), 'order')
                     ->withInputChannelName('some')
@@ -2205,8 +2205,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $this->expectException(ConfigurationException::class);
 
         MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel('some'))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createDirectMessageChannel('some'));
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel('some'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel('some'));
     }
 
     public function test_calling_console_command_with_default()
@@ -2221,7 +2221,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $configuredMessagingSystem = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
             ->registerGatewayBuilder(GatewayProxyBuilder::create(MessagingEntrypoint::class, MessagingEntrypoint::class, 'sendWithHeaders', $channelName))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create($channelName, $queueChannel))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create($channelName, $queueChannel))
             ->registerConsoleCommand($consoleCommand)
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
@@ -2244,7 +2244,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $configuredMessagingSystem = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
             ->registerGatewayBuilder(GatewayProxyBuilder::create(MessagingEntrypoint::class, MessagingEntrypoint::class, 'sendWithHeaders', $channelName))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::create($channelName, $queueChannel))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create($channelName, $queueChannel))
             ->registerConsoleCommand($consoleCommand)
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
@@ -2265,7 +2265,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel('input'),
+                    SimpleMessageChannelBuilder::createQueueChannel('input'),
                 ])
         );
     }
@@ -2280,7 +2280,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel('input'),
+                    SimpleMessageChannelBuilder::createQueueChannel('input'),
                 ])
         );
     }

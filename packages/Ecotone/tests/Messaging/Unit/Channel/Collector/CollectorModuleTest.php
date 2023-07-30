@@ -11,7 +11,7 @@ use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -36,7 +36,7 @@ final class CollectorModuleTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
             ],
             [PollableChannelConfiguration::neverRetry('orders')->withCollector(true)]
         );
@@ -54,7 +54,7 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('bets'),
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [PollableChannelConfiguration::neverRetry('bets')->withCollector(true)]
         );
@@ -78,7 +78,7 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('bets'),
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [] // no config needed
         );
@@ -97,8 +97,8 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('bets'),
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('customErrorChannel'),
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
+                SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
             ],
             [
                 PollableChannelConfiguration::neverRetry('bets')->withCollector(true),
@@ -124,7 +124,7 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('bets'),
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [PollableChannelConfiguration::neverRetry('bets')->withCollector(false)]
         );
@@ -148,8 +148,8 @@ final class CollectorModuleTest extends TestCase
             [BetService::class, BetNotificator::class],
             [new BetService(), new BetNotificator()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('bets'),
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('notifications'),
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
+                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
             ],
             [
                 PollableChannelConfiguration::neverRetry('bets')->withCollector(true),
@@ -171,7 +171,7 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('bets'),
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [PollableChannelConfiguration::neverRetry('bets')->withCollector(true)]
         );
@@ -197,7 +197,7 @@ final class CollectorModuleTest extends TestCase
             [BetService::class],
             [new BetService()],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('bets'),
+                SimpleMessageChannelBuilder::createQueueChannel('bets'),
             ],
             [
                 PollableChannelConfiguration::neverRetry('bets')->withCollector(true),

@@ -11,7 +11,7 @@ use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\AggregateNotFoundException;
@@ -32,8 +32,8 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             [Person::class, NotificationService::class],
             [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('orders'),
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('notifications'),
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
             ],
             [
                 PollableChannelConfiguration::neverRetry('notifications')->withCollector(true),
@@ -52,7 +52,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             [Person::class, NotificationService::class],
             [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             [
-                SimpleMessageChannelWithSerializationBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ExceptionalQueueChannel::createWithExceptionOnSend('notifications'),
             ],
             [

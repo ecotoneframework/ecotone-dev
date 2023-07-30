@@ -14,6 +14,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -29,6 +30,10 @@ final class OutboundSerializationChannelInterceptor extends AbstractChannelInter
      */
     public function preSend(Message $messageToConvert, MessageChannel $messageChannel): ?Message
     {
+        if ($messageToConvert instanceof ErrorMessage) {
+            return $messageToConvert;
+        }
+
         $outboundMessage = $this->outboundMessageConverter->prepare($messageToConvert, $this->conversionService);
         $preparedMessage = MessageBuilder::withPayload($outboundMessage->getPayload())
             ->setMultipleHeaders($outboundMessage->getHeaders());

@@ -8,7 +8,7 @@ use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -35,8 +35,8 @@ final class MessageChannelConfigurationTest extends TestCase
      */
     public function test_using_requeuing_on_failure(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
-        array                                  $services = [],
-        array                                  $skippedModulePackageNames = [],
+        array                                  $services,
+        array                                  $skippedModulePackageNames,
         \Closure                               $closure
     ): void
     {
@@ -65,8 +65,8 @@ final class MessageChannelConfigurationTest extends TestCase
      */
     public function test_using_default_error_channel(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
-        array                                  $services = [],
-        array                                  $skippedModulePackageNames = [],
+        array                                  $services,
+        array                                  $skippedModulePackageNames,
         \Closure                               $closure
     ): void
     {
@@ -78,14 +78,13 @@ final class MessageChannelConfigurationTest extends TestCase
                 ->withSkippedModulePackageNames($skippedModulePackageNames)
                 ->withExtensionObjects([
                     $messageChannelBuilder,
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel(self::ERROR_CHANNEL)
+                    SimpleMessageChannelBuilder::createQueueChannel(self::ERROR_CHANNEL)
                 ])
                 ->withDefaultErrorChannel(self::ERROR_CHANNEL)
         );
+        $ecotoneLite->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
 
-        $ecotoneLite
-            ->sendCommandWithRoutingKey('handler.fail', 0)
-            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $this->assertNotNull($ecotoneLite->getMessageChannel(self::ERROR_CHANNEL)->receive());
         $this->assertNull($ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive());
@@ -96,13 +95,11 @@ final class MessageChannelConfigurationTest extends TestCase
      */
     public function test_default_serialization(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
-        array                                  $services = [],
-        array                                  $skippedModulePackageNames = [],
+        array                                  $services,
+        array                                  $skippedModulePackageNames,
         \Closure                               $closure
     ): void
     {
-        $this->markTestSkipped('to be implemented');
-
         $closure();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
@@ -116,19 +113,19 @@ final class MessageChannelConfigurationTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('handler.fail', ['command' => 100])
+            ->sendCommandWithRoutingKey('handler.fail', ['command' => 0])
             ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $this->assertEquals(
-            $ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive()->getHeaders()->getContentType(),
-            MediaType::createApplicationJson()
+            MediaType::createApplicationJson(),
+            $ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive()->getHeaders()->getContentType()
         );
     }
 
     public function channelProvider()
     {
         yield "in memory" => [
-            SimpleMessageChannelWithSerializationBuilder::createQueueChannel(self::CHANNEL_NAME),
+            SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),
             [],
             ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]),
             function() {}

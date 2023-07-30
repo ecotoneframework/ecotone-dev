@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Sqs;
 
-use Ecotone\Enqueue\EnqueueMessageChannelWithSerializationBuilder;
+use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Enqueue\Sqs\SqsConnectionFactory;
 
-final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelWithSerializationBuilder
+final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private function __construct(string $channelName, string $connectionReferenceName)
     {

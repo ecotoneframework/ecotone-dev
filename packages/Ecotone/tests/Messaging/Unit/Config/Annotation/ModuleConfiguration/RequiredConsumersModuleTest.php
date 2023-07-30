@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RequiredConsumersModule;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -51,7 +51,7 @@ class RequiredConsumersModuleTest extends AnnotationConfigurationTest
         );
         $configuration = $this->createMessagingSystemConfiguration()
             ->registerConsumerFactory(new PollingConsumerBuilder(InterfaceToCallRegistry::createEmpty()))
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('requestChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('requestChannel'))
             ->registerMessageHandler(
                 DataReturningService::createExceptionalServiceActivatorBuilder()
                     ->withEndpointId('someId')
@@ -72,7 +72,7 @@ class RequiredConsumersModuleTest extends AnnotationConfigurationTest
             InterfaceToCallRegistry::createEmpty()
         );
         $configuration = $this->createMessagingSystemConfiguration()
-            ->registerMessageChannel(SimpleMessageChannelWithSerializationBuilder::createQueueChannel('requestChannel'))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('requestChannel'))
             ->registerConsumer(
                 InboundChannelAdapterBuilder::createWithDirectObject(
                     'requestChannel',

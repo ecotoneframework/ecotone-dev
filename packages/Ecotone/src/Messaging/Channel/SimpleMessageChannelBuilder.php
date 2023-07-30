@@ -18,7 +18,7 @@ use Ecotone\Messaging\PollableChannel;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class SimpleMessageChannelWithSerializationBuilder implements MessageChannelWithSerializationBuilder
+class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
     private function __construct(
         private string $messageChannelName,

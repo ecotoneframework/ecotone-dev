@@ -3,7 +3,7 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection;
 
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 
 class ProjectionConfiguration
@@ -17,8 +17,8 @@ class ProjectionConfiguration
     }
 
     #[ServiceContext]
-    public function enableAsynchronousProjection(): SimpleMessageChannelWithSerializationBuilder
+    public function enableAsynchronousProjection(): SimpleMessageChannelBuilder
     {
-        return SimpleMessageChannelWithSerializationBuilder::createQueueChannel(InProgressTicketList::PROJECTION_CHANNEL);
+        return SimpleMessageChannelBuilder::createQueueChannel(InProgressTicketList::PROJECTION_CHANNEL);
     }
 }

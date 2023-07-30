@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Unit\Config\InstantRetry;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -112,7 +112,7 @@ final class InstantRetryModuleTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel('async'),
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withAsynchronousEndpointsRetry(true, 3),
                 ])
@@ -137,7 +137,7 @@ final class InstantRetryModuleTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    SimpleMessageChannelWithSerializationBuilder::createQueueChannel('async'),
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withAsynchronousEndpointsRetry(true, 2),
                 ])

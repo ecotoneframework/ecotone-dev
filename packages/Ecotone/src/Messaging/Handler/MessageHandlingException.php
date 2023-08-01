@@ -14,20 +14,6 @@ use Throwable;
 final class MessageHandlingException extends MessagingException
 {
     /**
-     * @param Throwable $cause
-     * @param Message $originalMessage
-     * @return MessageHandlingException|static
-     */
-    public static function fromOtherException(Throwable $cause, Message $originalMessage): MessagingException
-    {
-        $messageHandlingException = self::createWithFailedMessage($cause->getMessage(), $originalMessage);
-
-        $messageHandlingException->setCausationException($cause);
-
-        return $messageHandlingException;
-    }
-
-    /**
      * @inheritDoc
      */
     protected static function errorCode(): int

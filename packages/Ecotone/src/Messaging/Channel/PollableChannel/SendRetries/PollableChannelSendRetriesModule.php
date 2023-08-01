@@ -41,7 +41,8 @@ final class PollableChannelSendRetriesModule extends NoExternalConfigurationModu
             $messagingConfiguration->registerChannelInterceptor(
                 new RetriesChannelInterceptorBuilder(
                     $pollableMessageChannel->getMessageChannelName(),
-                    $channelConfiguration->getRetryTemplate()
+                    $channelConfiguration->getRetryTemplate(),
+                    $channelConfiguration->getDlqChannelName()
                 )
             );
         }

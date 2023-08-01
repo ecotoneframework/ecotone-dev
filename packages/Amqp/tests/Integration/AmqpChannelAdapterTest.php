@@ -371,7 +371,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $this->assertNotNull($message, 'Message was not received from rabbit');
         $this->assertEquals(
             $message->getPayload(),
-            serialize($payload)
+            addslashes(serialize($payload))
         );
     }
 

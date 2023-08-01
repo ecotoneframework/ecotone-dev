@@ -147,11 +147,11 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [new OrderService(), 'logger' => $loggerExample],
             [
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders', 1),
-                SimpleMessageChannelBuilder::createQueueChannel('deadLetter')
+                SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
             ],
             [
                 PollableChannelConfiguration::neverRetry('orders')
-                    ->withErrorChannel('deadLetter')
+                    ->withErrorChannel('deadLetter'),
             ]
         );
 
@@ -170,11 +170,11 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [new OrderService(), 'logger' => $loggerExample],
             [
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders', 1),
-                SimpleMessageChannelBuilder::createQueueChannel('deadLetter')
+                SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
             ],
             [
                 GlobalPollableChannelConfiguration::neverRetry('orders')
-                    ->withErrorChannel('deadLetter')
+                    ->withErrorChannel('deadLetter'),
             ]
         );
 
@@ -192,7 +192,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [new OrderService(), 'logger' => $loggerExample],
             [
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders', 2),
-                SimpleMessageChannelBuilder::createQueueChannel('deadLetter')
+                SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
             ],
             [
                 PollableChannelConfiguration::create(
@@ -201,7 +201,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
                         ->maxRetryAttempts(2)
                         ->build()
                 )
-                    ->withErrorChannel('deadLetter')
+                    ->withErrorChannel('deadLetter'),
             ]
         );
 

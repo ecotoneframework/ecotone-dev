@@ -20,7 +20,7 @@ final class NotificationService
         $this->isNotified = true;
     }
 
-    #[QueryHandler("notification.isNotified")]
+    #[QueryHandler('notification.isNotified')]
     public function isNotified(): bool
     {
         return $this->isNotified;

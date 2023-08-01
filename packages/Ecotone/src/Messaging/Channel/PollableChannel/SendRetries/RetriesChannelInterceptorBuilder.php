@@ -19,8 +19,7 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
         private string $relatedChannel,
         private RetryTemplate $retryTemplate,
         private ?string $errorChannel
-    )
-    {
+    ) {
     }
 
     public function relatedChannelName(): string

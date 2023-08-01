@@ -2,9 +2,7 @@
 
 namespace Ecotone\Messaging\Handler;
 
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
-use Throwable;
 
 /**
  * Class MessageHandlingException

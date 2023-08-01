@@ -18,7 +18,7 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
     public function __construct(
         private string $relatedChannel,
         private RetryTemplate $retryTemplate,
-        private ?string $deadLetterChannel
+        private ?string $errorChannel
     )
     {
     }
@@ -48,7 +48,7 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
         return new SendRetryChannelInterceptor(
             $this->relatedChannel,
             $this->retryTemplate,
-            $this->deadLetterChannel,
+            $this->errorChannel,
             $referenceSearchService->get(ConfiguredMessagingSystem::class),
             $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE)
         );

@@ -88,7 +88,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             ],
             [
                 PollableChannelConfiguration::neverRetry('notifications')
-                    ->withDeadLetterChannel('dbal_dead_letter')
+                    ->withErrorChannel('dbal_dead_letter')
                     ->withCollector(true),
             ]
         );
@@ -111,7 +111,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             ],
             [
                 PollableChannelConfiguration::neverRetry('notifications')
-                    ->withDeadLetterChannel('dbal_dead_letter')
+                    ->withErrorChannel('dbal_dead_letter')
                     ->withCollector(true),
             ]
         );

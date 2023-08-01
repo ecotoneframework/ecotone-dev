@@ -8,6 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -150,7 +151,30 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             ],
             [
                 PollableChannelConfiguration::neverRetry('orders')
-                    ->withDeadLetterChannel('deadLetter')
+                    ->withErrorChannel('deadLetter')
+            ]
+        );
+
+        $ecotoneLite->sendCommand(new PlaceOrder('1'));
+
+        $this->assertNull($ecotoneLite->getMessageChannel('orders')->receive());
+        $this->assertNotNull($ecotoneLite->getMessageChannel('deadLetter')->receive());
+    }
+
+    public function test_sending_to_dead_letter_on_failure_using_global_configuration()
+    {
+        $loggerExample = LoggerExample::create();
+
+        $ecotoneLite = $this->bootstrapEcotone(
+            [OrderService::class],
+            [new OrderService(), 'logger' => $loggerExample],
+            [
+                ExceptionalQueueChannel::createWithExceptionOnSend('orders', 1),
+                SimpleMessageChannelBuilder::createQueueChannel('deadLetter')
+            ],
+            [
+                GlobalPollableChannelConfiguration::neverRetry('orders')
+                    ->withErrorChannel('deadLetter')
             ]
         );
 
@@ -177,7 +201,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
                         ->maxRetryAttempts(2)
                         ->build()
                 )
-                    ->withDeadLetterChannel('deadLetter')
+                    ->withErrorChannel('deadLetter')
             ]
         );
 

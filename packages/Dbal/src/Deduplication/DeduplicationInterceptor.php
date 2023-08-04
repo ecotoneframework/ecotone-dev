@@ -7,6 +7,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -39,7 +40,7 @@ class DeduplicationInterceptor
         $this->connectionReferenceName = $connectionReferenceName;
     }
 
-    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation)
+    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint)
     {
         $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName)));
 
@@ -50,7 +51,7 @@ class DeduplicationInterceptor
         $this->removeExpiredMessages($connectionFactory);
         $messageId = $deduplicatedAttribute?->getDeduplicationHeaderName() ? $message->getHeaders()->get($deduplicatedAttribute->getDeduplicationHeaderName()) : $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
         /** If global deduplication consumer_endpoint_id will be used */
-        $consumerEndpointId = $message->getHeaders()->containsKey(MessageHeaders::CONSUMER_ENDPOINT_ID) ? $message->getHeaders()->get(MessageHeaders::CONSUMER_ENDPOINT_ID) : '';
+        $consumerEndpointId = $asynchronousRunningEndpoint ? $asynchronousRunningEndpoint->getEndpointId() : '';
         /** IF handler deduplication then endpoint id will be used */
         $routingSlip = $deduplicatedAttribute === null && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
             ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)

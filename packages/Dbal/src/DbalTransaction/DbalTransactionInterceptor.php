@@ -5,6 +5,7 @@ namespace Ecotone\Dbal\DbalTransaction;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
@@ -31,8 +32,10 @@ class DbalTransactionInterceptor
     {
     }
 
-    public function transactional(MethodInvocation $methodInvocation, #[Header(MessageHeaders::CONSUMER_ENDPOINT_ID)] ?string $endpointId, ?DbalTransaction $DbalTransaction, #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)] LoggerInterface $logger, ReferenceSearchService $referenceSearchService)
+    public function transactional(MethodInvocation $methodInvocation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint, ?DbalTransaction $DbalTransaction, #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)] LoggerInterface $logger, ReferenceSearchService $referenceSearchService)
     {
+        $endpointId = $asynchronousRunningEndpoint?->getEndpointId();
+
         $connections = [];
         if (! in_array($endpointId, $this->disableTransactionOnAsynchronousEndpoints)) {
             /** @var Connection[] $connections */

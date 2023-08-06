@@ -93,7 +93,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         } else {
             $messagingConfiguration->registerConsumerFactory(new EventDrivenConsumerBuilder());
         }
-        $messagingConfiguration->registerConsumerFactory(new PollingConsumerBuilder($interfaceToCallRegistry));
+        $messagingConfiguration->registerConsumerFactory(new PollingConsumerBuilder());
 
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(MessageHeaders::ERROR_CHANNEL));
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::create(NullableMessageChannel::CHANNEL_NAME, NullableMessageChannel::create()));

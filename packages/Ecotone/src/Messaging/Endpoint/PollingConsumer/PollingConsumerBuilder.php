@@ -42,7 +42,7 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
     private \Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder $entrypointGateway;
     private string $requestChannelName;
 
-    public function __construct(InterfaceToCallRegistry $interfaceToCallRegistry)
+    public function __construct()
     {
         $this->requestChannelName = Uuid::uuid4()->toString();
         $this->entrypointGateway = GatewayProxyBuilder::create(

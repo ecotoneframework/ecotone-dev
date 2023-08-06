@@ -22,6 +22,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Precedence;
@@ -41,7 +42,7 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
     private \Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder $entrypointGateway;
     private string $requestChannelName;
 
-    public function __construct(InterfaceToCallRegistry $interfaceToCallRegistry)
+    public function __construct()
     {
         $this->requestChannelName = Uuid::uuid4()->toString();
         $this->entrypointGateway = GatewayProxyBuilder::create(
@@ -50,14 +51,6 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
             'executeEntrypoint',
             $this->requestChannelName
         );
-
-        $this->entrypointGateway->addAroundInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-            $interfaceToCallRegistry,
-            new LoggingInterceptor(null),
-            'logException',
-            Precedence::EXCEPTION_LOGGING_PRECEDENCE,
-            ''
-        ));
     }
 
     public function isPollingConsumer(): bool
@@ -71,6 +64,28 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
     public function addAroundInterceptor(AroundInterceptorReference $aroundInterceptorReference): self
     {
         $this->entrypointGateway->addAroundInterceptor($aroundInterceptorReference);
+
+        return $this;
+    }
+
+    /**
+     * @param MethodInterceptor $methodInterceptor
+     * @return $this
+     */
+    public function addBeforeInterceptor(MethodInterceptor $methodInterceptor): self
+    {
+        $this->entrypointGateway->addBeforeInterceptor($methodInterceptor);
+
+        return $this;
+    }
+
+    /**
+     * @param MethodInterceptor $methodInterceptor
+     * @return $this
+     */
+    public function addAfterInterceptor(MethodInterceptor $methodInterceptor): self
+    {
+        $this->entrypointGateway->addAfterInterceptor($methodInterceptor);
 
         return $this;
     }

@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
+use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -43,10 +44,10 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
-use Ecotone\Messaging\Handler\Interceptor\ConsumerNameInterceptor;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
@@ -92,7 +93,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         } else {
             $messagingConfiguration->registerConsumerFactory(new EventDrivenConsumerBuilder());
         }
-        $messagingConfiguration->registerConsumerFactory(new PollingConsumerBuilder($interfaceToCallRegistry));
+        $messagingConfiguration->registerConsumerFactory(new PollingConsumerBuilder());
 
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(MessageHeaders::ERROR_CHANNEL));
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::create(NullableMessageChannel::CHANNEL_NAME, NullableMessageChannel::create()));
@@ -125,13 +126,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
                 RouterBuilder::createHeaderRouter(MessagingEntrypoint::ENTRYPOINT)
                     ->withInputChannelName(MessagingEntrypoint::ENTRYPOINT)
             );
-        $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptor::create(
-            ConsumerNameInterceptor::class,
-            $interfaceToCallRegistry->getFor(ConsumerNameInterceptor::class, 'intercept'),
-            ServiceActivatorBuilder::createWithDirectReference(new ConsumerNameInterceptor(), 'intercept'),
-            Precedence::DATABASE_TRANSACTION_PRECEDENCE - 1000000,
-            AsynchronousRunningEndpoint::class
-        ));
 
         $messagingConfiguration->registerGatewayBuilder(
             GatewayProxyBuilder::create(

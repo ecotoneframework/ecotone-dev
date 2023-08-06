@@ -12,9 +12,12 @@ use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Handler\FailureHandler\ExampleFailureCommandHandler;
 
+/**
+ * @internal
+ */
 final class LoggingModuleTest extends TestCase
 {
-    const CHANNEL_NAME = 'async';
+    public const CHANNEL_NAME = 'async';
 
     public function test_logging_critical_when_exception_occurred_on_message_consumer()
     {
@@ -23,7 +26,7 @@ final class LoggingModuleTest extends TestCase
             [ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), LoggingHandlerBuilder::LOGGER_REFERENCE => $loggerExample],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME)
+                SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),
             ]
         );
 
@@ -44,7 +47,7 @@ final class LoggingModuleTest extends TestCase
                 ->withDefaultErrorChannel('customErrorChannel'),
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),
-                SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel')
+                SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
             ]
         );
 
@@ -52,7 +55,7 @@ final class LoggingModuleTest extends TestCase
             ->sendCommandWithRoutingKey('handler.fail', ['command' => 2]);
         $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
-        $this->assertNotNull($ecotoneLite->getMessageChannel("customErrorChannel")->receive());
+        $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
         $this->assertCount(0, $loggerExample->getCritical());
     }
 }

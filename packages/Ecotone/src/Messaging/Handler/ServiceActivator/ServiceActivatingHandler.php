@@ -18,7 +18,8 @@ final class ServiceActivatingHandler implements MessageHandler
 {
     public function __construct(
         private RequestReplyProducer $requestReplyProducer,
-    ) {}
+    ) {
+    }
 
     /**
      * @inheritDoc

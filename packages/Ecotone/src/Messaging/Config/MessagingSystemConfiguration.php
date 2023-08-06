@@ -654,11 +654,11 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         foreach ($this->consumerFactories as $consumerFactory) {
-            if (!($consumerFactory instanceof PollingConsumerBuilder)) {
+            if (! ($consumerFactory instanceof PollingConsumerBuilder)) {
                 continue;
             }
 
-            $endpointAnnotations = [new AsynchronousRunningEndpoint("")];
+            $endpointAnnotations = [new AsynchronousRunningEndpoint('')];
             if ($this->aroundMethodInterceptors) {
                 $aroundInterceptors = $this->getRelatedInterceptors(
                     $this->aroundMethodInterceptors,

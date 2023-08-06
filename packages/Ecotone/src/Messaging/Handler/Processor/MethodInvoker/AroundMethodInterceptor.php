@@ -67,11 +67,23 @@ class AroundMethodInterceptor
             : TypeDescriptor::createFromVariable($requestMessage->getPayload());
 
         foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $parameter) {
+            if ($parameter->canBePassedIn($methodInvocationType)) {
+                $hasMethodInvocation = true;
+            }
+        }
+
+        foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $parameter) {
             $resolvedArgument = null;
+            $hasArgumentBeenResolved = false;
             foreach ($this->parameterConverters as $parameterConverter) {
                 if ($parameterConverter->isHandling($parameter)) {
                     $resolvedArgument = $parameterConverter->getArgumentFrom($this->interceptorInterfaceToCall, $parameter, $requestMessage, []);
+                    $hasArgumentBeenResolved = true;
                 }
+            }
+            if ($hasArgumentBeenResolved) {
+                $argumentsToCallInterceptor[] = $resolvedArgument;
+                continue;
             }
 
             if (is_null($resolvedArgument) && $parameter->canBePassedIn($messagePayloadType)) {
@@ -79,7 +91,6 @@ class AroundMethodInterceptor
             }
 
             if (is_null($resolvedArgument) && $parameter->canBePassedIn($methodInvocationType)) {
-                $hasMethodInvocation = true;
                 $resolvedArgument    = $methodInvocation;
             }
 

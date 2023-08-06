@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
@@ -263,7 +264,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         $resolvedInterfaces = [
             $interfaceToCallRegistry->getFor(GatewayInternalHandler::class, 'handle'),
             $interfaceToCallRegistry->getFor(ErrorChannelInterceptor::class, 'handle'),
-            $interfaceToCallRegistry->getFor(ConversionInterceptor::class, 'convert'),
+            $interfaceToCallRegistry->getFor(GatewayReplyConverter::class, 'convert'),
             $interfaceToCallRegistry->getFor($this->interfaceName, $this->methodName),
         ];
 
@@ -417,7 +418,12 @@ class GatewayProxyBuilder implements InterceptedEndpoint
             $this->getSortedAroundInterceptors($this->aroundInterceptors),
             $this->getSortedInterceptors($beforeInterceptors),
             $this->getSortedInterceptors($this->afterInterceptors),
-            $registeredAnnotations
+            $registeredAnnotations,
+            new GatewayReplyConverter(
+                $referenceSearchService->get(ConversionService::REFERENCE_NAME),
+                $interfaceToCall,
+                $messageConverters,
+            )
         );
     }
 

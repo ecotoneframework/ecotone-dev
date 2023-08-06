@@ -89,7 +89,8 @@ class Gateway implements NonProxyGateway
         iterable $aroundInterceptors,
         iterable $sortedBeforeInterceptors,
         iterable $sortedAfterInterceptors,
-        iterable $endpointAnnotations
+        iterable $endpointAnnotations,
+        private GatewayReplyConverter $gatewayReplyConverter
     ) {
         $this->methodCallToMessageConverter = $methodCallToMessageConverter;
         $this->messageConverters = $messageConverters;
@@ -163,28 +164,40 @@ class Gateway implements NonProxyGateway
         $requestMessage = $requestMessage
             ->removeHeader(MessageHeaders::REPLY_CONTENT_TYPE)
             ->build();
-        $messageHandler = $this->buildHandler($replyContentType);
+        $messageHandler = $this->buildHandler();
 
         $messageHandler->handle($requestMessage);
-        $reply = $internalReplyBridge ? $internalReplyBridge->receive() : null;
+        $replyMessage = $internalReplyBridge ? $internalReplyBridge->receive() : null;
+        if (!is_null($replyMessage) && $this->interfaceToCall->canReturnValue()) {
+            if ($replyContentType !== null || ! ($this->interfaceToCall->getReturnType()->isAnything() || $this->interfaceToCall->getReturnType()->isMessage())) {
+                $reply = $this->gatewayReplyConverter->convert($replyMessage, $replyContentType);
+                if (!($reply instanceof Message)) {
+                    $replyMessage = MessageBuilder::fromMessage($replyMessage)
+                                        ->setPayload($reply)
+                                        ->build();
+                }else {
+                    $replyMessage = $reply;
+                }
+            }
+        }
 
-        if ($reply) {
+        if ($replyMessage) {
             if ($this->interfaceToCall->getReturnType()->isClassOfType(Message::class)) {
                 if ($previousReplyChannel) {
-                    return MessageBuilder::fromMessage($reply)
+                    return MessageBuilder::fromMessage($replyMessage)
                         ->setReplyChannel($previousReplyChannel)
                         ->build();
                 }
 
-                return $reply;
+                return $replyMessage;
             }
 
-            return $reply->getPayload();
+            return $replyMessage->getPayload();
         }
     }
 
 
-    private function buildHandler(?MediaType $replyContentType): MessageHandler
+    private function buildHandler(): MessageHandler
     {
         $gatewayInternalHandler = new GatewayInternalHandler(
             $this->interfaceToCall,
@@ -198,25 +211,9 @@ class Gateway implements NonProxyGateway
             ->withWrappingResultInMessage(false)
             ->withEndpointAnnotations($this->endpointAnnotations);
         $aroundInterceptorReferences = $this->aroundInterceptors;
-        if ($replyContentType !== null || ! ($this->interfaceToCall->getReturnType()->isAnything() || $this->interfaceToCall->getReturnType()->isMessage())) {
-            /** @TODO That probably should be added quicker */
-            $aroundInterceptorReferences[] = AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                $this->referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME),
-                new ConversionInterceptor(
-                    $this->referenceSearchService->get(ConversionService::REFERENCE_NAME),
-                    $this->interfaceToCall,
-                    $replyContentType,
-                    $this->messageConverters,
-                ),
-                'convert',
-                Precedence::GATEWAY_REPLY_CONVERSION_PRECEDENCE,
-                $this->interfaceToCall->getInterfaceName()
-            );
-        }
         foreach ($aroundInterceptorReferences as $aroundInterceptorReference) {
             $gatewayInternalHandler = $gatewayInternalHandler->addAroundInterceptor($aroundInterceptorReference);
         }
-
 
         $chainHandler = ChainMessageHandlerBuilder::create();
         foreach ($this->sortedBeforeInterceptors as $beforeInterceptor) {

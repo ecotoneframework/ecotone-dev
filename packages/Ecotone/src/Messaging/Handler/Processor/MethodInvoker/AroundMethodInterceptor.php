@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Handler\InterfaceToCall;

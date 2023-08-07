@@ -18,15 +18,25 @@ final class ServiceActivatingHandler implements MessageHandler
 {
     public function __construct(
         private RequestReplyProducer $requestReplyProducer,
-    ) {
-    }
+        private bool $hasAroundMethodInterceptor
+    ) {}
 
     /**
      * @inheritDoc
      */
     public function handle(Message $message): void
     {
-        $this->requestReplyProducer->handleWithPossibleAroundInterceptors($message);
+        /**
+         * We could call handleWithPossibleAroundInterceptors, yet
+         * this is used to make the stacktrace shorter and more readable
+         */
+        if ($this->hasAroundMethodInterceptor) {
+            $this->requestReplyProducer->handleWithPossibleAroundInterceptors($message);
+
+            return;
+        }
+
+        $this->requestReplyProducer->executeEndpointAndSendReply($message);
     }
 
     public function __toString()

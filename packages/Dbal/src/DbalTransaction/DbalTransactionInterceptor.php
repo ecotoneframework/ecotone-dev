@@ -55,6 +55,7 @@ class DbalTransactionInterceptor
             }
         }
 
+        $logger->info('Starting Database Transaction');
         foreach ($connections as $connection) {
             $connection->beginTransaction();
         }
@@ -64,13 +65,25 @@ class DbalTransactionInterceptor
             foreach ($connections as $connection) {
                 try {
                     $connection->commit();
+                    $logger->info('Committing Database Transaction');
                 } catch (PDOException $exception) {
                     /** Handles the case where Mysql did implicit commit, when new creating tables */
                     if (! str_contains($exception->getMessage(), 'There is no active transaction')) {
+                        $logger->info(
+                            'Rolling back Database Transaction',
+                            [
+                                'exception' => $exception
+                            ]
+                        );
                         throw $exception;
                     }
 
-                    $logger->info('Implicit Commit was detected, skipping manual one.');
+                    $logger->info(
+                        'Implicit Commit was detected, skipping manual one.',
+                        [
+                            'exception' => $exception
+                        ]
+                    );
                     /** Doctrine hold the state, so it needs to be cleaned */
                     try {
                         $connection->rollBack();

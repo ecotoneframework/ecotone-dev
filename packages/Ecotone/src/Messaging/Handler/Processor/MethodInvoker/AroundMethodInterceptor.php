@@ -58,7 +58,7 @@ class AroundMethodInterceptor
         $methodInvocationType = TypeDescriptor::create(MethodInvocation::class);
 
         $hasMethodInvocation                  = false;
-        $argumentsToCallInterceptor           = [];
+        $argumentsToCall           = [];
         $interceptedInstanceType              = $methodInvocation->getInterceptedInterface()->getInterfaceType();
         $referenceSearchServiceTypeDescriptor = TypeDescriptor::create(ReferenceSearchService::class);
         $messageType                          = TypeDescriptor::create(Message::class);
@@ -82,7 +82,7 @@ class AroundMethodInterceptor
                 }
             }
             if ($hasArgumentBeenResolved) {
-                $argumentsToCallInterceptor[] = $resolvedArgument;
+                $argumentsToCall[] = $resolvedArgument;
                 continue;
             }
 
@@ -143,13 +143,17 @@ class AroundMethodInterceptor
                 throw MethodInvocationException::create("{$this->interceptorInterfaceToCall} can't resolve argument for parameter with name `{$parameter->getName()}`. It can be that the value is null in this scenario (for example type hinting for Aggregate, when calling Aggregate Factory Method), however the interface does not allow for nulls.");
             }
 
-            $argumentsToCallInterceptor[] = $resolvedArgument;
+            $argumentsToCall[] = $resolvedArgument;
         }
 
-        $returnValue = call_user_func_array(
-            [$this->referenceToCall, $this->interceptorInterfaceToCall->getMethodName()],
-            $argumentsToCallInterceptor
-        );
+        /** Used to make the stacktrace shorter and more readable, as call_user_func_array add additional stacktrace level */
+        $returnValue = match (count($argumentsToCall)) {
+            0 => $this->referenceToCall->{$this->interceptorInterfaceToCall->getMethodName()}(),
+            1 => $this->referenceToCall->{$this->interceptorInterfaceToCall->getMethodName()}($argumentsToCall[0]),
+            2 => $this->referenceToCall->{$this->interceptorInterfaceToCall->getMethodName()}($argumentsToCall[0], $argumentsToCall[1]),
+            3 => $this->referenceToCall->{$this->interceptorInterfaceToCall->getMethodName()}($argumentsToCall[0], $argumentsToCall[1], $argumentsToCall[2]),
+            default => call_user_func_array([$this->referenceToCall, $this->interceptorInterfaceToCall->getMethodName()], $argumentsToCall),
+        };
 
         if (! $hasMethodInvocation) {
             return $methodInvocation->proceed();

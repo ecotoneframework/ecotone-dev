@@ -34,11 +34,13 @@ class ErrorHandlerTest extends TestCase
         $errorHandler = new ErrorHandler($retryTemplate, false, $logger);
 
         $this->assertNull(
-            $errorHandler->handle($this->createFailedMessage(
-                MessageBuilder::withPayload('some')
-                    ->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, 'errorChannel')
-                    ->build()
-            ), InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
+            $errorHandler->handle(
+                $this->createFailedMessage(
+                    MessageBuilder::withPayload('some')
+                        ->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, 'errorChannel')
+                        ->build()
+                ),
+                InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
                 $logger
             ),
         );
@@ -94,13 +96,15 @@ class ErrorHandlerTest extends TestCase
         $logger = LoggerExample::create();
         $errorHandler = new ErrorHandler($retryTemplate, true);
 
-        $resultMessage = $errorHandler->handle($this->createFailedMessage(
-            MessageBuilder::withPayload('payload')
-                ->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, 'errorChannel')
-                ->setHeader(ErrorHandler::ECOTONE_RETRY_HEADER, 2)
-                ->build(),
-            new InvalidArgumentException('exceptionMessage')
-        ), InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
+        $resultMessage = $errorHandler->handle(
+            $this->createFailedMessage(
+                MessageBuilder::withPayload('payload')
+                    ->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, 'errorChannel')
+                    ->setHeader(ErrorHandler::ECOTONE_RETRY_HEADER, 2)
+                    ->build(),
+                new InvalidArgumentException('exceptionMessage')
+            ),
+            InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
             $logger
         );
 
@@ -119,13 +123,15 @@ class ErrorHandlerTest extends TestCase
         $logger = LoggerExample::create();
         $errorHandler = new ErrorHandler($retryTemplate, false);
 
-        $resultMessage = $errorHandler->handle($this->createFailedMessage(
-            MessageBuilder::withPayload('payload')
-                ->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, 'errorChannel')
-                ->setHeader(ErrorHandler::ECOTONE_RETRY_HEADER, 2)
-                ->build(),
-            new InvalidArgumentException('exceptionMessage')
-        ), InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
+        $resultMessage = $errorHandler->handle(
+            $this->createFailedMessage(
+                MessageBuilder::withPayload('payload')
+                    ->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, 'errorChannel')
+                    ->setHeader(ErrorHandler::ECOTONE_RETRY_HEADER, 2)
+                    ->build(),
+                new InvalidArgumentException('exceptionMessage')
+            ),
+            InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
             $logger
         );
 
@@ -169,11 +175,13 @@ class ErrorHandlerTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $errorHandler->handle($this->createFailedMessage(
-            MessageBuilder::withPayload('some')
-                ->build(),
-            new InvalidArgumentException()
-        ), InMemoryChannelResolver::createEmpty(),
+        $errorHandler->handle(
+            $this->createFailedMessage(
+                MessageBuilder::withPayload('some')
+                    ->build(),
+                new InvalidArgumentException()
+            ),
+            InMemoryChannelResolver::createEmpty(),
             LoggerExample::create()
         );
     }

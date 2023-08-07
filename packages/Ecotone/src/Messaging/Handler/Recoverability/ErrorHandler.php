@@ -27,16 +27,14 @@ class ErrorHandler
     public function __construct(
         private RetryTemplate $delayedRetryTemplate,
         private bool $hasDeadLetterOutput
-    )
-    {
+    ) {
     }
 
     public function handle(
         ErrorMessage $errorMessage,
         ChannelResolver $channelResolver,
         #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)] LoggerInterface $logger
-    ): ?Message
-    {
+    ): ?Message {
         /** @var MessagingException $messagingException */
         $messagingException = $errorMessage->getPayload();
         $failedMessage = $messagingException->getFailedMessage();

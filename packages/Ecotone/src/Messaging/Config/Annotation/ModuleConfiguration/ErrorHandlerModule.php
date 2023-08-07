@@ -60,7 +60,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                 ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName())
                 ->withInputChannelName($extensionObject->getErrorChannelName())
                 ->withMethodParameterConverters([
-                    ReferenceBuilder::create('logger', LoggingHandlerBuilder::LOGGER_REFERENCE)
+                    ReferenceBuilder::create('logger', LoggingHandlerBuilder::LOGGER_REFERENCE),
                 ]);
             if ($extensionObject->getDeadLetterQueueChannel()) {
                 $errorHandler = $errorHandler->withOutputMessageChannel($extensionObject->getDeadLetterQueueChannel());

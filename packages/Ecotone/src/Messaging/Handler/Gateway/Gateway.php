@@ -5,18 +5,14 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MethodArgument;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageConverter\MessageConverter;
@@ -24,7 +20,6 @@ use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
-use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
@@ -132,14 +127,14 @@ class Gateway implements NonProxyGateway
 
         $this->gatewayInternalHandler->handle($requestMessage);
         $replyMessage = $internalReplyBridge ? $internalReplyBridge->receive() : null;
-        if (!is_null($replyMessage) && $this->interfaceToCall->canReturnValue()) {
+        if (! is_null($replyMessage) && $this->interfaceToCall->canReturnValue()) {
             if ($replyContentType !== null || ! ($this->interfaceToCall->getReturnType()->isAnything() || $this->interfaceToCall->getReturnType()->isMessage())) {
                 $reply = $this->gatewayReplyConverter->convert($replyMessage, $replyContentType);
-                if (!($reply instanceof Message)) {
+                if (! ($reply instanceof Message)) {
                     $replyMessage = MessageBuilder::fromMessage($replyMessage)
                                         ->setPayload($reply)
                                         ->build();
-                }else {
+                } else {
                     $replyMessage = $reply;
                 }
             }

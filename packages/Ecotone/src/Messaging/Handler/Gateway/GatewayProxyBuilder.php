@@ -24,7 +24,6 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
@@ -413,8 +412,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         InterfaceToCall $interfaceToCall,
         ReferenceSearchService $referenceSearchService,
         ChannelResolver $channelResolver
-    ): MessageHandler
-    {
+    ): MessageHandler {
         $registeredAnnotations = $this->endpointAnnotations;
         foreach ($interfaceToCall->getMethodAnnotations() as $annotation) {
             if ($this->canBeAddedToRegisteredAnnotations($registeredAnnotations, $annotation)) {

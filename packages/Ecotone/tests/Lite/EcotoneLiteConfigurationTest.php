@@ -4,12 +4,10 @@ namespace Test\Ecotone\Lite;
 
 use Ecotone\Lite\EcotoneLiteConfiguration;
 use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;

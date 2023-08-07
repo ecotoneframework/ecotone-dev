@@ -435,20 +435,21 @@ class GatewayProxyBuilder implements InterceptedEndpoint
             $this->replyMilliSecondsTimeout
         );
 
-        $gatewayInternalHandler = ServiceActivatorBuilder::createWithDirectReference($gatewayInternalHandler, 'handle')
-            ->withWrappingResultInMessage(false)
-            ->withEndpointAnnotations($registeredAnnotations);
-        foreach ($this->getSortedAroundInterceptors($this->aroundInterceptors) as $aroundInterceptorReference) {
-            $gatewayInternalHandler = $gatewayInternalHandler->addAroundInterceptor($aroundInterceptorReference);
-        }
-
         $chainHandler = ChainMessageHandlerBuilder::create();
         foreach ($this->getSortedInterceptors($this->beforeInterceptors) as $beforeInterceptor) {
             $chainHandler = $chainHandler->chain($beforeInterceptor);
         }
-        $chainHandler = $chainHandler->chain($gatewayInternalHandler);
+        $chainHandler = $chainHandler->chainInterceptedHandler(
+            ServiceActivatorBuilder::createWithDirectReference($gatewayInternalHandler, 'handle')
+                ->withWrappingResultInMessage(false)
+                ->withEndpointAnnotations($registeredAnnotations)
+        );
         foreach ($this->getSortedInterceptors($this->afterInterceptors) as $afterInterceptor) {
             $chainHandler = $chainHandler->chain($afterInterceptor);
+        }
+
+        foreach ($this->getSortedAroundInterceptors($this->aroundInterceptors) as $aroundInterceptorReference) {
+            $chainHandler = $chainHandler->addAroundInterceptor($aroundInterceptorReference);
         }
 
         return $chainHandler

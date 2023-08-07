@@ -15,6 +15,7 @@ use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
 use Throwable;
 
 /**
@@ -29,15 +30,19 @@ class ErrorHandlerTest extends TestCase
             ->build();
 
         $consumedChannel = QueueChannel::create();
-        $errorHandler = new ErrorHandler($retryTemplate, false);
+        $logger = LoggerExample::create();
+        $errorHandler = new ErrorHandler($retryTemplate, false, $logger);
 
         $this->assertNull(
             $errorHandler->handle($this->createFailedMessage(
                 MessageBuilder::withPayload('some')
                     ->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, 'errorChannel')
                     ->build()
-            ), InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]))
+            ), InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
+                $logger
+            ),
         );
+        $this->assertCount(1, $logger->getInfo());
 
         $this->assertNull($errorHandler->handle(
             $this->createFailedMessage(
@@ -45,9 +50,12 @@ class ErrorHandlerTest extends TestCase
                     ->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, 'errorChannel')
                     ->build()
             ),
-            InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel])
+            InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
+            $logger
         ));
         $this->assertNotNull($consumedChannel->receive());
+        $this->assertCount(2, $logger->getInfo());
+        $this->assertCount(0, $logger->getCritical());
     }
 
     private function createFailedMessage(Message $message, Throwable $exception = null): ErrorMessage
@@ -69,7 +77,8 @@ class ErrorHandlerTest extends TestCase
                     ->setHeader(ErrorHandler::ECOTONE_RETRY_HEADER, 2)
                     ->build()
             ),
-            InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel])
+            InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
+            LoggerExample::create()
         );
 
         $this->assertEquals(40, $consumedChannel->receive()->getHeaders()->get(MessageHeaders::DELIVERY_DELAY));
@@ -82,6 +91,7 @@ class ErrorHandlerTest extends TestCase
             ->build();
 
         $consumedChannel = QueueChannel::create();
+        $logger = LoggerExample::create();
         $errorHandler = new ErrorHandler($retryTemplate, true);
 
         $resultMessage = $errorHandler->handle($this->createFailedMessage(
@@ -90,10 +100,13 @@ class ErrorHandlerTest extends TestCase
                 ->setHeader(ErrorHandler::ECOTONE_RETRY_HEADER, 2)
                 ->build(),
             new InvalidArgumentException('exceptionMessage')
-        ), InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]));
+        ), InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
+            $logger
+        );
 
         $this->assertEquals('exceptionMessage', $resultMessage->getHeaders()->get(ErrorHandler::EXCEPTION_MESSAGE));
         $this->assertNotEmpty($resultMessage->getHeaders()->get(ErrorHandler::EXCEPTION_STACKTRACE));
+        $this->assertCount(1, $logger->getCritical());
     }
 
     public function test_if_exceeded_retries_and_no_dead_letter_defined_drop_message()
@@ -103,6 +116,7 @@ class ErrorHandlerTest extends TestCase
             ->build();
 
         $consumedChannel = QueueChannel::create();
+        $logger = LoggerExample::create();
         $errorHandler = new ErrorHandler($retryTemplate, false);
 
         $resultMessage = $errorHandler->handle($this->createFailedMessage(
@@ -111,9 +125,12 @@ class ErrorHandlerTest extends TestCase
                 ->setHeader(ErrorHandler::ECOTONE_RETRY_HEADER, 2)
                 ->build(),
             new InvalidArgumentException('exceptionMessage')
-        ), InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]));
+        ), InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
+            $logger
+        );
 
         $this->assertNull($resultMessage);
+        $this->assertCount(1, $logger->getCritical());
     }
 
     public function test_if_exceeded_retries_returning_message_with_causation_exception_if_exists()
@@ -133,7 +150,8 @@ class ErrorHandlerTest extends TestCase
                     ->build(),
                 new InvalidArgumentException('causation')
             ),
-            InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel])
+            InMemoryChannelResolver::createFromAssociativeArray(['errorChannel' => $consumedChannel]),
+            LoggerExample::create()
         );
 
         $this->assertEquals('causation', $resultMessage->getHeaders()->get(ErrorHandler::EXCEPTION_MESSAGE));
@@ -155,6 +173,8 @@ class ErrorHandlerTest extends TestCase
             MessageBuilder::withPayload('some')
                 ->build(),
             new InvalidArgumentException()
-        ), InMemoryChannelResolver::createEmpty());
+        ), InMemoryChannelResolver::createEmpty(),
+            LoggerExample::create()
+        );
     }
 }

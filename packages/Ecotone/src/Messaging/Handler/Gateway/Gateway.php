@@ -43,22 +43,6 @@ class Gateway implements NonProxyGateway
      */
     private array $messageConverters;
     private InterfaceToCall $interfaceToCall;
-    private ?PollableChannel $replyChannel;
-    private ?MessageChannel $errorChannel;
-    private int $replyMilliSecondsTimeout;
-    private MessageChannel $gatewayRequestChannel;
-    private ReferenceSearchService $referenceSearchService;
-    private iterable $aroundInterceptors;
-    /**
-     * @var InputOutputMessageHandlerBuilder[]
-     */
-    private iterable $sortedBeforeInterceptors = [];
-    /**
-     * @var InputOutputMessageHandlerBuilder[]
-     */
-    private iterable $sortedAfterInterceptors = [];
-    private iterable $endpointAnnotations;
-    private ChannelResolver $channelResolver;
 
     /**
      * GatewayProxy constructor.
@@ -80,31 +64,12 @@ class Gateway implements NonProxyGateway
         InterfaceToCall $interfaceToCall,
         MethodCallToMessageConverter $methodCallToMessageConverter,
         array $messageConverters,
-        MessageChannel $requestChannel,
-        ?PollableChannel $replyChannel,
-        ?MessageChannel $errorChannel,
-        int $replyMilliSecondsTimeout,
-        ReferenceSearchService $referenceSearchService,
-        ChannelResolver $channelResolver,
-        iterable $aroundInterceptors,
-        iterable $sortedBeforeInterceptors,
-        iterable $sortedAfterInterceptors,
-        iterable $endpointAnnotations,
-        private GatewayReplyConverter $gatewayReplyConverter
+        private GatewayReplyConverter $gatewayReplyConverter,
+        private MessageHandler $gatewayInternalHandler
     ) {
         $this->methodCallToMessageConverter = $methodCallToMessageConverter;
         $this->messageConverters = $messageConverters;
         $this->interfaceToCall = $interfaceToCall;
-        $this->replyChannel = $replyChannel;
-        $this->errorChannel = $errorChannel;
-        $this->replyMilliSecondsTimeout = $replyMilliSecondsTimeout;
-        $this->gatewayRequestChannel = $requestChannel;
-        $this->referenceSearchService = $referenceSearchService;
-        $this->aroundInterceptors = $aroundInterceptors;
-        $this->endpointAnnotations = $endpointAnnotations;
-        $this->sortedBeforeInterceptors = $sortedBeforeInterceptors;
-        $this->sortedAfterInterceptors = $sortedAfterInterceptors;
-        $this->channelResolver = $channelResolver;
     }
 
     /**
@@ -164,9 +129,8 @@ class Gateway implements NonProxyGateway
         $requestMessage = $requestMessage
             ->removeHeader(MessageHeaders::REPLY_CONTENT_TYPE)
             ->build();
-        $messageHandler = $this->buildHandler();
 
-        $messageHandler->handle($requestMessage);
+        $this->gatewayInternalHandler->handle($requestMessage);
         $replyMessage = $internalReplyBridge ? $internalReplyBridge->receive() : null;
         if (!is_null($replyMessage) && $this->interfaceToCall->canReturnValue()) {
             if ($replyContentType !== null || ! ($this->interfaceToCall->getReturnType()->isAnything() || $this->interfaceToCall->getReturnType()->isMessage())) {
@@ -194,40 +158,5 @@ class Gateway implements NonProxyGateway
 
             return $replyMessage->getPayload();
         }
-    }
-
-
-    private function buildHandler(): MessageHandler
-    {
-        $gatewayInternalHandler = new GatewayInternalHandler(
-            $this->interfaceToCall,
-            $this->gatewayRequestChannel,
-            $this->errorChannel,
-            $this->replyChannel,
-            $this->replyMilliSecondsTimeout
-        );
-
-        $gatewayInternalHandler = ServiceActivatorBuilder::createWithDirectReference($gatewayInternalHandler, 'handle')
-            ->withWrappingResultInMessage(false)
-            ->withEndpointAnnotations($this->endpointAnnotations);
-        $aroundInterceptorReferences = $this->aroundInterceptors;
-        foreach ($aroundInterceptorReferences as $aroundInterceptorReference) {
-            $gatewayInternalHandler = $gatewayInternalHandler->addAroundInterceptor($aroundInterceptorReference);
-        }
-
-        $chainHandler = ChainMessageHandlerBuilder::create();
-        foreach ($this->sortedBeforeInterceptors as $beforeInterceptor) {
-            $chainHandler = $chainHandler->chain($beforeInterceptor);
-        }
-        $chainHandler = $chainHandler->chain($gatewayInternalHandler);
-        foreach ($this->sortedAfterInterceptors as $afterInterceptor) {
-            $chainHandler = $chainHandler->chain($afterInterceptor);
-        }
-
-        return $chainHandler
-            ->build(
-                $this->channelResolver,
-                $this->referenceSearchService
-            );
     }
 }

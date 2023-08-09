@@ -3,14 +3,14 @@
 namespace App\OutboxPattern\Domain;
 
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\EventBus;
 
 #[Aggregate]
 final class Order
 {
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $orderId;
     private string $productName;
 

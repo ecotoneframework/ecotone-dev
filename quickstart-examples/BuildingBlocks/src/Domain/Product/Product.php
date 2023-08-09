@@ -10,7 +10,7 @@ use App\Domain\Product\Command\CreateProduct;
 use App\Domain\Product\Event\ProductPriceWasChanged;
 use App\Domain\Product\Event\ProductWasAdded;
 use App\Domain\Product\Event\ProductWasApproved;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
@@ -27,7 +27,7 @@ final class Product
 {
     use WithAggregateVersioning;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private readonly UuidInterface $productId;
 
     private readonly Money $price;

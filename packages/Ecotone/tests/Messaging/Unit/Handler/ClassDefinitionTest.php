@@ -11,6 +11,7 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
+use Ecotone\Modelling\Attribute\Identifier;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Conversion\Grouping\CollectionOfClassesFromDifferentNamespaceUsingGroupAlias;
@@ -181,7 +182,7 @@ class ClassDefinitionTest extends TestCase
         $classDefinition = ClassDefinition::createFor(TypeDescriptor::create(OrderWithTraits::class));
 
         $this->assertEquals(
-            ClassPropertyDefinition::createPrivate('property', TypeDescriptor::create(ExtraObject::class), true, false, [new AggregateIdentifier()]),
+            ClassPropertyDefinition::createPrivate('property', TypeDescriptor::create(ExtraObject::class), true, false, [new Identifier()]),
             $classDefinition->getProperty('property')
         );
     }

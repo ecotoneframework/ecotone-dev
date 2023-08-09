@@ -7,7 +7,7 @@ namespace App\Domain\Customer;
 use App\Domain\Customer\Command\ChangeEmail;
 use App\Domain\Customer\Command\RegisterCustomer;
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ramsey\Uuid\UuidInterface;
 
@@ -18,7 +18,7 @@ use Ramsey\Uuid\UuidInterface;
 final class Customer
 {
     private function __construct(
-        #[AggregateIdentifier] private UuidInterface $customerId,
+        #[Identifier] private UuidInterface $customerId,
         private FullName $fullName,
         private Email $email,
     ) {}

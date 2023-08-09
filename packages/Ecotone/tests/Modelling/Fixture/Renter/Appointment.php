@@ -7,6 +7,7 @@ namespace Test\Ecotone\Modelling\Fixture\Renter;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\WithAggregateEvents;
 
 #[Aggregate]
@@ -14,7 +15,7 @@ class Appointment
 {
     use WithAggregateEvents;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private $appointmentId;
     /**
      * @var int

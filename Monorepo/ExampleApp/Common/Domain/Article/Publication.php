@@ -5,6 +5,7 @@ namespace Monorepo\ExampleApp\Common\Domain\Article;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Monorepo\ExampleApp\Common\Domain\Article\Command\ChangeContent;
 use Monorepo\ExampleApp\Common\Domain\Article\Command\ChangeTitle;
 use Monorepo\ExampleApp\Common\Domain\Article\Command\CreatePublication;
@@ -12,7 +13,7 @@ use Monorepo\ExampleApp\Common\Domain\Article\Command\CreatePublication;
 #[Aggregate]
 class Publication
 {
-    public function __construct(#[AggregateIdentifier] private string $id, private string $title, private string $content)
+    public function __construct(#[Identifier] private string $id, private string $title, private string $content)
     {
     }
 

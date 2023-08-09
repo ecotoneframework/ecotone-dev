@@ -7,6 +7,7 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateEvents;
 use Test\Ecotone\Modelling\Fixture\Order\OrderWasPlaced;
@@ -18,7 +19,7 @@ class Order
 {
     use WithAggregateEvents;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private $orderId;
 
     private $isNotifiedCount = 0;

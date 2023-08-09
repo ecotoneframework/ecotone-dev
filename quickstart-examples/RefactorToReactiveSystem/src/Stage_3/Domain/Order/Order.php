@@ -11,7 +11,7 @@ use App\ReactiveSystem\Stage_3\Domain\Product\ProductDetails;
 use App\ReactiveSystem\Stage_3\Domain\Product\ProductRepository;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\WithAggregateEvents;
 use Money\Money;
@@ -23,7 +23,7 @@ final class Order
 {
     use WithAggregateEvents;
 
-    private function __construct(#[AggregateIdentifier] private UuidInterface $orderId, private UuidInterface $userId, private ShippingAddress $shippingAddress, private ProductDetails $productDetails, private \DateTimeImmutable $orderAt)
+    private function __construct(#[Identifier] private UuidInterface $orderId, private UuidInterface $userId, private ShippingAddress $shippingAddress, private ProductDetails $productDetails, private \DateTimeImmutable $orderAt)
     {
         $this->recordThat(new OrderWasPlaced($this->orderId));
     }

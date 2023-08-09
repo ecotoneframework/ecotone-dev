@@ -7,12 +7,13 @@ namespace Test\Ecotone\Modelling\Fixture\CommandEventFlow;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Aggregate]
 final class User
 {
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $userId;
 
     #[CommandHandler]

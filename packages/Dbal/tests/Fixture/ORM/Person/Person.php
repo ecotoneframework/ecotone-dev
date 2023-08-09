@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
 use RuntimeException;
@@ -21,7 +22,7 @@ class Person
 
     #[ORM\Id]
     #[ORM\Column(name: 'person_id', type: 'integer')]
-    #[AggregateIdentifier]
+    #[Identifier]
     private int $personId;
 
     #[ORM\Column(name: 'name', type: 'string')]

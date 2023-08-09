@@ -7,6 +7,7 @@ namespace Test\Ecotone\Modelling\Fixture\AggregateWithGateway;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ramsey\Uuid\UuidInterface;
 
@@ -20,7 +21,7 @@ final class Bucket
     /** @var array<string, string> */
     private array $bucket = [];
 
-    private function __construct(#[AggregateIdentifier] public UuidInterface $bucketId)
+    private function __construct(#[Identifier] public UuidInterface $bucketId)
     {
     }
 

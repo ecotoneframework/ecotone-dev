@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Fixture\SagaWithMultipleActions;
 
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\Saga;
 use Ecotone\Modelling\Attribute\SagaIdentifier;
 use Ecotone\Modelling\WithEvents;
@@ -15,7 +16,7 @@ final class SagaWithMultipleEventHandlers
     use WithEvents;
 
     public function __construct(
-        #[SagaIdentifier] private string $orderId,
+        #[Identifier] private string $orderId,
         public int $actionOneCalled = 0,
         public int $actionTwoCalled = 0
     ) {

@@ -5,11 +5,12 @@ namespace Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 
 #[Aggregate]
 class AggregateCommandHandlerWithFactoryMethod
 {
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $id;
 
     #[CommandHandler(endpointId: 'factory-id')]

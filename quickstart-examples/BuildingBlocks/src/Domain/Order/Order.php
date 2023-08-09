@@ -9,7 +9,7 @@ use App\Domain\Product\ProductService;
 use Assert\Assert;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateEvents;
@@ -29,7 +29,7 @@ final class Order
      * @param UuidInterface[] $productIds
      */
     private function __construct(
-        #[AggregateIdentifier] private UuidInterface $orderId,
+        #[Identifier] private UuidInterface $orderId,
         private UuidInterface $customerId,
         private array $productIds,
         private Money $totalPrice,

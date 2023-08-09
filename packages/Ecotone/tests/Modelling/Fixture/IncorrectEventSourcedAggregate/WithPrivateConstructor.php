@@ -6,12 +6,13 @@ use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use stdClass;
 
 #[EventSourcingAggregate]
 class WithPrivateConstructor
 {
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $id;
 
     private function __construct()

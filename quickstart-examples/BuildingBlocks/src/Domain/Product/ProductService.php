@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Product;
 
 use Ecotone\Messaging\Attribute\MessageGateway;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Money\Money;
 
 /**
@@ -16,5 +16,5 @@ use Money\Money;
 interface ProductService
 {
     #[MessageGateway("product.getPrice")]
-    public function getPrice(#[AggregateIdentifier] $productId): Money;
+    public function getPrice(#[Identifier] $productId): Money;
 }

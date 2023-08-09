@@ -5,6 +5,7 @@ namespace Test\Ecotone\Modelling\Fixture\InterceptedQueryAggregate;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateEvents;
 use Test\Ecotone\Modelling\Fixture\InterceptedQueryAggregate\AddFranchiseMargin\AddFranchise;
@@ -15,7 +16,7 @@ class ShopCalculator
 {
     use WithAggregateEvents;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $shopId;
 
     private int $margin;

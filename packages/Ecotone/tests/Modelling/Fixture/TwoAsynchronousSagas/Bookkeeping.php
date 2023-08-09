@@ -5,6 +5,7 @@ namespace Test\Ecotone\Modelling\Fixture\TwoAsynchronousSagas;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\Attribute\Saga;
 use InvalidArgumentException;
@@ -14,7 +15,7 @@ use InvalidArgumentException;
 class Bookkeeping
 {
     public const GET_BOOKING_STATUS = 'getBookingStatus';
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $orderId;
     private string $status;
 

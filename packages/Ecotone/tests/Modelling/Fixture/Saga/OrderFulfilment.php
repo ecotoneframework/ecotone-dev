@@ -5,7 +5,6 @@ namespace Test\Ecotone\Modelling\Fixture\Saga;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\Saga;
-use Ecotone\Modelling\Attribute\SagaIdentifier;
 
 #[Saga]
 class OrderFulfilment

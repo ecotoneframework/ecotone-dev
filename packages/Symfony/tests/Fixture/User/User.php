@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Fixture\User;
 
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\Identifier;
 
 #[Aggregate]

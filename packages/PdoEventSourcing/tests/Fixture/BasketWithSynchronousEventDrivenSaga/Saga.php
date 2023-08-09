@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga;
 
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;

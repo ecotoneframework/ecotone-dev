@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod;
 
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;

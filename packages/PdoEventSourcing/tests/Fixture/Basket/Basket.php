@@ -4,7 +4,6 @@ namespace Test\Ecotone\EventSourcing\Fixture\Basket;
 
 use Ecotone\EventSourcing\Attribute\AggregateType;
 use Ecotone\EventSourcing\Attribute\Stream;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;

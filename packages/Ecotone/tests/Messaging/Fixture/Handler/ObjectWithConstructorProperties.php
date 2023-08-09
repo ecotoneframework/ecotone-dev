@@ -3,7 +3,6 @@
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
 use Attribute;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\Identifier;
 
 class ObjectWithConstructorProperties

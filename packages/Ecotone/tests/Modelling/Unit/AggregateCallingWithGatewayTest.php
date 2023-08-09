@@ -13,6 +13,9 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Modelling\Fixture\AggregateWithGateway\Bucket;
 use Test\Ecotone\Modelling\Fixture\AggregateWithGateway\BucketGateway;
 
+/**
+ * @internal
+ */
 final class AggregateCallingWithGatewayTest extends TestCase
 {
     public function test_aggregate_with_gateway(): void
@@ -34,7 +37,7 @@ final class AggregateCallingWithGatewayTest extends TestCase
             $bucketId,
             [
                 $uuid->toString() => 'foo',
-                Uuid::uuid4()->toString() => 'bar'
+                Uuid::uuid4()->toString() => 'bar',
             ]
         );
 

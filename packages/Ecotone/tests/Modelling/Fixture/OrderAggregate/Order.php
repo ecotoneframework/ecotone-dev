@@ -4,7 +4,6 @@ namespace Test\Ecotone\Modelling\Fixture\OrderAggregate;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;

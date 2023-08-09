@@ -6,7 +6,6 @@ namespace Test\Ecotone\Modelling\Fixture\AggregateWithGateway;
 
 use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ramsey\Uuid\UuidInterface;
 

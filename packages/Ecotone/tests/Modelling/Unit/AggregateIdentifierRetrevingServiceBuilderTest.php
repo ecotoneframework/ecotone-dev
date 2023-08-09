@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -15,11 +14,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateIdentifierRetrevingServiceBuilder;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\AggregateNotFoundException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\ChangeArticleContentCommand;
-use Test\Ecotone\Modelling\Fixture\Blog\RepublishArticleCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodForEventSourcedAggregate;
 use Test\Ecotone\Modelling\Fixture\InterceptingAggregate\Basket;

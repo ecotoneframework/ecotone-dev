@@ -8,7 +8,6 @@ use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\ClassPropertyDefinition;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
 use Ecotone\Modelling\Attribute\Identifier;

@@ -18,10 +18,8 @@ final class AggregateCallingWithGatewayTest extends TestCase
     public function test_aggregate_with_gateway(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [Bucket::class, BucketGateway::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withNamespaces([
-                    'Test\Ecotone\Modelling\Fixture\AggregateWithGateway'
-                ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
         );
 
@@ -46,10 +44,8 @@ final class AggregateCallingWithGatewayTest extends TestCase
     public function test_throwing_exception_when_aggregate_id_not_found(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [Bucket::class, BucketGateway::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withNamespaces([
-                    'Test\Ecotone\Modelling\Fixture\AggregateWithGateway'
-                ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
         );
 

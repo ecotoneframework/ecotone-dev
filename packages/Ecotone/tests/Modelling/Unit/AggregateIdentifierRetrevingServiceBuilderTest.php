@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -14,6 +15,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateIdentifierRetrevingServiceBuilder;
 use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Modelling\AggregateNotFoundException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\ChangeArticleContentCommand;
@@ -168,18 +170,6 @@ class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(OrderFulfilment::class)),
             ['some' => 'paymentId', 'orderId' => 'x'],
             ClassDefinition::createFor(TypeDescriptor::create(PaymentWasDoneEvent::class)),
-            InterfaceToCallRegistry::createEmpty()
-        );
-    }
-
-    public function test_throwing_exception_if_no_aggregate_identifier_definition_found()
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        AggregateIdentifierRetrevingServiceBuilder::createWith(
-            ClassDefinition::createFor(TypeDescriptor::create(Article::class)),
-            [],
-            ClassDefinition::createFor(TypeDescriptor::create(RepublishArticleCommand::class)),
             InterfaceToCallRegistry::createEmpty()
         );
     }

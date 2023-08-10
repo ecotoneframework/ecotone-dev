@@ -65,7 +65,7 @@ abstract class DbalMessagingTestCase extends TestCase
 
     protected function checkIfTableExists(Connection $connection, string $table): bool
     {
-        $schemaManager = $connection->createSchemaManager();
+        $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
 
         return $schemaManager->tablesExist([$table]);
     }

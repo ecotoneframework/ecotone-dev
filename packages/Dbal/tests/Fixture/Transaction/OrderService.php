@@ -73,7 +73,7 @@ class OrderService
 
     private function doesTableExists(\Doctrine\DBAL\Connection $connection)
     {
-        $schemaManager = $connection->createSchemaManager();
+        $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
 
         return $schemaManager->tablesExist(['orders']);
     }

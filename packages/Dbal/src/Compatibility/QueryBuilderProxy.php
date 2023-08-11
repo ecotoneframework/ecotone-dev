@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\Compatibility;
 
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Result;
+use InvalidArgumentException;
 
 /**
  * @package Ecotone\Dbal\Compatibility
@@ -96,7 +97,7 @@ final class QueryBuilderProxy extends QueryBuilder
 
     public function addGroupBy($groupBy)
     {
-         $this->queryBuilder->{__FUNCTION__}($groupBy);
+        $this->queryBuilder->{__FUNCTION__}($groupBy);
 
         return $this;
     }
@@ -219,6 +220,6 @@ final class QueryBuilderProxy extends QueryBuilder
                 return $this->queryBuilder->execute()->$name(...$arguments);
         }
 
-        throw new \InvalidArgumentException(sprintf("Not supported proxy method: %s", $name));
+        throw new InvalidArgumentException(sprintf('Not supported proxy method: %s', $name));
     }
 }

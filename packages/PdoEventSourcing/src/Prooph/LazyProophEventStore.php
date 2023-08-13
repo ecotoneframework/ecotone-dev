@@ -268,8 +268,10 @@ class LazyProophEventStore implements EventStore
         return $connectionFactory->getConnection();
     }
 
-    /** @phpstan-ignore-next-line */
-    public function getWrappedConnection(): PDOConnection|PDO
+    /**
+     * @return PDOConnection|PDO
+     */
+    public function getWrappedConnection()
     {
         try {
             return $this->getConnection()->getNativeConnection();

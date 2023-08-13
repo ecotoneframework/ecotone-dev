@@ -61,12 +61,17 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
         $ecotoneLite->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString()]);
 
+        $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()
+            ->withHandledMessageLimit(1)
+            ->withExecutionTimeLimitInMilliseconds(100)
+            ->withStopOnError(false);
+
         $this->assertEquals(
             2,
             $ecotoneLite
-                ->run('email', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(100))
-                ->run('email', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(100))
-                ->run('email', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(100))
+                ->run('email', $executionPollingMetadata)
+                ->run('email', $executionPollingMetadata)
+                ->run('email', $executionPollingMetadata)
                 ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }

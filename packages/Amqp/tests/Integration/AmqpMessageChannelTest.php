@@ -140,7 +140,13 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $wasFinallyRethrown = false;
         try {
-            $ecotoneLite->run('correctOrders');
+            $ecotoneLite->run(
+                'correctOrders',
+                ExecutionPollingMetadata::createWithDefaults()
+                    ->withHandledMessageLimit(1)
+                    ->withExecutionTimeLimitInMilliseconds(100)
+                    ->withStopOnError(false)
+            );
         } catch (\AMQPConnectionException) {
             $wasFinallyRethrown = true;
         }

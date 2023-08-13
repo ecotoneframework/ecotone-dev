@@ -112,7 +112,13 @@ final class RedisBackedMessageChannelTest extends AbstractConnectionTest
 
         $wasFinallyRethrown = false;
         try {
-            $ecotoneLite->run('async');
+            $ecotoneLite->run(
+                'async',
+                ExecutionPollingMetadata::createWithDefaults()
+                    ->withHandledMessageLimit(1)
+                    ->withExecutionTimeLimitInMilliseconds(100)
+                    ->withStopOnError(false)
+            );
         } catch (\Predis\Connection\ConnectionException) {
             $wasFinallyRethrown = true;
         }

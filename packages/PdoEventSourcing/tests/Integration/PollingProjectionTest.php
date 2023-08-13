@@ -135,7 +135,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
         $ecotoneLite->deleteProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotoneLite->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
-        self::assertFalse($connection->createSchemaManager()->tablesExist('in_progress_tickets'));
+        self::assertFalse(self::getSchemaManager($connection)->tablesExist('in_progress_tickets'));
     }
 
     public function test_building_multiple_polling_projection(): void

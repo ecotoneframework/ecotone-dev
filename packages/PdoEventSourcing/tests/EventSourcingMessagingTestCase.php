@@ -12,6 +12,11 @@ use PHPUnit\Framework\TestCase;
 
 abstract class EventSourcingMessagingTestCase extends TestCase
 {
+    protected static function getSchemaManager(Connection $connection): \Doctrine\DBAL\Schema\AbstractSchemaManager
+    {
+        return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();;
+    }
+
     protected function setUp(): void
     {
         self::clearDataTables($this->getConnection());
@@ -46,7 +51,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 
     public static function clearDataTables(Connection $connection): void
     {
-        foreach ($connection->createSchemaManager()->listTableNames() as $tableNames) {
+        foreach (self::getSchemaManager($connection)->listTableNames() as $tableNames) {
             $sql = 'DROP TABLE ' . $tableNames;
             $connection->prepare($sql)->executeStatement();
         }
@@ -54,7 +59,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 
     public static function tableExists(Connection $connection, string $table): bool
     {
-        return $connection->createSchemaManager()->tablesExist([$table]);
+        return self::getSchemaManager($connection)->tablesExist([$table]);
     }
 
     private static function deleteFromTableExists(string $tableName, Connection $connection): void
@@ -67,7 +72,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     private static function deleteTable(string $tableName, Connection $connection): void
     {
         if (self::tableExists($connection, $tableName)) {
-            $connection->createSchemaManager()->dropTable($tableName);
+            self::getSchemaManager($connection)->dropTable($tableName);
         }
     }
 }

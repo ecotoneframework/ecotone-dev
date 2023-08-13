@@ -46,14 +46,19 @@ class ObjectManagerInterceptor
                     $manager->clear();
                 }
             }
-            $logger->info('Flushed and cleared doctrine object managers');
+
+            if (count($objectManagers) > 0) {
+                $logger->info('Flushed and cleared doctrine object managers');
+            }
         } catch (Throwable $exception) {
             foreach ($objectManagers as $objectManager) {
                 foreach ($objectManager->getManagers() as $manager) {
                     $manager->clear();
                 }
             }
-            $logger->info('Cleared doctrine object managers');
+            if (count($objectManagers) > 0) {
+                $logger->info('Cleared doctrine object managers');
+            }
 
             throw $exception;
         }

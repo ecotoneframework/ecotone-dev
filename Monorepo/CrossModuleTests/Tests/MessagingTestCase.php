@@ -61,7 +61,7 @@ final class MessagingTestCase
 
     private static function deleteDatabaseTable(string $tableName, Connection $connection): void
     {
-        $schemaManager = $connection->createSchemaManager();
+        $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
 
         if ($schemaManager->tablesExist([$tableName])) {
             $connection->executeStatement('DROP TABLE ' . $tableName);

@@ -7,6 +7,7 @@ use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -237,7 +238,13 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
         $wasFinallyRethrown = false;
         try {
-            $ecotoneLite->run('async');
+            $ecotoneLite->run(
+                'async',
+                ExecutionPollingMetadata::createWithDefaults()
+                    ->withHandledMessageLimit(1)
+                    ->withExecutionTimeLimitInMilliseconds(100)
+                    ->withStopOnError(false)
+            );
         } catch (\Doctrine\DBAL\Exception\ConnectionException) {
             $wasFinallyRethrown = true;
         }

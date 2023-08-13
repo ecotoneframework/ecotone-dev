@@ -110,7 +110,13 @@ final class SqsBackedMessageChannelTest extends AbstractConnectionTest
 
         $wasFinallyRethrown = false;
         try {
-            $ecotoneLite->run('async');
+            $ecotoneLite->run(
+                'async',
+                ExecutionPollingMetadata::createWithDefaults()
+                    ->withHandledMessageLimit(1)
+                    ->withExecutionTimeLimitInMilliseconds(3000)
+                    ->withStopOnError(false)
+            );
         } catch (SqsException) {
             $wasFinallyRethrown = true;
         }

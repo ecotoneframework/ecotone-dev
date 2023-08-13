@@ -5,16 +5,20 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
+use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -23,6 +27,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 #[ModuleAnnotation]
 class AsynchronousModule extends NoExternalConfigurationModule implements AnnotationModule
 {
+    /**
+     * @param array<string, array<string>> $asyncEndpoints
+     */
     private function __construct(private array $asyncEndpoints)
     {
     }
@@ -105,7 +112,10 @@ class AsynchronousModule extends NoExternalConfigurationModule implements Annota
      */
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof CombinedMessageChannel;
+        return
+            $extensionObject instanceof CombinedMessageChannel
+            || $extensionObject instanceof ServiceConfiguration
+            || $extensionObject instanceof PollingMetadata;
     }
 
     /**
@@ -113,6 +123,9 @@ class AsynchronousModule extends NoExternalConfigurationModule implements Annota
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $pollingMetadata = ExtensionObjectResolver::resolve(PollingMetadata::class, $extensionObjects);
+
         $combinedMessageChannels = [];
         /** @var CombinedMessageChannel $combinedMessageChannel */
         foreach (ExtensionObjectResolver::resolve(CombinedMessageChannel::class, $extensionObjects) as $combinedMessageChannel) {
@@ -130,11 +143,34 @@ class AsynchronousModule extends NoExternalConfigurationModule implements Annota
                 }
             }
             $messagingConfiguration->registerAsynchronousEndpoint($asyncChannelsResolved, $endpointId);
+
+            /** Default polling metadata for tests */
+            if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)) {
+                foreach ($asyncChannelsResolved as $asyncEndpointChannel) {
+                    if (!$this->hasPollingMetadata($pollingMetadata, $asyncEndpointChannel)) {
+                        $messagingConfiguration->registerPollingMetadata(
+                            PollingMetadata::create($asyncEndpointChannel)
+                                ->withTestingSetup(100, 1000, true)
+                        );
+                    }
+                }
+            }
         }
     }
 
     public function getModulePackageName(): string
     {
         return ModulePackageList::ASYNCHRONOUS_PACKAGE;
+    }
+
+    private function hasPollingMetadata(array $pollingMetadata, string $asyncEndpoint): bool
+    {
+        foreach ($pollingMetadata as $pollingMetadataForChannel) {
+            if ($pollingMetadataForChannel->getEndpointId() === $asyncEndpoint) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -30,9 +30,9 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~1.96.0",
+        "ecotone/enqueue": "~1.97.0",
         "enqueue/dbal": "^0.10.17",
-        "doctrine/dbal": "^3.3.7"
+        "doctrine/dbal": "^2.12.0|^3.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
@@ -54,7 +54,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.96.0-dev"
+            "dev-main": "1.97.0-dev"
         },
         "ecotone": {
             "repository": "dbal"

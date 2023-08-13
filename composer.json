@@ -96,7 +96,7 @@
     },
     "require": {
         "php": "^8.0",
-        "doctrine/dbal": "^3.3.7",
+        "doctrine/dbal": "^2.12.0|^3.0",
         "doctrine/persistence": "^2.5",
         "enqueue/amqp-ext": "^0.10.18",
         "enqueue/dbal": "^0.10.17",

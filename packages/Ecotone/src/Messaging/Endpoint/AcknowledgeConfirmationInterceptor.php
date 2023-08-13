@@ -39,16 +39,13 @@ class AcknowledgeConfirmationInterceptor
      * @throws Throwable
      * @throws MessagingException
      */
-    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference('logger')] LoggerInterface $logger)
+    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference("logger")] LoggerInterface $logger)
     {
         $logger->info(
-            sprintf(
-                'Message with id `%s` received at %d from Message Channel `%s`',
-                $message->getHeaders()->getMessageId(),
-                $message->getHeaders()->getTimestamp(),
-                $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)
-            )
-        );
+            sprintf("Message with id `%s` received from Message Channel `%s`",
+            $message->getHeaders()->getMessageId(),
+            $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : "unknown"
+        ));
         if (! $message->getHeaders()->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
             return $methodInvocation->proceed();
         }

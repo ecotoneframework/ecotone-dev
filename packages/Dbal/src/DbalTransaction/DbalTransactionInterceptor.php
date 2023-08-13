@@ -70,7 +70,7 @@ class DbalTransactionInterceptor
                     /** Handles the case where Mysql did implicit commit, when new creating tables */
                     if (! str_contains($exception->getMessage(), 'There is no active transaction')) {
                         $logger->info(
-                            'Rolling back Database Transaction',
+                            'Failure on committing transaction.',
                             [
                                 'exception' => $exception,
                             ]
@@ -94,9 +94,20 @@ class DbalTransactionInterceptor
         } catch (Throwable $exception) {
             foreach ($connections as $connection) {
                 try {
+                    $logger->info(
+                        'Exception has been thrown, rolling back transaction.',
+                        [
+                            'exception' => $exception,
+                        ]
+                    );
                     $connection->rollBack();
                 } catch (Throwable $rollBackException) {
-                    $logger->info(sprintf('Exception has been thrown, however could not rollback the transaction due to: %s', $rollBackException->getMessage()));
+                    $logger->info(
+                        'Exception has been thrown, however could not rollback the transaction.',
+                        [
+                            'exception' => $rollBackException,
+                        ]
+                    );
                 }
             }
 

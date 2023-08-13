@@ -4,9 +4,11 @@ namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 class ObjectManagerInterceptor
@@ -23,6 +25,8 @@ class ObjectManagerInterceptor
 
     public function transactional(MethodInvocation $methodInvocation, ReferenceSearchService $referenceSearchService)
     {
+        /** @var LoggerInterface $logger */
+        $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
         /** @var ManagerRegistry[] $objectManagers */
         $objectManagers = [];
 
@@ -50,6 +54,8 @@ class ObjectManagerInterceptor
             }
 
             throw $exception;
+        } finally {
+            $logger->info('Flushed and cleared doctrine object managers');
         }
 
 

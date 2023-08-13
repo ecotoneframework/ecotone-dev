@@ -14,7 +14,8 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 {
     protected static function getSchemaManager(Connection $connection): \Doctrine\DBAL\Schema\AbstractSchemaManager
     {
-        return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();;
+        return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
+        ;
     }
 
     protected function setUp(): void

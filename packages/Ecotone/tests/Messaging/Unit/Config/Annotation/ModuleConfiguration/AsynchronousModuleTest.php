@@ -10,7 +10,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -21,6 +20,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessagingException;
 use ReflectionException;
+use RuntimeException;
 use Test\Ecotone\Messaging\Fixture\Annotation\Async\AsyncClassExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\Async\AsyncCommandHandlerWithoutIdExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\Async\AsyncEventHandlerExample;
@@ -182,7 +182,7 @@ class AsynchronousModuleTest extends AnnotationConfigurationTest
 
         $ecotoneLite->sendCommandWithRoutingKey('retried.asynchronous', 2);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
 
         $ecotoneLite->run('async');
     }

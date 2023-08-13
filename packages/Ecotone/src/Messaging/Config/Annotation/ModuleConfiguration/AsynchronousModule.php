@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -147,7 +145,7 @@ class AsynchronousModule extends NoExternalConfigurationModule implements Annota
             /** Default polling metadata for tests */
             if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)) {
                 foreach ($asyncChannelsResolved as $asyncEndpointChannel) {
-                    if (!$this->hasPollingMetadata($pollingMetadata, $asyncEndpointChannel)) {
+                    if (! $this->hasPollingMetadata($pollingMetadata, $asyncEndpointChannel)) {
                         $messagingConfiguration->registerPollingMetadata(
                             PollingMetadata::create($asyncEndpointChannel)
                                 ->withTestingSetup(100, 1000, true)

@@ -98,7 +98,7 @@ class ErrorHandler
                 $failedMessage->getHeaders()->getMessageId(),
                 $delayMs,
                 $this->delayedRetryTemplate->getMaxAttempts()
-                    ? sprintf("Try %d out of %s", $retryNumber, $this->delayedRetryTemplate->getMaxAttempts())
+                    ? sprintf('Try %d out of %s', $retryNumber, $this->delayedRetryTemplate->getMaxAttempts())
                     : ''
             ),
             ['exception' => $cause]

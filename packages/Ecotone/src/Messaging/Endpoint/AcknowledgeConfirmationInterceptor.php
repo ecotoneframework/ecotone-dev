@@ -39,7 +39,7 @@ class AcknowledgeConfirmationInterceptor
      * @throws Throwable
      * @throws MessagingException
      */
-    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference("logger")] LoggerInterface $logger)
+    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference('logger')] LoggerInterface $logger)
     {
         if (! $message->getHeaders()->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
             return $methodInvocation->proceed();
@@ -54,22 +54,22 @@ class AcknowledgeConfirmationInterceptor
 
             if ($amqpAcknowledgementCallback->isAutoAck()) {
                 $amqpAcknowledgementCallback->accept();
-                $logger->info(sprintf("Message with id %s acknowledged in Message Broker", $message->getHeaders()->getMessageId()));
+                $logger->info(sprintf('Message with id %s acknowledged in Message Broker', $message->getHeaders()->getMessageId()));
             }
         } catch (RejectMessageException $exception) {
             if ($amqpAcknowledgementCallback->isAutoAck()) {
                 $amqpAcknowledgementCallback->reject();
-                $logger->info(sprintf("Message with id %s rejected in Message Broker", $message->getHeaders()->getMessageId()));
+                $logger->info(sprintf('Message with id %s rejected in Message Broker', $message->getHeaders()->getMessageId()));
             }
         } catch (Throwable $exception) {
             if ($amqpAcknowledgementCallback->isAutoAck()) {
                 $amqpAcknowledgementCallback->requeue();
-                $logger->info(sprintf("Message with id %s requeued in Message Broker", $message->getHeaders()->getMessageId()));
+                $logger->info(sprintf('Message with id %s requeued in Message Broker', $message->getHeaders()->getMessageId()));
             }
         }
 
         if ($this->shouldStopOnError && $exception !== null) {
-            $logger->info("Should stop on error configuration enabled, stopping Message Consumer.");
+            $logger->info('Should stop on error configuration enabled, stopping Message Consumer.');
             throw $exception;
         }
 

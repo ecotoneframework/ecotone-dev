@@ -20,8 +20,7 @@ final class CollectorStorage
     public function __construct(
         private bool $enabled = false,
         private array $collectedMessages = []
-    )
-    {
+    ) {
     }
 
     public function enable(): void
@@ -42,7 +41,7 @@ final class CollectorStorage
 
     public function collect(Message $message, LoggerInterface $logger): void
     {
-        $logger->info(sprintf("Collecting message with id: %s", $message->getHeaders()->getMessageId()));
+        $logger->info(sprintf('Collecting message with id: %s', $message->getHeaders()->getMessageId()));
         $this->collectedMessages[] = $message;
     }
 

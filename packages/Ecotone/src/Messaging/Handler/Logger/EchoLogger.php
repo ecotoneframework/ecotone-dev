@@ -18,7 +18,7 @@ class EchoLogger extends AbstractLogger
     public function log($level, $message, array $context = []): void
     {
         $color = "\033[32m";
-        if (in_array($level, [LogLevel::ALERT, LogLevel::EMERGENCY, LogLevel::CRITICAL , LogLevel::ERROR])) {
+        if (in_array($level, [LogLevel::ALERT, LogLevel::EMERGENCY, LogLevel::CRITICAL, LogLevel::ERROR])) {
             $color = "\033[31m";
         }
 

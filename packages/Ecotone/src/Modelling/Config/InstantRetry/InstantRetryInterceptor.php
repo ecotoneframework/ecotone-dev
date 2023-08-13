@@ -14,7 +14,7 @@ class InstantRetryInterceptor
     {
     }
 
-    public function retry(MethodInvocation $methodInvocation, #[Reference("logger")] LoggerInterface $logger)
+    public function retry(MethodInvocation $methodInvocation, #[Reference('logger')] LoggerInterface $logger)
     {
         $isSuccessful = false;
         $retries = 0;
@@ -26,15 +26,15 @@ class InstantRetryInterceptor
                 $isSuccessful = true;
             } catch (Exception $exception) {
                 if (! $this->canRetryThrownException($exception) || $retries >= $this->maxRetryAttempts) {
-                    $logger->info(sprintf("Instant retry have exceed %d/%d retry limit. No more retries will be done", $retries, $this->maxRetryAttempts), [
-                        'exception' => $exception->getMessage()
+                    $logger->info(sprintf('Instant retry have exceed %d/%d retry limit. No more retries will be done', $retries, $this->maxRetryAttempts), [
+                        'exception' => $exception->getMessage(),
                     ]);
                     throw $exception;
                 }
 
                 $retries++;
                 $logger->info(sprintf('Exception happened. Doing instant try %d out of %d.', $retries, $this->maxRetryAttempts), [
-                    'exception' => $exception->getMessage()
+                    'exception' => $exception->getMessage(),
                 ]);
             }
         }

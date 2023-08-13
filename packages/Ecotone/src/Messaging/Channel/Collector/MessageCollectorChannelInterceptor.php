@@ -15,8 +15,7 @@ final class MessageCollectorChannelInterceptor extends AbstractChannelIntercepto
     public function __construct(
         private CollectorStorage $collectorStorage,
         private LoggerInterface $logger
-    )
-    {
+    ) {
     }
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message

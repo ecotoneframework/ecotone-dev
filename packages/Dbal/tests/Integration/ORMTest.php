@@ -44,7 +44,7 @@ final class ORMTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getORMConnectionFactory($entityManager),
                 ORMPersonRepository::class => $ORMPersonRepository,
-                RegisterPersonService::class => new RegisterPersonService()
+                RegisterPersonService::class => new RegisterPersonService(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
@@ -74,7 +74,7 @@ final class ORMTest extends DbalMessagingTestCase
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getORMConnectionFactory($entityManager),
                 ORMPersonRepository::class => $ORMPersonRepository,
-                RegisterPersonService::class => new RegisterPersonService()
+                RegisterPersonService::class => new RegisterPersonService(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
@@ -83,7 +83,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withClearAndFlushObjectManagerOnCommandBus(false)
+                        ->withClearAndFlushObjectManagerOnCommandBus(false),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryStateStoredRepository: false

@@ -61,7 +61,7 @@ class ObjectManagerModule implements AnnotationModule
                         new ObjectManagerInterceptor($connectionFactories),
                         'transactional',
                         Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
-                        implode("||", $pointcut)
+                        implode('||', $pointcut)
                     )
                 );
         }

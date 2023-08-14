@@ -4,6 +4,7 @@ namespace Test\Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\Setup;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
@@ -32,11 +33,13 @@ abstract class DbalMessagingTestCase extends TestCase
         return new DbalConnectionFactory($dsn);
     }
 
-    public function getORMConnectionFactory(array $paths): ConnectionFactory
+    public function getORMConnectionFactory(array|EntityManagerInterface $pathsOrEntityManager): ConnectionFactory
     {
-        $config = Setup::createAttributeMetadataConfiguration($paths, true);
+        if (is_array($pathsOrEntityManager)) {
+            $pathsOrEntityManager = $this->setupEntityManagerFor($pathsOrEntityManager);
+        }
 
-        return DbalConnection::createEntityManager(EntityManager::create($this->getConnection(), $config));
+        return DbalConnection::createEntityManager($pathsOrEntityManager);
     }
 
     protected function getConnection(): Connection
@@ -89,5 +92,15 @@ abstract class DbalMessagingTestCase extends TestCase
                     )
                 SQL);
         }
+    }
+
+    /**
+     * @param string[] $paths
+     */
+    protected function setupEntityManagerFor(array $paths): EntityManager
+    {
+        $config = Setup::createAttributeMetadataConfiguration($paths, true);
+
+        return EntityManager::create($this->getConnection(), $config);
     }
 }

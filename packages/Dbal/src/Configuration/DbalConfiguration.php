@@ -57,7 +57,8 @@ class DbalConfiguration
             ->withTransactionOnConsoleCommands(false)
             ->withDeduplication(false)
             ->withDeadLetter(false)
-            ->withCleanObjectManagerOnAsynchronousEndpoints(false)
+            ->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)
+            ->withClearAndFlushObjectManagerOnCommandBus(false)
             ->withDocumentStore(true, true);
     }
 

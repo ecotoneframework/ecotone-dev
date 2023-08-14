@@ -11,7 +11,7 @@ class DbalConfiguration
     public const DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS = true;
     public const DEFAULT_TRANSACTION_ON_COMMAND_BUS = true;
     public const DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS = true;
-    public const DEFAULT_CLEAR_OBJECT_MANAGER_ON_ASYNCHRONOUS_ENDPOINTS = true;
+    public const DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER = true;
     public const DEFAULT_DEDUPLICATION_ENABLED = true;
     public const DEFAULT_DEAD_LETTER_ENABLED = true;
 
@@ -19,7 +19,8 @@ class DbalConfiguration
     private array $disableTransactionsOnAsynchronousEndpointNames = [];
     private bool $transactionOnCommandBus = self::DEFAULT_TRANSACTION_ON_COMMAND_BUS;
     private bool $transactionOnConsoleCommands = self::DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS;
-    private bool $clearObjectManagerOnAsynchronousEndpoints = self::DEFAULT_CLEAR_OBJECT_MANAGER_ON_ASYNCHRONOUS_ENDPOINTS;
+    private bool $clearObjectManagerOnAsynchronousEndpoints = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
+    private bool $clearAndFlushObjectManagerOnCommandBus = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
     private array $defaultConnectionReferenceNames = [DbalConnectionFactory::class];
 
     private bool $deduplicatedEnabled = self::DEFAULT_DEDUPLICATION_ENABLED;
@@ -56,7 +57,8 @@ class DbalConfiguration
             ->withTransactionOnConsoleCommands(false)
             ->withDeduplication(false)
             ->withDeadLetter(false)
-            ->withCleanObjectManagerOnAsynchronousEndpoints(false)
+            ->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)
+            ->withClearAndFlushObjectManagerOnCommandBus(false)
             ->withDocumentStore(true, true);
     }
 
@@ -144,10 +146,30 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withCleanObjectManagerOnAsynchronousEndpoints(bool $isTransactionEnabled): self
+    /**
+     * @TODO Ecotone 2.0 rename to withClearAndFlushObjectManagerOnAsynchronousEndpoints
+     * @deprecated use withClearAndFlushObjectManagerOnAsynchronousEndpoints
+     */
+    public function withCleanObjectManagerOnAsynchronousEndpoints(bool $isEnabled): self
     {
         $self                                     = clone $this;
-        $self->clearObjectManagerOnAsynchronousEndpoints = $isTransactionEnabled;
+        $self->clearObjectManagerOnAsynchronousEndpoints = $isEnabled;
+
+        return $self;
+    }
+
+    public function withClearAndFlushObjectManagerOnAsynchronousEndpoints(bool $isEnabled): self
+    {
+        $self                                     = clone $this;
+        $self->clearObjectManagerOnAsynchronousEndpoints = $isEnabled;
+
+        return $self;
+    }
+
+    public function withClearAndFlushObjectManagerOnCommandBus(bool $isEnabled): self
+    {
+        $self                                     = clone $this;
+        $self->clearAndFlushObjectManagerOnCommandBus = $isEnabled;
 
         return $self;
     }
@@ -224,6 +246,11 @@ class DbalConfiguration
     public function isClearObjectManagerOnAsynchronousEndpoints(): bool
     {
         return $this->clearObjectManagerOnAsynchronousEndpoints;
+    }
+
+    public function isClearAndFlushObjectManagerOnCommandBus(): bool
+    {
+        return $this->clearAndFlushObjectManagerOnCommandBus;
     }
 
     public function isEnableDbalDocumentStore(): bool

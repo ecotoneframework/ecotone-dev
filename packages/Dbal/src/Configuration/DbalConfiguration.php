@@ -2,6 +2,7 @@
 
 namespace Ecotone\Dbal\Configuration;
 
+use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -39,6 +40,7 @@ class DbalConfiguration
     private bool $inMemoryDocumentStore = false;
 
     private bool $enableDocumentStoreAggregateRepository = false;
+    private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
 
     private function __construct()
     {
@@ -182,11 +184,12 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDeduplication(bool $isDeduplicatedEnabled, string $connectionReference = DbalConnectionFactory::class): self
+    public function withDeduplication(bool $isDeduplicatedEnabled, string $connectionReference = DbalConnectionFactory::class, int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS): self
     {
         $self = clone $this;
         $self->deduplicatedEnabled = $isDeduplicatedEnabled;
         $self->deduplicationConnectionReference = $connectionReference;
+        $self->minimumTimeToRemoveMessageInMilliseconds = $minimumTimeToRemoveMessageInMilliseconds;
 
         return $self;
     }
@@ -216,6 +219,11 @@ class DbalConfiguration
     public function isDeduplicatedEnabled(): bool
     {
         return $this->deduplicatedEnabled;
+    }
+
+    public function minimumTimeToRemoveMessageFromDeduplication(): int
+    {
+        return $this->minimumTimeToRemoveMessageInMilliseconds;
     }
 
     public function isDeadLetterEnabled(): bool

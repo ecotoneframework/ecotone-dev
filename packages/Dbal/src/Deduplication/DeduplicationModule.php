@@ -43,6 +43,7 @@ class DeduplicationModule implements AnnotationModule
 
         $isDeduplicatedEnabled = $dbalConfiguration->isDeduplicatedEnabled();
         $connectionFactory     = $dbalConfiguration->getDeduplicationConnectionReference();
+        $minimumTimeToRemoveMessageFromDeduplication     = $dbalConfiguration->minimumTimeToRemoveMessageFromDeduplication();
 
         $pointcut = Deduplicated::class;
         if ($isDeduplicatedEnabled) {
@@ -56,7 +57,7 @@ class DeduplicationModule implements AnnotationModule
                     new DeduplicationInterceptor(
                         $connectionFactory,
                         new EpochBasedClock(),
-                        self::REMOVE_MESSAGE_AFTER_7_DAYS
+                        $minimumTimeToRemoveMessageFromDeduplication
                     ),
                     'deduplicate',
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE + 100,

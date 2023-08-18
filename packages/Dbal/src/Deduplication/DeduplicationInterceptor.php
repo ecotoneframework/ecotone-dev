@@ -96,9 +96,8 @@ class DeduplicationInterceptor
     {
         $this->getConnection($connectionFactory)->createQueryBuilder()
             ->delete($this->getTableName())
-            ->andWhere('(:now - handled_at) >= :minimumTimeToRemoveTheMessage')
-            ->setParameter('now', $this->clock->unixTimeInMilliseconds(), Types::BIGINT)
-            ->setParameter('minimumTimeToRemoveTheMessage', $this->minimumTimeToRemoveMessageInMilliseconds, Types::BIGINT)
+            ->andWhere('handled_at <= :threshold')
+            ->setParameter('threshold', ($this->clock->unixTimeInMilliseconds() - $this->minimumTimeToRemoveMessageInMilliseconds), Types::BIGINT)
             ->execute();
     }
 

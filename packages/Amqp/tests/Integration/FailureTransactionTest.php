@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Throwable;
 
 /**
  * @internal
@@ -25,12 +26,12 @@ final class FailureTransactionTest extends AmqpMessagingTest
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         self::assertNull(

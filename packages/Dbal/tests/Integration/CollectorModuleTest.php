@@ -19,6 +19,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
+use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ORM\AsynchronousEventHandler\NotificationService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
@@ -66,7 +67,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
         $exception = false;
         try {
             $ecotoneLite->sendCommand(new RegisterPerson(100, 'Johny'));
-        } catch (\RuntimeException) {
+        } catch (RuntimeException) {
             $exception = true;
         }
         $this->assertTrue($exception);

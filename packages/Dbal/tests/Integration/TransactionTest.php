@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
+use Throwable;
 
 /**
  * @internal
@@ -24,14 +25,14 @@ final class TransactionTest extends DbalMessagingTestCase
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.prepare');
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
@@ -43,14 +44,14 @@ final class TransactionTest extends DbalMessagingTestCase
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.prepareWithFailure');
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));

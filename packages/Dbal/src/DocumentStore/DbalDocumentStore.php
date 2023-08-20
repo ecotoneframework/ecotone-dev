@@ -199,7 +199,7 @@ final class DbalDocumentStore implements DocumentStore
         $table->addColumn('document_id', Types::STRING);
         $table->addColumn('document_type', Types::TEXT);
         $table->addColumn('document', Types::JSON);
-        $table->addColumn('updated_at', Types::FLOAT, ['length'=>53]);
+        $table->addColumn('updated_at', Types::FLOAT, ['length' => 53]);
 
         $table->setPrimaryKey(['collection', 'document_id']);
 

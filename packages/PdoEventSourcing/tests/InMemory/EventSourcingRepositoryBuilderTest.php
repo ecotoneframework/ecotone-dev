@@ -50,7 +50,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                 ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegisteredEvent),
         ]));
 
-        $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [
+        $repository->save(['ticketId' => $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
@@ -96,7 +96,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
             DocumentStore::class => $documentStore,
         ]));
 
-        $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegistered, $workerWasAssigned], [
+        $repository->save(['ticketId' => $ticketId], Ticket::class, [$ticketWasRegistered, $workerWasAssigned], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
@@ -142,7 +142,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
             DocumentStore::class => $documentStore,
         ]));
 
-        $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegistered, $workerWasAssigned], [
+        $repository->save(['ticketId' => $ticketId], Ticket::class, [$ticketWasRegistered, $workerWasAssigned], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
@@ -184,19 +184,19 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                 ->registerInPHPConversion($secondTicketWasRegisteredEventAsArray, $secondTicketWasRegisteredEvent),
         ]));
 
-        $repository->save(['ticketId'=> $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
+        $repository->save(['ticketId' => $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
-        $repository->save(['ticketId'=> $secondTicketAggregate], Ticket::class, [$secondTicketWasRegisteredEvent], [
+        $repository->save(['ticketId' => $secondTicketAggregate], Ticket::class, [$secondTicketWasRegisteredEvent], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
-        $resultStream = $repository->findBy(Ticket::class, ['ticketId'=> $firstTicketAggregate]);
+        $resultStream = $repository->findBy(Ticket::class, ['ticketId' => $firstTicketAggregate]);
         $this->assertEquals(1, $resultStream->getAggregateVersion());
         $this->assertEquals($firstTicketWasRegisteredEvent, $resultStream->getEvents()[0]->getPayload());
 
-        $resultStream = $repository->findBy(Ticket::class, ['ticketId'=> $secondTicketAggregate]);
+        $resultStream = $repository->findBy(Ticket::class, ['ticketId' => $secondTicketAggregate]);
         $this->assertEquals(1, $resultStream->getAggregateVersion());
         $this->assertEquals($secondTicketWasRegisteredEvent, $resultStream->getEvents()[0]->getPayload());
     }
@@ -234,19 +234,19 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                 ->registerInPHPConversion($secondTicketWasRegisteredEventAsArray, $secondTicketWasRegisteredEvent),
         ]));
 
-        $repository->save(['ticketId'=> $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
+        $repository->save(['ticketId' => $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
-        $repository->save(['ticketId'=> $secondTicketAggregate], Ticket::class, [$secondTicketWasRegisteredEvent], [
+        $repository->save(['ticketId' => $secondTicketAggregate], Ticket::class, [$secondTicketWasRegisteredEvent], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 
-        $resultStream = $repository->findBy(Ticket::class, ['ticketId'=> $firstTicketAggregate]);
+        $resultStream = $repository->findBy(Ticket::class, ['ticketId' => $firstTicketAggregate]);
         $this->assertEquals(1, $resultStream->getAggregateVersion());
         $this->assertEquals($firstTicketWasRegisteredEvent, $resultStream->getEvents()[0]->getPayload());
 
-        $resultStream = $repository->findBy(Ticket::class, ['ticketId'=> $secondTicketAggregate]);
+        $resultStream = $repository->findBy(Ticket::class, ['ticketId' => $secondTicketAggregate]);
         $this->assertEquals(1, $resultStream->getAggregateVersion());
         $this->assertEquals($secondTicketWasRegisteredEvent, $resultStream->getEvents()[0]->getPayload());
     }
@@ -275,7 +275,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                 ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegisteredEvent),
         ], true));
 
-        $repository->save(['ticketId'=> $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [
+        $repository->save(['ticketId' => $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [
             MessageHeaders::TIMESTAMP => 1610285647,
         ], 0);
 

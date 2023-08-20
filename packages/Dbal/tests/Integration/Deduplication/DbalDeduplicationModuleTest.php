@@ -104,6 +104,34 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
         );
     }
 
+    public function test_deduplicating_given_event_handler_with_custom_timeout()
+    {
+        $queueName = 'async';
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DeduplicatedEventHandler::class],
+            [
+                new DeduplicatedEventHandler(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withDeduplication(true, minimumTimeToRemoveMessageInMilliseconds: 60000),
+                    DbalBackedMessageChannelBuilder::create($queueName),
+                ])
+        );
+
+        $messageId = Uuid::uuid4()->toString();
+        $this->assertEquals(
+            2,
+            $ecotoneLite
+                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, 300))
+                ->sendQueryWithRouting('email_event_handler.getCallCount')
+        );
+    }
+
     public function test_deduplicating_given_event_handler_with_custom_header()
     {
         $queueName = 'async';

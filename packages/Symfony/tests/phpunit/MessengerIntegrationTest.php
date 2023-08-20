@@ -10,6 +10,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
+use Exception;
 use Fixture\MessengerConsumer\ExampleCommand;
 use Fixture\MessengerConsumer\ExampleEvent;
 use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;
@@ -26,7 +27,7 @@ final class MessengerIntegrationTest extends WebTestCase
     {
         try {
             self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
-        } catch (\Exception) {
+        } catch (Exception) {
         }
     }
 

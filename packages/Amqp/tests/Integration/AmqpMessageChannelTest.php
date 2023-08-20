@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
+use AMQPConnectionException;
 use AMQPQueueException;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -75,7 +76,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         try {
             $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
-        } catch (\AMQPQueueException) {
+        } catch (AMQPQueueException) {
         }
 
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
@@ -147,7 +148,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
                     ->withExecutionTimeLimitInMilliseconds(100)
                     ->withStopOnError(false)
             );
-        } catch (\AMQPConnectionException) {
+        } catch (AMQPConnectionException) {
             $wasFinallyRethrown = true;
         }
 

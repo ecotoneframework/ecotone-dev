@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Enqueue\Dbal\DbalContext;
+use Exception;
 use PDOException;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -87,7 +88,7 @@ class DbalTransactionInterceptor
                     /** Doctrine hold the state, so it needs to be cleaned */
                     try {
                         $connection->rollBack();
-                    } catch (\Exception) {
+                    } catch (Exception) {
                     };
                 }
             }

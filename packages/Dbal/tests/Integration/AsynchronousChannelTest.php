@@ -10,6 +10,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInterceptor;
 
@@ -70,7 +71,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.prepareWithFailure');
-        } catch (\Exception) {
+        } catch (Exception) {
         }
 
         self::assertCount(1, $ecotone

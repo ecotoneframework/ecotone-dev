@@ -57,7 +57,7 @@ class AmqpTransactionInterceptor
                     $extChannel = $connectionFactory->createContext()->getExtChannel();
                     try {
                         $extChannel->rollbackTransaction();
-                    } catch (\Throwable) {
+                    } catch (Throwable) {
                     }
                     $extChannel->close(); // Has to be closed in amqp_lib, as if channel is trarnsactional does not allow for sending outside of transaction
                 }

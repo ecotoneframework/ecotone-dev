@@ -19,6 +19,8 @@ class Person
 {
     use WithEvents;
 
+    public const RENAME_COMMAND = 'person.rename';
+
     #[ORM\Id]
     #[ORM\Column(name: 'person_id', type: 'integer')]
     #[Identifier]
@@ -44,6 +46,14 @@ class Person
         }
 
         return $person;
+    }
+
+    #[CommandHandler(self::RENAME_COMMAND)]
+    public function changeName(string $name): void
+    {
+        $this->name = $name;
+
+        $this->recordThat(new PersonWasRenamed($this->personId, $name));
     }
 
     #[QueryHandler('person.getName')]

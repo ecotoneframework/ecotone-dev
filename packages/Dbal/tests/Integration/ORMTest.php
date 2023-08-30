@@ -16,6 +16,7 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\ORMPersonRepository;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\RegisterPersonService;
+use Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler\SaveMultipleEntitiesHandler;
 
 /**
  * @internal
@@ -45,22 +46,28 @@ final class ORMTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getORMConnectionFactory($entityManager),
                 ORMPersonRepository::class => $ORMPersonRepository,
                 RegisterPersonService::class => new RegisterPersonService(),
+                SaveMultipleEntitiesHandler::class => new SaveMultipleEntitiesHandler(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\ORM\PersonRepository',
+                    'Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryStateStoredRepository: false
         );
 
         $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
-        $entityManager->clear();
+        $ecotone->sendCommandWithRoutingKey(Person::RENAME_COMMAND, 'Paul', metadata: ['aggregate.id' => 100]);
 
         self::assertEquals(
-            'Johnny',
+            'Paul',
             $ORMPersonRepository->get(100)->getName()
+        );
+        self::assertEquals(
+            'Paul2',
+            $ORMPersonRepository->get(101)->getName()
         );
     }
 

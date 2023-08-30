@@ -18,6 +18,8 @@ class ObjectManagerInterceptor
      */
     private $connectionReferenceNames;
 
+    private int $depthCount = 0;
+
     public function __construct(array $connectionReferenceNames)
     {
         $this->connectionReferenceNames = $connectionReferenceNames;
@@ -37,13 +39,16 @@ class ObjectManagerInterceptor
             }
         }
 
+        $this->depthCount++;
         try {
             $result = $methodInvocation->proceed();
 
             foreach ($objectManagers as $objectManager) {
                 foreach ($objectManager->getManagers() as $manager) {
                     $manager->flush();
-                    $manager->clear();
+                    if ($this->depthCount === 1) {
+                        $manager->clear();
+                    }
                 }
             }
 
@@ -61,6 +66,8 @@ class ObjectManagerInterceptor
             }
 
             throw $exception;
+        } finally {
+            $this->depthCount--;
         }
 
 

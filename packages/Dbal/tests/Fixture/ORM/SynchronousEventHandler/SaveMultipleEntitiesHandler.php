@@ -14,7 +14,7 @@ class SaveMultipleEntitiesHandler
     {
         $commandBus->send(new RegisterPerson(
             $event->getPersonId() + 1,
-            $event->getName() . "2"
+            $event->getName() . '2'
         ));
     }
 }

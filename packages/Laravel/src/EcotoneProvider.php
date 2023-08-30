@@ -2,14 +2,15 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
+
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
-
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+
+use Ecotone\Messaging\Config\ModulePackageList;
 
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;

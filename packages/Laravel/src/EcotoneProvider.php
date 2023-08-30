@@ -2,6 +2,7 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Config\ModulePackageList;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
@@ -57,7 +58,7 @@ class EcotoneProvider extends ServiceProvider
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
             ->withNamespaces(Config::get('ecotone.namespaces'))
-            ->withSkippedModulePackageNames(Config::get('ecotone.skippedModulePackageNames'));
+            ->withSkippedModulePackageNames(array_merge(Config::get('ecotone.skippedModulePackageNames'), [ModulePackageList::TEST_PACKAGE]));
 
         if ($isCachingConfiguration) {
             $applicationConfiguration = $applicationConfiguration

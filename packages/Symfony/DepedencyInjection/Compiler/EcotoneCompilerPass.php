@@ -6,6 +6,7 @@ use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
@@ -56,7 +57,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
             ->withFailFast($container->getParameter('kernel.environment') === 'prod' ? false : $container->getParameter(self::FAIL_FAST_CONFIG))
             ->withLoadCatalog($container->getParameter(self::LOAD_SRC) ? 'src' : '')
             ->withNamespaces($container->getParameter(self::WORKING_NAMESPACES_CONFIG))
-            ->withSkippedModulePackageNames($container->getParameter(self::SKIPPED_MODULE_PACKAGES))
+            ->withSkippedModulePackageNames(array_merge($container->getParameter(self::SKIPPED_MODULE_PACKAGES), [ModulePackageList::TEST_PACKAGE]))
             ->withCacheDirectoryPath($ecotoneCacheDirectory);
 
         if ($container->getParameter(self::SERVICE_NAME)) {

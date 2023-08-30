@@ -52,6 +52,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
     public static function getMessagingConfiguration(ContainerInterface $container, bool $useCachedVersion = false): Configuration
     {
         $ecotoneCacheDirectory    = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
+        /** @TODO Ecotone 2.0 use ServiceContext to configure Symfony */
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
             ->withFailFast($container->getParameter('kernel.environment') === 'prod' ? false : $container->getParameter(self::FAIL_FAST_CONFIG))

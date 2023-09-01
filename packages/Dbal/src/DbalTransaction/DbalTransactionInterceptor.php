@@ -63,7 +63,7 @@ class DbalTransactionInterceptor
                 ->maxRetryAttempts(2)
                 ->build();
 
-            $retryStrategy->runCallbackWithRetries(function () use ($connection, $logger) {
+            $retryStrategy->runCallbackWithRetries(function () use ($connection) {
                 $connection->beginTransaction();
             }, ConnectionException::class, $logger, 'Starting Database transaction has failed due to network work, retrying in order to self heal.');
             $logger->info('Database Transaction started');

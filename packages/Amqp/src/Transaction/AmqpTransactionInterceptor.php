@@ -55,7 +55,7 @@ class AmqpTransactionInterceptor
                     ->maxRetryAttempts(2)
                     ->build();
 
-                $retryStrategy->runCallbackWithRetries(function () use ($connectionFactory, $logger) {
+                $retryStrategy->runCallbackWithRetries(function () use ($connectionFactory) {
                     $connectionFactory->createContext()->getExtChannel()->startTransaction();
                 }, \AMQPConnectionException::class, $logger, "Starting AMQP transaction has failed due to network work, retrying in order to self heal.");
                 $logger->info('AMQP transaction started');

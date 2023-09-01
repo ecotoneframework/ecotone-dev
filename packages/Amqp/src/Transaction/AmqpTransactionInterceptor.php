@@ -5,8 +5,11 @@ namespace Ecotone\Amqp\Transaction;
 use AMQPChannel;
 use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -28,9 +31,14 @@ class AmqpTransactionInterceptor
         $this->connectionReferenceNames = $connectionReferenceNames;
     }
 
-    public function transactional(MethodInvocation $methodInvocation, ?AmqpTransaction $amqpTransaction, ReferenceSearchService $referenceSearchService)
+    public function transactional(
+        MethodInvocation $methodInvocation,
+        ?AmqpTransaction $amqpTransaction,
+        ReferenceSearchService $referenceSearchService
+    )
     {
-        ;
+        /** @var LoggerInterface $logger */
+        $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
         /** @var CachedConnectionFactory[] $connectionFactories */
         $connectionFactories = array_map(function (string $connectionReferenceName) use ($referenceSearchService) {
             return CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($referenceSearchService->get($connectionReferenceName)));
@@ -42,8 +50,16 @@ class AmqpTransactionInterceptor
 
         try {
             $this->isRunningTransaction = true;
+            $logger->info("Starting AMQP transaction");
             foreach ($connectionFactories as $connectionFactory) {
-                $connectionFactory->createContext()->getExtChannel()->startTransaction();
+                $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 10, 1000)
+                    ->maxRetryAttempts(2)
+                    ->build();
+
+                // In case, try to recover from AMQPConnectionException: Socket error: could not connect to host.
+                $retryStrategy->runCallbackWithRetries(function () use ($connectionFactory) {
+                    $connectionFactory->createContext()->getExtChannel()->startTransaction();
+                }, \AMQPConnectionException::class);
             }
             try {
                 $result = $methodInvocation->proceed();
@@ -51,6 +67,7 @@ class AmqpTransactionInterceptor
                 foreach ($connectionFactories as $connectionFactory) {
                     $connectionFactory->createContext()->getExtChannel()->commitTransaction();
                 }
+                $logger->info('AMQP transaction was committed');
             } catch (Throwable $exception) {
                 foreach ($connectionFactories as $connectionFactory) {
                     /** @var AMQPChannel $extChannel */
@@ -62,6 +79,7 @@ class AmqpTransactionInterceptor
                     $extChannel->close(); // Has to be closed in amqp_lib, as if channel is trarnsactional does not allow for sending outside of transaction
                 }
 
+                $logger->info('AMQP transaction was roll backed');
                 throw $exception;
             }
         } catch (Throwable $exception) {

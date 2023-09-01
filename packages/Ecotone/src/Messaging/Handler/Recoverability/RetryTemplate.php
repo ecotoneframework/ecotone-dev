@@ -43,6 +43,28 @@ final class RetryTemplate
         return $this->delayForRetryNumber($retryNumber);
     }
 
+    public function runCallbackWithRetries(\Closure $closure, string $exceptionClass): void
+    {
+        $retryNumber = 0;
+        do {
+            try {
+                $closure();
+                break;
+            } catch (\Throwable $exception) {
+                if (! $exception instanceof $exceptionClass) {
+                    throw $exception;
+                }
+
+                if (!$this->canBeCalledNextTime($retryNumber)) {
+                    throw $exception;
+                }
+
+                $retryNumber++;
+                usleep($this->calculateNextDelay($retryNumber) * 1000);
+            }
+        } while (true);
+    }
+
     public function canBeCalledNextTime(int $retryNumber): bool
     {
         if (! is_null($this->maxDelay) && $this->delayForRetryNumber($retryNumber) > $this->maxDelay) {

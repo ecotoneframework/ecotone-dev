@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Recoverability;
 
 use Ecotone\Messaging\Support\Assert;
+use Psr\Log\LoggerInterface;
 
 /**
  * @internal
@@ -43,7 +44,7 @@ final class RetryTemplate
         return $this->delayForRetryNumber($retryNumber);
     }
 
-    public function runCallbackWithRetries(\Closure $closure, string $exceptionClass): void
+    public function runCallbackWithRetries(\Closure $closure, string $exceptionClass, LoggerInterface $logger, string $retryMessage): void
     {
         $retryNumber = 0;
         do {
@@ -59,6 +60,7 @@ final class RetryTemplate
                     throw $exception;
                 }
 
+                $logger->info($retryMessage, ["exception" => $exception]);
                 $retryNumber++;
                 usleep($this->calculateNextDelay($retryNumber) * 1000);
             }

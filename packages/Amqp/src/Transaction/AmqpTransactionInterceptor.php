@@ -50,16 +50,15 @@ class AmqpTransactionInterceptor
 
         try {
             $this->isRunningTransaction = true;
-            $logger->info("Starting AMQP transaction");
             foreach ($connectionFactories as $connectionFactory) {
                 $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 10, 1000)
                     ->maxRetryAttempts(2)
                     ->build();
 
-                // In case, try to recover from AMQPConnectionException: Socket error: could not connect to host.
-                $retryStrategy->runCallbackWithRetries(function () use ($connectionFactory) {
+                $retryStrategy->runCallbackWithRetries(function () use ($connectionFactory, $logger) {
                     $connectionFactory->createContext()->getExtChannel()->startTransaction();
-                }, \AMQPConnectionException::class);
+                }, \AMQPConnectionException::class, $logger, "Starting AMQP transaction has failed due to network work, retrying in order to self heal.");
+                $logger->info('AMQP transaction started');
             }
             try {
                 $result = $methodInvocation->proceed();

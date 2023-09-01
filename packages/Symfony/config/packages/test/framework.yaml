@@ -1,2 +1,5 @@
 framework:
     test: ~
+
+ecotone:
+  test: true

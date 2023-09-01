@@ -7,4 +7,5 @@ return [
         'Test\Ecotone\Laravel\Fixture',
     ],
     'skippedModulePackageNames' => ModulePackageList::allPackages(),
+    'test' => true,
 ];

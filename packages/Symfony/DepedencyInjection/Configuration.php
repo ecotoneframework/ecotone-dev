@@ -26,6 +26,10 @@ class Configuration implements ConfigurationInterface
                     ->defaultTrue()
                     ->end()
 
+                    ->booleanNode('test')
+                    ->defaultFalse()
+                    ->end()
+
                     ->booleanNode('loadSrcNamespaces')
                     ->defaultTrue()
                     ->end()

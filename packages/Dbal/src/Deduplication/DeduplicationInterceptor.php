@@ -75,7 +75,7 @@ class DeduplicationInterceptor
             ->fetch();
 
         if ($select) {
-            $logger->info("Message with was already handled. Skipping.", [
+            $logger->info('Message with was already handled. Skipping.', [
                 'message_id' => $messageId,
                 'consumer_endpoint_id' => $consumerEndpointId,
                 'routing_slip' => $routingSlip,
@@ -86,7 +86,7 @@ class DeduplicationInterceptor
         try {
             $result = $methodInvocation->proceed();
             $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
-            $logger->info("Message was stored in deduplication table.", [
+            $logger->info('Message was stored in deduplication table.', [
                 'message_id' => $messageId,
                 'consumer_endpoint_id' => $consumerEndpointId,
                 'routing_slip' => $routingSlip,

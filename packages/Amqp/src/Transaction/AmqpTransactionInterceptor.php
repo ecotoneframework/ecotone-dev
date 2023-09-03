@@ -3,6 +3,7 @@
 namespace Ecotone\Amqp\Transaction;
 
 use AMQPChannel;
+use AMQPConnectionException;
 use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
@@ -35,8 +36,7 @@ class AmqpTransactionInterceptor
         MethodInvocation $methodInvocation,
         ?AmqpTransaction $amqpTransaction,
         ReferenceSearchService $referenceSearchService
-    )
-    {
+    ) {
         /** @var LoggerInterface $logger */
         $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
         /** @var CachedConnectionFactory[] $connectionFactories */
@@ -57,7 +57,7 @@ class AmqpTransactionInterceptor
 
                 $retryStrategy->runCallbackWithRetries(function () use ($connectionFactory) {
                     $connectionFactory->createContext()->getExtChannel()->startTransaction();
-                }, \AMQPConnectionException::class, $logger, "Starting AMQP transaction has failed due to network work, retrying in order to self heal.");
+                }, AMQPConnectionException::class, $logger, 'Starting AMQP transaction has failed due to network work, retrying in order to self heal.');
                 $logger->info('AMQP transaction started');
             }
             try {

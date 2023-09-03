@@ -73,11 +73,13 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         $sameDeduplicationKey = '3e84ff08-b755-4e16-b50d-94818bf9de99';
         $ecotone->sendCommandWithRoutingKey(
-            routingKey: 'placeOrderSynchronously1', command: 'milk',
+            routingKey: 'placeOrderSynchronously1',
+            command: 'milk',
             metadata: ['orderId1' => $sameDeduplicationKey]
         );
         $ecotone->sendCommandWithRoutingKey(
-            routingKey: 'placeOrderSynchronously1', command: 'cheese',
+            routingKey: 'placeOrderSynchronously1',
+            command: 'cheese',
             metadata: ['orderId1' => $sameDeduplicationKey]
         );
 
@@ -93,11 +95,13 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         $sameDeduplicationKey = '3e84ff08-b755-4e16-b50d-94818bf9de99';
         $ecotone->sendCommandWithRoutingKey(
-            routingKey: 'placeOrderSynchronously1', command: 'milk',
+            routingKey: 'placeOrderSynchronously1',
+            command: 'milk',
             metadata: ['orderId1' => $sameDeduplicationKey]
         );
         $ecotone->sendCommandWithRoutingKey(
-            routingKey: 'placeOrderSynchronously2', command: 'cheese',
+            routingKey: 'placeOrderSynchronously2',
+            command: 'cheese',
             metadata: ['orderId2' => $sameDeduplicationKey]
         );
 
@@ -113,11 +117,13 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         $sameDeduplicationKey = '3e84ff08-b755-4e16-b50d-94818bf9de99';
         $ecotone->sendCommandWithRoutingKey(
-            routingKey: 'placeOrderSynchronously1', command: 'milk',
+            routingKey: 'placeOrderSynchronously1',
+            command: 'milk',
             metadata: ['orderId1' => $sameDeduplicationKey]
         );
         $ecotone->sendCommandWithRoutingKey(
-            routingKey: 'placeOrderSynchronously3', command: 'cheese',
+            routingKey: 'placeOrderSynchronously3',
+            command: 'cheese',
             metadata: ['orderId1' => $sameDeduplicationKey]
         );
 

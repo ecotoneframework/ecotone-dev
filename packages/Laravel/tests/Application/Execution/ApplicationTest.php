@@ -10,7 +10,6 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Foundation\Testing\TestCase;
-use Illuminate\Support\Facades\Config;
 use Test\Ecotone\Laravel\Fixture\User\User;
 use Test\Ecotone\Laravel\Fixture\User\UserRepository;
 
@@ -80,6 +79,7 @@ final class ApplicationTest extends TestCase
 
         self::assertInstanceOf(
             MessagingTestSupport::class,
-            $messagingSystem->getGatewayByName(MessagingTestSupport::class));
+            $messagingSystem->getGatewayByName(MessagingTestSupport::class)
+        );
     }
 }

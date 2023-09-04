@@ -6,16 +6,20 @@ use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+/**
+ * @internal
+ */
 class SymfonyApplicationTest extends KernelTestCase
 {
     public function test_it_boots_kernel_with_test_support(): void
     {
         self::bootKernel([
-            'environment' => 'test'
+            'environment' => 'test',
         ]);
         self::assertInstanceOf(
             MessagingTestSupport::class,
-            self::getMessagingTestSupport());
+            self::getMessagingTestSupport()
+        );
     }
 
     protected static function getMessagingSystem(): ConfiguredMessagingSystem

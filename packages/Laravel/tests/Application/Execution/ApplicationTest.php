@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Application\Execution;
 
+use Ecotone\Lite\Test\MessagingTestSupport;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Foundation\Testing\TestCase;
+use Illuminate\Support\Facades\Config;
 use Test\Ecotone\Laravel\Fixture\User\User;
 use Test\Ecotone\Laravel\Fixture\User\UserRepository;
 
@@ -67,6 +70,16 @@ final class ApplicationTest extends TestCase
             $amount,
             $queryBus->sendWithRouting('getAmount')
         );
-        ;
+    }
+
+    public function test_it_boots_messaging_system_with_test_support(): void
+    {
+        $app = $this->createApplication();
+
+        $messagingSystem = $app->get(ConfiguredMessagingSystem::class);
+
+        self::assertInstanceOf(
+            MessagingTestSupport::class,
+            $messagingSystem->getGatewayByName(MessagingTestSupport::class));
     }
 }

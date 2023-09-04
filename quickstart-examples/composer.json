@@ -44,7 +44,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.102.2-dev"
+            "dev-main": "1.102.3-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"

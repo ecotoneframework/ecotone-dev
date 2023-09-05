@@ -9,8 +9,6 @@ services:
     command: sleep 99999
     container_name: "ecotone_development_8_2"
     user: "${USER_PID:-1000}:${USER_PID:-1000}"
-    networks:
-      - default
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # 172.17.0.1
@@ -24,7 +22,7 @@ services:
       APP_DB_PORT: 3306
       APP_DB_DRIVER: pdo_mysql
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
-      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379
       APP_MERGE_PLUGIN: "yes"
     env_file:
@@ -37,8 +35,6 @@ services:
     command: sleep 99999
     container_name: "ecotone_development_8_0"
     user: "${USER_PID:-1000}:${USER_PID:-1000}"
-    networks:
-      - default
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # 172.17.0.1
@@ -52,7 +48,7 @@ services:
       APP_DB_PORT: 3306
       APP_DB_DRIVER: pdo_mysql
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
-      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379
       APP_MERGE_PLUGIN: "yes"
     env_file:
@@ -65,8 +61,6 @@ services:
     command: sleep 99999
     container_name: "ecotone_development"
     user: "${USER_PID:-1000}:${USER_PID:-1000}"
-    networks:
-      - default
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # 172.17.0.1
@@ -80,15 +74,13 @@ services:
       APP_DB_PORT: 5432
       APP_DB_DRIVER: pdo_pgsql
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
-      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379
       APP_MERGE_PLUGIN: "yes"
     env_file:
       - ".env"
   database:
     image: postgres:12.1
-    networks:
-      - default
     environment:
       POSTGRES_USER: "ecotone"
       POSTGRES_PASSWORD: "secret"
@@ -96,8 +88,6 @@ services:
       - "5432:5432"
   database-mysql:
     image: mysql:8.0
-    networks:
-      - default
     environment:
       MYSQL_ROOT_PASSWORD: "secret"
       MYSQL_USER: "ecotone"
@@ -110,28 +100,18 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-    networks:
-      - default
     ports:
       - "15672:15672"
       - "5672:5672"
   localstack:
-    image: localstack/localstack:0.8.10
-    networks:
-      - default
+    image: localstack/localstack:2.2.0
     environment:
-      HOSTNAME_EXTERNAL: 'localstack'
+      LOCALSTACK_HOST: 'localstack'
       SERVICES: 'sqs,sns'
     ports:
-      - '4576:4576'
-      - '4575:4575'
+      - "4566:4566"            # LocalStack Gateway
+      - "4510-4559:4510-4559"  # external services port range
   redis:
     image: redis:7-alpine
-    networks:
-      - default
     ports:
       - '6379:6379'
-networks:
-  default:
-    external:
-      name: ecotone-test

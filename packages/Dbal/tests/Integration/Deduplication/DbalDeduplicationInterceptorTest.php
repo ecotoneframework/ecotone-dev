@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -23,15 +24,13 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint2',
-        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint2'));
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }
@@ -44,15 +43,13 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
     }
@@ -65,16 +62,14 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
         usleep(2000);
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null);
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }

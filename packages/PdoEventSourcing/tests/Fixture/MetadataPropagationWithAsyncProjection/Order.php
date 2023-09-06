@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection;
 
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
@@ -15,7 +15,7 @@ final class Order
 {
     use WithAggregateVersioning;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private int $id;
 
     #[CommandHandler(routingKey: 'order.create')]

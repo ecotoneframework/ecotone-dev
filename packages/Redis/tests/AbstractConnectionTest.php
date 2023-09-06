@@ -15,11 +15,16 @@ abstract class AbstractConnectionTest extends TestCase
     public function getConnectionFactory(): ConnectionFactory
     {
         if (! $this->connectionFactory) {
-            $dsn = getenv('REDIS_DSN') ? getenv('REDIS_DSN') : 'redis://localhost:6379';
-
-            $this->connectionFactory = new RedisConnectionFactory($dsn);
+            $this->connectionFactory = self::getConnection();
         }
 
         return $this->connectionFactory;
+    }
+
+    public static function getConnection(): RedisConnectionFactory
+    {
+        return new RedisConnectionFactory(
+            getenv('REDIS_DSN') ? getenv('REDIS_DSN') : 'redis://localhost:6379'
+        );
     }
 }

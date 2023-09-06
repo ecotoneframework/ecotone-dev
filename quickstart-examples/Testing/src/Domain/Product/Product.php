@@ -6,7 +6,7 @@ namespace App\Testing\Domain\Product;
 
 use App\Testing\Domain\Product\Command\AddProduct;
 use App\Testing\Domain\Product\Event\ProductWasAdded;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
@@ -19,7 +19,7 @@ final class Product
 {
     use WithAggregateVersioning;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private UuidInterface $productId;
     private int $price;
 

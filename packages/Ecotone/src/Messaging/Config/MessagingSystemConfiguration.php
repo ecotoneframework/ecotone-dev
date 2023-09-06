@@ -20,6 +20,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -339,7 +340,7 @@ final class MessagingSystemConfiguration implements Configuration
      * @return InterceptorWithPointCut[]|AroundInterceptorReference[]|MessageHandlerBuilderWithOutputChannel[]
      * @throws MessagingException
      */
-    private function getRelatedInterceptors($interceptors, InterfaceToCall $interceptedInterface, iterable $endpointAnnotations, iterable $requiredInterceptorNames, InterfaceToCallRegistry $interfaceToCallRegistry): iterable
+    private function getRelatedInterceptors(array $interceptors, InterfaceToCall $interceptedInterface, iterable $endpointAnnotations, iterable $requiredInterceptorNames, InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         $relatedInterceptors = [];
         foreach ($requiredInterceptorNames as $requiredInterceptorName) {
@@ -361,7 +362,7 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
-        return array_unique($relatedInterceptors);
+        return $relatedInterceptors;
     }
 
     /**
@@ -388,6 +389,7 @@ final class MessagingSystemConfiguration implements Configuration
     {
         $this->channelInterceptorBuilders[$channelInterceptorBuilder->getPrecedence()][] = $channelInterceptorBuilder;
         $this->requireReferences($channelInterceptorBuilder->getRequiredReferenceNames());
+        krsort($this->channelInterceptorBuilders);
 
         return $this;
     }
@@ -464,11 +466,6 @@ final class MessagingSystemConfiguration implements Configuration
                 ->withEndpointId($asynchronousChannel);
         }
 
-        foreach ($this->messageHandlerBuilders as $key => $messageHandlerBuilder) {
-            if ($this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()]->isPollable() && ($messageHandlerBuilder instanceof InterceptedEndpoint)) {
-                $this->messageHandlerBuilders[$key] = $messageHandlerBuilder->withEndpointAnnotations(array_merge($messageHandlerBuilder->getEndpointAnnotations(), [new AsynchronousRunningEndpoint($messageHandlerBuilder->getEndpointId())]));
-            }
-        }
         $this->asynchronousEndpoints = [];
     }
 
@@ -653,6 +650,41 @@ final class MessagingSystemConfiguration implements Configuration
             }
             foreach ($afterCallInterceptors as $afterCallInterceptor) {
                 $channelAdapter->addAfterInterceptor($afterCallInterceptor);
+            }
+        }
+
+        foreach ($this->consumerFactories as $consumerFactory) {
+            if (! ($consumerFactory instanceof PollingConsumerBuilder)) {
+                continue;
+            }
+
+            $endpointAnnotations = [new AsynchronousRunningEndpoint('')];
+            if ($this->aroundMethodInterceptors) {
+                $aroundInterceptors = $this->getRelatedInterceptors(
+                    $this->aroundMethodInterceptors,
+                    $consumerFactory->getInterceptedInterface($interfaceRegistry),
+                    /** Name will be provided during build for given Message Handler. Looking in MessagingSystem */
+                    $endpointAnnotations,
+                    $consumerFactory->getRequiredInterceptorNames(),
+                    $interfaceRegistry
+                );
+
+                foreach ($aroundInterceptors as $aroundInterceptor) {
+                    $consumerFactory->addAroundInterceptor($aroundInterceptor);
+                }
+            }
+
+            if ($this->beforeCallMethodInterceptors) {
+                $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $consumerFactory->getInterceptedInterface($interfaceRegistry), $endpointAnnotations, $consumerFactory->getRequiredInterceptorNames(), $interfaceRegistry);
+                foreach ($beforeCallInterceptors as $beforeCallInterceptor) {
+                    $consumerFactory->addBeforeInterceptor($beforeCallInterceptor);
+                }
+            }
+            if ($this->afterCallMethodInterceptors) {
+                $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $consumerFactory->getInterceptedInterface($interfaceRegistry), $endpointAnnotations, $consumerFactory->getRequiredInterceptorNames(), $interfaceRegistry);
+                foreach ($afterCallInterceptors as $afterCallInterceptor) {
+                    $consumerFactory->addAfterInterceptor($afterCallInterceptor);
+                }
             }
         }
 
@@ -1216,7 +1248,6 @@ final class MessagingSystemConfiguration implements Configuration
         spl_autoload_register($proxyFactory->getConfiguration()->getProxyAutoloader());
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
-        arsort($channelInterceptorsByImportance);
         $channelInterceptorsByChannelName = [];
         foreach ($channelInterceptorsByImportance as $channelInterceptors) {
             /** @var ChannelInterceptorBuilder $channelInterceptor */

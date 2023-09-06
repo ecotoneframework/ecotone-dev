@@ -5,6 +5,9 @@ namespace Ecotone\SymfonyBundle\DepedencyInjection;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
+/**
+ * @TODO Ecotone 2.0 - make use only ServiceContext for setting up ServiceConfiguration and remove Symfony and Laravel global configuration
+ */
 class Configuration implements ConfigurationInterface
 {
     public function getConfigTreeBuilder()
@@ -21,6 +24,10 @@ class Configuration implements ConfigurationInterface
 
                     ->booleanNode('failFast')
                     ->defaultTrue()
+                    ->end()
+
+                    ->booleanNode('test')
+                    ->defaultFalse()
                     ->end()
 
                     ->booleanNode('loadSrcNamespaces')

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Domain\Order;
 
+use Ecotone\Modelling\Attribute\Identifier;
 use Monorepo\ExampleApp\Common\Domain\Clock;
 use Monorepo\ExampleApp\Common\Domain\Money;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
@@ -22,7 +23,7 @@ final class Order
 {
     use WithAggregateEvents;
 
-    private function __construct(#[AggregateIdentifier] private UuidInterface $orderId, private UuidInterface $userId, private ShippingAddress $shippingAddress, private ProductDetails $productDetails, private \DateTimeImmutable $orderAt)
+    private function __construct(#[Identifier] private UuidInterface $orderId, private UuidInterface $userId, private ShippingAddress $shippingAddress, private ProductDetails $productDetails, private \DateTimeImmutable $orderAt)
     {
         $this->recordThat(new OrderWasPlaced($this->orderId));
     }

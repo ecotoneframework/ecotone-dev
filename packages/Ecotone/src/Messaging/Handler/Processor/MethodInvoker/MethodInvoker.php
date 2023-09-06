@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Conversion\ConversionException;
@@ -217,7 +215,14 @@ final class MethodInvoker implements MessageProcessor
      */
     public function executeEndpoint(Message $message)
     {
-        return call_user_func_array([$this->objectToInvokeOn, $this->objectMethodName], $this->getMethodCall($message)->getMethodArgumentValues());
+        $params = $this->getMethodCall($message)->getMethodArgumentValues();
+
+        /** Used direct calls instead of call_user_func to make the stacktrace shorter and more readable, as call_user_func_array add additional stacktrace level */
+        if (is_string($this->objectToInvokeOn)) {
+            return $this->objectToInvokeOn::{$this->objectMethodName}(...$params);
+        }
+
+        return $this->objectToInvokeOn->{$this->objectMethodName}(...$params);
     }
 
     public function getMethodCall(Message $message): MethodCall
@@ -243,38 +248,40 @@ final class MethodInvoker implements MessageProcessor
                 ? TypeDescriptor::create($sourceMediaType->getParameter('type'))
                 : TypeDescriptor::createFromVariable($data);
 
-            $currentParameterMediaType = $isPayloadConverter ? $sourceMediaType : MediaType::createApplicationXPHP();
+            $sourceMediaType = $isPayloadConverter ? $sourceMediaType : MediaType::createApplicationXPHP();
             $parameterType = $this->interfaceToCall->getParameterAtIndex($index)->getTypeDescriptor();
 
-            if (! ($sourceTypeDescriptor->isCompatibleWith($parameterType))) {
+            if (! ($sourceTypeDescriptor->isCompatibleWith($parameterType) && ($parameterType->isMessage() || $parameterType->isAnything() || $sourceMediaType->isCompatibleWith($parameterMediaType)))) {
                 $convertedData = null;
                 if (! $parameterType->isCompoundObjectType() && ! $parameterType->isAbstractClass() && ! $parameterType->isInterface() && ! $parameterType->isAnything() && ! $parameterType->isUnionType() && $this->canConvertParameter(
                     $sourceTypeDescriptor,
-                    $currentParameterMediaType,
+                    $sourceMediaType,
                     $parameterType,
                     $parameterMediaType
                 )) {
-                    $convertedData = $this->doConversion($this->interfaceToCall, $interfaceParameter, $data, $sourceTypeDescriptor, $currentParameterMediaType, $parameterType, $parameterMediaType);
+                    $convertedData = $this->doConversion($this->interfaceToCall, $interfaceParameter, $data, $sourceTypeDescriptor, $sourceMediaType, $parameterType, $parameterMediaType);
                 } elseif ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
                     $resolvedTargetParameterType = TypeDescriptor::create($message->getHeaders()->get(MessageHeaders::TYPE_ID));
                     if ($this->canConvertParameter(
                         $sourceTypeDescriptor,
-                        $currentParameterMediaType,
+                        $sourceMediaType,
                         $resolvedTargetParameterType,
                         $parameterMediaType
                     )
                     ) {
-                        $convertedData = $this->doConversion($this->interfaceToCall, $interfaceParameter, $data, $sourceTypeDescriptor, $currentParameterMediaType, $resolvedTargetParameterType, $parameterMediaType);
+                        $convertedData = $this->doConversion($this->interfaceToCall, $interfaceParameter, $data, $sourceTypeDescriptor, $sourceMediaType, $resolvedTargetParameterType, $parameterMediaType);
                     }
                 }
 
                 if (! is_null($convertedData)) {
                     $data = $convertedData;
                 } else {
-                    if ($parameterType->isUnionType()) {
-                        throw InvalidArgumentException::create("Can not call {$this->interfaceToCall} lack of information which type should be used to deserialization. Consider adding __TYPE__ header to indicate which union type it should be resolved to.");
-                    } elseif (! $currentParameterMediaType->isCompatibleWith($parameterMediaType) && ! $sourceTypeDescriptor->isCompatibleWith($parameterType)) {
-                        throw InvalidArgumentException::create("Can not call {$this->interfaceToCall}. Lack of Media Type Converter for {$currentParameterMediaType}:{$sourceTypeDescriptor} to {$parameterMediaType}:{$parameterType}");
+                    if (! ($sourceTypeDescriptor->isNullType() && $interfaceParameter->doesAllowNulls()) && ! $sourceTypeDescriptor->isCompatibleWith($parameterType)) {
+                        if ($parameterType->isUnionType()) {
+                            throw InvalidArgumentException::create("Can not call {$this->interfaceToCall} lack of information which type should be used to deserialization. Consider adding __TYPE__ header to indicate which union type it should be resolved to.");
+                        }
+
+                        throw InvalidArgumentException::create("Can not call {$this->interfaceToCall}. Lack of Media Type Converter for {$sourceMediaType}:{$sourceTypeDescriptor} to {$parameterMediaType}:{$parameterType}");
                     }
                 }
             }

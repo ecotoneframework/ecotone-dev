@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga;
 
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
@@ -15,7 +15,7 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 class Saga
 {
     use WithAggregateVersioning;
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $id;
 
     #[EventHandler]

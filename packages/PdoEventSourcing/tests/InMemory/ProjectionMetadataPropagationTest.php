@@ -98,7 +98,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
         /** @var DbalConnectionFactory $connectionFactory */
         $connectionFactory = $this->getConnectionFactory();
         $connection = $connectionFactory->createContext()->getDbalConnection();
-        $schemaManager = $connection->createSchemaManager();
+        $schemaManager = self::getSchemaManager($connection);
         if ($schemaManager->tablesExist(names: OrderProjection::TABLE)) {
             $connection->delete(OrderProjection::TABLE, ['1' => '1']);
         }

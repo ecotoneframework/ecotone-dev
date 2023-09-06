@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Fixture\ErrorChannel;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
@@ -44,16 +43,6 @@ class ErrorConfigurationContext
                 ->setExecutionTimeLimitInMilliseconds(3000)
                 ->setHandledMessageLimit(1)
                 ->setErrorChannelName(self::ERROR_CHANNEL),
-        ];
-    }
-
-    #[ServiceContext]
-    public function registerAmqpConfig(): array
-    {
-        return [
-            AmqpConfiguration::createWithDefaults()
-                ->withTransactionOnAsynchronousEndpoints(true)
-                ->withTransactionOnCommandBus(true),
         ];
     }
 }

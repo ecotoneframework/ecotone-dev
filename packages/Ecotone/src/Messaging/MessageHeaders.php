@@ -90,10 +90,6 @@ final class MessageHeaders
      */
     public const CONSUMER_ACK_HEADER_LOCATION = 'consumerAcknowledgeCallbackHeader';
     /**
-     * Consumer which started flow
-     */
-    public const CONSUMER_ENDPOINT_ID = 'consumerEndpointId';
-    /**
      * Consumed channel name
      */
     public const POLLED_CHANNEL_NAME = 'polledChannelName';
@@ -107,6 +103,8 @@ final class MessageHeaders
     public const REVISION = 'revision';
 
     public const STREAM_BASED_SOURCED = 'streamBasedSourced';
+
+    public const CHANNEL_SEND_RETRY_NUMBER = 'channelSendRetryNumber';
 
     private array $headers;
 
@@ -162,9 +160,9 @@ final class MessageHeaders
             self::DELIVERY_DELAY,
             self::POLLED_CHANNEL_NAME,
             self::REPLY_CONTENT_TYPE,
-            self::CONSUMER_ENDPOINT_ID,
             self::STREAM_BASED_SOURCED,
             MessagingEntrypoint::ENTRYPOINT,
+            self::CHANNEL_SEND_RETRY_NUMBER,
         ];
     }
 
@@ -235,7 +233,6 @@ final class MessageHeaders
             $metadata[self::TIME_TO_LIVE],
             $metadata[self::CONTENT_TYPE],
             $metadata[self::CONSUMER_ACK_HEADER_LOCATION],
-            $metadata[self::CONSUMER_ENDPOINT_ID],
             $metadata[self::POLLED_CHANNEL_NAME],
             $metadata[self::REPLY_CHANNEL]
         );

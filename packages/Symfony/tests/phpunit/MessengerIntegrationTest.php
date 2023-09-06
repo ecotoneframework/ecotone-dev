@@ -10,6 +10,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
+use Exception;
 use Fixture\MessengerConsumer\ExampleCommand;
 use Fixture\MessengerConsumer\ExampleEvent;
 use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;
@@ -26,7 +27,7 @@ final class MessengerIntegrationTest extends WebTestCase
     {
         try {
             self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
-        } catch (\Exception) {
+        } catch (Exception) {
         }
     }
 
@@ -83,7 +84,6 @@ final class MessengerIntegrationTest extends WebTestCase
         $this->assertEquals($metadata[MessageHeaders::MESSAGE_ID], $receivedMessage[0]['headers'][MessageHeaders::MESSAGE_ID]);
         $this->assertEquals($metadata[MessageHeaders::TIMESTAMP], $receivedMessage[0]['headers'][MessageHeaders::TIMESTAMP]);
         $this->assertEquals($channelName, $receivedMessage[0]['headers'][MessageHeaders::POLLED_CHANNEL_NAME]);
-        $this->assertEquals($channelName, $receivedMessage[0]['headers'][MessageHeaders::CONSUMER_ENDPOINT_ID]);
         $this->assertEquals(MediaType::createApplicationXPHPWithTypeParameter($messagePayload::class), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
     }
 
@@ -110,8 +110,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
-    /** Rejecting instead of requeuing due to lack of support */
-    public function test_rejecting_message_when_fails()
+    public function test_requeing_message_when_fails()
     {
         $channelName = 'messenger_async';
         $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
@@ -130,7 +129,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
-        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+        $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
     public function test_sending_via_routing_without_payload()

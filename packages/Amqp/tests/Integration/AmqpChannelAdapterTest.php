@@ -22,6 +22,7 @@ use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
+use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
@@ -36,7 +37,6 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Exception;
@@ -119,7 +119,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 $referenceSearchService,
                 PollingMetadata::create('')
                     ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1)
+                    ->setExecutionAmountLimit(1000)
             )
             ->run();
 
@@ -129,11 +129,11 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 $referenceSearchService,
                 PollingMetadata::create('')
                     ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1)
+                    ->setExecutionAmountLimit(1000)
             )
             ->run();
 
-        $this->assertNotNull($successChannel->receive());
+        $this->assertNotNull($successChannel->receiveWithTimeout(1000));
     }
 
     public function test_throwing_exception_and_rejecting_when_stop_on_error_is_defined_with_error_channel()
@@ -173,7 +173,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 PollingMetadata::create('')
                     ->setErrorChannelName('errorChannel')
                     ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1)
+                    ->setExecutionAmountLimit(1000)
             );
 
         $inboundAmqpGateway->run();
@@ -267,7 +267,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      */
     private function receiveOnce(AmqpInboundChannelAdapterBuilder $inboundAmqpGatewayBuilder, QueueChannel $inboundRequestChannel, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): ?Message
     {
-        return $this->receiveWithPollingMetadata($inboundAmqpGatewayBuilder, $inboundRequestChannel, $channelResolver, $referenceSearchService, PollingMetadata::create('someId')->setExecutionAmountLimit(1)->setExecutionTimeLimitInMilliseconds(100));
+        return $this->receiveWithPollingMetadata($inboundAmqpGatewayBuilder, $inboundRequestChannel, $channelResolver, $referenceSearchService, PollingMetadata::create('someId')->setExecutionAmountLimit(100)->setExecutionTimeLimitInMilliseconds(100));
     }
 
     /**
@@ -307,7 +307,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConversionException::class);
 
         $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
     }
@@ -333,7 +333,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConversionException::class);
 
         $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
     }
@@ -371,7 +371,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $this->assertNotNull($message, 'Message was not received from rabbit');
         $this->assertEquals(
             $message->getPayload(),
-            serialize($payload)
+            addslashes(serialize($payload))
         );
     }
 
@@ -644,7 +644,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundRequestChannel->subscribe(ForwardMessageHandler::create($inboundQueueChannel));
 
         $inboundAmqpGateway = $inboundAmqpAdapter
-            ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1));
+            ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1000));
 
         usleep(1500);
         $inboundAmqpGateway->run();
@@ -658,7 +658,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [],
             [
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
@@ -692,7 +692,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             [
                 ExceptionalMessageHandler::createWithRejectException(),
                 new AmqpConsumerExample(),
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
@@ -711,7 +711,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $messagePublisher = $ecotoneLite->getMessagePublisher();
         $messagePublisher->send($payload);
 
-        $ecotoneLite->run($normalQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
+        $ecotoneLite->run($normalQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(200));
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
 
         $ecotoneLite->run($deadLettterQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
@@ -746,7 +746,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receive();
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
@@ -767,7 +767,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receive();
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
         $this->acceptMessage($message);
 
         $this->assertNull($amqpBackedMessageChannel->receive());
@@ -784,7 +784,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
 
         /** @var Message $message */
-        $message = $amqpBackedMessageChannel->receive();
+        $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);

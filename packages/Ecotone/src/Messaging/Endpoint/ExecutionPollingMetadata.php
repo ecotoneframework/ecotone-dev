@@ -9,6 +9,7 @@ final class ExecutionPollingMetadata
     private ?int $memoryLimitInMegabytes = null;
     private ?string $cron = null;
     private ?bool $stopOnError = null;
+    private ?bool $finishWhenNoMessages = null;
 
     private function __construct()
     {
@@ -22,11 +23,24 @@ final class ExecutionPollingMetadata
     /**
      * @param int $amountOfMessagesToHandle how many messages should this consumer handle before exiting
      * @param int $maxExecutionTimeInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
+     * @param bool $failAtError Should consumer stop when error occurs, if not message will be requeued and consumer will continue
      * @return $this
      */
     public static function createWithTestingSetup(int $amountOfMessagesToHandle = 1, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
     {
         return self::createWithDefaults()->withTestingSetup($amountOfMessagesToHandle, $maxExecutionTimeInMilliseconds, $failAtError);
+    }
+
+    /**
+     * @param bool $failAtError Should consumer stop when error occurs, if not message will be requeued and consumer will continue
+     */
+    public static function createWithFinishWhenNoMessages(bool $failAtError = true): self
+    {
+        return self::createWithDefaults()
+            ->withFinishWhenNoMessages(true)
+            ->withStopOnError($failAtError)
+            ->withExecutionTimeLimitInMilliseconds(0)
+            ->withHandledMessageLimit(0);
     }
 
     public function withCron(string $cron): ExecutionPollingMetadata
@@ -82,6 +96,14 @@ final class ExecutionPollingMetadata
         return $self;
     }
 
+    public function withFinishWhenNoMessages(bool $finishWhenNoMessages): ExecutionPollingMetadata
+    {
+        $self = clone $this;
+        $self->finishWhenNoMessages = $finishWhenNoMessages;
+
+        return $self;
+    }
+
     public function getCron(): ?string
     {
         return $this->cron;
@@ -105,5 +127,10 @@ final class ExecutionPollingMetadata
     public function getStopOnError(): ?bool
     {
         return $this->stopOnError;
+    }
+
+    public function getFinishWhenNoMessages(): ?bool
+    {
+        return $this->finishWhenNoMessages;
     }
 }

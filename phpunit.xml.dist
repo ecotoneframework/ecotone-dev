@@ -56,5 +56,8 @@
     <testsuite name="Redis tests">
       <directory>packages/Redis/tests</directory>
     </testsuite>
+    <testsuite name="Monorepo tests">
+      <directory>Monorepo/CrossModuleTests/Tests</directory>
+    </testsuite>
   </testsuites>
 </phpunit>

@@ -16,6 +16,10 @@ use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
 use Ecotone\Lite\Test\Configuration\EcotoneTestSupportModule;
+use Ecotone\Messaging\Channel\Collector\Config\CollectorModule;
+use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeModule;
+use Ecotone\Messaging\Channel\PollableChannel\SendRetries\PollableChannelSendRetriesModule;
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\PollableChannelSerializationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\BasicMessagingModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
@@ -23,7 +27,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConverterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders\EndpointHeadersInterceptorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorHandlerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\GatewayModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\LoggingModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageConsumerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\MethodInterceptorModule;
@@ -35,6 +38,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SerializerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ServiceActivatorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
+use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
 use Ecotone\Modelling\Config\BusModule;
 use Ecotone\Modelling\Config\BusRoutingModule;
 use Ecotone\Modelling\Config\DistributedGatewayModule;
@@ -66,6 +70,7 @@ class ModuleClassList
         RequiredConsumersModule::class,
         RouterModule::class,
         ScheduledModule::class,
+        CollectorModule::class,
         SerializerModule::class,
         ServiceActivatorModule::class,
         SplitterModule::class,
@@ -76,6 +81,9 @@ class ModuleClassList
 
     public const ASYNCHRONOUS_MODULE = [
         AsynchronousModule::class,
+        PollableChannelSerializationModule::class,
+        PollableChannelSendRetriesModule::class,
+        InMemoryQueueAcknowledgeModule::class,
     ];
 
     public const AMQP_MODULES = [

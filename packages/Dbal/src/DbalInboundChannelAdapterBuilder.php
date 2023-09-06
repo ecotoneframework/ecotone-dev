@@ -3,6 +3,7 @@
 namespace Ecotone\Dbal;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -26,7 +27,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         /** @var ConversionService $conversionService */
         $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
 
-        $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, [], $conversionService);
+        $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, []);
 
         return new DbalInboundChannelAdapter(
             CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory)),
@@ -34,7 +35,8 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $this->declareOnStartup,
             $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
-            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper)
+            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper, EnqueueHeader::HEADER_ACKNOWLEDGE),
+            $conversionService
         );
     }
 }

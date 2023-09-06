@@ -38,8 +38,7 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
             containerOrAvailableServices: array_merge([AmqpConnectionFactory::class => $this->getCachedConnectionFactory()], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)
-                ->withEnvironment('prod')
-                ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         );

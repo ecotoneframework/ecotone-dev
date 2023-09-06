@@ -4,6 +4,7 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
@@ -24,19 +25,17 @@ use Prooph\EventStore\StreamName;
 
 class EventSourcingRepository implements EventSourcedRepository
 {
-    private HeaderMapper $headerMapper;
-    private array $handledAggregateClassNames;
-    private EcotoneEventStoreProophWrapper $eventStore;
-    private EventSourcingConfiguration $eventSourcingConfiguration;
-    private AggregateStreamMapping $aggregateStreamMapping;
-
-    public function __construct(EcotoneEventStoreProophWrapper $eventStore, array $handledAggregateClassNames, HeaderMapper $headerMapper, EventSourcingConfiguration $eventSourcingConfiguration, AggregateStreamMapping $aggregateStreamMapping, private AggregateTypeMapping $aggregateTypeMapping, private array $snapshotedAggregates, private DocumentStore $documentStore)
-    {
-        $this->eventStore = $eventStore;
-        $this->headerMapper = $headerMapper;
-        $this->handledAggregateClassNames = $handledAggregateClassNames;
-        $this->eventSourcingConfiguration = $eventSourcingConfiguration;
-        $this->aggregateStreamMapping = $aggregateStreamMapping;
+    public function __construct(
+        private EcotoneEventStoreProophWrapper $eventStore,
+        private array $handledAggregateClassNames,
+        private HeaderMapper $headerMapper,
+        private EventSourcingConfiguration $eventSourcingConfiguration,
+        private AggregateStreamMapping $aggregateStreamMapping,
+        private AggregateTypeMapping $aggregateTypeMapping,
+        private array $snapshotedAggregates,
+        private DocumentStore $documentStore,
+        private ConversionService $conversionService
+    ) {
     }
 
     public function canHandle(string $aggregateClassName): bool
@@ -98,7 +97,7 @@ class EventSourcingRepository implements EventSourcedRepository
 
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
-        $metadata = $this->headerMapper->mapFromMessageHeaders($metadata);
+        $metadata = $this->headerMapper->mapFromMessageHeaders($metadata, $this->conversionService);
         $events = array_map(static function ($event) use ($metadata): Event {
             if ($event instanceof Event) {
                 return $event;

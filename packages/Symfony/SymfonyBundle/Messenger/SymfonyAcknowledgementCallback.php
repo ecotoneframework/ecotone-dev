@@ -7,7 +7,7 @@ namespace Ecotone\SymfonyBundle\Messenger;
 use Ecotone\Enqueue\EnqueueAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Transport\Receiver\ReceiverInterface;
+use Symfony\Component\Messenger\Transport\TransportInterface;
 
 /**
  * Class EnqueueAcknowledgementCallback
@@ -20,17 +20,20 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
     public const MANUAL_ACK = 'manual';
     public const NONE = 'none';
 
-    private function __construct(private bool $isAutoAck, private ReceiverInterface $symfonyReceiver, private Envelope $envelope)
-    {
+    private function __construct(
+        private bool $isAutoAck,
+        private TransportInterface $symfonyTransport,
+        private Envelope $envelope
+    ) {
 
     }
 
-    public static function createWithAutoAck(ReceiverInterface $symfonyTransport, Envelope $envelope): self
+    public static function createWithAutoAck(TransportInterface $symfonyTransport, Envelope $envelope): self
     {
         return new self(true, $symfonyTransport, $envelope);
     }
 
-    public static function createWithManualAck(ReceiverInterface $symfonyTransport, Envelope $envelope): self
+    public static function createWithManualAck(TransportInterface $symfonyTransport, Envelope $envelope): self
     {
         return new self(false, $symfonyTransport, $envelope);
     }
@@ -56,7 +59,7 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
      */
     public function accept(): void
     {
-        $this->symfonyReceiver->ack($this->envelope);
+        $this->symfonyTransport->ack($this->envelope);
     }
 
     /**
@@ -64,7 +67,7 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
      */
     public function reject(): void
     {
-        $this->symfonyReceiver->reject($this->envelope);
+        $this->symfonyTransport->reject($this->envelope);
     }
 
     /**
@@ -72,7 +75,7 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
      */
     public function requeue(): void
     {
-        /** Symfony receiver does not support reject with requeue */
-        $this->symfonyReceiver->reject($this->envelope);
+        $this->symfonyTransport->send($this->envelope);
+        $this->symfonyTransport->reject($this->envelope);
     }
 }

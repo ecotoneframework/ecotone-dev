@@ -64,6 +64,7 @@ use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\BusModule;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
 use Ramsey\Uuid\Uuid;
+use RuntimeException;
 
 #[ModuleAnnotation]
 class EventSourcingModule extends NoExternalConfigurationModule
@@ -111,6 +112,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
         foreach ($annotationRegistrationService->findAnnotatedClasses(NamedEvent::class) as $namedEventClass) {
             /** @var NamedEvent $attribute */
             $attribute = $annotationRegistrationService->getAttributeForClass($namedEventClass, NamedEvent::class);
+
+            if (array_key_exists($attribute->getName(), $fromNameToClassMapping)) {
+                throw new RuntimeException(sprintf('Named Events should have unique names. However, `%s` is used more than once.', $attribute->getName()));
+            }
 
             $fromClassToNameMapping[$namedEventClass] = $attribute->getName();
             $fromNameToClassMapping[$attribute->getName()] = $namedEventClass;

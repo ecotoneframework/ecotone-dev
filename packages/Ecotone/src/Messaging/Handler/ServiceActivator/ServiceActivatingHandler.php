@@ -16,15 +16,10 @@ use Ecotone\Messaging\MessageHandler;
  */
 final class ServiceActivatingHandler implements MessageHandler
 {
-    private \Ecotone\Messaging\Handler\RequestReplyProducer $requestReplyProducer;
-
-    /**
-     * ServiceActivatingHandler constructor.
-     * @param RequestReplyProducer $requestReplyProducer
-     */
-    public function __construct(RequestReplyProducer $requestReplyProducer)
-    {
-        $this->requestReplyProducer = $requestReplyProducer;
+    public function __construct(
+        private RequestReplyProducer $requestReplyProducer,
+        private bool $hasAroundMethodInterceptor
+    ) {
     }
 
     /**
@@ -32,7 +27,17 @@ final class ServiceActivatingHandler implements MessageHandler
      */
     public function handle(Message $message): void
     {
-        $this->requestReplyProducer->handleWithPossibleAroundInterceptors($message);
+        /**
+         * We could call handleWithPossibleAroundInterceptors, yet
+         * this is used to make the stacktrace shorter and more readable
+         */
+        if ($this->hasAroundMethodInterceptor) {
+            $this->requestReplyProducer->handleWithPossibleAroundInterceptors($message);
+
+            return;
+        }
+
+        $this->requestReplyProducer->executeEndpointAndSendReply($message);
     }
 
     public function __toString()

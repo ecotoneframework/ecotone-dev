@@ -10,6 +10,8 @@ use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Null\NullConsumer;
+use Enqueue\Null\NullMessage;
+use Enqueue\Null\NullQueue;
 use PHPUnit\Framework\TestCase;
 
 final class InboundMessageConverterTest extends TestCase
@@ -19,16 +21,21 @@ final class InboundMessageConverterTest extends TestCase
         $inboundMessageConverter = new InboundMessageConverter(
             "some",
             EnqueueAcknowledgementCallback::AUTO_ACK,
-            DefaultHeaderMapper::createNoMapping(InMemoryConversionService::createWithoutConversion())
+            DefaultHeaderMapper::createNoMapping(),
+            'ack'
         );
 
-        $message = $inboundMessageConverter->toMessage(new \Enqueue\Null\NullMessage(
-            properties: [
-                MessageHeaders::MESSAGE_ID => 123,
-                MessageHeaders::TIMESTAMP => 123000,
-                MessageHeaders::MESSAGE_CORRELATION_ID => 1234
-            ]
-        ), new NullConsumer(new \Enqueue\Null\NullQueue("some")))
+        $message = $inboundMessageConverter->toMessage(
+            new NullMessage(
+                properties: [
+                    MessageHeaders::MESSAGE_ID => 123,
+                    MessageHeaders::TIMESTAMP => 123000,
+                    MessageHeaders::MESSAGE_CORRELATION_ID => 1234
+                ]
+            ),
+            new NullConsumer(new NullQueue("some")),
+            InMemoryConversionService::createWithoutConversion()
+        )
         ->build();
 
         $this->assertEquals(123, $message->getHeaders()->get(MessageHeaders::MESSAGE_ID));

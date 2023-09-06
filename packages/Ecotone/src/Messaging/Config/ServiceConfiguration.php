@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Config;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Support\Assert;
 
 class ServiceConfiguration
 {
@@ -27,7 +28,7 @@ class ServiceConfiguration
     /**
      * @var string[]
      */
-    private array $skippedModulesPackages = [];
+    private array $skippedModulesPackages = [ModulePackageList::TEST_PACKAGE];
     private bool $areSkippedPackagesDefined = false;
     private ?string $defaultSerializationMediaType = null;
     private ?string $defaultErrorChannel = null;
@@ -47,7 +48,7 @@ class ServiceConfiguration
 
     public static function createWithDefaults(): self
     {
-        return new self();
+        return (new self());
     }
 
     public static function createWithAsynchronicityOnly(): self
@@ -156,6 +157,9 @@ class ServiceConfiguration
 
     public function withExtensionObjects(array $extensionObjects): self
     {
+        foreach ($extensionObjects as $extensionObject) {
+            Assert::isObject($extensionObject, 'Extension object must be an object, given: ' . gettype($extensionObject));
+        }
         $clone              = clone $this;
         $clone->extensionObjects = $extensionObjects;
 
@@ -194,13 +198,10 @@ class ServiceConfiguration
         return $clone;
     }
 
-    /**
-     * @param string $defaultSerializationMediaType
-     */
-    public function withDefaultSerializationMediaType(string $defaultSerializationMediaType): self
+    public function withDefaultSerializationMediaType(string|MediaType $defaultSerializationMediaType): self
     {
         $clone                                = clone $this;
-        $clone->defaultSerializationMediaType = $defaultSerializationMediaType;
+        $clone->defaultSerializationMediaType = is_string($defaultSerializationMediaType) ? $defaultSerializationMediaType : $defaultSerializationMediaType->toString();
 
         return $clone;
     }

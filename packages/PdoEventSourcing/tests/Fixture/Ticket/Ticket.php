@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\Ticket;
 
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
@@ -20,7 +20,7 @@ class Ticket
 {
     use WithAggregateVersioning;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $ticketId;
     private string $assignedPerson;
     private string $ticketType;

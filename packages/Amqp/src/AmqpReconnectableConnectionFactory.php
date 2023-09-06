@@ -41,6 +41,8 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     }
 
     /**
+     * No way to reliable state if amqp is connected: https://github.com/php-amqp/php-amqp/issues/306
+     * So to make it more reliable we check other way around, if is disconnected
      * @param Context|AmqpContext|null $context
      */
     public function isDisconnected(?Context $context): bool

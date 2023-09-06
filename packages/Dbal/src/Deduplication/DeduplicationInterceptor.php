@@ -7,8 +7,10 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
@@ -17,6 +19,7 @@ use Ecotone\Messaging\Scheduling\Clock;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -39,18 +42,20 @@ class DeduplicationInterceptor
         $this->connectionReferenceName = $connectionReferenceName;
     }
 
-    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation)
+    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint)
     {
         $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName)));
+        /** @var LoggerInterface $logger */
+        $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
 
         if (! $this->isInitialized) {
-            $this->createDataBaseTable($connectionFactory);
+            $this->createDataBaseTable($connectionFactory, $logger);
             $this->isInitialized = true;
         }
         $this->removeExpiredMessages($connectionFactory);
         $messageId = $deduplicatedAttribute?->getDeduplicationHeaderName() ? $message->getHeaders()->get($deduplicatedAttribute->getDeduplicationHeaderName()) : $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
         /** If global deduplication consumer_endpoint_id will be used */
-        $consumerEndpointId = $message->getHeaders()->containsKey(MessageHeaders::CONSUMER_ENDPOINT_ID) ? $message->getHeaders()->get(MessageHeaders::CONSUMER_ENDPOINT_ID) : '';
+        $consumerEndpointId = $asynchronousRunningEndpoint ? $asynchronousRunningEndpoint->getEndpointId() : '';
         /** IF handler deduplication then endpoint id will be used */
         $routingSlip = $deduplicatedAttribute === null && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
             ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)
@@ -70,12 +75,22 @@ class DeduplicationInterceptor
             ->fetch();
 
         if ($select) {
+            $logger->info('Message with was already handled. Skipping.', [
+                'message_id' => $messageId,
+                'consumer_endpoint_id' => $consumerEndpointId,
+                'routing_slip' => $routingSlip,
+            ]);
             return;
         }
 
         try {
             $result = $methodInvocation->proceed();
             $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
+            $logger->info('Message was stored in deduplication table.', [
+                'message_id' => $messageId,
+                'consumer_endpoint_id' => $consumerEndpointId,
+                'routing_slip' => $routingSlip,
+            ]);
         } catch (Throwable $exception) {
             $this->isInitialized = false;
 
@@ -89,9 +104,8 @@ class DeduplicationInterceptor
     {
         $this->getConnection($connectionFactory)->createQueryBuilder()
             ->delete($this->getTableName())
-            ->andWhere('(:now - handled_at) >= :minimumTimeToRemoveTheMessage')
-            ->setParameter('now', $this->clock->unixTimeInMilliseconds(), Types::BIGINT)
-            ->setParameter('minimumTimeToRemoveTheMessage', $this->minimumTimeToRemoveMessageInMilliseconds, Types::BIGINT)
+            ->andWhere('handled_at <= :threshold')
+            ->setParameter('threshold', ($this->clock->unixTimeInMilliseconds() - $this->minimumTimeToRemoveMessageInMilliseconds), Types::BIGINT)
             ->execute();
     }
 
@@ -122,7 +136,7 @@ class DeduplicationInterceptor
         return self::DEFAULT_DEDUPLICATION_TABLE;
     }
 
-    private function createDataBaseTable(ConnectionFactory $connectionFactory): void
+    private function createDataBaseTable(ConnectionFactory $connectionFactory, LoggerInterface $logger): void
     {
         $sm = $this->getConnection($connectionFactory)->getSchemaManager();
 
@@ -141,6 +155,7 @@ class DeduplicationInterceptor
         $table->addIndex(['handled_at']);
 
         $sm->createTable($table);
+        $logger->info('Deduplication table was created');
     }
 
     private function getConnection(ConnectionFactory $connectionFactory): Connection

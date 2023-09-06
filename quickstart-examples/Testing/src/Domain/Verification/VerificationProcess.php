@@ -13,7 +13,7 @@ use App\Testing\Domain\Verification\Event\VerificationProcessStarted;
 use App\Testing\Infrastructure\MessagingConfiguration;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Endpoint\Delayed;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Saga;
@@ -27,7 +27,7 @@ final class VerificationProcess
     use WithAggregateEvents;
 
     private function __construct(
-        #[AggregateIdentifier]
+        #[Identifier]
         private UuidInterface           $userId,
         private EmailVerification       $emailVerification,
         private PhoneNumberVerification $phoneNumberVerification

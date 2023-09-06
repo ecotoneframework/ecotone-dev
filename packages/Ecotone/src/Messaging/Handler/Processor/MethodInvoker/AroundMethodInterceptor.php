@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -58,7 +56,7 @@ class AroundMethodInterceptor
         $methodInvocationType = TypeDescriptor::create(MethodInvocation::class);
 
         $hasMethodInvocation                  = false;
-        $argumentsToCallInterceptor           = [];
+        $argumentsToCall           = [];
         $interceptedInstanceType              = $methodInvocation->getInterceptedInterface()->getInterfaceType();
         $referenceSearchServiceTypeDescriptor = TypeDescriptor::create(ReferenceSearchService::class);
         $messageType                          = TypeDescriptor::create(Message::class);
@@ -67,11 +65,23 @@ class AroundMethodInterceptor
             : TypeDescriptor::createFromVariable($requestMessage->getPayload());
 
         foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $parameter) {
+            if ($parameter->canBePassedIn($methodInvocationType)) {
+                $hasMethodInvocation = true;
+            }
+        }
+
+        foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $parameter) {
             $resolvedArgument = null;
+            $hasArgumentBeenResolved = false;
             foreach ($this->parameterConverters as $parameterConverter) {
                 if ($parameterConverter->isHandling($parameter)) {
                     $resolvedArgument = $parameterConverter->getArgumentFrom($this->interceptorInterfaceToCall, $parameter, $requestMessage, []);
+                    $hasArgumentBeenResolved = true;
                 }
+            }
+            if ($hasArgumentBeenResolved) {
+                $argumentsToCall[] = $resolvedArgument;
+                continue;
             }
 
             if (is_null($resolvedArgument) && $parameter->canBePassedIn($messagePayloadType)) {
@@ -79,7 +89,6 @@ class AroundMethodInterceptor
             }
 
             if (is_null($resolvedArgument) && $parameter->canBePassedIn($methodInvocationType)) {
-                $hasMethodInvocation = true;
                 $resolvedArgument    = $methodInvocation;
             }
 
@@ -132,13 +141,10 @@ class AroundMethodInterceptor
                 throw MethodInvocationException::create("{$this->interceptorInterfaceToCall} can't resolve argument for parameter with name `{$parameter->getName()}`. It can be that the value is null in this scenario (for example type hinting for Aggregate, when calling Aggregate Factory Method), however the interface does not allow for nulls.");
             }
 
-            $argumentsToCallInterceptor[] = $resolvedArgument;
+            $argumentsToCall[] = $resolvedArgument;
         }
 
-        $returnValue = call_user_func_array(
-            [$this->referenceToCall, $this->interceptorInterfaceToCall->getMethodName()],
-            $argumentsToCallInterceptor
-        );
+        $returnValue = $this->referenceToCall->{$this->interceptorInterfaceToCall->getMethodName()}(...$argumentsToCall);
 
         if (! $hasMethodInvocation) {
             return $methodInvocation->proceed();

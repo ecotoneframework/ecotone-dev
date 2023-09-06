@@ -3,7 +3,6 @@
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
@@ -26,6 +25,7 @@ use Ecotone\Messaging\Endpoint\EventDriven\LazyEventDrivenConsumerBuilder;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\Interceptor\ConnectionExceptionRetryInterceptor;
+use Ecotone\Messaging\Endpoint\Interceptor\FinishWhenNoMessagesInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitConsumedMessagesInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitExecutionAmountInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitMemoryUsageInterceptor;
@@ -42,17 +42,13 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
-use Ecotone\Messaging\Handler\Interceptor\ConsumerNameInterceptor;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\NullableMessageChannel;
-use Ecotone\Messaging\Precedence;
 
 #[ModuleAnnotation]
 class BasicMessagingModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -91,7 +87,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         } else {
             $messagingConfiguration->registerConsumerFactory(new EventDrivenConsumerBuilder());
         }
-        $messagingConfiguration->registerConsumerFactory(new PollingConsumerBuilder($interfaceToCallRegistry));
+        $messagingConfiguration->registerConsumerFactory(new PollingConsumerBuilder());
 
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(MessageHeaders::ERROR_CHANNEL));
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::create(NullableMessageChannel::CHANNEL_NAME, NullableMessageChannel::create()));
@@ -101,6 +97,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         $messagingConfiguration->registerConverter(new DeserializingConverterBuilder());
 
         $messagingConfiguration->registerRelatedInterfaces([
+            $interfaceToCallRegistry->getFor(FinishWhenNoMessagesInterceptor::class, 'postSend'),
             $interfaceToCallRegistry->getFor(LimitConsumedMessagesInterceptor::class, 'postSend'),
             $interfaceToCallRegistry->getFor(ConnectionExceptionRetryInterceptor::class, 'postSend'),
             $interfaceToCallRegistry->getFor(LimitExecutionAmountInterceptor::class, 'postSend'),
@@ -123,13 +120,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
                 RouterBuilder::createHeaderRouter(MessagingEntrypoint::ENTRYPOINT)
                     ->withInputChannelName(MessagingEntrypoint::ENTRYPOINT)
             );
-        $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptor::create(
-            ConsumerNameInterceptor::class,
-            $interfaceToCallRegistry->getFor(ConsumerNameInterceptor::class, 'intercept'),
-            ServiceActivatorBuilder::createWithDirectReference(new ConsumerNameInterceptor(), 'intercept'),
-            Precedence::DATABASE_TRANSACTION_PRECEDENCE - 1000000,
-            AsynchronousRunningEndpoint::class
-        ));
 
         $messagingConfiguration->registerGatewayBuilder(
             GatewayProxyBuilder::create(

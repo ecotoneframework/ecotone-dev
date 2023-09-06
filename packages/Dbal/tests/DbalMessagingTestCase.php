@@ -4,6 +4,7 @@ namespace Test\Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\Setup;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
@@ -19,19 +20,26 @@ abstract class DbalMessagingTestCase extends TestCase
 {
     public function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
-
-        $dbalConnectionFactory = new DbalConnectionFactory($dsn);
+        $dbalConnectionFactory = self::prepareConnection();
         return $isRegistry
             ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)
             : $dbalConnectionFactory;
     }
 
-    public function getORMConnectionFactory(array $paths): ConnectionFactory
+    public static function prepareConnection(): DbalConnectionFactory
     {
-        $config = Setup::createAttributeMetadataConfiguration($paths, true);
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
 
-        return DbalConnection::createEntityManager(EntityManager::create($this->getConnection(), $config));
+        return new DbalConnectionFactory($dsn);
+    }
+
+    public function getORMConnectionFactory(array|EntityManagerInterface $pathsOrEntityManager): ConnectionFactory
+    {
+        if (is_array($pathsOrEntityManager)) {
+            $pathsOrEntityManager = $this->setupEntityManagerFor($pathsOrEntityManager);
+        }
+
+        return DbalConnection::createEntityManager($pathsOrEntityManager);
     }
 
     protected function getConnection(): Connection
@@ -60,7 +68,7 @@ abstract class DbalMessagingTestCase extends TestCase
 
     protected function checkIfTableExists(Connection $connection, string $table): bool
     {
-        $schemaManager = $connection->createSchemaManager();
+        $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
 
         return $schemaManager->tablesExist([$table]);
     }
@@ -72,5 +80,27 @@ abstract class DbalMessagingTestCase extends TestCase
         if ($doesExists) {
             $connection->executeStatement('DROP TABLE ' . $tableName);
         }
+    }
+
+    protected function setupUserTable(): void
+    {
+        if (! $this->checkIfTableExists($this->getConnection(), 'persons')) {
+            $this->getConnection()->executeStatement(<<<SQL
+                    CREATE TABLE persons (
+                        person_id INTEGER PRIMARY KEY,
+                        name VARCHAR(255)
+                    )
+                SQL);
+        }
+    }
+
+    /**
+     * @param string[] $paths
+     */
+    protected function setupEntityManagerFor(array $paths): EntityManager
+    {
+        $config = Setup::createAttributeMetadataConfiguration($paths, true);
+
+        return EntityManager::create($this->getConnection(), $config);
     }
 }

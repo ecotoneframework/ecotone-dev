@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
+use AMQPConnectionException;
 use AMQPQueueException;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -34,7 +35,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
@@ -50,7 +51,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $this->assertEquals(
             'some',
-            $messageChannel->receiveWithTimeout(1)->getPayload()
+            $messageChannel->receiveWithTimeout(100)->getPayload()
         );
 
         $this->assertNull($messageChannel->receiveWithTimeout(1));
@@ -64,7 +65,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
             [OrderService::class],
             [
                 new OrderService(),
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -75,7 +76,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         try {
             $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
-        } catch (\AMQPQueueException) {
+        } catch (AMQPQueueException) {
         }
 
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
@@ -98,7 +99,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
@@ -140,8 +141,14 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
 
         $wasFinallyRethrown = false;
         try {
-            $ecotoneLite->run('correctOrders');
-        } catch (\AMQPConnectionException) {
+            $ecotoneLite->run(
+                'correctOrders',
+                ExecutionPollingMetadata::createWithDefaults()
+                    ->withHandledMessageLimit(1)
+                    ->withExecutionTimeLimitInMilliseconds(100)
+                    ->withStopOnError(false)
+            );
+        } catch (AMQPConnectionException) {
             $wasFinallyRethrown = true;
         }
 
@@ -169,7 +176,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
             [\Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService::class, ErrorConfigurationContext::class],
             [
                 new \Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService(),
-                AmqpConnectionFactory::class => $this->getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

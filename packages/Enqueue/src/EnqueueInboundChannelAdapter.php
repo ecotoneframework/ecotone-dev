@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -24,6 +25,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
         protected string                          $queueName,
         protected int                             $receiveTimeoutInMilliseconds,
         protected InboundMessageConverter         $inboundMessageConverter,
+        protected ConversionService $conversionService
     ) {
     }
 
@@ -63,7 +65,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
                 return null;
             }
 
-            $convertedMessage = $this->inboundMessageConverter->toMessage($message, $consumer);
+            $convertedMessage = $this->inboundMessageConverter->toMessage($message, $consumer, $this->conversionService);
             $convertedMessage = $this->enrichMessage($message, $convertedMessage);
 
             return $convertedMessage->build();

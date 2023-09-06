@@ -58,6 +58,7 @@ final class EcotoneLite
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
+     * @deprecated Ecotone 2.0 will drop this method, use "bootstrapFlowTesting" instead
      */
     public static function bootstrapForTesting(
         array                    $classesToResolve = [],
@@ -250,6 +251,7 @@ final class EcotoneLite
 
         $aggregateAnnotation = TypeDescriptor::create(Aggregate::class);
         foreach ($classesToResolve as $class) {
+            Assert::isTrue(is_string($class), 'Classes to resolve must be strings, instead given: ' . TypeDescriptor::createFromVariable($class)->toString());
             $aggregateClass = ClassDefinition::createFor(TypeDescriptor::create($class));
             if (! $aggregateClass->hasClassAnnotation($aggregateAnnotation)) {
                 continue;
@@ -266,6 +268,7 @@ final class EcotoneLite
             $configuration = $configuration
                 ->addExtensionObject(InMemoryRepositoryBuilder::createForAllStateStoredAggregates());
         }
+
         return $configuration;
     }
 }

@@ -12,7 +12,7 @@ final class ErrorConfiguration
     public function pollingConfiguration()
     {
         return PollingMetadata::create('orderService')
-            ->setExecutionTimeLimitInMilliseconds(1)
+            ->setExecutionTimeLimitInMilliseconds(1000)
             ->setHandledMessageLimit(1)
             ->setErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL);
     }

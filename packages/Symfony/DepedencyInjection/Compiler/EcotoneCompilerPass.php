@@ -6,6 +6,7 @@ use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
@@ -29,6 +30,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
     public const  SERVICE_NAME                           = 'ecotone.service_name';
     public const  WORKING_NAMESPACES_CONFIG          = 'ecotone.namespaces';
     public const  FAIL_FAST_CONFIG                   = 'ecotone.fail_fast';
+    public const  TEST                   = 'ecotone.test';
     public const  LOAD_SRC                           = 'ecotone.load_src';
     public const  DEFAULT_SERIALIZATION_MEDIA_TYPE   = 'ecotone.serializationMediaType';
     public const  ERROR_CHANNEL                      = 'ecotone.errorChannel';
@@ -51,12 +53,18 @@ class EcotoneCompilerPass implements CompilerPassInterface
     public static function getMessagingConfiguration(ContainerInterface $container, bool $useCachedVersion = false): Configuration
     {
         $ecotoneCacheDirectory    = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
+        $skippedModules = $container->getParameter(self::SKIPPED_MODULE_PACKAGES);
+        if (! $container->getParameter(self::TEST)) {
+            $skippedModules[] = ModulePackageList::TEST_PACKAGE;
+        }
+
+        /** @TODO Ecotone 2.0 use ServiceContext to configure Symfony */
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
             ->withFailFast($container->getParameter('kernel.environment') === 'prod' ? false : $container->getParameter(self::FAIL_FAST_CONFIG))
             ->withLoadCatalog($container->getParameter(self::LOAD_SRC) ? 'src' : '')
             ->withNamespaces($container->getParameter(self::WORKING_NAMESPACES_CONFIG))
-            ->withSkippedModulePackageNames($container->getParameter(self::SKIPPED_MODULE_PACKAGES))
+            ->withSkippedModulePackageNames($skippedModules)
             ->withCacheDirectoryPath($ecotoneCacheDirectory);
 
         if ($container->getParameter(self::SERVICE_NAME)) {

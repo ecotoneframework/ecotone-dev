@@ -5,10 +5,12 @@ namespace Ecotone\Laravel;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
+
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
-
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+
+use Ecotone\Messaging\Config\ModulePackageList;
 
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -52,12 +54,18 @@ class EcotoneProvider extends ServiceProvider
 
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
+        $skippedModules = Config::get('ecotone.skippedModulePackageNames');
+        if (! Config::get('ecotone.test')) {
+            $skippedModules[] = ModulePackageList::TEST_PACKAGE;
+        }
+
+        /** @TODO Ecotone 2.0 use ServiceContext to configure Laravel */
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
             ->withNamespaces(Config::get('ecotone.namespaces'))
-            ->withSkippedModulePackageNames(Config::get('ecotone.skippedModulePackageNames'));
+            ->withSkippedModulePackageNames($skippedModules);
 
         if ($isCachingConfiguration) {
             $applicationConfiguration = $applicationConfiguration

@@ -18,7 +18,7 @@ class ChannelConfiguration
             AmqpBackedMessageChannelBuilder::create(self::QUEUE_NAME)
                 ->withReceiveTimeout(100),
             PollingMetadata::create(self::QUEUE_NAME)
-                ->setExecutionTimeLimitInMilliseconds(1)
+                ->setExecutionTimeLimitInMilliseconds(1000)
                 ->setHandledMessageLimit(1)
                 ->setErrorChannelName(self::ERROR_CHANNEL),
         ];

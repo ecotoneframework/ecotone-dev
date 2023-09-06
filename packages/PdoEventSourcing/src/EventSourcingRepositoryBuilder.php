@@ -56,9 +56,9 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
     {
         /** @var ConversionService $conversionService */
         $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-        $headerMapper = DefaultHeaderMapper::createAllHeadersMapping($conversionService);
+        $headerMapper = DefaultHeaderMapper::createAllHeadersMapping();
         if ($this->headerMapper) {
-            $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper, $conversionService);
+            $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper);
         }
 
         return new EventSourcingRepository(
@@ -73,7 +73,8 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
             $referenceSearchService->get(AggregateStreamMapping::class),
             $referenceSearchService->get(AggregateTypeMapping::class),
             $this->eventSourcingConfiguration->getSnapshotsAggregateClasses(),
-            $this->eventSourcingConfiguration->getSnapshotsAggregateClasses() == [] ? InMemoryDocumentStore::createEmpty() : $referenceSearchService->get($this->eventSourcingConfiguration->getDocumentStoreReference())
+            $this->eventSourcingConfiguration->getSnapshotsAggregateClasses() == [] ? InMemoryDocumentStore::createEmpty() : $referenceSearchService->get($this->eventSourcingConfiguration->getDocumentStoreReference()),
+            $conversionService
         );
     }
 }

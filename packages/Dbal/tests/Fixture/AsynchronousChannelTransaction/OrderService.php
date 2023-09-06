@@ -44,7 +44,8 @@ class OrderService
     #[CommandHandler('order.register_with_table_creation', 'orderRegister2')]
     public function registerWithTableCreation(string $order, OrderRegisteringGateway $orderRegisteringGateway, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connection): void
     {
-        $schemaManager = $connection->createContext()->getDbalConnection()->createSchemaManager();
+        $connection = $connection->createContext()->getDbalConnection();
+        $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
 
         if ($schemaManager->tablesExist(['test_table'])) {
             $schemaManager->dropTable('test_table');

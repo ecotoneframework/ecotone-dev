@@ -6,11 +6,10 @@ namespace Ecotone\Amqp;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
-use Ecotone\Enqueue\OutboundMessageConverter;
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
@@ -116,7 +115,8 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->exchangeFromHeader,
             $this->defaultPersistentDelivery,
             $this->autoDeclare,
-            new OutboundMessageConverter(DefaultHeaderMapper::createWith([], $this->headerMapper, $conversionService), $conversionService, $this->defaultConversionMediaType, $this->defaultDeliveryDelay, $this->defaultTimeToLive, $this->defaultPriority, $this->staticHeadersToAdd)
+            new OutboundMessageConverter($this->headerMapper, $this->defaultConversionMediaType, $this->defaultDeliveryDelay, $this->defaultTimeToLive, $this->defaultPriority, $this->staticHeadersToAdd),
+            $conversionService
         );
     }
 }

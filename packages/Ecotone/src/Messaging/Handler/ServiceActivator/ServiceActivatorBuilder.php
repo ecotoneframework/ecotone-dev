@@ -191,8 +191,9 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                 $this->outputMessageChannelName,
                 $messageProcessor,
                 $channelResolver,
-                $this->isReplyRequired
-            )
+                $this->isReplyRequired,
+            ),
+            count($this->orderedAroundInterceptors) > 0,
         );
     }
 

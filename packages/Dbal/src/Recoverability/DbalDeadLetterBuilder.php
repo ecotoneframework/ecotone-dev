@@ -148,7 +148,8 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         $messageHandler = ServiceActivatorBuilder::createWithDirectReference(
             new DbalDeadLetterHandler(
                 CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName))),
-                DefaultHeaderMapper::createAllHeadersMapping($referenceSearchService->get(ConversionService::REFERENCE_NAME))
+                DefaultHeaderMapper::createAllHeadersMapping(),
+                $referenceSearchService->get(ConversionService::REFERENCE_NAME)
             ),
             $this->methodName
         );

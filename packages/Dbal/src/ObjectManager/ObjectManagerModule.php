@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Modelling\CommandBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 #[ModuleAnnotation]
@@ -43,7 +44,15 @@ class ObjectManagerModule implements AnnotationModule
             $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames();
         }
 
+        $pointcut = [];
         if ($dbalConfiguration->isClearObjectManagerOnAsynchronousEndpoints()) {
+            $pointcut[] = AsynchronousRunningEndpoint::class;
+        }
+        if ($dbalConfiguration->isClearAndFlushObjectManagerOnCommandBus()) {
+            $pointcut[] = CommandBus::class;
+        }
+
+        if ($pointcut !== []) {
             $messagingConfiguration
                 ->requireReferences($connectionFactories)
                 ->registerAroundMethodInterceptor(
@@ -52,7 +61,7 @@ class ObjectManagerModule implements AnnotationModule
                         new ObjectManagerInterceptor($connectionFactories),
                         'transactional',
                         Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
-                        AsynchronousRunningEndpoint::class
+                        implode('||', $pointcut)
                     )
                 );
         }

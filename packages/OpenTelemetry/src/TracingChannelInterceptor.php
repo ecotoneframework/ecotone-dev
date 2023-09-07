@@ -42,12 +42,14 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     }
 
-    public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): void
+    public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
     {
         $span = Span::getCurrent();
 
         $span->setStatus($exception ? StatusCode::STATUS_ERROR : StatusCode::STATUS_OK);
         $span->end();
+
+        return false;
     }
 
     public function preReceive(MessageChannel $messageChannel): bool

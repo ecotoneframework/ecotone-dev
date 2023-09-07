@@ -27,7 +27,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.90.1",
+        "ecotone/ecotone": "~1.103.0",
         "open-telemetry/api": "@dev"
     },
     "require-dev": {
@@ -35,8 +35,9 @@
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "open-telemetry/sdk": "^0.0.17",
-        "open-telemetry/sdk-contrib": "^0.0.17",
+        "open-telemetry/sdk": "@dev",
+        "open-telemetry/transport-grpc": "@dev",
+        "open-telemetry/exporter-otlp": "@dev",
         "symfony/http-client": "^6.2",
         "guzzlehttp/promises": "^1.5",
         "php-http/message-factory": "^1.0",

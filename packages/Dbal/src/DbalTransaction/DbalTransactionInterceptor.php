@@ -3,12 +3,14 @@
 namespace Ecotone\Dbal\DbalTransaction;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Enqueue\Dbal\DbalContext;
 use Exception;
@@ -56,9 +58,15 @@ class DbalTransactionInterceptor
             }
         }
 
-        $logger->info('Starting Database Transaction');
         foreach ($connections as $connection) {
-            $connection->beginTransaction();
+            $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 2, 1000)
+                ->maxRetryAttempts(2)
+                ->build();
+
+            $retryStrategy->runCallbackWithRetries(function () use ($connection) {
+                $connection->beginTransaction();
+            }, ConnectionException::class, $logger, 'Starting Database transaction has failed due to network work, retrying in order to self heal.');
+            $logger->info('Database Transaction started');
         }
         try {
             $result = $methodInvocation->proceed();
@@ -66,7 +74,7 @@ class DbalTransactionInterceptor
             foreach ($connections as $connection) {
                 try {
                     $connection->commit();
-                    $logger->info('Committing Database Transaction');
+                    $logger->info('Database Transaction committed');
                 } catch (PDOException $exception) {
                     /** Handles the case where Mysql did implicit commit, when new creating tables */
                     if (! str_contains($exception->getMessage(), 'There is no active transaction')) {

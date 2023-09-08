@@ -29,7 +29,7 @@ abstract class AbstractConnectionTest extends TestCase
     public static function getConnection(): SqsConnectionFactory
     {
         return new SqsConnectionFactory(
-            getenv('SQS_DSN') ? getenv('SQS_DSN') : 'sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4576&version=latest'
+            getenv('SQS_DSN') ? getenv('SQS_DSN') : 'sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4566&version=latest'
         );
     }
 

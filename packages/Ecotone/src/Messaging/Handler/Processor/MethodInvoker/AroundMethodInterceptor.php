@@ -87,8 +87,8 @@ class AroundMethodInterceptor
         MethodInvocation $methodInvocation,
         MethodCall $methodCall,
         Message $requestMessage,
-        Type $messagePayloadType): mixed
-    {
+        Type $messagePayloadType
+    ): mixed {
         foreach ($this->parameterConverters as $parameterConverter) {
             if ($parameterConverter->isHandling($parameter)) {
                 return $parameterConverter->getArgumentFrom($this->interceptorInterfaceToCall, $parameter, $requestMessage, []);

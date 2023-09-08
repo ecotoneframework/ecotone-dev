@@ -20,7 +20,7 @@ use Test\Ecotone\Dbal\Fixture\Deduplication\OrderSubscriber;
 /**
  * @internal
  */
-final class DeduplicationTest extends DbalMessagingTestCase
+final class DeduplicationModuleTest extends DbalMessagingTestCase
 {
     private const CHANNEL_NAME = 'processOrders';
 
@@ -65,6 +65,72 @@ final class DeduplicationTest extends DbalMessagingTestCase
         self::assertEquals(['milk', 'cheese'], $result);
         self::assertCount(2, $result);
         self::assertEquals(4, $ecotone->sendQueryWithRouting('order.getCalled'));
+    }
+
+    public function test_sending_with_custom_deduplication_key()
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $sameDeduplicationKey = '3e84ff08-b755-4e16-b50d-94818bf9de99';
+        $ecotone->sendCommandWithRoutingKey(
+            routingKey: 'placeOrderSynchronously1',
+            command: 'milk',
+            metadata: ['orderId1' => $sameDeduplicationKey]
+        );
+        $ecotone->sendCommandWithRoutingKey(
+            routingKey: 'placeOrderSynchronously1',
+            command: 'cheese',
+            metadata: ['orderId1' => $sameDeduplicationKey]
+        );
+
+        $result = $ecotone->sendQueryWithRouting(routingKey: 'order.getRegistered');
+
+        self::assertEquals(['milk'], $result);
+        self::assertCount(1, $result);
+    }
+
+    public function test_deduplication_happens_across_endpoint_id()
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $sameDeduplicationKey = '3e84ff08-b755-4e16-b50d-94818bf9de99';
+        $ecotone->sendCommandWithRoutingKey(
+            routingKey: 'placeOrderSynchronously1',
+            command: 'milk',
+            metadata: ['orderId1' => $sameDeduplicationKey]
+        );
+        $ecotone->sendCommandWithRoutingKey(
+            routingKey: 'placeOrderSynchronously2',
+            command: 'cheese',
+            metadata: ['orderId2' => $sameDeduplicationKey]
+        );
+
+        $result = $ecotone->sendQueryWithRouting(routingKey: 'order.getRegistered');
+
+        self::assertEquals(['milk', 'cheese'], $result);
+        self::assertCount(2, $result);
+    }
+
+    public function test_deduplicating_within_same_key_for_different_endpoints()
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $sameDeduplicationKey = '3e84ff08-b755-4e16-b50d-94818bf9de99';
+        $ecotone->sendCommandWithRoutingKey(
+            routingKey: 'placeOrderSynchronously1',
+            command: 'milk',
+            metadata: ['orderId1' => $sameDeduplicationKey]
+        );
+        $ecotone->sendCommandWithRoutingKey(
+            routingKey: 'placeOrderSynchronously3',
+            command: 'cheese',
+            metadata: ['orderId1' => $sameDeduplicationKey]
+        );
+
+        $result = $ecotone->sendQueryWithRouting(routingKey: 'order.getRegistered');
+
+        self::assertEquals(['milk', 'cheese'], $result);
+        self::assertCount(2, $result);
     }
 
     private function bootstrapEcotone(): FlowTestSupport

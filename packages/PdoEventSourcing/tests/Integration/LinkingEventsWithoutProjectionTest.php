@@ -18,6 +18,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 
+/**
+ * @internal
+ */
 final class LinkingEventsWithoutProjectionTest extends EventSourcingMessagingTestCase
 {
     public function test_linking_events(): void

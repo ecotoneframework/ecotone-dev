@@ -464,32 +464,37 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 ->withOutputMessageChannel(BusModule::EVENT_CHANNEL_NAME_BY_OBJECT)
         );
 
-        $routerHandler =
+        $linkingRouterHandler =
             ChainMessageHandlerBuilder::create()
                 ->withInputChannelName(Uuid::uuid4()->toString())
-                ->chain(MessageFilterBuilder::createBoolHeaderFilter(ProjectionEventHandler::PROJECTION_IS_REBUILDING))
+                /** linkTo can be used outside of Projection, then we should NOT filter events out */
+                ->chain(MessageFilterBuilder::createBoolHeaderFilter(ProjectionEventHandler::PROJECTION_IS_REBUILDING, false))
                 ->withOutputMessageHandler(RouterBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
                     $eventBusChannelName,
-                ]))
-        ;
-        $configuration->registerMessageHandler($routerHandler);
+                ]));
+        $configuration->registerMessageHandler($linkingRouterHandler);
 
         $configuration->registerGatewayBuilder(
-            GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'linkTo', $routerHandler->getInputMessageChannelName())
+            GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'linkTo', $linkingRouterHandler->getInputMessageChannelName())
                 ->withEndpointAnnotations([new PropagateHeaders()])
                 ->withParameterConverters([GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents')], )
         );
 
-        $streamNameMapperChannel = Uuid::uuid4()->toString();
-        $mapProjectionNameToStreamName = TransformerBuilder::createWithDirectObject(new StreamNameMapper(), 'map')
-            ->withInputChannelName($streamNameMapperChannel)
-            ->withOutputMessageChannel($routerHandler->getInputMessageChannelName())
-        ;
-        $configuration->registerMessageHandler($mapProjectionNameToStreamName);
+
+        $emittingRouterHandler =
+            ChainMessageHandlerBuilder::create()
+                ->withInputChannelName(Uuid::uuid4()->toString())
+                ->chain(TransformerBuilder::createWithDirectObject(new StreamNameMapper(), 'map'))
+                ->chain(MessageFilterBuilder::createBoolHeaderFilter(ProjectionEventHandler::PROJECTION_IS_REBUILDING))
+                ->withOutputMessageHandler(RouterBuilder::createRecipientListRouter([
+                    $eventStoreHandler->getInputMessageChannelName(),
+                    $eventBusChannelName,
+                ]));
+        $configuration->registerMessageHandler($emittingRouterHandler);
 
         $configuration->registerGatewayBuilder(
-            GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'emit', $streamNameMapperChannel)
+            GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'emit', $emittingRouterHandler->getInputMessageChannelName())
                 ->withEndpointAnnotations([new PropagateHeaders()])
                 ->withParameterConverters([GatewayPayloadBuilder::create('streamEvents')])
         );

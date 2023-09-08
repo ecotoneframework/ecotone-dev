@@ -20,6 +20,6 @@ final class EventEmitter
     #[EventHandler(endpointId: 'inProgressTicketList.closeTicket')]
     public function closeTicket(TicketWasClosed $event, EventStreamEmitter $eventStreamEmitter): void
     {
-        $eventStreamEmitter->emit([new TicketListUpdated($event->getTicketId())]);
+        $eventStreamEmitter->linkTo(NotificationService::STREAM_NAME, [new TicketListUpdated($event->getTicketId())]);
     }
 }

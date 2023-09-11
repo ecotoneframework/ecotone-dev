@@ -130,7 +130,6 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
                     $objectToInvokeOn,
                     $this->methodParameterConverterBuilders,
                     $referenceSearchService,
-                    $channelResolver,
                     $this->orderedAroundInterceptors,
                     $this->getEndpointAnnotations()
                 ),

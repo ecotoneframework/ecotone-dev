@@ -83,7 +83,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
      *
      * @return AroundMethodInterceptor[]
      */
-    public static function createAroundInterceptorsWithChannel(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, array $interceptorsReferences): array
+    public static function createAroundInterceptorsWithChannel(ReferenceSearchService $referenceSearchService, array $interceptorsReferences): array
     {
         $aroundMethodInterceptors = [];
         usort(

@@ -159,7 +159,6 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
                     $messageSelector,
                     $this->parameterConverters,
                     $referenceSearchService,
-                    $channelResolver,
                     $this->orderedAroundInterceptors,
                     $this->getEndpointAnnotations()
                 ),

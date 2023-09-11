@@ -105,9 +105,6 @@ class CallAggregateService
             $aggregate ? $aggregate : $this->aggregateInterface->getInterfaceType()->toString(),
             $this->parameterConverterBuilders,
             $this->referenceSearchService,
-            $this->channelResolver,
-            [],
-            []
         );
 
         if ($this->aroundMethodInterceptors) {

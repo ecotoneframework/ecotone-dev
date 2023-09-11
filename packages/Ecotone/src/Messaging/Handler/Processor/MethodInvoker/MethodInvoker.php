@@ -80,7 +80,7 @@ final class MethodInvoker implements MessageProcessor
     /**
      * @param ParameterConverterBuilder[] $methodParametersConverterBuilders
      */
-    public static function createWith(InterfaceToCall $interfaceToCall, $objectToInvokeOn, array $methodParametersConverterBuilders, ReferenceSearchService $referenceSearchService, ?ChannelResolver $channelResolver = null, array $aroundInterceptors = [], array $endpointAnnotations = []): self
+    public static function createWith(InterfaceToCall $interfaceToCall, $objectToInvokeOn, array $methodParametersConverterBuilders, ReferenceSearchService $referenceSearchService, array $aroundInterceptors = [], array $endpointAnnotations = []): self
     {
         $methodParametersConverterBuilders = self::createDefaultMethodParameters($interfaceToCall, $methodParametersConverterBuilders, $endpointAnnotations, null, false);
         $methodParameterConverters         = [];
@@ -88,7 +88,7 @@ final class MethodInvoker implements MessageProcessor
             $methodParameterConverters[] = $methodParameter->build($referenceSearchService);
         }
         if ($aroundInterceptors) {
-            $aroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($channelResolver, $referenceSearchService, $aroundInterceptors);
+            $aroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $aroundInterceptors);
         }
 
         /** @var ConversionService $conversionService */

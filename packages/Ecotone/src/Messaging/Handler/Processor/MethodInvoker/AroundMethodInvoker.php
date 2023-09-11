@@ -62,7 +62,6 @@ class AroundMethodInvoker implements MethodInvocation
 
         return $aroundMethodInterceptor->invoke(
             $this,
-            $this->methodCall,
             $this->requestMessage
         );
     }

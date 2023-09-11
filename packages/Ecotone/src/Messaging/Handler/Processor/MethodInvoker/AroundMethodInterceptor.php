@@ -53,7 +53,7 @@ class AroundMethodInterceptor
         return new self($referenceToCall, $interfaceToCall, $referenceSearchService, $parameterConverters);
     }
 
-    public function invoke(MethodInvocation $methodInvocation, MethodCall $methodCall, Message $requestMessage)
+    public function invoke(MethodInvocation $methodInvocation, Message $requestMessage)
     {
         $methodInvocationType = TypeDescriptor::create(MethodInvocation::class);
 
@@ -70,7 +70,7 @@ class AroundMethodInterceptor
         }
 
         foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $parameter) {
-            $argumentsToCall[] = $this->resolveArgument($parameter, $methodInvocation, $methodCall, $requestMessage, $messagePayloadType);
+            $argumentsToCall[] = $this->resolveArgument($parameter, $methodInvocation, $requestMessage, $messagePayloadType);
         }
 
         $returnValue = $this->referenceToCall->{$this->interceptorInterfaceToCall->getMethodName()}(...$argumentsToCall);
@@ -85,7 +85,6 @@ class AroundMethodInterceptor
     private function resolveArgument(
         InterfaceParameter $parameter,
         MethodInvocation $methodInvocation,
-        MethodCall $methodCall,
         Message $requestMessage,
         Type $messagePayloadType
     ): mixed {
@@ -132,12 +131,6 @@ class AroundMethodInterceptor
 
         if ($parameter->canBePassedIn(TypeDescriptor::create(ReferenceSearchService::class))) {
             return $this->referenceSearchService;
-        }
-
-        foreach ($methodCall->getMethodArguments() as $methodArgument) {
-            if ($methodArgument->hasEqualTypeAs($parameter)) {
-                return $methodArgument->value();
-            }
         }
 
         if ($parameter->getTypeDescriptor()->isNonCollectionArray()) {

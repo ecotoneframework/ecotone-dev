@@ -210,7 +210,6 @@ class ServiceActivatorBuilderTest extends MessagingTest
         $this->assertEquals(
             [
                 InterfaceToCall::create($objectToInvoke, 'result'),
-                InterfaceToCall::create(PassThroughService::class, 'invoke'),
             ],
             $serviceActivator->resolveRelatedInterfaces(
                 InterfaceToCallRegistry::createWith(InMemoryAnnotationFinder::createFrom([CalculatingServiceInterceptorExample::class])),
@@ -228,7 +227,6 @@ class ServiceActivatorBuilderTest extends MessagingTest
         $this->assertEquals(
             [
                 InterfaceToCall::create($objectToInvoke, 'result'),
-                InterfaceToCall::create(PassThroughService::class, 'invoke'),
             ],
             $serviceActivator->resolveRelatedInterfaces(
                 InterfaceToCallRegistry::createWith(

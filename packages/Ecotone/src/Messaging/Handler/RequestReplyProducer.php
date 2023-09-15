@@ -26,6 +26,7 @@ class RequestReplyProducer implements MessageHandler
 
     private ?\Ecotone\Messaging\MessageChannel $outputChannel;
     private bool $isReplyRequired;
+    private bool $shouldPassThroughMessage;
     private \Ecotone\Messaging\Handler\ChannelResolver $channelResolver;
     private MessageProcessor $messageProcessor;
     private int $method;
@@ -35,27 +36,29 @@ class RequestReplyProducer implements MessageHandler
         MessageProcessor $messageProcessor,
         ChannelResolver $channelResolver,
         bool $isReplyRequired,
+        bool $shouldPassThroughMessage,
         int $method,
     ) {
         $this->outputChannel = $outputChannel;
         $this->isReplyRequired = $isReplyRequired;
         $this->channelResolver = $channelResolver;
         $this->messageProcessor = $messageProcessor;
+        $this->shouldPassThroughMessage = $shouldPassThroughMessage;
         $this->method = $method;
     }
 
-    public static function createRequestAndReply(string|MessageChannel|null $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired): RequestReplyProducer
+    public static function createRequestAndReply(string|MessageChannel|null $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired, bool $shouldPassThroughMessage = false): RequestReplyProducer
     {
         $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
 
-        return new self($outputChannel, $messageProcessor, $channelResolver, $isReplyRequired, self::REQUEST_REPLY_METHOD);
+        return new self($outputChannel, $messageProcessor, $channelResolver, $isReplyRequired, $shouldPassThroughMessage, self::REQUEST_REPLY_METHOD);
     }
 
     public static function createRequestAndSplit(?string $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver): self
     {
         $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
 
-        return new self($outputChannel, $messageProcessor, $channelResolver, true, self::REQUEST_SPLIT_METHOD);
+        return new self($outputChannel, $messageProcessor, $channelResolver, true, false, self::REQUEST_SPLIT_METHOD);
     }
 
     public function handle(Message $message): void
@@ -85,6 +88,9 @@ class RequestReplyProducer implements MessageHandler
     public function executeEndpointAndSendReply(Message $requestMessage): void
     {
         $replyData = $this->messageProcessor->executeEndpoint($requestMessage);
+        if ($this->shouldPassThroughMessage) {
+            $replyData = $requestMessage;
+        }
 
         if ($this->isReplyRequired() && $this->isReplyDataEmpty($replyData)) {
             throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $requestMessage);

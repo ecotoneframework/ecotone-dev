@@ -137,7 +137,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
                 ? $this->methodNameOrInterfaceToCall
                 : $interfaceToCallRegistry->getFor($this->directObjectReference, $this->getMethodName()),
-            $interfaceToCallRegistry->getFor(PassThroughService::class, 'invoke'),
         ];
     }
 
@@ -180,21 +179,13 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                 $referenceSearchService
             );
         }
-        if ($this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid()) {
-            $passThroughService = new PassThroughService($messageProcessor);
-            $messageProcessor   = MethodInvoker::createWith(
-                $interfaceToCallRegistry->getFor($passThroughService, 'invoke'),
-                $passThroughService,
-                [],
-                $referenceSearchService
-            );
-        }
 
         return RequestReplyProducer::createRequestAndReply(
                 $this->outputMessageChannelName,
                 $messageProcessor,
                 $channelResolver,
                 $this->isReplyRequired,
+            $this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid()
             );
     }
 

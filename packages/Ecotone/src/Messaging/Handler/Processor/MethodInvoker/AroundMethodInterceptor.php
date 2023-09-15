@@ -55,19 +55,10 @@ class AroundMethodInterceptor
 
     public function invoke(MethodInvocation $methodInvocation, Message $requestMessage)
     {
-        $methodInvocationType = TypeDescriptor::create(MethodInvocation::class);
-
-        $hasMethodInvocation                  = false;
         $argumentsToCall           = [];
         $messagePayloadType                   = $requestMessage->getHeaders()->hasContentType() && $requestMessage->getHeaders()->getContentType()->hasTypeParameter()
             ? $requestMessage->getHeaders()->getContentType()->getTypeParameter()
             : TypeDescriptor::createFromVariable($requestMessage->getPayload());
-
-        foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $parameter) {
-            if ($parameter->canBePassedIn($methodInvocationType)) {
-                $hasMethodInvocation = true;
-            }
-        }
 
         foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $parameter) {
             $argumentsToCall[] = $this->resolveArgument($parameter, $methodInvocation, $requestMessage, $messagePayloadType);
@@ -75,11 +66,24 @@ class AroundMethodInterceptor
 
         $returnValue = $this->referenceToCall->{$this->interceptorInterfaceToCall->getMethodName()}(...$argumentsToCall);
 
-        if (! $hasMethodInvocation) {
+        if (! $this->hasMethodInvocation()) {
             return $methodInvocation->proceed();
         }
 
         return $returnValue;
+    }
+
+    private function hasMethodInvocation(): bool
+    {
+        $methodInvocationType = TypeDescriptor::create(MethodInvocation::class);
+
+        foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $parameter) {
+            if ($parameter->canBePassedIn($methodInvocationType)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function resolveArgument(

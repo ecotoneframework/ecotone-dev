@@ -97,7 +97,7 @@ class GatewayInternalHandler
                 throw InvalidArgumentException::create("{$this->interfaceToCall} expects value, but null was returned. Have you consider changing return value to nullable?");
             }
             if ($replyMessage instanceof ErrorMessage) {
-                throw ($replyMessage->getPayload()->getCause() ? $replyMessage->getPayload()->getCause() : $replyMessage->getPayload());
+                throw ($replyMessage->getPayload()->getCause() ?: $replyMessage->getPayload());
             }
 
             return $replyMessage;

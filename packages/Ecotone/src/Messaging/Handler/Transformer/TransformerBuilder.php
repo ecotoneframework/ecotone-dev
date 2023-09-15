@@ -178,8 +178,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        return new Transformer(
-            RequestReplyProducer::createRequestAndReply(
+        return RequestReplyProducer::createRequestAndReply(
                 $this->outputMessageChannelName,
                 TransformerMessageProcessor::createFrom(
                     MethodInvoker::createWith(
@@ -193,7 +192,6 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
                 ),
                 $channelResolver,
                 false
-            )
         );
     }
 

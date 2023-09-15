@@ -9,6 +9,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvoker;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageDeliveryException;
+use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ramsey\Uuid\Uuid;
@@ -18,7 +19,7 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class RequestReplyProducer
+class RequestReplyProducer implements MessageHandler
 {
     private const REQUEST_REPLY_METHOD = 1;
     private const REQUEST_SPLIT_METHOD = 2;
@@ -57,7 +58,7 @@ class RequestReplyProducer
         return new self($outputChannel, $messageProcessor, $channelResolver, true, self::REQUEST_SPLIT_METHOD);
     }
 
-    public function handleWithPossibleAroundInterceptors(Message $message): void
+    public function handle(Message $message): void
     {
         if ($this->messageProcessor->getAroundMethodInterceptors() === []) {
             $this->executeEndpointAndSendReply($message);

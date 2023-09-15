@@ -122,19 +122,17 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        return new Splitter(
-            RequestReplyProducer::createRequestAndSplit(
-                $this->outputMessageChannelName,
-                MethodInvoker::createWith(
-                    $interfaceToCall,
-                    $objectToInvokeOn,
-                    $this->methodParameterConverterBuilders,
-                    $referenceSearchService,
-                    $this->orderedAroundInterceptors,
-                    $this->getEndpointAnnotations()
-                ),
-                $channelResolver
-            )
+        return RequestReplyProducer::createRequestAndSplit(
+            $this->outputMessageChannelName,
+            MethodInvoker::createWith(
+                $interfaceToCall,
+                $objectToInvokeOn,
+                $this->methodParameterConverterBuilders,
+                $referenceSearchService,
+                $this->orderedAroundInterceptors,
+                $this->getEndpointAnnotations()
+            ),
+            $channelResolver
         );
     }
 

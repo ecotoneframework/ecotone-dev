@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\ObjectInvocation;
 use Ecotone\Messaging\Handler\Processor\WrapWithMessageBuildProcessor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
@@ -19,6 +20,8 @@ use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use ReflectionException;
 use ReflectionMethod;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 
 /**
  * Class ServiceActivatorFactory
@@ -37,6 +40,8 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     private ?object $directObjectReference = null;
     private bool $shouldPassThroughMessage = false;
     private bool $shouldWrapResultInMessage = true;
+
+    private bool $isCompiled = false;
 
     private function __construct(string $objectToInvokeOnReferenceName, private string|InterfaceToCall $methodNameOrInterfaceToCall)
     {
@@ -185,15 +190,30 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             );
         }
 
-        return new ServiceActivatingHandler(
-            RequestReplyProducer::createRequestAndReply(
+        return RequestReplyProducer::createRequestAndReply(
                 $this->outputMessageChannelName,
                 $messageProcessor,
                 $channelResolver,
                 $this->isReplyRequired,
-            ),
-            count($this->orderedAroundInterceptors) > 0,
-        );
+            );
+    }
+
+    public function compile(ContainerBuilder $containerBuilder): void
+    {
+        $this->isCompiled = true;
+
+        $messageProcessor = new Definition();
+
+        $serviceActivatingHandlerDefinition = new Definition(ServiceActivatingHandler::class);
+    }
+
+    public function compileObjectInvocation(ContainerBuilder $containerBuilder): void
+    {
+        $messageProcessor = new Definition(ObjectInvocation::class);
+        $messageProcessor->setArgument();
+
+
+        $serviceActivatingHandlerDefinition = new Definition(ServiceActivatingHandler::class);
     }
 
     /**

@@ -49,6 +49,7 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
 use Exception;
+use ProxyManager\Autoloader\AutoloaderInterface;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -58,6 +59,8 @@ use Ramsey\Uuid\Uuid;
  */
 final class MessagingSystemConfiguration implements Configuration
 {
+    private static ?AutoloaderInterface $registered_autoloader = null;
+
     /**
      * @var MessageChannelBuilder[]
      */
@@ -1245,7 +1248,7 @@ final class MessagingSystemConfiguration implements Configuration
         /** @var ProxyFactory $proxyFactory */
         $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
         $proxyFactory->warmUpCacheFor($this->gatewayClassesToGenerateProxies);
-        spl_autoload_register($proxyFactory->getConfiguration()->getProxyAutoloader());
+        $this->registerAutoloader($proxyFactory->getConfiguration()->getProxyAutoloader());
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];
@@ -1344,5 +1347,14 @@ final class MessagingSystemConfiguration implements Configuration
                 $this->afterCallMethodInterceptors
             )
         );
+    }
+
+    private function registerAutoloader(AutoloaderInterface $autoloader)
+    {
+        if (self::$registered_autoloader) {
+            \spl_autoload_unregister(self::$registered_autoloader);
+        }
+        \spl_autoload_register($autoloader);
+        self::$registered_autoloader = $autoloader;
     }
 }

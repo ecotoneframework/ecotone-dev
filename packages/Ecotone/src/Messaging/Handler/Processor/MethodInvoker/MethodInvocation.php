@@ -26,16 +26,6 @@ interface MethodInvocation
     public function getObjectToInvokeOn();
 
     /**
-     * @return string
-     */
-    public function getInterceptedClassName(): string;
-
-    /**
-     * @return string
-     */
-    public function getInterceptedMethodName(): string;
-
-    /**
      * @return InterfaceToCall
      */
     public function getInterceptedInterface(): InterfaceToCall;

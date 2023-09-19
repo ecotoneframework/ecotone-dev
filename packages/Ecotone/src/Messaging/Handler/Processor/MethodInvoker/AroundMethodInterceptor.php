@@ -80,37 +80,12 @@ class AroundMethodInterceptor
     ): mixed {
         foreach ($this->parameterConverters as $parameterConverter) {
             if ($parameterConverter->isHandling($parameter)) {
-                return $parameterConverter->getArgumentFrom($this->interceptorInterfaceToCall, $parameter, $requestMessage, []);
+                return $parameterConverter->getArgumentFrom($this->interceptorInterfaceToCall, $parameter, $requestMessage, [], $methodInvocation);
             }
         }
 
         if ($parameter->canBePassedIn($messagePayloadType)) {
             return $requestMessage->getPayload();
-        }
-
-        if ($parameter->canBePassedIn(TypeDescriptor::create(MethodInvocation::class))) {
-            return $methodInvocation;
-        }
-
-        if (
-            $parameter->canBePassedIn($methodInvocation->getInterceptedInterface()->getInterfaceType())
-            && ! is_string($methodInvocation->getObjectToInvokeOn())) {
-            return $methodInvocation->getObjectToInvokeOn();
-        }
-
-        if ($parameter->canBePassedIn(TypeDescriptor::create(Message::class))) {
-            return $requestMessage;
-        }
-
-        if ($methodInvocation->getInterceptedInterface()->hasClassAnnotation($parameter->getTypeDescriptor())) {
-            return $methodInvocation->getInterceptedInterface()->getClassAnnotation($parameter->getTypeDescriptor());
-        }
-        if ($methodInvocation->getInterceptedInterface()->hasMethodAnnotation($parameter->getTypeDescriptor())) {
-            return $methodInvocation->getInterceptedInterface()->getMethodAnnotation($parameter->getTypeDescriptor());
-        }
-
-        if ($parameter->canBePassedIn(TypeDescriptor::create(ReferenceSearchService::class))) {
-            return $this->referenceSearchService;
         }
 
         if ($parameter->getTypeDescriptor()->isNonCollectionArray()) {

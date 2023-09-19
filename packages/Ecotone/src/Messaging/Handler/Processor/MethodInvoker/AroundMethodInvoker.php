@@ -6,7 +6,6 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use ArrayIterator;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Message;
@@ -32,7 +31,7 @@ class AroundMethodInvoker implements MethodInvocation
         private MethodCall $methodCall,
         array $aroundMethodInterceptors,
         private Message $requestMessage,
-        private RequestReplyProducer $requestReplyProducer
+        private RequestReplyProducer $requestReplyProducer,
     ) {
         $this->aroundMethodInterceptors = new ArrayIterator($aroundMethodInterceptors);
     }
@@ -81,14 +80,6 @@ class AroundMethodInvoker implements MethodInvocation
     public function getObjectToInvokeOn()
     {
         return $this->messageProcessor->getObjectToInvokeOn();
-    }
-
-    /**
-     * @return InterfaceToCall
-     */
-    public function getInterceptedInterface(): InterfaceToCall
-    {
-        return $this->messageProcessor->getInterceptedInterface();
     }
 
     /**

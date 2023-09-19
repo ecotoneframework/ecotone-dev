@@ -43,21 +43,6 @@ class StubMethodInvocation implements MethodInvocation
         return new stdClass();
     }
 
-    public function getInterceptedClassName(): string
-    {
-        return self::class;
-    }
-
-    public function getInterceptedMethodName(): string
-    {
-        return 'getInterceptedInterface';
-    }
-
-    public function getInterceptedInterface(): InterfaceToCall
-    {
-        return InterfaceToCall::create(self::class, 'getInterceptedInterface');
-    }
-
     public function getEndpointAnnotations(): iterable
     {
         return [];

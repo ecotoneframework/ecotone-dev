@@ -53,11 +53,6 @@ class ThrowExceptionMessageProcessor implements MessageProcessor
         return self::class;
     }
 
-    public function getInterceptedInterface(): InterfaceToCall
-    {
-        return InterfaceToCall::create(self::class, 'executeEndpoint');
-    }
-
     public function getEndpointAnnotations(): array
     {
         return [];

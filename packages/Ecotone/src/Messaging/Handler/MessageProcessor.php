@@ -29,6 +29,4 @@ interface MessageProcessor
     public function getAroundMethodInterceptors(): array;
 
     public function getObjectToInvokeOn(): string|object;
-
-    public function getInterceptedInterface(): InterfaceToCall;
 }

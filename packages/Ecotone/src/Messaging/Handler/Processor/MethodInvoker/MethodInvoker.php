@@ -87,7 +87,7 @@ final class MethodInvoker implements MessageProcessor
             $methodParameterConverters[] = $methodParameter->build($referenceSearchService);
         }
         if ($aroundInterceptors) {
-            $aroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $aroundInterceptors, $endpointAnnotations);
+            $aroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $aroundInterceptors, $endpointAnnotations, $interfaceToCall);
         }
 
         /** @var ConversionService $conversionService */
@@ -192,21 +192,6 @@ final class MethodInvoker implements MessageProcessor
     private function objectToClassName($objectToInvokeOn): string
     {
         return $this->isCalledStatically ? $objectToInvokeOn : get_class($objectToInvokeOn);
-    }
-
-    /**
-     * @param ParameterConverterBuilder[] $methodParameterConverterBuilders
-     * @param InterfaceParameter $interfaceParameter
-     * @return bool
-     */
-    public static function hasParameterConverterFor(array $methodParameterConverterBuilders, InterfaceParameter $interfaceParameter): bool
-    {
-        foreach ($methodParameterConverterBuilders as $methodParameterConverterBuilder) {
-            if ($methodParameterConverterBuilder->isHandling($interfaceParameter)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -324,14 +309,6 @@ final class MethodInvoker implements MessageProcessor
     }
 
     /**
-     * @return InterfaceToCall
-     */
-    public function getInterfaceToCall(): InterfaceToCall
-    {
-        return $this->interfaceToCall;
-    }
-
-    /**
      * @return string
      */
     public function __toString()
@@ -398,7 +375,7 @@ final class MethodInvoker implements MessageProcessor
         return $this->objectToInvokeOn;
     }
 
-    public function getInterceptedInterface(): InterfaceToCall
+    public function getInterfaceToCall(): InterfaceToCall
     {
         return $this->interfaceToCall;
     }

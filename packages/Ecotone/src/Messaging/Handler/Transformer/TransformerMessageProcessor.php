@@ -79,11 +79,6 @@ class TransformerMessageProcessor implements MessageProcessor
         return $this->methodInvoker->getObjectToInvokeOn();
     }
 
-    public function getInterceptedInterface(): InterfaceToCall
-    {
-        return $this->methodInvoker->getInterceptedInterface();
-    }
-
     /**
      * @return string
      */

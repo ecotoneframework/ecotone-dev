@@ -113,11 +113,6 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
         return $this->messageProcessor->getInterceptedInterface();
     }
 
-    public function getEndpointAnnotations(): array
-    {
-        return $this->messageProcessor->getEndpointAnnotations();
-    }
-
     /**
      * @return string
      */

@@ -31,9 +31,4 @@ interface MessageProcessor
     public function getObjectToInvokeOn(): string|object;
 
     public function getInterceptedInterface(): InterfaceToCall;
-
-    /**
-     * @return object[]
-     */
-    public function getEndpointAnnotations(): array;
 }

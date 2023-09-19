@@ -5,7 +5,6 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
@@ -88,7 +87,7 @@ final class MethodInvoker implements MessageProcessor
             $methodParameterConverters[] = $methodParameter->build($referenceSearchService);
         }
         if ($aroundInterceptors) {
-            $aroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $aroundInterceptors);
+            $aroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $aroundInterceptors, $endpointAnnotations);
         }
 
         /** @var ConversionService $conversionService */
@@ -402,13 +401,5 @@ final class MethodInvoker implements MessageProcessor
     public function getInterceptedInterface(): InterfaceToCall
     {
         return $this->interfaceToCall;
-    }
-
-    /**
-     * @return object[]
-     */
-    public function getEndpointAnnotations(): array
-    {
-        return $this->endpointAnnotations;
     }
 }

@@ -30,14 +30,13 @@ class AroundMethodInterceptor
 
     private function __construct(object $referenceToCall, InterfaceToCall $interfaceToCall, ReferenceSearchService $referenceSearchService, array $parameterConverters)
     {
-        if ($interfaceToCall->canReturnValue() && ! $this->hasMethodInvocationParameter($interfaceToCall)) {
-            throw InvalidArgumentException::create("Trying to register {$interfaceToCall} as Around Advice which can return value, but doesn't control invocation using " . MethodInvocation::class . '. Have you wanted to register Before/After Advice or forgot to type hint MethodInvocation?');
-        }
-
         $this->referenceToCall            = $referenceToCall;
         $this->interceptorInterfaceToCall = $interfaceToCall;
         $this->referenceSearchService     = $referenceSearchService;
         $this->parameterConverters = $parameterConverters;
+        if ($interfaceToCall->canReturnValue() && ! $this->hasMethodInvocationParameter()) {
+            throw InvalidArgumentException::create("Trying to register {$interfaceToCall} as Around Advice which can return value, but doesn't control invocation using " . MethodInvocation::class . '. Have you wanted to register Before/After Advice or forgot to type hint MethodInvocation?');
+        }
     }
 
     /**
@@ -66,24 +65,11 @@ class AroundMethodInterceptor
 
         $returnValue = $this->referenceToCall->{$this->interceptorInterfaceToCall->getMethodName()}(...$argumentsToCall);
 
-        if (! $this->hasMethodInvocation()) {
+        if (! $this->hasMethodInvocationParameter()) {
             return $methodInvocation->proceed();
         }
 
         return $returnValue;
-    }
-
-    private function hasMethodInvocation(): bool
-    {
-        $methodInvocationType = TypeDescriptor::create(MethodInvocation::class);
-
-        foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $parameter) {
-            if ($parameter->canBePassedIn($methodInvocationType)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function resolveArgument(
@@ -122,16 +108,6 @@ class AroundMethodInterceptor
         if ($methodInvocation->getInterceptedInterface()->hasMethodAnnotation($parameter->getTypeDescriptor())) {
             return $methodInvocation->getInterceptedInterface()->getMethodAnnotation($parameter->getTypeDescriptor());
         }
-        foreach ($methodInvocation->getEndpointAnnotations() as $endpointAnnotation) {
-            if (TypeDescriptor::createFromVariable($endpointAnnotation)->equals($parameter->getTypeDescriptor())) {
-                return $endpointAnnotation;
-            }
-        }
-        foreach ($methodInvocation->getEndpointAnnotations() as $endpointAnnotation) {
-            if (TypeDescriptor::createFromVariable($endpointAnnotation)->isCompatibleWith($parameter->getTypeDescriptor())) {
-                return $endpointAnnotation;
-            }
-        }
 
         if ($parameter->canBePassedIn(TypeDescriptor::create(ReferenceSearchService::class))) {
             return $this->referenceSearchService;
@@ -154,10 +130,10 @@ class AroundMethodInterceptor
      * @throws TypeDefinitionException
      * @throws MessagingException
      */
-    private function hasMethodInvocationParameter(InterfaceToCall $interfaceToCall): bool
+    private function hasMethodInvocationParameter(): bool
     {
         $methodInvocation = TypeDescriptor::create(MethodInvocation::class);
-        foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
+        foreach ($this->interceptorInterfaceToCall->getInterfaceParameters() as $interfaceParameter) {
             if ($interfaceParameter->canBePassedIn($methodInvocation)) {
                 return true;
             }

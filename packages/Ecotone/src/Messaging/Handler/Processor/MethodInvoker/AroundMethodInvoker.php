@@ -107,14 +107,6 @@ class AroundMethodInvoker implements MethodInvocation
     }
 
     /**
-     * @return object[]
-     */
-    public function getEndpointAnnotations(): iterable
-    {
-        return $this->messageProcessor->getEndpointAnnotations();
-    }
-
-    /**
      * @param string $parameterName
      * @param mixed $value
      * @return void

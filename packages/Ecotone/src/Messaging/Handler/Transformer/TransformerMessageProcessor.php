@@ -84,11 +84,6 @@ class TransformerMessageProcessor implements MessageProcessor
         return $this->methodInvoker->getInterceptedInterface();
     }
 
-    public function getEndpointAnnotations(): array
-    {
-        return $this->methodInvoker->getEndpointAnnotations();
-    }
-
     /**
      * @return string
      */

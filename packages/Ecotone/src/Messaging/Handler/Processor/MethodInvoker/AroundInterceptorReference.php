@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Precedence;
 
@@ -83,9 +84,8 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
      *
      * @return AroundMethodInterceptor[]
      */
-    public static function createAroundInterceptorsWithChannel(ReferenceSearchService $referenceSearchService, array $interceptorsReferences): array
+    public static function createAroundInterceptorsWithChannel(ReferenceSearchService $referenceSearchService, array $interceptorsReferences, array $endpointAnnotations = []): array
     {
-        $aroundMethodInterceptors = [];
         usort(
             $interceptorsReferences,
             function (AroundInterceptorReference $element, AroundInterceptorReference $elementToCompare) {
@@ -96,18 +96,15 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
                 return $element->getPrecedence() > $elementToCompare->getPrecedence() ? 1 : -1;
             }
         );
-        if ($interceptorsReferences) {
-            foreach ($interceptorsReferences as $interceptorsReferenceName) {
-                $interceptingService = $interceptorsReferenceName->buildAroundInterceptor($referenceSearchService);
-
-                $aroundMethodInterceptors[] = $interceptingService;
-            }
+        $aroundMethodInterceptors = [];
+        foreach ($interceptorsReferences as $interceptorsReferenceName) {
+            $aroundMethodInterceptors[] = $interceptorsReferenceName->buildAroundInterceptor($referenceSearchService, $endpointAnnotations);
         }
 
         return $aroundMethodInterceptors;
     }
 
-    public function getInterceptingInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
+    public function getInterceptingInterface(): InterfaceToCall
     {
         return $this->interfaceToCall;
     }
@@ -120,13 +117,25 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         return $this->precedence;
     }
 
-    public function buildAroundInterceptor(ReferenceSearchService $referenceSearchService): AroundMethodInterceptor
+    public function buildAroundInterceptor(ReferenceSearchService $referenceSearchService, array $endpointAnnotations = []): AroundMethodInterceptor
     {
         $referenceToCall = $this->directObject ?: $referenceSearchService->get($this->referenceName);
 
         $builtConverters = [];
         foreach ($this->parameterConverters as $parameterConverter) {
             $builtConverters[] = $parameterConverter->build($referenceSearchService);
+        }
+        foreach ($this->getInterceptingInterface()->getInterfaceParameters() as $parameter) {
+            foreach ($endpointAnnotations as $endpointAnnotation) {
+                if (TypeDescriptor::createFromVariable($endpointAnnotation)->equals($parameter->getTypeDescriptor())) {
+                    $builtConverters[] = ValueConverter::createWith($parameter->getName(), $endpointAnnotation);
+                }
+            }
+            foreach ($endpointAnnotations as $endpointAnnotation) {
+                if (TypeDescriptor::createFromVariable($endpointAnnotation)->isCompatibleWith($parameter->getTypeDescriptor())) {
+                    $builtConverters[] = ValueConverter::createWith($parameter->getName(), $endpointAnnotation);
+                }
+            }
         }
 
         return AroundMethodInterceptor::createWith(

@@ -272,7 +272,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         ];
 
         foreach ($this->aroundInterceptors as $aroundInterceptor) {
-            $resolvedInterfaces[] = $aroundInterceptor->getInterceptingInterface($interfaceToCallRegistry);
+            $resolvedInterfaces[] = $aroundInterceptor->getInterceptingInterface();
         }
 
         return $resolvedInterfaces;

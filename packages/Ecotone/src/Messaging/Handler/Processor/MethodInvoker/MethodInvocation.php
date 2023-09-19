@@ -41,11 +41,6 @@ interface MethodInvocation
     public function getInterceptedInterface(): InterfaceToCall;
 
     /**
-     * @return object[]
-     */
-    public function getEndpointAnnotations(): iterable;
-
-    /**
      * @return array
      */
     public function getArguments(): array;

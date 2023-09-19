@@ -13,6 +13,7 @@ use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
@@ -172,19 +173,21 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
 
         /** @var InterfaceToCallRegistry $interfaceToCallRegistry */
         $interfaceToCallRegistry = $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME);
+        $interfaceToCall = $interfaceToCallRegistry->getFor($internalEnrichingService, 'enrich');
 
         return RequestReplyProducer::createRequestAndReply(
             $this->outputMessageChannelName,
             MethodInvoker::createWith(
-                $interfaceToCallRegistry->getFor($internalEnrichingService, 'enrich'),
+                $interfaceToCall,
                 $internalEnrichingService,
                 [],
                 $referenceSearchService,
-                $this->orderedAroundInterceptors,
                 $this->getEndpointAnnotations()
             ),
             $channelResolver,
-            false
-        );
+            false,
+            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
+
+    );
     }
 }

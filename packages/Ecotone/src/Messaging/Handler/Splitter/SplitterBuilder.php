@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
@@ -129,10 +130,10 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
                 $objectToInvokeOn,
                 $this->methodParameterConverterBuilders,
                 $referenceSearchService,
-                $this->orderedAroundInterceptors,
                 $this->getEndpointAnnotations()
             ),
-            $channelResolver
+            $channelResolver,
+            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
         );
     }
 

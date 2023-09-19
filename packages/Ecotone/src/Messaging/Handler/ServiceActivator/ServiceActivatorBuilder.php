@@ -11,8 +11,8 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\ObjectInvocation;
 use Ecotone\Messaging\Handler\Processor\WrapWithMessageBuildProcessor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
@@ -20,8 +20,6 @@ use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use ReflectionException;
 use ReflectionMethod;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 
 /**
  * Class ServiceActivatorFactory
@@ -169,7 +167,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             $objectToInvoke,
             $this->methodParameterConverterBuilders,
             $referenceSearchService,
-            $this->orderedAroundInterceptors,
             $this->getEndpointAnnotations()
         );
         if ($this->shouldWrapResultInMessage) {
@@ -185,26 +182,9 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                 $messageProcessor,
                 $channelResolver,
                 $this->isReplyRequired,
-            $this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid()
+            $this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid(),
+            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
             );
-    }
-
-    public function compile(ContainerBuilder $containerBuilder): void
-    {
-        $this->isCompiled = true;
-
-        $messageProcessor = new Definition();
-
-        $serviceActivatingHandlerDefinition = new Definition(ServiceActivatingHandler::class);
-    }
-
-    public function compileObjectInvocation(ContainerBuilder $containerBuilder): void
-    {
-        $messageProcessor = new Definition(ObjectInvocation::class);
-        $messageProcessor->setArgument();
-
-
-        $serviceActivatingHandlerDefinition = new Definition(ServiceActivatingHandler::class);
     }
 
     /**

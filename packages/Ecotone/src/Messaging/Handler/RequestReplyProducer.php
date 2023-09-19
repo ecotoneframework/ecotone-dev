@@ -24,46 +24,34 @@ class RequestReplyProducer implements MessageHandler
     private const REQUEST_REPLY_METHOD = 1;
     private const REQUEST_SPLIT_METHOD = 2;
 
-    private ?\Ecotone\Messaging\MessageChannel $outputChannel;
-    private bool $isReplyRequired;
-    private bool $shouldPassThroughMessage;
-    private \Ecotone\Messaging\Handler\ChannelResolver $channelResolver;
-    private MessageProcessor $messageProcessor;
-    private int $method;
-
     private function __construct(
-        ?MessageChannel $outputChannel,
-        MessageProcessor $messageProcessor,
-        ChannelResolver $channelResolver,
-        bool $isReplyRequired,
-        bool $shouldPassThroughMessage,
-        int $method,
+        private ?MessageChannel $outputChannel,
+        private MessageProcessor $messageProcessor,
+        private ChannelResolver $channelResolver,
+        private bool $isReplyRequired,
+        private bool $shouldPassThroughMessage,
+        private array $aroundInterceptors,
+        private int $method,
     ) {
-        $this->outputChannel = $outputChannel;
-        $this->isReplyRequired = $isReplyRequired;
-        $this->channelResolver = $channelResolver;
-        $this->messageProcessor = $messageProcessor;
-        $this->shouldPassThroughMessage = $shouldPassThroughMessage;
-        $this->method = $method;
     }
 
-    public static function createRequestAndReply(string|MessageChannel|null $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired, bool $shouldPassThroughMessage = false): RequestReplyProducer
+    public static function createRequestAndReply(string|MessageChannel|null $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired, bool $shouldPassThroughMessage = false, array $aroundInterceptors = []): RequestReplyProducer
     {
         $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
 
-        return new self($outputChannel, $messageProcessor, $channelResolver, $isReplyRequired, $shouldPassThroughMessage, self::REQUEST_REPLY_METHOD);
+        return new self($outputChannel, $messageProcessor, $channelResolver, $isReplyRequired, $shouldPassThroughMessage, $aroundInterceptors, self::REQUEST_REPLY_METHOD);
     }
 
-    public static function createRequestAndSplit(?string $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver): self
+    public static function createRequestAndSplit(?string $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, array $aroundInterceptors = []): self
     {
         $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
 
-        return new self($outputChannel, $messageProcessor, $channelResolver, true, false, self::REQUEST_SPLIT_METHOD);
+        return new self($outputChannel, $messageProcessor, $channelResolver, true, false, $aroundInterceptors, self::REQUEST_SPLIT_METHOD);
     }
 
     public function handle(Message $message): void
     {
-        if ($this->messageProcessor->getAroundMethodInterceptors() === []) {
+        if ($this->aroundInterceptors === []) {
             $this->executeEndpointAndSendReply($message);
 
             return;
@@ -72,7 +60,7 @@ class RequestReplyProducer implements MessageHandler
         $aroundMethodInvoker = new AroundMethodInvoker(
             $this->messageProcessor,
             $this->messageProcessor->getMethodCall($message),
-            $this->messageProcessor->getAroundMethodInterceptors(),
+            $this->aroundInterceptors,
             $message,
             $this,
         );

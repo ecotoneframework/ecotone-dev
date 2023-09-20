@@ -19,7 +19,11 @@ class MethodInvocationObjectConverter implements ParameterConverter
 
     public function getArgumentFrom(InterfaceToCall $interfaceToCall, InterfaceParameter $relatedParameter, Message $message, ?MethodInvocation $methodInvocation = null)
     {
-        return $methodInvocation?->getObjectToInvokeOn();
+        $object = $methodInvocation?->getObjectToInvokeOn();
+        if (\is_string($object)) {
+            return null;
+        }
+        return $object;
     }
 
     public function isHandling(InterfaceParameter $parameter): bool

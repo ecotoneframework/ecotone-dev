@@ -115,7 +115,7 @@ class CallAggregateService
             $methodInvokerChainProcessor = new AroundMethodInvoker(
                 $methodInvoker,
                 $methodInvoker->getMethodCall($noReplyMessage),
-                array_map(fn (AroundInterceptorReference $interceptorReference) => $interceptorReference->buildAroundInterceptor($this->referenceSearchService, [...$this->aggregateInterface->getClassAnnotations(), ...$this->aggregateInterface->getMethodAnnotations()]), $this->aroundMethodInterceptors),
+                array_map(fn (AroundInterceptorReference $interceptorReference) => $interceptorReference->buildAroundInterceptor($this->referenceSearchService, [...$this->aggregateInterface->getClassAnnotations(), ...$this->aggregateInterface->getMethodAnnotations()], $this->aggregateInterface->getInterfaceType()), $this->aroundMethodInterceptors),
                 $noReplyMessage,
                 RequestReplyProducer::createRequestAndReply(
                     $outputChannel,

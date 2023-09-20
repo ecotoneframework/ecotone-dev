@@ -2,21 +2,13 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Conversion\ConversionException;
-use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\MethodArgument;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadConverter;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -34,7 +26,6 @@ final class MethodInvoker implements MessageProcessor
      * @var ParameterConverter[]
      */
     private array $orderedMethodArguments;
-    private ConversionService $conversionService;
     private InterfaceToCall $interfaceToCall;
     private bool $canInterceptorReplaceArguments;
 
@@ -44,20 +35,16 @@ final class MethodInvoker implements MessageProcessor
      * @param string $objectMethodName
      * @param array|ParameterConverter[] $methodParameterConverters
      * @param InterfaceToCall $interfaceToCall
-     * @param ConversionService $conversionService
-     * @param AroundMethodInterceptor[] $aroundMethodInterceptors
-     * @param object[] $endpointAnnotations
      * @param bool $canInterceptorReplaceArguments
      * @throws InvalidArgumentException
      * @throws MessagingException
      */
-    private function __construct($objectToInvokeOn, string $objectMethodName, array $methodParameterConverters, InterfaceToCall $interfaceToCall, ConversionService $conversionService, bool $canInterceptorReplaceArguments)
+    private function __construct($objectToInvokeOn, string $objectMethodName, array $methodParameterConverters, InterfaceToCall $interfaceToCall, bool $canInterceptorReplaceArguments)
     {
         Assert::allInstanceOfType($methodParameterConverters, ParameterConverter::class);
 
         $this->orderedMethodArguments = $methodParameterConverters;
         $this->objectToInvokeOn = $objectToInvokeOn;
-        $this->conversionService = $conversionService;
         $this->objectMethodName = $objectMethodName;
         $this->interfaceToCall = $interfaceToCall;
         $this->canInterceptorReplaceArguments = $canInterceptorReplaceArguments;
@@ -74,10 +61,7 @@ final class MethodInvoker implements MessageProcessor
             $methodParameterConverters[] = $methodParameter->build($referenceSearchService);
         }
 
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-
-        return new self($objectToInvokeOn, $interfaceToCall->getMethodName(), $methodParameterConverters, $interfaceToCall, $conversionService, true);
+        return new self($objectToInvokeOn, $interfaceToCall->getMethodName(), $methodParameterConverters, $interfaceToCall, true);
     }
 
     /**
@@ -97,11 +81,6 @@ final class MethodInvoker implements MessageProcessor
 
     public function getMethodCall(Message $message): MethodCall
     {
-        $sourceMediaType = $message->getHeaders()->containsKey(MessageHeaders::CONTENT_TYPE)
-            ? MediaType::parseMediaType($message->getHeaders()->get(MessageHeaders::CONTENT_TYPE))
-            : MediaType::createApplicationXPHP();
-        $parameterMediaType = MediaType::createApplicationXPHP();
-
         $methodArguments = [];
         $count = count($this->orderedMethodArguments);
 
@@ -112,85 +91,11 @@ final class MethodInvoker implements MessageProcessor
                 $interfaceParameter,
                 $message,
             );
-            $isPayloadConverter = $this->orderedMethodArguments[$index] instanceof PayloadConverter;
-            $sourceTypeDescriptor = $isPayloadConverter && $sourceMediaType->hasTypeParameter()
-                ? TypeDescriptor::create($sourceMediaType->getParameter('type'))
-                : TypeDescriptor::createFromVariable($data);
-
-            $sourceMediaType = $isPayloadConverter ? $sourceMediaType : MediaType::createApplicationXPHP();
-            $parameterType = $this->interfaceToCall->getParameterAtIndex($index)->getTypeDescriptor();
-
-            if (! ($sourceTypeDescriptor->isCompatibleWith($parameterType) && ($parameterType->isMessage() || $parameterType->isAnything() || $sourceMediaType->isCompatibleWith($parameterMediaType)))) {
-                $convertedData = null;
-                if (! $parameterType->isCompoundObjectType() && ! $parameterType->isAbstractClass() && ! $parameterType->isInterface() && ! $parameterType->isAnything() && ! $parameterType->isUnionType() && $this->canConvertParameter(
-                    $sourceTypeDescriptor,
-                    $sourceMediaType,
-                    $parameterType,
-                    $parameterMediaType
-                )) {
-                    $convertedData = $this->doConversion($this->interfaceToCall, $interfaceParameter, $data, $sourceTypeDescriptor, $sourceMediaType, $parameterType, $parameterMediaType);
-                } elseif ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
-                    $resolvedTargetParameterType = TypeDescriptor::create($message->getHeaders()->get(MessageHeaders::TYPE_ID));
-                    if ($this->canConvertParameter(
-                        $sourceTypeDescriptor,
-                        $sourceMediaType,
-                        $resolvedTargetParameterType,
-                        $parameterMediaType
-                    )
-                    ) {
-                        $convertedData = $this->doConversion($this->interfaceToCall, $interfaceParameter, $data, $sourceTypeDescriptor, $sourceMediaType, $resolvedTargetParameterType, $parameterMediaType);
-                    }
-                }
-
-                if (! is_null($convertedData)) {
-                    $data = $convertedData;
-                } else {
-                    if (! ($sourceTypeDescriptor->isNullType() && $interfaceParameter->doesAllowNulls()) && ! $sourceTypeDescriptor->isCompatibleWith($parameterType)) {
-                        if ($parameterType->isUnionType()) {
-                            throw InvalidArgumentException::create("Can not call {$this->interfaceToCall} lack of information which type should be used to deserialization. Consider adding __TYPE__ header to indicate which union type it should be resolved to.");
-                        }
-
-                        throw InvalidArgumentException::create("Can not call {$this->interfaceToCall}. Lack of Media Type Converter for {$sourceMediaType}:{$sourceTypeDescriptor} to {$parameterMediaType}:{$parameterType}");
-                    }
-                }
-            }
 
             $methodArguments[] = MethodArgument::createWith($interfaceParameter, $data);
         }
 
         return MethodCall::createWith($methodArguments, $this->canInterceptorReplaceArguments);
-    }
-
-    /**
-     * @param Type $requestType
-     * @param MediaType $requestMediaType
-     * @param Type $parameterType
-     * @param MediaType $parameterMediaType
-     * @return bool
-     */
-    private function canConvertParameter(Type $requestType, MediaType $requestMediaType, Type $parameterType, MediaType $parameterMediaType): bool
-    {
-        return $this->conversionService->canConvert(
-            $requestType,
-            $requestMediaType,
-            $parameterType,
-            $parameterMediaType
-        );
-    }
-
-    private function doConversion(InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameterToConvert, $data, Type $requestType, MediaType $requestMediaType, Type $parameterType, MediaType $parameterMediaType): mixed
-    {
-        try {
-            return $this->conversionService->convert(
-                $data,
-                $requestType,
-                $requestMediaType,
-                $parameterType,
-                $parameterMediaType
-            );
-        } catch (ConversionException $exception) {
-            throw ConversionException::createFromPreviousException("There is a problem with conversion for {$interfaceToCall} on parameter {$interfaceParameterToConvert->getName()}: " . $exception->getMessage(), $exception);
-        }
     }
 
     /**

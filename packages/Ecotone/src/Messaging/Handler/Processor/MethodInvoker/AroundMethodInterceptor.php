@@ -80,7 +80,7 @@ class AroundMethodInterceptor
     ): mixed {
         foreach ($this->parameterConverters as $parameterConverter) {
             if ($parameterConverter->isHandling($parameter)) {
-                return $parameterConverter->getArgumentFrom($this->interceptorInterfaceToCall, $parameter, $requestMessage, [], $methodInvocation);
+                return $parameterConverter->getArgumentFrom($this->interceptorInterfaceToCall, $parameter, $requestMessage, $methodInvocation);
             }
         }
 

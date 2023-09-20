@@ -116,7 +116,6 @@ final class MethodInvoker implements MessageProcessor
                 $this->interfaceToCall,
                 $interfaceParameter,
                 $message,
-                $this->endpointAnnotations
             );
             $isPayloadConverter = $this->orderedMethodArguments[$index] instanceof PayloadConverter;
             $sourceTypeDescriptor = $isPayloadConverter && $sourceMediaType->hasTypeParameter()

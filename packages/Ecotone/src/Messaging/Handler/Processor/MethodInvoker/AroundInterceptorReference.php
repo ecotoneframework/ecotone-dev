@@ -127,32 +127,41 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         $referenceToCall = $this->directObject ?: $referenceSearchService->get($this->referenceName);
 
         $builtConverters = [];
-        foreach ($this->parameterConverters as $parameterConverter) {
-            $builtConverters[] = $parameterConverter->build($referenceSearchService);
-        }
         foreach ($this->getInterceptingInterface()->getInterfaceParameters() as $parameter) {
+            foreach ($this->parameterConverters as $parameterConverter) {
+                if ($parameterConverter->isHandling($parameter)) {
+                    $builtConverters[] = $parameterConverter->build($referenceSearchService);
+                    continue 2;
+                }
+            }
             if ($parameter->canBePassedIn(TypeDescriptor::create(MethodInvocation::class))) {
                 $builtConverters[] = new MethodInvocationConverter($parameter->getName());
+                continue;
             }
             if ($interceptedInterfaceType && $parameter->canBePassedIn($interceptedInterfaceType)) {
                 $builtConverters[] = new MethodInvocationObjectConverter($parameter->getName());
+                continue;
             }
             foreach ($endpointAnnotations as $endpointAnnotation) {
                 if (TypeDescriptor::createFromVariable($endpointAnnotation)->equals($parameter->getTypeDescriptor())) {
                     $builtConverters[] = ValueConverter::createWith($parameter->getName(), $endpointAnnotation);
+                    continue 2;
                 }
             }
             foreach ($endpointAnnotations as $endpointAnnotation) {
                 if (TypeDescriptor::createFromVariable($endpointAnnotation)->isCompatibleWith($parameter->getTypeDescriptor())) {
                     $builtConverters[] = ValueConverter::createWith($parameter->getName(), $endpointAnnotation);
+                    continue 2;
                 }
             }
             if ($parameter->canBePassedIn(TypeDescriptor::create(Message::class))) {
                 $builtConverters[] = MessageConverter::create($parameter->getName());
+                continue;
             }
 
             if ($parameter->canBePassedIn(TypeDescriptor::create(ReferenceSearchService::class))) {
                 $builtConverters[] = ValueConverter::createWith($parameter->getName(), $referenceSearchService);
+                continue;
             }
         }
 
@@ -162,14 +171,6 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
             $referenceSearchService,
             $builtConverters
         );
-    }
-
-    /**
-     * @return string
-     */
-    public function getInterceptorName(): string
-    {
-        return $this->interceptorName;
     }
 
     /**

@@ -181,7 +181,6 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
                     $internalEnrichingService,
                     [],
                     $referenceSearchService,
-                    $channelResolver,
                     $this->orderedAroundInterceptors,
                     $this->getEndpointAnnotations()
                 ),

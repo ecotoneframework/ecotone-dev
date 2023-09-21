@@ -165,7 +165,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             $objectToInvoke,
             $this->methodParameterConverterBuilders,
             $referenceSearchService,
-            $channelResolver,
             $this->orderedAroundInterceptors,
             $this->getEndpointAnnotations()
         );

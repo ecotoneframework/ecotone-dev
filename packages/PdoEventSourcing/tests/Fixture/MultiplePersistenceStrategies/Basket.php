@@ -24,6 +24,10 @@ final class Basket
     #[Identifier]
     public string $basketId;
 
+    public function __construct()
+    {
+    }
+
     #[EventSourcingHandler]
     public function applyBasketCreated(BasketCreated $event): void
     {

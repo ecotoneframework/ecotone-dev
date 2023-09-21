@@ -21,7 +21,7 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
 {
     public function test_when_messaging_configured_in_container_replacing_it_with_test_one()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [User::class, UserRepository::class, UserService::class],
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithDefaults()
@@ -33,10 +33,10 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
         );
 
         $userId = '123';
-        $ecotoneTestSupport->getCommandBus()->sendWithRouting('user.register', $userId);
+        $ecotoneTestSupport->sendCommandWithRoutingKey('user.register', $userId);
 
         /** @var UserRepository $userRepository */
-        $userRepository = $ecotoneTestSupport->getGatewayByName(UserRepository::class);
+        $userRepository = $ecotoneTestSupport->getGateway(UserRepository::class);
 
         $this->assertEquals(User::register($userId), $userRepository->getUser($userId));
     }

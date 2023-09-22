@@ -232,7 +232,6 @@ class MethodInvokerTest extends MessagingTest
                 MethodInvoker::createWith($interfaceToCall, new OrderProcessor(), [
                     PayloadBuilder::create('order'),
                 ], $referenceSearchService),
-                $referenceSearchService
             );
 
         $replyMessage = $methodInvocation->executeEndpoint(
@@ -273,7 +272,6 @@ class MethodInvokerTest extends MessagingTest
                     ],
                     $referenceSearchService
                 ),
-                $referenceSearchService
             );
 
         $this->expectException(InvalidArgumentException::class);
@@ -301,7 +299,6 @@ class MethodInvokerTest extends MessagingTest
                     [PayloadBuilder::create('id')],
                     $referenceSearchService
                 ),
-                $referenceSearchService
             );
 
         $result = $methodInvocation->executeEndpoint(
@@ -331,7 +328,6 @@ class MethodInvokerTest extends MessagingTest
                     ],
                     $referenceSearchService
                 ),
-                $referenceSearchService
             );
 
         $result = $methodInvocation->executeEndpoint(
@@ -358,7 +354,6 @@ class MethodInvokerTest extends MessagingTest
                 MethodInvoker::createWith($interfaceToCall, new ServiceExpectingOneArgument(), [
                     PayloadBuilder::create('value'),
                 ], $referenceSearchService),
-                $referenceSearchService
             );
 
         $data      = '893a660c-0208-4140-8be6-95fb2dcd2fdd';
@@ -390,7 +385,6 @@ class MethodInvokerTest extends MessagingTest
                 MethodInvoker::createWith($interfaceToCall, new ServiceExpectingOneArgument(), [
                     PayloadBuilder::create('value'),
                 ], $referenceSearchService),
-                $referenceSearchService
             );
 
         $data      = '["893a660c-0208-4140-8be6-95fb2dcd2fdd"]';
@@ -424,7 +418,6 @@ class MethodInvokerTest extends MessagingTest
                 MethodInvoker::createWith($interfaceToCall, new ServiceExpectingOneArgument(), [
                     PayloadBuilder::create('value'),
                 ], $referenceSearchService),
-                $referenceSearchService
             );
 
         $methodInvocation->executeEndpoint(
@@ -480,7 +473,6 @@ class MethodInvokerTest extends MessagingTest
                     ],
                     $referenceSearchService
                 ),
-                $referenceSearchService
             );
 
         $replyMessage = $methodInvocation->executeEndpoint(MessageBuilder::withPayload(['test'])->build());
@@ -507,7 +499,6 @@ class MethodInvokerTest extends MessagingTest
                     ],
                     $referenceSearchService
                 ),
-                $referenceSearchService
             );
 
         $replyMessage = $methodInvocation->executeEndpoint(MessageBuilder::withPayload([new stdClass()])->build());
@@ -534,7 +525,6 @@ class MethodInvokerTest extends MessagingTest
                     ],
                     $referenceSearchService
                 ),
-                $referenceSearchService
             );
 
         $replyMessage = $methodInvocation->executeEndpoint(MessageBuilder::withPayload(new stdClass())->build());
@@ -712,9 +702,6 @@ class MethodInvokerTest extends MessagingTest
             [],
             InMemoryReferenceSearchService::createEmpty(),
             [AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), CallWithStdClassInterceptorExample::create(), 'callWithStdClass', 0, '')],
-            [
-                new stdClass(),
-            ]
         );
 
         $requestMessage = MessageBuilder::withPayload('test')->build();
@@ -753,7 +740,6 @@ class MethodInvokerTest extends MessagingTest
                 CallWithStdClassInterceptorExample::class => $interceptingService1,
             ]),
             [AroundInterceptorReference::createWithNoPointcut(CallWithStdClassInterceptorExample::class, InterfaceToCall::create(CallWithStdClassInterceptorExample::class, 'callWithStdClass'))],
-            [new stdClass()]
         );
 
         $requestMessage = MessageBuilder::withPayload('test')->build();

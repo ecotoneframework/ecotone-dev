@@ -6,11 +6,11 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use ArrayIterator;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Executes endpoint with around interceptors
@@ -31,7 +31,7 @@ class AroundMethodInvoker implements MethodInvocation
         private MethodCall $methodCall,
         array $aroundMethodInterceptors,
         private Message $requestMessage,
-        private RequestReplyProducer $requestReplyProducer
+        private RequestReplyProducer $requestReplyProducer,
     ) {
         $this->aroundMethodInterceptors = new ArrayIterator($aroundMethodInterceptors);
     }
@@ -50,7 +50,7 @@ class AroundMethodInvoker implements MethodInvocation
              * This will ensure that after all connected output channels finish, we can fetch the result
              * and pass it to origin reply channel
              */
-            $bridge = QueueChannel::create('request-reply-' . $this->getInterceptedClassName() . '::' . $this->getInterceptedMethodName());
+            $bridge = QueueChannel::create('request-reply-' . Uuid::uuid4());
             $message = MessageBuilder::fromMessage($this->requestMessage)
                 ->setReplyChannel($bridge)
                 ->build();
@@ -62,7 +62,6 @@ class AroundMethodInvoker implements MethodInvocation
 
         return $aroundMethodInterceptor->invoke(
             $this,
-            $this->methodCall,
             $this->requestMessage
         );
     }
@@ -81,38 +80,6 @@ class AroundMethodInvoker implements MethodInvocation
     public function getObjectToInvokeOn()
     {
         return $this->messageProcessor->getObjectToInvokeOn();
-    }
-
-    /**
-     * @return string
-     */
-    public function getInterceptedClassName(): string
-    {
-        return $this->messageProcessor->getInterceptedInterface()->getInterfaceType()->toString();
-    }
-
-    /**
-     * @return string
-     */
-    public function getInterceptedMethodName(): string
-    {
-        return $this->messageProcessor->getInterceptedInterface()->getMethodName();
-    }
-
-    /**
-     * @return InterfaceToCall
-     */
-    public function getInterceptedInterface(): InterfaceToCall
-    {
-        return $this->messageProcessor->getInterceptedInterface();
-    }
-
-    /**
-     * @return object[]
-     */
-    public function getEndpointAnnotations(): iterable
-    {
-        return $this->messageProcessor->getEndpointAnnotations();
     }
 
     /**

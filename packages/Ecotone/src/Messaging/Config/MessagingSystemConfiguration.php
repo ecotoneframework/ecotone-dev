@@ -1332,7 +1332,7 @@ final class MessagingSystemConfiguration implements Configuration
             $this->interfacesToCall = array_merge($this->interfacesToCall, $interceptor->getMessageHandler()->resolveRelatedInterfaces($interfaceToCallRegistry));
         }
         foreach ($this->aroundMethodInterceptors as $aroundInterceptorReference) {
-            $this->interfacesToCall[] = $aroundInterceptorReference->getInterceptingInterface($interfaceToCallRegistry);
+            $this->interfacesToCall[] = $aroundInterceptorReference->getInterceptingInterface();
         }
         foreach ($this->afterCallMethodInterceptors as $interceptor) {
             $this->interfacesToCall = array_merge($this->interfacesToCall, $interceptor->getMessageHandler()->resolveRelatedInterfaces($interfaceToCallRegistry));

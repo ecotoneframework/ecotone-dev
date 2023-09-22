@@ -23,17 +23,5 @@ interface MessageProcessor
 
     public function getMethodCall(Message $message): MethodCall;
 
-    /**
-     * @return AroundMethodInterceptor[]
-     */
-    public function getAroundMethodInterceptors(): array;
-
     public function getObjectToInvokeOn(): string|object;
-
-    public function getInterceptedInterface(): InterfaceToCall;
-
-    /**
-     * @return object[]
-     */
-    public function getEndpointAnnotations(): array;
 }

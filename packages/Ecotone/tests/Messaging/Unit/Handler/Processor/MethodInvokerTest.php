@@ -632,9 +632,6 @@ class MethodInvokerTest extends MessagingTest
             InMemoryReferenceSearchService::createWith([
                 CallMultipleUnorderedArgumentsInvocationInterceptorExample::class => $interceptingService1,
             ]),
-            [
-                AroundInterceptorReference::createWithNoPointcut(CallMultipleUnorderedArgumentsInvocationInterceptorExample::class, InterfaceToCall::create(CallMultipleUnorderedArgumentsInvocationInterceptorExample::class, 'callMultipleUnorderedArgumentsInvocation')),
-            ]
         );
 
         $message = MessageBuilder::withPayload(new stdClass())
@@ -740,25 +737,6 @@ class MethodInvokerTest extends MessagingTest
 
         $requestMessage = MessageBuilder::withPayload('test')->build();
         $this->assertNull($methodInvocation->executeEndpoint($requestMessage));
-    }
-
-    public function test_throwing_exception_if_registering_around_method_interceptor_with_return_value_but_without_method_invocation()
-    {
-        $interceptingService1 = CalculatingService::create(0);
-        $interceptedService = StubCallSavingService::createWithReturnType('some');
-        $interfaceToCall = InterfaceToCall::create($interceptedService, 'callWithReturn');
-
-        $this->expectException(InvalidArgumentException::class);
-
-        MethodInvoker::createWith(
-            $interfaceToCall,
-            $interceptedService,
-            [],
-            InMemoryReferenceSearchService::createWith([
-                CalculatingService::class => $interceptingService1,
-            ]),
-            [AroundInterceptorReference::createWithNoPointcut(CalculatingService::class, InterfaceToCall::create(CalculatingService::class, 'sum'))]
-        );
     }
 
     public function test_passing_endpoint_annotation()

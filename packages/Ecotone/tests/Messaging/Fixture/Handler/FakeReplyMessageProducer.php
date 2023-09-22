@@ -52,11 +52,6 @@ class FakeReplyMessageProducer implements \Ecotone\Messaging\Handler\MessageProc
         return self::class;
     }
 
-    public function getInterceptedInterface(): InterfaceToCall
-    {
-        return InterfaceToCall::create(self::class, 'processMessage');
-    }
-
     public function getEndpointAnnotations(): array
     {
         return [];

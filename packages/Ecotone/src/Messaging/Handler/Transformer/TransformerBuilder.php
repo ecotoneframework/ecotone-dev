@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
@@ -178,8 +179,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        return new Transformer(
-            RequestReplyProducer::createRequestAndReply(
+        return RequestReplyProducer::createRequestAndReply(
                 $this->outputMessageChannelName,
                 TransformerMessageProcessor::createFrom(
                     MethodInvoker::createWith(
@@ -187,13 +187,13 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
                         $objectToInvokeOn,
                         $this->methodParameterConverterBuilders,
                         $referenceSearchService,
-                        $this->orderedAroundInterceptors,
                         $this->getEndpointAnnotations()
                     )
                 ),
                 $channelResolver,
-                false
-            )
+                false,
+            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
+
         );
     }
 

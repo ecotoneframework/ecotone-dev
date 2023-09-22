@@ -98,24 +98,9 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
         return $this->messageProcessor->getMethodCall($message);
     }
 
-    public function getAroundMethodInterceptors(): array
-    {
-        return $this->messageProcessor->getAroundMethodInterceptors();
-    }
-
     public function getObjectToInvokeOn(): string|object
     {
         return $this->messageProcessor->getObjectToInvokeOn();
-    }
-
-    public function getInterceptedInterface(): InterfaceToCall
-    {
-        return $this->messageProcessor->getInterceptedInterface();
-    }
-
-    public function getEndpointAnnotations(): array
-    {
-        return $this->messageProcessor->getEndpointAnnotations();
     }
 
     /**

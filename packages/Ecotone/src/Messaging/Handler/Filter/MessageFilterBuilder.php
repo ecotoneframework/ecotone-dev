@@ -159,7 +159,6 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
                     $messageSelector,
                     $this->parameterConverters,
                     $referenceSearchService,
-                    $this->orderedAroundInterceptors,
                     $this->getEndpointAnnotations()
                 ),
                 $discardChannel,
@@ -169,6 +168,8 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
         )
             ->withInputChannelName($this->inputMessageChannelName)
             ->withOutputMessageChannel($this->outputMessageChannelName);
+
+        $serviceActivatorBuilder->orderedAroundInterceptors = $this->orderedAroundInterceptors;
 
         return $serviceActivatorBuilder->build($channelResolver, $referenceSearchService);
     }

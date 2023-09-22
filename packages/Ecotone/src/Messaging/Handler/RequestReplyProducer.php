@@ -9,6 +9,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvoker;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageDeliveryException;
+use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ramsey\Uuid\Uuid;
@@ -18,48 +19,39 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class RequestReplyProducer
+class RequestReplyProducer implements MessageHandler
 {
     private const REQUEST_REPLY_METHOD = 1;
     private const REQUEST_SPLIT_METHOD = 2;
 
-    private ?\Ecotone\Messaging\MessageChannel $outputChannel;
-    private bool $isReplyRequired;
-    private \Ecotone\Messaging\Handler\ChannelResolver $channelResolver;
-    private MessageProcessor $messageProcessor;
-    private int $method;
-
     private function __construct(
-        ?MessageChannel $outputChannel,
-        MessageProcessor $messageProcessor,
-        ChannelResolver $channelResolver,
-        bool $isReplyRequired,
-        int $method,
+        private ?MessageChannel $outputChannel,
+        private MessageProcessor $messageProcessor,
+        private ChannelResolver $channelResolver,
+        private bool $isReplyRequired,
+        private bool $shouldPassThroughMessage,
+        private array $aroundInterceptors,
+        private int $method,
     ) {
-        $this->outputChannel = $outputChannel;
-        $this->isReplyRequired = $isReplyRequired;
-        $this->channelResolver = $channelResolver;
-        $this->messageProcessor = $messageProcessor;
-        $this->method = $method;
     }
 
-    public static function createRequestAndReply(string|MessageChannel|null $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired): RequestReplyProducer
+    public static function createRequestAndReply(string|MessageChannel|null $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired, bool $shouldPassThroughMessage = false, array $aroundInterceptors = []): RequestReplyProducer
     {
         $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
 
-        return new self($outputChannel, $messageProcessor, $channelResolver, $isReplyRequired, self::REQUEST_REPLY_METHOD);
+        return new self($outputChannel, $messageProcessor, $channelResolver, $isReplyRequired, $shouldPassThroughMessage, $aroundInterceptors, self::REQUEST_REPLY_METHOD);
     }
 
-    public static function createRequestAndSplit(?string $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver): self
+    public static function createRequestAndSplit(?string $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, array $aroundInterceptors = []): self
     {
         $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
 
-        return new self($outputChannel, $messageProcessor, $channelResolver, true, self::REQUEST_SPLIT_METHOD);
+        return new self($outputChannel, $messageProcessor, $channelResolver, true, false, $aroundInterceptors, self::REQUEST_SPLIT_METHOD);
     }
 
-    public function handleWithPossibleAroundInterceptors(Message $message): void
+    public function handle(Message $message): void
     {
-        if ($this->messageProcessor->getAroundMethodInterceptors() === []) {
+        if ($this->aroundInterceptors === []) {
             $this->executeEndpointAndSendReply($message);
 
             return;
@@ -68,7 +60,7 @@ class RequestReplyProducer
         $aroundMethodInvoker = new AroundMethodInvoker(
             $this->messageProcessor,
             $this->messageProcessor->getMethodCall($message),
-            $this->messageProcessor->getAroundMethodInterceptors(),
+            $this->aroundInterceptors,
             $message,
             $this,
         );
@@ -84,6 +76,9 @@ class RequestReplyProducer
     public function executeEndpointAndSendReply(Message $requestMessage): void
     {
         $replyData = $this->messageProcessor->executeEndpoint($requestMessage);
+        if ($this->shouldPassThroughMessage) {
+            $replyData = $requestMessage;
+        }
 
         if ($this->isReplyRequired() && $this->isReplyDataEmpty($replyData)) {
             throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $requestMessage);

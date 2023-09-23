@@ -8,9 +8,12 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAn
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocationConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocationObjectConverter;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\Type;
@@ -19,6 +22,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Precedence;
+use InvalidArgumentException;
 
 final class AroundInterceptorReference implements InterceptorWithPointCut
 {
@@ -127,15 +131,21 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         $referenceToCall = $this->directObject ?: $referenceSearchService->get($this->referenceName);
 
         $builtConverters = [];
+        $hasMethodInvocation = false;
+        $hasPayloadConverter = false;
         foreach ($this->getInterceptingInterface()->getInterfaceParameters() as $parameter) {
             foreach ($this->parameterConverters as $parameterConverter) {
                 if ($parameterConverter->isHandling($parameter)) {
                     $builtConverters[] = $parameterConverter->build($referenceSearchService);
+                    if ($parameterConverter instanceof PayloadConverter) {
+                        $hasPayloadConverter = true;
+                    }
                     continue 2;
                 }
             }
             if ($parameter->canBePassedIn(TypeDescriptor::create(MethodInvocation::class))) {
                 $builtConverters[] = new MethodInvocationConverter($parameter->getName());
+                $hasMethodInvocation = true;
                 continue;
             }
             if ($interceptedInterfaceType && $parameter->canBePassedIn($interceptedInterfaceType)) {
@@ -163,13 +173,28 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
                 $builtConverters[] = ValueConverter::createWith($parameter->getName(), $referenceSearchService);
                 continue;
             }
+
+            if ($parameter->doesAllowNulls() && $parameter->isAnnotation()) {
+                $builtConverters[] = ValueConverter::createWith($parameter->getName(), null);
+                continue;
+            }
+            if (!$hasPayloadConverter) {
+                $builtConverters[] = PayloadBuilder::create($parameter->getName())->build($referenceSearchService);
+                $hasPayloadConverter = true;
+                continue;
+            } elseif ($parameter->getTypeDescriptor()->isNonCollectionArray()) {
+                $builtConverters[] = AllHeadersBuilder::createWith($parameter->getName())->build($referenceSearchService);
+                continue;
+            }
+            throw new InvalidArgumentException("Can't build around interceptor for {$this->interfaceToCall} because can't find converter for parameter {$parameter}");
         }
 
         return AroundMethodInterceptor::createWith(
             $referenceToCall,
             $this->interfaceToCall->getMethodName(),
             $referenceSearchService,
-            $builtConverters
+            $builtConverters,
+            $hasMethodInvocation
         );
     }
 

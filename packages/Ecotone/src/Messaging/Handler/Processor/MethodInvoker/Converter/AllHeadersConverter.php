@@ -14,31 +14,11 @@ use Ecotone\Messaging\Message;
  */
 class AllHeadersConverter implements ParameterConverter
 {
-    private string $parameterName;
-
-    /**
-     * AllHeadersConverter constructor.
-     *
-     * @param string $parameterName
-     */
-    public function __construct(string $parameterName)
-    {
-        $this->parameterName = $parameterName;
-    }
-
     /**
      * @inheritDoc
      */
-    public function getArgumentFrom(InterfaceToCall $interfaceToCall, InterfaceParameter $relatedParameter, Message $message): array
+    public function getArgumentFrom(Message $message): array
     {
         return $message->getHeaders()->headers();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function isHandling(InterfaceParameter $parameter): bool
-    {
-        return $parameter->getName() === $this->parameterName;
     }
 }

@@ -30,9 +30,10 @@ class ConfigurationVariableBuilderTest extends TestCase
                 ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
                     'name' => 100,
                 ]),
-            ]))->getArgumentFrom(
+            ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
+            )->getArgumentFrom(
                 MessageBuilder::withPayload('some')->build(),
             )
         );
@@ -49,9 +50,10 @@ class ConfigurationVariableBuilderTest extends TestCase
                 ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
                     'name' => 100,
                 ]),
-            ]))->getArgumentFrom(
+            ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
+            )->getArgumentFrom(
                 MessageBuilder::withPayload('some')->build(),
             )
         );
@@ -65,9 +67,10 @@ class ConfigurationVariableBuilderTest extends TestCase
         $this->assertNull(
             $configurationVariable->build(InMemoryReferenceSearchService::createWith([
                 ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
-            ]))->getArgumentFrom(
+            ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
+            )->getArgumentFrom(
                 MessageBuilder::withPayload('some')->build(),
             )
         );
@@ -83,9 +86,10 @@ class ConfigurationVariableBuilderTest extends TestCase
             $defaultValue,
             $configurationVariable->build(InMemoryReferenceSearchService::createWith([
                 ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
-            ]))->getArgumentFrom(
+            ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
+            )->getArgumentFrom(
                 MessageBuilder::withPayload('some')->build(),
             )
         );

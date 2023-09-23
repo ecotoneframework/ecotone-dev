@@ -6,9 +6,11 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 
 /**
  * Class HeaderBuilder
@@ -17,30 +19,10 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  */
 class HeaderBuilder implements ParameterConverterBuilder
 {
-    private string $headerName;
-    private string $parameterName;
-    private bool $isRequired;
-
-    /**
-     * HeaderArgument constructor.
-     *
-     * @param string $parameterName
-     * @param string $headerName
-     * @param bool   $isRequired
-     */
-    private function __construct(string $parameterName, string $headerName, bool $isRequired)
+    private function __construct(private string $parameterName, private string $headerName, private bool $isRequired)
     {
-        $this->parameterName = $parameterName;
-        $this->headerName = $headerName;
-        $this->isRequired = $isRequired;
     }
 
-    /**
-     * @param string $parameterName
-     * @param string $headerName
-     *
-     * @return HeaderBuilder
-     */
     public static function create(string $parameterName, string $headerName): self
     {
         return new self($parameterName, $headerName, true);
@@ -75,13 +57,13 @@ class HeaderBuilder implements ParameterConverterBuilder
     /**
      * @inheritDoc
      */
-    public function build(ReferenceSearchService $referenceSearchService): ParameterConverter
+    public function build(ReferenceSearchService $referenceSearchService, ?InterfaceToCall $interfaceToCall = null, ?InterfaceParameter $interfaceParameter = null): ParameterConverter
     {
-        return HeaderConverter::create(
-            $this->parameterName,
+        return new HeaderConverter(
+            $interfaceParameter,
             $this->headerName,
             $this->isRequired,
-            $referenceSearchService->get(ConversionService::REFERENCE_NAME)
+            $referenceSearchService->get(ConversionService::REFERENCE_NAME),
         );
     }
 }

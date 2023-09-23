@@ -63,7 +63,6 @@ class PayloadExpressionBuilder implements ParameterConverterBuilder
         return new PayloadExpressionConverter(
             $referenceSearchService,
             $expressionService,
-            $this->parameterName,
             $this->expression
         );
     }

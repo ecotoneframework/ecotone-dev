@@ -17,47 +17,19 @@ use Ecotone\Messaging\Message;
  */
 class ValueConverter implements ParameterConverter
 {
-    private string $parameterName;
-    /**
-     * @var mixed
-     */
-    private $staticValue;
-
-    /**
-     * HeaderArgument constructor.
-     *
-     * @param string $parameterName
-     * @param mixed $staticValue
-     */
-    private function __construct(string $parameterName, $staticValue)
+    public function __construct(private mixed $staticValue)
     {
-        $this->parameterName = $parameterName;
-        $this->staticValue   = $staticValue;
     }
 
-    /**
-     * @param string $parameterName
-     * @param mixed  $staticValue
-     *
-     * @return ValueConverter
-     */
-    public static function createWith(string $parameterName, $staticValue): self
+    public static function createWith(mixed $staticValue): self
     {
-        return new self($parameterName, $staticValue);
+        return new self($staticValue);
     }
 
     /**
      * @inheritDoc
      */
-    public function isHandling(InterfaceParameter $parameter): bool
-    {
-        return $parameter->getName() == $this->parameterName;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getArgumentFrom(InterfaceToCall $interfaceToCall, InterfaceParameter $relatedParameter, Message $message)
+    public function getArgumentFrom(Message $message): mixed
     {
         return $this->staticValue;
     }

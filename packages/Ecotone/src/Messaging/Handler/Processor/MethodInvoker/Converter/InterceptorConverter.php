@@ -16,60 +16,35 @@ use Ecotone\Messaging\Message;
  */
 class InterceptorConverter implements ParameterConverter
 {
-    private \Ecotone\Messaging\Handler\InterfaceToCall $interceptedInterface;
-    /**
-     * @var object[]
-     */
-    private array $endpointAnnotations;
-    private string $parameterName;
-
-    /**
-     * AnnotationInterceptorConverter constructor.
-     *
-     * @param string $parameterName
-     * @param InterfaceToCall $interceptedInterface
-     * @param object[] $endpointAnnotations
-     */
-    public function __construct(string $parameterName, InterfaceToCall $interceptedInterface, array $endpointAnnotations)
+    public function __construct(private InterfaceParameter $parameter, private InterfaceToCall $interceptedInterface, private array $endpointAnnotations)
     {
-        $this->parameterName = $parameterName;
-        $this->interceptedInterface = $interceptedInterface;
-        $this->endpointAnnotations = $endpointAnnotations;
     }
 
     /**
      * @inheritDoc
      */
-    public function getArgumentFrom(InterfaceToCall $interfaceToCall, InterfaceParameter $relatedParameter, Message $message)
+    public function getArgumentFrom(Message $message)
     {
-        if ($relatedParameter->canBePassedIn(TypeDescriptor::create(InterfaceToCall::class))) {
+        if ($this->parameter->canBePassedIn(TypeDescriptor::create(InterfaceToCall::class))) {
             return $this->interceptedInterface;
         }
 
         foreach ($this->endpointAnnotations as $endpointAnnotation) {
-            if ($relatedParameter->canBePassedIn(TypeDescriptor::createFromVariable($endpointAnnotation))) {
+            if ($this->parameter->canBePassedIn(TypeDescriptor::createFromVariable($endpointAnnotation))) {
                 return $endpointAnnotation;
             }
         }
 
-        if ($this->interceptedInterface->hasMethodAnnotation($relatedParameter->getTypeDescriptor())) {
-            return $this->interceptedInterface->getMethodAnnotation($relatedParameter->getTypeDescriptor());
+        if ($this->interceptedInterface->hasMethodAnnotation($this->parameter->getTypeDescriptor())) {
+            return $this->interceptedInterface->getMethodAnnotation($this->parameter->getTypeDescriptor());
         }
 
-        if ($this->interceptedInterface->hasClassAnnotation($relatedParameter->getTypeDescriptor())) {
-            return $this->interceptedInterface->getClassAnnotation($relatedParameter->getTypeDescriptor());
+        if ($this->interceptedInterface->hasClassAnnotation($this->parameter->getTypeDescriptor())) {
+            return $this->interceptedInterface->getClassAnnotation($this->parameter->getTypeDescriptor());
         }
 
-        if (! $relatedParameter->doesAllowNulls()) {
-            throw MessageHandlingException::create("Can find annotation in intercepted {$this->interceptedInterface} to resolve argument {$relatedParameter->getName()} for {$interfaceToCall}. Should not parameter be nullable?");
+        if (! $this->parameter->doesAllowNulls()) {
+            throw MessageHandlingException::create("Can find annotation in intercepted {$this->interceptedInterface} to resolve argument {$this->parameter->getName()}. Should not parameter be nullable?");
         }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function isHandling(InterfaceParameter $parameter): bool
-    {
-        return $this->parameterName === $parameter->getName();
     }
 }

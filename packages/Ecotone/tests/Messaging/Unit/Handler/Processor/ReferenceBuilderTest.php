@@ -40,8 +40,6 @@ class ReferenceBuilderTest extends TestCase
         $this->assertEquals(
             $value,
             $converter->getArgumentFrom(
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock(stdClass::class, '')),
                 MessageBuilder::withPayload('paramName')->build(),
             )
         );
@@ -54,7 +52,7 @@ class ReferenceBuilderTest extends TestCase
     public function test_creating_with_dynamic_reference_resolution()
     {
         $value = new stdClass();
-        $converter = ReferenceBuilder::createWithDynamicResolve('param')
+        $converter = ReferenceBuilder::create('param', stdClass::class)
             ->build(InMemoryReferenceSearchService::createWith([
                 stdClass::class => $value,
             ]));
@@ -62,8 +60,6 @@ class ReferenceBuilderTest extends TestCase
         $this->assertEquals(
             $value,
             $converter->getArgumentFrom(
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock(stdClass::class, '')),
                 MessageBuilder::withPayload('paramName')->build(),
             )
         );

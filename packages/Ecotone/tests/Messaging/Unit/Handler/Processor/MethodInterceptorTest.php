@@ -28,9 +28,10 @@ class MethodInterceptorTest extends TestCase
 {
     public function test_adding_parameters_when_type_hinting_for_annotation_class()
     {
+        $interceptorInterface = InterfaceToCall::create(CalculatorInterceptor::class, 'multiplyBefore');
         $methodInterceptor = MethodInterceptor::create(
             CalculatorInterceptor::class,
-            InterfaceToCall::create(CalculatorInterceptor::class, 'multiplyBefore'),
+            $interceptorInterface,
             ServiceActivatorBuilder::create(CalculatorInterceptor::class, InterfaceToCall::create(CalculatorInterceptor::class, 'multiplyBefore')),
             1,
             ''
@@ -40,7 +41,7 @@ class MethodInterceptorTest extends TestCase
             [
                 PayloadBuilder::create('amount'),
                 AllHeadersBuilder::createWith('metadata'),
-                InterceptorConverterBuilder::create('beforeMultiplyCalculation', InterfaceToCall::create(Calculator::class, 'calculate'), []),
+                InterceptorConverterBuilder::create($interceptorInterface->getParameterWithName('beforeMultiplyCalculation'), InterfaceToCall::create(Calculator::class, 'calculate'), []),
             ],
             $methodInterceptor->addInterceptedInterfaceToCall(InterfaceToCall::create(Calculator::class, 'calculate'), [])
                 ->getInterceptingObject()

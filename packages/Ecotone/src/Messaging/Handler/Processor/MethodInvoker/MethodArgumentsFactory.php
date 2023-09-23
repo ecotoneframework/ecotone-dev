@@ -16,6 +16,11 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 
 class MethodArgumentsFactory
 {
+    /**
+     * @param ParameterConverterBuilder[] $passedMethodParameterConverters
+     * @param object[] $endpointAnnotations
+     * @return ParameterConverterBuilder[]
+     */
     public static function createDefaultMethodParameters(InterfaceToCall $interfaceToCall, array $passedMethodParameterConverters, array $endpointAnnotations, ?InterfaceToCall $interceptedInterface, bool $ignorePayload): array
     {
         $passedArgumentsCount = count($passedMethodParameterConverters);
@@ -26,7 +31,7 @@ class MethodArgumentsFactory
             foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
                 if (! self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter) && $interfaceParameter->getTypeDescriptor()->isClassOrInterface()) {
                     if ($interceptedInterface && ($interfaceParameter->isAnnotation() || $interceptedInterface->getInterfaceType()->equals($interfaceParameter->getTypeDescriptor()))) {
-                        $passedMethodParameterConverters[] = InterceptorConverterBuilder::create($interfaceParameter->getName(), $interceptedInterface, $endpointAnnotations);
+                        $passedMethodParameterConverters[] = InterceptorConverterBuilder::create($interfaceParameter, $interceptedInterface, $endpointAnnotations);
                         $missingParametersAmount--;
                     }
                 }
@@ -64,7 +69,7 @@ class MethodArgumentsFactory
     }
 
     /**
-     * @param array $passedMethodParameterConverters
+     * @param ParameterConverterBuilder[] $passedMethodParameterConverters
      * @return bool
      */
     private static function hasPayloadConverter(array $passedMethodParameterConverters): bool
@@ -84,7 +89,7 @@ class MethodArgumentsFactory
     }
 
     /**
-     * @param array|ParameterConverter[] $methodParameterConverters
+     * @param ParameterConverterBuilder[] $methodParameterConverters
      * @throws MessagingException
      */
     private static function getMethodArgumentFor(InterfaceParameter $invokeParameter, array $methodParameterConverters, InterfaceToCall $interfaceToCall): ParameterConverterBuilder

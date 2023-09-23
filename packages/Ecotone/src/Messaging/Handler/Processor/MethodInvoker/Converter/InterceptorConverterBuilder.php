@@ -17,33 +17,19 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  */
 class InterceptorConverterBuilder implements ParameterConverterBuilder
 {
-    private \Ecotone\Messaging\Handler\InterfaceToCall $interceptedInterface;
-    private array $endpointAnnotations;
-    private string $parameterName;
-
     /**
-     * AnnotationInterceptorConverterBuilder constructor.
-     *
-     * @param string $parameterName
-     * @param InterfaceToCall $interceptedInterface
      * @param object[] $endpointAnnotations
      */
-    private function __construct(string $parameterName, InterfaceToCall $interceptedInterface, array $endpointAnnotations)
+    private function __construct(private InterfaceParameter $parameter, private InterfaceToCall $interceptedInterface, private array $endpointAnnotations)
     {
-        $this->parameterName = $parameterName;
-        $this->interceptedInterface = $interceptedInterface;
-        $this->endpointAnnotations = $endpointAnnotations;
     }
 
     /**
-     * @param string $parameterName
-     * @param InterfaceToCall $interceptedInterface
      * @param object[] $endpointAnnotations
-     * @return InterceptorConverterBuilder
      */
-    public static function create(string $parameterName, InterfaceToCall $interceptedInterface, array $endpointAnnotations): self
+    public static function create(InterfaceParameter $parameter, InterfaceToCall $interceptedInterface, array $endpointAnnotations): self
     {
-        return new self($parameterName, $interceptedInterface, $endpointAnnotations);
+        return new self($parameter, $interceptedInterface, $endpointAnnotations);
     }
 
     /**
@@ -51,7 +37,7 @@ class InterceptorConverterBuilder implements ParameterConverterBuilder
      */
     public function isHandling(InterfaceParameter $parameter): bool
     {
-        return $this->parameterName === $parameter->getName();
+        return $this->parameter->getName() === $parameter->getName();
     }
 
     /**
@@ -67,6 +53,6 @@ class InterceptorConverterBuilder implements ParameterConverterBuilder
      */
     public function build(ReferenceSearchService $referenceSearchService): ParameterConverter
     {
-        return new InterceptorConverter($this->parameterName, $this->interceptedInterface, $this->endpointAnnotations);
+        return new InterceptorConverter($this->parameter, $this->interceptedInterface, $this->endpointAnnotations);
     }
 }

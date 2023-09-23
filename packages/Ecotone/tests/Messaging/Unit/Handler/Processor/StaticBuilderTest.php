@@ -31,14 +31,12 @@ class StaticBuilderTest extends TestCase
     public function test_creating_static_value()
     {
         $value = new stdClass();
-        $converter = ValueBuilder::create('x', $value);
+            $converter = new ValueBuilder('x', $value);
         $converter = $converter->build(InMemoryReferenceSearchService::createEmpty());
 
         $this->assertEquals(
             $value,
             $converter->getArgumentFrom(
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', null)),
                 MessageBuilder::withPayload('a')->build(),
             )
         );

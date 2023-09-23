@@ -10,12 +10,13 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
- * Interface MethodInterceptor
- * @package Ecotone\Messaging\MethodInterceptor
  * @author  Dariusz Gafka <dgafka.mail@gmail.com>
  */
 class AroundMethodInterceptor
 {
+    /**
+     * @param ParameterConverter[] $parameterConverters
+     */
     private function __construct(private object $referenceToCall, private InterfaceToCall $interceptorInterfaceToCall, private array $parameterConverters, private bool $hasMethodInvocation)
     {
         if ($interceptorInterfaceToCall->canReturnValue() && ! $this->hasMethodInvocation) {
@@ -24,7 +25,7 @@ class AroundMethodInterceptor
     }
 
     /**
-     * @var ParameterConverter[] $parameterConverters
+     * @param ParameterConverter[] $parameterConverters
      */
     public static function createWith(object $referenceToCall, string $methodName, ReferenceSearchService $referenceSearchService, array $parameterConverters, bool $hasMethodInvocation): self
     {
@@ -42,10 +43,7 @@ class AroundMethodInterceptor
 
         $count = count($this->parameterConverters);
         for ($index = 0; $index < $count; $index++) {
-            $interfaceParameter = $this->interceptorInterfaceToCall->getParameterAtIndex($index);
             $argumentsToCall[] = $this->parameterConverters[$index]->getArgumentFrom(
-                $this->interceptorInterfaceToCall,
-                $interfaceParameter,
                 $requestMessage,
                 $methodInvocation,
             );

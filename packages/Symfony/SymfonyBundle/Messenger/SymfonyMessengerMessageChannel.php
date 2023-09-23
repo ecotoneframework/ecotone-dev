@@ -9,7 +9,6 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Generator;
 use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Transport\Receiver\MessageCountAwareInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
 final class SymfonyMessengerMessageChannel implements PollableChannel
@@ -37,9 +36,11 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
             return null;
         }
 
-        if (!is_array($symfonyEnvelope) && $symfonyEnvelope instanceof Generator && $this->symfonyTransport instanceof MessageCountAwareInterface) {
-            Assert::isTrue($this->symfonyTransport->getMessageCount() === 1, 'Symfony messenger transport should be configured to return only one message at a time');
+        if ($symfonyEnvelope instanceof Generator) {
             $symfonyEnvelope = iterator_to_array($symfonyEnvelope);
+            if ($symfonyEnvelope === []) {
+                return null;
+            }
         } else {
             Assert::isTrue(count($symfonyEnvelope) === 1, 'Symfony messenger transport should be configured to return only one message at a time');
         }

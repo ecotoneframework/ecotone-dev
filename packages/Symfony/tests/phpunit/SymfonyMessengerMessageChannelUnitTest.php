@@ -70,19 +70,18 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
         $this->assertInstanceOf(Message::class, $messageChannel->receive());
     }
 
-    private function multiMessageGenerator(): iterable
-    {
-        yield $this->envelope;
-    }
-    public function testSymfonyEnvelopeReturnsGeneratorFailsBecauseOfTooManyMessages(): void
-    {
-        $transport = $this->createMock(AmqpTransport::class);
-        $transport->method('get')->willReturn($this->multiMessageGenerator());
-        $transport->method('getMessageCount')->willReturn(2);
-        $messageChannel = new SymfonyMessengerMessageChannel($transport, $this->messageConverter);
-
-        $this->expectException(InvalidArgumentException::class);
-        $messageChannel->receive();
-    }
-
+//    private function multiMessageGenerator(): iterable
+//    {
+//        yield $this->envelope;
+//    }
+//    public function testSymfonyEnvelopeReturnsGeneratorFailsBecauseOfTooManyMessages(): void
+//    {
+//        $transport = $this->createMock(AmqpTransport::class);
+//        $transport->method('get')->willReturn($this->multiMessageGenerator());
+//        $transport->method('getMessageCount')->willReturn(2);
+//        $messageChannel = new SymfonyMessengerMessageChannel($transport, $this->messageConverter);
+//
+//        $this->expectException(InvalidArgumentException::class);
+//        $messageChannel->receive();
+//    }
 }

@@ -35,7 +35,7 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
         $this->messageProcessor = $messageProcessor;
     }
 
-    public static function createWith(InterfaceToCall $interfaceToCall, MessageProcessor $messageProcessor, ReferenceSearchService $referenceSearchService)
+    public static function createWith(InterfaceToCall $interfaceToCall, MessageProcessor $messageProcessor)
     {
         return new self($interfaceToCall, $messageProcessor);
     }

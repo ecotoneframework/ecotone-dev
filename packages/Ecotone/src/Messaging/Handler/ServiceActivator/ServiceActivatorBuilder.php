@@ -173,7 +173,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             $messageProcessor = WrapWithMessageBuildProcessor::createWith(
                 $interfaceToCall,
                 $messageProcessor,
-                $referenceSearchService
             );
         }
 

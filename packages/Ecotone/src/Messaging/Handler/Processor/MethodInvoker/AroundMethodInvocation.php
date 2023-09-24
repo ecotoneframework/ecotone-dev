@@ -9,6 +9,7 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ramsey\Uuid\Uuid;
 
@@ -19,21 +20,22 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class AroundMethodInvoker implements MethodInvocation
+class AroundMethodInvocation implements MethodInvocation
 {
     /**
      * @var ArrayIterator|AroundMethodInterceptor[]
      */
     private iterable $aroundMethodInterceptors;
 
+    private MethodCall $methodCall;
+
     public function __construct(
-        private MessageProcessor $messageProcessor,
-        private MethodCall $methodCall,
-        array $aroundMethodInterceptors,
-        private Message $requestMessage,
-        private RequestReplyProducer $requestReplyProducer,
+        private Message          $requestMessage,
+        array                    $aroundMethodInterceptors,
+        private MessageProcessor $interceptedMessageProcessor,
     ) {
         $this->aroundMethodInterceptors = new ArrayIterator($aroundMethodInterceptors);
+        $this->methodCall = $interceptedMessageProcessor->getMethodCall($requestMessage);
     }
 
     /**
@@ -46,18 +48,7 @@ class AroundMethodInvoker implements MethodInvocation
         $this->aroundMethodInterceptors->next();
 
         if (! $aroundMethodInterceptor) {
-            /**
-             * This will ensure that after all connected output channels finish, we can fetch the result
-             * and pass it to origin reply channel
-             */
-            $bridge = QueueChannel::create('request-reply-' . Uuid::uuid4());
-            $message = MessageBuilder::fromMessage($this->requestMessage)
-                ->setReplyChannel($bridge)
-                ->build();
-
-            $this->requestReplyProducer->executeEndpointAndSendReply($message);
-
-            return $bridge->receive();
+            return $this->interceptedMessageProcessor->executeEndpoint($this->requestMessage);
         }
 
         return $aroundMethodInterceptor->invoke(
@@ -79,7 +70,7 @@ class AroundMethodInvoker implements MethodInvocation
      */
     public function getObjectToInvokeOn()
     {
-        return $this->messageProcessor->getObjectToInvokeOn();
+        return $this->interceptedMessageProcessor->getObjectToInvokeOn();
     }
 
     /**

@@ -17,6 +17,8 @@ framework:
         dsn: 'doctrine://default?queue_name=async&use_notify=false'
         options:
           use_notify: false
+      amqp_async:
+        dsn: "%env(RABBIT_HOST)%/%2f/messages"
 
 services:
   Doctrine\DBAL\Connection-public:

@@ -36,7 +36,7 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames([ModulePackageList::AMQP_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
                         ->withSimpleStreamPersistenceStrategy()

@@ -5,6 +5,7 @@ namespace Ecotone\EventSourcing;
 use Ecotone\EventSourcing\InMemory\CachingInMemoryProjectionManager;
 use Ecotone\EventSourcing\InMemory\InMemoryProjectionManager;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Prooph\EventStore\InMemoryEventStore;
@@ -88,6 +89,14 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 
     public function withPersistenceStrategyFor(string $streamName, string $strategy): self
     {
+        $allowedStrategies = [LazyProophEventStore::SIMPLE_STREAM_PERSISTENCE, LazyProophEventStore::SINGLE_STREAM_PERSISTENCE, LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE];
+
+        Assert::oneOf(
+            $strategy,
+            $allowedStrategies,
+            sprintf('Custom persistence strategy for specific stream can only be one of %s', implode(', ', $allowedStrategies))
+        );
+
         $this->persistenceStrategies[$streamName] = $strategy;
 
         return $this;
@@ -157,14 +166,12 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this->getPersistenceStrategy() === LazyProophEventStore::SINGLE_STREAM_PERSISTENCE;
     }
 
-    public function isUsingAggregateStreamStrategy(): bool
-    {
-        return $this->getPersistenceStrategy() === LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE;
-    }
-
     public function isUsingAggregateStreamStrategyFor(string $streamName): bool
     {
-        return array_key_exists($streamName, $this->persistenceStrategies) && $this->persistenceStrategies[$streamName] === LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE;
+        return
+            $this->getPersistenceStrategy() === LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE
+            || (array_key_exists($streamName, $this->persistenceStrategies) && $this->persistenceStrategies[$streamName] === LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE)
+        ;
     }
 
     public function isUsingSimpleStreamStrategy(): bool

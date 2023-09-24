@@ -132,10 +132,7 @@ class EventSourcingRepository implements EventSourcedRepository
             $streamName =  $this->aggregateStreamMapping->getAggregateToStreamMapping()[$aggregateClassName];
         }
 
-        if (
-            $this->eventSourcingConfiguration->isUsingAggregateStreamStrategy()
-            || $this->eventSourcingConfiguration->isUsingAggregateStreamStrategyFor($streamName)
-        ) {
+        if ($this->eventSourcingConfiguration->isUsingAggregateStreamStrategyFor($streamName)) {
             $streamName = $streamName . '-' . $aggregateId;
         }
 

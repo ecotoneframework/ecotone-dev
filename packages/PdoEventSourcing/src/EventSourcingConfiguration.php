@@ -25,6 +25,8 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     private bool $isInMemory = false;
     private ?InMemoryEventStore $inMemoryEventStore = null;
     private ?\Prooph\EventStore\Projection\ProjectionManager $inMemoryProjectionManager = null;
+    /** @var array<string> */
+    private array $persistenceStrategies = [];
 
     private function __construct(string $connectionReferenceName = DbalConnectionFactory::class, string $eventStoreReferenceName = EventStore::class, string $projectManagerReferenceName = ProjectionManager::class)
     {
@@ -80,6 +82,13 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     public function withSimpleStreamPersistenceStrategy(): static
     {
         $this->persistenceStrategy = LazyProophEventStore::SIMPLE_STREAM_PERSISTENCE;
+
+        return $this;
+    }
+
+    public function withPersistenceStrategyFor(string $streamName, string $strategy): self
+    {
+        $this->persistenceStrategies[$streamName] = $strategy;
 
         return $this;
     }
@@ -151,6 +160,11 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     public function isUsingAggregateStreamStrategy(): bool
     {
         return $this->getPersistenceStrategy() === LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE;
+    }
+
+    public function isUsingAggregateStreamStrategyFor(string $streamName): bool
+    {
+        return array_key_exists($streamName, $this->persistenceStrategies) && $this->persistenceStrategies[$streamName] === LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE;
     }
 
     public function isUsingSimpleStreamStrategy(): bool

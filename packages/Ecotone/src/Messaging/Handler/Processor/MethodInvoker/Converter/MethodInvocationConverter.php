@@ -10,11 +10,9 @@ use Ecotone\Messaging\Message;
 
 class MethodInvocationConverter implements ParameterConverter
 {
-
     public function __construct(
         private string $parameterName,
-    )
-    {
+    ) {
     }
 
     public function getArgumentFrom(InterfaceToCall $interfaceToCall, InterfaceParameter $relatedParameter, Message $message, ?MethodInvocation $methodInvocation = null)

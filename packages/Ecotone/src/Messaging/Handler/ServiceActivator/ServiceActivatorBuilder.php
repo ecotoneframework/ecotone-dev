@@ -177,13 +177,13 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         }
 
         return RequestReplyProducer::createRequestAndReply(
-                $this->outputMessageChannelName,
-                $messageProcessor,
-                $channelResolver,
-                $this->isReplyRequired,
+            $this->outputMessageChannelName,
+            $messageProcessor,
+            $channelResolver,
+            $this->isReplyRequired,
             $this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid(),
             aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
-            );
+        );
     }
 
     /**

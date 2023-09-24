@@ -19,6 +19,9 @@ use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\Order;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\OrderCreated;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\OrderProjection;
 
+/**
+ * @internal
+ */
 final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTestCase
 {
     public function test_allow_multiple_persistent_strategies_per_aggregate(): void
@@ -37,7 +40,7 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
                         ->withSimpleStreamPersistenceStrategy()
-                        ->withPersistenceStrategyFor(Order::STREAM, LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE)
+                        ->withPersistenceStrategyFor(Order::STREAM, LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE),
                 ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies',

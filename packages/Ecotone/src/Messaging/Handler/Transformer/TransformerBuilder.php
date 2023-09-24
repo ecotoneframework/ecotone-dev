@@ -180,20 +180,19 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         }
 
         return RequestReplyProducer::createRequestAndReply(
-                $this->outputMessageChannelName,
-                TransformerMessageProcessor::createFrom(
-                    MethodInvoker::createWith(
-                        $interfaceToCall,
-                        $objectToInvokeOn,
-                        $this->methodParameterConverterBuilders,
-                        $referenceSearchService,
-                        $this->getEndpointAnnotations()
-                    )
-                ),
-                $channelResolver,
-                false,
+            $this->outputMessageChannelName,
+            TransformerMessageProcessor::createFrom(
+                MethodInvoker::createWith(
+                    $interfaceToCall,
+                    $objectToInvokeOn,
+                    $this->methodParameterConverterBuilders,
+                    $referenceSearchService,
+                    $this->getEndpointAnnotations()
+                )
+            ),
+            $channelResolver,
+            false,
             aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
-
         );
     }
 

@@ -3,7 +3,6 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Closure;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use stdClass;
 
 class StubMethodInvocation implements MethodInvocation

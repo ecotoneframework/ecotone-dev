@@ -147,7 +147,7 @@ class Assert
 
     public static function oneOf(string $valueToCheck, array $allowedValues, string $exceptionMessage): void
     {
-        if (!in_array($valueToCheck, $allowedValues, true)) {
+        if (! in_array($valueToCheck, $allowedValues, true)) {
             throw InvalidArgumentException::create($exceptionMessage);
         }
     }

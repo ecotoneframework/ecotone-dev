@@ -187,7 +187,6 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
             $channelResolver,
             false,
             aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
-
-    );
+        );
     }
 }

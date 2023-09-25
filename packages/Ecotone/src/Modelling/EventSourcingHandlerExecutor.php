@@ -21,7 +21,7 @@ final class EventSourcingHandlerExecutor
 
     public function fill(array $events, ?object $existingAggregate): object
     {
-        $aggregate = $existingAggregate ?? (new $this->aggregateClassName);
+        $aggregate = $existingAggregate ?? (new $this->aggregateClassName());
         foreach ($events as $event) {
             if ($event instanceof Event) {
                 $event = $event->getPayload();

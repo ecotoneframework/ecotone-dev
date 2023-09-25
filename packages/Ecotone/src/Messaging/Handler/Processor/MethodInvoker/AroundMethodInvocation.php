@@ -5,13 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use ArrayIterator;
-use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHandler;
-use Ecotone\Messaging\Support\MessageBuilder;
-use Ramsey\Uuid\Uuid;
 
 /**
  * Executes endpoint with around interceptors

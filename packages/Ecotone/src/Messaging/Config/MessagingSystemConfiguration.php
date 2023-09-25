@@ -52,6 +52,9 @@ use Exception;
 use ProxyManager\Autoloader\AutoloaderInterface;
 use Ramsey\Uuid\Uuid;
 
+use function spl_autoload_register;
+use function spl_autoload_unregister;
+
 /**
  * Class Configuration
  * @package Ecotone\Messaging\Config
@@ -1352,9 +1355,9 @@ final class MessagingSystemConfiguration implements Configuration
     private function registerAutoloader(AutoloaderInterface $autoloader)
     {
         if (self::$registered_autoloader) {
-            \spl_autoload_unregister(self::$registered_autoloader);
+            spl_autoload_unregister(self::$registered_autoloader);
         }
-        \spl_autoload_register($autoloader);
+        spl_autoload_register($autoloader);
         self::$registered_autoloader = $autoloader;
     }
 }

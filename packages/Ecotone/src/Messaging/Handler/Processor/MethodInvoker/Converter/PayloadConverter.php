@@ -53,11 +53,11 @@ class PayloadConverter implements ParameterConverter
         if (! ($sourceTypeDescriptor->isCompatibleWith($parameterType) && ($parameterType->isMessage() || $parameterType->isAnything() || $sourceMediaType->isCompatibleWith($parameterMediaType)))) {
             $convertedData = null;
             if (! $parameterType->isCompoundObjectType() && ! $parameterType->isAbstractClass() && ! $parameterType->isInterface() && ! $parameterType->isAnything() && ! $parameterType->isUnionType() && $this->canConvertParameter(
-                    $sourceTypeDescriptor,
-                    $sourceMediaType,
-                    $parameterType,
-                    $parameterMediaType
-                )) {
+                $sourceTypeDescriptor,
+                $sourceMediaType,
+                $parameterType,
+                $parameterMediaType
+            )) {
                 $convertedData = $this->doConversion($interfaceToCall, $relatedParameter, $data, $sourceTypeDescriptor, $sourceMediaType, $parameterType, $parameterMediaType);
             } elseif ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
                 $resolvedTargetParameterType = TypeDescriptor::create($message->getHeaders()->get(MessageHeaders::TYPE_ID));

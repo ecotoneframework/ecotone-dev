@@ -105,7 +105,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
         );
     }
 
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         $messagingConfiguration = $this->getMessagingConfiguration($container);
 

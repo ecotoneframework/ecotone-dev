@@ -7,7 +7,7 @@ use Symfony\Component\HttpKernel\CacheClearer\CacheClearerInterface;
 
 class CacheCleaner implements CacheClearerInterface
 {
-    public function clear($cacheDir)
+    public function clear($cacheDir): void
     {
         MessagingSystemConfiguration::cleanCache($cacheDir . EcotoneCompilerPass::CACHE_DIRECTORY_SUFFIX);
     }

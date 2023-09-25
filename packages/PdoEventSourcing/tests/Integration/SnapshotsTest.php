@@ -44,12 +44,10 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
                 ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withDocumentStore()
-                    ,
+                        ->withDocumentStore(),
                     EventSourcingConfiguration::createWithDefaults()
                         ->withSnapshotsFor(Ticket::class, 1)
-                        ->withSnapshotsFor(Basket::class, 3)
-                    ,
+                        ->withSnapshotsFor(Basket::class, 3),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true

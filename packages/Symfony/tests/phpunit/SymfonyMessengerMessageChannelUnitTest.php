@@ -14,6 +14,9 @@ use Symfony\Component\Messenger\Bridge\Amqp\Transport\AmqpTransport;
 use Symfony\Component\Messenger\Bridge\Doctrine\Transport\DoctrineTransport;
 use Symfony\Component\Messenger\Envelope;
 
+/**
+ * @internal
+ */
 class SymfonyMessengerMessageChannelUnitTest extends TestCase
 {
     private SymfonyMessageConverter $messageConverter;
@@ -33,7 +36,7 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
         );
     }
 
-    public function testSymfonyEnvelopeReturnsArray(): void
+    public function test_symfony_envelope_returns_array(): void
     {
         $transport = $this->createMock(DoctrineTransport::class);
         $transport->method('get')->willReturn([$this->envelope]);
@@ -48,7 +51,7 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
         yield $this->envelope;
     }
 
-    public function testSymfonyEnvelopeReturnsGenerator(): void
+    public function test_symfony_envelope_returns_generator(): void
     {
         $transport = $this->createMock(AmqpTransport::class);
         $transport->method('get')->willReturn($this->singleMessageGenerator());

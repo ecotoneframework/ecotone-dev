@@ -2,7 +2,6 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 
 class BaseEventSourcingConfiguration

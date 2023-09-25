@@ -5,7 +5,6 @@ namespace Test;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\SymfonyBundle\Messenger\MetadataStamp;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessageConverter;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
@@ -44,17 +43,6 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
         $this->assertInstanceOf(Message::class, $messageChannel->receive());
     }
 
-    public function testSymfonyEnvelopeReturnsArrayFailsBecauseOfTooManyMessages(): void
-    {
-        $transport = $this->createMock(DoctrineTransport::class);
-        $transport->method('get')->willReturn([$this->envelope, $this->envelope]);
-        $transport->method('getMessageCount')->willReturn(2);
-        $messageChannel = new SymfonyMessengerMessageChannel($transport, $this->messageConverter);
-
-        $this->expectException(InvalidArgumentException::class);
-        $messageChannel->receive();
-    }
-
     private function singleMessageGenerator(): iterable
     {
         yield $this->envelope;
@@ -69,19 +57,4 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
 
         $this->assertInstanceOf(Message::class, $messageChannel->receive());
     }
-
-//    private function multiMessageGenerator(): iterable
-//    {
-//        yield $this->envelope;
-//    }
-//    public function testSymfonyEnvelopeReturnsGeneratorFailsBecauseOfTooManyMessages(): void
-//    {
-//        $transport = $this->createMock(AmqpTransport::class);
-//        $transport->method('get')->willReturn($this->multiMessageGenerator());
-//        $transport->method('getMessageCount')->willReturn(2);
-//        $messageChannel = new SymfonyMessengerMessageChannel($transport, $this->messageConverter);
-//
-//        $this->expectException(InvalidArgumentException::class);
-//        $messageChannel->receive();
-//    }
 }

@@ -25,6 +25,9 @@ use Prooph\EventStore\StreamName;
 
 class EventSourcingRepository implements EventSourcedRepository
 {
+    /**
+     * @param array<string, DocumentStore> $documentStoreReferences
+     */
     public function __construct(
         private EcotoneEventStoreProophWrapper $eventStore,
         private array $handledAggregateClassNames,
@@ -32,8 +35,7 @@ class EventSourcingRepository implements EventSourcedRepository
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private AggregateStreamMapping $aggregateStreamMapping,
         private AggregateTypeMapping $aggregateTypeMapping,
-        private array $snapshotedAggregates,
-        private DocumentStore $documentStore,
+        private array $documentStoreReferences,
         private ConversionService $conversionService
     ) {
     }
@@ -51,8 +53,8 @@ class EventSourcingRepository implements EventSourcedRepository
         $aggregateType = $this->getAggregateType($aggregateClassName);
         $snapshotEvent = [];
 
-        if (in_array($aggregateClassName, $this->snapshotedAggregates)) {
-            $aggregate = $this->documentStore->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
+        if (array_key_exists($aggregateClassName, $this->documentStoreReferences)) {
+            $aggregate = $this->documentStoreReferences[$aggregateClassName]->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
 
             if (! is_null($aggregate)) {
                 $aggregateVersion = $this->getAggregateVersion($aggregate);

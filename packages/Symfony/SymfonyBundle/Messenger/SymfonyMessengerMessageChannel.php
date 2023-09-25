@@ -7,6 +7,7 @@ namespace Ecotone\SymfonyBundle\Messenger;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
+use Generator;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
@@ -35,7 +36,14 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
             return null;
         }
 
-        Assert::isTrue(count($symfonyEnvelope) === 1, 'Symfony messenger transport should be configured to return only one message at a time');
+        if ($symfonyEnvelope instanceof Generator) {
+            $symfonyEnvelope = iterator_to_array($symfonyEnvelope);
+            if ($symfonyEnvelope === []) {
+                return null;
+            }
+        } else {
+            Assert::isTrue(count($symfonyEnvelope) === 1, 'Symfony messenger transport should be configured to return only one message at a time');
+        }
 
         return $this->symfonyMessageConverter->convertFromSymfonyMessage(
             $symfonyEnvelope[0],

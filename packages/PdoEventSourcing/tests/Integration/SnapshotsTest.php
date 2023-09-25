@@ -14,6 +14,7 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
+use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\BasketMediaTypeConverter;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\TicketMediaTypeConverter;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
@@ -27,6 +28,7 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
     public function test_snapshotting_aggregates_called_in_turn(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [Basket::class], // fixme should not be required when aggregate class is in namespace used with `withNamespaces` method
             containerOrAvailableServices: [new BasketEventConverter(), new BasketMediaTypeConverter(), new TicketEventConverter(), new TicketMediaTypeConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -44,7 +46,13 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
         );
 
         $ecotone
-            ->sendCommand(new CreateBasket('1000'))
+            ->withEventsFor(
+                '1000',
+                Basket::class,
+                [
+                    new BasketWasCreated('1000'),
+                ]
+            )
             ->sendCommand(new CreateBasket('1001'))
             ->sendCommand(new AddProduct('1000', 'milk'))
             ->sendCommand(new AddProduct('1001', 'cheese'))

@@ -7,6 +7,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilde
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\InterceptorConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use PHPUnit\Framework\TestCase;
@@ -14,6 +15,7 @@ use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\ResolvedPointcut\AroundInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\ResolvedPointcut\AttributeOne;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\ServiceActivatorInterceptorWithServicesExample;
+use Test\Ecotone\Messaging\Fixture\Behat\Calculating\BeforeMultiplyCalculation;
 use Test\Ecotone\Messaging\Fixture\Behat\Calculating\Calculator;
 use Test\Ecotone\Messaging\Fixture\Behat\Calculating\CalculatorInterceptor;
 
@@ -41,7 +43,7 @@ class MethodInterceptorTest extends TestCase
             [
                 PayloadBuilder::create('amount'),
                 AllHeadersBuilder::createWith('metadata'),
-                InterceptorConverterBuilder::create($interceptorInterface->getParameterWithName('beforeMultiplyCalculation'), InterfaceToCall::create(Calculator::class, 'calculate'), []),
+                new ValueBuilder('beforeMultiplyCalculation', new BeforeMultiplyCalculation(2)),
             ],
             $methodInterceptor->addInterceptedInterfaceToCall(InterfaceToCall::create(Calculator::class, 'calculate'), [])
                 ->getInterceptingObject()

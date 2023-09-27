@@ -4,13 +4,13 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\InterceptorConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
@@ -28,10 +28,10 @@ class MethodArgumentsFactory
         $missingParametersAmount = $requiredArgumentsCount - $passedArgumentsCount;
 
         if ($missingParametersAmount > 0) {
-            foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
-                if (! self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter) && $interfaceParameter->getTypeDescriptor()->isClassOrInterface()) {
-                    if ($interceptedInterface && ($interfaceParameter->isAnnotation() || $interceptedInterface->getInterfaceType()->equals($interfaceParameter->getTypeDescriptor()))) {
-                        $passedMethodParameterConverters[] = InterceptorConverterBuilder::create($interfaceParameter, $interceptedInterface, $endpointAnnotations);
+            if ($interceptedInterface) {
+                foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
+                    if (! self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter) && $converter = self::getAnnotationValueConverter($interfaceParameter, $interceptedInterface, $endpointAnnotations)) {
+                        $passedMethodParameterConverters[] = $converter;
                         $missingParametersAmount--;
                     }
                 }
@@ -66,6 +66,22 @@ class MethodArgumentsFactory
         }
 
         return $orderedMethodArguments;
+    }
+
+    public static function getAnnotationValueConverter(InterfaceParameter $interfaceParameter, InterfaceToCall $interceptedInterface, array $endpointAnnotations): ?ValueBuilder
+    {
+        $allAnnotations = [...$interceptedInterface->getClassAnnotations(), ...$interceptedInterface->getMethodAnnotations(), ...$endpointAnnotations];
+        foreach ($allAnnotations as $endpointAnnotation) {
+            if (TypeDescriptor::createFromVariable($endpointAnnotation)->equals($interfaceParameter->getTypeDescriptor())) {
+                return new ValueBuilder($interfaceParameter->getName(), $endpointAnnotation);
+            }
+        }
+        foreach ($allAnnotations as $endpointAnnotation) {
+            if (TypeDescriptor::createFromVariable($endpointAnnotation)->isCompatibleWith($interfaceParameter->getTypeDescriptor())) {
+                return new ValueBuilder($interfaceParameter->getName(), $endpointAnnotation);
+            }
+        }
+        return null;
     }
 
     /**

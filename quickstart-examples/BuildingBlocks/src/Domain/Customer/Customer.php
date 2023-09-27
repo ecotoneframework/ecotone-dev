@@ -34,6 +34,7 @@ final class Customer
     }
 
     #[CommandHandler]
+    #[IsOwnedByExecutor]
     public function changeEmail(ChangeEmail $command): void
     {
         $this->email = $command->email;

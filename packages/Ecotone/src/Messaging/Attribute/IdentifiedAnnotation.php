@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Attribute;
 
 use Ramsey\Uuid\Uuid;
 
+#[\Attribute()]
 class IdentifiedAnnotation
 {
     private string $endpointId = '';

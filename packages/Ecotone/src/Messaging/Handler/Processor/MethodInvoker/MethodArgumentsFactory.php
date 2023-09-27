@@ -30,8 +30,8 @@ class MethodArgumentsFactory
         if ($missingParametersAmount > 0) {
             if ($interceptedInterface) {
                 foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
-                    if (! self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter) && $converter = self::getAnnotationValueConverter($interfaceParameter, $interceptedInterface, $endpointAnnotations)) {
-                        $passedMethodParameterConverters[] = $converter;
+                    if (! self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter) && $interfaceParameter->isAnnotation()) {
+                        $passedMethodParameterConverters[] = self::getAnnotationValueConverter($interfaceParameter, $interceptedInterface, $endpointAnnotations) ?? new ValueBuilder($interfaceParameter->getName(), null);
                         $missingParametersAmount--;
                     }
                 }

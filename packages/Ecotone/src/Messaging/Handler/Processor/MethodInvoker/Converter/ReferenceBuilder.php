@@ -52,7 +52,7 @@ class ReferenceBuilder implements ParameterConverterBuilder
     /**
      * @inheritDoc
      */
-    public function build(ReferenceSearchService $referenceSearchService): ParameterConverter
+    public function build(ReferenceSearchService $referenceSearchService, ?InterfaceToCall $interfaceToCall = null, ?InterfaceParameter $interfaceParameter = null): ParameterConverter
     {
         return new ReferenceConverter(
             $referenceSearchService,

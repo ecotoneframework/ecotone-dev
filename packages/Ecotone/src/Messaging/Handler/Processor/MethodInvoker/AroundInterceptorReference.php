@@ -138,7 +138,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         foreach ($interceptingInterface->getInterfaceParameters() as $parameter) {
             foreach ($this->parameterConverters as $parameterConverter) {
                 if ($parameterConverter->isHandling($parameter)) {
-                    $builtConverters[] = $parameterConverter->build($referenceSearchService);
+                    $builtConverters[] = $parameterConverter->build($referenceSearchService, $interceptingInterface, $parameter);
                     if ($parameterConverter instanceof PayloadConverter) {
                         $hasPayloadConverter = true;
                     }
@@ -155,7 +155,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
                 continue;
             }
             if ($converterBuilder = MethodArgumentsFactory::getAnnotationValueConverter($parameter, $interceptedInterface, $endpointAnnotations)) {
-                $builtConverters[] = $converterBuilder->build($referenceSearchService);
+                $builtConverters[] = $converterBuilder->build($referenceSearchService, $interceptingInterface, $parameter);
                 continue;
             }
             if ($parameter->canBePassedIn(TypeDescriptor::create(Message::class))) {

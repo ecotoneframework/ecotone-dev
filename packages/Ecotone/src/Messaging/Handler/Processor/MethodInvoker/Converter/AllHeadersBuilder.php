@@ -51,7 +51,7 @@ class AllHeadersBuilder implements ParameterConverterBuilder
     /**
      * @inheritDoc
      */
-    public function build(ReferenceSearchService $referenceSearchService, ?InterfaceToCall $interfaceToCall = null, ?InterfaceParameter $interfaceParameter = null): ParameterConverter
+    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
     {
         return new AllHeadersConverter();
     }

@@ -36,7 +36,7 @@ class ConfigurationVariableBuilder implements ParameterConverterBuilder
         return $this->parameterName === $parameter->getName();
     }
 
-    public function build(ReferenceSearchService $referenceSearchService, ?InterfaceToCall $interfaceToCall = null, ?InterfaceParameter $interfaceParameter = null): ParameterConverter
+    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
     {
         /** @var ConfigurationVariableService $configurationVariableService */
         $configurationVariableService = $referenceSearchService->get(ConfigurationVariableService::REFERENCE_NAME);

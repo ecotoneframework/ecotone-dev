@@ -14,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionException;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Service\CallableService;
+use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**
  * Class ReferenceBuilderTest
@@ -31,11 +32,13 @@ class ReferenceBuilderTest extends TestCase
     public function test_creating_reference_converter()
     {
         $referenceName = 'refName';
+        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, "withUnionParameter");
+        $interfaceParameter = $interfaceToCall->getInterfaceParameters()[0];
         $value = new stdClass();
-        $converter = ReferenceBuilder::create('paramName', $referenceName)
+        $converter = ReferenceBuilder::create($interfaceParameter->getName(), $referenceName)
             ->build(InMemoryReferenceSearchService::createWith([
                 $referenceName => $value,
-            ]));
+            ]), $interfaceToCall, $interfaceParameter);
 
         $this->assertEquals(
             $value,
@@ -51,11 +54,13 @@ class ReferenceBuilderTest extends TestCase
      */
     public function test_creating_with_dynamic_reference_resolution()
     {
+        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, "withUnionParameter");
+        $interfaceParameter = $interfaceToCall->getInterfaceParameters()[0];
         $value = new stdClass();
-        $converter = ReferenceBuilder::create('param', stdClass::class)
+        $converter = ReferenceBuilder::create($interfaceParameter->getName(), stdClass::class)
             ->build(InMemoryReferenceSearchService::createWith([
                 stdClass::class => $value,
-            ]));
+            ]), $interfaceToCall, $interfaceParameter);
 
         $this->assertEquals(
             $value,

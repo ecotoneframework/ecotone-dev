@@ -70,7 +70,7 @@ class MethodArgumentsFactory
 
     public static function getAnnotationValueConverter(InterfaceParameter $interfaceParameter, InterfaceToCall $interceptedInterface, array $endpointAnnotations): ?ValueBuilder
     {
-        $allAnnotations = [...$interceptedInterface->getClassAnnotations(), ...$interceptedInterface->getMethodAnnotations(), ...$endpointAnnotations];
+        $allAnnotations = \array_merge($interceptedInterface->getClassAnnotations(), $interceptedInterface->getMethodAnnotations(), $endpointAnnotations);
         foreach ($allAnnotations as $endpointAnnotation) {
             if (TypeDescriptor::createFromVariable($endpointAnnotation)->equals($interfaceParameter->getTypeDescriptor())) {
                 return new ValueBuilder($interfaceParameter->getName(), $endpointAnnotation);

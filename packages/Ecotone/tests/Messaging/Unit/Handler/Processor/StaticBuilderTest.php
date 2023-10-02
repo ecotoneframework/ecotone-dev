@@ -14,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionException;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Service\CallableService;
+use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**
  * Class StaticBuilderTest
@@ -30,15 +31,15 @@ class StaticBuilderTest extends TestCase
      */
     public function test_creating_static_value()
     {
+        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, "withoutReturnValue");
+        $interfaceParameter = $interfaceToCall->getInterfaceParameters()[0];
         $value = new stdClass();
-        $converter = ValueBuilder::create('x', $value);
-        $converter = $converter->build(InMemoryReferenceSearchService::createEmpty());
+        $converter = new ValueBuilder($interfaceParameter->getName(), $value);
+        $converter = $converter->build(InMemoryReferenceSearchService::createEmpty(), $interfaceToCall, $interfaceParameter);
 
         $this->assertEquals(
             $value,
             $converter->getArgumentFrom(
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', null)),
                 MessageBuilder::withPayload('a')->build(),
             )
         );

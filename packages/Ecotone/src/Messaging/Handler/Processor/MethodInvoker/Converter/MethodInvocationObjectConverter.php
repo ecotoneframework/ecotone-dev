@@ -12,22 +12,12 @@ use function is_string;
 
 class MethodInvocationObjectConverter implements ParameterConverter
 {
-    public function __construct(
-        private string $parameterName,
-    ) {
-    }
-
-    public function getArgumentFrom(InterfaceToCall $interfaceToCall, InterfaceParameter $relatedParameter, Message $message, ?MethodInvocation $methodInvocation = null)
+    public function getArgumentFrom(Message $message, ?MethodInvocation $methodInvocation = null)
     {
         $object = $methodInvocation?->getObjectToInvokeOn();
         if (is_string($object)) {
             return null;
         }
         return $object;
-    }
-
-    public function isHandling(InterfaceParameter $parameter): bool
-    {
-        return $parameter->getName() === $this->parameterName;
     }
 }

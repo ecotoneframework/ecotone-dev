@@ -107,7 +107,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         );
         $aroundMethodInterceptors = [];
         foreach ($interceptorsReferences as $interceptorsReferenceName) {
-            $aroundMethodInterceptors[] = $interceptorsReferenceName->buildAroundInterceptor($referenceSearchService, [...$interceptedInterface->getClassAnnotations(), ...$interceptedInterface->getMethodAnnotations(), ...$endpointAnnotations], $interceptedInterface->getInterfaceType());
+            $aroundMethodInterceptors[] = $interceptorsReferenceName->buildAroundInterceptor($referenceSearchService, $endpointAnnotations, $interceptedInterface);
         }
 
         return $aroundMethodInterceptors;
@@ -126,17 +126,19 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         return $this->precedence;
     }
 
-    public function buildAroundInterceptor(ReferenceSearchService $referenceSearchService, array $endpointAnnotations = [], ?Type $interceptedInterfaceType = null): AroundMethodInterceptor
+    public function buildAroundInterceptor(ReferenceSearchService $referenceSearchService, array $endpointAnnotations, InterfaceToCall $interceptedInterface): AroundMethodInterceptor
     {
         $referenceToCall = $this->directObject ?: $referenceSearchService->get($this->referenceName);
 
         $builtConverters = [];
         $hasMethodInvocation = false;
         $hasPayloadConverter = false;
-        foreach ($this->getInterceptingInterface()->getInterfaceParameters() as $parameter) {
+        $interceptingInterface = $this->getInterceptingInterface();
+        $interceptedInterfaceType = $interceptedInterface->getInterfaceType();
+        foreach ($interceptingInterface->getInterfaceParameters() as $parameter) {
             foreach ($this->parameterConverters as $parameterConverter) {
                 if ($parameterConverter->isHandling($parameter)) {
-                    $builtConverters[] = $parameterConverter->build($referenceSearchService);
+                    $builtConverters[] = $parameterConverter->build($referenceSearchService, $interceptingInterface, $parameter);
                     if ($parameterConverter instanceof PayloadConverter) {
                         $hasPayloadConverter = true;
                     }
@@ -144,46 +146,38 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
                 }
             }
             if ($parameter->canBePassedIn(TypeDescriptor::create(MethodInvocation::class))) {
-                $builtConverters[] = new MethodInvocationConverter($parameter->getName());
+                $builtConverters[] = new MethodInvocationConverter();
                 $hasMethodInvocation = true;
                 continue;
             }
             if ($interceptedInterfaceType && $parameter->canBePassedIn($interceptedInterfaceType)) {
-                $builtConverters[] = new MethodInvocationObjectConverter($parameter->getName());
+                $builtConverters[] = new MethodInvocationObjectConverter();
                 continue;
             }
-            foreach ($endpointAnnotations as $endpointAnnotation) {
-                if (TypeDescriptor::createFromVariable($endpointAnnotation)->equals($parameter->getTypeDescriptor())) {
-                    $builtConverters[] = ValueConverter::createWith($parameter->getName(), $endpointAnnotation);
-                    continue 2;
-                }
-            }
-            foreach ($endpointAnnotations as $endpointAnnotation) {
-                if (TypeDescriptor::createFromVariable($endpointAnnotation)->isCompatibleWith($parameter->getTypeDescriptor())) {
-                    $builtConverters[] = ValueConverter::createWith($parameter->getName(), $endpointAnnotation);
-                    continue 2;
-                }
+            if ($converterBuilder = MethodArgumentsFactory::getAnnotationValueConverter($parameter, $interceptedInterface, $endpointAnnotations)) {
+                $builtConverters[] = $converterBuilder->build($referenceSearchService, $interceptingInterface, $parameter);
+                continue;
             }
             if ($parameter->canBePassedIn(TypeDescriptor::create(Message::class))) {
-                $builtConverters[] = MessageConverter::create($parameter->getName());
+                $builtConverters[] = MessageConverter::create();
                 continue;
             }
 
             if ($parameter->canBePassedIn(TypeDescriptor::create(ReferenceSearchService::class))) {
-                $builtConverters[] = ValueConverter::createWith($parameter->getName(), $referenceSearchService);
+                $builtConverters[] = ValueConverter::createWith($referenceSearchService);
                 continue;
             }
 
             if ($parameter->doesAllowNulls() && $parameter->isAnnotation()) {
-                $builtConverters[] = ValueConverter::createWith($parameter->getName(), null);
+                $builtConverters[] = ValueConverter::createWith(null);
                 continue;
             }
             if (!$hasPayloadConverter) {
-                $builtConverters[] = PayloadBuilder::create($parameter->getName())->build($referenceSearchService);
+                $builtConverters[] = PayloadBuilder::create($parameter->getName())->build($referenceSearchService, $interceptingInterface, $parameter);
                 $hasPayloadConverter = true;
                 continue;
             } elseif ($parameter->getTypeDescriptor()->isNonCollectionArray()) {
-                $builtConverters[] = AllHeadersBuilder::createWith($parameter->getName())->build($referenceSearchService);
+                $builtConverters[] = AllHeadersBuilder::createWith($parameter->getName())->build($referenceSearchService, $interceptingInterface, $parameter);
                 continue;
             }
             throw new InvalidArgumentException("Can't build around interceptor for {$this->interfaceToCall} because can't find converter for parameter {$parameter}");

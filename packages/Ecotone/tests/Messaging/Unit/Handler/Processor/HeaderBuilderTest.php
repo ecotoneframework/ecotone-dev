@@ -36,13 +36,15 @@ class HeaderBuilderTest extends TestCase
     public function test_creating_header_converter()
     {
         $converter = HeaderBuilder::create('x', 'token');
-        $converter = $converter->build(InMemoryReferenceSearchService::createEmpty());
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createEmpty(),
+            InterfaceToCall::create(CallableService::class, 'wasCalled'),
+            InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
+        );
 
         $this->assertEquals(
             123,
             $converter->getArgumentFrom(
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
                 MessageBuilder::withPayload('a')->setHeader('token', 123)->build(),
             )
         );
@@ -51,13 +53,14 @@ class HeaderBuilderTest extends TestCase
     public function test_creating_optional_header_converter()
     {
         $converter = HeaderBuilder::createOptional('x', 'token');
-        $converter = $converter->build(InMemoryReferenceSearchService::createEmpty());
-
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createEmpty(),
+            InterfaceToCall::create(CallableService::class, 'wasCalled'),
+            InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
+        );
         $this->assertEquals(
             null,
             $converter->getArgumentFrom(
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
                 MessageBuilder::withPayload('a')->build(),
             )
         );
@@ -76,11 +79,12 @@ class HeaderBuilderTest extends TestCase
                 UuidInterface::class,
                 Uuid::fromString($personId)
             ),
-        ]));
-
-        $headerResult = $converter->getArgumentFrom(
+        ]),
             InterfaceToCall::create(ServiceWithUuidArgument::class, 'execute'),
             InterfaceParameter::createNotNullable('x', TypeDescriptor::createWithDocBlock(UuidInterface::class, '')),
+        );
+
+        $headerResult = $converter->getArgumentFrom(
             MessageBuilder::withPayload('a')
                 ->setHeader('personId', $personId)
                 ->build(),
@@ -112,11 +116,12 @@ class HeaderBuilderTest extends TestCase
                     stdClass::class,
                     new stdClass()
                 ),
-        ]));
-
-        $headerResult = $converter->getArgumentFrom(
+        ]),
             InterfaceToCall::create(ServiceWithUuidArgument::class, 'execute'),
             InterfaceParameter::createNotNullable('x', TypeDescriptor::create(stdClass::class)),
+        );
+
+        $headerResult = $converter->getArgumentFrom(
             MessageBuilder::withPayload('a')
                 ->setHeader('personIds', $data)
                 ->build(),
@@ -138,11 +143,12 @@ class HeaderBuilderTest extends TestCase
                 Uuid::class,
                 Uuid::fromString($personId)
             ),
-        ]));
-
-        $headerResult = $converter->getArgumentFrom(
+        ]),
             InterfaceToCall::create(ServiceWithUuidArgument::class, 'execute'),
             InterfaceParameter::createNotNullable('x', TypeDescriptor::createWithDocBlock(Uuid::class, '')),
+        );
+
+        $headerResult = $converter->getArgumentFrom(
             MessageBuilder::withPayload('a')
                 ->setHeader('personId', $personId)
                 ->build(),
@@ -155,13 +161,14 @@ class HeaderBuilderTest extends TestCase
     public function test_passing_default_value_if_exists_and_no_header_found()
     {
         $converter = HeaderBuilder::create('name', 'token');
-        $converter = $converter->build(InMemoryReferenceSearchService::createEmpty());
+        $converter = $converter->build(InMemoryReferenceSearchService::createEmpty(),
+                InterfaceToCall::create(ServiceWithDefaultArgument::class, 'execute'),
+                InterfaceParameter::create('name', TypeDescriptor::createWithDocBlock('string', ''), false, true, '', false, []),
+        );
 
         $this->assertEquals(
             '',
             $converter->getArgumentFrom(
-                InterfaceToCall::create(ServiceWithDefaultArgument::class, 'execute'),
-                InterfaceParameter::create('name', TypeDescriptor::createWithDocBlock('string', ''), false, true, '', false, []),
                 MessageBuilder::withPayload('a')->build(),
             )
         );

@@ -3,18 +3,17 @@
 namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
-use ProxyManager\Factory\RemoteObjectFactory;
 use Psr\Container\ContainerInterface;
 
 final class ProxyGenerator
 {
-    public static function createFor(string $referenceName, ContainerInterface $container, string $interface, string $cacheDirectoryPath)
+    public static function createFor(string $referenceName, ContainerInterface $container, string $interface, string $cacheDirectoryPath): object
     {
-        $factory = new RemoteObjectFactory(
-            new EcotoneRemoteAdapter($container, $referenceName),
-            ProxyFactory::createWithCache($cacheDirectoryPath)->getConfiguration()
-        );
+        $proxyFactory = ProxyFactory::createWithCache($cacheDirectoryPath);
 
-        return $factory->createProxy($interface);
+        return $proxyFactory->createProxyClassWithAdapter(
+            $interface,
+            new EcotoneRemoteAdapter($container, $referenceName)
+        );
     }
 }

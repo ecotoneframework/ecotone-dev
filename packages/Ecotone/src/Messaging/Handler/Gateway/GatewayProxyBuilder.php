@@ -318,7 +318,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
     }
 
     /**
-     * @inheritdoc
+     * This will be with proxy class, so the resulting object will be implementing interface
      */
     public function build(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): object
     {
@@ -331,6 +331,9 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         return $proxyFactory->createProxyClassWithAdapter($this->interfaceName, $adapter);
     }
 
+    /**
+     * This is used for Framework cases, where framework build their own proxy classes
+     */
     public function buildWithoutProxyObject(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): NonProxyGateway
     {
         Assert::isInterface($this->interfaceName, "Gateway should point to interface instead of got {$this->interfaceName} which is not correct interface");

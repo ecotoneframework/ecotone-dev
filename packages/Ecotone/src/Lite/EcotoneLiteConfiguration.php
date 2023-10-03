@@ -7,6 +7,7 @@ namespace Ecotone\Lite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Psr\Container\ContainerInterface;
@@ -39,7 +40,10 @@ class EcotoneLiteConfiguration
 
         if ($container instanceof GatewayAwareContainer) {
             foreach ($configuredMessagingSystem->getGatewayList() as $gatewayReference) {
-                $container->addGateway($gatewayReference->getReferenceName(), $gatewayReference->getGateway());
+                $container->addGateway(
+                    $gatewayReference->getReferenceName(),
+                    $gatewayReference->getGateway()
+                );
             }
         }
 

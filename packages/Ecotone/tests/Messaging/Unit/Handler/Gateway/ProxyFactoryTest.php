@@ -25,22 +25,4 @@ class ProxyFactoryTest extends TestCase
 
         $this->assertEquals($data, $proxy->executeNoParams());
     }
-
-    public function test_creating_with_cache_proxy_with_warmup()
-    {
-        $cacheDirectoryPath = '/tmp/' . Uuid::uuid4()->toString();
-        if (! is_dir($cacheDirectoryPath)) {
-            mkdir($cacheDirectoryPath);
-        }
-        $proxyFactory       = ProxyFactory::createWithCache($cacheDirectoryPath);
-        $data               = 'someReply';
-        $proxyFactory->warmUpCacheFor([StringReturningGateway::class]);
-
-        $proxyFactory = unserialize(serialize($proxyFactory));
-
-        /** @var StringReturningGateway $proxy */
-        $proxy = $proxyFactory->createProxyClassWithAdapter(StringReturningGateway::class, new GatewayProxyAdapter(['executeNoParams' => new GatewayExecuteClass($data)]));
-
-        $this->assertEquals($data, $proxy->executeNoParams());
-    }
 }

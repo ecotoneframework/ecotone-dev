@@ -20,5 +20,7 @@ class CacheWarmer implements CacheWarmerInterface
     public function warmUp(string $cacheDir)
     {
         $this->containerInterface->get(ConfiguredMessagingSystem::class)->list();
+
+        return [];
     }
 }

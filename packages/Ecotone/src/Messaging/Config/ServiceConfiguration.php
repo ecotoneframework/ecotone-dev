@@ -44,6 +44,7 @@ class ServiceConfiguration
 
     private function __construct()
     {
+        $this->cacheDirectoryPath = sys_get_temp_dir();
     }
 
     public static function createWithDefaults(): self
@@ -122,10 +123,7 @@ class ServiceConfiguration
         return $clone;
     }
 
-    /**
-     * @param string|null $cacheDirectoryPath
-     */
-    public function withCacheDirectoryPath(?string $cacheDirectoryPath): self
+    public function withCacheDirectoryPath(string $cacheDirectoryPath): self
     {
         $clone                     = clone $this;
         $clone->cacheDirectoryPath = rtrim($cacheDirectoryPath, '/');
@@ -325,10 +323,7 @@ class ServiceConfiguration
         return $this->failFast;
     }
 
-    /**
-     * @return string|null
-     */
-    public function getCacheDirectoryPath(): ?string
+    public function getCacheDirectoryPath(): string
     {
         return $this->cacheDirectoryPath;
     }

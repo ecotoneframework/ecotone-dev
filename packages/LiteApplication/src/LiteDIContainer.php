@@ -20,7 +20,7 @@ class LiteDIContainer implements ContainerInterface
         $builder = new ContainerBuilder();
 
         if ($cacheConfiguration) {
-            $cacheDirectoryPath = $serviceConfiguration->getCacheDirectoryPath() ?? sys_get_temp_dir();
+            $cacheDirectoryPath = $serviceConfiguration->getCacheDirectoryPath();
             $builder = $builder
                 ->enableCompilation($cacheDirectoryPath . '/ecotone')
                 ->writeProxiesToFile(true, __DIR__ . '/ecotone/proxies');

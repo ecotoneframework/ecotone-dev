@@ -181,7 +181,7 @@ final class EcotoneLite
                     $gatewayProxyBuilder->getReferenceName(),
                     $container,
                     $gatewayProxyBuilder->getInterfaceName(),
-                    $serviceConfiguration->getCacheDirectoryPath() ?: sys_get_temp_dir()
+                    $serviceConfiguration->getCacheDirectoryPath()
                 ));
             }
         }

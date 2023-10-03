@@ -136,6 +136,14 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $container->setDefinition(ReferenceSearchService::class, $definition);
 
         foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
+            // Proxy warm up
+            ProxyFactory::createFor(
+                $gatewayProxyBuilder->getReferenceName(),
+                $container,
+                $gatewayProxyBuilder->getInterfaceName(),
+                $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX
+            );
+
             $definition = new Definition();
             $definition->setFactory([ProxyFactory::class, 'createFor']);
             $definition->setClass($gatewayProxyBuilder->getInterfaceName());
@@ -143,7 +151,6 @@ class EcotoneCompilerPass implements CompilerPassInterface
             $definition->addArgument(new Reference('service_container'));
             $definition->addArgument($gatewayProxyBuilder->getInterfaceName());
             $definition->addArgument('%kernel.cache_dir%'.self::CACHE_DIRECTORY_SUFFIX);
-            $definition->addArgument($container->getParameter(self::FAIL_FAST_CONFIG));
             $definition->setPublic(true);
 
             $container->setDefinition($gatewayProxyBuilder->getReferenceName(), $definition);

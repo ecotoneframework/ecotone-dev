@@ -175,6 +175,11 @@ final class EcotoneLite
         );
 
         foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
+            if ($useCachedVersion && !$allowGatewaysToBeRegisteredInContainer) {
+                break;
+            }
+
+            // Proxy warm up
             $gateway = ProxyFactory::createFor(
                 $gatewayProxyBuilder->getReferenceName(),
                 $container,

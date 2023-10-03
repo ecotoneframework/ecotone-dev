@@ -47,7 +47,7 @@ class EcotoneProvider extends ServiceProvider
         $environment            = App::environment();
         $rootCatalog            = App::basePath();
         $isCachingConfiguration = in_array($environment, ['prod', 'production']) ? true : Config::get('ecotone.cacheConfiguration');
-        $cacheDirectory         = App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'ecotone';
+        $cacheDirectory         = $this->getCacheDirectoryPath();
 
         if (! is_dir($cacheDirectory)) {
             mkdir($cacheDirectory, 0775, true);
@@ -124,14 +124,23 @@ class EcotoneProvider extends ServiceProvider
         );
 
         foreach ($configuration->getRegisteredGateways() as $registeredGateway) {
+            // Proxy warm up
+            ProxyFactory::createFor(
+                $registeredGateway->getReferenceName(),
+                $this->app,
+                $registeredGateway->getInterfaceName(),
+                $cacheDirectory
+            );
+
             $this->app->singleton(
                 $registeredGateway->getReferenceName(),
-                function ($app) use ($registeredGateway, $cacheDirectory) {
+                function ($app) use ($registeredGateway) {
                     return ProxyFactory::createFor(
                         $registeredGateway->getReferenceName(),
-                        $app,
+                        $this->app,
                         $registeredGateway->getInterfaceName(),
-                        $cacheDirectory
+                        // cache directory may change (CI build then release)
+                        $this->getCacheDirectoryPath()
                     );
                 }
             );
@@ -211,5 +220,10 @@ class EcotoneProvider extends ServiceProvider
                 }
             );
         }
+    }
+
+    private function getCacheDirectoryPath(): string
+    {
+        return App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'ecotone';
     }
 }

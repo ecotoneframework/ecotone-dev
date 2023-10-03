@@ -34,7 +34,8 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 
     private function __construct(string $requestChannelName, string $referenceName, private InterfaceToCall $interfaceToCall)
     {
-        $this->inboundGateway = GatewayProxyBuilder::create($referenceName, InboundGatewayEntrypoint::class, 'executeEntrypoint', $requestChannelName);
+        $this->inboundGateway = GatewayProxyBuilder::create($referenceName, InboundGatewayEntrypoint::class, 'executeEntrypoint', $requestChannelName)
+            ->withAnnotatedInterface($this->interfaceToCall);
         $this->referenceName = $referenceName;
         $this->requestChannelName = $requestChannelName;
     }
@@ -174,19 +175,6 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         Assert::notNullAndEmpty($this->endpointId, "Endpoint Id for inbound channel adapter can't be empty");
 
         $referenceService = $this->directObject ?: $referenceSearchService->get($this->referenceName);
-
-        $registeredAnnotations = $this->getEndpointAnnotations();
-        foreach ($this->interfaceToCall->getMethodAnnotations() as $annotation) {
-            if ($this->canBeAddedToRegisteredAnnotations($registeredAnnotations, $annotation)) {
-                $registeredAnnotations[] = $annotation;
-            }
-        }
-        foreach ($this->interfaceToCall->getClassAnnotations() as $annotation) {
-            if ($this->canBeAddedToRegisteredAnnotations($registeredAnnotations, $annotation)) {
-                $registeredAnnotations[] = $annotation;
-            }
-        }
-        $this->inboundGateway->withEndpointAnnotations($registeredAnnotations);
 
         if (! $this->interfaceToCall->hasNoParameters()) {
             throw InvalidArgumentException::create("{$this->interfaceToCall} for InboundChannelAdapter should not have any parameters");

@@ -52,7 +52,6 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
                 ->registerMessageHandler(
                     ServiceActivatorBuilder::create('consoleCommand', InterfaceToCall::create(ReferenceBasedConsoleCommand::class, 'execute'))
                         ->withEndpointId('ecotone.endpoint.doSomething')
-                        ->withEndpointAnnotations([new ConsoleCommand('doSomething')])
                         ->withInputChannelName('ecotone.channel.doSomething')
                 )
         );
@@ -77,7 +76,6 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
                 ->registerMessageHandler(
                     ServiceActivatorBuilder::create(OneTimeWithResultExample::class, InterfaceToCall::create(OneTimeWithResultExample::class, 'execute'))
                         ->withEndpointId('ecotone.endpoint.doSomething')
-                        ->withEndpointAnnotations([new ConsoleCommand('doSomething')])
                         ->withInputChannelName('ecotone.channel.doSomething')
                 )
         );
@@ -106,7 +104,6 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
                             HeaderBuilder::create('surname', ConsoleCommandModule::ECOTONE_COMMAND_PARAMETER_PREFIX . 'surname'),
                         ])
                         ->withEndpointId('ecotone.endpoint.doSomething')
-                        ->withEndpointAnnotations([new ConsoleCommand('doSomething')])
                         ->withInputChannelName('ecotone.channel.doSomething')
                 )
         );
@@ -135,7 +132,6 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
                             HeaderBuilder::create('surname', ConsoleCommandModule::ECOTONE_COMMAND_PARAMETER_PREFIX . 'surname'),
                         ])
                         ->withEndpointId('ecotone.endpoint.doSomething')
-                        ->withEndpointAnnotations([new ConsoleCommand('doSomething')])
                         ->withInputChannelName('ecotone.channel.doSomething')
                 )
         );
@@ -165,7 +161,6 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
                             ReferenceBuilder::create('object', stdClass::class),
                         ])
                         ->withEndpointId('ecotone.endpoint.doSomething')
-                        ->withEndpointAnnotations([new ConsoleCommand('doSomething')])
                         ->withInputChannelName('ecotone.channel.doSomething')
                 )
         );

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler;
 
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 
 /**
@@ -26,13 +27,13 @@ interface InterceptedEndpoint
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall;
 
     /**
-     * @param object[] $endpointAnnotations
+     * @param AttributeDefinition[] $endpointAnnotations
      * @return static
      */
     public function withEndpointAnnotations(iterable $endpointAnnotations);
 
     /**
-     * @return object[]
+     * @return AttributeDefinition[]
      */
     public function getEndpointAnnotations(): array;
 

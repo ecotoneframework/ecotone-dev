@@ -5,6 +5,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendGateway;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\NamedMessageChannel;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -756,9 +757,7 @@ class GatewayProxyBuilderTest extends MessagingTest
         $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
 
         $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName)
-            ->withEndpointAnnotations([
-                Transactional::createWith(['transactionFactory']),
-            ])
+            ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory']])])
             ->addAroundInterceptor(
                 AroundInterceptorReference::create('transactionInterceptor', InterfaceToCall::create(TransactionInterceptor::class, 'transactional'), 1, Transactional::class, [])
             );
@@ -916,7 +915,7 @@ class GatewayProxyBuilderTest extends MessagingTest
         $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
 
         $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', TransactionalInterceptorOnGatewayClassAndMethodExample::class, 'invoke', $requestChannelName)
-            ->withEndpointAnnotations([Transactional::createWith(['transactionFactory0'])])
+            ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory0']])])
             ->addAroundInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
             );
@@ -1008,9 +1007,7 @@ class GatewayProxyBuilderTest extends MessagingTest
 
         $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName)
             ->withErrorChannel('some')
-            ->withEndpointAnnotations([
-                Transactional::createWith(['transactionFactory']),
-            ])
+            ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory']])])
             ->addAroundInterceptor(
                 AroundInterceptorReference::create('transactionInterceptor', InterfaceToCall::create(TransactionInterceptor::class, 'transactional'), 1, Transactional::class, [])
             );
@@ -1050,9 +1047,7 @@ class GatewayProxyBuilderTest extends MessagingTest
         $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceReceiveOnlyWithNull::class, 'sendMail', $requestChannelName)
             ->withReplyChannel('replyChannel')
             ->withErrorChannel('some')
-            ->withEndpointAnnotations([
-                Transactional::createWith(['transactionFactory']),
-            ])
+            ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory']])])
             ->addAroundInterceptor(
                 AroundInterceptorReference::create('transactionInterceptor', InterfaceToCall::create(TransactionInterceptor::class, 'transactional'), 1, Transactional::class, [])
             );

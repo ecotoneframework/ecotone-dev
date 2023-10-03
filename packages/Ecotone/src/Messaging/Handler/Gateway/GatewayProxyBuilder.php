@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Handler\Gateway;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Config\NonProxyCombinedGateway;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -77,13 +78,14 @@ class GatewayProxyBuilder implements InterceptedEndpoint
      */
     private array $afterInterceptors = [];
     /**
-     * @var object[]
+     * @var AttributeDefinition[]
      */
     private iterable $endpointAnnotations = [];
     /**
      * @var string[]
      */
     private array $requiredInterceptorNames = [];
+    private ?InterfaceToCall $annotatedInterfaceToCall = null;
 
     /**
      * GatewayProxyBuilder constructor.
@@ -151,6 +153,13 @@ class GatewayProxyBuilder implements InterceptedEndpoint
     public function withReplyMillisecondTimeout(int $replyMillisecondsTimeout): self
     {
         $this->replyMilliSecondsTimeout = $replyMillisecondsTimeout;
+
+        return $this;
+    }
+
+    public function withAnnotatedInterface(InterfaceToCall $interfaceToCall): self
+    {
+        $this->annotatedInterfaceToCall = $interfaceToCall;
 
         return $this;
     }
@@ -281,11 +290,12 @@ class GatewayProxyBuilder implements InterceptedEndpoint
     }
 
     /**
-     * @param object[] $endpointAnnotations
+     * @param AttributeDefinition[] $endpointAnnotations
      * @return static
      */
     public function withEndpointAnnotations(iterable $endpointAnnotations): self
     {
+        Assert::allInstanceOfType($endpointAnnotations, AttributeDefinition::class);
         $this->endpointAnnotations = $endpointAnnotations;
 
         return $this;
@@ -312,7 +322,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
     }
 
     /**
-     * @return object[]
+     * @return AttributeDefinition[]
      */
     public function getEndpointAnnotations(): array
     {
@@ -441,7 +451,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
             ServiceActivatorBuilder::createWithDirectReference($gatewayInternalHandler, 'handle')
                 ->withWrappingResultInMessage(false)
                 ->withEndpointAnnotations($this->endpointAnnotations)
-                ->withAnnotatedInterface($interfaceToCall)
+                ->withAnnotatedInterface($this->annotatedInterfaceToCall ?? $interfaceToCall)
         );
         foreach ($this->getSortedInterceptors($this->afterInterceptors) as $afterInterceptor) {
             $chainHandler = $chainHandler->chain($afterInterceptor);

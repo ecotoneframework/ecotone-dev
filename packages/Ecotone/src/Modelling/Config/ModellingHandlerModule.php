@@ -539,7 +539,6 @@ class ModellingHandlerModule implements AnnotationModule
             $saveChannel  = $connectionChannel . 'save';
             $chainHandler = ChainMessageHandlerBuilder::create()
                 ->withEndpointId($endpointId)
-                ->withEndpointAnnotations([$annotation])
                 ->withInputChannelName($connectionChannel)
                 ->withOutputMessageChannel($saveChannel);
 
@@ -604,7 +603,6 @@ class ModellingHandlerModule implements AnnotationModule
             ChainMessageHandlerBuilder::create()
                 ->withInputChannelName($endpointChannelName)
                 ->withOutputMessageChannel($annotationForMethod->getOutputChannelName())
-                ->withEndpointAnnotations([$annotationForMethod])
                 ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], $handledPayloadType, $interfaceToCallRegistry))
                 ->chain(
                     LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $handledPayloadType, LoadAggregateMode::createThrowOnNotFound(), $interfaceToCallRegistry)
@@ -652,7 +650,6 @@ class ModellingHandlerModule implements AnnotationModule
                 ->withInputChannelName($endpointInputChannel)
                 ->withOutputMessageChannel($methodAnnotation->getOutputChannelName())
                 ->withEndpointId($methodAnnotation->getEndpointId())
-                ->withEndpointAnnotations([$methodAnnotation])
                 ->withMethodParameterConverters($parameterConverters)
                 ->withRequiredInterceptorNames($methodAnnotation->getRequiredInterceptorNames())
         );

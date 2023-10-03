@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -76,7 +77,6 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
 
         $messageHandlerBuilder       = ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($annotatedMethod), $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $methodName))
             ->withEndpointId('ecotone.endpoint.' . $commandName)
-            ->withEndpointAnnotations([$annotatedMethod->getAnnotationForMethod()])
             ->withInputChannelName($inputChannel)
             ->withMethodParameterConverters($parameterConverters);
         $oneTimeCommandConfiguration = ConsoleCommandConfiguration::create($inputChannel, $commandName, $parameters);
@@ -95,7 +95,7 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
         $inputChannel                = 'ecotone.channel.' . $commandName;
         $messageHandlerBuilder       = ServiceActivatorBuilder::createWithDirectReference($directObject, $methodName)
             ->withEndpointId('ecotone.endpoint.' . $commandName)
-            ->withEndpointAnnotations($discoverableByConsoleCommandAttribute ? [new ConsoleCommand($commandName)] : [])
+            ->withEndpointAnnotations($discoverableByConsoleCommandAttribute ? [new AttributeDefinition(ConsoleCommand::class, [$commandName])] : [])
             ->withInputChannelName($inputChannel)
             ->withMethodParameterConverters($parameterConverters);
         $oneTimeCommandConfiguration = ConsoleCommandConfiguration::create($inputChannel, $commandName, $parameters);

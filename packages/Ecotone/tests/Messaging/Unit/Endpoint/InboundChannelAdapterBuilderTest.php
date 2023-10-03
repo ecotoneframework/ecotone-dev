@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Endpoint;
 
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
@@ -274,7 +275,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         )
             ->withEndpointId('test')
             ->addAroundInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), new TransactionInterceptor(), 'transactional', 1, ''))
-            ->withEndpointAnnotations([Transactional::createWith(['transactionFactory0'])])
+            ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory0']])])
             ->build(
                 InMemoryChannelResolver::createFromAssociativeArray([
                     $requestChannelName => $requestChannel,

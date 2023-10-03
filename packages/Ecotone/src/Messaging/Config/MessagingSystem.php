@@ -7,6 +7,7 @@ use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -138,7 +139,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
                         $consumerBuilderForGivenHandler = $messageHandlerConsumerBuilder;
                         if ($messageHandlerConsumerBuilder instanceof InterceptedEndpoint) {
                             $consumerBuilderForGivenHandler = clone $messageHandlerConsumerBuilder;
-                            $consumerBuilderForGivenHandler->withEndpointAnnotations([new AsynchronousRunningEndpoint($messageHandlerBuilder->getEndpointId())]);
+                            $consumerBuilderForGivenHandler->withEndpointAnnotations([new AttributeDefinition(AsynchronousRunningEndpoint::class, [$messageHandlerBuilder->getEndpointId()])]);
                         }
 
                         $pollingConsumerBuilders[$messageHandlerBuilder->getEndpointId()] = [

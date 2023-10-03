@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -89,6 +90,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
 
     /**
      * @param self[] $interceptorsReferences
+     * @param AttributeDefinition[] $endpointAnnotations
      *
      * @return AroundMethodInterceptor[]
      */
@@ -125,6 +127,9 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         return $this->precedence;
     }
 
+    /**
+     * @param AttributeDefinition[] $endpointAnnotations
+     */
     public function buildAroundInterceptor(ReferenceSearchService $referenceSearchService, array $endpointAnnotations, InterfaceToCall $interceptedInterface): AroundMethodInterceptor
     {
         $referenceToCall = $this->directObject ?: $referenceSearchService->get($this->referenceName);

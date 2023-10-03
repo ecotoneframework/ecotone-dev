@@ -37,6 +37,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurat
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -477,7 +478,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $configuration->registerGatewayBuilder(
             GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'linkTo', $linkingRouterHandler->getInputMessageChannelName())
-                ->withEndpointAnnotations([new PropagateHeaders()])
+                ->withEndpointAnnotations([new AttributeDefinition(PropagateHeaders::class)])
                 ->withParameterConverters([GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents')], )
         );
 
@@ -495,7 +496,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $configuration->registerGatewayBuilder(
             GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'emit', $emittingRouterHandler->getInputMessageChannelName())
-                ->withEndpointAnnotations([new PropagateHeaders()])
+                ->withEndpointAnnotations([new AttributeDefinition(PropagateHeaders::class)])
                 ->withParameterConverters([GatewayPayloadBuilder::create('streamEvents')])
         );
     }

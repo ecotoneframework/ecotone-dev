@@ -14,6 +14,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -277,7 +278,7 @@ final class MessagingSystemConfiguration implements Configuration
     private function prepareAndOptimizeConfiguration(InterfaceToCallRegistry $interfaceToCallRegistry, ServiceConfiguration $applicationConfiguration): void
     {
         foreach ($this->channelAdapters as $channelAdapter) {
-            $channelAdapter->withEndpointAnnotations(array_merge($channelAdapter->getEndpointAnnotations(), [new AsynchronousRunningEndpoint($channelAdapter->getEndpointId())]));
+            $channelAdapter->withEndpointAnnotations(array_merge($channelAdapter->getEndpointAnnotations(), [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$channelAdapter->getEndpointId()])]));
         }
 
         /** @var BeforeSendChannelInterceptorBuilder[] $beforeSendInterceptors */
@@ -337,7 +338,7 @@ final class MessagingSystemConfiguration implements Configuration
     /**
      * @param InterceptorWithPointCut[] $interceptors
      * @param InterfaceToCall $interceptedInterface
-     * @param object[] $endpointAnnotations
+     * @param AttributeDefinition[] $endpointAnnotations
      * @param string[] $requiredInterceptorNames
      *
      * @return InterceptorWithPointCut[]|AroundInterceptorReference[]|MessageHandlerBuilderWithOutputChannel[]
@@ -345,6 +346,8 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private function getRelatedInterceptors(array $interceptors, InterfaceToCall $interceptedInterface, iterable $endpointAnnotations, iterable $requiredInterceptorNames, InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
+        Assert::allInstanceOfType($endpointAnnotations, AttributeDefinition::class);
+
         $relatedInterceptors = [];
         foreach ($requiredInterceptorNames as $requiredInterceptorName) {
             if (! $this->doesInterceptorWithNameExists($requiredInterceptorName)) {
@@ -352,6 +355,10 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
+        $endpointAnnotationsInstances = \array_map(
+            fn (AttributeDefinition $attributeDefinition) => $attributeDefinition->instance(),
+            $endpointAnnotations
+        );
         foreach ($interceptors as $interceptor) {
             foreach ($requiredInterceptorNames as $requiredInterceptorName) {
                 if ($interceptor->hasName($requiredInterceptorName)) {
@@ -360,7 +367,7 @@ final class MessagingSystemConfiguration implements Configuration
                 }
             }
 
-            if ($interceptor->doesItCutWith($interceptedInterface, $endpointAnnotations, $interfaceToCallRegistry)) {
+            if ($interceptor->doesItCutWith($interceptedInterface, $endpointAnnotationsInstances, $interfaceToCallRegistry)) {
                 $relatedInterceptors[] = $interceptor->addInterceptedInterfaceToCall($interceptedInterface, $endpointAnnotations);
             }
         }
@@ -547,6 +554,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
         if ($builder instanceof InterceptedEndpoint) {
             foreach ($builder->getEndpointAnnotations() as $endpointAnnotation) {
+                $endpointAnnotation = $endpointAnnotation->instance();
                 if ($endpointAnnotation instanceof WithRequiredReferenceNameList) {
                     $requiredReferences = array_merge($requiredReferences, $endpointAnnotation->getRequiredReferenceNameList());
                 }
@@ -661,7 +669,7 @@ final class MessagingSystemConfiguration implements Configuration
                 continue;
             }
 
-            $endpointAnnotations = [new AsynchronousRunningEndpoint('')];
+            $endpointAnnotations = [new AttributeDefinition(AsynchronousRunningEndpoint::class, [''])];
             if ($this->aroundMethodInterceptors) {
                 $aroundInterceptors = $this->getRelatedInterceptors(
                     $this->aroundMethodInterceptors,

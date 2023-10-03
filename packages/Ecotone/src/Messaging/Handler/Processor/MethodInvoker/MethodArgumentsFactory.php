@@ -4,6 +4,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use function array_merge;
 
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -70,9 +71,16 @@ class MethodArgumentsFactory
         return $orderedMethodArguments;
     }
 
+    /**
+     * @param AttributeDefinition[] $endpointAnnotations
+     */
     public static function getAnnotationValueConverter(InterfaceParameter $interfaceParameter, InterfaceToCall $interceptedInterface, array $endpointAnnotations): ?ValueBuilder
     {
-        $allAnnotations = array_merge($endpointAnnotations, $interceptedInterface->getMethodAnnotations(), $interceptedInterface->getClassAnnotations());
+        $allAnnotations = array_merge(
+            array_map(fn (AttributeDefinition $attributeDefinition) => $attributeDefinition->instance(), $endpointAnnotations),
+            $interceptedInterface->getMethodAnnotations(),
+            $interceptedInterface->getClassAnnotations()
+        );
         foreach ($allAnnotations as $endpointAnnotation) {
             if (TypeDescriptor::createFromVariable($endpointAnnotation)->equals($interfaceParameter->getTypeDescriptor())) {
                 return new ValueBuilder($interfaceParameter->getName(), $endpointAnnotation);

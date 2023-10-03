@@ -121,6 +121,13 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $definition->addTag('kernel.cache_clearer');
         $container->setDefinition(CacheCleaner::class, $definition);
 
+        $definition = new $definition();
+        $definition->setClass(CacheWarmer::class);
+        $definition->addArgument(new Reference('service_container'));
+        $definition->setPublic(true);
+        $definition->addTag('kernel.cache_warmer');
+        $container->setDefinition(CacheWarmer::class, $definition);
+
         $definition = new Definition();
         $definition->setClass(PsrContainerReferenceSearchService::class);
         $definition->setPublic(true);

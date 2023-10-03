@@ -42,7 +42,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     private bool $shouldPassThroughMessage = false;
     private bool $shouldWrapResultInMessage = true;
 
-    private bool $isCompiled = false;
+    private ?InterfaceToCall $annotatedInterfaceToCall = null;
 
     private function __construct(string $objectToInvokeOnReferenceName, private string|InterfaceToCall $methodNameOrInterfaceToCall)
     {
@@ -107,6 +107,13 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     public function withPassThroughMessageOnVoidInterface(bool $shouldPassThroughMessage): self
     {
         $this->shouldPassThroughMessage = $shouldPassThroughMessage;
+
+        return $this;
+    }
+
+    public function withAnnotatedInterface(InterfaceToCall $interfaceToCall): self
+    {
+        $this->annotatedInterfaceToCall = $interfaceToCall;
 
         return $this;
     }
@@ -185,7 +192,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             $channelResolver,
             $this->isReplyRequired,
             $this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid(),
-            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
+            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $this->annotatedInterfaceToCall ?? $interfaceToCall),
         );
     }
 

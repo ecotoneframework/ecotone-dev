@@ -421,30 +421,11 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         );
     }
 
-    private function getRegisteredAnnotations(InterfaceToCall $interfaceToCall): array
-    {
-        $registeredAnnotations = $this->endpointAnnotations;
-        foreach ($interfaceToCall->getMethodAnnotations() as $annotation) {
-            if ($this->canBeAddedToRegisteredAnnotations($registeredAnnotations, $annotation)) {
-                $registeredAnnotations[] = $annotation;
-            }
-        }
-        foreach ($interfaceToCall->getClassAnnotations() as $annotation) {
-            if ($this->canBeAddedToRegisteredAnnotations($registeredAnnotations, $annotation)) {
-                $registeredAnnotations[] = $annotation;
-            }
-        }
-
-        return $registeredAnnotations;
-    }
-
     private function buildGatewayInternalHandler(
         InterfaceToCall $interfaceToCall,
         ReferenceSearchService $referenceSearchService,
         ChannelResolver $channelResolver
     ): MessageHandler {
-        $registeredAnnotations = $this->getRegisteredAnnotations($interfaceToCall);
-
         $gatewayInternalHandler = new GatewayInternalHandler(
             $interfaceToCall,
             $channelResolver->resolve($this->requestChannelName),
@@ -459,7 +440,8 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         $chainHandler = $chainHandler->chainInterceptedHandler(
             ServiceActivatorBuilder::createWithDirectReference($gatewayInternalHandler, 'handle')
                 ->withWrappingResultInMessage(false)
-                ->withEndpointAnnotations($registeredAnnotations)
+                ->withEndpointAnnotations($this->endpointAnnotations)
+                ->withAnnotatedInterface($interfaceToCall)
         );
         foreach ($this->getSortedInterceptors($this->afterInterceptors) as $afterInterceptor) {
             $chainHandler = $chainHandler->chain($afterInterceptor);

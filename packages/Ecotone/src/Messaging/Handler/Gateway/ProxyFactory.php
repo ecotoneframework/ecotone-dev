@@ -84,9 +84,11 @@ class ProxyFactory implements Serializable
         return $factory->createProxy($interfaceName);
     }
 
-    public function createFor(string $referenceName, ContainerInterface $container, string $interface, string $cacheDirectoryPath): object
+    public static function createFor(string $referenceName, ContainerInterface $container, string $interface, string $cacheDirectoryPath): object
     {
-        return $this->createProxyClassWithAdapter(
+        $proxyFactory = self::createWithCache($cacheDirectoryPath);
+
+        return $proxyFactory->createProxyClassWithAdapter(
             $interface,
             new EcotoneRemoteAdapter($container, $referenceName)
         );

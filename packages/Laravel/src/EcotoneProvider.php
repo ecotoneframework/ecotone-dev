@@ -2,6 +2,7 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
@@ -126,7 +127,7 @@ class EcotoneProvider extends ServiceProvider
             $this->app->singleton(
                 $registeredGateway->getReferenceName(),
                 function ($app) use ($registeredGateway, $cacheDirectory) {
-                    return ProxyGenerator::createFor(
+                    return ProxyFactory::createFor(
                         $registeredGateway->getReferenceName(),
                         $app,
                         $registeredGateway->getInterfaceName(),

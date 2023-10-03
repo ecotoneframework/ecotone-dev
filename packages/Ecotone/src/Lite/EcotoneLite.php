@@ -19,6 +19,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\ClassDefinition;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;
@@ -173,16 +174,17 @@ final class EcotoneLite
             $enableTesting
         );
 
-        if ($allowGatewaysToBeRegisteredInContainer) {
-            Assert::isTrue(method_exists($container, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
+        foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
+            $gateway = ProxyFactory::createFor(
+                $gatewayProxyBuilder->getReferenceName(),
+                $container,
+                $gatewayProxyBuilder->getInterfaceName(),
+                $serviceConfiguration->getCacheDirectoryPath()
+            );
 
-            foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
-                $container->set($gatewayProxyBuilder->getReferenceName(), ProxyGenerator::createFor(
-                    $gatewayProxyBuilder->getReferenceName(),
-                    $container,
-                    $gatewayProxyBuilder->getInterfaceName(),
-                    $serviceConfiguration->getCacheDirectoryPath()
-                ));
+            if ($allowGatewaysToBeRegisteredInContainer) {
+                Assert::isTrue(method_exists($container, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
+                $container->set($gatewayProxyBuilder->getReferenceName(), $gateway);
             }
         }
 

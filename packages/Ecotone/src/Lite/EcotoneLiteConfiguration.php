@@ -20,11 +20,17 @@ use Psr\Container\ContainerInterface;
  */
 class EcotoneLiteConfiguration
 {
+    /**
+     * @deprecated use EcotoneLiteApplication or EcotoneLite instead
+     */
     public static function create(string $rootProjectDirectoryPath, ContainerInterface|GatewayAwareContainer $container): ConfiguredMessagingSystem
     {
         return self::createWithConfiguration($rootProjectDirectoryPath, $container, ServiceConfiguration::createWithDefaults(), [], false);
     }
 
+    /**
+     * @deprecated use EcotoneLiteApplication or EcotoneLite instead
+     */
     public static function createWithConfiguration(string $rootProjectDirectoryPath, ContainerInterface|GatewayAwareContainer $container, ServiceConfiguration $serviceConfiguration, array $configurationVariables, bool $useCachedVersion, array $classesToRegister = []): ConfiguredMessagingSystem
     {
         $referenceSearchService = new PsrContainerReferenceSearchService($container, ['logger' => new EchoLogger()]);
@@ -37,15 +43,6 @@ class EcotoneLiteConfiguration
         )->buildMessagingSystemFromConfiguration($referenceSearchService);
 
         $referenceSearchService->setConfiguredMessagingSystem($configuredMessagingSystem);
-
-        if ($container instanceof GatewayAwareContainer) {
-            foreach ($configuredMessagingSystem->getGatewayList() as $gatewayReference) {
-                $container->addGateway(
-                    $gatewayReference->getReferenceName(),
-                    $gatewayReference->getGateway()
-                );
-            }
-        }
 
         return $configuredMessagingSystem;
     }

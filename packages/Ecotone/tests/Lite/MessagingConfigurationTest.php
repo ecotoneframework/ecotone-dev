@@ -2,6 +2,8 @@
 
 namespace Test\Ecotone\Lite;
 
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Lite\EcotoneLiteConfiguration;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Configuration;
@@ -23,7 +25,7 @@ use Test\Ecotone\Messaging\Fixture\Behat\Presend\Shop;
  *
  * @internal
  */
-class EcotoneLiteConfigurationTest extends TestCase
+class MessagingConfigurationTest extends TestCase
 {
     public function test_creating_with_cache()
     {
@@ -41,12 +43,16 @@ class EcotoneLiteConfigurationTest extends TestCase
         ]);
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
                                 ->withNamespaces(["Test\Ecotone\Messaging\Fixture\Behat\Presend"])
-                                ->withSkippedModulePackageNames([ModulePackageList::AMQP_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]);
+                                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]));
 
-        $configuration = EcotoneLiteConfiguration::createWithConfiguration(__DIR__ . '/../../', $container, $serviceConfiguration, [], false);
+        EcotoneLite::bootstrap(
+            containerOrAvailableServices: $container,
+            configuration: $serviceConfiguration,
+            allowGatewaysToBeRegisteredInContainer: true
+        );
 
-        $this->assertEquals(
-            $configuration->getGatewayByName(CoinGateway::class),
+        $this->assertInstanceOf(
+            CoinGateway::class,
             $container->get(CoinGateway::class)
         );
     }
@@ -55,7 +61,7 @@ class EcotoneLiteConfigurationTest extends TestCase
     {
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withCacheDirectoryPath($cacheDirectory)
-            ->withSkippedModulePackageNames([ModulePackageList::AMQP_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]);
+            ->withSkippedModulePackageNames(ModulePackageList::allPackages());
 
         return MessagingSystemConfiguration::prepare(
             realpath('/tmp/' . Uuid::uuid4()->toString()),

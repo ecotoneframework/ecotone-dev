@@ -70,16 +70,17 @@ class HeaderBuilderTest extends TestCase
     {
         $personId = '05c60a00-2285-431a-bc3b-f840b4e81230';
         $converter = HeaderBuilder::create('x', 'personId');
-        $converter = $converter->build(InMemoryReferenceSearchService::createWith([
-            ConversionService::REFERENCE_NAME => InMemoryConversionService::createWithConversion(
-                $personId,
-                MediaType::APPLICATION_JSON,
-                TypeDescriptor::STRING,
-                MediaType::APPLICATION_X_PHP,
-                UuidInterface::class,
-                Uuid::fromString($personId)
-            ),
-        ]),
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createWith([
+                ConversionService::REFERENCE_NAME => InMemoryConversionService::createWithConversion(
+                    $personId,
+                    MediaType::APPLICATION_JSON,
+                    TypeDescriptor::STRING,
+                    MediaType::APPLICATION_X_PHP,
+                    UuidInterface::class,
+                    Uuid::fromString($personId)
+                ),
+            ]),
             InterfaceToCall::create(ServiceWithUuidArgument::class, 'execute'),
             InterfaceParameter::createNotNullable('x', TypeDescriptor::createWithDocBlock(UuidInterface::class, '')),
         );
@@ -98,25 +99,26 @@ class HeaderBuilderTest extends TestCase
     {
         $data = ['name' => 'johny'];
         $converter = HeaderBuilder::create('x', 'personIds');
-        $converter = $converter->build(InMemoryReferenceSearchService::createWith([
-            ConversionService::REFERENCE_NAME => InMemoryConversionService::createWithoutConversion()
-                ->registerConversion(
-                    $data,
-                    MediaType::APPLICATION_JSON,
-                    TypeDescriptor::ARRAY,
-                    MediaType::APPLICATION_X_PHP,
-                    stdClass::class,
-                    '{"name":"johny"}'
-                )
-                ->registerConversion(
-                    $data,
-                    MediaType::APPLICATION_X_PHP_ARRAY,
-                    TypeDescriptor::ARRAY,
-                    MediaType::APPLICATION_X_PHP,
-                    stdClass::class,
-                    new stdClass()
-                ),
-        ]),
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createWith([
+                ConversionService::REFERENCE_NAME => InMemoryConversionService::createWithoutConversion()
+                    ->registerConversion(
+                        $data,
+                        MediaType::APPLICATION_JSON,
+                        TypeDescriptor::ARRAY,
+                        MediaType::APPLICATION_X_PHP,
+                        stdClass::class,
+                        '{"name":"johny"}'
+                    )
+                    ->registerConversion(
+                        $data,
+                        MediaType::APPLICATION_X_PHP_ARRAY,
+                        TypeDescriptor::ARRAY,
+                        MediaType::APPLICATION_X_PHP,
+                        stdClass::class,
+                        new stdClass()
+                    ),
+            ]),
             InterfaceToCall::create(ServiceWithUuidArgument::class, 'execute'),
             InterfaceParameter::createNotNullable('x', TypeDescriptor::create(stdClass::class)),
         );
@@ -134,16 +136,17 @@ class HeaderBuilderTest extends TestCase
     {
         $personId = '05c60a00-2285-431a-bc3b-f840b4e81230';
         $converter = HeaderBuilder::create('x', 'personId');
-        $converter = $converter->build(InMemoryReferenceSearchService::createWith([
-            ConversionService::REFERENCE_NAME => InMemoryConversionService::createWithConversion(
-                $personId,
-                MediaType::APPLICATION_X_PHP,
-                TypeDescriptor::STRING,
-                MediaType::APPLICATION_X_PHP,
-                Uuid::class,
-                Uuid::fromString($personId)
-            ),
-        ]),
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createWith([
+                ConversionService::REFERENCE_NAME => InMemoryConversionService::createWithConversion(
+                    $personId,
+                    MediaType::APPLICATION_X_PHP,
+                    TypeDescriptor::STRING,
+                    MediaType::APPLICATION_X_PHP,
+                    Uuid::class,
+                    Uuid::fromString($personId)
+                ),
+            ]),
             InterfaceToCall::create(ServiceWithUuidArgument::class, 'execute'),
             InterfaceParameter::createNotNullable('x', TypeDescriptor::createWithDocBlock(Uuid::class, '')),
         );
@@ -161,9 +164,10 @@ class HeaderBuilderTest extends TestCase
     public function test_passing_default_value_if_exists_and_no_header_found()
     {
         $converter = HeaderBuilder::create('name', 'token');
-        $converter = $converter->build(InMemoryReferenceSearchService::createEmpty(),
-                InterfaceToCall::create(ServiceWithDefaultArgument::class, 'execute'),
-                InterfaceParameter::create('name', TypeDescriptor::createWithDocBlock('string', ''), false, true, '', false, []),
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createEmpty(),
+            InterfaceToCall::create(ServiceWithDefaultArgument::class, 'execute'),
+            InterfaceParameter::create('name', TypeDescriptor::createWithDocBlock('string', ''), false, true, '', false, []),
         );
 
         $this->assertEquals(

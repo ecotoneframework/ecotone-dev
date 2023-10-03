@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Attribute;
 
+use Attribute;
 use Ramsey\Uuid\Uuid;
 
-#[\Attribute()]
+#[Attribute()]
 class IdentifiedAnnotation
 {
     private string $endpointId = '';

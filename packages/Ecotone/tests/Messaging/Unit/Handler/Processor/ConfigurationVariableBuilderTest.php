@@ -27,11 +27,12 @@ class ConfigurationVariableBuilderTest extends TestCase
 
         $this->assertEquals(
             100,
-            $configurationVariable->build(InMemoryReferenceSearchService::createWith([
-                ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
-                    'name' => 100,
+            $configurationVariable->build(
+                InMemoryReferenceSearchService::createWith([
+                    ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
+                        'name' => 100,
+                    ]),
                 ]),
-            ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
             )->getArgumentFrom(
@@ -47,11 +48,12 @@ class ConfigurationVariableBuilderTest extends TestCase
 
         $this->assertEquals(
             100,
-            $configurationVariable->build(InMemoryReferenceSearchService::createWith([
-                ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
-                    'name' => 100,
+            $configurationVariable->build(
+                InMemoryReferenceSearchService::createWith([
+                    ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
+                        'name' => 100,
+                    ]),
                 ]),
-            ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
             )->getArgumentFrom(
@@ -66,9 +68,10 @@ class ConfigurationVariableBuilderTest extends TestCase
         $configurationVariable = ConfigurationVariableBuilder::createFrom('name', $interfaceParameter);
 
         $this->assertNull(
-            $configurationVariable->build(InMemoryReferenceSearchService::createWith([
-                ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
-            ]),
+            $configurationVariable->build(
+                InMemoryReferenceSearchService::createWith([
+                    ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
+                ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
             )->getArgumentFrom(
@@ -85,9 +88,10 @@ class ConfigurationVariableBuilderTest extends TestCase
 
         $this->assertEquals(
             $defaultValue,
-            $configurationVariable->build(InMemoryReferenceSearchService::createWith([
-                ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
-            ]),
+            $configurationVariable->build(
+                InMemoryReferenceSearchService::createWith([
+                    ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
+                ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
             )->getArgumentFrom(

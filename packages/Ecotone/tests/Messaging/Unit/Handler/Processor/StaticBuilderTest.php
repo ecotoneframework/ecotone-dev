@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
 use stdClass;
-use Test\Ecotone\Messaging\Fixture\Service\CallableService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**
@@ -31,7 +28,7 @@ class StaticBuilderTest extends TestCase
      */
     public function test_creating_static_value()
     {
-        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, "withoutReturnValue");
+        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, 'withoutReturnValue');
         $interfaceParameter = $interfaceToCall->getInterfaceParameters()[0];
         $value = new stdClass();
         $converter = new ValueBuilder($interfaceParameter->getName(), $value);

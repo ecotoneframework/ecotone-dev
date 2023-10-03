@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
 use stdClass;
-use Test\Ecotone\Messaging\Fixture\Service\CallableService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**
@@ -32,7 +29,7 @@ class ReferenceBuilderTest extends TestCase
     public function test_creating_reference_converter()
     {
         $referenceName = 'refName';
-        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, "withUnionParameter");
+        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, 'withUnionParameter');
         $interfaceParameter = $interfaceToCall->getInterfaceParameters()[0];
         $value = new stdClass();
         $converter = ReferenceBuilder::create($interfaceParameter->getName(), $referenceName)
@@ -54,7 +51,7 @@ class ReferenceBuilderTest extends TestCase
      */
     public function test_creating_with_dynamic_reference_resolution()
     {
-        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, "withUnionParameter");
+        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, 'withUnionParameter');
         $interfaceParameter = $interfaceToCall->getInterfaceParameters()[0];
         $value = new stdClass();
         $converter = ReferenceBuilder::create($interfaceParameter->getName(), stdClass::class)

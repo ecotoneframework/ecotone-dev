@@ -12,7 +12,6 @@ use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\InterceptorConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -41,7 +40,7 @@ class LoggingHandlerBuilderTest extends MessagingTest
                             ->withOutputMessageChannel('outputChannel')
                             ->withMethodParameterConverters([
                                 MessageConverterBuilder::create('message'),
-                                MethodArgumentsFactory::getAnnotationValueConverter($logParameter, InterfaceToCall::create(ServiceActivatorWithLoggerExample::class, 'sendMessage'), [])
+                                MethodArgumentsFactory::getAnnotationValueConverter($logParameter, InterfaceToCall::create(ServiceActivatorWithLoggerExample::class, 'sendMessage'), []),
                             ])
                             ->build(
                                 InMemoryChannelResolver::createFromAssociativeArray([
@@ -74,7 +73,7 @@ class LoggingHandlerBuilderTest extends MessagingTest
             ->withOutputMessageChannel('outputChannel')
             ->withMethodParameterConverters([
                 MessageConverterBuilder::create('message'),
-                MethodArgumentsFactory::getAnnotationValueConverter($logParameter, InterfaceToCall::create(ServiceActivatorWithLoggerExample::class, 'sendMessage'), [])
+                MethodArgumentsFactory::getAnnotationValueConverter($logParameter, InterfaceToCall::create(ServiceActivatorWithLoggerExample::class, 'sendMessage'), []),
             ])
             ->build(
                 InMemoryChannelResolver::createFromAssociativeArray([

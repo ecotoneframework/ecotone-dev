@@ -16,7 +16,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -172,7 +171,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
                 $builtConverters[] = ValueConverter::createWith(null);
                 continue;
             }
-            if (!$hasPayloadConverter) {
+            if (! $hasPayloadConverter) {
                 $builtConverters[] = PayloadBuilder::create($parameter->getName())->build($referenceSearchService, $interceptingInterface, $parameter);
                 $hasPayloadConverter = true;
                 continue;

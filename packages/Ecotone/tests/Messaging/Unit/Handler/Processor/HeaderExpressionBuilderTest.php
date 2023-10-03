@@ -37,11 +37,12 @@ class HeaderExpressionBuilderTest extends TestCase
     public function test_creating_payload_expression()
     {
         $converter = HeaderExpressionBuilder::create('x', 'token', 'value ~ 1', true);
-        $converter = $converter->build(InMemoryReferenceSearchService::createWith([
-            ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-        ]),
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createWith([
+                ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
+            ]),
+            InterfaceToCall::create(CallableService::class, 'wasCalled'),
+            InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
         );
 
         $this->assertEquals(
@@ -62,12 +63,13 @@ class HeaderExpressionBuilderTest extends TestCase
     {
         $converter = HeaderExpressionBuilder::create('x', 'number', "reference('calculatingService').sum(value)", true);
 
-        $converter = $converter->build(InMemoryReferenceSearchService::createWith([
-            ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-            'calculatingService' => CalculatingService::create(1),
-        ]),
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::create('string')),
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createWith([
+                ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
+                'calculatingService' => CalculatingService::create(1),
+            ]),
+            InterfaceToCall::create(CallableService::class, 'wasCalled'),
+            InterfaceParameter::createNullable('x', TypeDescriptor::create('string')),
         );
 
         $this->assertEquals(
@@ -83,9 +85,10 @@ class HeaderExpressionBuilderTest extends TestCase
     public function test_throwing_exception_if_header_does_not_exists()
     {
         $converter = HeaderExpressionBuilder::create('x', 'token', 'value ~ 1', true);
-        $converter = $converter->build(InMemoryReferenceSearchService::createWith([
-            ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-        ]),
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createWith([
+                ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
+            ]),
             InterfaceToCall::create(CallableService::class, 'wasCalled'),
             InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
         );
@@ -100,11 +103,12 @@ class HeaderExpressionBuilderTest extends TestCase
     public function test_not_throwing_exception_if_header_does_not_exists_and_is_no_required()
     {
         $converter = HeaderExpressionBuilder::create('x', 'token', 'value ~ 1', false);
-        $converter = $converter->build(InMemoryReferenceSearchService::createWith([
-            ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-        ]),
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
+        $converter = $converter->build(
+            InMemoryReferenceSearchService::createWith([
+                ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
+            ]),
+            InterfaceToCall::create(CallableService::class, 'wasCalled'),
+            InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
         );
 
         $this->assertEquals(

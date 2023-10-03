@@ -817,7 +817,15 @@ final class MessagingSystemConfiguration implements Configuration
 
         $messagingSystemCachePath = $cacheDirectoryPath . DIRECTORY_SEPARATOR . 'messaging_system';
         if (file_exists($messagingSystemCachePath)) {
-            return unserialize(file_get_contents($messagingSystemCachePath));
+            $result = unserialize(file_get_contents($messagingSystemCachePath));
+            \assert($result instanceof MessagingSystemConfiguration);
+
+            // See https://github.com/ecotoneframework/ecotone-dev/issues/219
+            // The serialized instance may contain cache dir absolute path serialized as well,
+            // which may prevent moving a project using Ecotone from one directory to another.
+            $result->remapCacheDirectoryPath($cacheDirectoryPath);
+
+            return $result;
         }
 
         return null;
@@ -1359,5 +1367,13 @@ final class MessagingSystemConfiguration implements Configuration
         }
         spl_autoload_register($autoloader);
         self::$registered_autoloader = $autoloader;
+    }
+
+    private function remapCacheDirectoryPath(string $cacheDirectoryPath): void
+    {
+        $this->moduleReferenceSearchService->store(
+            ProxyFactory::REFERENCE_NAME,
+            ProxyFactory::createWithCache($cacheDirectoryPath),
+        );
     }
 }

@@ -23,41 +23,20 @@ use stdClass;
  * @package Ecotone\Messaging\Handler\Gateway
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class ProxyFactory implements Serializable
+class ProxyFactory
 {
     public const REFERENCE_NAME = 'gatewayProxyConfiguration';
 
-    private ?string $cacheDirectoryPath;
+    private string $cacheDirectoryPath;
 
-    /**
-     * ProxyConfiguration constructor.
-     * @param string|null $cacheDirectoryPath
-     */
-    private function __construct(?string $cacheDirectoryPath)
+    private function __construct(string $cacheDirectoryPath)
     {
         $this->cacheDirectoryPath = $cacheDirectoryPath;
-    }
-
-    public static function create(?string $cacheDirectoryPath): self
-    {
-        if ($cacheDirectoryPath) {
-            return self::createWithCache($cacheDirectoryPath);
-        }
-
-        return self::createNoCache();
     }
 
     public static function createWithCache(string $cacheDirectoryPath): self
     {
         return new self($cacheDirectoryPath);
-    }
-
-    /**
-     * @return ProxyFactory
-     */
-    public static function createNoCache(): self
-    {
-        return new self(null);
     }
 
     /**
@@ -92,38 +71,5 @@ class ProxyFactory implements Serializable
             $interface,
             new EcotoneRemoteAdapter($container, $referenceName)
         );
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function serialize(): string
-    {
-        return serialize($this->__serialize());
-    }
-
-    public function __serialize(): array
-    {
-        return ['path' => $this->cacheDirectoryPath];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function unserialize($serialized): void
-    {
-        $this->__unserialize(unserialize($serialized));
-    }
-
-    public function __unserialize(array $data): void
-    {
-        $path  = $data['path'];
-        if (is_null($path)) {
-            $cache = self::createNoCache();
-        } else {
-            $cache = self::createWithCache($path);
-        }
-
-        $this->cacheDirectoryPath = $cache->cacheDirectoryPath;
     }
 }

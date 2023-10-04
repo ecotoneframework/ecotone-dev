@@ -15,11 +15,10 @@ use Test\Ecotone\Messaging\Fixture\Handler\Gateway\StringReturningGateway;
  */
 class ProxyFactoryTest extends TestCase
 {
-    public function test_creating_no_cache_proxy()
+    public function test_creating_with_cache_proxy()
     {
-        $proxyFactory = ProxyFactory::createNoCache();
+        $proxyFactory = ProxyFactory::createWithCache(sys_get_temp_dir());
         $data = 'someReply';
-        $proxyFactory = unserialize(serialize($proxyFactory));
 
         /** @var StringReturningGateway $proxy */
         $proxy = $proxyFactory->createProxyClassWithAdapter(StringReturningGateway::class, new GatewayProxyAdapter(

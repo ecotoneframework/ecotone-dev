@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Handler;
 
+use Ecotone\Messaging\Config\ServiceCacheDirectory;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
@@ -27,24 +29,22 @@ class InMemoryReferenceSearchService implements ReferenceSearchService
     /**
      * @param array|object[]              $objectsToResolve
      */
-    private function __construct(array $objectsToResolve, ?ReferenceSearchService $referenceSearchService, bool $withDefaults)
+    private function __construct(array $objectsToResolve, ?ReferenceSearchService $referenceSearchService, ServiceConfiguration $serviceConfiguration)
     {
-        if ($withDefaults) {
-            if (! array_key_exists(ExpressionEvaluationService::REFERENCE, $objectsToResolve)) {
-                $objectsToResolve[ExpressionEvaluationService::REFERENCE] = SymfonyExpressionEvaluationAdapter::create();
-            }
-            if (! array_key_exists(InterfaceToCallRegistry::REFERENCE_NAME, $objectsToResolve)) {
-                $objectsToResolve[InterfaceToCallRegistry::REFERENCE_NAME] = InterfaceToCallRegistry::createEmpty();
-            }
-            if (! array_key_exists(ConversionService::REFERENCE_NAME, $objectsToResolve)) {
-                $objectsToResolve[ConversionService::REFERENCE_NAME] = AutoCollectionConversionService::createEmpty();
-            }
-            if (! array_key_exists(ProxyFactory::REFERENCE_NAME, $objectsToResolve)) {
-                $objectsToResolve[ProxyFactory::REFERENCE_NAME] = ProxyFactory::createNoCache();
-            }
-            if (! array_key_exists(LoggingHandlerBuilder::LOGGER_REFERENCE, $objectsToResolve) && (! $referenceSearchService || ! $referenceSearchService->has(LoggingHandlerBuilder::LOGGER_REFERENCE))) {
-                $objectsToResolve[LoggingHandlerBuilder::LOGGER_REFERENCE] = new NullLogger();
-            }
+        if (! array_key_exists(ExpressionEvaluationService::REFERENCE, $objectsToResolve)) {
+            $objectsToResolve[ExpressionEvaluationService::REFERENCE] = SymfonyExpressionEvaluationAdapter::create();
+        }
+        if (! array_key_exists(InterfaceToCallRegistry::REFERENCE_NAME, $objectsToResolve)) {
+            $objectsToResolve[InterfaceToCallRegistry::REFERENCE_NAME] = InterfaceToCallRegistry::createEmpty();
+        }
+        if (! array_key_exists(ConversionService::REFERENCE_NAME, $objectsToResolve)) {
+            $objectsToResolve[ConversionService::REFERENCE_NAME] = AutoCollectionConversionService::createEmpty();
+        }
+        if (! array_key_exists(ServiceCacheDirectory::REFERENCE_NAME, $objectsToResolve) && !self::hasInOriginalReferenceService(ServiceCacheDirectory::REFERENCE_NAME, $referenceSearchService)) {
+            $objectsToResolve[ServiceCacheDirectory::REFERENCE_NAME] = ServiceCacheDirectory::create($serviceConfiguration->getCacheDirectoryPath());
+        }
+        if (! array_key_exists(LoggingHandlerBuilder::LOGGER_REFERENCE, $objectsToResolve) && !self::hasInOriginalReferenceService(LoggingHandlerBuilder::LOGGER_REFERENCE, $referenceSearchService)) {
+            $objectsToResolve[LoggingHandlerBuilder::LOGGER_REFERENCE] = new NullLogger();
         }
         $this->referenceSearchService = $referenceSearchService;
 
@@ -59,7 +59,7 @@ class InMemoryReferenceSearchService implements ReferenceSearchService
      */
     public static function createWith(array $objects): self
     {
-        return new self($objects, null, true);
+        return new self($objects, null, ServiceConfiguration::createWithDefaults());
     }
 
     /**
@@ -68,7 +68,7 @@ class InMemoryReferenceSearchService implements ReferenceSearchService
      */
     public static function createEmpty(): self
     {
-        return new self([], null, true);
+        return new self([], null, ServiceConfiguration::createWithDefaults());
     }
 
     /**
@@ -78,9 +78,9 @@ class InMemoryReferenceSearchService implements ReferenceSearchService
      * @return InMemoryReferenceSearchService
      * @throws MessagingException
      */
-    public static function createWithReferenceService(ReferenceSearchService $referenceSearchService, array $objects): self
+    public static function createWithReferenceService(ReferenceSearchService $referenceSearchService, array $objects, ServiceConfiguration $serviceConfiguration): self
     {
-        return new self($objects, $referenceSearchService, true);
+        return new self($objects, $referenceSearchService, $serviceConfiguration);
     }
 
     public function registerReferencedObject(string $referenceName, object $object): void
@@ -138,5 +138,10 @@ class InMemoryReferenceSearchService implements ReferenceSearchService
         }
 
         $this->objectsToResolve = $objects;
+    }
+
+    private static function hasInOriginalReferenceService(string $reference, ?ReferenceSearchService $referenceSearchService): bool
+    {
+        return $referenceSearchService !== null && $referenceSearchService->has($reference);
     }
 }

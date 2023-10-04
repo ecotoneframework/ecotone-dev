@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ProxyGenerator;
+use Ecotone\Messaging\Config\ServiceCacheDirectory;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -134,6 +135,11 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $definition->setPublic(true);
         $definition->addArgument(new Reference('service_container'));
         $container->setDefinition(ReferenceSearchService::class, $definition);
+
+        $definition = new Definition();
+        $definition->setClass(ServiceCacheDirectory::class);
+        $definition->addArgument('%kernel.cache_dir%'.self::CACHE_DIRECTORY_SUFFIX);
+        $container->setDefinition(ServiceCacheDirectory::REFERENCE_NAME, $definition);
 
         foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
             // Proxy warm up

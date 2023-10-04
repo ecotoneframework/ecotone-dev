@@ -323,6 +323,10 @@ class ServiceConfiguration
         return $this->failFast;
     }
 
+    /**
+     * @TODO Ecotone 2.0 Rethink if it should still be here, if ServiceCacheDirectory can be used instead
+     * @deprecated use ServiceCacheDirectory
+     */
     public function getCacheDirectoryPath(): string
     {
         return $this->cacheDirectoryPath;

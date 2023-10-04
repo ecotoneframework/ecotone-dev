@@ -2,6 +2,7 @@
 
 namespace Ecotone\JMSConverter;
 
+use Ecotone\Messaging\Config\ServiceCacheDirectory;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -17,13 +18,11 @@ class JMSConverterBuilder implements ConverterBuilder
      */
     private array $converterHandlers;
     private JMSConverterConfiguration $jmsConverterConfiguration;
-    private ?string $cacheDirectoryPath;
 
-    public function __construct(array $converterHandlers, JMSConverterConfiguration $JMSConverterConfiguration, ?string $cacheDirectoryPath)
+    public function __construct(array $converterHandlers, JMSConverterConfiguration $JMSConverterConfiguration)
     {
         $this->converterHandlers = $converterHandlers;
         $this->jmsConverterConfiguration = $JMSConverterConfiguration;
-        $this->cacheDirectoryPath = $cacheDirectoryPath;
     }
 
     public function build(ReferenceSearchService $referenceSearchService): Converter
@@ -51,9 +50,9 @@ class JMSConverterBuilder implements ConverterBuilder
                 }
             });
 
-        if ($this->cacheDirectoryPath) {
-            $builder->setCacheDir($this->cacheDirectoryPath . DIRECTORY_SEPARATOR . 'jms');
-        }
+        /** @var ServiceCacheDirectory $cacheDirectoryPath */
+        $cacheDirectoryPath = $referenceSearchService->get(ServiceCacheDirectory::REFERENCE_NAME);
+        $builder->setCacheDir($cacheDirectoryPath->getPath() . DIRECTORY_SEPARATOR . 'jms');
 
         $builder->setDocBlockTypeResolver(true);
 

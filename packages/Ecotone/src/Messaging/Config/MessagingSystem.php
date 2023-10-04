@@ -117,7 +117,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
                 fn($referenceName) => self::createGatewayByName(
                     $referenceName,
                     $nonProxyGateways,
-                    $referenceSearchService->get(ServiceConfiguration::class)
+                    $referenceSearchService->get(ServiceCacheDirectory::REFERENCE_NAME)
                 )
             );
         }
@@ -282,7 +282,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         $this->gatewayReferences[$gatewayReferenceName] = self::createGatewayByName(
             $gatewayReferenceName,
             $this->nonProxyCombinedGateways,
-            $this->referenceSearchService->get(ServiceConfiguration::class)
+            $this->referenceSearchService->get(ServiceCacheDirectory::REFERENCE_NAME)
         );
 
         return $this->gatewayReferences[$gatewayReferenceName];
@@ -291,10 +291,10 @@ final class MessagingSystem implements ConfiguredMessagingSystem
     public static function createGatewayByName(
         string $gatewayReferenceName,
         array $nonProxyGateways,
-        ServiceConfiguration $serviceConfiguration
+        ServiceCacheDirectory $serviceCacheDirectory
     ): object
     {
-        $proxyFactory = ProxyFactory::createWithCache($serviceConfiguration->getCacheDirectoryPath());
+        $proxyFactory = ProxyFactory::createWithCache($serviceCacheDirectory->getPath());
 
         $nonProxyCombinedGateway = $nonProxyGateways[$gatewayReferenceName];
 

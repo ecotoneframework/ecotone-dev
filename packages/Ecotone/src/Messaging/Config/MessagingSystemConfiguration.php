@@ -194,16 +194,15 @@ final class MessagingSystemConfiguration implements Configuration
             }
         );
         $extensionObjects[] = $serviceConfiguration;
-        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, ProxyFactory::create($serviceConfiguration->getCacheDirectoryPath()), $preparationInterfaceRegistry, $serviceConfiguration);
+        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $preparationInterfaceRegistry, $serviceConfiguration);
     }
 
     /**
      * @param string[] $skippedModulesPackages
      */
-    private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, ProxyFactory $proxyFactory, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): void
+    private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): void
     {
         $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();
-        $moduleReferenceSearchService->store(ProxyFactory::REFERENCE_NAME, $proxyFactory);
 
         $modules = $moduleConfigurationRetrievingService->findAllModuleConfigurations($applicationConfiguration->getSkippedModulesPackages());
         $moduleExtensions = [];
@@ -257,7 +256,7 @@ final class MessagingSystemConfiguration implements Configuration
                 $referenceName = $referenceName->getReferenceName();
             }
 
-            if (in_array($referenceName, [InterfaceToCallRegistry::REFERENCE_NAME, ConversionService::REFERENCE_NAME, ProxyFactory::REFERENCE_NAME])) {
+            if (in_array($referenceName, [InterfaceToCallRegistry::REFERENCE_NAME, ConversionService::REFERENCE_NAME])) {
                 continue;
             }
 
@@ -792,7 +791,7 @@ final class MessagingSystemConfiguration implements Configuration
         return $cachedVersion;
     }
 
-    public static function prepareWithAnnotationFinder(AnnotationFinder $annotationFinder, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $serviceConfiguration): Configuration
+    private static function prepareWithAnnotationFinder(AnnotationFinder $annotationFinder, ConfigurationVariableService $configurationVariableService, ServiceConfiguration $serviceConfiguration): Configuration
     {
         $preparationInterfaceRegistry = InterfaceToCallRegistry::createWith($annotationFinder);
 
@@ -821,6 +820,9 @@ final class MessagingSystemConfiguration implements Configuration
         return null;
     }
 
+    /**
+     * @TODO Ecotone 2.0 remove and use prepare method instead
+     */
     public static function prepareWithModuleRetrievingService(ModuleRetrievingService $moduleConfigurationRetrievingService, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): MessagingSystemConfiguration
     {
         $cacheDirectoryPath = $applicationConfiguration->getCacheDirectoryPath();
@@ -1246,8 +1248,10 @@ final class MessagingSystemConfiguration implements Configuration
             $converters[] = $converterBuilder->build($referenceSearchService);
         }
         $referenceSearchService = $this->prepareReferenceSearchServiceWithInternalReferences($referenceSearchService, $converters, $interfaceToCallRegistry);
+        /** @var ServiceCacheDirectory $serviceCacheDirectory */
+        $serviceCacheDirectory = $referenceSearchService->get(ServiceCacheDirectory::class);
         /** @var ProxyFactory $proxyFactory */
-        $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
+        $proxyFactory = ProxyFactory::createWithCache($serviceCacheDirectory->getPath());
         $this->registerAutoloader($proxyFactory->getConfiguration()->getProxyAutoloader());
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
@@ -1298,7 +1302,8 @@ final class MessagingSystemConfiguration implements Configuration
                     InterfaceToCallRegistry::REFERENCE_NAME => $interfaceToCallRegistry,
                     ServiceConfiguration::class => $this->applicationConfiguration,
                 ]
-            )
+            ),
+            $this->applicationConfiguration
         );
     }
 

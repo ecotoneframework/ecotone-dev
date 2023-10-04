@@ -2,6 +2,7 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Config\ServiceCacheDirectory;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use const DIRECTORY_SEPARATOR;
 
@@ -122,17 +123,22 @@ class EcotoneProvider extends ServiceProvider
                 return new EloquentRepository();
             }
         );
+        $this->app->singleton(
+            ServiceCacheDirectory::REFERENCE_NAME,
+            function () use ($cacheDirectory) {
+                return ServiceCacheDirectory::create($cacheDirectory);
+            }
+        );
 
         foreach ($configuration->getRegisteredGateways() as $registeredGateway) {
             $this->app->singleton(
                 $registeredGateway->getReferenceName(),
-                function ($app) use ($registeredGateway) {
+                function ($app) use ($registeredGateway, $cacheDirectory) {
                     return ProxyFactory::createFor(
                         $registeredGateway->getReferenceName(),
                         $this->app,
                         $registeredGateway->getInterfaceName(),
-                        // cache directory may change (CI build then release)
-                        $this->getCacheDirectoryPath()
+                        $cacheDirectory
                     );
                 }
             );

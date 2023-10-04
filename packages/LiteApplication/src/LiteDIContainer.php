@@ -4,6 +4,7 @@ namespace Ecotone\Lite;
 
 use DI\Container;
 use DI\ContainerBuilder;
+use Ecotone\Messaging\Config\ServiceCacheDirectory;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\Type;
@@ -28,6 +29,7 @@ class LiteDIContainer implements ContainerInterface
 
         $this->container = $builder->build();
         $this->container->set(ConfigurationVariableService::REFERENCE_NAME, InMemoryConfigurationVariableService::create($configurationVariables));
+        $this->container->set(ServiceCacheDirectory::class, new ServiceCacheDirectory($serviceConfiguration->getCacheDirectoryPath()));
         foreach ($classInstancesToRegister as $referenceName => $classInstance) {
             $this->container->set($referenceName, $classInstance);
         }

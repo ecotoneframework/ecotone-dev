@@ -112,6 +112,10 @@ final class MessagingSystem implements ConfiguredMessagingSystem
 
         $nonProxyGateways = self::configureGateways($gatewayBuilders, $referenceSearchService, $channelResolver);
         foreach ($nonProxyGateways as $gateway) {
+            /** A case when Symfony or Laravel are used, they provide own Proxy implementations */
+            if ($referenceSearchService->has($gateway->getReferenceName())) {
+                continue;
+            }
             $referenceSearchService->registerReferencedObject(
                 $gateway->getReferenceName(),
                 fn($referenceName) => self::createGatewayByName(

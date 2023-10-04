@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
+use Ecotone\Messaging\Config\NonProxyCombinedGateway;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyAdapter;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use PHPUnit\Framework\TestCase;
@@ -21,7 +22,13 @@ class ProxyFactoryTest extends TestCase
         $proxyFactory = unserialize(serialize($proxyFactory));
 
         /** @var StringReturningGateway $proxy */
-        $proxy = $proxyFactory->createProxyClassWithAdapter(StringReturningGateway::class, new GatewayProxyAdapter(['executeNoParams' => new GatewayExecuteClass($data)]));
+        $proxy = $proxyFactory->createProxyClassWithAdapter(StringReturningGateway::class, new GatewayProxyAdapter(
+            NonProxyCombinedGateway::createWith(
+                'test',
+                StringReturningGateway::class,
+                ['executeNoParams' => new GatewayExecuteClass($data)]
+            )
+        ));
 
         $this->assertEquals($data, $proxy->executeNoParams());
     }

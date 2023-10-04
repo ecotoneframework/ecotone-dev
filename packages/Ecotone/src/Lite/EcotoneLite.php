@@ -174,22 +174,15 @@ final class EcotoneLite
             $enableTesting
         );
 
-        foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
-            if ($useCachedVersion && !$allowGatewaysToBeRegisteredInContainer) {
-                break;
-            }
-
-            // Proxy warm up
-            $gateway = ProxyFactory::createFor(
-                $gatewayProxyBuilder->getReferenceName(),
-                $container,
-                $gatewayProxyBuilder->getInterfaceName(),
-                $serviceConfiguration->getCacheDirectoryPath()
-            );
-
-            if ($allowGatewaysToBeRegisteredInContainer) {
-                Assert::isTrue(method_exists($container, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
-                $container->set($gatewayProxyBuilder->getReferenceName(), $gateway);
+        if ($allowGatewaysToBeRegisteredInContainer) {
+            Assert::isTrue(method_exists($container, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
+            foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
+                $container->set($gatewayProxyBuilder->getReferenceName(), ProxyFactory::createFor(
+                    $gatewayProxyBuilder->getReferenceName(),
+                    $container,
+                    $gatewayProxyBuilder->getInterfaceName(),
+                    $serviceConfiguration->getCacheDirectoryPath()
+                ));
             }
         }
 

@@ -124,14 +124,6 @@ class EcotoneProvider extends ServiceProvider
         );
 
         foreach ($configuration->getRegisteredGateways() as $registeredGateway) {
-            // Proxy warm up
-            ProxyFactory::createFor(
-                $registeredGateway->getReferenceName(),
-                $this->app,
-                $registeredGateway->getInterfaceName(),
-                $cacheDirectory
-            );
-
             $this->app->singleton(
                 $registeredGateway->getReferenceName(),
                 function ($app) use ($registeredGateway) {

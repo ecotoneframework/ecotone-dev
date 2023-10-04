@@ -11,16 +11,22 @@ class GatewayReference
 {
     private string $referenceName;
     private object $gateway;
+    private string $interfaceName;
 
     /**
      * GatewayReference constructor.
      * @param string $referenceName
      * @param object $gateway
      */
-    private function __construct(string $referenceName, object $gateway)
+    private function __construct(
+        string $referenceName,
+        string $interfaceName,
+        object $gateway
+    )
     {
         $this->referenceName = $referenceName;
         $this->gateway = $gateway;
+        $this->interfaceName = $interfaceName;
     }
 
     /**
@@ -53,5 +59,10 @@ class GatewayReference
     public function getGateway(): object
     {
         return $this->gateway;
+    }
+
+    public function getInterfaceName(): string
+    {
+        return $this->interfaceName;
     }
 }

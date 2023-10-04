@@ -8,6 +8,7 @@ use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Modelling\EventBus;
 use Psr\Log\NullLogger;
 
 /**
@@ -82,13 +83,7 @@ class InMemoryReferenceSearchService implements ReferenceSearchService
         return new self($objects, $referenceSearchService, true);
     }
 
-    /**
-     * @param string $referenceName
-     * @param        $object
-     *
-     * @throws MessagingException
-     */
-    public function registerReferencedObject(string $referenceName, $object): void
+    public function registerReferencedObject(string $referenceName, object $object): void
     {
         Assert::isObject($object, "Passed reference {$referenceName} must be object");
 
@@ -101,6 +96,13 @@ class InMemoryReferenceSearchService implements ReferenceSearchService
     public function get(string $reference): object
     {
         if (array_key_exists($reference, $this->objectsToResolve)) {
+            if (is_callable($this->objectsToResolve[$reference])) {
+                $constructedObject = $this->objectsToResolve[$reference]($reference);
+                $this->objectsToResolve[$reference] = $constructedObject;
+
+                return $constructedObject;
+            }
+
             return $this->objectsToResolve[$reference];
         }
 

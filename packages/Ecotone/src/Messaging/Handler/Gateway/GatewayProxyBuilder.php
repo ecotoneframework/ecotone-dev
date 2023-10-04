@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Config\NonProxyCombinedGateway;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -325,8 +326,15 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         /** @var ProxyFactory $proxyFactory */
         $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
 
-        $gateway = $this->buildWithoutProxyObject($referenceSearchService, $channelResolver);
-        $adapter = new GatewayProxyAdapter([$this->getRelatedMethodName() => $gateway]);
+        $adapter = new GatewayProxyAdapter(
+            NonProxyCombinedGateway::createWith(
+                $this->referenceName,
+                $this->interfaceName,
+                [$this->getRelatedMethodName() => $this->buildWithoutProxyObject(
+                    $referenceSearchService, $channelResolver
+                )]
+            )
+        );
 
         return $proxyFactory->createProxyClassWithAdapter($this->interfaceName, $adapter);
     }

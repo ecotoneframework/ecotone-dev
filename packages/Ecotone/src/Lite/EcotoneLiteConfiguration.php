@@ -23,7 +23,7 @@ class EcotoneLiteConfiguration
     /**
      * @deprecated use EcotoneLiteApplication or EcotoneLite instead
      */
-    public static function create(string $rootProjectDirectoryPath, ContainerInterface|GatewayAwareContainer $container): ConfiguredMessagingSystem
+    public static function create(string $rootProjectDirectoryPath, ContainerInterface $container): ConfiguredMessagingSystem
     {
         return self::createWithConfiguration($rootProjectDirectoryPath, $container, ServiceConfiguration::createWithDefaults(), [], false);
     }
@@ -31,7 +31,7 @@ class EcotoneLiteConfiguration
     /**
      * @deprecated use EcotoneLiteApplication or EcotoneLite instead
      */
-    public static function createWithConfiguration(string $rootProjectDirectoryPath, ContainerInterface|GatewayAwareContainer $container, ServiceConfiguration $serviceConfiguration, array $configurationVariables, bool $useCachedVersion, array $classesToRegister = []): ConfiguredMessagingSystem
+    public static function createWithConfiguration(string $rootProjectDirectoryPath, ContainerInterface $container, ServiceConfiguration $serviceConfiguration, array $configurationVariables, bool $useCachedVersion, array $classesToRegister = []): ConfiguredMessagingSystem
     {
         $referenceSearchService = new PsrContainerReferenceSearchService($container, ['logger' => new EchoLogger()]);
         $configuredMessagingSystem = MessagingSystemConfiguration::prepare(

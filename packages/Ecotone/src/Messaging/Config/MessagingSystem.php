@@ -349,14 +349,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         return $gateway->sendWithHeaders([], $arguments, $consoleCommandConfiguration->getChannelName());
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getGatewayList(): iterable
-    {
-        return $this->gatewayReferences;
-    }
-
     public function getCommandBus(): CommandBus
     {
         return $this->getGatewayByName(CommandBus::class);

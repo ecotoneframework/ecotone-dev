@@ -6,6 +6,7 @@ namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
@@ -38,7 +39,7 @@ class EcotoneLiteConfiguration
             realpath($rootProjectDirectoryPath),
             InMemoryConfigurationVariableService::create($configurationVariables),
             $serviceConfiguration,
-            $useCachedVersion,
+            new ServiceCacheConfiguration($serviceConfiguration->getCacheDirectoryPath(), $useCachedVersion),
             $classesToRegister
         )->buildMessagingSystemFromConfiguration($referenceSearchService);
 

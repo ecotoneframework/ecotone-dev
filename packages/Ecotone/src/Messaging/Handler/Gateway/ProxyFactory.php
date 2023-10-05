@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Config\EcotoneRemoteAdapter;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use ProxyManager\Configuration;
 use ProxyManager\Factory\LazyLoadingValueHolderFactory;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
@@ -27,16 +28,13 @@ class ProxyFactory
 {
     public const REFERENCE_NAME = 'gatewayProxyConfiguration';
 
-    private string $cacheDirectoryPath;
-
-    private function __construct(string $cacheDirectoryPath)
+    private function __construct(private ServiceCacheConfiguration $serviceCacheConfiguration)
     {
-        $this->cacheDirectoryPath = $cacheDirectoryPath;
     }
 
-    public static function createWithCache(string $cacheDirectoryPath): self
+    public static function createWithCache(ServiceCacheConfiguration $serviceCacheConfiguration): self
     {
-        return new self($cacheDirectoryPath);
+        return new self($serviceCacheConfiguration);
     }
 
     /**
@@ -46,8 +44,8 @@ class ProxyFactory
     {
         $configuration = new Configuration();
 
-        if ($this->cacheDirectoryPath) {
-            $configuration->setProxiesTargetDir($this->cacheDirectoryPath);
+        if ($this->serviceCacheConfiguration->shouldUseCache()) {
+            $configuration->setProxiesTargetDir($this->serviceCacheConfiguration->getPath());
             $fileLocator = new FileLocator($configuration->getProxiesTargetDir());
             $configuration->setGeneratorStrategy(new FileWriterGeneratorStrategy($fileLocator));
             $configuration->setClassSignatureGenerator(new ClassSignatureGenerator(new SignatureGenerator()));
@@ -63,9 +61,9 @@ class ProxyFactory
         return $factory->createProxy($interfaceName);
     }
 
-    public static function createFor(string $referenceName, ContainerInterface $container, string $interface, string $cacheDirectoryPath): object
+    public static function createFor(string $referenceName, ContainerInterface $container, string $interface, ServiceCacheConfiguration $serviceCacheConfiguration): object
     {
-        $proxyFactory = self::createWithCache($cacheDirectoryPath);
+        $proxyFactory = self::createWithCache($serviceCacheConfiguration);
 
         return $proxyFactory->createProxyClassWithAdapter(
             $interface,

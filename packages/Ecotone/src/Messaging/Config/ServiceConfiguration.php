@@ -18,7 +18,7 @@ class ServiceConfiguration
 
     private string $serviceName = self::DEFAULT_SERVICE_NAME;
     private bool $failFast = self::DEFAULT_FAIL_FAST;
-    private ?string $cacheDirectoryPath = null;
+    private string $cacheDirectoryPath;
     private string $environment = self::DEFAULT_ENVIRONMENT;
     private ?string $loadCatalog = '';
     /**

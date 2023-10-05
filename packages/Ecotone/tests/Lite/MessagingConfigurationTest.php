@@ -9,6 +9,7 @@ use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use PHPUnit\Framework\TestCase;
@@ -31,7 +32,7 @@ class MessagingConfigurationTest extends TestCase
     {
         $cacheDirectory = '/tmp/' . Uuid::uuid4()->toString();
         $this->assertEquals(
-            $this->getConfiguration($cacheDirectory, false),
+            $this->getConfiguration($cacheDirectory, true),
             $this->getConfiguration($cacheDirectory, true)
         );
     }
@@ -67,7 +68,7 @@ class MessagingConfigurationTest extends TestCase
             realpath('/tmp/' . Uuid::uuid4()->toString()),
             InMemoryConfigurationVariableService::createEmpty(),
             $applicationConfiguration,
-            $useCachedVersion,
+            new ServiceCacheConfiguration($applicationConfiguration->getCacheDirectoryPath(), $useCachedVersion),
             [GatewayWithReplyChannelExample::class]
         );
     }

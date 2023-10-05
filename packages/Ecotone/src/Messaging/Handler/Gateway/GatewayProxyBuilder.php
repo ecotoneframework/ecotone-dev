@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Config\NonProxyCombinedGateway;
-use Ecotone\Messaging\Config\ServiceCacheDirectory;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -100,7 +100,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         $this->interfaceName = $interfaceName;
         $this->methodName = $methodName;
         $this->requestChannelName = $requestChannelName;
-        $this->requiredReferenceNames[] = ServiceCacheDirectory::REFERENCE_NAME;
+        $this->requiredReferenceNames[] = ServiceCacheConfiguration::REFERENCE_NAME;
     }
 
     /**
@@ -324,9 +324,9 @@ class GatewayProxyBuilder implements InterceptedEndpoint
      */
     public function build(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): object
     {
-        /** @var ServiceCacheDirectory $cacheDirectory */
-        $cacheDirectory = $referenceSearchService->get(ServiceCacheDirectory::REFERENCE_NAME);
-        $proxyFactory = ProxyFactory::createWithCache($cacheDirectory->getPath());
+        /** @var ServiceCacheConfiguration $serviceCacheConfiguration */
+        $serviceCacheConfiguration = $referenceSearchService->get(ServiceCacheConfiguration::REFERENCE_NAME);
+        $proxyFactory = ProxyFactory::createWithCache($serviceCacheConfiguration);
 
         $adapter = new GatewayProxyAdapter(
             NonProxyCombinedGateway::createWith(

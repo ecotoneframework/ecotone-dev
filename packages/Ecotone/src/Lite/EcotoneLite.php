@@ -17,7 +17,7 @@ use Ecotone\Messaging\Config\MessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ProxyGenerator;
-use Ecotone\Messaging\Config\ServiceCacheDirectory;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
@@ -166,11 +166,15 @@ final class EcotoneLite
 
         $container = $containerOrAvailableServices instanceof ContainerInterface ? $containerOrAvailableServices : InMemoryPSRContainer::createFromAssociativeArray($containerOrAvailableServices);
 
+        $serviceCacheConfiguration = new ServiceCacheConfiguration(
+            $serviceConfiguration->getCacheDirectoryPath(),
+            $useCachedVersion
+        );
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
             $pathToRootCatalog,
             InMemoryConfigurationVariableService::create($configurationVariables),
             $serviceConfiguration,
-            $useCachedVersion,
+            $serviceCacheConfiguration,
             $classesToResolve,
             $enableTesting
         );
@@ -182,12 +186,15 @@ final class EcotoneLite
                     $gatewayProxyBuilder->getReferenceName(),
                     $container,
                     $gatewayProxyBuilder->getInterfaceName(),
-                    $serviceConfiguration->getCacheDirectoryPath()
+                    $serviceCacheConfiguration
                 ));
             }
         }
 
-        $referenceSearchService = new PsrContainerReferenceSearchService($container, ['logger' => new NullLogger(), ServiceCacheDirectory::REFERENCE_NAME => ServiceCacheDirectory::create($serviceConfiguration->getCacheDirectoryPath())]);
+        $referenceSearchService = new PsrContainerReferenceSearchService($container, [
+            'logger' => new NullLogger(),
+            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration
+        ]);
 
         $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration($referenceSearchService);
 

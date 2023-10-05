@@ -2,7 +2,7 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Messaging\Config\ServiceCacheDirectory;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use const DIRECTORY_SEPARATOR;
 
@@ -47,7 +47,7 @@ class EcotoneProvider extends ServiceProvider
 
         $environment            = App::environment();
         $rootCatalog            = App::basePath();
-        $isCachingConfiguration = in_array($environment, ['prod', 'production']) ? true : Config::get('ecotone.cacheConfiguration');
+        $useCache               = in_array($environment, ['prod', 'production']) ? true : Config::get('ecotone.cacheConfiguration');
         $cacheDirectory         = $this->getCacheDirectoryPath();
 
         if (! is_dir($cacheDirectory)) {
@@ -67,12 +67,8 @@ class EcotoneProvider extends ServiceProvider
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
             ->withNamespaces(Config::get('ecotone.namespaces'))
-            ->withSkippedModulePackageNames($skippedModules);
-
-        if ($isCachingConfiguration) {
-            $applicationConfiguration = $applicationConfiguration
-                ->withCacheDirectoryPath($cacheDirectory);
-        }
+            ->withSkippedModulePackageNames($skippedModules)
+            ->withCacheDirectoryPath($cacheDirectory);
 
         $serializationMediaType = Config::get('ecotone.defaultSerializationMediaType');
         if ($serializationMediaType) {
@@ -104,11 +100,12 @@ class EcotoneProvider extends ServiceProvider
 
         $applicationConfiguration = $applicationConfiguration->withExtensionObjects([new EloquentRepositoryBuilder()]);
 
+        $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, $useCache);
         $configuration = MessagingSystemConfiguration::prepare(
             $rootCatalog,
             new LaravelConfigurationVariableService(),
             $applicationConfiguration,
-            $isCachingConfiguration
+            $serviceCacheConfiguration
         );
 
         $this->app->singleton(
@@ -124,10 +121,8 @@ class EcotoneProvider extends ServiceProvider
             }
         );
         $this->app->singleton(
-            ServiceCacheDirectory::REFERENCE_NAME,
-            function () use ($cacheDirectory) {
-                return ServiceCacheDirectory::create($cacheDirectory);
-            }
+            ServiceCacheConfiguration::REFERENCE_NAME,
+            fn() => $serviceCacheConfiguration
         );
 
         foreach ($configuration->getRegisteredGateways() as $registeredGateway) {
@@ -138,7 +133,7 @@ class EcotoneProvider extends ServiceProvider
                         $registeredGateway->getReferenceName(),
                         $this->app,
                         $registeredGateway->getInterfaceName(),
-                        $cacheDirectory
+                        $this->app->get(ServiceCacheConfiguration::REFERENCE_NAME)
                     );
                 }
             );

@@ -23,7 +23,7 @@ class UnionTypeDescriptor implements Type
      * @param TypeDescriptor[] $typeDescriptors
      * @throws MessagingException
      */
-    private function __construct(array $typeDescriptors)
+    public function __construct(array $typeDescriptors)
     {
         $this->initialize($typeDescriptors);
     }

@@ -4,7 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
+use Assert\Assertion;
+use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
+use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\AroundInterceptorHandler;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -15,12 +23,14 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\HandlerReplyProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\WrapWithMessageBuildProcessor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
+use PHPUnit\Framework\TestCase;
 use ReflectionException;
 use ReflectionMethod;
 
@@ -29,7 +39,7 @@ use ReflectionMethod;
  * @package Ecotone\Messaging\Handler\ServiceActivator
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
+final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel, CompilableBuilder
 {
     private string $objectToInvokeReferenceName;
     private bool $isReplyRequired = false;
@@ -43,6 +53,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     private bool $shouldWrapResultInMessage = true;
 
     private ?InterfaceToCall $annotatedInterfaceToCall = null;
+    protected ?Reference $compiled = null;
 
     private function __construct(string $objectToInvokeOnReferenceName, private string|InterfaceToCall $methodNameOrInterfaceToCall)
     {
@@ -163,6 +174,9 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
      */
     public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
     {
+        if ($this->compiled) {
+            return $referenceSearchService->get(ContainerImplementation::REFERENCE_ID)->get((string) $this->compiled);
+        }
         $objectToInvoke = $this->objectToInvokeReferenceName;
         if (! $this->isStaticallyCalled()) {
             $objectToInvoke = $this->directObjectReference ? $this->directObjectReference : $referenceSearchService->get($this->objectToInvokeReferenceName);
@@ -196,37 +210,62 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         );
     }
 
-    public function compile(ContainerMessagingBuilder $builder)
+    public function compile(ContainerMessagingBuilder $builder): Reference|null
     {
-        if ($this->directObjectReference || $this->isStaticallyCalled()) {
-            return;
+        if ($this->directObjectReference || $this->isStaticallyCalled() || $this->orderedAroundInterceptors) {
+            return null;
         }
-        $methodInvokerReference = $builder->registerServiceMethodInvoker($this->objectToInvokeReferenceName, $this->getMethodName(), $this->methodParameterConverterBuilders, $this->getEndpointAnnotations());
+
+        $objectToCallReference = new Reference($this->objectToInvokeReferenceName);
+        $className = $this->methodNameOrInterfaceToCall instanceof InterfaceToCall ? $this->methodNameOrInterfaceToCall->getInterfaceName() : $this->objectToInvokeReferenceName;
+        $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
+
+        $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
+
+        $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $this->methodParameterConverterBuilders, $this->getEndpointAnnotations(), null, false);
+
+        $compiledMethodParameterConverters = [];
+        foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
+            if (! ($methodParameterConverter instanceof CompilableParameterConverterBuilder)) {
+                // Cannot continue without every parameter converters compilable
+                return null;
+            }
+            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
+        }
+
+        $methodInvokerDefinition = new Definition(MethodInvoker::class, [
+            $objectToCallReference,
+            $this->getMethodName(),
+            $compiledMethodParameterConverters,
+            $interfaceToCallReference,
+            true,
+        ]);
         if ($this->shouldWrapResultInMessage) {
-            $className = $builder->getDefinitionClassname($this->objectToInvokeReferenceName);
-            $methodInvokerReference = $builder->createDefinition(WrapWithMessageBuildProcessor::class, [
-                $builder->getInterfaceToCallReference($className, $this->getMethodName()),
-                $methodInvokerReference
+            $methodInvokerDefinition = new Definition(WrapWithMessageBuildProcessor::class, [
+                $interfaceToCallReference,
+                $methodInvokerDefinition
             ]);
         }
-        $handlerDefinition = $builder->createDefinition(RequestReplyProducer::class, [
-            $this->outputMessageChannelName,
-            $methodInvokerReference,
+        $handlerDefinition = new Definition(RequestReplyProducer::class, [
+            $this->outputMessageChannelName ? new ChannelReference($this->outputMessageChannelName) : null,
+            $methodInvokerDefinition,
+            new Reference(ChannelResolver::class),
             $this->isReplyRequired,
-            $this->shouldPassThroughMessage,
+            $this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid(),
+            1,
         ]);
         if ($this->orderedAroundInterceptors) {
-            // AroundInterceptorHandler($aroundInterceptors, new HandlerReplyProcessor($requestReplyHandler));
-            $handlerDefinition = $builder->createDefinition(HandlerReplyProcessor::class, [
+
+            $handlerDefinition = new Definition(HandlerReplyProcessor::class, [
                 $handlerDefinition
             ]);
-            $handlerDefinition = $builder->createDefinition(AroundInterceptorHandler::class, [
-                $handlerDefinition,
+            $handlerDefinition = new Definition(AroundInterceptorHandler::class, [
                 $this->orderedAroundInterceptors, // TODO
-                $builder->getInterfaceToCallReference($className, $this->getMethodName())
+                $handlerDefinition,
             ]);
         }
-        return $builder->register($handlerDefinition);
+        $this->compiled = $builder->register((string) $this, $handlerDefinition);
+        return $this->compiled;
     }
 
     /**

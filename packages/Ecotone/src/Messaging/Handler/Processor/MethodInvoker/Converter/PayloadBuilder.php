@@ -4,19 +4,26 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 
 /**
  * Class PayloadParameterConverterBuilder
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class PayloadBuilder implements ParameterConverterBuilder
+class PayloadBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
 {
     private string $parameterName;
 
@@ -62,5 +69,15 @@ class PayloadBuilder implements ParameterConverterBuilder
     public function getRequiredReferences(): array
     {
         return [];
+    }
+
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Definition
+    {
+        return new Definition(PayloadConverter::class, [
+            new Reference(ConversionService::REFERENCE_NAME),
+            '',
+            '',
+            Definition::fromType($interfaceParameter->getTypeDescriptor())
+        ]);
     }
 }

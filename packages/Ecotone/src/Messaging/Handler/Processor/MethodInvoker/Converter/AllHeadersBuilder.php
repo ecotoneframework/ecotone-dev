@@ -2,13 +2,17 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
+use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 
-class AllHeadersBuilder implements ParameterConverterBuilder
+class AllHeadersBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
 {
     private string $parameterName;
 
@@ -54,5 +58,11 @@ class AllHeadersBuilder implements ParameterConverterBuilder
     public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
     {
         return new AllHeadersConverter();
+    }
+
+
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
+    {
+        return new Definition(AllHeadersConverter::class);
     }
 }

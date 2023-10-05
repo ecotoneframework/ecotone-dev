@@ -24,7 +24,7 @@ class RequestReplyProducer implements MessageHandler
     private const REQUEST_REPLY_METHOD = 1;
     private const REQUEST_SPLIT_METHOD = 2;
 
-    private function __construct(
+    public function __construct(
         private ?MessageChannel $outputChannel,
         private MessageProcessor $messageProcessor,
         private ChannelResolver $channelResolver,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use DI\ContainerBuilder;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -15,6 +16,13 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerFactory;
+use Ecotone\Messaging\Config\Container\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Implementations\CachedContainerFactory;
+use Ecotone\Messaging\Config\Container\Implementations\InMemoryPhpDiContainerFactory;
+use Ecotone\Messaging\Config\Container\Implementations\PhpDiContainerBuilder;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -52,7 +60,6 @@ use Ecotone\Modelling\Config\BusModule;
 use Exception;
 use ProxyManager\Autoloader\AutoloaderInterface;
 use Ramsey\Uuid\Uuid;
-
 use function spl_autoload_register;
 use function spl_autoload_unregister;
 
@@ -152,6 +159,8 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $consoleCommands = [];
 
+    private ?ContainerFactory $containerFactory = null;
+
     /**
      * @param object[] $extensionObjects
      * @param string[] $skippedModulesPackages
@@ -235,6 +244,26 @@ final class MessagingSystemConfiguration implements Configuration
         $interfaceToCallRegistry = InterfaceToCallRegistry::createWithBackedBy($preparationInterfaceRegistry);
 
         $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $applicationConfiguration);
+
+        $builder = new ContainerMessagingBuilder($interfaceToCallRegistry);
+        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
+            if ($messageHandlerBuilder instanceof CompilableBuilder) {
+                $messageHandlerBuilder->compile($builder);
+            }
+        }
+
+        if ($cacheDirectory = $applicationConfiguration->getCacheDirectoryPath()) {
+            $container = new ContainerBuilder();
+            $builder->process(new PhpDiContainerBuilder($container));
+            $containerClassName = 'EcotoneContainer_'.Uuid::uuid4()->getInteger()->toString();
+            $container->enableCompilation($cacheDirectory, $containerClassName);
+            $container->build();
+            $this->containerFactory = new CachedContainerFactory($containerClassName, $cacheDirectory.DIRECTORY_SEPARATOR.$containerClassName.'.php');
+        } else {
+            $this->containerFactory = new InMemoryPhpDiContainerFactory($builder);
+        }
+
+
         $this->gatewayClassesToGenerateProxies = [];
 
         $this->interfacesToCall = array_unique($this->interfacesToCall);
@@ -968,7 +997,7 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     /**
-     * @param MessageHandlerBuilderWithOutputChannel[] $methodInterceptors
+     * @param MethodInterceptor[] $methodInterceptors
      *
      * @return array
      */
@@ -1312,7 +1341,9 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private function prepareReferenceSearchServiceWithInternalReferences(ReferenceSearchService $referenceSearchService, array $converters, InterfaceToCallRegistry $interfaceToCallRegistry): InMemoryReferenceSearchService
     {
-        return InMemoryReferenceSearchService::createWithReferenceService(
+        $container = $this->containerFactory->create();
+
+        $newReferenceSearchService = InMemoryReferenceSearchService::createWithReferenceService(
             $referenceSearchService,
             array_merge(
                 $this->moduleReferenceSearchService->getAllRegisteredReferences(),
@@ -1320,10 +1351,13 @@ final class MessagingSystemConfiguration implements Configuration
                     ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createWith($converters),
                     InterfaceToCallRegistry::REFERENCE_NAME => $interfaceToCallRegistry,
                     ServiceConfiguration::class => $this->applicationConfiguration,
+                    ContainerImplementation::REFERENCE_ID => $container,
                 ]
             ),
             $this->applicationConfiguration
         );
+        $container->set(ContainerImplementation::EXTERNAL_REFERENCE_SEARCH_SERVICE_ID, $newReferenceSearchService);
+        return $newReferenceSearchService;
     }
 
     public function getRegisteredConsoleCommands(): array

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
+use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
@@ -15,7 +19,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class MessageConverterBuilder implements ParameterConverterBuilder
+class MessageConverterBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
 {
     private string $parameterName;
 
@@ -59,5 +63,10 @@ class MessageConverterBuilder implements ParameterConverterBuilder
     public function getRequiredReferences(): array
     {
         return [];
+    }
+
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
+    {
+        return new Definition(MessageConverter::class);
     }
 }

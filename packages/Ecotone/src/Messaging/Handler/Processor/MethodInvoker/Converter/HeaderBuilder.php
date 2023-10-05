@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
+use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -16,7 +21,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class HeaderBuilder implements ParameterConverterBuilder
+class HeaderBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
 {
     private function __construct(private string $parameterName, private string $headerName, private bool $isRequired)
     {
@@ -64,5 +69,15 @@ class HeaderBuilder implements ParameterConverterBuilder
             $this->isRequired,
             $referenceSearchService->get(ConversionService::REFERENCE_NAME),
         );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
+    {
+        return new Definition(HeaderConverter::class, [
+            InterfaceParameterReference::fromInstance($interfaceToCall, $interfaceParameter),
+            $this->headerName,
+            $this->isRequired,
+            new Reference(ConversionService::REFERENCE_NAME)
+        ]);
     }
 }

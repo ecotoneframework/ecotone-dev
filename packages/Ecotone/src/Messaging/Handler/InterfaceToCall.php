@@ -53,7 +53,7 @@ class InterfaceToCall
         $classAnnotations = $annotationParser->getAnnotationsForClass($interfaceName);
 
         try {
-            $typeResolver        = TypeResolver::create();
+            $typeResolver        = TypeResolver::createWithAnnotationParser($annotationParser);
             try {
                 $reflectionClass = new ReflectionClass($interfaceName);
                 $reflectionMethod = $reflectionClass->getMethod($methodName);
@@ -61,7 +61,7 @@ class InterfaceToCall
                 throw InvalidArgumentException::create("Interface {$interfaceName} has no method named {$methodName}");
             }
 
-            $parameters = $typeResolver->getMethodParameters($reflectionClass, $methodName, $annotationParser);
+            $parameters = $typeResolver->getMethodParameters($reflectionClass, $methodName);
             $returnType = $typeResolver->getReturnType($reflectionClass, $methodName);
 
             $doesReturnTypeAllowNulls = $reflectionMethod->getReturnType() ? $reflectionMethod->getReturnType()->allowsNull() : true;

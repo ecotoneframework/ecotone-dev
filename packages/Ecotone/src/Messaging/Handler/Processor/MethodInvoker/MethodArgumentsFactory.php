@@ -76,8 +76,11 @@ class MethodArgumentsFactory
      */
     public static function getAnnotationValueConverter(InterfaceParameter $interfaceParameter, InterfaceToCall $interceptedInterface, array $endpointAnnotations): ?ValueBuilder
     {
+        if ($result = static::getConverterForAttributeDefinition($interfaceParameter, $endpointAnnotations)) {
+            return $result;
+        }
+
         $allAnnotations = array_merge(
-            array_map(fn (AttributeDefinition $attributeDefinition) => $attributeDefinition->instance(), $endpointAnnotations),
             $interceptedInterface->getMethodAnnotations(),
             $interceptedInterface->getClassAnnotations()
         );
@@ -88,6 +91,25 @@ class MethodArgumentsFactory
         }
         foreach ($allAnnotations as $endpointAnnotation) {
             if (TypeDescriptor::createFromVariable($endpointAnnotation)->isCompatibleWith($interfaceParameter->getTypeDescriptor())) {
+                return new ValueBuilder($interfaceParameter->getName(), $endpointAnnotation);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param AttributeDefinition[] $endpointAnnotations
+     */
+    public static function getConverterForAttributeDefinition(InterfaceParameter $interfaceParameter, array $endpointAnnotations)
+    {
+        $interfaceParameterType = $interfaceParameter->getTypeDescriptor();
+        foreach ($endpointAnnotations as $endpointAnnotation) {
+            if (TypeDescriptor::create($endpointAnnotation->getClassName())->equals($interfaceParameterType)) {
+                return new ValueBuilder($interfaceParameter->getName(), $endpointAnnotation);
+            }
+        }
+        foreach ($endpointAnnotations as $endpointAnnotation) {
+            if (TypeDescriptor::create($endpointAnnotation->getClassName())->isCompatibleWith($interfaceParameterType)) {
                 return new ValueBuilder($interfaceParameter->getName(), $endpointAnnotation);
             }
         }

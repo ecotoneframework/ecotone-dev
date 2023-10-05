@@ -334,7 +334,7 @@ final class TypeDescriptor implements Type
      *
      * @throws MessagingException
      */
-    private function __construct(string $type)
+    public function __construct(string $type)
     {
         $this->type = $type;
     }

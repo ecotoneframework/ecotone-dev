@@ -5,6 +5,13 @@ namespace Ecotone\Messaging\Handler;
 use Ecotone\AnnotationFinder\AnnotationResolver;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Messaging\Attribute\IgnoreDocblockTypeHint;
+use Ecotone\Messaging\Attribute\IsAbstract;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Error;
 use ReflectionClass;
 use ReflectionException;
@@ -34,16 +41,16 @@ class TypeResolver
     private const THIS_TYPE_HINT = '$this';
     private const NULL_HINT = 'null';
 
-    private ?AnnotationResolver $annotationParser;
+    private AnnotationResolver $annotationParser;
 
-    private function __construct(?AnnotationResolver $annotationParser)
+    private function __construct(AnnotationResolver $annotationParser)
     {
         $this->annotationParser = $annotationParser;
     }
 
     public static function create(): self
     {
-        return new self(null);
+        return new self(new AnnotationResolver\AttributeResolver());
     }
 
     public static function createWithAnnotationParser(AnnotationResolver $annotationParser): self
@@ -51,7 +58,7 @@ class TypeResolver
         return new self($annotationParser);
     }
 
-    public function getMethodParameters(ReflectionClass $analyzedClass, string $methodName, AnnotationResolver $annotationResolver): iterable
+    public function getMethodParameters(ReflectionClass $analyzedClass, string $methodName): iterable
     {
         $parameters = [];
         $reflectionMethod = $analyzedClass->getMethod($methodName);
@@ -63,7 +70,7 @@ class TypeResolver
             );
             $isAnnotation = false;
             if ($parameterType->isClassOrInterface() && ! $parameterType->isCompoundObjectType() && ! $parameterType->isUnionType()) {
-                $classDefinition = ClassDefinition::createUsingAnnotationParser($parameterType, $annotationResolver);
+                $classDefinition = ClassDefinition::createUsingAnnotationParser($parameterType, $this->annotationParser);
                 $isAnnotation = $classDefinition->isAnnotation();
             }
 
@@ -84,6 +91,102 @@ class TypeResolver
                 $parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null,
                 $isAnnotation,
                 $parameterAttributes
+            );
+        }
+
+        return $parameters;
+    }
+
+    public function registerInterfaceToCallDefinition(ContainerMessagingBuilder $builder, InterfaceToCallReference $reference): InterfaceToCallReference
+    {
+        if ($builder->has($reference)) {
+            return $reference;
+        }
+        $interfaceName = $reference->getClassName();
+        $methodName = $reference->getMethodName();
+
+        try {
+            $reflectionClass = new ReflectionClass($interfaceName);
+            $reflectionMethod = self::getMethodOwnerClass($reflectionClass, $methodName)->getMethod($methodName);
+            $parametersReferences = $this->registerMethodParametersDefinitions($builder, $reflectionClass, $methodName);
+            $returnType = $this->getReturnType($reflectionClass, $methodName);
+
+            $classAnnotations = [];
+            foreach ($reflectionClass->getAttributes() as $attribute) {
+                if (class_exists($attribute->getName())) {
+                    $classAnnotations[] = AttributeDefinition::fromReflection($attribute);
+                }
+            }
+            if ($reflectionClass->isAbstract() && ! $reflectionClass->isInterface()) {
+                $classAnnotations[] = new AttributeDefinition(IsAbstract::class);
+            }
+            $methodAnnotations = [];
+            foreach ($reflectionMethod->getAttributes() as $attribute) {
+                if (class_exists($attribute->getName())) {
+                    $methodAnnotations[] = AttributeDefinition::fromReflection($attribute);
+                }
+            }
+
+            $doesReturnTypeAllowNulls = $reflectionMethod->getReturnType() ? $reflectionMethod->getReturnType()->allowsNull() : true;
+            $isStaticallyCalled       = $reflectionMethod->isStatic();
+        } catch (TypeDefinitionException $definitionException) {
+            throw InvalidArgumentException::create("Interface {$interfaceName} has problem with type declaration. {$definitionException->getMessage()}");
+        }
+
+        $builder->register(
+            $reference,
+            new Definition(InterfaceToCall::class, [
+                $reflectionClass->getName(),
+                $reflectionMethod->getName(),
+                $classAnnotations,
+                $methodAnnotations,
+                $parametersReferences,
+                Definition::fromType($returnType),
+                $doesReturnTypeAllowNulls,
+                $isStaticallyCalled
+            ])
+        );
+
+        return $reference;
+    }
+
+    /**
+     * @return InterfaceParameterReference[]
+     */
+    public function registerMethodParametersDefinitions(ContainerMessagingBuilder $builder, ReflectionClass $reflectionClass, string $methodName): array
+    {
+        $parameters = [];
+        $reflectionMethod = $reflectionClass->getMethod($methodName);
+        $docBlockParameterTypeHints = $this->getMethodDocBlockParameterTypeHints($reflectionClass, $reflectionClass, $methodName);
+        foreach ($reflectionMethod->getParameters() as $parameter) {
+            $parameterType = TypeDescriptor::createWithDocBlock(
+                $parameter->getType() ? $this->expandParameterTypeHint($this->getTypeFromReflection($parameter->getType()), $reflectionClass, $reflectionClass, self::getMethodDeclaringClass($reflectionClass, $methodName)) : null,
+                array_key_exists($parameter->getName(), $docBlockParameterTypeHints) ? $docBlockParameterTypeHints[$parameter->getName()] : ''
+            );
+            $isAnnotation = false;
+            if ($parameterType->isClassOrInterface() && ! $parameterType->isCompoundObjectType() && ! $parameterType->isUnionType()) {
+                $classDefinition = ClassDefinition::createUsingAnnotationParser($parameterType, $this->annotationParser);
+                $isAnnotation = $classDefinition->isAnnotation();
+            }
+
+            $parameterAttributes = [];
+            foreach ($parameter->getAttributes() as $attribute) {
+                $parameterAttributes[] = AttributeDefinition::fromReflection($attribute);
+            }
+
+            $parameters[] = $reference = new InterfaceParameterReference($reflectionClass->getName(), $reflectionMethod->getName(), $parameter->getName());
+
+            $builder->register(
+                $reference,
+                new Definition(InterfaceParameter::class, [
+                    $parameter->getName(),
+                    Definition::fromType($parameterType),
+                    $parameter->getType() ? $parameter->getType()->allowsNull() : true,
+                    $parameter->isDefaultValueAvailable(),
+                    $parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null,
+                    $isAnnotation,
+                    $parameterAttributes
+                ])
             );
         }
 

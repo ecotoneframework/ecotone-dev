@@ -128,7 +128,7 @@ class EcotoneProvider extends ServiceProvider
         foreach ($configuration->getRegisteredGateways() as $registeredGateway) {
             $this->app->singleton(
                 $registeredGateway->getReferenceName(),
-                function ($app) use ($registeredGateway, $cacheDirectory) {
+                function ($app) use ($registeredGateway) {
                     return ProxyFactory::createFor(
                         $registeredGateway->getReferenceName(),
                         $this->app,

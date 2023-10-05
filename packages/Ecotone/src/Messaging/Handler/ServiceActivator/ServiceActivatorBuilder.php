@@ -212,11 +212,10 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
     public function compile(ContainerMessagingBuilder $builder): Reference|null
     {
-        if ($this->directObjectReference || $this->isStaticallyCalled()) {
+        if ($this->directObjectReference) {
             return null;
         }
 
-        $objectToCallReference = new Reference($this->objectToInvokeReferenceName);
         $className = $this->methodNameOrInterfaceToCall instanceof InterfaceToCall ? $this->methodNameOrInterfaceToCall->getInterfaceName() : $this->objectToInvokeReferenceName;
         $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
 
@@ -234,7 +233,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         }
 
         $methodInvokerDefinition = new Definition(MethodInvoker::class, [
-            $objectToCallReference,
+            $this->isStaticallyCalled() ? $this->objectToInvokeReferenceName : new Reference($this->objectToInvokeReferenceName),
             $this->getMethodName(),
             $compiledMethodParameterConverters,
             $interfaceToCallReference,

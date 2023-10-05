@@ -52,8 +52,8 @@ class PhpDiContainerBuilder implements ContainerImplementation
                 ->constructor(...$this->resolveArgument($argument->getConstructorArguments()));
         } else if (\is_array($argument)) {
             $resolvedArguments = [];
-            foreach ($argument as $value) {
-                $resolvedArguments[] = $this->resolveArgument($value);
+            foreach ($argument as $index =>$value) {
+                $resolvedArguments[$index] = $this->resolveArgument($value);
             }
             return $resolvedArguments;
         } else if ($argument instanceof Reference) {

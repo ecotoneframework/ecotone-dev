@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -19,7 +19,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class ReferenceBuilder implements ParameterConverterBuilder, CompilableBuilder
+class ReferenceBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
 {
     private string $parameterName;
     private string $referenceServiceName;
@@ -72,7 +72,7 @@ class ReferenceBuilder implements ParameterConverterBuilder, CompilableBuilder
         return [$this->referenceServiceName];
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Definition
     {
         return new Definition(ValueConverter::class, [new Reference($this->referenceServiceName)]);
     }

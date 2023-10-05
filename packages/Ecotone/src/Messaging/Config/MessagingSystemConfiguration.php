@@ -255,7 +255,7 @@ final class MessagingSystemConfiguration implements Configuration
         if ($cacheDirectory = $applicationConfiguration->getCacheDirectoryPath()) {
             $container = new ContainerBuilder();
             $builder->process(new PhpDiContainerBuilder($container));
-            $containerClassName = 'EcotoneContainer_'.Uuid::uuid4()->getInteger()->toString();
+            $containerClassName = \uniqid('EcotoneContainer_');
             $container->enableCompilation($cacheDirectory, $containerClassName);
             $container->build();
             $this->containerFactory = new CachedContainerFactory($containerClassName, $cacheDirectory.DIRECTORY_SEPARATOR.$containerClassName.'.php');

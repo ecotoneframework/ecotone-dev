@@ -7,10 +7,12 @@ use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Messaging\Attribute\IgnoreDocblockTypeHint;
 use Ecotone\Messaging\Attribute\IsAbstract;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\AttributeReference;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Error;
 use ReflectionClass;
@@ -114,16 +116,16 @@ class TypeResolver
             $classAnnotations = [];
             foreach ($reflectionClass->getAttributes() as $attribute) {
                 if (class_exists($attribute->getName())) {
-                    $classAnnotations[] = AttributeDefinition::fromReflection($attribute);
+                    $classAnnotations[] = self::registerAttributeDefinition($builder, AttributeDefinition::fromReflection($attribute), $interfaceName, null);
                 }
             }
             if ($reflectionClass->isAbstract() && ! $reflectionClass->isInterface()) {
-                $classAnnotations[] = new AttributeDefinition(IsAbstract::class);
+                $classAnnotations[] = self::registerAttributeDefinition($builder, new AttributeDefinition(IsAbstract::class), $interfaceName, null);
             }
             $methodAnnotations = [];
             foreach ($reflectionMethod->getAttributes() as $attribute) {
                 if (class_exists($attribute->getName())) {
-                    $methodAnnotations[] = AttributeDefinition::fromReflection($attribute);
+                    $methodAnnotations[] = self::registerAttributeDefinition($builder, AttributeDefinition::fromReflection($attribute), $interfaceName, $methodName);
                 }
             }
 
@@ -191,6 +193,15 @@ class TypeResolver
         }
 
         return $parameters;
+    }
+
+    private function registerAttributeDefinition(ContainerMessagingBuilder $builder, AttributeDefinition $attributeDefinition, string $className, ?string $methodName = null): Definition|Reference
+    {
+        $reference = new AttributeReference($attributeDefinition->getClassName(), $className, $methodName);
+        if (! $builder->has($reference)) {
+            $builder->register($reference, $attributeDefinition);
+        }
+        return $attributeDefinition;
     }
 
     /**

@@ -23,24 +23,6 @@ class Definition
         return $this->className;
     }
 
-//    public function instance(): object
-//    {
-//        return new $this->className(...$this->constructorArguments);
-//    }
-//
-//    protected function resolveArguments(array $argumentsToResolve): array
-//    {
-//        $arguments = [];
-//        foreach ($argumentsToResolve as $argument) {
-//            if ($argument instanceof Definition) {
-//                $arguments[] = $argument->instance();
-//            } elseif (is_array($argument)) {
-//                $arguments[] = $this->resolveArguments($argument);
-//            }
-//        }
-//
-//        return $arguments;
-//    }
     public function getConstructorArguments(): array
     {
         return $this->constructorArguments;

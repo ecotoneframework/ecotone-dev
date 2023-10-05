@@ -212,7 +212,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
     public function compile(ContainerMessagingBuilder $builder): Reference|null
     {
-        if ($this->directObjectReference || $this->isStaticallyCalled() || $this->orderedAroundInterceptors) {
+        if ($this->directObjectReference || $this->isStaticallyCalled()) {
             return null;
         }
 
@@ -255,12 +255,21 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             1,
         ]);
         if ($this->orderedAroundInterceptors) {
+            $interceptors = [];
+            foreach (AroundInterceptorReference::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
+                if ($interceptor = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $interfaceToCall)) {
+                    $interceptors[] = $interceptor;
+                } else {
+                    // Cannot continue without every interceptor being compilable
+                    return null;
+                }
+            }
 
             $handlerDefinition = new Definition(HandlerReplyProcessor::class, [
                 $handlerDefinition
             ]);
             $handlerDefinition = new Definition(AroundInterceptorHandler::class, [
-                $this->orderedAroundInterceptors, // TODO
+                $interceptors,
                 $handlerDefinition,
             ]);
         }

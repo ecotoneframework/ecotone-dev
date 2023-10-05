@@ -209,6 +209,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         foreach ($preparedGateways as $referenceName => $preparedGatewaysForReference) {
             $referenceName = $preparedGatewaysForReference[0]->getReferenceName();
             $nonProxyCombinedGatewaysMethods = [];
+            /** @TODO build gateway when requested and cache it internally. No need to build everything at boot time */
             foreach ($preparedGatewaysForReference as $proxyBuilder) {
                 $nonProxyCombinedGatewaysMethods[$proxyBuilder->getRelatedMethodName()] =
                     $proxyBuilder->buildWithoutProxyObject($referenceSearchService, $channelResolver);

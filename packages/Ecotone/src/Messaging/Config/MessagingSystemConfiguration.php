@@ -849,7 +849,7 @@ final class MessagingSystemConfiguration implements Configuration
         return $messagingSystemConfiguration;
     }
 
-    private static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
+    public static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
     {
         if (!$serviceCacheConfiguration->shouldUseCache()) {
             return;

@@ -64,12 +64,7 @@ class MethodInterceptor implements InterceptorWithPointCut
     }
 
     /**
-     * @param InterfaceToCall $interceptedInterface
-     * @param array           $endpointAnnotations
-     *
-     * @return static
-     * @throws MessagingException
-     * @throws InvalidArgumentException
+     * @inheritDoc
      */
     public function addInterceptedInterfaceToCall(InterfaceToCall $interceptedInterface, array $endpointAnnotations): self
     {

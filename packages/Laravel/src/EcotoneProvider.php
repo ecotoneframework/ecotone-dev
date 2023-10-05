@@ -50,10 +50,6 @@ class EcotoneProvider extends ServiceProvider
         $useCache               = in_array($environment, ['prod', 'production']) ? true : Config::get('ecotone.cacheConfiguration');
         $cacheDirectory         = $this->getCacheDirectoryPath();
 
-        if (! is_dir($cacheDirectory)) {
-            mkdir($cacheDirectory, 0775, true);
-        }
-
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
         $skippedModules = Config::get('ecotone.skippedModulePackageNames');

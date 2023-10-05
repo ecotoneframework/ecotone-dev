@@ -49,7 +49,8 @@ class MessagingConfigurationTest extends TestCase
         EcotoneLite::bootstrap(
             containerOrAvailableServices: $container,
             configuration: $serviceConfiguration,
-            allowGatewaysToBeRegisteredInContainer: true
+            allowGatewaysToBeRegisteredInContainer: true,
+            pathToRootCatalog: __DIR__
         );
 
         $this->assertInstanceOf(

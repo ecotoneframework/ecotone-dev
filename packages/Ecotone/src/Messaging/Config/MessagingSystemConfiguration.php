@@ -852,6 +852,8 @@ final class MessagingSystemConfiguration implements Configuration
     public static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
     {
         if (!$serviceCacheConfiguration->shouldUseCache()) {
+            /** We need to clean, in case stale cache exists. So enabling cache will generate fresh one */
+            self::cleanCache($serviceCacheConfiguration);
             return;
         }
 
@@ -866,12 +868,6 @@ final class MessagingSystemConfiguration implements Configuration
 
     public static function cleanCache(ServiceCacheConfiguration $serviceCacheConfiguration): void
     {
-        if (!$serviceCacheConfiguration->shouldUseCache()) {
-            return;
-        }
-
-        self::prepareCacheDirectory($serviceCacheConfiguration);
-        /** @TODO verify if deleteDirectory can be enabled */
         self::deleteFiles($serviceCacheConfiguration->getPath(), false);
     }
 

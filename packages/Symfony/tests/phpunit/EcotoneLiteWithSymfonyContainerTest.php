@@ -17,7 +17,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 /**
  * @internal
  */
-final class EcotoneLiteTest extends KernelTestCase
+final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
 {
     public function test_when_messaging_configured_in_container_replacing_it_with_test_one()
     {

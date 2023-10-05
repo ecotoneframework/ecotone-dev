@@ -753,8 +753,7 @@ final class MessagingSystemConfiguration implements Configuration
         ServiceCacheConfiguration $serviceCacheConfiguration,
         array $userLandClassesToRegister = [],
         bool $enableTestPackage = false
-    ): Configuration
-    {
+    ): Configuration {
         $cachedVersion = self::getCachedVersion($serviceCacheConfiguration);
         if ($cachedVersion) {
             return $cachedVersion;
@@ -793,8 +792,7 @@ final class MessagingSystemConfiguration implements Configuration
         ConfigurationVariableService $configurationVariableService,
         ServiceConfiguration $serviceConfiguration,
         ServiceCacheConfiguration $serviceCacheConfiguration
-    ): Configuration
-    {
+    ): Configuration {
         $preparationInterfaceRegistry = InterfaceToCallRegistry::createWith($annotationFinder);
 
         return self::prepareWithModuleRetrievingService(
@@ -811,7 +809,7 @@ final class MessagingSystemConfiguration implements Configuration
 
     public static function getCachedVersion(ServiceCacheConfiguration $serviceCacheConfiguration): ?MessagingSystemConfiguration
     {
-        if (!$serviceCacheConfiguration->shouldUseCache()) {
+        if (! $serviceCacheConfiguration->shouldUseCache()) {
             return null;
         }
 
@@ -831,8 +829,7 @@ final class MessagingSystemConfiguration implements Configuration
         InterfaceToCallRegistry $preparationInterfaceRegistry,
         ServiceConfiguration $applicationConfiguration,
         ServiceCacheConfiguration $serviceCacheConfiguration
-    ): MessagingSystemConfiguration
-    {
+    ): MessagingSystemConfiguration {
         self::prepareCacheDirectory($serviceCacheConfiguration);
         $messagingSystemConfiguration = new self(
             $moduleConfigurationRetrievingService,
@@ -851,7 +848,7 @@ final class MessagingSystemConfiguration implements Configuration
 
     public static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
     {
-        if (!$serviceCacheConfiguration->shouldUseCache()) {
+        if (! $serviceCacheConfiguration->shouldUseCache()) {
             /** We need to clean, in case stale cache exists. So enabling cache will generate fresh one */
             self::cleanCache($serviceCacheConfiguration);
             return;

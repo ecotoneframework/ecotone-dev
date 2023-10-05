@@ -118,7 +118,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
             }
             $referenceSearchService->registerReferencedObject(
                 $gateway->getReferenceName(),
-                fn($referenceName) => self::createGatewayByName(
+                fn ($referenceName) => self::createGatewayByName(
                     $referenceName,
                     $nonProxyGateways,
                     $referenceSearchService->get(ServiceCacheConfiguration::REFERENCE_NAME)
@@ -297,8 +297,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         string $gatewayReferenceName,
         array $nonProxyGateways,
         ServiceCacheConfiguration $serviceCacheConfiguration
-    ): object
-    {
+    ): object {
         $proxyFactory = ProxyFactory::createWithCache($serviceCacheConfiguration);
 
         $nonProxyCombinedGateway = $nonProxyGateways[$gatewayReferenceName];

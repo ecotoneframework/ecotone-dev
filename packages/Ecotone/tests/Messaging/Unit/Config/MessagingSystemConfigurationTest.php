@@ -1282,7 +1282,10 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withDefaultErrorChannel('error');
         $messagingSystemConfiguration = MessagingSystemConfiguration::prepareWithModuleRetrievingService(
-            InMemoryModuleMessaging::createEmpty(), InterfaceToCallRegistry::createEmpty(), $applicationConfiguration, ServiceCacheConfiguration::noCache()
+            InMemoryModuleMessaging::createEmpty(),
+            InterfaceToCallRegistry::createEmpty(),
+            $applicationConfiguration,
+            ServiceCacheConfiguration::noCache()
         );
 
         $inputMessageChannelName = 'inputChannelName';

@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Psr\Container\ContainerInterface;

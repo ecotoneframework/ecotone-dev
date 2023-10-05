@@ -3,8 +3,6 @@
 namespace Test\Ecotone\Lite;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\EcotoneLiteApplication;
-use Ecotone\Lite\EcotoneLiteConfiguration;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;

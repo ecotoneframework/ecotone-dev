@@ -333,7 +333,8 @@ class GatewayProxyBuilder implements InterceptedEndpoint
                 $this->referenceName,
                 $this->interfaceName,
                 [$this->getRelatedMethodName() => $this->buildWithoutProxyObject(
-                    $referenceSearchService, $channelResolver
+                    $referenceSearchService,
+                    $channelResolver
                 )]
             )
         );

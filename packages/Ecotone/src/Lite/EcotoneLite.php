@@ -16,7 +16,6 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -193,7 +192,7 @@ final class EcotoneLite
 
         $referenceSearchService = new PsrContainerReferenceSearchService($container, [
             'logger' => new NullLogger(),
-            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration
+            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
         ]);
 
         $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration($referenceSearchService);

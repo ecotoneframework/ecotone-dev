@@ -6,11 +6,9 @@ use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\EventBus;
 use Psr\Log\NullLogger;
 
 /**
@@ -40,13 +38,13 @@ class InMemoryReferenceSearchService implements ReferenceSearchService
         if (! array_key_exists(ConversionService::REFERENCE_NAME, $objectsToResolve)) {
             $objectsToResolve[ConversionService::REFERENCE_NAME] = AutoCollectionConversionService::createEmpty();
         }
-        if (! array_key_exists(ServiceCacheConfiguration::REFERENCE_NAME, $objectsToResolve) && !self::hasInOriginalReferenceService(ServiceCacheConfiguration::REFERENCE_NAME, $referenceSearchService)) {
+        if (! array_key_exists(ServiceCacheConfiguration::REFERENCE_NAME, $objectsToResolve) && ! self::hasInOriginalReferenceService(ServiceCacheConfiguration::REFERENCE_NAME, $referenceSearchService)) {
             $objectsToResolve[ServiceCacheConfiguration::REFERENCE_NAME] = new ServiceCacheConfiguration(
                 $serviceConfiguration->getCacheDirectoryPath(),
                 false
             );
         }
-        if (! array_key_exists(LoggingHandlerBuilder::LOGGER_REFERENCE, $objectsToResolve) && !self::hasInOriginalReferenceService(LoggingHandlerBuilder::LOGGER_REFERENCE, $referenceSearchService)) {
+        if (! array_key_exists(LoggingHandlerBuilder::LOGGER_REFERENCE, $objectsToResolve) && ! self::hasInOriginalReferenceService(LoggingHandlerBuilder::LOGGER_REFERENCE, $referenceSearchService)) {
             $objectsToResolve[LoggingHandlerBuilder::LOGGER_REFERENCE] = new NullLogger();
         }
         $this->referenceSearchService = $referenceSearchService;

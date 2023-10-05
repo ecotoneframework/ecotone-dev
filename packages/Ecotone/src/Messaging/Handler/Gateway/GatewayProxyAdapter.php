@@ -3,7 +3,6 @@
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Config\NonProxyCombinedGateway;
-use InvalidArgumentException;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
 
 class GatewayProxyAdapter implements AdapterInterface

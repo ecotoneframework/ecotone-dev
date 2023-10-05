@@ -2,23 +2,23 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
-
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 
-use Ecotone\Messaging\Config\ProxyGenerator;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 
 use Ecotone\Messaging\ConfigurationVariableService;
+
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -118,7 +118,7 @@ class EcotoneProvider extends ServiceProvider
         );
         $this->app->singleton(
             ServiceCacheConfiguration::REFERENCE_NAME,
-            fn() => $serviceCacheConfiguration
+            fn () => $serviceCacheConfiguration
         );
 
         foreach ($configuration->getRegisteredGateways() as $registeredGateway) {

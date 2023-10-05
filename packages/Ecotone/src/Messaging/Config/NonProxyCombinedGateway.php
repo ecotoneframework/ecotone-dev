@@ -21,8 +21,7 @@ class NonProxyCombinedGateway
         string $referenceName,
         string $interfaceName,
         array $methodGateways
-    )
-    {
+    ) {
         $this->referenceName  = $referenceName;
         $this->methodGateways = $methodGateways;
         $this->interfaceName = $interfaceName;

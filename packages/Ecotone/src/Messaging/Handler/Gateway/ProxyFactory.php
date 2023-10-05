@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\EcotoneRemoteAdapter;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use ProxyManager\Configuration;
-use ProxyManager\Factory\LazyLoadingValueHolderFactory;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
 use ProxyManager\Factory\RemoteObjectFactory;
 use ProxyManager\FileLocator\FileLocator;
@@ -17,8 +16,6 @@ use ProxyManager\Proxy\RemoteObjectInterface;
 use ProxyManager\Signature\ClassSignatureGenerator;
 use ProxyManager\Signature\SignatureGenerator;
 use Psr\Container\ContainerInterface;
-use Serializable;
-use stdClass;
 
 /**
  * Class LazyProxyConfiguration

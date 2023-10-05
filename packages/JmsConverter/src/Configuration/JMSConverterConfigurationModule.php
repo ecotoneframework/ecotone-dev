@@ -96,14 +96,8 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
                 $jmsConverterConfiguration = $extensionObject;
             }
         }
-        $cacheDirectoryPath = null;
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof ServiceConfiguration) {
-                $cacheDirectoryPath = $extensionObject->getCacheDirectoryPath();
-            }
-        }
 
-        $messagingConfiguration->registerConverter(new JMSConverterBuilder($this->jmsHandlerAdapters, $jmsConverterConfiguration, $cacheDirectoryPath));
+        $messagingConfiguration->registerConverter(new JMSConverterBuilder($this->jmsHandlerAdapters, $jmsConverterConfiguration));
     }
 
     public function canHandle($extensionObject): bool

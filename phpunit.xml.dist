@@ -53,6 +53,9 @@
     <testsuite name="Redis tests">
       <directory>packages/Redis/tests</directory>
     </testsuite>
+    <testsuite name="Lite Application tests">
+      <directory>packages/LiteApplication/tests</directory>
+    </testsuite>
     <testsuite name="Monorepo tests">
       <directory>Monorepo/CrossModuleTests/Tests</directory>
     </testsuite>

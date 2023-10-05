@@ -7,6 +7,7 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendGateway;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\NamedMessageChannel;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverter;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -763,7 +764,7 @@ class GatewayProxyBuilderTest extends MessagingTest
                 AroundInterceptorReference::create('transactionInterceptor', InterfaceToCall::create(TransactionInterceptor::class, 'transactional'), 1, Transactional::class, [])
             );
 
-        $this->assertEquals([ProxyFactory::REFERENCE_NAME, 'transactionInterceptor'], $gatewayProxyBuilder->getRequiredReferences());
+        $this->assertEquals([ServiceCacheConfiguration::REFERENCE_NAME, 'transactionInterceptor'], $gatewayProxyBuilder->getRequiredReferences());
 
         $gatewayProxy = $gatewayProxyBuilder->build(
             InMemoryReferenceSearchService::createWith([

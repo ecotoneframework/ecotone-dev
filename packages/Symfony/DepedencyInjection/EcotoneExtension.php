@@ -15,6 +15,7 @@ class EcotoneExtension extends Extension
 
         $container->setParameter(EcotoneCompilerPass::WORKING_NAMESPACES_CONFIG, $config['namespaces']);
         $container->setParameter(EcotoneCompilerPass::SERVICE_NAME, $config['serviceName']);
+        $container->setParameter(EcotoneCompilerPass::CACHE_CONFIGURATION, $config['cacheConfiguration']);
         $container->setParameter(EcotoneCompilerPass::FAIL_FAST_CONFIG, $config['failFast']);
         $container->setParameter(EcotoneCompilerPass::TEST, $config['test']);
         $container->setParameter(EcotoneCompilerPass::LOAD_SRC, $config['loadSrcNamespaces']);

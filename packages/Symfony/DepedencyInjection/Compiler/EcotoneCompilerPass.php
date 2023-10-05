@@ -8,12 +8,14 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ProxyGenerator;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\SymfonyBundle\DepedencyInjection\MessagingEntrypointCommand;
@@ -29,6 +31,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
 {
     public const  SERVICE_NAME                           = 'ecotone.service_name';
     public const  WORKING_NAMESPACES_CONFIG          = 'ecotone.namespaces';
+    public const  CACHE_CONFIGURATION                   = 'ecotone.cache_configuration';
     public const  FAIL_FAST_CONFIG                   = 'ecotone.fail_fast';
     public const  TEST                   = 'ecotone.test';
     public const  LOAD_SRC                           = 'ecotone.load_src';
@@ -37,8 +40,6 @@ class EcotoneCompilerPass implements CompilerPassInterface
     public const  DEFAULT_MEMORY_LIMIT               = 'ecotone.defaultMemoryLimit';
     public const  DEFAULT_CONNECTION_EXCEPTION_RETRY = 'ecotone.defaultChannelPollRetry';
     public const  SKIPPED_MODULE_PACKAGES   = 'ecotone.skippedModulePackageNames';
-    public const         SRC_CATALOG                        = 'src';
-    public const         CACHE_DIRECTORY_SUFFIX             = DIRECTORY_SEPARATOR . 'ecotone';
 
     /**
      * @param Container $container
@@ -52,7 +53,6 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
     public static function getMessagingConfiguration(ContainerInterface $container, bool $useCachedVersion = false): Configuration
     {
-        $ecotoneCacheDirectory    = $container->getParameter('kernel.cache_dir') . self::CACHE_DIRECTORY_SUFFIX;
         $skippedModules = $container->getParameter(self::SKIPPED_MODULE_PACKAGES);
         if (! $container->getParameter(self::TEST)) {
             $skippedModules[] = ModulePackageList::TEST_PACKAGE;
@@ -61,11 +61,11 @@ class EcotoneCompilerPass implements CompilerPassInterface
         /** @TODO Ecotone 2.0 use ServiceContext to configure Symfony */
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
-            ->withFailFast($container->getParameter('kernel.environment') === 'prod' ? false : $container->getParameter(self::FAIL_FAST_CONFIG))
+            ->withFailFast(in_array($container->getParameter('kernel.environment'), ['prod', 'production']) ? false : $container->getParameter(self::FAIL_FAST_CONFIG))
             ->withLoadCatalog($container->getParameter(self::LOAD_SRC) ? 'src' : '')
             ->withNamespaces($container->getParameter(self::WORKING_NAMESPACES_CONFIG))
             ->withSkippedModulePackageNames($skippedModules)
-            ->withCacheDirectoryPath($ecotoneCacheDirectory);
+            ->withCacheDirectoryPath($container->getParameter('kernel.cache_dir'));
 
         if ($container->getParameter(self::SERVICE_NAME)) {
             $serviceConfiguration = $serviceConfiguration
@@ -101,7 +101,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
             self::getRootProjectPath($container),
             $configurationVariableService,
             $serviceConfiguration,
-            $useCachedVersion,
+            new ServiceCacheConfiguration($serviceConfiguration->getCacheDirectoryPath(), $useCachedVersion),
         );
     }
 
@@ -117,6 +117,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
 
         $definition = new $definition();
         $definition->setClass(CacheCleaner::class);
+        $definition->addArgument(new Reference(ServiceCacheConfiguration::REFERENCE_NAME));
         $definition->setPublic(true);
         $definition->addTag('kernel.cache_clearer');
         $container->setDefinition(CacheCleaner::class, $definition);
@@ -134,15 +135,31 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $definition->addArgument(new Reference('service_container'));
         $container->setDefinition(ReferenceSearchService::class, $definition);
 
+        $useCache = in_array($container->getParameter('kernel.environment'), ['prod', 'production']) ? true : $container->getParameter(self::CACHE_CONFIGURATION);
+        $definition = new Definition();
+        $definition->setClass(ServiceCacheConfiguration::class);
+        $definition->addArgument('%kernel.cache_dir%');
+        $definition->addArgument($useCache);
+        $container->setDefinition(ServiceCacheConfiguration::REFERENCE_NAME, $definition);
+
         foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
+            if ($useCache) {
+                // Proxy warm up
+                ProxyFactory::createFor(
+                    $gatewayProxyBuilder->getReferenceName(),
+                    $container,
+                    $gatewayProxyBuilder->getInterfaceName(),
+                    new ServiceCacheConfiguration($container->getParameter('kernel.cache_dir'), true)
+                );
+            }
+
             $definition = new Definition();
-            $definition->setFactory([ProxyGenerator::class, 'createFor']);
+            $definition->setFactory([ProxyFactory::class, 'createFor']);
             $definition->setClass($gatewayProxyBuilder->getInterfaceName());
             $definition->addArgument($gatewayProxyBuilder->getReferenceName());
             $definition->addArgument(new Reference('service_container'));
             $definition->addArgument($gatewayProxyBuilder->getInterfaceName());
-            $definition->addArgument('%kernel.cache_dir%'.self::CACHE_DIRECTORY_SUFFIX);
-            $definition->addArgument($container->getParameter(self::FAIL_FAST_CONFIG));
+            $definition->addArgument(new Reference(ServiceCacheConfiguration::REFERENCE_NAME));
             $definition->setPublic(true);
 
             $container->setDefinition($gatewayProxyBuilder->getReferenceName(), $definition);

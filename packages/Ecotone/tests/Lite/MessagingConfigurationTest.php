@@ -65,7 +65,7 @@ class MessagingConfigurationTest extends TestCase
             ->withSkippedModulePackageNames(ModulePackageList::allPackages());
 
         return MessagingSystemConfiguration::prepare(
-            realpath('/tmp/' . Uuid::uuid4()->toString()),
+            __DIR__,
             InMemoryConfigurationVariableService::createEmpty(),
             $applicationConfiguration,
             new ServiceCacheConfiguration($applicationConfiguration->getCacheDirectoryPath(), $useCachedVersion),

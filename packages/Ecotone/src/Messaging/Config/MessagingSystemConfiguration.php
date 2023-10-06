@@ -17,13 +17,11 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerFactory;
+use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
-use Ecotone\Messaging\Config\Container\Implementations\CachedContainerFactory;
 use Ecotone\Messaging\Config\Container\Implementations\CachedContainerStrategy;
 use Ecotone\Messaging\Config\Container\Implementations\InMemoryContainerStrategy;
-use Ecotone\Messaging\Config\Container\Implementations\InMemoryPhpDiContainerFactory;
 use Ecotone\Messaging\Config\Container\Implementations\PhpDiContainerImplementation;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
@@ -161,7 +159,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $consoleCommands = [];
 
-    private ?ContainerFactory $containerFactory = null;
+    private ?ContainerHydrator $containerFactory = null;
 
     /**
      * @param object[] $extensionObjects

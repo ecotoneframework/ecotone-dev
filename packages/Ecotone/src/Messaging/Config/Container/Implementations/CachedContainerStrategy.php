@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Container\Implementations;
 
-use Ecotone\Messaging\Config\Container\ContainerFactory;
+use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 
 class CachedContainerStrategy implements ContainerCachingStrategy
@@ -14,12 +14,12 @@ class CachedContainerStrategy implements ContainerCachingStrategy
         }
     }
 
-    public function dump(\DI\ContainerBuilder $containerBuilder): ContainerFactory
+    public function dump(\DI\ContainerBuilder $containerBuilder): ContainerHydrator
     {
         $containerClassName = \uniqid('EcotoneContainer_');
         $containerBuilder->enableCompilation($this->cacheConfiguration->getPath(), $containerClassName);
         $containerBuilder->writeProxiesToFile(true, $this->cacheConfiguration->getPath());
         $containerBuilder->build();
-        return new CachedContainerFactory($containerClassName);
+        return new CachedContainerHydrator($containerClassName);
     }
 }

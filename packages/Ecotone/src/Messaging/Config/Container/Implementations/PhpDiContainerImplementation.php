@@ -5,7 +5,7 @@ namespace Ecotone\Messaging\Config\Container\Implementations;
 use DI\ContainerBuilder;
 use DI\Factory\RequestedEntry;
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\ContainerFactory;
+use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -23,7 +23,7 @@ class PhpDiContainerImplementation implements ContainerImplementation
     /**
      * @inheritDoc
      */
-    public function process(array $definitions, array $externalReferences): ContainerFactory
+    public function process(array $definitions, array $externalReferences): ContainerHydrator
     {
         $phpDiDefinitions = [];
 

@@ -45,7 +45,7 @@ class ContainerMessagingBuilder
         return $this->definitions[(string) $id];
     }
 
-    public function process(ContainerImplementation $containerImplementation): ContainerFactory
+    public function process(ContainerImplementation $containerImplementation): ContainerHydrator
     {
         return $containerImplementation->process($this->definitions, $this->externalReferences);
     }

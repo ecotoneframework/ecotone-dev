@@ -2,12 +2,12 @@
 
 namespace Ecotone\Messaging\Config\Container\Implementations;
 
-use Ecotone\Messaging\Config\Container\ContainerFactory;
+use Ecotone\Messaging\Config\Container\ContainerHydrator;
 
 class InMemoryContainerStrategy implements ContainerCachingStrategy
 {
-    public function dump(\DI\ContainerBuilder $containerBuilder): ContainerFactory
+    public function dump(\DI\ContainerBuilder $containerBuilder): ContainerHydrator
     {
-        return new InMemoryPhpDiContainerFactory($containerBuilder);
+        return new InMemoryPhpDiContainerHydrator($containerBuilder);
     }
 }

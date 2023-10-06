@@ -2,11 +2,11 @@
 
 namespace Ecotone\Messaging\Config\Container\Implementations;
 
-use Ecotone\Messaging\Config\Container\ContainerFactory;
+use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Psr\Container\ContainerInterface;
 
-class CachedContainerFactory implements ContainerFactory
+class CachedContainerHydrator implements ContainerHydrator
 {
     public function __construct(private string $containerClassName)
     {

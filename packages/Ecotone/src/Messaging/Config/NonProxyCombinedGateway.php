@@ -31,8 +31,7 @@ class NonProxyCombinedGateway
         array $methodGateways,
         ReferenceSearchService $referenceSearchService,
         ChannelResolver $channelResolver
-    ): self
-    {
+    ): self {
         return new self($referenceName, $interfaceName, $methodGateways, $referenceSearchService, $channelResolver);
     }
 

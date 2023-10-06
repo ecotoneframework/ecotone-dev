@@ -30,7 +30,7 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~1.107.0",
+        "ecotone/dbal": "~1.107.1",
         "prooph/pdo-event-store": "^1.15.1"
     },
     "require-dev": {
@@ -49,7 +49,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.107.0-dev"
+            "dev-main": "1.107.1-dev"
         },
         "ecotone": {
             "repository": "pdo-event-sourcing"

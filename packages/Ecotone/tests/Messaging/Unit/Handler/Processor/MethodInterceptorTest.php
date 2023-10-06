@@ -4,6 +4,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AttributeBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
@@ -43,9 +44,7 @@ class MethodInterceptorTest extends TestCase
 
         $this->assertEquals(
             [
-                PayloadBuilder::create('amount'),
-                AllHeadersBuilder::createWith('metadata'),
-                new ValueBuilder('beforeMultiplyCalculation', new BeforeMultiplyCalculation(2)),
+                new AttributeBuilder('beforeMultiplyCalculation', new BeforeMultiplyCalculation(2), Calculator::class, 'calculate'),
             ],
             $methodInterceptor->addInterceptedInterfaceToCall(InterfaceToCall::create(Calculator::class, 'calculate'), [])
                 ->getInterceptingObject()
@@ -66,33 +65,11 @@ class MethodInterceptorTest extends TestCase
 
         $this->assertEquals(
             [
-                new ValueBuilder('beforeMultiplyCalculation', new BeforeMultiplyCalculation(2)),
-                new ValueBuilder('afterMultiplyCalculation', new AfterMultiplyCalculation(2)),
+                new AttributeBuilder('beforeMultiplyCalculation', new BeforeMultiplyCalculation(2), Calculator::class, 'calculate'),
+                new AttributeBuilder('afterMultiplyCalculation', new AfterMultiplyCalculation(2), Calculator::class, 'calculate'),
                 new ValueBuilder('powerCalculation', null),
             ],
             $methodInterceptor->addInterceptedInterfaceToCall(InterfaceToCall::create(Calculator::class, 'calculate'), [])
-                ->getInterceptingObject()
-                ->getParameterConverters()
-        );
-    }
-
-    public function test_adding_reference_parameter_converters()
-    {
-        $methodInterceptor = MethodInterceptor::create(
-            ServiceActivatorInterceptorWithServicesExample::class,
-            InterfaceToCall::create(ServiceActivatorInterceptorWithServicesExample::class, 'doSomethingBefore'),
-            ServiceActivatorBuilder::create(ServiceActivatorInterceptorWithServicesExample::class, InterfaceToCall::create(ServiceActivatorInterceptorWithServicesExample::class, 'doSomethingBefore')),
-            1,
-            ''
-        );
-
-        $this->assertEquals(
-            [
-                PayloadBuilder::create('name'),
-                AllHeadersBuilder::createWith('metadata'),
-                ReferenceBuilder::create('stdClass', stdClass::class),
-            ],
-            $methodInterceptor->addInterceptedInterfaceToCall(InterfaceToCall::create(CalculatorInterceptor::class, 'multiplyBefore'), [])
                 ->getInterceptingObject()
                 ->getParameterConverters()
         );

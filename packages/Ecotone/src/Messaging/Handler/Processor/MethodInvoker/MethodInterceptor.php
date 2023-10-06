@@ -73,12 +73,11 @@ class MethodInterceptor implements InterceptorWithPointCut
 
         if ($interceptedMessageHandler instanceof MessageHandlerBuilderWithParameterConverters) {
             $interceptedMessageHandler->withMethodParameterConverters(
-                MethodArgumentsFactory::createDefaultMethodParameters(
+                MethodArgumentsFactory::createInterceptedInterfaceAnnotationMethodParameters(
                     $this->interceptorInterfaceToCall,
                     $interceptedMessageHandler->getParameterConverters(),
                     $endpointAnnotations,
                     $interceptedInterface,
-                    false
                 )
             );
         }

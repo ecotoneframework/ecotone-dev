@@ -100,7 +100,6 @@ jobs:
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Benchmark PR
-        shell: bash
         env:
           PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main' || '' }}"
         run: |

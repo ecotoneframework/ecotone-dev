@@ -204,18 +204,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         return InMemoryChannelResolver::create($channels);
     }
 
-    /**
-     * @param GatewayProxyBuilder[][] $preparedGateways
-     * @param ReferenceSearchService $referenceSearchService
-     * @param ChannelResolver $channelResolver
-     * @return NonProxyCombinedGateway[]
-     * @throws MessagingException
-     */
-    private static function configureGateways(array $preparedGateways, ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): array
-    {
-
-    }
-
     private static function getPollingMetadata(string $endpointId, array $pollingMetadataConfigurations): PollingMetadata
     {
         return array_key_exists($endpointId, $pollingMetadataConfigurations) ? $pollingMetadataConfigurations[$endpointId] : PollingMetadata::create($endpointId);

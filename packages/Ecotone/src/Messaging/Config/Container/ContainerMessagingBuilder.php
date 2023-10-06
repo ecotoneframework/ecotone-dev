@@ -45,9 +45,9 @@ class ContainerMessagingBuilder
         return $this->definitions[(string) $id];
     }
 
-    public function process(ContainerImplementation $containerImplementation): void
+    public function process(ContainerImplementation $containerImplementation): ContainerFactory
     {
-        $containerImplementation->process($this->definitions, $this->externalReferences);
+        return $containerImplementation->process($this->definitions, $this->externalReferences);
     }
 
     public function getInterfaceToCall(InterfaceToCallReference $interfaceToCallReference): InterfaceToCall

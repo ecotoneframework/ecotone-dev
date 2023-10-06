@@ -5,23 +5,25 @@ namespace Ecotone\Messaging\Config\Container\Implementations;
 use DI\ContainerBuilder;
 use DI\Factory\RequestedEntry;
 use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Config\Container\ContainerFactory;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Psr\Container\ContainerInterface;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 
-class PhpDiContainerBuilder implements ContainerImplementation
+class PhpDiContainerImplementation implements ContainerImplementation
 {
-    public function __construct(private ContainerBuilder $containerBuilder)
+    public function __construct(private ContainerBuilder $containerBuilder, private ContainerCachingStrategy $cachingStrategy)
     {
     }
 
     /**
      * @inheritDoc
      */
-    public function process(array $definitions, array $externalReferences): void
+    public function process(array $definitions, array $externalReferences): ContainerFactory
     {
         $phpDiDefinitions = [];
 
@@ -43,6 +45,8 @@ class PhpDiContainerBuilder implements ContainerImplementation
         }
 
         $this->containerBuilder->addDefinitions($phpDiDefinitions);
+
+        return $this->cachingStrategy->dump($this->containerBuilder);
     }
 
     private function resolveArgument($argument): mixed

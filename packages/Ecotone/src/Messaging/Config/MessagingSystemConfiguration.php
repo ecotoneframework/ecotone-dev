@@ -21,8 +21,10 @@ use Ecotone\Messaging\Config\Container\ContainerFactory;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Implementations\CachedContainerFactory;
+use Ecotone\Messaging\Config\Container\Implementations\CachedContainerStrategy;
+use Ecotone\Messaging\Config\Container\Implementations\InMemoryContainerStrategy;
 use Ecotone\Messaging\Config\Container\Implementations\InMemoryPhpDiContainerFactory;
-use Ecotone\Messaging\Config\Container\Implementations\PhpDiContainerBuilder;
+use Ecotone\Messaging\Config\Container\Implementations\PhpDiContainerImplementation;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -165,7 +167,7 @@ final class MessagingSystemConfiguration implements Configuration
      * @param object[] $extensionObjects
      * @param string[] $skippedModulesPackages
      */
-    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration)
+    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration, ?ContainerImplementation $containerImplementation = null)
     {
         $extensionObjects = array_merge($extensionObjects, $serviceConfiguration->getExtensionObjects());
         $extensionApplicationConfiguration = [];
@@ -204,13 +206,13 @@ final class MessagingSystemConfiguration implements Configuration
             }
         );
         $extensionObjects[] = $serviceConfiguration;
-        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $preparationInterfaceRegistry, $serviceConfiguration);
+        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $preparationInterfaceRegistry, $serviceConfiguration, $containerImplementation ?? new PhpDiContainerImplementation(new ContainerBuilder(), new InMemoryContainerStrategy()));
     }
 
     /**
      * @param string[] $skippedModulesPackages
      */
-    private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): void
+    private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration, ContainerImplementation $containerImplementation): void
     {
         $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();
 
@@ -261,18 +263,7 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
-        if ($cacheDirectory = $applicationConfiguration->getCacheDirectoryPath()) {
-            $container = new ContainerBuilder();
-            $builder->process(new PhpDiContainerBuilder($container));
-            $containerClassName = \uniqid('EcotoneContainer_');
-            $container->enableCompilation($cacheDirectory, $containerClassName);
-            $container->writeProxiesToFile(true, $cacheDirectory);
-            $container->build();
-            $this->containerFactory = new CachedContainerFactory($containerClassName, $cacheDirectory.DIRECTORY_SEPARATOR.$containerClassName.'.php');
-        } else {
-            $this->containerFactory = new InMemoryPhpDiContainerFactory($builder);
-        }
-
+        $this->containerFactory = $builder->process($containerImplementation);
 
         $this->gatewayClassesToGenerateProxies = [];
 
@@ -882,11 +873,13 @@ final class MessagingSystemConfiguration implements Configuration
         ServiceCacheConfiguration $serviceCacheConfiguration
     ): MessagingSystemConfiguration {
         self::prepareCacheDirectory($serviceCacheConfiguration);
+
         $messagingSystemConfiguration = new self(
             $moduleConfigurationRetrievingService,
             $moduleConfigurationRetrievingService->findAllExtensionObjects(),
             $preparationInterfaceRegistry,
-            $applicationConfiguration
+            $applicationConfiguration,
+            new PhpDiContainerImplementation(new ContainerBuilder(), $serviceCacheConfiguration->shouldUseCache() ? new CachedContainerStrategy($serviceCacheConfiguration) : new InMemoryContainerStrategy()),
         );
 
         if ($serviceCacheConfiguration->shouldUseCache()) {
@@ -1355,7 +1348,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private function prepareReferenceSearchServiceWithInternalReferences(ReferenceSearchService $referenceSearchService, array $converters, InterfaceToCallRegistry $interfaceToCallRegistry): InMemoryReferenceSearchService
     {
-        $container = $this->containerFactory->create();
+        $container = $this->containerFactory->create($referenceSearchService->get(ServiceCacheConfiguration::class));
 
         $newReferenceSearchService = InMemoryReferenceSearchService::createWithReferenceService(
             $referenceSearchService,

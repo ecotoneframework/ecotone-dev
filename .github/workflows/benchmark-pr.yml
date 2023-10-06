@@ -100,11 +100,12 @@ jobs:
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Benchmark PR
+        shell: bash
         env:
           PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main' || '' }}"
         run: |
           echo "Baseline: $PHPBENCH_REF_OPTION"
-          false | bin/phpbench-to-md.sh > benchmark.md
+          vendor/bin/phpbench run --retry-threshold=5 --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > benchmark.md
           cat benchmark.md
           echo '## Benchmark' >> "$GITHUB_STEP_SUMMARY"
           cat benchmark.md >> "$GITHUB_STEP_SUMMARY"

@@ -13,9 +13,7 @@ use Ecotone\Messaging\SubscribableChannel;
  */
 final class DirectChannel implements SubscribableChannel
 {
-    private ?MessageHandler $messageHandler = null;
-
-    private function __construct(private string $messageChannelName)
+    public function __construct(private string $messageChannelName, private ?MessageHandler $messageHandler = null)
     {
     }
 

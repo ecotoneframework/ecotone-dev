@@ -5,6 +5,13 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Chain;
 
 use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -25,7 +32,7 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Handler\Chain
  * @author  Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
+class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
 {
     /**
      * @var MessageHandlerBuilderWithOutputChannel[]
@@ -41,6 +48,7 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
     private ?MessageHandlerBuilder $outputMessageHandler = null;
 
     private ?int $interceptedHandlerOffset = null;
+    private ?Reference $compiled = null;
 
     /**
      * ChainMessageHandlerBuilder constructor.
@@ -105,6 +113,9 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
     {
         if ($this->outputMessageHandler && $this->outputMessageChannelName) {
             throw InvalidArgumentException::create("Can't configure output message handler and output message channel for chain handler");
+        }
+        if ($this->compiled) {
+            return $referenceSearchService->get(ContainerImplementation::REFERENCE_ID)->get((string) $this->compiled);
         }
 
         if (count($this->chainedMessageHandlerBuilders) === 1 && ! $this->outputMessageHandler) {
@@ -171,6 +182,78 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
         }
 
         return $serviceActivator->build($channelResolver, $referenceSearchService);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        if ($this->outputMessageHandler && $this->outputMessageChannelName) {
+            throw InvalidArgumentException::create("Can't configure output message handler and output message channel for chain handler");
+        }
+        if (! $this->canBeCompiled()) {
+            return null;
+        }
+
+        if (count($this->chainedMessageHandlerBuilders) === 1 && ! $this->outputMessageHandler) {
+            $singleHandler = $this->chainedMessageHandlerBuilders[0]
+                ->withOutputMessageChannel($this->getOutputMessageChannelName());
+
+            foreach ($this->orderedAroundInterceptors as $aroundInterceptorReference) {
+                $singleHandler = $singleHandler->addAroundInterceptor($aroundInterceptorReference);
+            }
+            return $singleHandler->compile($builder);
+        }
+
+        $messageHandlersToChain = $this->chainedMessageHandlerBuilders;
+
+        if ($this->outputMessageHandler) {
+            $messageHandlersToChain[] = $this->outputMessageHandler;
+        }
+
+        $baseKey = Uuid::uuid4()->toString();
+        foreach ($messageHandlersToChain as $key => $messageHandlerBuilder) {
+            $nextHandlerKey = ($key + 1);
+            $currentChannelName = $this->inputMessageChannelName . '_chain.' . $baseKey . $key;
+            if ($this->hasNextHandler($messageHandlersToChain, $nextHandlerKey)) {
+                $messageHandlerBuilder->withOutputMessageChannel($this->inputMessageChannelName . '_chain.' . $baseKey . $nextHandlerKey);
+            }
+            $builder->register(new ChannelReference($currentChannelName), new Definition(DirectChannel::class, [
+                $currentChannelName,
+                $messageHandlerBuilder->compile($builder),
+            ]));
+        }
+
+        $chainForwardPublisherReference = $builder->register(
+            $this->inputMessageChannelName . '_chainforwardpublisher',
+            new Definition(ChainForwardPublisher::class, [
+                new ChannelReference($this->inputMessageChannelName . '_chain.' . $baseKey . '0'),
+                (bool)$this->outputMessageChannelName
+            ]));
+
+        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(ChainForwardPublisher::class, 'forward'));
+
+        $serviceActivator = ServiceActivatorBuilder::create($chainForwardPublisherReference->getId(), $interfaceToCall)
+            ->withOutputMessageChannel($this->outputMessageChannelName);
+
+        if (is_null($this->interceptedHandlerOffset)) {
+            foreach ($this->orderedAroundInterceptors as $aroundInterceptorReference) {
+                $serviceActivator = $serviceActivator->addAroundInterceptor($aroundInterceptorReference);
+            }
+        }
+
+        return $this->compiled = $serviceActivator->compile($builder);
+    }
+
+    private function canBeCompiled(): bool
+    {
+        if ($this->outputMessageHandler && ! $this->outputMessageHandler instanceof CompilableBuilder) {
+            return false;
+        }
+        foreach ($this->chainedMessageHandlerBuilders as $chainedMessageHandlerBuilder) {
+            if (!($chainedMessageHandlerBuilder instanceof CompilableBuilder)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

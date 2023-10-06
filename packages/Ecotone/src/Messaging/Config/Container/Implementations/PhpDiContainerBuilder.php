@@ -48,8 +48,7 @@ class PhpDiContainerBuilder implements ContainerImplementation
     private function resolveArgument($argument): mixed
     {
         if ($argument instanceof Definition) {
-            return \DI\create($argument->getClassName())
-                ->constructor(...$this->resolveArgument($argument->getConstructorArguments()));
+            return $this->convertDefinition($argument);
         } else if (\is_array($argument)) {
             $resolvedArguments = [];
             foreach ($argument as $index =>$value) {
@@ -62,4 +61,15 @@ class PhpDiContainerBuilder implements ContainerImplementation
             return $argument;
         }
     }
+
+    public function convertDefinition(Definition $definition)
+    {
+        $phpdi = \DI\create($definition->getClassName())
+            ->constructor(...$this->resolveArgument($definition->getConstructorArguments()));
+        if ($definition->islLazy()) {
+            $phpdi->lazy();
+        }
+        return $phpdi;
+    }
+
 }

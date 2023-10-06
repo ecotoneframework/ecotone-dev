@@ -5,9 +5,17 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\NonProxyCombinedGateway;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -41,7 +49,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  * @package Ecotone\Messaging\Config
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class GatewayProxyBuilder implements InterceptedEndpoint
+class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
 {
     public const DEFAULT_REPLY_MILLISECONDS_TIMEOUT = -1;
 
@@ -86,6 +94,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
      */
     private array $requiredInterceptorNames = [];
     private ?InterfaceToCall $annotatedInterfaceToCall = null;
+    private ?Reference $compiled = null;
 
     /**
      * GatewayProxyBuilder constructor.
@@ -359,6 +368,10 @@ class GatewayProxyBuilder implements InterceptedEndpoint
     {
         Assert::isInterface($this->interfaceName, "Gateway should point to interface instead of got {$this->interfaceName} which is not correct interface");
 
+        if ($this->compiled) {
+            return $referenceSearchService->get(ContainerImplementation::REFERENCE_ID)->get((string) $this->compiled);
+        }
+
         /** @var InterfaceToCallRegistry $interfaceToCallRegistry */
         $interfaceToCallRegistry = $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME);
         $replyChannel = $this->replyChannelName ? $channelResolver->resolve($this->replyChannelName) : null;
@@ -466,6 +479,113 @@ class GatewayProxyBuilder implements InterceptedEndpoint
                 $channelResolver,
                 $referenceSearchService
             );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        if ($this->compiled) {
+            throw InvalidArgumentException::create("Gateway {$this->interfaceName}::{$this->methodName} was already compiled");
+        }
+        $internalHandlerReference = $this->compileGatewayInternalHandler($builder);
+        if (! $internalHandlerReference) {
+            return null;
+        }
+        $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
+        $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
+
+        if ($this->errorChannelName) {
+            $interceptorReference = $builder->register(
+                'error_channel_interceptor.'.$this->errorChannelName,
+                new Definition(ErrorChannelInterceptor::class, [
+                    new ChannelReference($this->errorChannelName)
+                ])
+            );
+            $channelInterceptorInterface = $builder->getInterfaceToCall(new InterfaceToCallReference(ErrorChannelInterceptor::class, 'handle'));
+            $this->addAroundInterceptor(AroundInterceptorReference::create(
+                $interceptorReference->getId(),
+                $channelInterceptorInterface,
+                Precedence::ERROR_CHANNEL_PRECEDENCE,
+                '',
+                ParameterConverterAnnotationFactory::create()->createParameterConverters($channelInterceptorInterface),
+            ));
+        }
+
+        if (! $interfaceToCall->canReturnValue() && $this->replyChannelName) {
+            throw InvalidArgumentException::create("Can't set reply channel for {$interfaceToCall}");
+        }
+
+        $methodArgumentConverters = [];
+        if ($this->replyContentType) {
+            $methodArgumentConverters[] = GatewayHeaderValueBuilder::create(MessageHeaders::REPLY_CONTENT_TYPE, $this->replyContentType)->compile($builder);
+        }
+        if ($interfaceToCall->hasFirstParameter() && ! $this->hasConverterFor($interfaceToCall->getFirstParameter())) {
+            $methodArgumentConverters[] = GatewayPayloadBuilder::create($interfaceToCall->getFirstParameter()->getName())->compile($builder);
+        }
+        if ($interfaceToCall->hasSecondParameter() && ! $this->hasConverterFor($interfaceToCall->getSecondParameter())) {
+            if ($interfaceToCall->getSecondParameter()->getTypeDescriptor()->isNonCollectionArray()) {
+                $methodArgumentConverters[] = GatewayHeadersBuilder::create($interfaceToCall->getSecondParameter()->getName())->compile($builder);
+            }
+        }
+
+        foreach ($this->methodArgumentConverters as $messageConverterBuilder) {
+            $methodArgumentConverters[] = $messageConverterBuilder->compile($builder);
+        }
+
+        $messageConverters = [];
+        foreach ($this->messageConverterReferenceNames as $messageConverterReferenceName) {
+            $messageConverters[] = new Reference($messageConverterReferenceName);
+        }
+
+        $gateway =  new Definition(Gateway::class, [
+            $interfaceToCallReference,
+            new Definition(MethodCallToMessageConverter::class, [
+                $interfaceToCallReference,
+                $methodArgumentConverters
+            ]),
+            $messageConverters,
+            new Definition(GatewayReplyConverter::class, [
+                new Reference(ConversionService::REFERENCE_NAME),
+                $interfaceToCallReference,
+                $messageConverters,
+            ]),
+            $internalHandlerReference,
+        ]);
+
+        return $this->compiled = $builder->register(\uniqid('gateway.'.$this->interfaceName.'::'.$this->methodName), $gateway);
+    }
+
+    private function compileGatewayInternalHandler(ContainerMessagingBuilder $builder): Reference|null
+    {
+        $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
+        $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
+        $gatewayInternalHandlerReference = $builder->register(
+            \uniqid('gateway_internal_handler.'.$this->interfaceName.'::'.$this->methodName),
+            new Definition(GatewayInternalHandler::class, [
+                $interfaceToCallReference,
+                new ChannelReference($this->requestChannelName),
+                $this->replyChannelName ? new ChannelReference($this->replyChannelName) : null,
+                $this->replyMilliSecondsTimeout
+            ]));
+
+        $chainHandler = ChainMessageHandlerBuilder::create();
+        foreach ($this->getSortedInterceptors($this->beforeInterceptors) as $beforeInterceptor) {
+            $chainHandler = $chainHandler->chain($beforeInterceptor);
+        }
+        $chainHandler = $chainHandler->chainInterceptedHandler(
+            ServiceActivatorBuilder::create($gatewayInternalHandlerReference->getId(), $builder->getInterfaceToCall(new InterfaceToCallReference(GatewayInternalHandler::class, 'handle')))
+                ->withWrappingResultInMessage(false)
+                ->withEndpointAnnotations($this->endpointAnnotations)
+                ->withAnnotatedInterface($this->annotatedInterfaceToCall ?? $interfaceToCall)
+        );
+        foreach ($this->getSortedInterceptors($this->afterInterceptors) as $afterInterceptor) {
+            $chainHandler = $chainHandler->chain($afterInterceptor);
+        }
+
+        foreach ($this->getSortedAroundInterceptors($this->aroundInterceptors) as $aroundInterceptorReference) {
+            $chainHandler = $chainHandler->addAroundInterceptor($aroundInterceptorReference);
+        }
+
+        return $chainHandler->compile($builder);
     }
 
     /**

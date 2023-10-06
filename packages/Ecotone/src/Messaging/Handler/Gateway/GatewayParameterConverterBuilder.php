@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 
@@ -12,7 +13,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  * @package Ecotone\Messaging\Handler\Gateway
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-interface GatewayParameterConverterBuilder
+interface GatewayParameterConverterBuilder extends CompilableBuilder
 {
     public function build(ReferenceSearchService $referenceSearchService): GatewayParameterConverter;
 

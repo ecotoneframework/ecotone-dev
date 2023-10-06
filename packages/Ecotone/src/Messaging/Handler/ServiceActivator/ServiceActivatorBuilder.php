@@ -215,6 +215,9 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         if ($this->directObjectReference) {
             return null;
         }
+        if ($this->compiled) {
+            throw new \InvalidArgumentException("Trying to compile {$this} twice");
+        }
 
         $className = $this->methodNameOrInterfaceToCall instanceof InterfaceToCall ? $this->methodNameOrInterfaceToCall->getInterfaceName() : $this->objectToInvokeReferenceName;
         $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
@@ -272,7 +275,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                 $handlerDefinition,
             ]);
         }
-        $this->compiled = $builder->register((string) $this, $handlerDefinition);
+        $this->compiled = $builder->register(\uniqid((string) $this), $handlerDefinition);
         return $this->compiled;
     }
 

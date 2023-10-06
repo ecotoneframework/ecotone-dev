@@ -251,12 +251,22 @@ final class MessagingSystemConfiguration implements Configuration
                 $messageHandlerBuilder->compile($builder);
             }
         }
+        foreach ($this->gatewayBuilders as $gatewayBuilder) {
+            if ($gatewayBuilder instanceof CompilableBuilder) {
+                $reference = $gatewayBuilder->compile($builder);
+                // This is an example of changing a definition from a reference
+                if ($reference) {
+                    $builder->getDefinition($reference)->lazy();
+                }
+            }
+        }
 
         if ($cacheDirectory = $applicationConfiguration->getCacheDirectoryPath()) {
             $container = new ContainerBuilder();
             $builder->process(new PhpDiContainerBuilder($container));
             $containerClassName = \uniqid('EcotoneContainer_');
             $container->enableCompilation($cacheDirectory, $containerClassName);
+            $container->writeProxiesToFile(true, $cacheDirectory);
             $container->build();
             $this->containerFactory = new CachedContainerFactory($containerClassName, $cacheDirectory.DIRECTORY_SEPARATOR.$containerClassName.'.php');
         } else {
@@ -361,6 +371,10 @@ final class MessagingSystemConfiguration implements Configuration
             if (! $this->hasMessageHandlerWithName($pollingMetadata) && ! $this->hasChannelAdapterWithName($pollingMetadata)) {
                 throw ConfigurationException::create("Trying to register polling meta data for non existing endpoint {$pollingMetadata->getEndpointId()}. Verify if there is any asynchronous endpoint with such name.");
             }
+        }
+
+        foreach ($this->gatewayBuilders as $gatewayBuilder) {
+            $gatewayBuilder->withMessageConverters($this->messageConverterReferenceNames);
         }
     }
 

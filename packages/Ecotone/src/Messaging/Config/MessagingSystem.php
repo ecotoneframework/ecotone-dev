@@ -110,6 +110,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         array                  $consoleCommands
     ): MessagingSystem {
         $channelResolver = self::createChannelResolver($messageChannelInterceptors, $messageChannelBuilders, $referenceSearchService);
+        $referenceSearchService->registerReferencedObject(ChannelResolver::class, $channelResolver);
 
         $nonProxyGateways = self::configureGateways($gatewayBuilders, $referenceSearchService, $channelResolver);
         foreach ($nonProxyGateways as $gateway) {
@@ -126,7 +127,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
                 )
             );
         }
-        $referenceSearchService->registerReferencedObject(ChannelResolver::class, $channelResolver);
 
         $eventDrivenConsumers = [];
         $pollingConsumerBuilders = [];

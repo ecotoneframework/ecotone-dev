@@ -2,6 +2,9 @@
 
 namespace Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverter;
 use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverterBuilder;
 use Ecotone\Messaging\Handler\InterfaceParameter;
@@ -45,5 +48,15 @@ class GatewayHeadersBuilder implements GatewayParameterConverterBuilder
     public function build(ReferenceSearchService $referenceSearchService): GatewayParameterConverter
     {
         return GatewayHeadersConverter::create($this->parameterName);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        return new Definition(
+            GatewayHeadersConverter::class,
+            [
+                $this->parameterName
+            ]
+        );
     }
 }

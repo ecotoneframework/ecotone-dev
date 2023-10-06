@@ -91,7 +91,6 @@ jobs:
           clean: false
 
       - name: Remove cached files
-        working-directory:
         run: |
           rm -rf Monorepo/ExampleApp/Lite/var/cache
           rm -rf Monorepo/ExampleApp/Symfony/var/cache
@@ -101,6 +100,7 @@ jobs:
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Benchmark PR
+        shell: bash
         env:
           PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main' || '' }}"
         run: |

@@ -2,9 +2,11 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeResolver;
+use Psr\Container\ContainerInterface;
 
 class ContainerMessagingBuilder
 {
@@ -23,6 +25,9 @@ class ContainerMessagingBuilder
     public function __construct(private InterfaceToCallRegistry $interfaceToCallRegistry)
     {
         $this->typeResolver = TypeResolver::create();
+        $this->definitions[ChannelResolver::class] = new Definition(ChannelResolverWithFallback::class,
+            [new Reference(ContainerInterface::class), new Reference(ContainerImplementation::EXTERNAL_CHANNEL_RESOLVER_SERVICE_ID)]
+        );
     }
 
     public function register(string|Reference $id, Definition $definition): Reference
@@ -36,7 +41,7 @@ class ContainerMessagingBuilder
     public function replace(string|Reference $id, Definition $definition): Reference
     {
         $this->definitions[(string) $id] = $definition;
-        $this->resolveArgument($definition);
+        $this->registerAllReferences($definition);
         return $id instanceof Reference ? $id : new Reference($id);
     }
 
@@ -60,13 +65,13 @@ class ContainerMessagingBuilder
         return isset($this->definitions[(string) $id]) || isset($this->externalReferences[(string) $id]);
     }
 
-    private function resolveArgument($argument): void
+    private function registerAllReferences($argument): void
     {
         if ($argument instanceof Definition) {
-            $this->resolveArgument($argument->getConstructorArguments());
+            $this->registerAllReferences($argument->getConstructorArguments());
         } else if (\is_array($argument)) {
             foreach ($argument as $value) {
-                $this->resolveArgument($value);
+                $this->registerAllReferences($value);
             }
         } else if ($argument instanceof InterfaceToCallReference) {
             if (!$this->has($argument->getId())) {

@@ -1346,8 +1346,6 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private function prepareReferenceSearchServiceWithInternalReferences(ReferenceSearchService $referenceSearchService, array $converters, InterfaceToCallRegistry $interfaceToCallRegistry): InMemoryReferenceSearchService
     {
-        $container = $this->containerFactory->create($referenceSearchService->get(ServiceCacheConfiguration::class));
-
         $newReferenceSearchService = InMemoryReferenceSearchService::createWithReferenceService(
             $referenceSearchService,
             array_merge(
@@ -1356,12 +1354,15 @@ final class MessagingSystemConfiguration implements Configuration
                     ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createWith($converters),
                     InterfaceToCallRegistry::REFERENCE_NAME => $interfaceToCallRegistry,
                     ServiceConfiguration::class => $this->applicationConfiguration,
-                    ContainerImplementation::REFERENCE_ID => $container,
                 ]
             ),
             $this->applicationConfiguration
         );
-        $container->set(ContainerImplementation::EXTERNAL_REFERENCE_SEARCH_SERVICE_ID, $newReferenceSearchService);
+
+        $container = $this->containerFactory->create($newReferenceSearchService);
+
+        $newReferenceSearchService->registerReferencedObject(ContainerImplementation::REFERENCE_ID, $container);
+
         return $newReferenceSearchService;
     }
 

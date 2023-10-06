@@ -247,8 +247,8 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
                 $converterDefinitions[] = new Definition(MethodInvocationObjectConverter::class);
                 continue;
             }
-            if ($annotationReference = MethodArgumentsFactory::getAnnotationValueDefinitionOrReference($parameter, $interceptedInterface, $endpointAnnotations)) {
-                $converterDefinitions[] = new Definition(ValueConverter::class, [$annotationReference]);
+            if ($attributeBuilder = MethodArgumentsFactory::getAnnotationValueConverter($parameter, $interceptedInterface, $endpointAnnotations)) {
+                $converterDefinitions[] = $attributeBuilder->compile($builder, $interceptingInterface, $parameter);
                 continue;
             }
             if ($parameter->canBePassedIn(TypeDescriptor::create(Message::class))) {

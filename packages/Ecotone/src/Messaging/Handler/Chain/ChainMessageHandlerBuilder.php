@@ -23,8 +23,10 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHandler;
+use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Exception;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -213,12 +215,22 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
         foreach ($messageHandlersToChain as $key => $messageHandlerBuilder) {
             $nextHandlerKey = ($key + 1);
             $currentChannelName = $this->inputMessageChannelName . '_chain.' . $baseKey . $key;
+            if ($key === $this->interceptedHandlerOffset) {
+                foreach ($this->orderedAroundInterceptors as $aroundInterceptorReference) {
+                    $messageHandlerBuilder = $messageHandlerBuilder->addAroundInterceptor($aroundInterceptorReference);
+                }
+            }
             if ($this->hasNextHandler($messageHandlersToChain, $nextHandlerKey)) {
-                $messageHandlerBuilder->withOutputMessageChannel($this->inputMessageChannelName . '_chain.' . $baseKey . $nextHandlerKey);
+                $messageHandlerBuilder = $messageHandlerBuilder->withOutputMessageChannel($this->inputMessageChannelName . '_chain.' . $baseKey . $nextHandlerKey);
+            }
+            $messageHandlerReference = $messageHandlerBuilder->compile($builder);
+            if (! $messageHandlerReference) {
+                // Cant compile
+                return null;
             }
             $builder->register(new ChannelReference($currentChannelName), new Definition(DirectChannel::class, [
                 $currentChannelName,
-                $messageHandlerBuilder->compile($builder),
+                $messageHandlerReference,
             ]));
         }
 

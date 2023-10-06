@@ -81,7 +81,7 @@ class MethodArgumentsFactory
     /**
      * @param AttributeDefinition[] $endpointAnnotations
      */
-    public static function getAnnotationValueConverter(InterfaceParameter $interfaceParameter, InterfaceToCall $interceptedInterface, array $endpointAnnotations): ?ParameterConverterBuilder
+    public static function getAnnotationValueConverter(InterfaceParameter $interfaceParameter, InterfaceToCall $interceptedInterface, array $endpointAnnotations): AttributeBuilder|AttributeDefinitionBuilder|null
     {
         $interfaceParameterType = $interfaceParameter->getTypeDescriptor();
         // Endpoint Annotations

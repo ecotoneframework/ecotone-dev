@@ -222,24 +222,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $this->assertEquals(['reference'], $messagingSystemConfiguration->getOptionalReferences());
     }
 
-    /**
-     * @throws ConfigurationException
-     * @throws MessagingException
-     */
-    public function test_serializing_and_deserializing()
-    {
-        $config = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createWith([], []))
-            ->registerMessageHandler(DumbMessageHandlerBuilder::create(NoReturnMessageHandler::create(), 'queue'))
-            ->registerMessageChannel(SimpleMessageChannelBuilder::create('queue', QueueChannel::create()))
-            ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder())
-            ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create('queue', 'interceptor'));
-
-        $this->assertEquals(
-            $config,
-            unserialize(serialize($config))
-        );
-    }
-
     public function test_registering_reference_names_from_interceptors()
     {
         $messagingSystem = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty());

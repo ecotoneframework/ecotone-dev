@@ -2,10 +2,10 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Psr\Container\ContainerInterface;
 
 interface ContainerHydrator
 {
-    public function create(ServiceCacheConfiguration $serviceCacheConfiguration): ContainerInterface;
+    public function create(ReferenceSearchService $referenceSearchService): ContainerInterface;
 }

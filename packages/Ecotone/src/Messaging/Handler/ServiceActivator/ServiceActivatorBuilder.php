@@ -259,7 +259,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         if ($this->orderedAroundInterceptors) {
             $interceptors = [];
             foreach (AroundInterceptorReference::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
-                if ($interceptor = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $interfaceToCall)) {
+                if ($interceptor = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $this->annotatedInterfaceToCall ?? $interfaceToCall)) {
                     $interceptors[] = $interceptor;
                 } else {
                     // Cannot continue without every interceptor being compilable

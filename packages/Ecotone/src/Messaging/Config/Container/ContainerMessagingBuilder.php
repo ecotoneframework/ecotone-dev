@@ -30,7 +30,7 @@ class ContainerMessagingBuilder
         );
     }
 
-    public function register(string|Reference $id, Definition $definition): Reference
+    public function register(string|Reference $id, Definition|FactoryDefinition $definition): Reference
     {
         if (isset($this->definitions[(string) $id])) {
             throw new \InvalidArgumentException("Definition with id {$id} already exists");
@@ -38,7 +38,7 @@ class ContainerMessagingBuilder
         return $this->replace($id, $definition);
     }
 
-    public function replace(string|Reference $id, Definition $definition): Reference
+    public function replace(string|Reference $id, Definition|FactoryDefinition $definition): Reference
     {
         $this->definitions[(string) $id] = $definition;
         $this->registerAllReferences($definition);
@@ -69,6 +69,8 @@ class ContainerMessagingBuilder
     {
         if ($argument instanceof Definition) {
             $this->registerAllReferences($argument->getConstructorArguments());
+        } else if ($argument instanceof FactoryDefinition) {
+            $this->registerAllReferences($argument->getArguments());
         } else if (\is_array($argument)) {
             foreach ($argument as $value) {
                 $this->registerAllReferences($value);

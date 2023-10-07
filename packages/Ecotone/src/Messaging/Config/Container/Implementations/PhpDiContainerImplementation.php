@@ -8,11 +8,10 @@ use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\FactoryDefinition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Psr\Container\ContainerInterface;
-use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 
 class PhpDiContainerImplementation implements ContainerImplementation
 {
@@ -59,6 +58,8 @@ class PhpDiContainerImplementation implements ContainerImplementation
     {
         if ($argument instanceof Definition) {
             return $this->convertDefinition($argument);
+        } else if ($argument instanceof FactoryDefinition) {
+            return $this->convertFactory($argument);
         } else if (\is_array($argument)) {
             $resolvedArguments = [];
             foreach ($argument as $index => $value) {
@@ -80,6 +81,15 @@ class PhpDiContainerImplementation implements ContainerImplementation
             $phpdi->lazy();
         }
         return $phpdi;
+    }
+
+    private function convertFactory(FactoryDefinition $definition)
+    {
+        $factory = \DI\factory($definition->getFactory());
+        foreach ($definition->getArguments() as $index => $argument) {
+            $factory->parameter($index, $this->resolveArgument($argument));
+        }
+        return $factory;
     }
 
 }

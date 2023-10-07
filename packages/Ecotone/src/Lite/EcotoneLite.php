@@ -13,7 +13,6 @@ use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\MessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -202,7 +201,7 @@ final class EcotoneLite
         if ($allowGatewaysToBeRegisteredInContainer) {
             $container->set(ConfiguredMessagingSystem::class, $messagingSystem);
         } elseif ($container->has(ConfiguredMessagingSystem::class)) {
-            /** @var MessagingSystem $alreadyConfiguredMessaging */
+            /** @var ConfiguredMessagingSystem $alreadyConfiguredMessaging */
             $alreadyConfiguredMessaging = $container->get(ConfiguredMessagingSystem::class);
 
             $alreadyConfiguredMessaging->replaceWith($messagingSystem);

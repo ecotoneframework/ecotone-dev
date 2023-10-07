@@ -165,7 +165,7 @@ final class MessagingSystemConfiguration implements Configuration
      * @param object[] $extensionObjects
      * @param string[] $skippedModulesPackages
      */
-    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration, ?ContainerImplementation $containerImplementation = null)
+    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration)
     {
         $extensionObjects = array_merge($extensionObjects, $serviceConfiguration->getExtensionObjects());
         $extensionApplicationConfiguration = [];
@@ -204,13 +204,13 @@ final class MessagingSystemConfiguration implements Configuration
             }
         );
         $extensionObjects[] = $serviceConfiguration;
-        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $preparationInterfaceRegistry, $serviceConfiguration, $containerImplementation ?? new PhpDiContainerImplementation(new ContainerBuilder(), new InMemoryContainerStrategy()));
+        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $preparationInterfaceRegistry, $serviceConfiguration);
     }
 
     /**
      * @param string[] $skippedModulesPackages
      */
-    private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration, ContainerImplementation $containerImplementation): void
+    private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): void
     {
         $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();
 
@@ -244,24 +244,6 @@ final class MessagingSystemConfiguration implements Configuration
         $interfaceToCallRegistry = InterfaceToCallRegistry::createWithBackedBy($preparationInterfaceRegistry);
 
         $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $applicationConfiguration);
-
-        $builder = new ContainerMessagingBuilder($interfaceToCallRegistry);
-        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
-            if ($messageHandlerBuilder instanceof CompilableBuilder) {
-                $messageHandlerBuilder->compile($builder);
-            }
-        }
-        foreach ($this->gatewayBuilders as $gatewayBuilder) {
-            if ($gatewayBuilder instanceof CompilableBuilder) {
-                $reference = $gatewayBuilder->compile($builder);
-                // This is an example of changing a definition from a reference
-                if ($reference) {
-                    $builder->getDefinition($reference)->lazy();
-                }
-            }
-        }
-
-        $this->containerFactory = $builder->process($containerImplementation);
 
         $this->gatewayClassesToGenerateProxies = [];
 
@@ -877,7 +859,6 @@ final class MessagingSystemConfiguration implements Configuration
             $moduleConfigurationRetrievingService->findAllExtensionObjects(),
             $preparationInterfaceRegistry,
             $applicationConfiguration,
-            new PhpDiContainerImplementation(new ContainerBuilder(), $serviceCacheConfiguration->shouldUseCache() ? new CachedContainerStrategy($serviceCacheConfiguration) : new InMemoryContainerStrategy()),
         );
 
         if ($serviceCacheConfiguration->shouldUseCache()) {
@@ -1289,12 +1270,40 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService): ConfiguredMessagingSystem
+    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService, ?ContainerImplementation $containerImplementation = null): ConfiguredMessagingSystem
     {
         $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration, $referenceSearchService);
         if (! $this->isLazyConfiguration) {
             $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $this->applicationConfiguration);
         }
+
+        $builder = new ContainerMessagingBuilder($interfaceToCallRegistry);
+        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
+            if ($messageHandlerBuilder instanceof CompilableBuilder) {
+                $messageHandlerBuilder->compile($builder);
+            }
+        }
+        foreach ($this->gatewayBuilders as $gatewayBuilder) {
+            if ($gatewayBuilder instanceof CompilableBuilder) {
+                $reference = $gatewayBuilder->compile($builder);
+                // This is an example of changing a definition from a reference
+                if ($reference) {
+                    $builder->getDefinition($reference)->lazy();
+                }
+            }
+        }
+
+        $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
+        $channelInterceptorsByChannelName = [];
+        foreach ($channelInterceptorsByImportance as $channelInterceptors) {
+            /** @var ChannelInterceptorBuilder $channelInterceptor */
+            foreach ($channelInterceptors as $channelInterceptor) {
+                $channelInterceptorsByChannelName[$channelInterceptor->relatedChannelName()][] = $channelInterceptor;
+            }
+        }
+
+        $containerImplementation ??= new PhpDiContainerImplementation(new ContainerBuilder(), new InMemoryContainerStrategy());
+        $this->containerFactory = $builder->process($containerImplementation);
 
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {
@@ -1306,15 +1315,6 @@ final class MessagingSystemConfiguration implements Configuration
         /** @var ProxyFactory $proxyFactory */
         $proxyFactory = ProxyFactory::createWithCache($serviceCacheConfiguration);
         $this->registerAutoloader($proxyFactory->getConfiguration()->getProxyAutoloader());
-
-        $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
-        $channelInterceptorsByChannelName = [];
-        foreach ($channelInterceptorsByImportance as $channelInterceptors) {
-            /** @var ChannelInterceptorBuilder $channelInterceptor */
-            foreach ($channelInterceptors as $channelInterceptor) {
-                $channelInterceptorsByChannelName[$channelInterceptor->relatedChannelName()][] = $channelInterceptor;
-            }
-        }
 
         /** @var GatewayProxyBuilder[][] $preparedGateways */
         $preparedGateways = [];

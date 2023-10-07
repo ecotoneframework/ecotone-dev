@@ -26,7 +26,7 @@ class ContainerMessagingBuilder
     {
         $this->typeResolver = TypeResolver::create();
         $this->definitions[ChannelResolver::class] = new Definition(ChannelResolverWithFallback::class,
-            [new Reference(ContainerInterface::class), new Reference(ContainerImplementation::EXTERNAL_CHANNEL_RESOLVER_SERVICE_ID)]
+            [new Reference(ContainerInterface::class)]
         );
     }
 
@@ -34,6 +34,9 @@ class ContainerMessagingBuilder
     {
         if (isset($this->definitions[(string) $id])) {
             throw new \InvalidArgumentException("Definition with id {$id} already exists");
+        }
+        if (isset($this->externalReferences[(string) $id])) {
+            unset($this->externalReferences[(string) $id]);
         }
         return $this->replace($id, $definition);
     }

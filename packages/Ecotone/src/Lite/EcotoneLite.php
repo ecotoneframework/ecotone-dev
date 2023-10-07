@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
+use DI\ContainerBuilder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
@@ -13,6 +14,8 @@ use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\Container\Implementations\CachedContainerStrategy;
+use Ecotone\Messaging\Config\Container\Implementations\PhpDiContainerImplementation;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -194,7 +197,9 @@ final class EcotoneLite
             ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
         ]);
 
-        $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration($referenceSearchService);
+        $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration($referenceSearchService,
+//            new PhpDiContainerImplementation(new ContainerBuilder(), new CachedContainerStrategy($serviceCacheConfiguration))
+        );
 
         $referenceSearchService->setConfiguredMessagingSystem($messagingSystem);
 

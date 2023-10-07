@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
+use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\FactoryDefinition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -18,7 +24,7 @@ use Ecotone\Messaging\PollableChannel;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuilder
+class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuilder, CompilableBuilder
 {
     private function __construct(
         private string $messageChannelName,
@@ -113,5 +119,24 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
     public function __toString()
     {
         return (string)$this->messageChannel;
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $channelReference = new ChannelReference($this->messageChannelName);
+        if ($this->messageChannel instanceof DirectChannel) {
+            $definition = new Definition(DirectChannel::class, [$this->messageChannelName]);
+        } else if ($this->messageChannel instanceof QueueChannel) {
+            $definition = new FactoryDefinition([QueueChannel::class, 'create'], ["name" => $this->messageChannelName]);
+        } else if ($this->messageChannel instanceof PublishSubscribeChannel) {
+            $definition = new FactoryDefinition([PublishSubscribeChannel::class, 'create'], ["messageChannelName" => $this->messageChannelName]);
+        } else if ($this->messageChannel instanceof NullableMessageChannel) {
+            $definition = new FactoryDefinition([NullableMessageChannel::class, 'create']);
+        } else {
+            $class = get_class($this->messageChannel);
+            throw new \InvalidArgumentException("Unsupported channel {$this->messageChannelName} : {$class}");
+        }
+        $builder->register($channelReference, $definition);
+        return $channelReference;
     }
 }

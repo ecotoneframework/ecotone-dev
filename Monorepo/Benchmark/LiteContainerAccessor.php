@@ -2,12 +2,12 @@
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Messaging\Config\MessagingSystem;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Psr\Container\ContainerInterface;
 
 class LiteContainerAccessor implements ContainerInterface
 {
-    public function __construct(private MessagingSystem $messagingSystem)
+    public function __construct(private ConfiguredMessagingSystem $messagingSystem)
     {
     }
 

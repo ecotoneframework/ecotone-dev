@@ -10,7 +10,9 @@ use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\WithRequiredReferenceNameList;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
+use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
@@ -55,6 +57,7 @@ use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
+use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
 use Exception;
@@ -1278,6 +1281,41 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $builder = new ContainerMessagingBuilder($interfaceToCallRegistry);
+
+        $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
+        $channelInterceptorsByChannelName = [];
+        foreach ($channelInterceptorsByImportance as $channelInterceptors) {
+            /** @var ChannelInterceptorBuilder $channelInterceptor */
+            foreach ($channelInterceptors as $channelInterceptor) {
+                $channelInterceptorsByChannelName[$channelInterceptor->relatedChannelName()][] = $channelInterceptor;
+            }
+        }
+
+        foreach ($this->channelBuilders as $channelsBuilder) {
+            $channelReference = $channelsBuilder->compile($builder);
+            if (!$channelReference) {
+                throw ConfigurationException::create("Channel {$channelsBuilder->getMessageChannelName()} can't be compiled");
+            }
+//            $interceptorsForChannel = [];
+//            foreach ($channelInterceptorsByChannelName as $channelName => $interceptors) {
+//                $regexChannel = str_replace('*', '.*', $channelName);
+//                $regexChannel = str_replace('\\', '\\\\', $regexChannel);
+//                if (preg_match("#^{$regexChannel}$#", $channelsBuilder->getMessageChannelName())) {
+//                    $interceptorsForChannel = array_merge($interceptorsForChannel, array_map(function (ChannelInterceptorBuilder $channelInterceptorBuilder) use ($referenceSearchService) {
+//                        return $channelInterceptorBuilder->build($referenceSearchService);
+//                    }, $interceptors));
+//                }
+//            }
+//
+//            if ($messageChannel instanceof PollableChannel && $interceptorsForChannel) {
+//                $messageChannel = new PollableChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);
+//            } elseif ($interceptorsForChannel) {
+//                $messageChannel = new EventDrivenChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);
+//            }
+//
+//            $channels[] = NamedMessageChannel::create($channelsBuilder->getMessageChannelName(), $messageChannel);
+        }
+
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             if ($messageHandlerBuilder instanceof CompilableBuilder) {
                 $messageHandlerBuilder->compile($builder);
@@ -1290,15 +1328,6 @@ final class MessagingSystemConfiguration implements Configuration
                 if ($reference) {
                     $builder->getDefinition($reference)->lazy();
                 }
-            }
-        }
-
-        $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
-        $channelInterceptorsByChannelName = [];
-        foreach ($channelInterceptorsByImportance as $channelInterceptors) {
-            /** @var ChannelInterceptorBuilder $channelInterceptor */
-            foreach ($channelInterceptors as $channelInterceptor) {
-                $channelInterceptorsByChannelName[$channelInterceptor->relatedChannelName()][] = $channelInterceptor;
             }
         }
 

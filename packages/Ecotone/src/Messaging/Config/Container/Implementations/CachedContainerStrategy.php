@@ -16,7 +16,7 @@ class CachedContainerStrategy implements ContainerCachingStrategy
 
     public function dump(\DI\ContainerBuilder $containerBuilder): ContainerHydrator
     {
-        $containerClassName = \uniqid('EcotoneContainer_');
+        $containerClassName = 'EcotoneContainer';
         $containerBuilder->enableCompilation($this->cacheConfiguration->getPath(), $containerClassName);
         $containerBuilder->writeProxiesToFile(true, $this->cacheConfiguration->getPath());
         $containerBuilder->build();

@@ -26,27 +26,27 @@ class PhpDiContainerImplementation implements ContainerImplementation
     {
         $phpDiDefinitions = [];
 
-        $phpDiDefinitions['channelResolver_legacy'] = static function (ContainerInterface $c) {
-            return $c->get("external_reference_search_service")->get(ChannelResolver::class);
-        };
+//        $phpDiDefinitions['channelResolver_legacy'] = static function (ContainerInterface $c) {
+//            return $c->get("external_reference_search_service")->get(ChannelResolver::class);
+//        };
 
         foreach ($definitions as $id => $definition) {
             $phpDiDefinitions[$id] = $this->resolveArgument($definition);
         }
 
         foreach ($externalReferences as $id => $reference) {
-            if ($reference instanceof ChannelReference) {
-                if (!isset($phpDiDefinitions[$id])) {
-                    $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
-                        $channelName = substr($entry->getName(), 8); // remove `channel-` prefix
-                        return $c->get("channelResolver_legacy")->resolve($channelName);
-                    };
-                }
-            } else {
+//            if ($reference instanceof ChannelReference) {
+//                if (!isset($phpDiDefinitions[$id])) {
+//                    $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
+//                        $channelName = substr($entry->getName(), 8); // remove `channel-` prefix
+//                        return $c->get("channelResolver_legacy")->resolve($channelName);
+//                    };
+//                }
+//            } else {
                 $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
                     return $c->get("external_reference_search_service")->get($entry->getName());
                 };
-            }
+//            }
         }
 
         $this->containerBuilder->addDefinitions($phpDiDefinitions);

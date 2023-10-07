@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Router;
 
+use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -19,7 +25,7 @@ use Ecotone\Messaging\Support\Assert;
  * @package Ecotone\Messaging\Handler\Router
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
+class RouterBuilder implements MessageHandlerBuilderWithParameterConverters, CompilableBuilder
 {
     private ?string $inputMessageChannelName = null;
     private string $objectToInvokeReference;
@@ -98,14 +104,6 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
         return $routerBuilder;
     }
 
-    public static function createHeaderRouter(string $headerName): self
-    {
-        $routerBuilder = new self('', 'route');
-        $routerBuilder->setObjectToInvoke(HeaderRouter::create($headerName));
-
-        return $routerBuilder;
-    }
-
     /**
      * @inheritDoc
      */
@@ -175,6 +173,27 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
             $this->defaultResolution,
             $this->applySequence
         );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $interfaceToCall = $this->methodNameOrInterface;
+        if (! $interfaceToCall instanceof InterfaceToCall) {
+            throw new \InvalidArgumentException("RouterBuilder can only be compiled with InterfaceToCall");
+        }
+        $methodInvoker = MethodInvoker::createDefinition(
+            $builder,
+            $interfaceToCall,
+            $this->objectToInvokeReference,
+            $this->methodParameterConverters
+        );
+        return $builder->register(\uniqid('router.'), new Definition(Router::class, [
+            new Reference(ChannelResolver::class),
+            $methodInvoker,
+            $this->resolutionRequired,
+            $this->defaultResolution,
+            $this->applySequence
+        ]));
     }
 
     /**

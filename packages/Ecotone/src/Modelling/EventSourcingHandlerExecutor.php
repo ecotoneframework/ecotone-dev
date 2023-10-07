@@ -15,7 +15,7 @@ final class EventSourcingHandlerExecutor
     /**
      * @param InterfaceToCall[] $eventSourcingHandlerMethods
      */
-    private function __construct(private string $aggregateClassName, private array $eventSourcingHandlerMethods)
+    public function __construct(private string $aggregateClassName, private array $eventSourcingHandlerMethods)
     {
     }
 

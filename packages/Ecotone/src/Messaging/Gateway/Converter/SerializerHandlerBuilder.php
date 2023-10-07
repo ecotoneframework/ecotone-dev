@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Gateway\Converter;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -18,7 +23,7 @@ use Ecotone\Messaging\MessageHandler;
  * @package Ecotone\Messaging\Gateway\Converter
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder
+class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
 {
     private string $methodName;
 
@@ -57,6 +62,18 @@ class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder
             new SerializerHandler($converter),
             $this->methodName
         )->build($channelResolver, $referenceSearchService);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        if (!$builder->has(SerializerHandler::class)) {
+            $builder->register(SerializerHandler::class, new Definition(SerializerHandler::class, [
+                new Reference(ConversionService::REFERENCE_NAME)
+            ]));
+        }
+        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(SerializerHandler::class, $this->methodName));
+        return ServiceActivatorBuilder::create(SerializerHandler::class,$interfaceToCall)
+            ->compile($builder);
     }
 
     /**

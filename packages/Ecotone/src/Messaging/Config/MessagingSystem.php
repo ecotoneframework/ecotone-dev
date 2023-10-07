@@ -110,10 +110,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         array $channelAdapterConsumerBuilders,
         array                  $consoleCommands
     ): MessagingSystem {
-//        $channelResolver = self::createChannelResolver($messageChannelInterceptors, $messageChannelBuilders, $referenceSearchService);
-        $container = $referenceSearchService->get(ContainerImplementation::REFERENCE_ID);
-//        $container->set(ContainerImplementation::EXTERNAL_CHANNEL_RESOLVER_SERVICE_ID, $channelResolver);
-        $channelResolver = $container->get(ChannelResolver::class);
+        $channelResolver = self::createChannelResolver($messageChannelInterceptors, $messageChannelBuilders, $referenceSearchService);
         $referenceSearchService->registerReferencedObject(ChannelResolver::class, $channelResolver);
 
         $nonProxyGateways = self::configureGateways($gatewayBuilders, $referenceSearchService, $channelResolver);

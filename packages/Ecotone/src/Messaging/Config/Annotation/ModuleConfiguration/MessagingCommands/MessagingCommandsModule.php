@@ -8,6 +8,8 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -28,8 +30,9 @@ class MessagingCommandsModule extends NoExternalConfigurationModule implements A
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $messagingConfiguration->registerServiceDefinition(MessagingBaseCommand::class, new Definition(MessagingBaseCommand::class));
         $messagingConfiguration->registerMessageHandler(
-            ServiceActivatorBuilder::createWithDirectReference(new MessagingBaseCommand(), 'executeConsoleCommand')
+            ServiceActivatorBuilder::create(MessagingBaseCommand::class, new InterfaceToCallReference(MessagingBaseCommand::class, 'executeConsoleCommand'))
                 ->withMethodParameterConverters([
                     HeaderBuilder::create('commandName', self::ECOTONE_CONSOLE_COMMAND_NAME),
                     PayloadBuilder::create('parameters'),

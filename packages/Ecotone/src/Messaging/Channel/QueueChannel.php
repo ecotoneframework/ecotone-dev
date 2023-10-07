@@ -8,15 +8,17 @@ use Ecotone\Messaging\PollableChannel;
 class QueueChannel implements PollableChannel
 {
     /**
-     * @param Message[] $queue
+     * @var Message[] $queue
      */
-    private function __construct(private string $name, private array $queue)
+    private array $queue = [];
+
+    public function __construct(private string $name)
     {
     }
 
     public static function create(string $name = 'unknown'): self
     {
-        return new self($name, []);
+        return new self($name);
     }
 
     /**

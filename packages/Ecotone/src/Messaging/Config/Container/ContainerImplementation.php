@@ -12,5 +12,5 @@ interface ContainerImplementation
      * @param array<string, Definition> $definitions
      * @param array<string, Reference> $externalReferences
      */
-    public function process(array $definitions, array $externalReferences): ContainerHydrator;
+    public function process(array $definitions, array $externalReferences): void;
 }

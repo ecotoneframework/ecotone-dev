@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\Handler\Gateway\Gateway;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
 use Psr\Container\ContainerInterface;
 
@@ -15,11 +16,8 @@ class EcotoneRemoteAdapter implements AdapterInterface
 
     public function call(string $wrappedClass, string $method, array $params = [])
     {
-        /** @var MessagingSystem $messagingSystem */
-        $messagingSystem = $this->container->get(ConfiguredMessagingSystem::class);
-
-        $nonProxyCombinedGateway = $messagingSystem->getNonProxyGatewayByName($this->referenceName);
-
-        return $nonProxyCombinedGateway->executeMethod($method, $params);
+        /** @var Gateway $gateway */
+        $gateway = $this->container->get('gateway.'.$this->referenceName.'::'.$method);
+        return $gateway->execute($params);
     }
 }

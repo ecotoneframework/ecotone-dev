@@ -8,6 +8,7 @@ use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\InterfaceToCall;
+use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvocation;
@@ -26,9 +27,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class CallAggregateService
 {
     /**
-     * @var ParameterConverterBuilder[]
+     * @var ParameterConverter[]
      */
-    private array $parameterConverterBuilders;
+    private array $parameterConverters;
     private ChannelResolver $channelResolver;
     private ReferenceSearchService $referenceSearchService;
     /**
@@ -53,10 +54,10 @@ class CallAggregateService
 
     public function __construct(InterfaceToCall $interfaceToCall, bool $isEventSourced, ChannelResolver $channelResolver, array $parameterConverterBuilders, array $aroundMethodInterceptors, ReferenceSearchService $referenceSearchService, PropertyReaderAccessor $propertyReaderAccessor, PropertyEditorAccessor $propertyEditorAccessor, bool $isCommand, bool $isFactoryMethod, private EventSourcingHandlerExecutor $eventSourcingHandlerExecutor, ?string $aggregateVersionProperty, bool $isAggregateVersionAutomaticallyIncreased, ?string $aggregateMethodWithEvents)
     {
-        Assert::allInstanceOfType($parameterConverterBuilders, ParameterConverterBuilder::class);
+        Assert::allInstanceOfType($parameterConverterBuilders, ParameterConverter::class);
         Assert::allInstanceOfType($aroundMethodInterceptors, AroundMethodInterceptor::class);
 
-        $this->parameterConverterBuilders = $parameterConverterBuilders;
+        $this->parameterConverters = $parameterConverterBuilders;
         $this->channelResolver = $channelResolver;
         $this->referenceSearchService = $referenceSearchService;
         $this->aroundMethodInterceptors = $aroundMethodInterceptors;
@@ -97,11 +98,12 @@ class CallAggregateService
                 ->setHeader(AggregateMessage::TARGET_VERSION, $versionBeforeHandling);
         }
 
-        $methodInvoker = MethodInvoker::createWith(
-            $this->aggregateInterface,
+        $methodInvoker = new MethodInvoker(
             $aggregate ? $aggregate : $this->aggregateInterface->getInterfaceType()->toString(),
-            $this->parameterConverterBuilders,
-            $this->referenceSearchService,
+            $this->aggregateInterface->getMethodName(),
+            $this->parameterConverters,
+            $this->aggregateInterface,
+            false
         );
 
         if ($this->aroundMethodInterceptors) {

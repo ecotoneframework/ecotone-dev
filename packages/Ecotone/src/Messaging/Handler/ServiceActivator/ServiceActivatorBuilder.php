@@ -55,7 +55,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     private ?InterfaceToCall $annotatedInterfaceToCall = null;
     protected ?Reference $compiled = null;
 
-    private function __construct(string $objectToInvokeOnReferenceName, private string|InterfaceToCall $methodNameOrInterfaceToCall)
+    private function __construct(string $objectToInvokeOnReferenceName, private string|InterfaceToCall|InterfaceToCallReference $methodNameOrInterfaceToCall)
     {
         $this->objectToInvokeReferenceName = $objectToInvokeOnReferenceName;
 
@@ -64,7 +64,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         }
     }
 
-    public static function create(string $objectToInvokeOnReferenceName, InterfaceToCall $interfaceToCall): self
+    public static function create(string $objectToInvokeOnReferenceName, InterfaceToCall|InterfaceToCallReference $interfaceToCall): self
     {
         return new self($objectToInvokeOnReferenceName, $interfaceToCall);
     }
@@ -142,6 +142,9 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
      */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
+        if ($this->methodNameOrInterfaceToCall instanceof InterfaceToCallReference) {
+            return $interfaceToCallRegistry->getFor($this->methodNameOrInterfaceToCall->getClassName(), $this->methodNameOrInterfaceToCall->getMethodName());
+        }
         return $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
             ? $this->methodNameOrInterfaceToCall
             : $interfaceToCallRegistry->getFor($this->directObjectReference, $this->getMethodName());
@@ -152,11 +155,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
      */
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
-        return [
-            $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
-                ? $this->methodNameOrInterfaceToCall
-                : $interfaceToCallRegistry->getFor($this->directObjectReference, $this->getMethodName()),
-        ];
+        return [$this->getInterceptedInterface($interfaceToCallRegistry)];
     }
 
 
@@ -219,29 +218,18 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             throw new \InvalidArgumentException("Trying to compile {$this} twice");
         }
 
-        $className = $this->methodNameOrInterfaceToCall instanceof InterfaceToCall ? $this->methodNameOrInterfaceToCall->getInterfaceName() : $this->objectToInvokeReferenceName;
+        $className = $this->getInterfaceName();
         $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
 
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
 
-        $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $this->methodParameterConverterBuilders, $this->getEndpointAnnotations(), null, false);
+        $methodInvokerDefinition = MethodInvoker::createDefinition(
+            $builder,
+            $interfaceToCall,
+            $this->objectToInvokeReferenceName,
+            $this->methodParameterConverterBuilders,
+            $this->getEndpointAnnotations());
 
-        $compiledMethodParameterConverters = [];
-        foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
-            if (! ($methodParameterConverter instanceof CompilableParameterConverterBuilder)) {
-                // Cannot continue without every parameter converters compilable
-                return null;
-            }
-            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
-        }
-
-        $methodInvokerDefinition = new Definition(MethodInvoker::class, [
-            $this->isStaticallyCalled() ? $this->objectToInvokeReferenceName : new Reference($this->objectToInvokeReferenceName),
-            $this->getMethodName(),
-            $compiledMethodParameterConverters,
-            $interfaceToCallReference,
-            true,
-        ]);
         if ($this->shouldWrapResultInMessage) {
             $methodInvokerDefinition = new Definition(WrapWithMessageBuildProcessor::class, [
                 $interfaceToCallReference,
@@ -320,8 +308,21 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
     private function getMethodName(): string
     {
+        if ($this->methodNameOrInterfaceToCall instanceof InterfaceToCallReference) {
+            return $this->methodNameOrInterfaceToCall->getMethodName();
+        }
         return $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
             ? $this->methodNameOrInterfaceToCall->getMethodName()
             : $this->methodNameOrInterfaceToCall;
+    }
+
+    private function getInterfaceName(): string
+    {
+        if ($this->methodNameOrInterfaceToCall instanceof InterfaceToCallReference) {
+            return $this->methodNameOrInterfaceToCall->getClassName();
+        }
+        return $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
+            ? $this->methodNameOrInterfaceToCall->getInterfaceName()
+            : $this->objectToInvokeReferenceName;
     }
 }

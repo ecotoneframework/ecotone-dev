@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Bridge;
 
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -22,7 +23,7 @@ class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel
 
     private function __construct()
     {
-        $this->bridgeBuilder = ServiceActivatorBuilder::createWithDirectReference(new Bridge(), 'handle');
+        $this->bridgeBuilder = ServiceActivatorBuilder::create(Bridge::class, new InterfaceToCallReference(Bridge::class, 'handle'));
     }
 
     /**

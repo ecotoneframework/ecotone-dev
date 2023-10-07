@@ -127,9 +127,9 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         if ($this->messageChannel instanceof DirectChannel) {
             $definition = new Definition(DirectChannel::class, [$this->messageChannelName]);
         } else if ($this->messageChannel instanceof QueueChannel) {
-            $definition = new FactoryDefinition([QueueChannel::class, 'create'], ["name" => $this->messageChannelName]);
+            $definition = new Definition(QueueChannel::class, [$this->messageChannelName]);
         } else if ($this->messageChannel instanceof PublishSubscribeChannel) {
-            $definition = new FactoryDefinition([PublishSubscribeChannel::class, 'create'], ["messageChannelName" => $this->messageChannelName]);
+            $definition = new Definition(PublishSubscribeChannel::class, [$this->messageChannelName]);
         } else if ($this->messageChannel instanceof NullableMessageChannel) {
             $definition = new FactoryDefinition([NullableMessageChannel::class, 'create']);
         } else {

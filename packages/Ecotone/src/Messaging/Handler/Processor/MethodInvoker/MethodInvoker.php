@@ -2,6 +2,11 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\MethodArgument;
@@ -62,6 +67,28 @@ final class MethodInvoker implements MessageProcessor
         }
 
         return new self($objectToInvokeOn, $interfaceToCall->getMethodName(), $methodParameterConverters, $interfaceToCall, true);
+    }
+
+    public static function createDefinition(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, string $reference, array $methodParametersConverterBuilders, array $endpointAnnotations = []): Definition|null
+    {
+        $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $methodParametersConverterBuilders, $endpointAnnotations, null, false);
+
+        $compiledMethodParameterConverters = [];
+        foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
+            if (! ($methodParameterConverter instanceof CompilableParameterConverterBuilder)) {
+                // Cannot continue without every parameter converters compilable
+                return null;
+            }
+            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
+        }
+
+        return new Definition(MethodInvoker::class, [
+            $interfaceToCall->isStaticallyCalled() ? $reference : new Reference($reference),
+            $interfaceToCall->getMethodName(),
+            $compiledMethodParameterConverters,
+            InterfaceToCallReference::fromInstance($interfaceToCall),
+            true,
+        ]);
     }
 
     /**

@@ -2,6 +2,11 @@
 
 namespace Ecotone\Modelling\Config;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
@@ -18,7 +23,7 @@ use Exception;
  * @package Ecotone\Modelling\Config
  * @author  Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class BusRouterBuilder implements MessageHandlerBuilder
+class BusRouterBuilder implements MessageHandlerBuilder, CompilableBuilder
 {
     private ?string $endpointId;
 
@@ -28,20 +33,18 @@ class BusRouterBuilder implements MessageHandlerBuilder
      */
     private string $inputChannelName;
     private string $type;
-    private MessageHeadersPropagatorInterceptor $messageHeadersPropagator;
 
     /**
      * @param string[]  $channelNamesRouting
      *
      * @throws Exception
      */
-    private function __construct(MessageHeadersPropagatorInterceptor $messageHeadersPropagator, string $endpointId, string $inputChannelName, array $channelNamesRouting, string $type)
+    private function __construct(string $endpointId, string $inputChannelName, array $channelNamesRouting, string $type)
     {
         $this->channelNamesRouting = $channelNamesRouting;
         $this->inputChannelName = $inputChannelName;
         $this->type = $type;
         $this->endpointId = $endpointId;
-        $this->messageHeadersPropagator = $messageHeadersPropagator;
     }
 
     /**
@@ -50,10 +53,9 @@ class BusRouterBuilder implements MessageHandlerBuilder
      * @return BusRouterBuilder
      * @throws Exception
      */
-    public static function createEventBusByObject(MessageHeadersPropagatorInterceptor $messageHeadersPropagator, array $channelNamesRouting): self
+    public static function createEventBusByObject(array $channelNamesRouting): self
     {
         return new self(
-            $messageHeadersPropagator,
             BusModule::EVENT_CHANNEL_NAME_BY_OBJECT . '.endpoint',
             BusModule::EVENT_CHANNEL_NAME_BY_OBJECT,
             $channelNamesRouting,
@@ -67,10 +69,9 @@ class BusRouterBuilder implements MessageHandlerBuilder
      * @return BusRouterBuilder
      * @throws Exception
      */
-    public static function createEventBusByName(MessageHeadersPropagatorInterceptor $messageHeadersPropagator, array $channelNamesRouting): self
+    public static function createEventBusByName(array $channelNamesRouting): self
     {
         return new self(
-            $messageHeadersPropagator,
             BusModule::EVENT_CHANNEL_NAME_BY_NAME . '.endpoint',
             BusModule::EVENT_CHANNEL_NAME_BY_NAME,
             $channelNamesRouting,
@@ -84,10 +85,9 @@ class BusRouterBuilder implements MessageHandlerBuilder
      * @return BusRouterBuilder
      * @throws Exception
      */
-    public static function createCommandBusByObject(MessageHeadersPropagatorInterceptor $messageHeadersPropagator, array $channelNamesRouting): self
+    public static function createCommandBusByObject(array $channelNamesRouting): self
     {
         return new self(
-            $messageHeadersPropagator,
             BusModule::COMMAND_CHANNEL_NAME_BY_OBJECT . '.endpoint',
             BusModule::COMMAND_CHANNEL_NAME_BY_OBJECT,
             $channelNamesRouting,
@@ -101,10 +101,9 @@ class BusRouterBuilder implements MessageHandlerBuilder
      * @return BusRouterBuilder
      * @throws Exception
      */
-    public static function createCommandBusByName(MessageHeadersPropagatorInterceptor $messageHeadersPropagator, array $channelNamesRouting): self
+    public static function createCommandBusByName(array $channelNamesRouting): self
     {
         return new self(
-            $messageHeadersPropagator,
             BusModule::COMMAND_CHANNEL_NAME_BY_NAME . '.endpoint',
             BusModule::COMMAND_CHANNEL_NAME_BY_NAME,
             $channelNamesRouting,
@@ -118,10 +117,9 @@ class BusRouterBuilder implements MessageHandlerBuilder
      * @return BusRouterBuilder
      * @throws Exception
      */
-    public static function createQueryBusByObject(MessageHeadersPropagatorInterceptor $messageHeadersPropagator, array $channelNamesRouting): self
+    public static function createQueryBusByObject(array $channelNamesRouting): self
     {
         return new self(
-            $messageHeadersPropagator,
             BusModule::QUERY_CHANNEL_NAME_BY_OBJECT . '.endpoint',
             BusModule::QUERY_CHANNEL_NAME_BY_OBJECT,
             $channelNamesRouting,
@@ -135,10 +133,9 @@ class BusRouterBuilder implements MessageHandlerBuilder
      * @return BusRouterBuilder
      * @throws Exception
      */
-    public static function createQueryBusByName(MessageHeadersPropagatorInterceptor $messageHeadersPropagator, array $channelNamesRouting): self
+    public static function createQueryBusByName(array $channelNamesRouting): self
     {
         return new self(
-            $messageHeadersPropagator,
             BusModule::QUERY_CHANNEL_NAME_BY_NAME . '.endpoint',
             BusModule::QUERY_CHANNEL_NAME_BY_NAME,
             $channelNamesRouting,
@@ -205,6 +202,60 @@ class BusRouterBuilder implements MessageHandlerBuilder
         }
 
         throw InvalidArgumentException::create("Incorrect type {$this->type}");
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $configs = [
+            "eventByObject" => [
+                "class" => EventBusRouter::class,
+                "method" => "routeByObject",
+                "config" => fn (RouterBuilder $router) => $router->setResolutionRequired(false)
+            ],
+            "eventByName" => [
+                "class" => EventBusRouter::class,
+                "method" => "routeByName",
+                "config" => fn (RouterBuilder $router) => $router
+                    ->setResolutionRequired(false)
+                    ->withMethodParameterConverters([
+                        HeaderBuilder::createOptional('routedName', BusModule::EVENT_CHANNEL_NAME_BY_NAME),
+                    ])
+            ],
+            "commandByObject" => [
+                "class" => CommandBusRouter::class,
+                "method" => "routeByObject",
+                "config" => fn (RouterBuilder $router) => $router
+            ],
+            "commandByName" => [
+                "class" => CommandBusRouter::class,
+                "method" => "routeByName",
+                "config" => fn (RouterBuilder $router) => $router
+                    ->withMethodParameterConverters([
+                        HeaderBuilder::createOptional('name', BusModule::COMMAND_CHANNEL_NAME_BY_NAME),
+                    ])
+            ],
+            "queryByObject" => [
+                "class" => QueryBusRouter::class,
+                "method" => "routeByObject",
+                "config" => fn (RouterBuilder $router) => $router
+            ],
+            "queryByName" => [
+                "class" => QueryBusRouter::class,
+                "method" => "routeByName",
+                "config" => fn (RouterBuilder $router) => $router
+                    ->withMethodParameterConverters([
+                        HeaderBuilder::createOptional('name', BusModule::QUERY_CHANNEL_NAME_BY_NAME),
+                    ])
+            ],
+        ];
+        $config = $configs[$this->type] ?? throw InvalidArgumentException::create("Incorrect type {$this->type}");
+        $routerReference = $builder->register($config["class"].'.'.$this->type, new Definition($config["class"], [
+            $this->channelNamesRouting
+        ]));
+        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference($config["class"], $config["method"]));
+        $router = RouterBuilder::create($routerReference->getId(), $interfaceToCall);
+        $router = $config["config"]($router);
+        return $router->compile($builder);
     }
 
     /**

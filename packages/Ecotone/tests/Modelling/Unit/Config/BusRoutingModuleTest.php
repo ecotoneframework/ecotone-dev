@@ -96,7 +96,6 @@ class BusRoutingModuleTest extends MessagingTest
         $annotationRegistrationService = InMemoryAnnotationFinder::createFrom($annotatedClasses);
         $extendedConfiguration = $this->prepareModule($annotationRegistrationService);
 
-        $messagePropagator = new MessageHeadersPropagatorInterceptor();
         $this->assertEquals(
             MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
                 ->registerBeforeMethodInterceptor(
@@ -120,12 +119,12 @@ class BusRoutingModuleTest extends MessagingTest
                         CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class
                     )
                 )
-                ->registerMessageHandler(BusRouterBuilder::createCommandBusByObject($messagePropagator, $commandObjectMapping))
-                ->registerMessageHandler(BusRouterBuilder::createCommandBusByName($messagePropagator, $commandMapping))
-                ->registerMessageHandler(BusRouterBuilder::createQueryBusByObject($messagePropagator, $queryObjectMapping))
-                ->registerMessageHandler(BusRouterBuilder::createQueryBusByName($messagePropagator, $queryMapping))
-                ->registerMessageHandler(BusRouterBuilder::createEventBusByObject($messagePropagator, $eventObjectMapping))
-                ->registerMessageHandler(BusRouterBuilder::createEventBusByName($messagePropagator, $eventNameMapping)),
+                ->registerMessageHandler(BusRouterBuilder::createCommandBusByObject($commandObjectMapping))
+                ->registerMessageHandler(BusRouterBuilder::createCommandBusByName($commandMapping))
+                ->registerMessageHandler(BusRouterBuilder::createQueryBusByObject($queryObjectMapping))
+                ->registerMessageHandler(BusRouterBuilder::createQueryBusByName($queryMapping))
+                ->registerMessageHandler(BusRouterBuilder::createEventBusByObject($eventObjectMapping))
+                ->registerMessageHandler(BusRouterBuilder::createEventBusByName($eventNameMapping)),
             $extendedConfiguration
         );
     }

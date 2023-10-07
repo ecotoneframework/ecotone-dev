@@ -12,17 +12,18 @@ use Ecotone\Messaging\Config\Container\FactoryDefinition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Psr\Container\ContainerInterface;
+use ReflectionMethod;
 
 class PhpDiContainerImplementation implements ContainerImplementation
 {
-    public function __construct(private ContainerBuilder $containerBuilder, private ContainerCachingStrategy $cachingStrategy)
+    public function __construct(private ContainerBuilder $containerBuilder)
     {
     }
 
     /**
      * @inheritDoc
      */
-    public function process(array $definitions, array $externalReferences): ContainerHydrator
+    public function process(array $definitions, array $externalReferences): void
     {
         $phpDiDefinitions = [];
 
@@ -43,15 +44,13 @@ class PhpDiContainerImplementation implements ContainerImplementation
 //                    };
 //                }
 //            } else {
-                $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
-                    return $c->get("external_reference_search_service")->get($entry->getName());
-                };
+//                $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
+//                    return $c->get("external_reference_search_service")->get($entry->getName());
+//                };
 //            }
         }
 
         $this->containerBuilder->addDefinitions($phpDiDefinitions);
-
-        return $this->cachingStrategy->dump($this->containerBuilder);
     }
 
     private function resolveArgument($argument): mixed
@@ -80,14 +79,22 @@ class PhpDiContainerImplementation implements ContainerImplementation
         if ($definition->islLazy()) {
             $phpdi->lazy();
         }
+        foreach ($definition->getMethodCalls() as $methodCall) {
+            $phpdi->method($methodCall->getMethodName(), ...$this->resolveArgument($methodCall->getArguments()));
+        }
         return $phpdi;
     }
 
     private function convertFactory(FactoryDefinition $definition)
     {
         $factory = \DI\factory($definition->getFactory());
+        [$class, $method] = $definition->getFactory();
+        // Transform indexed factory to named factory
+        $reflector = new ReflectionMethod($class, $method);
+        $parameters = $reflector->getParameters();
         foreach ($definition->getArguments() as $index => $argument) {
-            $factory->parameter($index, $this->resolveArgument($argument));
+            $p = $parameters[$index] ?? null;
+            $factory->parameter($p ? $p->name : $index, $this->resolveArgument($argument));
         }
         return $factory;
     }

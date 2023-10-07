@@ -17,6 +17,7 @@ use Monorepo\ExampleApp\Common\Infrastructure\Output;
 use Monorepo\ExampleApp\Common\Infrastructure\StubNotificationSender;
 use Monorepo\ExampleApp\Common\Infrastructure\StubShippingService;
 use Monorepo\ExampleApp\Common\Infrastructure\SystemClock;
+use Monorepo\ExampleApp\Common\UI\OrderController;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $output = new Output();
@@ -28,7 +29,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
         NotificationSender::class => new StubNotificationSender($output),
         ShippingService::class => new StubShippingService($output),
         Clock::class => new SystemClock(),
-        OrderRepository::class => new InMemoryOrderRepository(),
+//        OrderRepository::class => new InMemoryOrderRepository(),
         AuthenticationService::class => $configuration->authentication(),
         UserRepository::class => $configuration->userRepository(),
         ProductRepository::class => $configuration->productRepository(),
@@ -39,7 +40,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
             ->doNotLoadCatalog()
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withFailFast(false)
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+            ->withSkippedModulePackageNames(array_merge(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]), [ModulePackageList::TEST_PACKAGE]))
             ->withNamespaces(['Monorepo\\ExampleApp\\Common\\']),
         cacheConfiguration: $useCachedVersion,
         pathToRootCatalog: __DIR__.'/../Common',

@@ -25,9 +25,9 @@ class ContainerMessagingBuilder
     public function __construct(private InterfaceToCallRegistry $interfaceToCallRegistry)
     {
         $this->typeResolver = TypeResolver::create();
-        $this->definitions[ChannelResolver::class] = new Definition(ChannelResolverWithFallback::class,
-            [new Reference(ContainerInterface::class)]
-        );
+//        $this->definitions[ChannelResolver::class] = new Definition(ChannelResolverWithFallback::class,
+//            [new Reference(ContainerInterface::class)]
+//        );
     }
 
     public function register(string|Reference $id, Definition|FactoryDefinition $definition): Reference
@@ -48,14 +48,14 @@ class ContainerMessagingBuilder
         return $id instanceof Reference ? $id : new Reference($id);
     }
 
-    public function getDefinition(string|Reference $id): Definition
+    public function getDefinition(string|Reference $id): Definition|FactoryDefinition
     {
         return $this->definitions[(string) $id];
     }
 
-    public function process(ContainerImplementation $containerImplementation): ContainerHydrator
+    public function process(ContainerImplementation $containerImplementation): void
     {
-        return $containerImplementation->process($this->definitions, $this->externalReferences);
+        $containerImplementation->process($this->definitions, $this->externalReferences);
     }
 
     public function getInterfaceToCall(InterfaceToCallReference $interfaceToCallReference): InterfaceToCall
@@ -65,13 +65,16 @@ class ContainerMessagingBuilder
 
     public function has(string|Reference $id): bool
     {
-        return isset($this->definitions[(string) $id]) || isset($this->externalReferences[(string) $id]);
+        return isset($this->definitions[(string) $id]);
     }
 
     private function registerAllReferences($argument): void
     {
         if ($argument instanceof Definition) {
             $this->registerAllReferences($argument->getConstructorArguments());
+            foreach ($argument->getMethodCalls() as $methodCall) {
+                $this->registerAllReferences($methodCall->getArguments());
+            }
         } else if ($argument instanceof FactoryDefinition) {
             $this->registerAllReferences($argument->getArguments());
         } else if (\is_array($argument)) {
@@ -90,6 +93,9 @@ class ContainerMessagingBuilder
             if (!$this->has($argument->getId())) {
                 $this->externalReferences[$argument->getId()] = $argument;
             }
+        } else if (\is_object($argument)) {
+            $class = \get_class($argument);
+            throw new \InvalidArgumentException("Argument {$class} is not supported");
         }
     }
 }

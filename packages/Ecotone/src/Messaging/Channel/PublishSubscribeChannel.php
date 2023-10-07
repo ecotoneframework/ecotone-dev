@@ -18,7 +18,7 @@ class PublishSubscribeChannel implements SubscribableChannel
      */
     private array $messageHandlers = [];
 
-    private function __construct(private string $messageChannelName)
+    public function __construct(private string $messageChannelName)
     {
     }
 

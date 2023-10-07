@@ -10,6 +10,7 @@ use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\WithRequiredReferenceNameList;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
+use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
@@ -18,13 +19,16 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Config\Container\ChannelResolverWithContainer;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
-use Ecotone\Messaging\Config\Container\Implementations\CachedContainerStrategy;
-use Ecotone\Messaging\Config\Container\Implementations\InMemoryContainerStrategy;
-use Ecotone\Messaging\Config\Container\Implementations\PhpDiContainerImplementation;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\FactoryDefinition;
+use Ecotone\Messaging\Config\Container\InMemoryContainerImplementation;
+use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\Container\ReferenceSearchServiceWithContainer;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -33,8 +37,10 @@ use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Bridge\Bridge;
+use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
+use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
@@ -53,15 +59,18 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
+use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
+use Ecotone\Messaging\SubscribableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
 use Exception;
 use ProxyManager\Autoloader\AutoloaderInterface;
+use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 use function spl_autoload_register;
 use function spl_autoload_unregister;
@@ -162,7 +171,10 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $consoleCommands = [];
 
-    private ?ContainerHydrator $containerFactory = null;
+    /**
+     * @var array<string, Definition|FactoryDefinition> $serviceDefinitions
+     */
+    private array $serviceDefinitions = [];
 
     /**
      * @param object[] $extensionObjects
@@ -488,7 +500,7 @@ final class MessagingSystemConfiguration implements Configuration
              * This is Bridge that will fetch the message and make use of routing_slip to target it
              * message handler.
              */
-            $this->messageHandlerBuilders[$asynchronousChannel] = ServiceActivatorBuilder::createWithDirectReference(new Bridge(), 'handle')
+            $this->messageHandlerBuilders[$asynchronousChannel] = BridgeBuilder::create()
                 ->withInputChannelName($asynchronousChannel)
                 ->withEndpointId($asynchronousChannel);
         }
@@ -1273,14 +1285,35 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService, ?ContainerImplementation $containerImplementation = null): ConfiguredMessagingSystem
+    public function registerServiceDefinition(string $id, Container\Definition $definition): Configuration
     {
-        $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration, $referenceSearchService);
-        if (! $this->isLazyConfiguration) {
-            $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $this->applicationConfiguration);
+        if (!isset($this->serviceDefinitions[$id])) {
+            $this->serviceDefinitions[$id] = $definition;
         }
+        return $this;
+    }
+
+    public function buildInContainer(ContainerImplementation $containerImplementation): void
+    {
+        $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration);
 
         $builder = new ContainerMessagingBuilder($interfaceToCallRegistry);
+
+        $builder->register(ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
+        $builder->register(ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
+
+        foreach ($this->serviceDefinitions as $id => $definition) {
+            $builder->register($id, $definition);
+        }
+
+        $converters = [];
+        foreach ($this->converterBuilders as $converterBuilder) {
+            if ($converterBuilder instanceof CompilableBuilder) {
+                $converters[] = $converterBuilder->compile($builder);
+            }
+        }
+        $builder->register(ConversionService::REFERENCE_NAME, new FactoryDefinition([AutoCollectionConversionService::class, 'createWith'], ['converters' => $converters]));
+        $builder->register(ExpressionEvaluationService::REFERENCE, new FactoryDefinition([SymfonyExpressionEvaluationAdapter::class, 'create']));
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];
@@ -1316,23 +1349,70 @@ final class MessagingSystemConfiguration implements Configuration
 //            $channels[] = NamedMessageChannel::create($channelsBuilder->getMessageChannelName(), $messageChannel);
         }
 
+        foreach ($this->moduleReferenceSearchService->getAllRegisteredReferences() as $id => $object) {
+            if (! $object instanceof CompilableBuilder) {
+                throw ConfigurationException::create("Reference {$id} is not compilable");
+            }
+            $builder->register($id, $object->compile($builder));
+        }
+
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             if ($messageHandlerBuilder instanceof CompilableBuilder) {
-                $messageHandlerBuilder->compile($builder);
+                $reference = $messageHandlerBuilder->compile($builder);
+                if (! $reference) {
+//                    throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
+                }
+                if ($inputChannel = $messageHandlerBuilder->getInputMessageChannelName()) {
+                    $channelDefinition = $builder->getDefinition(new ChannelReference($inputChannel));
+                    if ($channelDefinition instanceof Definition && \is_a($channelDefinition->getClassName(), SubscribableChannel::class, true)) {
+                        $channelDefinition->addMethodCall('subscribe', [$reference]);
+                    }
+                }
+            } else {
+                throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
             }
         }
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
             if ($gatewayBuilder instanceof CompilableBuilder) {
-                $reference = $gatewayBuilder->compile($builder);
+                $gatewayBuilder->compile($builder);
                 // This is an example of changing a definition from a reference
-                if ($reference) {
-                    $builder->getDefinition($reference)->lazy();
-                }
+//                if ($reference) {
+//                    $builder->getDefinition($reference)->lazy();
+//                } else {
+//                    throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
+//                }
+            } else {
+                    throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
+            }
+            $referenceName = $gatewayBuilder->getReferenceName();
+            if (! $builder->has($gatewayBuilder->getReferenceName())) {
+                $builder->register($gatewayBuilder->getReferenceName(), new FactoryDefinition([ProxyFactory::class, 'createFor'], [
+                    "referenceName" => $gatewayBuilder->getReferenceName(),
+                    "container" => new Reference(ContainerInterface::class),
+                    "interface" => $gatewayBuilder->getReferenceName(),
+                    "serviceCacheConfiguration" => new Reference(ServiceCacheConfiguration::REFERENCE_NAME)
+                ]));
             }
         }
 
-        $containerImplementation ??= new PhpDiContainerImplementation(new ContainerBuilder(), new InMemoryContainerStrategy());
-        $this->containerFactory = $builder->process($containerImplementation);
+        $builder->process($containerImplementation);
+    }
+
+    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService, ?ContainerImplementation $containerImplementation = null): ConfiguredMessagingSystem
+    {
+        $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration);
+        if (! $this->isLazyConfiguration) {
+            $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $this->applicationConfiguration);
+        }
+
+        $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
+        $channelInterceptorsByChannelName = [];
+        foreach ($channelInterceptorsByImportance as $channelInterceptors) {
+            /** @var ChannelInterceptorBuilder $channelInterceptor */
+            foreach ($channelInterceptors as $channelInterceptor) {
+                $channelInterceptorsByChannelName[$channelInterceptor->relatedChannelName()][] = $channelInterceptor;
+            }
+        }
 
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {
@@ -1388,9 +1468,13 @@ final class MessagingSystemConfiguration implements Configuration
             $this->applicationConfiguration
         );
 
-        $container = $this->containerFactory->create($newReferenceSearchService);
-
-        $newReferenceSearchService->registerReferencedObject(ContainerImplementation::REFERENCE_ID, $container);
+        if ($this->serviceDefinitions) {
+            $builder = new ContainerMessagingBuilder($interfaceToCallRegistry);
+            foreach ($this->serviceDefinitions as $id => $definition) {
+                $builder->register($id, $definition);
+            }
+            $builder->process(new InMemoryContainerImplementation($newReferenceSearchService));
+        }
 
         return $newReferenceSearchService;
     }

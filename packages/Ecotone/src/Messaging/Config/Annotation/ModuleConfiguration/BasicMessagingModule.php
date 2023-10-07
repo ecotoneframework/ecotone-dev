@@ -11,6 +11,8 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendGateway;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\RequiredReference;
@@ -45,6 +47,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
+use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
@@ -115,9 +118,15 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
             ->registerInternalGateway(TypeDescriptor::create(InboundGatewayEntrypoint::class))
             ->registerInternalGateway(TypeDescriptor::create(EnrichGateway::class));
 
+        $reference = new Reference(\uniqid(HeaderRouter::class . ".".MessagingEntrypoint::ENTRYPOINT));
+        $messagingConfiguration->registerServiceDefinition(
+            $reference->getId(),
+            new Definition(HeaderRouter::class, [MessagingEntrypoint::ENTRYPOINT])
+        );
+
         $messagingConfiguration
             ->registerMessageHandler(
-                RouterBuilder::createHeaderRouter(MessagingEntrypoint::ENTRYPOINT)
+                RouterBuilder::create($reference, $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route'))
                     ->withInputChannelName(MessagingEntrypoint::ENTRYPOINT)
             );
 

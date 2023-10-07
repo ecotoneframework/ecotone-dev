@@ -2,6 +2,12 @@
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -13,6 +19,7 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -22,8 +29,9 @@ use Ecotone\Modelling\Attribute\AggregateEvents;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
+use Exception;
 
-class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
+class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel, CompilableBuilder
 {
     private InterfaceToCall $interfaceToCall;
     /**
@@ -142,14 +150,66 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
     {
         $orderedAroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $this->interfaceToCall);
+        $methodParameterConverters = MethodArgumentsFactory::createDefaultMethodParameters($this->interfaceToCall, $this->methodParameterConverterBuilders, $this->getEndpointAnnotations(), null, false);
         $handler = ServiceActivatorBuilder::createWithDirectReference(
-            new CallAggregateService($this->interfaceToCall, $this->isEventSourced, $channelResolver, $this->methodParameterConverterBuilders, $orderedAroundInterceptors, $referenceSearchService, new PropertyReaderAccessor(), PropertyEditorAccessor::create($referenceSearchService), $this->isCommandHandler, $this->interfaceToCall->isStaticallyCalled(), $this->eventSourcingHandlerExecutor, $this->aggregateVersionProperty, $this->isAggregateVersionAutomaticallyIncreased, $this->aggregateMethodWithEvents),
+            new CallAggregateService($this->interfaceToCall, $this->isEventSourced, $channelResolver, $methodParameterConverters, $orderedAroundInterceptors, $referenceSearchService, new PropertyReaderAccessor(), PropertyEditorAccessor::create($referenceSearchService), $this->isCommandHandler, $this->interfaceToCall->isStaticallyCalled(), $this->eventSourcingHandlerExecutor, $this->aggregateVersionProperty, $this->isAggregateVersionAutomaticallyIncreased, $this->aggregateMethodWithEvents),
             'call'
         )
             ->withPassThroughMessageOnVoidInterface($this->isVoidMethod)
             ->withOutputMessageChannel($this->outputMessageChannelName);
 
         return $handler->build($channelResolver, $referenceSearchService);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $interceptors = [];
+        foreach (AroundInterceptorReference::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
+            if ($interceptor = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $this->interfaceToCall)) {
+                $interceptors[] = $interceptor;
+            } else {
+                // Cannot continue without every interceptor being compilable
+                throw new Exception("Cannot compile {$this} due to un-compilable interceptor {$aroundInterceptorReference}");
+            }
+        }
+
+        // TODO: code duplication with ServiceActivatorBuilder
+        $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($this->interfaceToCall, $this->methodParameterConverterBuilders, $this->getEndpointAnnotations(), null, false);
+
+        $compiledMethodParameterConverters = [];
+        foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
+            if (! ($methodParameterConverter instanceof CompilableParameterConverterBuilder)) {
+                // Cannot continue without every parameter converters compilable
+                return null;
+            }
+            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $this->interfaceToCall, $this->interfaceToCall->getInterfaceParameters()[$index]);
+        }
+
+        $callAggregateService = new Definition(CallAggregateService::class, [
+            InterfaceToCallReference::fromInstance($this->interfaceToCall),
+            $this->isEventSourced,
+            new Reference(ChannelResolver::class),
+            $compiledMethodParameterConverters,
+            $interceptors,
+            new Reference(ReferenceSearchService::class),
+            new Reference(PropertyReaderAccessor::class),
+            new Reference(PropertyEditorAccessor::class),
+            $this->isCommandHandler,
+            $this->interfaceToCall->isStaticallyCalled(),
+            // TODO: this is a fake implementation, we need to implement it
+            new Definition(EventSourcingHandlerExecutor::class, [$this->interfaceToCall->getInterfaceName(),[]]),
+            $this->aggregateVersionProperty,
+            $this->isAggregateVersionAutomaticallyIncreased,
+            $this->aggregateMethodWithEvents
+        ]);
+
+        $reference = $builder->register(\uniqid(CallAggregateService::class), $callAggregateService);
+        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(CallAggregateService::class, 'call'));
+
+        $serviceActivator = ServiceActivatorBuilder::create($reference, $interfaceToCall)
+            ->withOutputMessageChannel($this->outputMessageChannelName)
+            ->compile($builder);
+        return $serviceActivator;
     }
 
     /**

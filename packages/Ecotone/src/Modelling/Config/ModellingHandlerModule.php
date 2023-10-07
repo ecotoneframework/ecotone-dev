@@ -20,6 +20,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
@@ -680,6 +681,9 @@ class ModellingHandlerModule implements AnnotationModule
         /** @TODO do not require method name in save service */
         $methodName = $aggregateClassDefinition->getPublicMethodNames() ? $aggregateClassDefinition->getPublicMethodNames()[0] : '__construct';
 
+        $fetchAggregateInterfaceToCall = $interfaceToCallRegistry->getFor(FetchAggregate::class, 'fetch');
+        $configuration->registerServiceDefinition(FetchAggregate::class, new Definition(FetchAggregate::class));
+
         $configuration->registerMessageHandler(
             $chainMessageHandlerBuilder
                 ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], null, $interfaceToCallRegistry))
@@ -688,7 +692,7 @@ class ModellingHandlerModule implements AnnotationModule
                         ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
                 )
                 ->chain(
-                    ServiceActivatorBuilder::createWithDirectReference(new FetchAggregate(), 'fetch')
+                    ServiceActivatorBuilder::create(FetchAggregate::class, $fetchAggregateInterfaceToCall)
                         ->withMethodParameterConverters([
                             HeaderBuilder::createOptional('aggregate', AggregateMessage::AGGREGATE_OBJECT),
                         ])

@@ -170,4 +170,6 @@ interface Configuration
      * @return ConfiguredMessagingSystem
      */
     public function buildMessagingSystemFromConfiguration(ReferenceSearchService $externalReferenceSearchService): ConfiguredMessagingSystem;
+
+    public function registerServiceDefinition(string $id, Container\Definition $definition): Configuration;
 }

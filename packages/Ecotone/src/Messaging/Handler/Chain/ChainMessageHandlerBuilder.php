@@ -226,6 +226,7 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
             $messageHandlerReference = $messageHandlerBuilder->compile($builder);
             if (! $messageHandlerReference) {
                 // Cant compile
+                throw InvalidArgumentException::create("Can't compile {$messageHandlerBuilder}");
                 return null;
             }
             $builder->register(new ChannelReference($currentChannelName), new Definition(DirectChannel::class, [
@@ -235,7 +236,7 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
         }
 
         $chainForwardPublisherReference = $builder->register(
-            $this->inputMessageChannelName . '_chainforwardpublisher',
+            \uniqid('chainforwardpublisher-'),
             new Definition(ChainForwardPublisher::class, [
                 new ChannelReference($this->inputMessageChannelName . '_chain.' . $baseKey . '0'),
                 (bool)$this->outputMessageChannelName
@@ -258,10 +259,12 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
     private function canBeCompiled(): bool
     {
         if ($this->outputMessageHandler && ! $this->outputMessageHandler instanceof CompilableBuilder) {
+            throw InvalidArgumentException::create("Output message handler {$this->outputMessageHandler} must be compilable");
             return false;
         }
         foreach ($this->chainedMessageHandlerBuilders as $chainedMessageHandlerBuilder) {
             if (!($chainedMessageHandlerBuilder instanceof CompilableBuilder)) {
+                throw InvalidArgumentException::create("Chained message handler {$chainedMessageHandlerBuilder} must be compilable");
                 return false;
             }
         }

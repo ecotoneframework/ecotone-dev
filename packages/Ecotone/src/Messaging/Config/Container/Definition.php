@@ -8,6 +8,10 @@ use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 class Definition
 {
     private bool $isLazy = false;
+    /**
+     * @var MethodCall[]
+     */
+    private array $methodCalls = [];
 
     public function __construct(protected string $className, protected array $constructorArguments = [], protected string $factoryMethod = '')
     {
@@ -30,6 +34,17 @@ class Definition
         return $this->constructorArguments;
     }
 
+    public function getArgument(int $index): mixed
+    {
+        return $this->constructorArguments[$index];
+    }
+
+    public function setArgument(int $index, mixed $argument): self
+    {
+        $this->constructorArguments[$index] = $argument;
+        return $this;
+    }
+
     public function getFactory(): string
     {
         return $this->factoryMethod;
@@ -50,5 +65,38 @@ class Definition
     public function islLazy(): bool
     {
         return $this->isLazy;
+    }
+
+    public function addMethodCall(string $string, array $array)
+    {
+        $this->methodCalls[] = new MethodCall($string, $array);
+    }
+
+    /**
+     * @return MethodCall[]
+     */
+    public function getMethodCalls(): array
+    {
+        return $this->methodCalls;
+    }
+}
+
+/**
+ * @internal
+ */
+class MethodCall
+{
+    public function __construct(private string $methodName, private array $arguments)
+    {
+    }
+
+    public function getMethodName(): string
+    {
+        return $this->methodName;
+    }
+
+    public function getArguments(): array
+    {
+        return $this->arguments;
     }
 }

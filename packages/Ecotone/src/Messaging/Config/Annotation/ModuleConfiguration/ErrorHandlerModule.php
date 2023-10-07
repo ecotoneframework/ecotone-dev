@@ -9,13 +9,17 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandler;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
+use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
@@ -67,11 +71,17 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                 $messagingConfiguration
                     ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getDeadLetterQueueChannel()));
             }
+
+            $reference = new Reference(\uniqid(HeaderRouter::class . ".".MessageHeaders::POLLED_CHANNEL_NAME));
+            $messagingConfiguration->registerServiceDefinition(
+                $reference->getId(),
+                new Definition(HeaderRouter::class, [MessageHeaders::POLLED_CHANNEL_NAME])
+            );
             $messagingConfiguration
                 ->registerMessageHandler($errorHandler)
                 ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getErrorChannelName()))
                 ->registerMessageHandler(
-                    RouterBuilder::createHeaderRouter(MessageHeaders::POLLED_CHANNEL_NAME)
+                    RouterBuilder::create($reference->getId(), $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route'))
                         ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName() . '.router')
                         ->withInputChannelName('ecotone.recoverability.reply')
                 );

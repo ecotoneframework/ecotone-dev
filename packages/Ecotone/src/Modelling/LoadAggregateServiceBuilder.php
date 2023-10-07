@@ -2,6 +2,12 @@
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\FactoryDefinition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -17,7 +23,7 @@ use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\TargetAggregateVersion;
 
-class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder
+class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
 {
     private string $aggregateClassName;
     private string $methodName;
@@ -85,6 +91,53 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder
         )
             ->withOutputMessageChannel($this->getOutputMessageChannelName())
             ->build($channelResolver, $referenceSearchService);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $repository = $this->isEventSourced
+            ? new FactoryDefinition([LazyEventSourcedRepository::class, 'create'], [
+                $this->aggregateClassName,
+                $this->isEventSourced,
+                new Reference(ChannelResolver::class),
+                new Reference(ReferenceSearchService::class),
+                $this->aggregateRepositoryReferenceNames
+            ])
+            : new FactoryDefinition([LazyStandardRepository::class, 'create'], [
+                $this->aggregateClassName,
+                $this->isEventSourced,
+                new Reference(ChannelResolver::class),
+                new Reference(ReferenceSearchService::class),
+                $this->aggregateRepositoryReferenceNames
+            ]);
+
+        if (!$builder->has(PropertyEditorAccessor::class)) {
+            $builder->register(PropertyEditorAccessor::class, new FactoryDefinition([PropertyEditorAccessor::class, 'create'], [
+                new Reference(ReferenceSearchService::class)
+            ]));
+        }
+
+        $loadAggregateService = new Definition(LoadAggregateService::class, [
+            $repository,
+            $this->aggregateClassName,
+            $this->isEventSourced,
+            $this->methodName,
+            $this->messageVersionPropertyName,
+            $this->aggregateVersionPropertyName,
+            $this->isAggregateVersionAutomaticallyIncreased,
+            new Reference(PropertyReaderAccessor::class),
+            new Reference(PropertyEditorAccessor::class),
+            // TODO: this is a fake implementation, we need to implement it
+            new Definition(EventSourcingHandlerExecutor::class, [$this->aggregateClassName,[]]),
+            new Definition(LoadAggregateMode::class, [$this->loadAggregateMode->getType()])
+        ]);
+
+        $reference = $builder->register(\uniqid(LoadAggregateService::class), $loadAggregateService);
+
+        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(LoadAggregateService::class, 'load'));
+        return ServiceActivatorBuilder::create($reference, $interfaceToCall)
+            ->withOutputMessageChannel($this->getOutputMessageChannelName())
+            ->compile($builder);
     }
 
     /**

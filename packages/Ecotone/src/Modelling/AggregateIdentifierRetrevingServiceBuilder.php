@@ -3,6 +3,11 @@
 namespace Ecotone\Modelling;
 
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -26,7 +31,7 @@ use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
  * @package Ecotone\Modelling
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
+class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder, CompilableBuilder
 {
     private ?ClassDefinition $messageClassNameToConvertTo;
     private ClassDefinition $aggregateClassName;
@@ -59,11 +64,34 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
         Assert::isSubclassOf($conversionService, ConversionService::class, 'Have you forgot to register ' . ConversionService::REFERENCE_NAME . '?');
 
         return ServiceActivatorBuilder::createWithDirectReference(
-            new AggregateIdentifierRetrevingService($this->aggregateClassName->getClassType()->toString(), $conversionService, new PropertyReaderAccessor(), $this->typeToConvertTo, $this->metadataIdentifierMapping, $this->payloadIdentifierMapping),
+            new AggregateIdentifierRetrevingService(
+                $this->aggregateClassName->getClassType()->toString(), $conversionService, new PropertyReaderAccessor(), $this->typeToConvertTo, $this->metadataIdentifierMapping, $this->payloadIdentifierMapping),
             'convert'
         )
                     ->withOutputMessageChannel($this->getOutputMessageChannelName())
                     ->build($channelResolver, $referenceSearchService);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(AggregateIdentifierRetrevingService::class, 'convert'));
+        if(!$builder->has(PropertyReaderAccessor::class)) {
+            $builder->register(PropertyReaderAccessor::class, new Definition(PropertyReaderAccessor::class));
+        }
+        $serviceReference = $builder->register(\uniqid(AggregateIdentifierRetrevingService::class), new Definition(
+            AggregateIdentifierRetrevingService::class,
+            [
+                $this->aggregateClassName->getClassType()->toString(),
+                new Reference(ConversionService::REFERENCE_NAME),
+                new Reference(PropertyReaderAccessor::class),
+                Definition::fromType($this->typeToConvertTo),
+                $this->metadataIdentifierMapping,
+                $this->payloadIdentifierMapping,
+            ]
+        ));
+        $serviceActivatorBuilder = ServiceActivatorBuilder::create($serviceReference, $interfaceToCall)
+            ->withOutputMessageChannel($this->getOutputMessageChannelName());
+        return $serviceActivatorBuilder->compile($builder);
     }
 
     /**

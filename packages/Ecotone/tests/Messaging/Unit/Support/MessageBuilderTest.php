@@ -165,7 +165,7 @@ class MessageBuilderTest extends MessagingTest
                 ->setMultipleHeaders([
                     MessageHeaders::MESSAGE_ID => 123,
                     MessageHeaders::TIMESTAMP => 1587658787863,
-                    MessageHeaders::MESSAGE_CORRELATION_ID => 1234
+                    MessageHeaders::MESSAGE_CORRELATION_ID => 1234,
                 ])
                 ->build()
         );

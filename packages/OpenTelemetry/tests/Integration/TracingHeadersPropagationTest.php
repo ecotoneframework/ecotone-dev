@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
+use ArrayObject;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
+use InvalidArgumentException;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\SDK\Trace\ImmutableSpan;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
-use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\Merchant;
@@ -21,11 +22,14 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberOne;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
 
+/**
+ * @internal
+ */
 final class TracingHeadersPropagationTest extends TracingTest
 {
     public function test_tracing_with_single_levels_of_nesting()
     {
-        $exporter = new InMemoryExporter(new \ArrayObject());
+        $exporter = new InMemoryExporter(new ArrayObject());
 
         $messageId = Uuid::uuid4()->toString();
         $correlationId = Uuid::uuid4()->toString();
@@ -40,7 +44,7 @@ final class TracingHeadersPropagationTest extends TracingTest
             ->sendCommand(new RegisterUser('1'), metadata: [
                 MessageHeaders::MESSAGE_ID => $messageId,
                 MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
-                MessageHeaders::TIMESTAMP => $timestamp
+                MessageHeaders::TIMESTAMP => $timestamp,
             ]);
 
         /** @var ImmutableSpan[] $spans */
@@ -54,7 +58,7 @@ final class TracingHeadersPropagationTest extends TracingTest
 
     public function test_tracing_with_two_levels_of_nesting()
     {
-        $exporter = new InMemoryExporter(new \ArrayObject());
+        $exporter = new InMemoryExporter(new ArrayObject());
 
         $messageId = Uuid::uuid4()->toString();
         $correlationId = Uuid::uuid4()->toString();
@@ -69,7 +73,7 @@ final class TracingHeadersPropagationTest extends TracingTest
             ->publishEvent(new MerchantCreated('1'), [
                 MessageHeaders::MESSAGE_ID => $messageId,
                 MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
-                MessageHeaders::TIMESTAMP => $timestamp
+                MessageHeaders::TIMESTAMP => $timestamp,
             ]);
 
         /** @var ImmutableSpan[] $spans */
@@ -86,7 +90,7 @@ final class TracingHeadersPropagationTest extends TracingTest
 
     public function test_tracing_with_three_levels_of_nesting()
     {
-        $exporter = new InMemoryExporter(new \ArrayObject());
+        $exporter = new InMemoryExporter(new ArrayObject());
 
         $messageId = Uuid::uuid4()->toString();
         $correlationId = Uuid::uuid4()->toString();
@@ -101,7 +105,7 @@ final class TracingHeadersPropagationTest extends TracingTest
             ->sendCommand(new CreateMerchant('1'), [
                 MessageHeaders::MESSAGE_ID => $messageId,
                 MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
-                MessageHeaders::TIMESTAMP => $timestamp
+                MessageHeaders::TIMESTAMP => $timestamp,
             ]);
 
         /** @var ImmutableSpan[] $spans */
@@ -121,7 +125,7 @@ final class TracingHeadersPropagationTest extends TracingTest
 
     public function test_tracing_with_exception()
     {
-        $exporter = new InMemoryExporter(new \ArrayObject());
+        $exporter = new InMemoryExporter(new ArrayObject());
 
         $messageId = Uuid::uuid4()->toString();
         $correlationId = Uuid::uuid4()->toString();
@@ -137,9 +141,9 @@ final class TracingHeadersPropagationTest extends TracingTest
                 ->sendCommand(new RegisterUser('1'), metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
                     MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
-                    MessageHeaders::TIMESTAMP => $timestamp
+                    MessageHeaders::TIMESTAMP => $timestamp,
                 ]);
-        } catch (\InvalidArgumentException) {
+        } catch (InvalidArgumentException) {
         }
 
         /** @var ImmutableSpan[] $spans */

@@ -51,12 +51,12 @@ class NoReplyMessageProducer implements MessageProcessor
 
     public function getMethodName(): string
     {
-        return "executeEndpoint";
+        return 'executeEndpoint';
     }
 
     public function getInterfaceToCall(): InterfaceToCall
     {
-        return InterfaceToCall::create(self::class, "executeEndpoint");
+        return InterfaceToCall::create(self::class, 'executeEndpoint');
     }
 
     public function getEndpointAnnotations(): array

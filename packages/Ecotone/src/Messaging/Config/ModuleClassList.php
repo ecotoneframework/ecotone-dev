@@ -122,7 +122,7 @@ class ModuleClassList
     ];
 
     public const TRACING_MODULES = [
-        OpenTelemetryModule::class
+        OpenTelemetryModule::class,
     ];
 
     public const TEST_MODULES = [

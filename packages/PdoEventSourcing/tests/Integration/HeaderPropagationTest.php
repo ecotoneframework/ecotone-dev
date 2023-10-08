@@ -11,6 +11,9 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\Order;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\OrderWasPlacedConverter;
 
+/**
+ * @internal
+ */
 final class HeaderPropagationTest extends TestCase
 {
     public function test_will_provide_propagate_correlation_and_parent_id_header_for_aggregate()
@@ -24,11 +27,12 @@ final class HeaderPropagationTest extends TestCase
         $correlationId = Uuid::uuid4()->toString();
 
         $flowTestSupport = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey('placeOrder',
+            ->sendCommandWithRoutingKey(
+                'placeOrder',
                 Uuid::uuid4()->toString(),
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
-                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId
+                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
                 ]
             );
 
@@ -56,11 +60,12 @@ final class HeaderPropagationTest extends TestCase
         $correlationId = Uuid::uuid4()->toString();
 
         $flowTestSupport = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey('placeOrderAndPropagateMetadata',
+            ->sendCommandWithRoutingKey(
+                'placeOrderAndPropagateMetadata',
                 Uuid::uuid4()->toString(),
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
-                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId
+                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
                 ]
             );
 

@@ -2,9 +2,7 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
-use Ramsey\Uuid\Uuid;
 
 class Event
 {

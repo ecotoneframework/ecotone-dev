@@ -126,7 +126,7 @@ class MessageHeadersTest extends TestCase
                 ],
                 'id' => $messageHeaders->get(MessageHeaders::MESSAGE_ID),
                 'timestamp' => $messageHeaders->get(MessageHeaders::TIMESTAMP),
-                MessageHeaders::MESSAGE_CORRELATION_ID => $messageHeaders->getCorrelationId()
+                MessageHeaders::MESSAGE_CORRELATION_ID => $messageHeaders->getCorrelationId(),
             ]),
             (string)$messageHeaders
         );

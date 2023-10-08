@@ -90,15 +90,14 @@ final class TracerInterceptor
 
         /** @var TracerInterface $tracer */
         $tracer = $referenceSearchService->get(TracerInterface::class);
+        $span = EcotoneSpanBuilder::create(
+            $message,
+            $type,
+            $tracer
+        )->startSpan();
+        $spanScope = $span->activate();
 
         try {
-            $span = EcotoneSpanBuilder::create(
-                $message,
-                $type,
-                $tracer
-            )->startSpan();
-            $spanScope = $span->activate();
-
             $result = $methodInvocation->proceed();
         } catch (Throwable $exception) {
             $span->recordException($exception);

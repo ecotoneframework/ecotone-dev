@@ -77,7 +77,7 @@ class HeaderBuilder implements ParameterConverterBuilder, CompilableParameterCon
             InterfaceParameterReference::fromInstance($interfaceToCall, $interfaceParameter),
             $this->headerName,
             $this->isRequired,
-            new Reference(ConversionService::REFERENCE_NAME)
+            new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }
 }

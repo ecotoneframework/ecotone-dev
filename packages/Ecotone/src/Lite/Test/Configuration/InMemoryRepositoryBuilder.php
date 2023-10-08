@@ -68,14 +68,14 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder, CompilableBu
                 InMemoryEventSourcedRepository::class,
                 [
                     [],
-                    $this->aggregateClassNames
+                    $this->aggregateClassNames,
                 ]
             ),
             false => new Definition(
                 InMemoryStandardRepository::class,
                 [
                     [],
-                    $this->aggregateClassNames
+                    $this->aggregateClassNames,
                 ]
             )
         };

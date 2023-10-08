@@ -18,6 +18,7 @@ use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\PollableChannel;
+use InvalidArgumentException;
 
 /**
  * Class SimpleMessageChannelBuilder
@@ -126,15 +127,15 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         $channelReference = new ChannelReference($this->messageChannelName);
         if ($this->messageChannel instanceof DirectChannel) {
             $definition = new Definition(DirectChannel::class, [$this->messageChannelName]);
-        } else if ($this->messageChannel instanceof QueueChannel) {
+        } elseif ($this->messageChannel instanceof QueueChannel) {
             $definition = new Definition(QueueChannel::class, [$this->messageChannelName]);
-        } else if ($this->messageChannel instanceof PublishSubscribeChannel) {
+        } elseif ($this->messageChannel instanceof PublishSubscribeChannel) {
             $definition = new Definition(PublishSubscribeChannel::class, [$this->messageChannelName]);
-        } else if ($this->messageChannel instanceof NullableMessageChannel) {
+        } elseif ($this->messageChannel instanceof NullableMessageChannel) {
             $definition = new FactoryDefinition([NullableMessageChannel::class, 'create']);
         } else {
             $class = get_class($this->messageChannel);
-            throw new \InvalidArgumentException("Unsupported channel {$this->messageChannelName} : {$class}");
+            throw new InvalidArgumentException("Unsupported channel {$this->messageChannelName} : {$class}");
         }
         $builder->register($channelReference, $definition);
         return $channelReference;

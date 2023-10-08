@@ -15,7 +15,6 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Exception;
 
 /**
@@ -207,54 +206,54 @@ class BusRouterBuilder implements MessageHandlerBuilder, CompilableBuilder
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         $configs = [
-            "eventByObject" => [
-                "class" => EventBusRouter::class,
-                "method" => "routeByObject",
-                "config" => fn (RouterBuilder $router) => $router->setResolutionRequired(false)
+            'eventByObject' => [
+                'class' => EventBusRouter::class,
+                'method' => 'routeByObject',
+                'config' => fn (RouterBuilder $router) => $router->setResolutionRequired(false),
             ],
-            "eventByName" => [
-                "class" => EventBusRouter::class,
-                "method" => "routeByName",
-                "config" => fn (RouterBuilder $router) => $router
+            'eventByName' => [
+                'class' => EventBusRouter::class,
+                'method' => 'routeByName',
+                'config' => fn (RouterBuilder $router) => $router
                     ->setResolutionRequired(false)
                     ->withMethodParameterConverters([
                         HeaderBuilder::createOptional('routedName', BusModule::EVENT_CHANNEL_NAME_BY_NAME),
-                    ])
+                    ]),
             ],
-            "commandByObject" => [
-                "class" => CommandBusRouter::class,
-                "method" => "routeByObject",
-                "config" => fn (RouterBuilder $router) => $router
+            'commandByObject' => [
+                'class' => CommandBusRouter::class,
+                'method' => 'routeByObject',
+                'config' => fn (RouterBuilder $router) => $router,
             ],
-            "commandByName" => [
-                "class" => CommandBusRouter::class,
-                "method" => "routeByName",
-                "config" => fn (RouterBuilder $router) => $router
+            'commandByName' => [
+                'class' => CommandBusRouter::class,
+                'method' => 'routeByName',
+                'config' => fn (RouterBuilder $router) => $router
                     ->withMethodParameterConverters([
                         HeaderBuilder::createOptional('name', BusModule::COMMAND_CHANNEL_NAME_BY_NAME),
-                    ])
+                    ]),
             ],
-            "queryByObject" => [
-                "class" => QueryBusRouter::class,
-                "method" => "routeByObject",
-                "config" => fn (RouterBuilder $router) => $router
+            'queryByObject' => [
+                'class' => QueryBusRouter::class,
+                'method' => 'routeByObject',
+                'config' => fn (RouterBuilder $router) => $router,
             ],
-            "queryByName" => [
-                "class" => QueryBusRouter::class,
-                "method" => "routeByName",
-                "config" => fn (RouterBuilder $router) => $router
+            'queryByName' => [
+                'class' => QueryBusRouter::class,
+                'method' => 'routeByName',
+                'config' => fn (RouterBuilder $router) => $router
                     ->withMethodParameterConverters([
                         HeaderBuilder::createOptional('name', BusModule::QUERY_CHANNEL_NAME_BY_NAME),
-                    ])
+                    ]),
             ],
         ];
         $config = $configs[$this->type] ?? throw InvalidArgumentException::create("Incorrect type {$this->type}");
-        $routerReference = $builder->register($config["class"].'.'.$this->type, new Definition($config["class"], [
-            $this->channelNamesRouting
+        $routerReference = $builder->register($config['class'].'.'.$this->type, new Definition($config['class'], [
+            $this->channelNamesRouting,
         ]));
-        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference($config["class"], $config["method"]));
+        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference($config['class'], $config['method']));
         $router = RouterBuilder::create($routerReference->getId(), $interfaceToCall);
-        $router = $config["config"]($router);
+        $router = $config['config']($router);
         return $router->compile($builder);
     }
 

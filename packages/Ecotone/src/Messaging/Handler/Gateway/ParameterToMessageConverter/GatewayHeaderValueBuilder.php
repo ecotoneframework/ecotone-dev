@@ -65,7 +65,7 @@ class GatewayHeaderValueBuilder implements GatewayParameterConverterBuilder
             GatewayHeaderValueConverter::class,
             [
                 $this->headerName,
-                $this->headerValue
+                $this->headerValue,
             ]
         );
     }

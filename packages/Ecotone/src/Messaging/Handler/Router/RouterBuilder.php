@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Router;
 
-use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -19,6 +17,9 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
+use InvalidArgumentException;
+
+use function uniqid;
 
 /**
  * Class RouterBuilder
@@ -179,7 +180,7 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters, Com
     {
         $interfaceToCall = $this->methodNameOrInterface;
         if (! $interfaceToCall instanceof InterfaceToCall) {
-            throw new \InvalidArgumentException("RouterBuilder can only be compiled with InterfaceToCall");
+            throw new InvalidArgumentException('RouterBuilder can only be compiled with InterfaceToCall');
         }
         $methodInvoker = MethodInvoker::createDefinition(
             $builder,
@@ -187,12 +188,12 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters, Com
             $this->objectToInvokeReference,
             $this->methodParameterConverters
         );
-        return $builder->register(\uniqid('router.'), new Definition(Router::class, [
+        return $builder->register(uniqid('router.'), new Definition(Router::class, [
             new Reference(ChannelResolver::class),
             $methodInvoker,
             $this->resolutionRequired,
             $this->defaultResolution,
-            $this->applySequence
+            $this->applySequence,
         ]));
     }
 

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
-use Assert\Assertion;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -23,16 +21,17 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\HandlerReplyProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\WrapWithMessageBuildProcessor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
-use PHPUnit\Framework\TestCase;
+use InvalidArgumentException;
 use ReflectionException;
 use ReflectionMethod;
+
+use function uniqid;
 
 /**
  * Class ServiceActivatorFactory
@@ -215,7 +214,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             return null;
         }
         if ($this->compiled) {
-            throw new \InvalidArgumentException("Trying to compile {$this} twice");
+            throw new InvalidArgumentException("Trying to compile {$this} twice");
         }
 
         $className = $this->getInterfaceName();
@@ -228,12 +227,13 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             $interfaceToCall,
             $this->objectToInvokeReferenceName,
             $this->methodParameterConverterBuilders,
-            $this->getEndpointAnnotations());
+            $this->getEndpointAnnotations()
+        );
 
         if ($this->shouldWrapResultInMessage) {
             $methodInvokerDefinition = new Definition(WrapWithMessageBuildProcessor::class, [
                 $interfaceToCallReference,
-                $methodInvokerDefinition
+                $methodInvokerDefinition,
             ]);
         }
         $handlerDefinition = new Definition(RequestReplyProducer::class, [
@@ -256,14 +256,14 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             }
 
             $handlerDefinition = new Definition(HandlerReplyProcessor::class, [
-                $handlerDefinition
+                $handlerDefinition,
             ]);
             $handlerDefinition = new Definition(AroundInterceptorHandler::class, [
                 $interceptors,
                 $handlerDefinition,
             ]);
         }
-        $this->compiled = $builder->register(\uniqid((string) $this), $handlerDefinition);
+        $this->compiled = $builder->register(uniqid((string) $this), $handlerDefinition);
         return $this->compiled;
     }
 

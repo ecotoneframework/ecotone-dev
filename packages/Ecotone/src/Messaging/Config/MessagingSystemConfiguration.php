@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
-use DI\ContainerBuilder;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\WithRequiredReferenceNameList;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
@@ -69,9 +67,13 @@ use Ecotone\Messaging\SubscribableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
 use Exception;
+
+use function is_a;
+
 use ProxyManager\Autoloader\AutoloaderInterface;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
+
 use function spl_autoload_register;
 use function spl_autoload_unregister;
 
@@ -1287,7 +1289,7 @@ final class MessagingSystemConfiguration implements Configuration
 
     public function registerServiceDefinition(string $id, Container\Definition $definition): Configuration
     {
-        if (!isset($this->serviceDefinitions[$id])) {
+        if (! isset($this->serviceDefinitions[$id])) {
             $this->serviceDefinitions[$id] = $definition;
         }
         return $this;
@@ -1326,27 +1328,27 @@ final class MessagingSystemConfiguration implements Configuration
 
         foreach ($this->channelBuilders as $channelsBuilder) {
             $channelReference = $channelsBuilder->compile($builder);
-            if (!$channelReference) {
+            if (! $channelReference) {
                 throw ConfigurationException::create("Channel {$channelsBuilder->getMessageChannelName()} can't be compiled");
             }
-//            $interceptorsForChannel = [];
-//            foreach ($channelInterceptorsByChannelName as $channelName => $interceptors) {
-//                $regexChannel = str_replace('*', '.*', $channelName);
-//                $regexChannel = str_replace('\\', '\\\\', $regexChannel);
-//                if (preg_match("#^{$regexChannel}$#", $channelsBuilder->getMessageChannelName())) {
-//                    $interceptorsForChannel = array_merge($interceptorsForChannel, array_map(function (ChannelInterceptorBuilder $channelInterceptorBuilder) use ($referenceSearchService) {
-//                        return $channelInterceptorBuilder->build($referenceSearchService);
-//                    }, $interceptors));
-//                }
-//            }
-//
-//            if ($messageChannel instanceof PollableChannel && $interceptorsForChannel) {
-//                $messageChannel = new PollableChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);
-//            } elseif ($interceptorsForChannel) {
-//                $messageChannel = new EventDrivenChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);
-//            }
-//
-//            $channels[] = NamedMessageChannel::create($channelsBuilder->getMessageChannelName(), $messageChannel);
+            //            $interceptorsForChannel = [];
+            //            foreach ($channelInterceptorsByChannelName as $channelName => $interceptors) {
+            //                $regexChannel = str_replace('*', '.*', $channelName);
+            //                $regexChannel = str_replace('\\', '\\\\', $regexChannel);
+            //                if (preg_match("#^{$regexChannel}$#", $channelsBuilder->getMessageChannelName())) {
+            //                    $interceptorsForChannel = array_merge($interceptorsForChannel, array_map(function (ChannelInterceptorBuilder $channelInterceptorBuilder) use ($referenceSearchService) {
+            //                        return $channelInterceptorBuilder->build($referenceSearchService);
+            //                    }, $interceptors));
+            //                }
+            //            }
+            //
+            //            if ($messageChannel instanceof PollableChannel && $interceptorsForChannel) {
+            //                $messageChannel = new PollableChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);
+            //            } elseif ($interceptorsForChannel) {
+            //                $messageChannel = new EventDrivenChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);
+            //            }
+            //
+            //            $channels[] = NamedMessageChannel::create($channelsBuilder->getMessageChannelName(), $messageChannel);
         }
 
         foreach ($this->moduleReferenceSearchService->getAllRegisteredReferences() as $id => $object) {
@@ -1360,11 +1362,11 @@ final class MessagingSystemConfiguration implements Configuration
             if ($messageHandlerBuilder instanceof CompilableBuilder) {
                 $reference = $messageHandlerBuilder->compile($builder);
                 if (! $reference) {
-//                    throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
+                    //                    throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
                 }
                 if ($inputChannel = $messageHandlerBuilder->getInputMessageChannelName()) {
                     $channelDefinition = $builder->getDefinition(new ChannelReference($inputChannel));
-                    if ($channelDefinition instanceof Definition && \is_a($channelDefinition->getClassName(), SubscribableChannel::class, true)) {
+                    if ($channelDefinition instanceof Definition && is_a($channelDefinition->getClassName(), SubscribableChannel::class, true)) {
                         $channelDefinition->addMethodCall('subscribe', [$reference]);
                     }
                 }
@@ -1376,21 +1378,21 @@ final class MessagingSystemConfiguration implements Configuration
             if ($gatewayBuilder instanceof CompilableBuilder) {
                 $gatewayBuilder->compile($builder);
                 // This is an example of changing a definition from a reference
-//                if ($reference) {
-//                    $builder->getDefinition($reference)->lazy();
-//                } else {
-//                    throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
-//                }
+                //                if ($reference) {
+                //                    $builder->getDefinition($reference)->lazy();
+                //                } else {
+                //                    throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
+                //                }
             } else {
-                    throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
+                throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
             }
             $referenceName = $gatewayBuilder->getReferenceName();
             if (! $builder->has($gatewayBuilder->getReferenceName())) {
                 $builder->register($gatewayBuilder->getReferenceName(), new FactoryDefinition([ProxyFactory::class, 'createFor'], [
-                    "referenceName" => $gatewayBuilder->getReferenceName(),
-                    "container" => new Reference(ContainerInterface::class),
-                    "interface" => $gatewayBuilder->getReferenceName(),
-                    "serviceCacheConfiguration" => new Reference(ServiceCacheConfiguration::REFERENCE_NAME)
+                    'referenceName' => $gatewayBuilder->getReferenceName(),
+                    'container' => new Reference(ContainerInterface::class),
+                    'interface' => $gatewayBuilder->getReferenceName(),
+                    'serviceCacheConfiguration' => new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
                 ]));
             }
         }

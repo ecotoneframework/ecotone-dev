@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Config\Container\Implementations;
 
+use function class_exists;
+
 use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -17,8 +19,8 @@ class CachedContainerHydrator implements ContainerHydrator
     public function create(ReferenceSearchService $referenceSearchService): ContainerInterface
     {
         $serviceCacheConfiguration = $referenceSearchService->get(ServiceCacheConfiguration::class);
-        if (!\class_exists($this->containerClassName)) {
-            require_once $serviceCacheConfiguration->getPath(). DIRECTORY_SEPARATOR . $this->containerClassName . ".php";
+        if (! class_exists($this->containerClassName)) {
+            require_once $serviceCacheConfiguration->getPath(). DIRECTORY_SEPARATOR . $this->containerClassName . '.php';
         }
 
         $container = new $this->containerClassName();

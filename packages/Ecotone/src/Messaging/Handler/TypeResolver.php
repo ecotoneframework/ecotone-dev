@@ -145,7 +145,7 @@ class TypeResolver
                 $parametersReferences,
                 Definition::fromType($returnType),
                 $doesReturnTypeAllowNulls,
-                $isStaticallyCalled
+                $isStaticallyCalled,
             ])
         );
 
@@ -187,7 +187,7 @@ class TypeResolver
                     $parameter->isDefaultValueAvailable(),
                     $parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null,
                     $isAnnotation,
-                    $parameterAttributes
+                    $parameterAttributes,
                 ])
             );
         }

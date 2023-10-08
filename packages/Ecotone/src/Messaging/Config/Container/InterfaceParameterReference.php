@@ -9,7 +9,7 @@ class InterfaceParameterReference extends Reference
 {
     public function __construct(private string $className, private string $methodName, private string $parameterName)
     {
-        parent::__construct("interfaceParameter-" . $className . "::" . $methodName . "::$" . $parameterName);
+        parent::__construct('interfaceParameter-' . $className . '::' . $methodName . '::$' . $parameterName);
     }
 
     public static function fromInstance(InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): self

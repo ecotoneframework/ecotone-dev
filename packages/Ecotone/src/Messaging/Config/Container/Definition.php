@@ -5,6 +5,8 @@ namespace Ecotone\Messaging\Config\Container;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 
+use function get_class;
+
 class Definition
 {
     private bool $isLazy = false;
@@ -21,7 +23,7 @@ class Definition
     {
         $typeDescriptorArgument = $type instanceof UnionTypeDescriptor ? $type->getUnionTypes() : $type->toString();
 
-        return new self(\get_class($type), [$typeDescriptorArgument]);
+        return new self(get_class($type), [$typeDescriptorArgument]);
     }
 
     public function getClassName(): string

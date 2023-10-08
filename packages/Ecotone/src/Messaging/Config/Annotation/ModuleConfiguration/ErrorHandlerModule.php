@@ -13,7 +13,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
@@ -23,6 +22,8 @@ use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
+
+use function uniqid;
 
 #[ModuleAnnotation]
 class ErrorHandlerModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -72,7 +73,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                     ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getDeadLetterQueueChannel()));
             }
 
-            $reference = new Reference(\uniqid(HeaderRouter::class . ".".MessageHeaders::POLLED_CHANNEL_NAME));
+            $reference = new Reference(uniqid(HeaderRouter::class . '.'.MessageHeaders::POLLED_CHANNEL_NAME));
             $messagingConfiguration->registerServiceDefinition(
                 $reference->getId(),
                 new Definition(HeaderRouter::class, [MessageHeaders::POLLED_CHANNEL_NAME])

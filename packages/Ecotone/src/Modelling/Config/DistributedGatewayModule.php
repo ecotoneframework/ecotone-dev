@@ -85,9 +85,10 @@ class DistributedGatewayModule extends NoExternalConfigurationModule implements 
                 ])
         );
         $messagingConfiguration->registerServiceDefinition(
-            DistributedMessageHandler::class, new Definition(DistributedMessageHandler::class, [
+            DistributedMessageHandler::class,
+            new Definition(DistributedMessageHandler::class, [
                 $this->distributedEventHandlerRoutingKeys,
-                $this->distributedCommandHandlerRoutingKeys
+                $this->distributedCommandHandlerRoutingKeys,
             ])
         );
         $messagingConfiguration->registerMessageHandler(

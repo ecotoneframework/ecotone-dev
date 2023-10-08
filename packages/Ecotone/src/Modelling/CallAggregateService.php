@@ -9,7 +9,6 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
-use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvocation;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;

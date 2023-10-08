@@ -29,7 +29,6 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
         NotificationSender::class => new StubNotificationSender($output),
         ShippingService::class => new StubShippingService($output),
         Clock::class => new SystemClock(),
-//        OrderRepository::class => new InMemoryOrderRepository(),
         AuthenticationService::class => $configuration->authentication(),
         UserRepository::class => $configuration->userRepository(),
         ProductRepository::class => $configuration->productRepository(),

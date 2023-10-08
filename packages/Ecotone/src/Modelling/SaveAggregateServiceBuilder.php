@@ -31,6 +31,8 @@ use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 
+use function uniqid;
+
 /**
  * Class AggregateCallingCommandHandlerBuilder
  * @package Ecotone\Modelling
@@ -173,19 +175,19 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
-                $this->aggregateRepositoryReferenceNames
+                $this->aggregateRepositoryReferenceNames,
             ])
             : new FactoryDefinition([LazyStandardRepository::class, 'create'], [
                 $this->interfaceToCall->getInterfaceName(),
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
-                $this->aggregateRepositoryReferenceNames
+                $this->aggregateRepositoryReferenceNames,
             ]);
 
-        if (!$builder->has(PropertyEditorAccessor::class)) {
+        if (! $builder->has(PropertyEditorAccessor::class)) {
             $builder->register(PropertyEditorAccessor::class, new FactoryDefinition([PropertyEditorAccessor::class, 'create'], [
-                new Reference(ReferenceSearchService::class)
+                new Reference(ReferenceSearchService::class),
             ]));
         }
 
@@ -205,10 +207,10 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             $this->isAggregateVersionAutomaticallyIncreased,
             $this->useSnapshot,
             $this->snapshotTriggerThreshold,
-            $this->useSnapshot ? new Reference($this->documentStoreReference) : null
+            $this->useSnapshot ? new Reference($this->documentStoreReference) : null,
         ]);
 
-        $reference = $builder->register(\uniqid(SaveAggregateService::class), $saveAggregateService);
+        $reference = $builder->register(uniqid(SaveAggregateService::class), $saveAggregateService);
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(SaveAggregateService::class, 'save'));
 
         $serviceActivator = ServiceActivatorBuilder::create($reference, $interfaceToCall)

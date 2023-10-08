@@ -31,6 +31,8 @@ use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
+use function uniqid;
+
 /**
  * Class TransformerBuilder
  * @package Messaging\Handler\Transformer
@@ -237,13 +239,13 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         }
 
         $methodInvokerDefinition = new FactoryDefinition([TransformerMessageProcessor::class, 'createFrom'], [
-            "methodInvoker" => new Definition(MethodInvoker::class, [
-               new Reference($objectToInvokeOn),
-               $interfaceToCallReference->getMethodName(),
-               $compiledMethodParameterConverters,
-               $interfaceToCallReference,
-               true,
-           ])
+            'methodInvoker' => new Definition(MethodInvoker::class, [
+                new Reference($objectToInvokeOn),
+                $interfaceToCallReference->getMethodName(),
+                $compiledMethodParameterConverters,
+                $interfaceToCallReference,
+                true,
+            ]),
         ]);
 
         $handlerDefinition = new Definition(RequestReplyProducer::class, [
@@ -268,7 +270,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             }
 
             $handlerDefinition = new Definition(HandlerReplyProcessor::class, [
-                $handlerDefinition
+                $handlerDefinition,
             ]);
             $handlerDefinition = new Definition(AroundInterceptorHandler::class, [
                 $interceptors,
@@ -276,7 +278,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             ]);
         }
 
-        return $builder->register(\uniqid((string) $this), $handlerDefinition);
+        return $builder->register(uniqid((string) $this), $handlerDefinition);
     }
 
     /**

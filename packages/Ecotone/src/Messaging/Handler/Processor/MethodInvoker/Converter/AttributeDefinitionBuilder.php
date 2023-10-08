@@ -3,7 +3,6 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-use Ecotone\Messaging\Config\Container\AttributeReference;
 use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;

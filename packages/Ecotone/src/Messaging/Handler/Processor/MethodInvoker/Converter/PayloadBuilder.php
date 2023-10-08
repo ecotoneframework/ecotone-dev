@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -15,8 +14,6 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 
 /**
  * Class PayloadParameterConverterBuilder
@@ -77,7 +74,7 @@ class PayloadBuilder implements ParameterConverterBuilder, CompilableParameterCo
             new Reference(ConversionService::REFERENCE_NAME),
             '',
             '',
-            Definition::fromType($interfaceParameter->getTypeDescriptor())
+            Definition::fromType($interfaceParameter->getTypeDescriptor()),
         ]);
     }
 }

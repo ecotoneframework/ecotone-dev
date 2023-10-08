@@ -2,16 +2,14 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AttributeBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AttributeDefinitionBuilder;
-use function array_merge;
-
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-use Ecotone\Messaging\Config\Container\AttributeReference;
 use Ecotone\Messaging\Handler\InterfaceParameter;
+
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AttributeBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AttributeDefinitionBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
@@ -66,9 +64,11 @@ class MethodArgumentsFactory
     }
 
     public static function createInterceptedInterfaceAnnotationMethodParameters(
-        InterfaceToCall $interfaceToCall, array $passedMethodParameterConverters, array $endpointAnnotations, InterfaceToCall $interceptedInterface
-    ): array
-    {
+        InterfaceToCall $interfaceToCall,
+        array $passedMethodParameterConverters,
+        array $endpointAnnotations,
+        InterfaceToCall $interceptedInterface
+    ): array {
         foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
             if (! self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter) && $interfaceParameter->isAnnotation()) {
                 $passedMethodParameterConverters[] = self::getAnnotationValueConverter($interfaceParameter, $interceptedInterface, $endpointAnnotations) ?? new ValueBuilder($interfaceParameter->getName(), null);

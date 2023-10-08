@@ -197,8 +197,9 @@ final class EcotoneLite
             ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
         ]);
 
-        $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration($referenceSearchService,
-//            new PhpDiContainerImplementation(new ContainerBuilder(), new CachedContainerStrategy($serviceCacheConfiguration))
+        $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration(
+            $referenceSearchService,
+            //            new PhpDiContainerImplementation(new ContainerBuilder(), new CachedContainerStrategy($serviceCacheConfiguration))
         );
 
         $referenceSearchService->setConfiguredMessagingSystem($messagingSystem);

@@ -16,7 +16,6 @@ use Psr\Container\ContainerInterface;
 
 class MessagingSystemContainer implements ConfiguredMessagingSystem
 {
-
     public function __construct(private ContainerInterface $container)
     {
     }

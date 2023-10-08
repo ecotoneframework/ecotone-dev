@@ -31,6 +31,8 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
 use Exception;
 
+use function uniqid;
+
 class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel, CompilableBuilder
 {
     private InterfaceToCall $interfaceToCall;
@@ -197,13 +199,13 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             $this->isCommandHandler,
             $this->interfaceToCall->isStaticallyCalled(),
             // TODO: this is a fake implementation, we need to implement it
-            new Definition(EventSourcingHandlerExecutor::class, [$this->interfaceToCall->getInterfaceName(),[]]),
+            new Definition(EventSourcingHandlerExecutor::class, [$this->interfaceToCall->getInterfaceName(), []]),
             $this->aggregateVersionProperty,
             $this->isAggregateVersionAutomaticallyIncreased,
-            $this->aggregateMethodWithEvents
+            $this->aggregateMethodWithEvents,
         ]);
 
-        $reference = $builder->register(\uniqid(CallAggregateService::class), $callAggregateService);
+        $reference = $builder->register(uniqid(CallAggregateService::class), $callAggregateService);
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(CallAggregateService::class, 'call'));
 
         $serviceActivator = ServiceActivatorBuilder::create($reference, $interfaceToCall)

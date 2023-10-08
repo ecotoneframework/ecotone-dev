@@ -5,9 +5,8 @@ namespace Ecotone\Messaging\Config\Container\Implementations;
 use DI\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use InvalidArgumentException;
 use Psr\Container\ContainerInterface;
 
 class InMemoryPhpDiContainerHydrator implements ContainerHydrator
@@ -25,6 +24,6 @@ class InMemoryPhpDiContainerHydrator implements ContainerHydrator
 
     public function __serialize(): array
     {
-        throw new \InvalidArgumentException("InMemoryPhpDiContainerHydrator cannot be serialized");
+        throw new InvalidArgumentException('InMemoryPhpDiContainerHydrator cannot be serialized');
     }
 }

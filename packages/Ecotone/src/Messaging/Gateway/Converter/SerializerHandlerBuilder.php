@@ -66,13 +66,13 @@ class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implemen
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        if (!$builder->has(SerializerHandler::class)) {
+        if (! $builder->has(SerializerHandler::class)) {
             $builder->register(SerializerHandler::class, new Definition(SerializerHandler::class, [
-                new Reference(ConversionService::REFERENCE_NAME)
+                new Reference(ConversionService::REFERENCE_NAME),
             ]));
         }
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(SerializerHandler::class, $this->methodName));
-        return ServiceActivatorBuilder::create(SerializerHandler::class,$interfaceToCall)
+        return ServiceActivatorBuilder::create(SerializerHandler::class, $interfaceToCall)
             ->compile($builder);
     }
 

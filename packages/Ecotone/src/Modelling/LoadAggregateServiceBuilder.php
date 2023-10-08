@@ -23,6 +23,8 @@ use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\TargetAggregateVersion;
 
+use function uniqid;
+
 class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
 {
     private string $aggregateClassName;
@@ -101,19 +103,19 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
-                $this->aggregateRepositoryReferenceNames
+                $this->aggregateRepositoryReferenceNames,
             ])
             : new FactoryDefinition([LazyStandardRepository::class, 'create'], [
                 $this->aggregateClassName,
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
-                $this->aggregateRepositoryReferenceNames
+                $this->aggregateRepositoryReferenceNames,
             ]);
 
-        if (!$builder->has(PropertyEditorAccessor::class)) {
+        if (! $builder->has(PropertyEditorAccessor::class)) {
             $builder->register(PropertyEditorAccessor::class, new FactoryDefinition([PropertyEditorAccessor::class, 'create'], [
-                new Reference(ReferenceSearchService::class)
+                new Reference(ReferenceSearchService::class),
             ]));
         }
 
@@ -128,11 +130,11 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             new Reference(PropertyReaderAccessor::class),
             new Reference(PropertyEditorAccessor::class),
             // TODO: this is a fake implementation, we need to implement it
-            new Definition(EventSourcingHandlerExecutor::class, [$this->aggregateClassName,[]]),
-            new Definition(LoadAggregateMode::class, [$this->loadAggregateMode->getType()])
+            new Definition(EventSourcingHandlerExecutor::class, [$this->aggregateClassName, []]),
+            new Definition(LoadAggregateMode::class, [$this->loadAggregateMode->getType()]),
         ]);
 
-        $reference = $builder->register(\uniqid(LoadAggregateService::class), $loadAggregateService);
+        $reference = $builder->register(uniqid(LoadAggregateService::class), $loadAggregateService);
 
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(LoadAggregateService::class, 'load'));
         return ServiceActivatorBuilder::create($reference, $interfaceToCall)

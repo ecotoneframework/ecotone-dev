@@ -2,7 +2,12 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use function call_user_func;
+
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
+use InvalidArgumentException;
+
+use function is_array;
 
 class InMemoryContainerImplementation implements ContainerImplementation
 {
@@ -19,7 +24,9 @@ class InMemoryContainerImplementation implements ContainerImplementation
     {
         foreach ($definitions as $id => $definition) {
             $this->referenceSearchService->registerReferencedObject(
-                $id, $this->instantiate($id, $definition));
+                $id,
+                $this->instantiate($id, $definition)
+            );
         }
     }
 
@@ -36,7 +43,7 @@ class InMemoryContainerImplementation implements ContainerImplementation
             return $this->instantiateDefinition($definition);
         }
 
-        throw new \InvalidArgumentException("Unsupported definition type " . get_class($definition));
+        throw new InvalidArgumentException('Unsupported definition type ' . get_class($definition));
     }
 
     private function instantiateDefinition(Definition $definition)
@@ -55,16 +62,16 @@ class InMemoryContainerImplementation implements ContainerImplementation
     {
         if ($argument instanceof Definition) {
             return $this->instantiateDefinition($argument);
-        } else if ($argument instanceof FactoryDefinition) {
+        } elseif ($argument instanceof FactoryDefinition) {
             return $this->instantiateFactory($argument);
-        } else if (\is_array($argument)) {
+        } elseif (is_array($argument)) {
             $resolvedArguments = [];
             foreach ($argument as $index => $value) {
                 $resolvedArguments[$index] = $this->resolveArgument($value);
             }
             return $resolvedArguments;
-        } else if ($argument instanceof Reference) {
-            throw new \InvalidArgumentException("Reference is not supported in InMemoryContainerImplementation");
+        } elseif ($argument instanceof Reference) {
+            throw new InvalidArgumentException('Reference is not supported in InMemoryContainerImplementation');
         } else {
             return $argument;
         }
@@ -75,6 +82,6 @@ class InMemoryContainerImplementation implements ContainerImplementation
         $factory = $argument->getFactory();
         $arguments = $argument->getArguments();
 
-        return \call_user_func($factory, ...$this->resolveArgument($arguments));
+        return call_user_func($factory, ...$this->resolveArgument($arguments));
     }
 }

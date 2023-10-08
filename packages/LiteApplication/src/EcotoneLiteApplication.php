@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
+use CompiledContainer;
 use DI\ContainerBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\Container\Implementations\CachedContainerStrategy;
 use Ecotone\Messaging\Config\Container\Implementations\PhpDiContainerImplementation;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
-use Ecotone\Messaging\Support\Assert;
 use Psr\Container\ContainerInterface;
 
 class EcotoneLiteApplication
@@ -36,10 +34,10 @@ class EcotoneLiteApplication
             $serviceConfiguration->getCacheDirectoryPath(),
             $cacheConfiguration
         );
-        $file = $serviceCacheConfiguration->getPath() . "/CompiledContainer.php";
+        $file = $serviceCacheConfiguration->getPath() . '/CompiledContainer.php';
         if ($serviceCacheConfiguration->shouldUseCache() && file_exists($file)) {
             require_once $file;
-            $container = new \CompiledContainer();
+            $container = new CompiledContainer();
         } else {
             /** @var MessagingSystemConfiguration $messagingConfiguration */
             $messagingConfiguration = MessagingSystemConfiguration::prepare(
@@ -53,7 +51,7 @@ class EcotoneLiteApplication
             if ($serviceCacheConfiguration->shouldUseCache()) {
                 $builder->enableCompilation($serviceCacheConfiguration->getPath());
             }
-//            $builder->useAutowiring(false);
+            //            $builder->useAutowiring(false);
             $messagingConfiguration->buildInContainer(new PhpDiContainerImplementation($builder));
             $builder->addDefinitions([
                 ConfiguredMessagingSystem::class => \DI\create(MessagingSystemContainer::class)->constructor(\DI\get(ContainerInterface::class)),

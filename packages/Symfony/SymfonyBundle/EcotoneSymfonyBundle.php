@@ -2,10 +2,7 @@
 
 namespace Ecotone\SymfonyBundle;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\EcotoneCompilerPass;
 use Ecotone\SymfonyBundle\DepedencyInjection\EcotoneExtension;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 

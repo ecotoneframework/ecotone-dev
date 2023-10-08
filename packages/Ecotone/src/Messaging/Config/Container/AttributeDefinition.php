@@ -2,9 +2,11 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use ReflectionAttribute;
+
 class AttributeDefinition extends Definition
 {
-    public static function fromReflection(\ReflectionAttribute $reflectionAttribute): self
+    public static function fromReflection(ReflectionAttribute $reflectionAttribute): self
     {
         return new self(
             $reflectionAttribute->getName(),

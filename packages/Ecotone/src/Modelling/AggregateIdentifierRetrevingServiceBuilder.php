@@ -26,6 +26,8 @@ use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
 
+use function uniqid;
+
 /**
  * Class AggregateMessageConversionServiceBuilder
  * @package Ecotone\Modelling
@@ -65,7 +67,13 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
 
         return ServiceActivatorBuilder::createWithDirectReference(
             new AggregateIdentifierRetrevingService(
-                $this->aggregateClassName->getClassType()->toString(), $conversionService, new PropertyReaderAccessor(), $this->typeToConvertTo, $this->metadataIdentifierMapping, $this->payloadIdentifierMapping),
+                $this->aggregateClassName->getClassType()->toString(),
+                $conversionService,
+                new PropertyReaderAccessor(),
+                $this->typeToConvertTo,
+                $this->metadataIdentifierMapping,
+                $this->payloadIdentifierMapping
+            ),
             'convert'
         )
                     ->withOutputMessageChannel($this->getOutputMessageChannelName())
@@ -75,10 +83,10 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(AggregateIdentifierRetrevingService::class, 'convert'));
-        if(!$builder->has(PropertyReaderAccessor::class)) {
+        if(! $builder->has(PropertyReaderAccessor::class)) {
             $builder->register(PropertyReaderAccessor::class, new Definition(PropertyReaderAccessor::class));
         }
-        $serviceReference = $builder->register(\uniqid(AggregateIdentifierRetrevingService::class), new Definition(
+        $serviceReference = $builder->register(uniqid(AggregateIdentifierRetrevingService::class), new Definition(
             AggregateIdentifierRetrevingService::class,
             [
                 $this->aggregateClassName->getClassType()->toString(),

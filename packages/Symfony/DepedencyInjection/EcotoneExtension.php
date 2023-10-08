@@ -74,7 +74,7 @@ class EcotoneExtension extends Extension
         $container->register(ServiceCacheConfiguration::class)
             ->setArguments([
                 $serviceConfiguration->getCacheDirectoryPath(),
-                true
+                true,
             ]);
 
         $messagingConfiguration->buildInContainer(new SymfonyContainerAdapter($container));

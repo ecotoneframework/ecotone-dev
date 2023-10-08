@@ -75,7 +75,8 @@ class GatewayPayloadExpressionBuilder implements GatewayParameterConverterBuilde
                 new Reference(ReferenceSearchService::class),
                 new Reference(ExpressionEvaluationService::REFERENCE),
                 $this->parameterName,
-                $this->expression
-            ]);
+                $this->expression,
+            ]
+        );
     }
 }

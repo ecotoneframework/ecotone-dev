@@ -23,11 +23,11 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHandler;
-use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Exception;
 use Ramsey\Uuid\Uuid;
+
+use function uniqid;
 
 /**
  * Class ChainMessageHandlerBuilder
@@ -236,11 +236,12 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
         }
 
         $chainForwardPublisherReference = $builder->register(
-            \uniqid('chainforwardpublisher-'),
+            uniqid('chainforwardpublisher-'),
             new Definition(ChainForwardPublisher::class, [
                 new ChannelReference($this->inputMessageChannelName . '_chain.' . $baseKey . '0'),
-                (bool)$this->outputMessageChannelName
-            ]));
+                (bool)$this->outputMessageChannelName,
+            ])
+        );
 
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(ChainForwardPublisher::class, 'forward'));
 
@@ -263,7 +264,7 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
             return false;
         }
         foreach ($this->chainedMessageHandlerBuilders as $chainedMessageHandlerBuilder) {
-            if (!($chainedMessageHandlerBuilder instanceof CompilableBuilder)) {
+            if (! ($chainedMessageHandlerBuilder instanceof CompilableBuilder)) {
                 throw InvalidArgumentException::create("Chained message handler {$chainedMessageHandlerBuilder} must be compilable");
                 return false;
             }

@@ -60,7 +60,7 @@ class GatewayHeaderBuilder implements GatewayParameterConverterBuilder
     {
         return new Definition(GatewayHeaderConverter::class, [
             $this->parameterName,
-            $this->headerName
+            $this->headerName,
         ]);
     }
 }

@@ -57,7 +57,7 @@ class GatewayPayloadBuilder implements GatewayParameterConverterBuilder
         return new Definition(
             GatewayPayloadConverter::class,
             [
-                $this->parameterName
+                $this->parameterName,
             ]
         );
     }

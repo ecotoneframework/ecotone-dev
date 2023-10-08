@@ -53,6 +53,8 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\NullableMessageChannel;
 
+use function uniqid;
+
 #[ModuleAnnotation]
 class BasicMessagingModule extends NoExternalConfigurationModule implements AnnotationModule
 {
@@ -118,7 +120,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
             ->registerInternalGateway(TypeDescriptor::create(InboundGatewayEntrypoint::class))
             ->registerInternalGateway(TypeDescriptor::create(EnrichGateway::class));
 
-        $reference = new Reference(\uniqid(HeaderRouter::class . ".".MessagingEntrypoint::ENTRYPOINT));
+        $reference = new Reference(uniqid(HeaderRouter::class . '.'.MessagingEntrypoint::ENTRYPOINT));
         $messagingConfiguration->registerServiceDefinition(
             $reference->getId(),
             new Definition(HeaderRouter::class, [MessagingEntrypoint::ENTRYPOINT])

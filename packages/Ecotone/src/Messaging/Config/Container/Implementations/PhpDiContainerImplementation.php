@@ -5,12 +5,14 @@ namespace Ecotone\Messaging\Config\Container\Implementations;
 use DI\ContainerBuilder;
 use DI\Factory\RequestedEntry;
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\FactoryDefinition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
+
+use function is_array;
+
 use Psr\Container\ContainerInterface;
 use ReflectionMethod;
 
@@ -27,27 +29,27 @@ class PhpDiContainerImplementation implements ContainerImplementation
     {
         $phpDiDefinitions = [];
 
-//        $phpDiDefinitions['channelResolver_legacy'] = static function (ContainerInterface $c) {
-//            return $c->get("external_reference_search_service")->get(ChannelResolver::class);
-//        };
+        //        $phpDiDefinitions['channelResolver_legacy'] = static function (ContainerInterface $c) {
+        //            return $c->get("external_reference_search_service")->get(ChannelResolver::class);
+        //        };
 
         foreach ($definitions as $id => $definition) {
             $phpDiDefinitions[$id] = $this->resolveArgument($definition);
         }
 
         foreach ($externalReferences as $id => $reference) {
-//            if ($reference instanceof ChannelReference) {
-//                if (!isset($phpDiDefinitions[$id])) {
-//                    $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
-//                        $channelName = substr($entry->getName(), 8); // remove `channel-` prefix
-//                        return $c->get("channelResolver_legacy")->resolve($channelName);
-//                    };
-//                }
-//            } else {
-//                $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
-//                    return $c->get("external_reference_search_service")->get($entry->getName());
-//                };
-//            }
+            //            if ($reference instanceof ChannelReference) {
+            //                if (!isset($phpDiDefinitions[$id])) {
+            //                    $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
+            //                        $channelName = substr($entry->getName(), 8); // remove `channel-` prefix
+            //                        return $c->get("channelResolver_legacy")->resolve($channelName);
+            //                    };
+            //                }
+            //            } else {
+            //                $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
+            //                    return $c->get("external_reference_search_service")->get($entry->getName());
+            //                };
+            //            }
         }
 
         $this->containerBuilder->addDefinitions($phpDiDefinitions);
@@ -57,15 +59,15 @@ class PhpDiContainerImplementation implements ContainerImplementation
     {
         if ($argument instanceof Definition) {
             return $this->convertDefinition($argument);
-        } else if ($argument instanceof FactoryDefinition) {
+        } elseif ($argument instanceof FactoryDefinition) {
             return $this->convertFactory($argument);
-        } else if (\is_array($argument)) {
+        } elseif (is_array($argument)) {
             $resolvedArguments = [];
             foreach ($argument as $index => $value) {
                 $resolvedArguments[$index] = $this->resolveArgument($value);
             }
             return $resolvedArguments;
-        } else if ($argument instanceof Reference) {
+        } elseif ($argument instanceof Reference) {
             return \DI\get($argument->getId());
         } else {
             return $argument;

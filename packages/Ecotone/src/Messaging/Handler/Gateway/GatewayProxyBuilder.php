@@ -6,8 +6,6 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
-use Ecotone\Messaging\Config\NonProxyCombinedGateway;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
@@ -16,6 +14,8 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\NonProxyCombinedGateway;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -43,6 +43,8 @@ use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\SubscribableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+
+use function uniqid;
 
 /**
  * Class GatewayProxySpec
@@ -497,7 +499,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
             $interceptorReference = $builder->register(
                 'error_channel_interceptor.'.$this->errorChannelName,
                 new Definition(ErrorChannelInterceptor::class, [
-                    new ChannelReference($this->errorChannelName)
+                    new ChannelReference($this->errorChannelName),
                 ])
             );
             $channelInterceptorInterface = $builder->getInterfaceToCall(new InterfaceToCallReference(ErrorChannelInterceptor::class, 'handle'));
@@ -540,7 +542,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
             $interfaceToCallReference,
             new Definition(MethodCallToMessageConverter::class, [
                 $interfaceToCallReference,
-                $methodArgumentConverters
+                $methodArgumentConverters,
             ]),
             $messageConverters,
             new Definition(GatewayReplyConverter::class, [
@@ -559,13 +561,14 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
         $gatewayInternalHandlerReference = $builder->register(
-            \uniqid('gateway_internal_handler.'.$this->interfaceName.'::'.$this->methodName),
+            uniqid('gateway_internal_handler.'.$this->interfaceName.'::'.$this->methodName),
             new Definition(GatewayInternalHandler::class, [
                 $interfaceToCallReference,
                 new ChannelReference($this->requestChannelName),
                 $this->replyChannelName ? new ChannelReference($this->replyChannelName) : null,
-                $this->replyMilliSecondsTimeout
-            ]));
+                $this->replyMilliSecondsTimeout,
+            ])
+        );
 
         $chainHandler = ChainMessageHandlerBuilder::create();
         foreach ($this->getSortedInterceptors($this->beforeInterceptors) as $beforeInterceptor) {

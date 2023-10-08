@@ -4,13 +4,14 @@ namespace Ecotone\Messaging\Config\Container\Implementations;
 
 use Ecotone\Messaging\Config\Container\ContainerHydrator;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use InvalidArgumentException;
 
 class CachedContainerStrategy implements ContainerCachingStrategy
 {
     public function __construct(private ServiceCacheConfiguration $cacheConfiguration)
     {
-        if (!$this->cacheConfiguration->getPath()) {
-            throw new \InvalidArgumentException("Cache path is not set");
+        if (! $this->cacheConfiguration->getPath()) {
+            throw new InvalidArgumentException('Cache path is not set');
         }
     }
 

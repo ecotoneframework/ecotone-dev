@@ -6,6 +6,14 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeResolver;
+
+use function get_class;
+
+use InvalidArgumentException;
+
+use function is_array;
+use function is_object;
+
 use Psr\Container\ContainerInterface;
 
 class ContainerMessagingBuilder
@@ -25,15 +33,15 @@ class ContainerMessagingBuilder
     public function __construct(private InterfaceToCallRegistry $interfaceToCallRegistry)
     {
         $this->typeResolver = TypeResolver::create();
-//        $this->definitions[ChannelResolver::class] = new Definition(ChannelResolverWithFallback::class,
-//            [new Reference(ContainerInterface::class)]
-//        );
+        //        $this->definitions[ChannelResolver::class] = new Definition(ChannelResolverWithFallback::class,
+        //            [new Reference(ContainerInterface::class)]
+        //        );
     }
 
     public function register(string|Reference $id, Definition|FactoryDefinition $definition): Reference
     {
         if (isset($this->definitions[(string) $id])) {
-            throw new \InvalidArgumentException("Definition with id {$id} already exists");
+            throw new InvalidArgumentException("Definition with id {$id} already exists");
         }
         if (isset($this->externalReferences[(string) $id])) {
             unset($this->externalReferences[(string) $id]);
@@ -75,27 +83,27 @@ class ContainerMessagingBuilder
             foreach ($argument->getMethodCalls() as $methodCall) {
                 $this->registerAllReferences($methodCall->getArguments());
             }
-        } else if ($argument instanceof FactoryDefinition) {
+        } elseif ($argument instanceof FactoryDefinition) {
             $this->registerAllReferences($argument->getArguments());
-        } else if (\is_array($argument)) {
+        } elseif (is_array($argument)) {
             foreach ($argument as $value) {
                 $this->registerAllReferences($value);
             }
-        } else if ($argument instanceof InterfaceToCallReference) {
-            if (!$this->has($argument->getId())) {
+        } elseif ($argument instanceof InterfaceToCallReference) {
+            if (! $this->has($argument->getId())) {
                 $this->typeResolver->registerInterfaceToCallDefinition($this, $argument);
             }
-        } else if ($argument instanceof InterfaceParameterReference) {
-            if (!$this->has($argument->getId())) {
+        } elseif ($argument instanceof InterfaceParameterReference) {
+            if (! $this->has($argument->getId())) {
                 $this->typeResolver->registerInterfaceToCallDefinition($this, $argument->interfaceToCallReference());
             }
-        } else if ($argument instanceof Reference) {
-            if (!$this->has($argument->getId())) {
+        } elseif ($argument instanceof Reference) {
+            if (! $this->has($argument->getId())) {
                 $this->externalReferences[$argument->getId()] = $argument;
             }
-        } else if (\is_object($argument)) {
-            $class = \get_class($argument);
-            throw new \InvalidArgumentException("Argument {$class} is not supported");
+        } elseif (is_object($argument)) {
+            $class = get_class($argument);
+            throw new InvalidArgumentException("Argument {$class} is not supported");
         }
     }
 }

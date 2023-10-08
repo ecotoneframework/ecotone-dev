@@ -265,7 +265,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
                 $converterDefinitions[] = new Definition(ValueConverter::class, [null]);
                 continue;
             }
-            if (!$hasPayloadConverter) {
+            if (! $hasPayloadConverter) {
                 $converterDefinitions[] = PayloadBuilder::create($parameter->getName())->compile($builder, $interceptingInterface, $parameter);
                 $hasPayloadConverter = true;
                 continue;

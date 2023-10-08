@@ -2,7 +2,6 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\AttributeReference;
 use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
@@ -13,6 +12,8 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+
+use function get_class;
 
 class AttributeBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
 {
@@ -37,6 +38,6 @@ class AttributeBuilder implements ParameterConverterBuilder, CompilableParameter
 
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
     {
-        return new Definition(ValueConverter::class, [new AttributeReference(\get_class($this->attributeInstance), $this->className, $this->methodName)]);
+        return new Definition(ValueConverter::class, [new AttributeReference(get_class($this->attributeInstance), $this->className, $this->methodName)]);
     }
 }

@@ -162,7 +162,7 @@ final class EcotoneLite
             $serviceConfiguration = ServiceConfiguration::createWithDefaults();
         }
 
-        $container = $containerOrAvailableServices instanceof ContainerInterface ? $containerOrAvailableServices : InMemoryPSRContainer::createFromAssociativeArray($containerOrAvailableServices);
+        $externalContainer = $containerOrAvailableServices instanceof ContainerInterface ? $containerOrAvailableServices : InMemoryPSRContainer::createFromAssociativeArray($containerOrAvailableServices);
 
         $serviceCacheConfiguration = new ServiceCacheConfiguration(
             $serviceConfiguration->getCacheDirectoryPath(),
@@ -178,31 +178,31 @@ final class EcotoneLite
         );
 
         if ($allowGatewaysToBeRegisteredInContainer) {
-            Assert::isTrue(method_exists($container, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
+            Assert::isTrue(method_exists($externalContainer, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
             foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
-                $container->set($gatewayProxyBuilder->getReferenceName(), ProxyFactory::createFor(
+                $externalContainer->set($gatewayProxyBuilder->getReferenceName(), ProxyFactory::createFor(
                     $gatewayProxyBuilder->getReferenceName(),
-                    $container,
+                    $externalContainer,
                     $gatewayProxyBuilder->getInterfaceName(),
                     $serviceCacheConfiguration
                 ));
             }
         }
 
-        $referenceSearchService = new PsrContainerReferenceSearchService($container, [
+        $containerBuilder = InMemoryPSRContainer::createFromAssociativeArray([
             'logger' => new NullLogger(),
             ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
         ]);
 
-        $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration($referenceSearchService);
 
-        $referenceSearchService->setConfiguredMessagingSystem($messagingSystem);
+        $messagingConfiguration->buildInContainer(new LiteContainerImplementation($containerBuilder));
+        $messagingSystem = $containerBuilder->get(ConfiguredMessagingSystem::class);
 
         if ($allowGatewaysToBeRegisteredInContainer) {
-            $container->set(ConfiguredMessagingSystem::class, $messagingSystem);
-        } elseif ($container->has(ConfiguredMessagingSystem::class)) {
+            $externalContainer->set(ConfiguredMessagingSystem::class, $messagingSystem);
+        } elseif ($externalContainer->has(ConfiguredMessagingSystem::class)) {
             /** @var ConfiguredMessagingSystem $alreadyConfiguredMessaging */
-            $alreadyConfiguredMessaging = $container->get(ConfiguredMessagingSystem::class);
+            $alreadyConfiguredMessaging = $externalContainer->get(ConfiguredMessagingSystem::class);
 
             $alreadyConfiguredMessaging->replaceWith($messagingSystem);
         }

@@ -483,7 +483,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
             );
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Reference|null
     {
         if ($this->compiled) {
             throw InvalidArgumentException::create("Gateway {$this->interfaceName}::{$this->methodName} was already compiled");

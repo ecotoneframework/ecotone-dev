@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint;
 
 use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
@@ -21,7 +23,7 @@ use Throwable;
  * @package Ecotone\Amqp
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class AcknowledgeConfirmationInterceptor
+class AcknowledgeConfirmationInterceptor implements DefinedObject
 {
     private function __construct(private bool $shouldStopOnError)
     {
@@ -88,5 +90,10 @@ class AcknowledgeConfirmationInterceptor
         }
 
         return $result;
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class, [$this->shouldStopOnError]);
     }
 }

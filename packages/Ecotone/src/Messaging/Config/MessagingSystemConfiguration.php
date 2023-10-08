@@ -1370,6 +1370,8 @@ final class MessagingSystemConfiguration implements Configuration
                     $channelDefinition = $builder->getDefinition(new ChannelReference($inputChannel));
                     if ($channelDefinition instanceof Definition && is_a($channelDefinition->getClassName(), SubscribableChannel::class, true)) {
                         $channelDefinition->addMethodCall('subscribe', [$reference]);
+                    } else {
+
                     }
                 }
             } else {

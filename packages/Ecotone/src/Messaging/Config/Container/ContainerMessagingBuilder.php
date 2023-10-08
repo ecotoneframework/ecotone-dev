@@ -70,6 +70,11 @@ class ContainerMessagingBuilder
         return $this->interfaceToCallRegistry->getFor($interfaceToCallReference->getClassName(), $interfaceToCallReference->getMethodName());
     }
 
+    public function getInterfaceToCallRegistry(): InterfaceToCallRegistry
+    {
+        return $this->interfaceToCallRegistry;
+    }
+
     public function has(string|Reference $id): bool
     {
         return isset($this->definitions[(string) $id]);

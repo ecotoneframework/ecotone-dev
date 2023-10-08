@@ -9,7 +9,8 @@ final class GatewayReference
     public function __construct(
         private string $referenceName,
         private string $interfaceName,
-    ) {}
+    ) {
+    }
 
     public function getReferenceName(): string
     {

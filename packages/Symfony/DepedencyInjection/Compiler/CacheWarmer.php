@@ -3,7 +3,6 @@
 namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
@@ -13,8 +12,7 @@ class CacheWarmer implements CacheWarmerInterface
     public function __construct(
         private ContainerInterface $containerInterface,
         private ProxyFactory $proxyFactory
-    )
-    {
+    ) {
     }
 
     public function isOptional()

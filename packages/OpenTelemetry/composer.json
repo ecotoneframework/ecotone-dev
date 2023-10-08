@@ -31,7 +31,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.108.0"
+        "ecotone/ecotone": "~1.108.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
@@ -62,7 +62,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.108.0-dev"
+            "dev-main": "1.108.1-dev"
         },
         "ecotone": {
             "repository": "open-telemetry",

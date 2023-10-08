@@ -172,7 +172,7 @@ final class MessagingSystem implements ConfiguredMessagingSystem
 
     public function getGatewayList(): array
     {
-        return array_values(array_map(fn(NonProxyCombinedGateway $gateway) => new GatewayReference($gateway->getReferenceName(), $gateway->getInterfaceName()), $this->nonProxyCombinedGateways));
+        return array_values(array_map(fn (NonProxyCombinedGateway $gateway) => new GatewayReference($gateway->getReferenceName(), $gateway->getInterfaceName()), $this->nonProxyCombinedGateways));
     }
 
     /**

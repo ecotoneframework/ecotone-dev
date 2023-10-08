@@ -24,6 +24,9 @@ class AroundMethodInvocation implements MethodInvocation
 
     private MethodCall $methodCall;
 
+    /**
+     * @param AroundMethodInterceptor[] $aroundMethodInterceptors
+     */
     public function __construct(
         private Message          $requestMessage,
         array                    $aroundMethodInterceptors,

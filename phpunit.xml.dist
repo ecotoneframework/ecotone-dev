@@ -62,5 +62,8 @@
     <testsuite name="Monorepo tests">
       <directory>Monorepo/CrossModuleTests/Tests</directory>
     </testsuite>
+    <testsuite name="OpenTelemetry tests">
+      <directory>packages/OpenTelemetry/tests</directory>
+    </testsuite>
   </testsuites>
 </phpunit>

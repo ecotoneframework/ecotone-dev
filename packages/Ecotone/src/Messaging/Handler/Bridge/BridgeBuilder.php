@@ -2,7 +2,11 @@
 
 namespace Ecotone\Messaging\Handler\Bridge;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -17,7 +21,7 @@ use Ecotone\Messaging\MessageHandler;
  * @package Ecotone\Messaging\Handler\Bridge
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel
+class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel, CompilableBuilder
 {
     private \Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder $bridgeBuilder;
 
@@ -145,6 +149,14 @@ class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel
     public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
     {
         return $this->bridgeBuilder->build($channelResolver, $referenceSearchService);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        if (! $builder->has(Bridge::class)) {
+            return $builder->register(Bridge::class, new Definition(Bridge::class));
+        }
+        return $this->bridgeBuilder->compile($builder);
     }
 
     /**

@@ -6,18 +6,15 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Monorepo\ExampleApp\Common\Domain\Clock;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSender;
-use Monorepo\ExampleApp\Common\Domain\Order\OrderRepository;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
 use Monorepo\ExampleApp\Common\Domain\Shipping\ShippingService;
 use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
-use Monorepo\ExampleApp\Common\Infrastructure\InMemory\InMemoryOrderRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Output;
 use Monorepo\ExampleApp\Common\Infrastructure\StubNotificationSender;
 use Monorepo\ExampleApp\Common\Infrastructure\StubShippingService;
 use Monorepo\ExampleApp\Common\Infrastructure\SystemClock;
-use Monorepo\ExampleApp\Common\UI\OrderController;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $output = new Output();

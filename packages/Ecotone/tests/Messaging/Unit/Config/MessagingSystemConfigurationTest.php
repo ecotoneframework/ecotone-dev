@@ -15,6 +15,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
+use Ecotone\Messaging\Config\GatewayReference;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -1741,6 +1742,10 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $this->assertEquals('some', $combinedGateway->executeMethod('buy', []));
         $this->assertNotNull($messagingSystem->getMessageChannelByName('buy')->receive());
+        $this->assertEquals(
+            [new GatewayReference('combinedGateway', SingleMethodGatewayExample::class)],
+            $messagingSystem->getGatewayList()
+        );
     }
 
     /**

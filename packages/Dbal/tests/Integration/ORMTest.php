@@ -49,7 +49,7 @@ final class ORMTest extends DbalMessagingTestCase
                 SaveMultipleEntitiesHandler::class => new SaveMultipleEntitiesHandler(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\ORM\PersonRepository',
                     'Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler',
@@ -84,7 +84,7 @@ final class ORMTest extends DbalMessagingTestCase
                 RegisterPersonService::class => new RegisterPersonService(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\ORM\PersonRepository',
                 ])
@@ -112,7 +112,7 @@ final class ORMTest extends DbalMessagingTestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\ORM\Person',
                 ])

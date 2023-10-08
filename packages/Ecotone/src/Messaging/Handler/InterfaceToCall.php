@@ -419,6 +419,11 @@ class InterfaceToCall
         return "{$this->interfaceName}::{$this->methodName}";
     }
 
+    public function toString(): string
+    {
+        return (string)$this;
+    }
+
     /**
      * @return int
      */

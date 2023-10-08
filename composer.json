@@ -46,6 +46,7 @@
             ],
             "Ecotone\\Messaging\\": "packages/Ecotone/src/Messaging/",
             "Ecotone\\Modelling\\": "packages/Ecotone/src/Modelling/",
+            "Ecotone\\OpenTelemetry\\": "packages/OpenTelemetry/src",
             "Ecotone\\SymfonyBundle\\": "packages/Symfony/SymfonyBundle",
             "Ecotone\\SymfonyBundle\\DepedencyInjection\\": "packages/Symfony/DepedencyInjection",
             "Monorepo\\": "Monorepo"
@@ -88,6 +89,9 @@
             ],
             "Test\\Ecotone\\Sqs\\": [
                 "packages/Sqs/tests"
+            ],
+            "Test\\Ecotone\\OpenTelemetry\\": [
+                "packages/OpenTelemetry/tests"
             ],
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
             "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
@@ -139,7 +143,12 @@
         "symfony/amqp-messenger": "^5.4|^6.0",
         "symfony/doctrine-messenger": "^5.4|^6.0",
         "doctrine/doctrine-bundle": "^2.7.2",
-        "phpbench/phpbench": "^1.2"
+        "phpbench/phpbench": "^1.2",
+        "enqueue/null": "^0.10.18",
+        "open-telemetry/api": "@dev",
+        "open-telemetry/sdk": "@dev",
+        "open-telemetry/transport-grpc": "@dev",
+        "open-telemetry/exporter-otlp": "@dev"
     },
     "extra": {
         "laravel": {
@@ -185,7 +194,8 @@
     },
     "config": {
         "allow-plugins": {
-            "wikimedia/composer-merge-plugin": true
+            "wikimedia/composer-merge-plugin": true,
+            "php-http/discovery": false
         }
     },
     "minimum-stability": "dev",

@@ -63,6 +63,11 @@ class InboundMessageConverter
                 ->setHeader(MessageHeaders::TIMESTAMP, $enqueueMessageHeaders[MessageHeaders::TIMESTAMP]);
         }
 
+        if (isset($enqueueMessageHeaders[MessageHeaders::MESSAGE_CORRELATION_ID])) {
+            $messageBuilder = $messageBuilder
+                ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, $enqueueMessageHeaders[MessageHeaders::MESSAGE_CORRELATION_ID]);
+        }
+
         return $messageBuilder
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, $this->acknowledgeHeaderName);
     }

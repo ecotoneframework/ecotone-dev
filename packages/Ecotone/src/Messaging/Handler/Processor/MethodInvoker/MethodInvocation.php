@@ -13,18 +13,13 @@ interface MethodInvocation
 {
     /**
      * Proceed with invocation. Returns value of invoked method
-     *
-     * @return mixed
      */
-    public function proceed();
+    public function proceed(): mixed;
+
+    public function getObjectToInvokeOn(): string|object;
 
     /**
-     * @var string|object
-     */
-    public function getObjectToInvokeOn();
-
-    /**
-     * @return array
+     * @return mixed[]
      */
     public function getArguments(): array;
 

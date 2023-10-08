@@ -39,7 +39,7 @@ class AroundMethodInvocation implements MethodInvocation
     /**
      * @inheritDoc
      */
-    public function proceed()
+    public function proceed(): mixed
     {
         /** @var AroundMethodInterceptor $aroundMethodInterceptor */
         $aroundMethodInterceptor = $this->aroundMethodInterceptors->current();
@@ -56,17 +56,14 @@ class AroundMethodInvocation implements MethodInvocation
     }
 
     /**
-     * @return array
+     * @return mixed[]
      */
     public function getArguments(): array
     {
         return $this->methodCall->getMethodArgumentValues();
     }
 
-    /**
-     * @var string|object
-     */
-    public function getObjectToInvokeOn()
+    public function getObjectToInvokeOn(): string|object
     {
         return $this->interceptedMessageProcessor->getObjectToInvokeOn();
     }

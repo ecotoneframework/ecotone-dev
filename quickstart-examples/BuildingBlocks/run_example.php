@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Customer\Command\ChangeEmail;
 use App\Domain\Customer\Command\RegisterCustomer;
 use App\Domain\Customer\Email;
 use App\Domain\Customer\FullName;
@@ -54,3 +55,22 @@ $orderStatus = $queryBus->sendWithRouting('order.get_status', metadata: ['aggreg
 
 Assert::that($orderStatus->value)->eq(OrderStatus::COMPLETED->value);
 echo "Order was placed successfully\n";
+
+try {
+    $commandBus->send(new ChangeEmail(
+        $customerId,
+        new Email('some@wp.fr'),
+    ));
+    Assert::that(false)->true("Exception should be thrown");
+} catch (InvalidArgumentException) {
+    echo "Refused access to ChangeEmail action\n";
+}
+
+$commandBus->send(new ChangeEmail(
+    $customerId,
+    new Email('some@email.fr'),
+), [
+    'executorEmail' => 'some@wp.pl'
+]);
+
+echo "Allowed access to ChangeEmail action\n";

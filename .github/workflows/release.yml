@@ -104,6 +104,7 @@ jobs:
           user_email: "dgafka.mail@gmail.com"
       -
         uses: "danharrin/monorepo-split-github-action@v2.3.0"
+        if: '${{ matrix.package.publish-version }} == true'
         with:
           tag: ${GITHUB_REF#refs/tags/}
 

@@ -8,7 +8,6 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\RepositoryBuilder;
 
@@ -61,6 +60,11 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
             $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper);
         }
 
+        $documentStoreReferences = [];
+        foreach ($this->eventSourcingConfiguration->getSnapshotsConfig() as $aggregateClass => $config) {
+            $documentStoreReferences[$aggregateClass] = $referenceSearchService->get($config['documentStore']);
+        }
+
         return new EventSourcingRepository(
             EcotoneEventStoreProophWrapper::prepare(
                 new LazyProophEventStore($this->eventSourcingConfiguration, $referenceSearchService),
@@ -72,8 +76,7 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
             $this->eventSourcingConfiguration,
             $referenceSearchService->get(AggregateStreamMapping::class),
             $referenceSearchService->get(AggregateTypeMapping::class),
-            $this->eventSourcingConfiguration->getSnapshotsAggregateClasses(),
-            $this->eventSourcingConfiguration->getSnapshotsAggregateClasses() == [] ? InMemoryDocumentStore::createEmpty() : $referenceSearchService->get($this->eventSourcingConfiguration->getDocumentStoreReference()),
+            $documentStoreReferences,
             $conversionService
         );
     }

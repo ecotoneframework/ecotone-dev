@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Config\NonProxyCombinedGateway;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -98,7 +100,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         $this->interfaceName = $interfaceName;
         $this->methodName = $methodName;
         $this->requestChannelName = $requestChannelName;
-        $this->requiredReferenceNames[] = ProxyFactory::REFERENCE_NAME;
+        $this->requiredReferenceNames[] = ServiceCacheConfiguration::REFERENCE_NAME;
     }
 
     /**
@@ -272,7 +274,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         ];
 
         foreach ($this->aroundInterceptors as $aroundInterceptor) {
-            $resolvedInterfaces[] = $aroundInterceptor->getInterceptingInterface($interfaceToCallRegistry);
+            $resolvedInterfaces[] = $aroundInterceptor->getInterceptingInterface();
         }
 
         return $resolvedInterfaces;
@@ -318,22 +320,32 @@ class GatewayProxyBuilder implements InterceptedEndpoint
     }
 
     /**
-     * @inheritdoc
+     * This will be with proxy class, so the resulting object will be implementing interface
      */
     public function build(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): object
     {
-        /** @var ProxyFactory $proxyFactory */
-        $proxyFactory = $referenceSearchService->get(ProxyFactory::REFERENCE_NAME);
+        /** @var ServiceCacheConfiguration $serviceCacheConfiguration */
+        $serviceCacheConfiguration = $referenceSearchService->get(ServiceCacheConfiguration::REFERENCE_NAME);
+        $proxyFactory = ProxyFactory::createWithCache($serviceCacheConfiguration);
 
-        $gateway = $this->buildWithoutProxyObject($referenceSearchService, $channelResolver);
-        $adapter = new GatewayProxyAdapter([$this->getRelatedMethodName() => $gateway]);
+        $adapter = new GatewayProxyAdapter(
+            NonProxyCombinedGateway::createWith(
+                $this->referenceName,
+                $this->interfaceName,
+                [$this->getRelatedMethodName() => $this],
+                $referenceSearchService,
+                $channelResolver
+            )
+        );
 
         return $proxyFactory->createProxyClassWithAdapter($this->interfaceName, $adapter);
     }
 
+    /**
+     * This is used for Framework cases, where framework build their own proxy classes
+     */
     public function buildWithoutProxyObject(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): NonProxyGateway
     {
-        $this->validateInterceptorsCorrectness($referenceSearchService);
         Assert::isInterface($this->interfaceName, "Gateway should point to interface instead of got {$this->interfaceName} which is not correct interface");
 
         /** @var InterfaceToCallRegistry $interfaceToCallRegistry */
@@ -408,11 +420,8 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         );
     }
 
-    private function buildGatewayInternalHandler(
-        InterfaceToCall $interfaceToCall,
-        ReferenceSearchService $referenceSearchService,
-        ChannelResolver $channelResolver
-    ): MessageHandler {
+    private function getRegisteredAnnotations(InterfaceToCall $interfaceToCall): array
+    {
         $registeredAnnotations = $this->endpointAnnotations;
         foreach ($interfaceToCall->getMethodAnnotations() as $annotation) {
             if ($this->canBeAddedToRegisteredAnnotations($registeredAnnotations, $annotation)) {
@@ -425,10 +434,19 @@ class GatewayProxyBuilder implements InterceptedEndpoint
             }
         }
 
+        return $registeredAnnotations;
+    }
+
+    private function buildGatewayInternalHandler(
+        InterfaceToCall $interfaceToCall,
+        ReferenceSearchService $referenceSearchService,
+        ChannelResolver $channelResolver
+    ): MessageHandler {
+        $registeredAnnotations = $this->getRegisteredAnnotations($interfaceToCall);
+
         $gatewayInternalHandler = new GatewayInternalHandler(
             $interfaceToCall,
             $channelResolver->resolve($this->requestChannelName),
-            $this->errorChannelName ? $channelResolver->resolve($this->errorChannelName) : null,
             $this->replyChannelName ? $channelResolver->resolve($this->replyChannelName) : null,
             $this->replyMilliSecondsTimeout
         );
@@ -470,13 +488,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint
         );
 
         return $aroundInterceptors;
-    }
-
-    private function validateInterceptorsCorrectness(ReferenceSearchService $referenceSearchService): void
-    {
-        foreach ($this->aroundInterceptors as $aroundInterceptorReference) {
-            $aroundInterceptorReference->buildAroundInterceptor($referenceSearchService);
-        }
     }
 
     /**

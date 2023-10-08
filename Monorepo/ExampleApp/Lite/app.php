@@ -38,6 +38,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
         serviceConfiguration: ServiceConfiguration::createWithDefaults()
             ->doNotLoadCatalog()
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
+            ->withFailFast(false)
             ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
             ->withNamespaces(['Monorepo\\ExampleApp\\Common\\']),
         cacheConfiguration: $useCachedVersion,

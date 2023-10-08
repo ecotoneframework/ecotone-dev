@@ -24,7 +24,7 @@
     ],
     "description": "Extends Ecotone with Symfony integration",
     "require": {
-        "ecotone/ecotone": "~1.103.0",
+        "ecotone/ecotone": "~1.107.1",
         "laminas/laminas-zendframework-bridge": "^1.0.0",
         "symfony/console": "^5.4|^6.0",
         "symfony/framework-bundle": "^5.4|^6.0"
@@ -36,6 +36,7 @@
         "monolog/monolog": "^3.3.1",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^9.5",
+        "symfony/amqp-messenger": "^5.4|^6.0",
         "symfony/doctrine-messenger": "^5.4|^6.0",
         "symfony/expression-language": "^6.0",
         "symfony/messenger": "^5.4|^6.0",
@@ -78,7 +79,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.103.0-dev"
+            "dev-main": "1.107.1-dev"
         },
         "ecotone": {
             "repository": "symfony"

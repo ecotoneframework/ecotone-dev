@@ -21,6 +21,13 @@ function getRepositoryFromComposerFile(string $composerFile)
         );
 }
 
+function getRepositoryPublishConfirmation(string $composerFile): bool
+{
+    $composer = json_decode(file_get_contents($composerFile), true);
+
+    return $composer['extra']['ecotone']['publish-version'] ?? true;
+}
+
 /**
  * @return array<array-key, array{path: string, name: string}>
  */
@@ -47,7 +54,8 @@ function getPackages(): array {
             'name' => $name,
             'package' => 'ecotone/' . $name,
             'organisation' => 'ecotoneframework',
-            'repository' => getRepositoryFromComposerFile($file)
+            'repository' => getRepositoryFromComposerFile($file),
+            'publish-version' => getRepositoryPublishConfirmation($file)
         ];
     }
 
@@ -56,7 +64,8 @@ function getPackages(): array {
         'name' => "quickstart-examples",
         'package' => 'ecotone/quickstart-examples',
         'organisation' => 'ecotoneframework',
-        'repository' => "quickstart-examples"
+        'repository' => "quickstart-examples",
+        'publish-version' => true
     ];
 
     return $packages;

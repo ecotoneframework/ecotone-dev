@@ -7,6 +7,7 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendGateway;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\NamedMessageChannel;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverter;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -20,7 +21,6 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -119,7 +119,7 @@ class GatewayProxyBuilderTest extends MessagingTest
 
         $this->expectException(InvalidArgumentException::class);
 
-        $gatewayProxyBuilder->build(
+        $gatewayProxyBuilder->buildWithoutProxyObject(
             InMemoryReferenceSearchService::createEmpty(),
             InMemoryChannelResolver::create(
                 [
@@ -323,7 +323,7 @@ class GatewayProxyBuilderTest extends MessagingTest
 
         $this->expectException(InvalidArgumentException::class);
 
-        $gatewayProxyBuilder->build(
+        $gatewayProxyBuilder->buildWithoutProxyObject(
             InMemoryReferenceSearchService::createEmpty(),
             InMemoryChannelResolver::createFromAssociativeArray(
                 [
@@ -763,7 +763,7 @@ class GatewayProxyBuilderTest extends MessagingTest
                 AroundInterceptorReference::create('transactionInterceptor', InterfaceToCall::create(TransactionInterceptor::class, 'transactional'), 1, Transactional::class, [])
             );
 
-        $this->assertEquals([ProxyFactory::REFERENCE_NAME, 'transactionInterceptor'], $gatewayProxyBuilder->getRequiredReferences());
+        $this->assertEquals([ServiceCacheConfiguration::REFERENCE_NAME, 'transactionInterceptor'], $gatewayProxyBuilder->getRequiredReferences());
 
         $gatewayProxy = $gatewayProxyBuilder->build(
             InMemoryReferenceSearchService::createWith([
@@ -1093,7 +1093,7 @@ class GatewayProxyBuilderTest extends MessagingTest
 
         GatewayProxyBuilder::create('some', ServiceInterfaceReceiveOnly::class, 'sendMail', 'requestChannel')
             ->withErrorChannel('errorChannel')
-            ->build(
+            ->buildWithoutProxyObject(
                 InMemoryReferenceSearchService::createEmpty(),
                 InMemoryChannelResolver::createFromAssociativeArray([
                     'requestChannel' => DirectChannel::create(),

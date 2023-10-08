@@ -5,7 +5,6 @@ namespace Ecotone\SymfonyBundle\DepedencyInjection;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\FactoryDefinition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
@@ -40,8 +39,6 @@ class SymfonyContainerAdapter implements ContainerImplementation
     {
         if ($argument instanceof Definition) {
             return $this->convertDefinition($argument);
-        } elseif ($argument instanceof FactoryDefinition) {
-            return $this->convertFactory($argument);
         } elseif (is_array($argument)) {
             $resolvedArguments = [];
             foreach ($argument as $index => $value) {
@@ -61,6 +58,9 @@ class SymfonyContainerAdapter implements ContainerImplementation
             $ecotoneDefinition->getClassName(),
             $this->normalizeNamedArgument($this->resolveArgument($ecotoneDefinition->getConstructorArguments()))
         );
+        if ($ecotoneDefinition->hasFactory()) {
+            $sfDefinition->setFactory($ecotoneDefinition->getFactory());
+        }
         foreach ($ecotoneDefinition->getMethodCalls() as $methodCall) {
             $sfDefinition->addMethodCall(
                 $methodCall->getMethodName(),
@@ -70,14 +70,6 @@ class SymfonyContainerAdapter implements ContainerImplementation
         if ($ecotoneDefinition->islLazy()) {
             $sfDefinition->setLazy(true);
         }
-        return $sfDefinition->setPublic(true);
-    }
-
-    private function convertFactory(FactoryDefinition $ecotoneDefinition)
-    {
-        $sfDefinition = new SymfonyDefinition($ecotoneDefinition->getFactory()[0]);
-        $sfDefinition->setFactory($ecotoneDefinition->getFactory());
-        $sfDefinition->setArguments($this->normalizeNamedArgument($this->resolveArgument($ecotoneDefinition->getArguments())));
         return $sfDefinition->setPublic(true);
     }
 

@@ -15,7 +15,7 @@ class Definition
      */
     private array $methodCalls = [];
 
-    public function __construct(protected string $className, protected array $constructorArguments = [], protected string $factoryMethod = '')
+    public function __construct(protected string $className, protected array $constructorArguments = [], protected string|array $factory = '')
     {
     }
 
@@ -47,14 +47,22 @@ class Definition
         return $this;
     }
 
-    public function getFactory(): string
+    public function getFactory(): array
     {
-        return $this->factoryMethod;
+        if (is_string($this->factory)) {
+            return [$this->className, $this->factory];
+        }
+        return $this->factory;
     }
 
-    public function setFactory(string $factoryMethod): self
+    public function hasFactory(): bool
     {
-        $this->factoryMethod = $factoryMethod;
+        return !empty($this->factory);
+    }
+
+    public function setFactory(string|array $factory): self
+    {
+        $this->factory = $factory;
         return $this;
     }
 

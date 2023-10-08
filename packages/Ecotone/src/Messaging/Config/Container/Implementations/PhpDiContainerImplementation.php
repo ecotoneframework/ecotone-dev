@@ -3,17 +3,12 @@
 namespace Ecotone\Messaging\Config\Container\Implementations;
 
 use DI\ContainerBuilder;
-use DI\Factory\RequestedEntry;
-use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\FactoryDefinition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ChannelResolver;
 
 use function is_array;
 
-use Psr\Container\ContainerInterface;
 use ReflectionMethod;
 
 class PhpDiContainerImplementation implements ContainerImplementation
@@ -59,8 +54,6 @@ class PhpDiContainerImplementation implements ContainerImplementation
     {
         if ($argument instanceof Definition) {
             return $this->convertDefinition($argument);
-        } elseif ($argument instanceof FactoryDefinition) {
-            return $this->convertFactory($argument);
         } elseif (is_array($argument)) {
             $resolvedArguments = [];
             foreach ($argument as $index => $value) {
@@ -76,6 +69,9 @@ class PhpDiContainerImplementation implements ContainerImplementation
 
     public function convertDefinition(Definition $definition)
     {
+        if ($definition->hasFactory()) {
+            return $this->convertFactory($definition);
+        }
         $phpdi = \DI\create($definition->getClassName())
             ->constructor(...$this->resolveArgument($definition->getConstructorArguments()));
         if ($definition->islLazy()) {
@@ -87,14 +83,14 @@ class PhpDiContainerImplementation implements ContainerImplementation
         return $phpdi;
     }
 
-    private function convertFactory(FactoryDefinition $definition)
+    private function convertFactory(Definition $definition)
     {
         $factory = \DI\factory($definition->getFactory());
         [$class, $method] = $definition->getFactory();
         // Transform indexed factory to named factory
         $reflector = new ReflectionMethod($class, $method);
         $parameters = $reflector->getParameters();
-        foreach ($definition->getArguments() as $index => $argument) {
+        foreach ($definition->getConstructorArguments() as $index => $argument) {
             $p = $parameters[$index] ?? null;
             $factory->parameter($p ? $p->name : $index, $this->resolveArgument($argument));
         }

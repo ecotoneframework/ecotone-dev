@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\FactoryDefinition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -132,7 +131,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         } elseif ($this->messageChannel instanceof PublishSubscribeChannel) {
             $definition = new Definition(PublishSubscribeChannel::class, [$this->messageChannelName]);
         } elseif ($this->messageChannel instanceof NullableMessageChannel) {
-            $definition = new FactoryDefinition([NullableMessageChannel::class, 'create']);
+            $definition = new Definition(NullableMessageChannel::class, factory: 'create');
         } else {
             $class = get_class($this->messageChannel);
             throw new InvalidArgumentException("Unsupported channel {$this->messageChannelName} : {$class}");

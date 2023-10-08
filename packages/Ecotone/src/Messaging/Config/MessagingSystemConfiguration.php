@@ -23,7 +23,6 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\FactoryDefinition;
 use Ecotone\Messaging\Config\Container\InMemoryContainerImplementation;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\Container\ReferenceSearchServiceWithContainer;
@@ -174,7 +173,7 @@ final class MessagingSystemConfiguration implements Configuration
     private array $consoleCommands = [];
 
     /**
-     * @var array<string, Definition|FactoryDefinition> $serviceDefinitions
+     * @var array<string, Definition> $serviceDefinitions
      */
     private array $serviceDefinitions = [];
 
@@ -1314,8 +1313,8 @@ final class MessagingSystemConfiguration implements Configuration
                 $converters[] = $converterBuilder->compile($builder);
             }
         }
-        $builder->register(ConversionService::REFERENCE_NAME, new FactoryDefinition([AutoCollectionConversionService::class, 'createWith'], ['converters' => $converters]));
-        $builder->register(ExpressionEvaluationService::REFERENCE, new FactoryDefinition([SymfonyExpressionEvaluationAdapter::class, 'create']));
+        $builder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters], 'createWith'));
+        $builder->register(ExpressionEvaluationService::REFERENCE, new Definition(SymfonyExpressionEvaluationAdapter::class, factory: 'create'));
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];
@@ -1388,12 +1387,12 @@ final class MessagingSystemConfiguration implements Configuration
             }
             $referenceName = $gatewayBuilder->getReferenceName();
             if (! $builder->has($gatewayBuilder->getReferenceName())) {
-                $builder->register($gatewayBuilder->getReferenceName(), new FactoryDefinition([ProxyFactory::class, 'createFor'], [
+                $builder->register($gatewayBuilder->getReferenceName(), new Definition($gatewayBuilder->getReferenceName(), [
                     'referenceName' => $gatewayBuilder->getReferenceName(),
                     'container' => new Reference(ContainerInterface::class),
                     'interface' => $gatewayBuilder->getReferenceName(),
                     'serviceCacheConfiguration' => new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
-                ]));
+                ], [ProxyFactory::class, 'createFor']));
             }
         }
 

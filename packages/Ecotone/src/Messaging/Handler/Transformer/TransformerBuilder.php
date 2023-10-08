@@ -9,7 +9,6 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\FactoryDefinition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\AroundInterceptorHandler;
@@ -238,14 +237,14 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
         }
 
-        $methodInvokerDefinition = new FactoryDefinition([TransformerMessageProcessor::class, 'createFrom'], [
+        $methodInvokerDefinition = new Definition(TransformerMessageProcessor::class, [
             'methodInvoker' => new Definition(MethodInvoker::class, [
                 new Reference($objectToInvokeOn),
                 $interfaceToCallReference->getMethodName(),
                 $compiledMethodParameterConverters,
                 $interfaceToCallReference,
                 true,
-            ]),
+            ], 'createFrom'),
         ]);
 
         $handlerDefinition = new Definition(RequestReplyProducer::class, [

@@ -5,7 +5,6 @@ namespace Ecotone\Modelling;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\FactoryDefinition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -98,25 +97,25 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         $repository = $this->isEventSourced
-            ? new FactoryDefinition([LazyEventSourcedRepository::class, 'create'], [
+            ? new Definition(LazyEventSourcedRepository::class, [
                 $this->aggregateClassName,
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
                 $this->aggregateRepositoryReferenceNames,
-            ])
-            : new FactoryDefinition([LazyStandardRepository::class, 'create'], [
+            ], 'create')
+            : new Definition(LazyStandardRepository::class, [
                 $this->aggregateClassName,
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
                 $this->aggregateRepositoryReferenceNames,
-            ]);
+            ], 'create');
 
         if (! $builder->has(PropertyEditorAccessor::class)) {
-            $builder->register(PropertyEditorAccessor::class, new FactoryDefinition([PropertyEditorAccessor::class, 'create'], [
+            $builder->register(PropertyEditorAccessor::class, new Definition(PropertyEditorAccessor::class, [
                 new Reference(ReferenceSearchService::class),
-            ]));
+            ], 'create'));
         }
 
         $loadAggregateService = new Definition(LoadAggregateService::class, [

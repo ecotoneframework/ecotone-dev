@@ -6,7 +6,6 @@ namespace Monorepo\ExampleApp\Common\Infrastructure\InMemory;
 
 use Ecotone\Modelling\StandardRepository;
 use Monorepo\ExampleApp\Common\Domain\Order\Order;
-use Monorepo\ExampleApp\Common\Domain\Order\OrderRepository;
 use Ramsey\Uuid\UuidInterface;
 
 final class InMemoryOrderRepository implements StandardRepository

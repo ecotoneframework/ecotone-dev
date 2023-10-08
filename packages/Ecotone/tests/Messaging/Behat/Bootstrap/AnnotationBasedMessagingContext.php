@@ -7,7 +7,6 @@ use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;

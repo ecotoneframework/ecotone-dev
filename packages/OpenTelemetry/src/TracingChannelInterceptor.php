@@ -7,21 +7,19 @@ namespace Ecotone\OpenTelemetry;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\Span;
-use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerInterface;
-use OpenTelemetry\Context\ScopeInterface;
 use Throwable;
 
 final class TracingChannelInterceptor implements ChannelInterceptor
 {
-    public function __construct(private string $channelName, private TracerInterface $tracer) {}
+    public function __construct(private string $channelName, private TracerInterface $tracer)
+    {
+    }
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
@@ -68,7 +66,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
             /** 4. Here we consume Message from Message Broker, yet this is not span, it's a single moment in time  */
 
-//            $context = TraceContextPropagator::getInstance()->extract($carrier);
+            //            $context = TraceContextPropagator::getInstance()->extract($carrier);
         }
 
         return $message;

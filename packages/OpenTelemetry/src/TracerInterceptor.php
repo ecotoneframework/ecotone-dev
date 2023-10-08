@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\OpenTelemetry;
 
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
-use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
@@ -42,7 +41,7 @@ final class TracerInterceptor
     public function traceEventHandler(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
         return $this->trace(
-             'Event Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
+            'Event Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
             $methodInvocation,
             $message,
             $referenceSearchService
@@ -82,7 +81,7 @@ final class TracerInterceptor
     public function trace(string $type, MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
         /** @TODO this should be moved somewhere else */
-        if (!LoggerHolder::isSet()) {
+        if (! LoggerHolder::isSet()) {
             /** @var LoggerInterface $logger */
             $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
             LoggerHolder::set($logger);

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry\Configuration;
 
-use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
@@ -23,8 +22,8 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
-use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
 use Ecotone\OpenTelemetry\TracerInterceptor;
+use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
 
 #[ModuleAnnotation]
 final class OpenTelemetryModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -40,7 +39,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $messageChannelBuilders = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
 
         if ($tracingConfiguration->higherThanOrEqualTo(TracingConfiguration::TRACING_LEVEL_FRAMEWORK)) {
-            $this->registerTracerFor('trace', "*", $messagingConfiguration, $interfaceToCallRegistry);
+            $this->registerTracerFor('trace', '*', $messagingConfiguration, $interfaceToCallRegistry);
         }
 
         foreach ($messageChannelBuilders as $messageChannelBuilder) {

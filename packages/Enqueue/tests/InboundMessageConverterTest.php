@@ -14,12 +14,15 @@ use Enqueue\Null\NullMessage;
 use Enqueue\Null\NullQueue;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 final class InboundMessageConverterTest extends TestCase
 {
     public function test_it_will_map_automatically_core_headers(): void
     {
         $inboundMessageConverter = new InboundMessageConverter(
-            "some",
+            'some',
             EnqueueAcknowledgementCallback::AUTO_ACK,
             DefaultHeaderMapper::createNoMapping(),
             'ack'
@@ -30,10 +33,10 @@ final class InboundMessageConverterTest extends TestCase
                 properties: [
                     MessageHeaders::MESSAGE_ID => 123,
                     MessageHeaders::TIMESTAMP => 123000,
-                    MessageHeaders::MESSAGE_CORRELATION_ID => 1234
+                    MessageHeaders::MESSAGE_CORRELATION_ID => 1234,
                 ]
             ),
-            new NullConsumer(new NullQueue("some")),
+            new NullConsumer(new NullQueue('some')),
             InMemoryConversionService::createWithoutConversion()
         )
         ->build();

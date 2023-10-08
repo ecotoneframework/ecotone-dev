@@ -55,12 +55,12 @@ class StubMethodInvocation implements MethodInvocation
 
     public function getMethodName(): string
     {
-        return "someMethod";
+        return 'someMethod';
     }
 
     public function getInterfaceToCall(): InterfaceToCall
     {
-        return InterfaceToCall::create(stdClass::class, "someMethod");
+        return InterfaceToCall::create(stdClass::class, 'someMethod');
     }
 
     public function replaceArgument(string $parameterName, $value): void

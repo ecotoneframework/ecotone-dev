@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;

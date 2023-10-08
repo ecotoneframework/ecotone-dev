@@ -48,7 +48,7 @@ final class ModulePackageList
             self::DBAL_PACKAGE,
             self::EVENT_SOURCING_PACKAGE,
             self::JMS_CONVERTER_PACKAGE,
-            self::TRACING_PACKAGE
+            self::TRACING_PACKAGE,
         ];
     }
 

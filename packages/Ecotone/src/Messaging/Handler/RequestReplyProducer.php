@@ -12,7 +12,6 @@ use Ecotone\Messaging\MessageDeliveryException;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ramsey\Uuid\Uuid;
 
 /**
  * Class RequestReplyProducer

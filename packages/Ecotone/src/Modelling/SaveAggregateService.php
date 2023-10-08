@@ -225,7 +225,7 @@ class SaveAggregateService
             $metadata[MessageHeaders::TIMESTAMP] ??= (int)round(microtime(true));
             $metadata = MessageHeaders::propagateContextHeaders([
                 MessageHeaders::MESSAGE_ID => $message->getHeaders()->getMessageId(),
-                MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId()
+                MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId(),
             ], $metadata);
 
             return Event::create($event, $metadata);

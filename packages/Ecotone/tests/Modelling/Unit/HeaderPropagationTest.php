@@ -12,6 +12,7 @@ use Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService;
 
 /**
  * @covers \Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor
+ * @internal
  */
 final class HeaderPropagationTest extends TestCase
 {
@@ -26,10 +27,11 @@ final class HeaderPropagationTest extends TestCase
         $correlationId = Uuid::uuid4()->toString();
 
         $headers = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey('placeOrder',
+            ->sendCommandWithRoutingKey(
+                'placeOrder',
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
-                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId
+                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
                 ]
             )
             ->getRecordedEventHeaders()[0];
@@ -47,9 +49,10 @@ final class HeaderPropagationTest extends TestCase
 
         $messageId = Uuid::uuid4()->toString();
         $headers = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey('placeOrder',
+            ->sendCommandWithRoutingKey(
+                'placeOrder',
                 metadata: [
-                    MessageHeaders::MESSAGE_ID => $messageId
+                    MessageHeaders::MESSAGE_ID => $messageId,
                 ]
             )
             ->getRecordedEventHeaders()[0];
@@ -67,9 +70,10 @@ final class HeaderPropagationTest extends TestCase
 
         $messageId = Uuid::uuid4()->toString();
         $headers = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey('placeOrderAndPropagateMetadata',
+            ->sendCommandWithRoutingKey(
+                'placeOrderAndPropagateMetadata',
                 metadata: [
-                    MessageHeaders::MESSAGE_ID => $messageId
+                    MessageHeaders::MESSAGE_ID => $messageId,
                 ]
             )
             ->getRecordedEventHeaders()[0];

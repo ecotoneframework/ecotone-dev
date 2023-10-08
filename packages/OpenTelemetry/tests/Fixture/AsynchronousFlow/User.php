@@ -17,8 +17,8 @@ final class User
     #[AggregateIdentifier]
     private string $userId;
 
-    #[Asynchronous("async_channel")]
-    #[CommandHandler(endpointId: "user.register")]
+    #[Asynchronous('async_channel')]
+    #[CommandHandler(endpointId: 'user.register')]
     public static function register(RegisterUser $command): self
     {
         $user = new self();

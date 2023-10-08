@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Recoverability;
 
 use Closure;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -96,5 +97,15 @@ final class RetryTemplate
     public function getMaxAttempts(): ?int
     {
         return $this->maxAttempts;
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class, [
+            $this->initialDelay,
+            $this->multiplier,
+            $this->maxDelay,
+            $this->maxAttempts
+        ]);
     }
 }

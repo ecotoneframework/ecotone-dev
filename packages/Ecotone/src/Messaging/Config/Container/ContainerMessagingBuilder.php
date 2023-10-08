@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -33,9 +34,7 @@ class ContainerMessagingBuilder
     public function __construct(private InterfaceToCallRegistry $interfaceToCallRegistry)
     {
         $this->typeResolver = TypeResolver::create();
-        //        $this->definitions[ChannelResolver::class] = new Definition(ChannelResolverWithFallback::class,
-        //            [new Reference(ContainerInterface::class)]
-        //        );
+        $this->definitions[Bridge::class] = new Definition(Bridge::class);
     }
 
     public function register(string|Reference $id, Definition $definition): Reference

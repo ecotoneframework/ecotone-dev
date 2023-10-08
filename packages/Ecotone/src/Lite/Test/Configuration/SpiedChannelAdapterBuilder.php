@@ -6,13 +6,17 @@ namespace Ecotone\Lite\Test\Configuration;
 
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Precedence;
 
-final class SpiedChannelAdapterBuilder implements ChannelInterceptorBuilder
+final class SpiedChannelAdapterBuilder implements ChannelInterceptorBuilder, CompilableBuilder
 {
-    public function __construct(private string $relatedChannel, private MessageCollectorHandler $messageCollectorHandler)
+    public function __construct(private string $relatedChannel)
     {
     }
 
@@ -38,6 +42,20 @@ final class SpiedChannelAdapterBuilder implements ChannelInterceptorBuilder
 
     public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
     {
-        return new SpiecChannelAdapter($this->relatedChannel, $this->messageCollectorHandler);
+        throw new \InvalidArgumentException("Can't spy channel {$this->relatedChannel} without MessageCollectorHandler registered in container");
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        if (! $builder->has(MessageCollectorHandler::class)) {
+            throw new \InvalidArgumentException("Can't spy channel {$this->relatedChannel} without MessageCollectorHandler registered in container");
+        }
+        return new Definition(
+            SpiecChannelAdapter::class,
+            [
+                $this->relatedChannel,
+                new Reference(MessageCollectorHandler::class)
+            ]
+        );
     }
 }

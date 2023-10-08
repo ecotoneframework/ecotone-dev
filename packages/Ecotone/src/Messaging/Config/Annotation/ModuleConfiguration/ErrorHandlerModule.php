@@ -10,6 +10,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -50,17 +51,19 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
         }
 
         /** @var ErrorHandlerConfiguration $extensionObject */
-        foreach ($extensionObjects as $extensionObject) {
+        foreach ($extensionObjects as $index => $extensionObject) {
             if (! ($extensionObject instanceof ErrorHandlerConfiguration)) {
                 continue;
             }
 
-            $errorHandler = ServiceActivatorBuilder::createWithDirectReference(
-                new ErrorHandler(
-                    $extensionObject->getDelayedRetryTemplate(),
-                    (bool)$extensionObject->getDeadLetterQueueChannel()
-                ),
-                'handle'
+            $reference = 'error_handler_'.$index;
+            $messagingConfiguration->registerServiceDefinition($reference, new Definition(ErrorHandler::class, [
+                $extensionObject->getDelayedRetryTemplate()->getDefinition(),
+                (bool)$extensionObject->getDeadLetterQueueChannel()
+            ]));
+            $errorHandler = ServiceActivatorBuilder::create(
+                $reference,
+                new InterfaceToCallReference(ErrorHandler::class, 'handle'),
             )
                 ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName())
                 ->withInputChannelName($extensionObject->getErrorChannelName())

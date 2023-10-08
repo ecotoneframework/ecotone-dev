@@ -17,6 +17,8 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -58,18 +60,29 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
                 continue;
             }
 
-            $collector = new CollectorStorage();
+            $messagingConfiguration->registerServiceDefinition(CollectorStorage::class);
             $messagingConfiguration->registerChannelInterceptor(
-                new CollectorChannelInterceptorBuilder($pollableMessageChannel->getMessageChannelName(), $collector),
+                new CollectorChannelInterceptorBuilder($pollableMessageChannel->getMessageChannelName()),
             );
 
+            $collectorSenderInterceptorReference = CollectorSenderInterceptor::class . '.' . $pollableMessageChannel->getMessageChannelName();
+            $messagingConfiguration->registerServiceDefinition(
+                $collectorSenderInterceptorReference,
+                new Definition(
+                    CollectorSenderInterceptor::class,
+                    [
+                        new Reference(CollectorStorage::class),
+                        $pollableMessageChannel->getMessageChannelName()
+                    ]
+                ));
+            $collectorSenderInterceptorInterfaceToCall = $interfaceToCallRegistry->getFor(CollectorSenderInterceptor::class, 'send');
             $messagingConfiguration->registerAroundMethodInterceptor(
-                AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                    $interfaceToCallRegistry,
-                    new CollectorSenderInterceptor($collector, $pollableMessageChannel->getMessageChannelName()),
-                    'send',
+                AroundInterceptorReference::create(
+                    $collectorSenderInterceptorReference,
+                    $collectorSenderInterceptorInterfaceToCall,
                     Precedence::COLLECTOR_SENDER_PRECEDENCE,
-                    CommandBus::class . '||' . AsynchronousRunningEndpoint::class
+                    CommandBus::class . '||' . AsynchronousRunningEndpoint::class,
+                    []
                 )
             );
         }

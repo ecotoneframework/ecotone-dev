@@ -1286,9 +1286,12 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    public function registerServiceDefinition(string $id, Container\Definition $definition): Configuration
+    public function registerServiceDefinition(string $id, Container\Definition|array $definition = []): Configuration
     {
         if (! isset($this->serviceDefinitions[$id])) {
+            if (is_array($definition)) {
+                $definition = new Definition($id, $definition);
+            }
             $this->serviceDefinitions[$id] = $definition;
         }
         return $this;
@@ -1361,7 +1364,7 @@ final class MessagingSystemConfiguration implements Configuration
             if ($messageHandlerBuilder instanceof CompilableBuilder) {
                 $reference = $messageHandlerBuilder->compile($builder);
                 if (! $reference) {
-                    //                    throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
+                    throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
                 }
                 if ($inputChannel = $messageHandlerBuilder->getInputMessageChannelName()) {
                     $channelDefinition = $builder->getDefinition(new ChannelReference($inputChannel));
@@ -1394,6 +1397,10 @@ final class MessagingSystemConfiguration implements Configuration
                     'serviceCacheConfiguration' => new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
                 ], [ProxyFactory::class, 'createFor']));
             }
+        }
+
+        foreach ($this->pollingMetadata as $pollingMetadata) {
+            $builder->register($pollingMetadata->getEndpointId().'.pollingMetadata', $pollingMetadata->getDefinition());
         }
 
         $builder->process($containerImplementation);

@@ -63,7 +63,7 @@ class InMemoryPSRContainer implements ContainerInterface
     /**
      * @inheritDoc
      */
-    public function get($id)
+    public function get(string $id)
     {
         if (! isset($this->objects[$id])) {
             throw ReferenceNotFoundException::create("Reference with id {$id} was not found");

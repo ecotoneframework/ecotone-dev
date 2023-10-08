@@ -32,7 +32,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function runConsoleCommand(string $commandName, array $parameters): mixed
     {
-        // TODO: Implement runConsoleCommand() method.
+        return null;
     }
 
     public function getCommandBus(): CommandBus

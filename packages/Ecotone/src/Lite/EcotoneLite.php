@@ -195,7 +195,7 @@ final class EcotoneLite
         ]);
 
 
-        $messagingConfiguration->buildInContainer(new LiteContainerImplementation($containerBuilder));
+        $messagingConfiguration->buildInContainer(new LiteContainerImplementation($containerBuilder, $externalContainer));
         $messagingSystem = $containerBuilder->get(ConfiguredMessagingSystem::class);
 
         if ($allowGatewaysToBeRegisteredInContainer) {

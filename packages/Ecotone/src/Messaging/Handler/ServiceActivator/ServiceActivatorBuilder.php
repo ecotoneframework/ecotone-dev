@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -63,12 +64,15 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         }
     }
 
-    public static function create(string $objectToInvokeOnReferenceName, InterfaceToCall|InterfaceToCallReference $interfaceToCall): self
+    public static function create(string $objectToInvokeOnReferenceName, InterfaceToCall|InterfaceToCallReference|string $interfaceToCall): self
     {
+        if (is_string($interfaceToCall)) {
+            $interfaceToCall = new InterfaceToCallReference($objectToInvokeOnReferenceName, $interfaceToCall);
+        }
         return new self($objectToInvokeOnReferenceName, $interfaceToCall);
     }
 
-    public static function createWithDirectReference(object $directObjectReference, string $methodName): self
+    public static function createWithDirectReference(DefinedObject $directObjectReference, string $methodName): self
     {
         return (new self('', $methodName))
                         ->withDirectObjectReference($directObjectReference);
@@ -210,14 +214,19 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
     public function compile(ContainerMessagingBuilder $builder): Reference|null
     {
-        if ($this->directObjectReference) {
+        if ($this->directObjectReference && ! $this->directObjectReference instanceof DefinedObject) {
             return null;
+        }
+        $reference = $this->objectToInvokeReferenceName;
+        $className = $this->getInterfaceName();
+        if (! $this->isStaticallyCalled() && $this->directObjectReference) {
+            $reference = $this->directObjectReference->getDefinition();
+            $className = $reference->getClassName();
         }
         if ($this->compiled) {
             throw new InvalidArgumentException("Trying to compile {$this} twice");
         }
 
-        $className = $this->getInterfaceName();
         $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
 
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
@@ -225,7 +234,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         $methodInvokerDefinition = MethodInvoker::createDefinition(
             $builder,
             $interfaceToCall,
-            $this->objectToInvokeReferenceName,
+            $reference,
             $this->methodParameterConverterBuilders,
             $this->getEndpointAnnotations()
         );

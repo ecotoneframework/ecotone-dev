@@ -26,7 +26,6 @@ class SymfonyContainerAdapter implements ContainerImplementation
     public function process(array $definitions, array $externalReferences): void
     {
         $this->container->setAlias(ContainerInterface::class, 'service_container');
-        $this->container->register(Bridge::class);
         $this->container->register(ConfiguredMessagingSystem::class, MessagingSystemContainer::class);
 
         foreach ($definitions as $id => $definition) {

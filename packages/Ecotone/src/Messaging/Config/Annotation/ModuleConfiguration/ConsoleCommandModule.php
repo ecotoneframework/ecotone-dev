@@ -16,6 +16,8 @@ use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -84,16 +86,17 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
         return [$messageHandlerBuilder, $oneTimeCommandConfiguration];
     }
 
-    public static function prepareConsoleCommandForDirectObject(object $directObject, string $methodName, string $commandName, bool $discoverableByConsoleCommandAttribute, InterfaceToCallRegistry $interfaceToCallRegistry)
+    public static function prepareConsoleCommandForReference(Reference $reference, InterfaceToCallReference $interfaceToCallReference, string $commandName, bool $discoverableByConsoleCommandAttribute, InterfaceToCallRegistry $interfaceToCallRegistry)
     {
-        $className = get_class($directObject);
+        $className = $interfaceToCallReference->getClassName();
+        $methodName = $interfaceToCallReference->getMethodName();
         $parameterConverters = [];
         $parameters          = [];
 
         [$parameterConverters, $parameters] = self::prepareParameter($interfaceToCallRegistry, $className, $methodName, $parameterConverters, $parameters);
 
         $inputChannel                = 'ecotone.channel.' . $commandName;
-        $messageHandlerBuilder       = ServiceActivatorBuilder::createWithDirectReference($directObject, $methodName)
+        $messageHandlerBuilder       = ServiceActivatorBuilder::create($reference->getId(), $interfaceToCallReference)
             ->withEndpointId('ecotone.endpoint.' . $commandName)
             ->withEndpointAnnotations($discoverableByConsoleCommandAttribute ? [new AttributeDefinition(ConsoleCommand::class, [$commandName])] : [])
             ->withInputChannelName($inputChannel)

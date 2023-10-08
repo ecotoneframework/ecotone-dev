@@ -35,9 +35,18 @@ class LiteContainerImplementation implements ContainerImplementation
         if (is_array($argument)) {
             return array_map(fn($argument) => $this->resolveArgument($argument, $definitions), $argument);
         } else if($argument instanceof Definition) {
-            $class = $argument->getClassName();
             $arguments = $this->resolveArgument($argument->getConstructorArguments(), $definitions);
-            return new $class(...$arguments);
+            if ($argument->hasFactory()) {
+                $factory = $argument->getFactory();
+                return $factory(...$arguments);
+            } else {
+                $class = $argument->getClassName();
+                $object = new $class(...$arguments);
+                foreach ($argument->getMethodCalls() as $methodCall) {
+                    $object->{$methodCall->getMethodName()}(...$this->resolveArgument($methodCall->getArguments(), $definitions));
+                }
+                return $object;
+            }
         } else if ($argument instanceof Reference) {
             $id = $argument->getId();
             if ($this->container->has($id)) {

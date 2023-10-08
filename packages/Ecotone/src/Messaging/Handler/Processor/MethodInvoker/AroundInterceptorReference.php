@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAn
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -20,6 +21,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocation
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocationObjectConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadConverter;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
@@ -34,7 +36,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
     private int $precedence;
     private string $interceptorName;
     private Pointcut $pointcut;
-    private ?object $directObject = null;
+    private ?DefinedObject $directObject = null;
     private string $referenceName = '';
     /**
      * @var ParameterConverterBuilder[]
@@ -81,7 +83,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
     /**
      * @var ParameterConverterBuilder[] $parameterConverters
      */
-    public static function createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry $interfaceToCallRegistry, object $referenceObject, string $methodName, int $precedence, string $pointcut): self
+    public static function createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry $interfaceToCallRegistry, DefinedObject $referenceObject, string $methodName, int $precedence, string $pointcut): self
     {
         $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
         $interfaceToCall = $interfaceToCallRegistry->getFor($referenceObject, $methodName);
@@ -216,9 +218,11 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
      */
     public function compile(ContainerMessagingBuilder $builder, array $endpointAnnotations, InterfaceToCall $interceptedInterface): Definition|null
     {
-        if ($this->directObject) {
-            return null;
-        }
+        $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
+        $parameterConvertersFromAttributes = $parameterAnnotationResolver->createParameterConverters($this->interfaceToCall);
+
+        $alreadyResolvedParameterConverters = \array_merge($parameterConvertersFromAttributes, $this->parameterConverters);
+
         /** @var array<Definition|Reference> $converterDefinitions */
         $converterDefinitions = [];
         $hasMethodInvocation = false;
@@ -226,7 +230,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         $interceptingInterface = $this->getInterceptingInterface();
         $interceptedInterfaceType = $interceptedInterface->getInterfaceType();
         foreach ($interceptingInterface->getInterfaceParameters() as $parameter) {
-            foreach ($this->parameterConverters as $parameterConverter) {
+            foreach ($alreadyResolvedParameterConverters as $parameterConverter) {
                 if ($parameterConverter->isHandling($parameter)) {
                     if (! $parameterConverter instanceof CompilableParameterConverterBuilder) {
                         throw MessagingException::create("No compilable builder for {$parameter}");
@@ -272,12 +276,15 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
             } elseif ($parameter->getTypeDescriptor()->isNonCollectionArray()) {
                 $converterDefinitions[] = AllHeadersBuilder::createWith($parameter->getName())->compile($builder, $interceptingInterface, $parameter);
                 continue;
+            } elseif ($parameter->getTypeDescriptor()->isClassOrInterface()) {
+                $converterDefinitions[] = ReferenceBuilder::create($parameter->getName(), $parameter->getTypeHint())->compile($builder, $interceptingInterface, $parameter);
+                continue;
             }
             throw new InvalidArgumentException("Can't build around interceptor for {$this->interfaceToCall} because can't find converter for parameter {$parameter}");
         }
 
         return new Definition(AroundMethodInterceptor::class, [
-            new Reference($this->referenceName),
+            $this->directObject ? $this->directObject->getDefinition() : new Reference($this->referenceName),
             InterfaceToCallReference::fromInstance($this->interfaceToCall),
             $converterDefinitions,
             $hasMethodInvocation,

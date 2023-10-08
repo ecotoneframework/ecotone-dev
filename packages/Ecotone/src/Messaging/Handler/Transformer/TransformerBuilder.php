@@ -244,8 +244,8 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
                 $compiledMethodParameterConverters,
                 $interfaceToCallReference,
                 true,
-            ], 'createFrom'),
-        ]);
+            ]),
+        ], 'createFrom');
 
         $handlerDefinition = new Definition(RequestReplyProducer::class, [
             $this->outputMessageChannelName ? new ChannelReference($this->outputMessageChannelName) : null,

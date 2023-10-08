@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -12,13 +17,13 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageHandler;
 
-final class UninterruptibleServiceActivator implements MessageHandlerBuilderWithParameterConverters
+final class UninterruptibleServiceActivator implements MessageHandlerBuilderWithParameterConverters, CompilableBuilder
 {
     private function __construct(private ServiceActivatorBuilder $serviceActivatorBuilder)
     {
     }
 
-    public static function create(object $objectToInvokeOnReferenceName, string $methodName): self
+    public static function create(DefinedObject $objectToInvokeOnReferenceName, string $methodName): self
     {
         return new self(ServiceActivatorBuilder::createWithDirectReference($objectToInvokeOnReferenceName, $methodName));
     }
@@ -116,6 +121,11 @@ final class UninterruptibleServiceActivator implements MessageHandlerBuilderWith
     public function getParameterConverters(): array
     {
         return $this->serviceActivatorBuilder->getParameterConverters();
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        return $this->serviceActivatorBuilder->compile($builder);
     }
 
     public function __toString(): string

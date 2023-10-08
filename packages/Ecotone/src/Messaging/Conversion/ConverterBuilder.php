@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Conversion;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 /**
@@ -11,7 +12,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  * @package Ecotone\Messaging\Conversion
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-interface ConverterBuilder
+interface ConverterBuilder extends CompilableBuilder
 {
     /**
      * @param ReferenceSearchService $referenceSearchService

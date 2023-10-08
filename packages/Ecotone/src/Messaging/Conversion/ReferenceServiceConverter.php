@@ -28,7 +28,7 @@ class ReferenceServiceConverter implements Converter
      * @param Type $targetType
      * @throws \Ecotone\Messaging\MessagingException
      */
-    private function __construct($object, string $method, Type $sourceType, Type $targetType)
+    public function __construct($object, string $method, Type $sourceType, Type $targetType)
     {
         Assert::isObject($object, '');
         $this->object = $object;

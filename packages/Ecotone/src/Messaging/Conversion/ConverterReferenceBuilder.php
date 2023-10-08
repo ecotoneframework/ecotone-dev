@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Conversion;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 /**
@@ -39,6 +42,11 @@ class ConverterReferenceBuilder implements ConverterBuilder
     public function build(ReferenceSearchService $referenceSearchService): Converter
     {
         return $referenceSearchService->get($this->referenceName);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        return new Reference($this->referenceName);
     }
 
     /**

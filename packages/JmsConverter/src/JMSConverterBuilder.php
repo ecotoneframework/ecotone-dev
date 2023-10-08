@@ -2,6 +2,9 @@
 
 namespace Ecotone\JMSConverter;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
@@ -59,6 +62,12 @@ class JMSConverterBuilder implements ConverterBuilder
         $builder->setDocBlockTypeResolver(true);
 
         return new JMSConverter($builder->build(), $this->jmsConverterConfiguration);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        // TODO
+        return null;
     }
 
     public function getRequiredReferences(): array

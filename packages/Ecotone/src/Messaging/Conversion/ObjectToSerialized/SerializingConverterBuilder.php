@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Conversion\ObjectToSerialized;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -21,6 +24,11 @@ class SerializingConverterBuilder implements ConverterBuilder
     public function build(ReferenceSearchService $referenceSearchService): Converter
     {
         return new SerializingConverter();
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        return new Definition(SerializingConverter::class);
     }
 
     /**

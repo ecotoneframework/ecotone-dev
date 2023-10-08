@@ -91,4 +91,9 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     {
         return $this->container->get($endpointId.'.pollingMetadata')->applyExecutionPollingMetadata($executionPollingMetadata);
     }
+
+    public function getGatewayList(): array
+    {
+        return [];
+    }
 }

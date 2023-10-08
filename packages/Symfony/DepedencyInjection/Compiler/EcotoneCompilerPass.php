@@ -124,6 +124,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $definition = new $definition();
         $definition->setClass(CacheWarmer::class);
         $definition->addArgument(new Reference('service_container'));
+        $definition->addArgument(new Reference(ProxyFactory::class));
         $definition->setPublic(true);
         $definition->addTag('kernel.cache_warmer');
         $container->setDefinition(CacheWarmer::class, $definition);
@@ -141,17 +142,13 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $definition->addArgument($useCache);
         $container->setDefinition(ServiceCacheConfiguration::REFERENCE_NAME, $definition);
 
-        foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
-            if ($useCache) {
-                // Proxy warm up
-                ProxyFactory::createFor(
-                    $gatewayProxyBuilder->getReferenceName(),
-                    $container,
-                    $gatewayProxyBuilder->getInterfaceName(),
-                    new ServiceCacheConfiguration($container->getParameter('kernel.cache_dir'), true)
-                );
-            }
+        $definition = new Definition();
+        $definition->setClass(ProxyFactory::class);
+        $definition->setFactory([ProxyFactory::class, 'createWithCache']);
+        $definition->addArgument(new Reference(ServiceCacheConfiguration::REFERENCE_NAME));
+        $container->setDefinition(ProxyFactory::class, $definition);
 
+        foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
             $definition = new Definition();
             $definition->setFactory([ProxyFactory::class, 'createFor']);
             $definition->setClass($gatewayProxyBuilder->getInterfaceName());

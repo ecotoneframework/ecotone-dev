@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\GatewayReference;
 use Ecotone\Messaging\Config\NonProxyCombinedGateway;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
@@ -104,6 +105,11 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
     public function list(): array
     {
         return $this->configuredMessagingSystem->list();
+    }
+
+    public function getGatewayList(): array
+    {
+        return $this->configuredMessagingSystem->getGatewayList();
     }
 
     public function replaceWith(ConfiguredMessagingSystem $messagingSystem): void

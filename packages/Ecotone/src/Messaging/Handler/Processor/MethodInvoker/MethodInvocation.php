@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use Ecotone\Messaging\Handler\InterfaceToCall;
+
 /**
  * Interface MethodInvocation
  * @package Ecotone\Messaging\MethodInterceptor
@@ -17,6 +19,10 @@ interface MethodInvocation
     public function proceed(): mixed;
 
     public function getObjectToInvokeOn(): string|object;
+
+    public function getMethodName(): string;
+
+    public function getInterfaceToCall(): InterfaceToCall;
 
     /**
      * @return mixed[]

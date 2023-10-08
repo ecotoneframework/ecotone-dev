@@ -22,7 +22,7 @@ final class TracerInterceptor
     public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
         return $this->trace(
-            'Command Handler: ' . $methodInvocation->getInterceptedClassName() . '::' . $methodInvocation->getInterceptedMethodName(),
+            'Command Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
             $methodInvocation,
             $message,
             $referenceSearchService
@@ -32,7 +32,7 @@ final class TracerInterceptor
     public function traceQueryHandler(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
         return $this->trace(
-            'Query Handler: ' . $methodInvocation->getInterceptedClassName() . '::' . $methodInvocation->getInterceptedMethodName(),
+            'Query Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
             $methodInvocation,
             $message,
             $referenceSearchService
@@ -42,7 +42,7 @@ final class TracerInterceptor
     public function traceEventHandler(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
         return $this->trace(
-             'Event Handler: ' . $methodInvocation->getInterceptedClassName() . '::' . $methodInvocation->getInterceptedMethodName(),
+             'Event Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
             $methodInvocation,
             $message,
             $referenceSearchService

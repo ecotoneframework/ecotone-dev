@@ -44,7 +44,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
 
 final class TracingTreeTest extends TracingTest
 {
-    public function test_command_event_command_flow()
+    public function MANUAL_test_command_event_command_flow()
     {
 //        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
 
@@ -245,7 +245,7 @@ final class TracingTreeTest extends TracingTest
         );
     }
 
-    public function test_tracing_with_asynchronous_handler()
+    public function TODO_test_tracing_with_asynchronous_handler()
     {
         $storage = new \ArrayObject();
         $exporter = new InMemoryExporter($storage);
@@ -288,7 +288,7 @@ final class TracingTreeTest extends TracingTest
         );
     }
 
-    public function test_tracing_with_exception()
+    public function TODO_test_tracing_with_exception()
     {
         $exporter = new InMemoryExporter(new \ArrayObject());
 

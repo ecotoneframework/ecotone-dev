@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use ArrayIterator;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 
@@ -66,6 +67,16 @@ class AroundMethodInvocation implements MethodInvocation
     public function getObjectToInvokeOn(): string|object
     {
         return $this->interceptedMessageProcessor->getObjectToInvokeOn();
+    }
+
+    public function getMethodName(): string
+    {
+        return $this->interceptedMessageProcessor->getMethodName();
+    }
+
+    public function getInterfaceToCall(): InterfaceToCall
+    {
+        return $this->interceptedMessageProcessor->getInterfaceToCall();
     }
 
     /**

@@ -38,12 +38,17 @@
         "phpunit/phpunit": "^9.5",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
-        "wikimedia/composer-merge-plugin": "^2.0"
+        "wikimedia/composer-merge-plugin": "^2.0",
+        "enqueue/null": "^0.10.18"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
+        "tests:phpunit": [
+            "vendor/bin/phpunit"
+        ],
         "tests:ci": [
-            "@tests:phpstan"
+            "@tests:phpstan",
+            "@tests:phpunit"
         ]
     },
     "extra": {

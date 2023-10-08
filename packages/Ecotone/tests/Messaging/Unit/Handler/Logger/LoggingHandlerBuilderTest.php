@@ -14,6 +14,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 use function json_encode;
@@ -94,6 +95,7 @@ class LoggingHandlerBuilderTest extends MessagingTest
                 'headers' => json_encode([
                     'id' => $message->getHeaders()->getMessageId(),
                     'timestamp' => $message->getHeaders()->getTimestamp(),
+                    'correlationId' => $message->getHeaders()->getCorrelationId()
                 ]),
             ]);
 

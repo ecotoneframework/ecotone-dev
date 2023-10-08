@@ -33,7 +33,7 @@
         "behat/behat": "^3.10",
         "doctrine/doctrine-bundle": "^2.7.2",
         "friends-of-behat/symfony-extension": "^2.1",
-        "monolog/monolog": "^2.9|^3.3",
+        "monolog/monolog": "^3.3.1",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^9.5",
         "symfony/amqp-messenger": "^5.4|^6.0",

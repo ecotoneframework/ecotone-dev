@@ -84,4 +84,9 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
     {
         return is_subclass_of($exception, $this->connectionException()) || $exception::class === $this->connectionException();
     }
+
+    public function getQueueName(): string
+    {
+        return $this->queueName;
+    }
 }

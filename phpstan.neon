@@ -10,3 +10,4 @@ parameters:
 		- packages/Laravel/src
 		- packages/LiteApplication/src
 		- packages/Symfony/DepedencyInjection
+		- packages/OpenTelemetry/src

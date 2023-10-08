@@ -29,6 +29,7 @@ interface MethodInvocation
     public function getArguments(): array;
 
     /**
+     * @deprecated Do not use. Will be removed in Ecotone 2.0
      * @param string $parameterName
      * @param mixed $value
      * @return void

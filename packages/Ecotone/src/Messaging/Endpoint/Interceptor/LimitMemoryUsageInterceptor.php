@@ -76,13 +76,7 @@ class LimitMemoryUsageInterceptor implements ConsumerInterceptor
     /**
      * @inheritDoc
      */
-    public function postSend(MethodInvocation $methodInvocation): mixed
+    public function postSend(): void
     {
-        return $methodInvocation->proceed();
-    }
-
-    public function isInterestedInPostSend(): bool
-    {
-        return false;
     }
 }

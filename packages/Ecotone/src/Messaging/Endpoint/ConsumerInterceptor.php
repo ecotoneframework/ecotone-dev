@@ -39,12 +39,5 @@ interface ConsumerInterceptor
      */
     public function postRun(): void;
 
-    /**
-     * Called after each sending message to request channel
-     *
-     * @return mixed result of method invocation
-     */
-    public function postSend(MethodInvocation $methodInvocation): mixed;
-
-    public function isInterestedInPostSend(): bool;
+    public function postSend(): void;
 }

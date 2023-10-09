@@ -1362,22 +1362,27 @@ final class MessagingSystemConfiguration implements Configuration
             $builder->register($id, $object->compile($builder));
         }
 
-        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
-            if ($messageHandlerBuilder instanceof CompilableBuilder) {
-                $reference = $messageHandlerBuilder->compile($builder);
-                if (! $reference) {
-                    throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
-                }
-                if ($inputChannel = $messageHandlerBuilder->getInputMessageChannelName()) {
-                    $channelDefinition = $builder->getDefinition(new ChannelReference($inputChannel));
-                    if ($channelDefinition instanceof Definition && is_a($channelDefinition->getClassName(), SubscribableChannel::class, true)) {
-                        $channelDefinition->addMethodCall('subscribe', [$reference]);
-                    } else {
+        $pollingConsumerBuilder = $this->getPollingConsumerBuilder();
 
-                    }
-                }
-            } else {
+        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
+            if (! $messageHandlerBuilder instanceof CompilableBuilder) {
                 throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
+            }
+            $reference = $messageHandlerBuilder->compile($builder);
+            if (! $reference) {
+                throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
+            }
+            if ($inputChannel = $messageHandlerBuilder->getInputMessageChannelName()) {
+                $channelDefinition = $builder->getDefinition(new ChannelReference($inputChannel));
+                if ($channelDefinition instanceof Definition && is_a($channelDefinition->getClassName(), SubscribableChannel::class, true)) {
+                    $channelDefinition->addMethodCall('subscribe', [$reference]);
+                } else {
+                    // Pollable channel
+                    $consumerBuilderForGivenHandler = clone $pollingConsumerBuilder;
+                    $consumerBuilderForGivenHandler->withEndpointAnnotations([new AttributeDefinition(AsynchronousRunningEndpoint::class, [$messageHandlerBuilder->getEndpointId()])]);
+
+                    $pollingConsumerBuilder->compile($builder);
+                }
             }
         }
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
@@ -1545,5 +1550,15 @@ final class MessagingSystemConfiguration implements Configuration
         }
         spl_autoload_register($autoloader);
         self::$registered_autoloader = $autoloader;
+    }
+
+    private function getPollingConsumerBuilder(): PollingConsumerBuilder
+    {
+        foreach ($this->consumerFactories as $consumerFactory) {
+            if ($consumerFactory instanceof PollingConsumerBuilder) {
+                return $consumerFactory;
+            }
+        }
+        throw ConfigurationException::create("No polling consumer factory registered");
     }
 }

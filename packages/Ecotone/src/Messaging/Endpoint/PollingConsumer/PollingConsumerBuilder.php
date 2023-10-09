@@ -158,6 +158,9 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
         Assert::notNullAndEmpty($messageHandlerBuilder->getEndpointId(), "Message Endpoint name can't be empty for {$messageHandlerBuilder}");
         Assert::notNull($pollingMetadata, "No polling meta data defined for polling endpoint {$messageHandlerBuilder}");
 
+        // This is where the magic happens
+        // the builder is cloned in MessagingSystemConfiguration
+        // but not the entrypointGateway, so each clone will keep the preceding interceptors + this one
         $this->entrypointGateway->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor(
             $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME),
             $pollingMetadata

@@ -183,6 +183,9 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
                 ->withFailFast(false),
         );
 
+        // Running this endpoint first will make the $queueName to have two interceptors registered
+        $ecotoneLite->run('incorrectOrdersEndpoint');
+
         /** https://www.rabbitmq.com/channels.html */
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
         /** Nothing was done yet */

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Splitter;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -18,6 +21,7 @@ use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use LogicException;
 
 /**
  * Class SplitterBuilder
@@ -150,5 +154,10 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
         $reference = $this->referenceName ? $this->referenceName : get_class($this->directObject);
 
         return sprintf('Splitter - %s:%s with name `%s` for input channel `%s`', $reference, $this->methodNameOrInterface, $this->getEndpointId(), $this->getInputMessageChannelName());
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        throw new LogicException("Not implemented");
     }
 }

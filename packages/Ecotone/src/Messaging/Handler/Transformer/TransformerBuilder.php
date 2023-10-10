@@ -38,7 +38,7 @@ use function uniqid;
  * @package Messaging\Handler\Transformer
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class TransformerBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, CompilableBuilder
+class TransformerBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
 {
     private string $objectToInvokeReferenceName;
     private ?DefinedObject $directObject = null;

@@ -12,33 +12,6 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\SubscribableChannel;
 
-class LazyEventDrivenConsumerBuilder implements MessageHandlerConsumerBuilder
+class LazyEventDrivenConsumerBuilder extends EventDrivenConsumerBuilder
 {
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, MessageHandlerBuilder $messageHandlerBuilder, PollingMetadata $pollingMetadata): ConsumerLifecycle
-    {
-        /** @var SubscribableChannel $subscribableChannel */
-        $subscribableChannel = $channelResolver->resolve($messageHandlerBuilder->getInputMessageChannelName());
-
-        return new EventDrivenConsumer(
-            $messageHandlerBuilder->getEndpointId(),
-            $subscribableChannel,
-            new LazyMessageHandler($messageHandlerBuilder, $channelResolver, $referenceSearchService)
-        );
-    }
-
-    public function isPollingConsumer(): bool
-    {
-        return false;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function isSupporting(MessageHandlerBuilder $messageHandlerBuilder, MessageChannelBuilder $relatedMessageChannel): bool
-    {
-        return $relatedMessageChannel instanceof SimpleMessageChannelBuilder && ! $relatedMessageChannel->isPollable();
-    }
 }

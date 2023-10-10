@@ -17,7 +17,7 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageHandler;
 
-final class UninterruptibleServiceActivator implements MessageHandlerBuilderWithParameterConverters, CompilableBuilder
+final class UninterruptibleServiceActivator implements MessageHandlerBuilderWithParameterConverters
 {
     private function __construct(private ServiceActivatorBuilder $serviceActivatorBuilder)
     {

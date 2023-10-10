@@ -2,6 +2,9 @@
 
 namespace Ecotone\Messaging\Handler\Chain;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -10,6 +13,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHandler;
+use LogicException;
 
 class OutputChannelKeeperBuilder extends InputOutputMessageHandlerBuilder
 {
@@ -41,5 +45,10 @@ class OutputChannelKeeperBuilder extends InputOutputMessageHandlerBuilder
     public function getRequiredReferenceNames(): array
     {
         return [];
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        throw new LogicException("Not implemented");
     }
 }

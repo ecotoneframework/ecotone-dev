@@ -27,7 +27,7 @@ use function uniqid;
  * @package Ecotone\Messaging\Handler\Router
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class RouterBuilder implements MessageHandlerBuilderWithParameterConverters, CompilableBuilder
+class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
 {
     private ?string $inputMessageChannelName = null;
     private array $methodParameterConverters = [];

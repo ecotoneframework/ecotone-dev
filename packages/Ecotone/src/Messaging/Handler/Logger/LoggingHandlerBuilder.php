@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Logger;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -15,6 +18,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHandler;
+use LogicException;
 use Psr\Log\LogLevel;
 
 /**
@@ -149,5 +153,10 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
     private function getMethodName(): string
     {
         return $this->isBefore ? 'logBefore' : 'logAfter';
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        throw new LogicException("Not implemented");
     }
 }

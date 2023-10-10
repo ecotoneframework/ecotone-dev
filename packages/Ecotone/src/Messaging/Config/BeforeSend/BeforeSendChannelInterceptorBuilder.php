@@ -15,6 +15,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use LogicException;
 use Ramsey\Uuid\Uuid;
 
 class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
@@ -92,7 +93,7 @@ class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        throw new \InvalidArgumentException("Not implemented");
+        throw new LogicException("Not implemented");
     }
 
     public function __toString()

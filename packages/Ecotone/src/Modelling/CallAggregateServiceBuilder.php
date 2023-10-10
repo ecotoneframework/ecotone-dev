@@ -33,7 +33,7 @@ use Exception;
 
 use function uniqid;
 
-class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel, CompilableBuilder
+class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
 {
     private InterfaceToCall $interfaceToCall;
     /**

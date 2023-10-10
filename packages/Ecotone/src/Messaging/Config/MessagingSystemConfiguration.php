@@ -180,6 +180,8 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $serviceDefinitions = [];
 
+    private InterfaceToCallRegistry $interfaceToCallRegistry;
+
     /**
      * @param object[] $extensionObjects
      * @param string[] $skippedModulesPackages
@@ -211,6 +213,7 @@ final class MessagingSystemConfiguration implements Configuration
 
         $this->isLazyConfiguration = ! $serviceConfiguration->isFailingFast();
         $this->applicationConfiguration = $serviceConfiguration;
+        $this->interfaceToCallRegistry = $preparationInterfaceRegistry;
 
         $extensionObjects = array_filter(
             $extensionObjects,
@@ -223,13 +226,13 @@ final class MessagingSystemConfiguration implements Configuration
             }
         );
         $extensionObjects[] = $serviceConfiguration;
-        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $preparationInterfaceRegistry, $serviceConfiguration);
+        $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $serviceConfiguration);
     }
 
     /**
      * @param string[] $skippedModulesPackages
      */
-    private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $applicationConfiguration): void
+    private function initialize(ModuleRetrievingService $moduleConfigurationRetrievingService, array $serviceExtensions, ServiceConfiguration $applicationConfiguration): void
     {
         $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();
 
@@ -256,11 +259,9 @@ final class MessagingSystemConfiguration implements Configuration
                 $this,
                 $moduleExtensions[get_class($module)],
                 $moduleReferenceSearchService,
-                $preparationInterfaceRegistry
+                $this->interfaceToCallRegistry,
             );
         }
-        /** This $preparationInterfaceRegistry is only for preparation. We don't want to cache it, as most of the Interface may not be reused anymore. E.g. public method from Eloquent Model */
-        $interfaceToCallRegistry = InterfaceToCallRegistry::createWithBackedBy($preparationInterfaceRegistry);
 
         $this->gatewayClassesToGenerateProxies = [];
 
@@ -1298,13 +1299,14 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function buildInContainer(ContainerImplementation $containerImplementation): void
     {
-        $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration);
+        $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
 
-        $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $this->applicationConfiguration);
-
-        $builder = new ContainerMessagingBuilder($interfaceToCallRegistry);
+        $builder = new ContainerMessagingBuilder($this->interfaceToCallRegistry);
 
         foreach ($this->serviceDefinitions as $id => $definition) {
             $builder->register($id, $definition);
@@ -1363,47 +1365,18 @@ final class MessagingSystemConfiguration implements Configuration
             $builder->register($id, $object->compile($builder));
         }
 
-        $pollingConsumerGateway = $this->getPollingConsumerBuilder()?->compile($builder);
-
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
-            if (! $messageHandlerBuilder instanceof CompilableBuilder) {
-                throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
-            }
-            $reference = $messageHandlerBuilder->compile($builder);
-            if (! $reference) {
-                throw ConfigurationException::create("Message handler {$messageHandlerBuilder->getEndpointId()} can't be compiled");
-            }
-            if ($inputChannel = $messageHandlerBuilder->getInputMessageChannelName()) {
-                $channelDefinition = $builder->getDefinition(new ChannelReference($inputChannel));
-                if ($channelDefinition instanceof Definition && is_a($channelDefinition->getClassName(), SubscribableChannel::class, true)) {
-                    $channelDefinition->addMethodCall('subscribe', [$reference]);
-                } else {
-                    // Pollable channel
-                    if (! $pollingConsumerGateway) {
-                        throw ConfigurationException::create("No polling consumer factory registered");
-                    }
-                    $consumer = new Definition(PollingConsumerRunner::class, [
-                        $pollingConsumerGateway,
-                        new Reference(PollingConsumerContext::class),
-                        new Reference(Clock::class),
-                        new ChannelReference($inputChannel),
-                        $inputChannel,
-                    ]);
-                    $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.runner", $consumer);
-                    // This is an alias to the message handler
-                    $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.handler", $reference);
+            $inputChannelBuilder = $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] ?? throw ConfigurationException::create("Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
+            foreach ($this->consumerFactories as $consumerFactory) {
+                if ($consumerFactory->isSupporting($messageHandlerBuilder, $inputChannelBuilder)) {
+                    $consumerFactory->registerConsumer($builder, $messageHandlerBuilder);
+                    break;
                 }
             }
         }
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
             if ($gatewayBuilder instanceof CompilableBuilder) {
                 $gatewayBuilder->compile($builder);
-                // This is an example of changing a definition from a reference
-                //                if ($reference) {
-                //                    $builder->getDefinition($reference)->lazy();
-                //                } else {
-                //                    throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
-                //                }
             } else {
                 throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
             }
@@ -1412,7 +1385,7 @@ final class MessagingSystemConfiguration implements Configuration
                 $builder->register($gatewayBuilder->getReferenceName(), new Definition($gatewayBuilder->getReferenceName(), [
                     'referenceName' => $gatewayBuilder->getReferenceName(),
                     'container' => new Reference(ContainerInterface::class),
-                    'interface' => $gatewayBuilder->getReferenceName(),
+                    'interface' => $gatewayBuilder->getInterfaceName(),
                     'serviceCacheConfiguration' => new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
                 ], [ProxyFactory::class, 'createFor']));
             }
@@ -1427,9 +1400,8 @@ final class MessagingSystemConfiguration implements Configuration
 
     public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService, ?ContainerImplementation $containerImplementation = null): ConfiguredMessagingSystem
     {
-        $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration);
         if (! $this->isLazyConfiguration) {
-            $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $this->applicationConfiguration);
+            $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
         }
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
@@ -1445,7 +1417,7 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->converterBuilders as $converterBuilder) {
             $converters[] = $converterBuilder->build($referenceSearchService);
         }
-        $referenceSearchService = $this->prepareReferenceSearchServiceWithInternalReferences($referenceSearchService, $converters, $interfaceToCallRegistry);
+        $referenceSearchService = $this->prepareReferenceSearchServiceWithInternalReferences($referenceSearchService, $converters, $this->interfaceToCallRegistry);
         /** @var ServiceCacheConfiguration $serviceCacheConfiguration */
         $serviceCacheConfiguration = $referenceSearchService->get(ServiceCacheConfiguration::class);
         /** @var ProxyFactory $proxyFactory */
@@ -1560,15 +1532,5 @@ final class MessagingSystemConfiguration implements Configuration
         }
         spl_autoload_register($autoloader);
         self::$registered_autoloader = $autoloader;
-    }
-
-    private function getPollingConsumerBuilder(): ?PollingConsumerBuilder
-    {
-        foreach ($this->consumerFactories as $consumerFactory) {
-            if ($consumerFactory instanceof PollingConsumerBuilder) {
-                return $consumerFactory;
-            }
-        }
-        return null;
     }
 }

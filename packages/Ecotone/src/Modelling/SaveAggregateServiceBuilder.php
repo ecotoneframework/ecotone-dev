@@ -37,7 +37,7 @@ use function uniqid;
  * @package Ecotone\Modelling
  * @author  Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel, CompilableBuilder
+class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
 {
     private InterfaceToCall $interfaceToCall;
     /**

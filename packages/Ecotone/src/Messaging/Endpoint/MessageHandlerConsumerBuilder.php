@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -23,12 +24,5 @@ interface MessageHandlerConsumerBuilder
 
     public function isPollingConsumer(): bool;
 
-    /**
-     * @param ChannelResolver $channelResolver
-     * @param ReferenceSearchService $referenceSearchService
-     * @param MessageHandlerBuilder $messageHandlerBuilder
-     * @param PollingMetadata $pollingMetadata
-     * @return ConsumerLifecycle
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, MessageHandlerBuilder $messageHandlerBuilder, PollingMetadata $pollingMetadata): ConsumerLifecycle;
+    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void;
 }

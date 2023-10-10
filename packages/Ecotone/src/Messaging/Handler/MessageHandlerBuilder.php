@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\MessageHandler;
 
 /**
@@ -11,7 +12,7 @@ use Ecotone\Messaging\MessageHandler;
  * @package Ecotone\Messaging\Config
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-interface MessageHandlerBuilder
+interface MessageHandlerBuilder extends CompilableBuilder
 {
     /**
      * @param ChannelResolver $channelResolver

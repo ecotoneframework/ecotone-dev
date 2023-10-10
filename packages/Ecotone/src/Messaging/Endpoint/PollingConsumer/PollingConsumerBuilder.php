@@ -45,7 +45,7 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Endpoint\PollingConsumer
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder implements MessageHandlerConsumerBuilder, CompilableBuilder
+class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder implements MessageHandlerConsumerBuilder
 {
     private \Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder $entrypointGateway;
     private string $requestChannelName;
@@ -197,8 +197,11 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
         );
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    private function compilePollingConsumerGateway(ContainerMessagingBuilder $builder): Reference
     {
+        if ($this->compiledGatewayReference) {
+            return $this->compiledGatewayReference;
+        }
         $builder->register(PollingConsumerContext::class, [new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]);
         $builder->register(PollingConsumerPostSendAroundInterceptor::class, [new Reference(PollingConsumerContext::class)]);
         $builder->register(PollingConsumerErrorInterceptor::class, [new Reference(PollingConsumerContext::class), new Reference(ChannelResolver::class)]);
@@ -228,5 +231,20 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
                 )
             )
             ->compile($builder);
+    }
+
+    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
+    {
+        $consumer = new Definition(PollingConsumerRunner::class, [
+            $this->compilePollingConsumerGateway($builder),
+            new Reference(PollingConsumerContext::class),
+            new Reference(Clock::class),
+            new ChannelReference($messageHandlerBuilder->getInputMessageChannelName()),
+            $messageHandlerBuilder->getInputMessageChannelName(),
+        ]);
+        $messageHandlerReference = $messageHandlerBuilder->compile($builder);
+        $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.runner", $consumer);
+        // This is an alias to the message handler
+        $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.handler", $messageHandlerReference);
     }
 }

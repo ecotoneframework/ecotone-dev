@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Filter;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -15,6 +18,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use LogicException;
 
 /**
  * Class MessageFilterBuilder
@@ -172,6 +176,11 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
         $serviceActivatorBuilder->orderedAroundInterceptors = $this->orderedAroundInterceptors;
 
         return $serviceActivatorBuilder->build($channelResolver, $referenceSearchService);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        throw new LogicException("Not Implemented");
     }
 
 

@@ -72,7 +72,7 @@ class ContainerMessagingBuilder
         return $id instanceof Reference ? $id : new Reference($id);
     }
 
-    public function getDefinition(string|Reference $id): Definition
+    public function getDefinition(string|Reference $id): Definition|Reference
     {
         return $this->definitions[(string) $id];
     }

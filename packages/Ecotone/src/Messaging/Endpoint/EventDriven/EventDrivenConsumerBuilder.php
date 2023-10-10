@@ -6,6 +6,9 @@ namespace Ecotone\Messaging\Endpoint\EventDriven;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -34,6 +37,14 @@ class EventDrivenConsumerBuilder implements MessageHandlerConsumerBuilder
             $subscribableChannel,
             $messageHandlerBuilder->build($channelResolver, $referenceSearchService)
         );
+    }
+
+    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
+    {
+        $messageHandlerReference = $messageHandlerBuilder->compile($builder);
+        $inputChannel = $messageHandlerBuilder->getInputMessageChannelName();
+        $channelDefinition = $builder->getDefinition(new ChannelReference($inputChannel));
+        $channelDefinition->addMethodCall('subscribe', [$messageHandlerReference]);
     }
 
     public function isPollingConsumer(): bool

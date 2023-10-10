@@ -2,6 +2,9 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -9,6 +12,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageHandler;
+use LogicException;
 
 /**
  * Class DumbMessageHandlerBuilder
@@ -64,6 +68,11 @@ class DumbMessageHandlerBuilder extends InputOutputMessageHandlerBuilder impleme
     public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
     {
         return $this->messageHandler;
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        throw new LogicException("Not implemented");
     }
 
     /**

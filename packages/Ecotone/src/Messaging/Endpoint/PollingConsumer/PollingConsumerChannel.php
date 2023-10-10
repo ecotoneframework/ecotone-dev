@@ -13,6 +13,6 @@ class PollingConsumerChannel implements MessageChannel
 
     public function send(Message $message): void
     {
-        $this->pollingConsumerContext->getPollingConsumerHandler()->handle($message);
+        $this->pollingConsumerContext->getPollingConsumerConnectionChannel()->send($message);
     }
 }

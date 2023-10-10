@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
@@ -194,9 +195,9 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
             new ChannelReference($messageHandlerBuilder->getInputMessageChannelName()),
             $messageHandlerBuilder->getInputMessageChannelName(),
         ]);
+
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);
         $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.runner", $consumer);
-        // This is an alias to the message handler
-        $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.handler", $messageHandlerReference);
+        $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.channel", new Definition(DirectChannel::class, ['polling-connection-channel', $messageHandlerReference]));
     }
 }

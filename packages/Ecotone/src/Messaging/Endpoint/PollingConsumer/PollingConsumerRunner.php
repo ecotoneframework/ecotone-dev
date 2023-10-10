@@ -8,6 +8,7 @@ use Ecotone\Messaging\Endpoint\InterceptedConsumer;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\CronTrigger;
 use Ecotone\Messaging\Scheduling\PeriodicTrigger;
 use Ecotone\Messaging\Scheduling\SyncTaskScheduler;
 
@@ -29,7 +30,9 @@ class PollingConsumerRunner implements ConsumerLifecycle
 
         $consumer = new InboundChannelAdapter(
             SyncTaskScheduler::createWithEmptyTriggerContext($this->clock, $pollingMetadata),
-            PeriodicTrigger::create(1, 0),
+            $pollingMetadata->getCron()
+                ? CronTrigger::createWith($pollingMetadata->getCron())
+                : PeriodicTrigger::create($pollingMetadata->getFixedRateInMilliseconds(), $pollingMetadata->getInitialDelayInMilliseconds()),
             new PollerTaskExecutor($this->inputMessageChannelName, $this->pollableChannel, $this->gateway)
         );
 

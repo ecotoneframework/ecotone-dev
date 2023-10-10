@@ -4,7 +4,7 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Endpoint\InterceptedConsumer;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\MessageHandler;
+use Ecotone\Messaging\MessageChannel;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -45,10 +45,10 @@ class PollingConsumerContext
         return $this->consumerInterceptors;
     }
 
-    public function getPollingConsumerHandler(): MessageHandler
+    public function getPollingConsumerConnectionChannel(): MessageChannel
     {
         $endpointId = $this->pollingMetadata->getEndpointId();
-        return $this->container->get("polling.".$endpointId.'.handler');
+        return $this->container->get("polling.".$endpointId.'.channel');
     }
 
 }

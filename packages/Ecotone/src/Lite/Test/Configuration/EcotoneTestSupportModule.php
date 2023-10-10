@@ -64,23 +64,22 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         $this->registerMessageCollector($messagingConfiguration, $interfaceToCallRegistry);
         $this->registerMessageReleasingHandler($messagingConfiguration);
 
-        $allowMissingDestination = new AllowMissingDestination();
+        $messagingConfiguration->registerServiceDefinition(AllowMissingDestination::class);
+        $allowMissingDestinationInterfaceToCall = $interfaceToCallRegistry->getFor(AllowMissingDestination::class, 'invoke');
         if (! $testConfiguration->isFailingOnCommandHandlerNotFound()) {
             $messagingConfiguration
-                ->registerAroundMethodInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                    $interfaceToCallRegistry,
-                    $allowMissingDestination,
-                    'invoke',
+                ->registerAroundMethodInterceptor(AroundInterceptorReference::create(
+                    AllowMissingDestination::class,
+                    $allowMissingDestinationInterfaceToCall,
                     Precedence::DEFAULT_PRECEDENCE,
                     CommandBus::class
                 ));
         }
         if (! $testConfiguration->isFailingOnQueryHandlerNotFound()) {
             $messagingConfiguration
-                ->registerAroundMethodInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                    $interfaceToCallRegistry,
-                    $allowMissingDestination,
-                    'invoke',
+                ->registerAroundMethodInterceptor(AroundInterceptorReference::create(
+                    AllowMissingDestination::class,
+                    $allowMissingDestinationInterfaceToCall,
                     Precedence::DEFAULT_PRECEDENCE,
                     QueryBus::class
                 ));

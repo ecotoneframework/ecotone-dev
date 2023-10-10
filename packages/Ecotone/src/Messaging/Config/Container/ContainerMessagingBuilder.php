@@ -6,6 +6,7 @@ use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeResolver;
 
 use Ecotone\Messaging\Scheduling\Clock;
@@ -35,13 +36,18 @@ class ContainerMessagingBuilder
 
     private TypeResolver $typeResolver;
 
-    public function __construct(private InterfaceToCallRegistry $interfaceToCallRegistry)
+    private InterfaceToCallRegistry $interfaceToCallRegistry;
+
+    public function __construct(?InterfaceToCallRegistry $interfaceToCallRegistry = null)
     {
+        $this->interfaceToCallRegistry = $interfaceToCallRegistry ?? InterfaceToCallRegistry::createEmpty();
         $this->typeResolver = TypeResolver::create();
         $this->definitions[Bridge::class] = new Definition(Bridge::class);
-        $this->definitions[LoggerInterface::class] = new Definition(NullLogger::class);
-        $this->definitions['logger'] = new Reference(LoggerInterface::class);
+        $this->definitions['logger'] = new Definition(NullLogger::class);
+        $this->definitions[LoggerInterface::class] = new Reference('logger');
         $this->definitions[Clock::class] = new Definition(EpochBasedClock::class);
+        $this->definitions[ChannelResolver::class] = new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]);
+        $this->definitions[ReferenceSearchService::class] = new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]);
     }
 
     public function register(string|Reference $id, Definition|Reference|array $definition = []): Reference

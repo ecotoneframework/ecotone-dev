@@ -186,13 +186,13 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
         return $serviceActivator->build($channelResolver, $referenceSearchService);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Reference
     {
         if ($this->outputMessageHandler && $this->outputMessageChannelName) {
             throw InvalidArgumentException::create("Can't configure output message handler and output message channel for chain handler");
         }
         if (! $this->canBeCompiled()) {
-            return null;
+            throw InvalidArgumentException::create("Can't compile {$this}");
         }
 
         if (count($this->chainedMessageHandlerBuilders) === 1 && ! $this->outputMessageHandler) {
@@ -227,7 +227,6 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
             if (! $messageHandlerReference) {
                 // Cant compile
                 throw InvalidArgumentException::create("Can't compile {$messageHandlerBuilder}");
-                return null;
             }
             $builder->register(new ChannelReference($currentChannelName), new Definition(DirectChannel::class, [
                 $currentChannelName,

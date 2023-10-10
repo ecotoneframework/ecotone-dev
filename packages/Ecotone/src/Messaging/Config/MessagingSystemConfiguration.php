@@ -1306,9 +1306,6 @@ final class MessagingSystemConfiguration implements Configuration
 
         $builder = new ContainerMessagingBuilder($interfaceToCallRegistry);
 
-        $builder->register(ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
-        $builder->register(ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
-
         foreach ($this->serviceDefinitions as $id => $definition) {
             $builder->register($id, $definition);
         }
@@ -1419,7 +1416,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         foreach ($this->pollingMetadata as $pollingMetadata) {
-            $builder->register($pollingMetadata->getEndpointId().'.pollingMetadata', $pollingMetadata->getDefinition());
+            $builder->register('polling.'.$pollingMetadata->getEndpointId().'.metadata', $pollingMetadata->getDefinition());
         }
 
         $builder->process($containerImplementation);

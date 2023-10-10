@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Channel;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -123,19 +124,12 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        $channelReference = new ChannelReference($this->messageChannelName);
-        if ($this->messageChannel instanceof DirectChannel) {
-            $definition = new Definition(DirectChannel::class, [$this->messageChannelName]);
-        } elseif ($this->messageChannel instanceof QueueChannel) {
-            $definition = new Definition(QueueChannel::class, [$this->messageChannelName]);
-        } elseif ($this->messageChannel instanceof PublishSubscribeChannel) {
-            $definition = new Definition(PublishSubscribeChannel::class, [$this->messageChannelName]);
-        } elseif ($this->messageChannel instanceof NullableMessageChannel) {
-            $definition = new Definition(NullableMessageChannel::class, factory: 'create');
-        } else {
+        if (! ($this->messageChannel instanceof DefinedObject)) {
             $class = get_class($this->messageChannel);
             throw new InvalidArgumentException("Unsupported channel {$this->messageChannelName} : {$class}");
         }
+        $channelReference = new ChannelReference($this->messageChannelName);
+        $definition = $this->messageChannel->getDefinition();
         $builder->register($channelReference, $definition);
         return $channelReference;
     }

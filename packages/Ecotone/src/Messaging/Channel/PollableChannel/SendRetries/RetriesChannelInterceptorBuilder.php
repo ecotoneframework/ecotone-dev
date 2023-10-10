@@ -18,7 +18,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
 use Psr\Log\LoggerInterface;
 
-final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilder, CompilableBuilder
+final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
     public function __construct(
         private string $relatedChannel,

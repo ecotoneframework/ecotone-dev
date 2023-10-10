@@ -80,7 +80,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         try {
             $consumer->run();
         } finally {
-            $pollingConsumerContext->setPollingMetadate(null);
+            $pollingConsumerContext->reset();
         }
     }
 
@@ -98,7 +98,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     private function getPollingMetadata(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): PollingMetadata
     {
-        return $this->container->get($endpointId.'.pollingMetadata')->applyExecutionPollingMetadata($executionPollingMetadata);
+        return $this->container->get('polling.'.$endpointId.'.metadata')->applyExecutionPollingMetadata($executionPollingMetadata);
     }
 
     public function getGatewayList(): array

@@ -2,10 +2,12 @@
 
 namespace Ecotone\Messaging\Channel;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
 
-class QueueChannel implements PollableChannel
+class QueueChannel implements PollableChannel, DefinedObject
 {
     /**
      * @var Message[] $queue
@@ -48,5 +50,10 @@ class QueueChannel implements PollableChannel
     public function __toString()
     {
         return 'in memory queue: ' . $this->name;
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class, [$this->name]);
     }
 }

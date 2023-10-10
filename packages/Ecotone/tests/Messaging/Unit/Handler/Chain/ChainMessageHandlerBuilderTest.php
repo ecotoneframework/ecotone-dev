@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Chain;
 
+use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Lite\LiteContainerImplementation;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
+use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\ReferenceServiceConverter;
@@ -568,15 +572,18 @@ class ChainMessageHandlerBuilderTest extends TestCase
      */
     private function createChainHandlerAndHandle(array $messageHandlers, $requestPayload, $replyChannel): void
     {
-        $chainHandler = ChainMessageHandlerBuilder::create();
+        $chainHandlerBuilder = ChainMessageHandlerBuilder::create();
         foreach ($messageHandlers as $messageHandler) {
-            $chainHandler = $chainHandler->chain($messageHandler);
+            $chainHandlerBuilder = $chainHandlerBuilder->chain($messageHandler);
         }
 
-        $chainHandler = $chainHandler
-            ->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createWith([
-                ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-            ]));
+        $containerBuilder = new ContainerMessagingBuilder();
+        $reference = $chainHandlerBuilder->compile($containerBuilder);
+        $container = InMemoryPSRContainer::createFromAssociativeArray([
+            ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createEmpty(),
+        ]);
+        $containerBuilder->process(new LiteContainerImplementation($container));
+        $chainHandler = $container->get((string) $reference);
 
         $chainHandler->handle(
             MessageBuilder::withPayload($requestPayload)

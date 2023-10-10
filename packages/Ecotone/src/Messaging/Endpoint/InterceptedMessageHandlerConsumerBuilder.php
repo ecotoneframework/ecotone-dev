@@ -24,6 +24,7 @@ abstract class InterceptedMessageHandlerConsumerBuilder implements MessageHandle
      */
     final public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, MessageHandlerBuilder $messageHandlerBuilder, PollingMetadata $pollingMetadata): ConsumerLifecycle
     {
+        throw new \InvalidArgumentException("This method should not be called");
         $interceptors = InterceptedConsumer::createInterceptorsForPollingMetadata($pollingMetadata, $referenceSearchService);
 
         foreach ($interceptors as $interceptor) {

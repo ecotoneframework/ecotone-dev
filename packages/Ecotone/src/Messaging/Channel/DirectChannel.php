@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Channel;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\SubscribableChannel;
@@ -11,7 +13,7 @@ use Ecotone\Messaging\SubscribableChannel;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-final class DirectChannel implements SubscribableChannel
+final class DirectChannel implements SubscribableChannel, DefinedObject
 {
     public function __construct(private string $messageChannelName, private ?MessageHandler $messageHandler = null)
     {
@@ -57,5 +59,10 @@ final class DirectChannel implements SubscribableChannel
     public function __toString()
     {
         return 'direct: ' . $this->messageChannelName;
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class, [$this->messageChannelName]);
     }
 }

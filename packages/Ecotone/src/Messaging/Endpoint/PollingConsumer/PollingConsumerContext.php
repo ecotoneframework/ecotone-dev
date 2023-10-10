@@ -27,8 +27,13 @@ class PollingConsumerContext
 
     public function setPollingMetadate(PollingMetadata $executionPollingMetadata)
     {
+        $this->reset();
         $this->pollingMetadata = $executionPollingMetadata;
-        // Reset interceptors
+    }
+
+    public function reset(): void
+    {
+        $this->pollingMetadata = null;
         $this->consumerInterceptors = null;
     }
 

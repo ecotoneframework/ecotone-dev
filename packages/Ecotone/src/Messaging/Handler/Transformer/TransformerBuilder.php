@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -40,10 +41,7 @@ use function uniqid;
 class TransformerBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, CompilableBuilder
 {
     private string $objectToInvokeReferenceName;
-    /**
-     * @var object
-     */
-    private $directObject;
+    private ?DefinedObject $directObject = null;
     private array $methodParameterConverterBuilders = [];
     /**
      * @var string[]
@@ -210,18 +208,13 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        if ($this->directObject) {
-            return null;
-        }
-        if (! $this->objectToInvokeReferenceName) {
-            return null;
-        }
         if ($this->expression) {
             $objectToInvokeOn = new Definition(ExpressionTransformer::class, [$this->expression, new Reference(ExpressionEvaluationService::REFERENCE), new Reference(ReferenceSearchService::class)]);
             $interfaceToCallReference = new InterfaceToCallReference(ExpressionTransformer::class, 'transform');
         } else {
-            $objectToInvokeOn = $this->objectToInvokeReferenceName;
-            $interfaceToCallReference = new InterfaceToCallReference($this->objectToInvokeReferenceName, $this->getMethodName());
+            $objectToInvokeOn = $this->directObject ? $this->directObject->getDefinition() : new Reference($this->objectToInvokeReferenceName);
+            $className = $this->directObject ? $objectToInvokeOn->getClassName() : $this->objectToInvokeReferenceName;
+            $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
         }
 
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
@@ -239,7 +232,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
 
         $methodInvokerDefinition = new Definition(TransformerMessageProcessor::class, [
             'methodInvoker' => new Definition(MethodInvoker::class, [
-                new Reference($objectToInvokeOn),
+                $objectToInvokeOn,
                 $interfaceToCallReference->getMethodName(),
                 $compiledMethodParameterConverters,
                 $interfaceToCallReference,
@@ -280,10 +273,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         return $builder->register(uniqid((string) $this), $handlerDefinition);
     }
 
-    /**
-     * @param object $objectToInvoke
-     */
-    private function setDirectObjectToInvoke($objectToInvoke): void
+    private function setDirectObjectToInvoke(DefinedObject $objectToInvoke): void
     {
         $this->directObject = $objectToInvoke;
     }

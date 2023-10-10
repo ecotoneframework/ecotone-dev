@@ -1289,13 +1289,13 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    public function registerServiceDefinition(string $id, Container\Definition|array $definition = []): Configuration
+    public function registerServiceDefinition(string|Reference $id, Container\Definition|array $definition = []): Configuration
     {
-        if (! isset($this->serviceDefinitions[$id])) {
+        if (! isset($this->serviceDefinitions[(string) $id])) {
             if (is_array($definition)) {
-                $definition = new Definition($id, $definition);
+                $definition = new Definition((string) $id, $definition);
             }
-            $this->serviceDefinitions[$id] = $definition;
+            $this->serviceDefinitions[(string) $id] = $definition;
         }
         return $this;
     }
@@ -1363,7 +1363,7 @@ final class MessagingSystemConfiguration implements Configuration
             $builder->register($id, $object->compile($builder));
         }
 
-        $pollingConsumerGateway = $this->getPollingConsumerBuilder()->compile($builder);
+        $pollingConsumerGateway = $this->getPollingConsumerBuilder()?->compile($builder);
 
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             if (! $messageHandlerBuilder instanceof CompilableBuilder) {
@@ -1379,6 +1379,9 @@ final class MessagingSystemConfiguration implements Configuration
                     $channelDefinition->addMethodCall('subscribe', [$reference]);
                 } else {
                     // Pollable channel
+                    if (! $pollingConsumerGateway) {
+                        throw ConfigurationException::create("No polling consumer factory registered");
+                    }
                     $consumer = new Definition(PollingConsumerRunner::class, [
                         $pollingConsumerGateway,
                         new Reference(PollingConsumerContext::class),
@@ -1559,13 +1562,13 @@ final class MessagingSystemConfiguration implements Configuration
         self::$registered_autoloader = $autoloader;
     }
 
-    private function getPollingConsumerBuilder(): PollingConsumerBuilder
+    private function getPollingConsumerBuilder(): ?PollingConsumerBuilder
     {
         foreach ($this->consumerFactories as $consumerFactory) {
             if ($consumerFactory instanceof PollingConsumerBuilder) {
                 return $consumerFactory;
             }
         }
-        throw ConfigurationException::create("No polling consumer factory registered");
+        return null;
     }
 }

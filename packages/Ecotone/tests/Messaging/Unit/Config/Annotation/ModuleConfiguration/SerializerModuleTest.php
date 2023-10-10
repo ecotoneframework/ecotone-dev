@@ -6,8 +6,11 @@ namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
+use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Lite\LiteContainerImplementation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConverterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SerializerModule;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
@@ -48,9 +51,11 @@ class SerializerModuleTest extends AnnotationConfigurationTest
         $serializerModule->prepare($configuration, [], ModuleReferenceSearchService::createEmpty(), InterfaceToCallRegistry::createEmpty());
 
         $configuration->registerConsumerFactory(new EventDrivenConsumerBuilder());
-        $messagingSystem = $configuration->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
-            ExampleSingleConverterService::class => new ExampleSingleConverterService(),
-        ]));
+        $container = InMemoryPSRContainer::createFromAssociativeArray([
+            ExampleSingleConverterService::class => new ExampleSingleConverterService()
+        ]);
+        $configuration->buildInContainer(new LiteContainerImplementation($container));
+        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
         /** @var Serializer $gateway */
         $gateway = $messagingSystem->getGatewayByName(Serializer::class);
 

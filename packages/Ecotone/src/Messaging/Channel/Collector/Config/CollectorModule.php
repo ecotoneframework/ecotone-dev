@@ -60,9 +60,10 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
                 continue;
             }
 
-            $messagingConfiguration->registerServiceDefinition(CollectorStorage::class);
+            $collectorReference = Reference::to('polling.'.$pollableMessageChannel->getMessageChannelName().'.collector_storage');
+            $messagingConfiguration->registerServiceDefinition($collectorReference, new Definition(CollectorStorage::class));
             $messagingConfiguration->registerChannelInterceptor(
-                new CollectorChannelInterceptorBuilder($pollableMessageChannel->getMessageChannelName()),
+                new CollectorChannelInterceptorBuilder($pollableMessageChannel->getMessageChannelName(), $collectorReference),
             );
 
             $collectorSenderInterceptorReference = CollectorSenderInterceptor::class . '.' . $pollableMessageChannel->getMessageChannelName();
@@ -71,7 +72,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
                 new Definition(
                     CollectorSenderInterceptor::class,
                     [
-                        new Reference(CollectorStorage::class),
+                        $collectorReference,
                         $pollableMessageChannel->getMessageChannelName()
                     ]
                 ));

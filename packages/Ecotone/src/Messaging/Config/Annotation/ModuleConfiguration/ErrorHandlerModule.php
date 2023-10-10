@@ -76,7 +76,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                     ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getDeadLetterQueueChannel()));
             }
 
-            $reference = new Reference(uniqid(HeaderRouter::class . '.'.MessageHeaders::POLLED_CHANNEL_NAME));
+            $reference = new Reference(HeaderRouter::class . '.'.MessageHeaders::POLLED_CHANNEL_NAME);
             $messagingConfiguration->registerServiceDefinition(
                 $reference->getId(),
                 new Definition(HeaderRouter::class, [MessageHeaders::POLLED_CHANNEL_NAME])

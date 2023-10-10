@@ -21,24 +21,11 @@ class DefaultHeaderMapper implements HeaderMapper
     public const CONVERTED_HEADERS_TO_DIFFERENT_FORMAT = 'ecotone.convertedKeys';
 
     /**
-     * @var string[]
-     */
-    private array $fromMessageHeadersMapping = [];
-    /**
-     * @var string[]
-     */
-    private array $toMessageHeadersMapping = [];
-    private bool $headerNamesToLower;
-
-    /**
      * @param string[] $toMessageHeadersMapping
      * @param string[] $fromMessageHeadersMapping
      */
-    public function __construct(array $toMessageHeadersMapping, array $fromMessageHeadersMapping, bool $headerNamesToLower)
+    public function __construct(private array $toMessageHeadersMapping, private array $fromMessageHeadersMapping, private bool $headerNamesToLower)
     {
-        $this->fromMessageHeadersMapping = $this->prepareRegex($fromMessageHeadersMapping, $headerNamesToLower);
-        $this->toMessageHeadersMapping = $this->prepareRegex($toMessageHeadersMapping, $headerNamesToLower);
-        $this->headerNamesToLower = $headerNamesToLower;
     }
 
     /**

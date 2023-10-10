@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Config\BeforeSend;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -31,7 +32,7 @@ class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
         $this->methodInterceptor = $methodInterceptor;
 
         $this->internalRequestChannelName = Uuid::uuid4()->toString();
-        $this->gateway                    = GatewayProxyBuilder::create(BeforeSendGateway::class, BeforeSendGateway::class, 'execute', $this->internalRequestChannelName);
+        $this->gateway                    = GatewayProxyBuilder::create(BeforeSendGateway::class . $this->internalRequestChannelName, BeforeSendGateway::class, 'execute', $this->internalRequestChannelName);
     }
 
     /**
@@ -69,31 +70,13 @@ class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
     /**
      * @inheritDoc
      */
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
-    {
-        $messageHandler = $this->methodInterceptor->getInterceptingObject()->build(
-            InMemoryChannelResolver::createEmpty(),
-            $referenceSearchService
-        );
-
-        $directChannel = DirectChannel::create();
-        $directChannel->subscribe($messageHandler);
-        /** @var BeforeSendGateway $gateway */
-        $gateway = $this->gateway->buildWithoutProxyObject(
-            $referenceSearchService,
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $this->internalRequestChannelName => $directChannel,
-                ]
-            )
-        );
-
-        return new BeforeSendChannelInterceptor($gateway);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        throw new LogicException("Not implemented");
+        $messageHandlerReference = $this->methodInterceptor->getInterceptingObject()->compile($builder);
+        $builder->register(new ChannelReference($this->internalRequestChannelName), new Definition(DirectChannel::class, [$this->internalRequestChannelName, $messageHandlerReference]));
+        $gatewayReference        = $this->gateway->compile($builder);
+
+        return new Definition(BeforeSendChannelInterceptor::class, [$gatewayReference]);
     }
 
     public function __toString()

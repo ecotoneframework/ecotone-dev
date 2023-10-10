@@ -506,8 +506,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
                 $interceptorReference->getId(),
                 $channelInterceptorInterface,
                 Precedence::ERROR_CHANNEL_PRECEDENCE,
-                '',
-                ParameterConverterAnnotationFactory::create()->createParameterConverters($channelInterceptorInterface),
             ));
         }
 
@@ -552,7 +550,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
             $internalHandlerReference,
         ]);
 
-        return $this->compiled = $builder->register('gateway.'.$this->interfaceName.'::'.$this->methodName, $gateway);
+        return $this->compiled = $builder->register('gateway.'.$this->referenceName.'::'.$this->methodName, $gateway);
     }
 
     private function compileGatewayInternalHandler(ContainerMessagingBuilder $builder): Reference|null

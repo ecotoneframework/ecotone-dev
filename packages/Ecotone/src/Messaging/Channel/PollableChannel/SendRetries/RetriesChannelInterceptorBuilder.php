@@ -7,13 +7,18 @@ namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
+use Psr\Log\LoggerInterface;
 
-final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilder
+final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilder, CompilableBuilder
 {
     public function __construct(
         private string $relatedChannel,
@@ -51,5 +56,16 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
             $referenceSearchService->get(ConfiguredMessagingSystem::class),
             $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE)
         );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        return $builder->register(\uniqid(SendRetryChannelInterceptor::class), [
+            $this->relatedChannel,
+            $this->retryTemplate->getDefinition(),
+            $this->errorChannel,
+            new Reference(ConfiguredMessagingSystem::class),
+            new Reference(LoggerInterface::class),
+        ]);
     }
 }

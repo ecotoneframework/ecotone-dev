@@ -75,7 +75,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
     /**
      * @var ParameterConverterBuilder[] $parameterConverters
      */
-    public static function create(string $referenceName, InterfaceToCall $interfaceToCall, int $precedence, string $pointcut, array $parameterConverters): self
+    public static function create(string $referenceName, InterfaceToCall $interfaceToCall, int $precedence, string $pointcut = '', array $parameterConverters = []): self
     {
         return new self($precedence, $referenceName, $interfaceToCall, $pointcut ? Pointcut::createWith($pointcut) : Pointcut::createEmpty(), $parameterConverters);
     }

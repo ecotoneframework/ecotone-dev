@@ -8,6 +8,9 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeResolver;
 
+use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\EpochBasedClock;
+use Psr\Log\LoggerInterface;
 use function get_class;
 
 use InvalidArgumentException;
@@ -20,7 +23,7 @@ use Psr\Container\ContainerInterface;
 class ContainerMessagingBuilder
 {
     /**
-     * @var array<string, Definition> $definitions
+     * @var array<string, Definition|Reference> $definitions
      */
     private array $definitions = [];
 
@@ -35,21 +38,27 @@ class ContainerMessagingBuilder
     {
         $this->typeResolver = TypeResolver::create();
         $this->definitions[Bridge::class] = new Definition(Bridge::class);
+        $this->definitions[LoggerInterface::class] = new Reference('logger');
+        $this->definitions[Clock::class] = new Definition(EpochBasedClock::class);
     }
 
-    public function register(string|Reference $id, Definition $definition): Reference
+    public function register(string|Reference $id, Definition|Reference|array $definition = []): Reference
     {
         if (isset($this->definitions[(string) $id])) {
             throw new InvalidArgumentException("Definition with id {$id} already exists");
         }
-        if (isset($this->externalReferences[(string) $id])) {
-            unset($this->externalReferences[(string) $id]);
-        }
         return $this->replace($id, $definition);
     }
 
-    public function replace(string|Reference $id, Definition $definition): Reference
+    public function replace(string|Reference $id, Definition|Reference|array $definition = []): Reference
     {
+        if (isset($this->externalReferences[(string) $id])) {
+            unset($this->externalReferences[(string) $id]);
+        }
+        if (is_array($definition)) {
+            // Parameters are passed directly, transform to a definition
+            $definition = new Definition((string) $id, $definition);
+        }
         $this->definitions[(string) $id] = $definition;
         $this->registerAllReferences($definition);
         return $id instanceof Reference ? $id : new Reference($id);

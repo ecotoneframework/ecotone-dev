@@ -4,6 +4,7 @@ namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
@@ -72,7 +73,11 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function run(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
-        $pollingMetadata = $this->getPollingMetadata($endpointId);
+        $pollingMetadata = $this->getPollingMetadata($endpointId, $executionPollingMetadata);
+        $pollingConsumerContext = $this->container->get(PollingConsumerContext::class);
+        $pollingConsumerContext->setPollingMetadate($pollingMetadata);
+        $consumer = $this->container->get('polling.'.$endpointId.'.runner');
+        $consumer->run();
     }
 
     public function list(): array

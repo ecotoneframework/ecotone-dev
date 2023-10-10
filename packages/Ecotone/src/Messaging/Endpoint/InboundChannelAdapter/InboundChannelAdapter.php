@@ -16,24 +16,8 @@ use Ecotone\Messaging\Scheduling\Trigger;
  */
 class InboundChannelAdapter implements ConsumerLifecycle
 {
-    private string $consumerName;
-    private \Ecotone\Messaging\Scheduling\Trigger $trigger;
-    private \Ecotone\Messaging\Scheduling\TaskScheduler $taskScheduler;
-    private \Ecotone\Messaging\Scheduling\TaskExecutor $taskExecutor;
-
-    /**
-     * InboundChannelAdapter constructor.
-     * @param string $consumerName
-     * @param TaskScheduler $taskScheduler
-     * @param Trigger $trigger
-     * @param TaskExecutor $taskExecutor
-     */
-    public function __construct(string $consumerName, TaskScheduler $taskScheduler, Trigger $trigger, TaskExecutor $taskExecutor)
+    public function __construct(private TaskScheduler $taskScheduler, private Trigger $trigger, private TaskExecutor $taskExecutor)
     {
-        $this->consumerName = $consumerName;
-        $this->taskScheduler = $taskScheduler;
-        $this->trigger = $trigger;
-        $this->taskExecutor = $taskExecutor;
     }
 
     /**
@@ -57,13 +41,5 @@ class InboundChannelAdapter implements ConsumerLifecycle
     public function isRunningInSeparateThread(): bool
     {
         return true;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getConsumerName(): string
-    {
-        return $this->consumerName;
     }
 }

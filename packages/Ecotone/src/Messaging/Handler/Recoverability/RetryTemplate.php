@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Recoverability;
 
 use Closure;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;
 use Psr\Log\LoggerInterface;
@@ -13,7 +14,7 @@ use Throwable;
 /**
  * @internal
  */
-final class RetryTemplate
+final class RetryTemplate implements DefinedObject
 {
     public const FIRST_RETRY = 1;
     /**

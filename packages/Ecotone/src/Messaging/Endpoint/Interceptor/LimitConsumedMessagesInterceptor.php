@@ -72,16 +72,9 @@ class LimitConsumedMessagesInterceptor implements ConsumerInterceptor
     /**
      * @inheritDoc
      */
-    public function postSend(MethodInvocation $methodInvocation): mixed
+    public function postSend(): void
     {
         $this->currentSentMessages++;
         $this->shouldBeStopped = $this->currentSentMessages >= $this->messageLimit;
-
-        return $methodInvocation->proceed();
-    }
-
-    public function isInterestedInPostSend(): bool
-    {
-        return true;
     }
 }

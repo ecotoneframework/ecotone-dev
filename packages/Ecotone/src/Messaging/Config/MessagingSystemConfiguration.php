@@ -33,6 +33,8 @@ use Ecotone\Messaging\Conversion\ConverterBuilder;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -62,6 +64,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
+use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\SubscribableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
@@ -1315,7 +1318,7 @@ final class MessagingSystemConfiguration implements Configuration
             if ($converterBuilder instanceof CompilableBuilder) {
                 $converters[] = $converterBuilder->compile($builder);
             } else {
-                throw ConfigurationException::create("Converter {$converterBuilder->getReferenceName()} can't be compiled");
+                throw ConfigurationException::create("Converter can't be compiled");
             }
         }
         $builder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters], 'createWith'));
@@ -1362,7 +1365,7 @@ final class MessagingSystemConfiguration implements Configuration
             $builder->register($id, $object->compile($builder));
         }
 
-        $pollingConsumerBuilder = $this->getPollingConsumerBuilder();
+        $pollingConsumerGateway = $this->getPollingConsumerBuilder()->compile($builder);
 
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             if (! $messageHandlerBuilder instanceof CompilableBuilder) {
@@ -1378,10 +1381,16 @@ final class MessagingSystemConfiguration implements Configuration
                     $channelDefinition->addMethodCall('subscribe', [$reference]);
                 } else {
                     // Pollable channel
-                    $consumerBuilderForGivenHandler = clone $pollingConsumerBuilder;
-                    $consumerBuilderForGivenHandler->withEndpointAnnotations([new AttributeDefinition(AsynchronousRunningEndpoint::class, [$messageHandlerBuilder->getEndpointId()])]);
-
-                    $pollingConsumerBuilder->compile($builder);
+                    $consumer = new Definition(PollingConsumerRunner::class, [
+                        $pollingConsumerGateway,
+                        new Reference(PollingConsumerContext::class),
+                        new Reference(Clock::class),
+                        new ChannelReference($inputChannel),
+                        $inputChannel,
+                    ]);
+                    $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.runner", $consumer);
+                    // This is an alias to the message handler
+                    $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.handler", $reference);
                 }
             }
         }

@@ -6,9 +6,11 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
@@ -29,10 +31,13 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Scheduling\PeriodicTrigger;
 use Ecotone\Messaging\Scheduling\SyncTaskScheduler;
 use Ecotone\Messaging\Support\Assert;
+use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -44,12 +49,13 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
 {
     private \Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder $entrypointGateway;
     private string $requestChannelName;
+    private ?Reference $compiledGatewayReference = null;
 
     public function __construct()
     {
-        $this->requestChannelName = Uuid::uuid4()->toString();
+        $this->requestChannelName = '_internal_inbound_gateway_request_channel';
         $this->entrypointGateway = GatewayProxyBuilder::create(
-            'handler',
+            InboundChannelAdapterEntrypoint::class,
             InboundChannelAdapterEntrypoint::class,
             'executeEntrypoint',
             $this->requestChannelName
@@ -185,21 +191,42 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
             );
 
         return new InboundChannelAdapter(
-            $messageHandlerBuilder->getEndpointId(),
             SyncTaskScheduler::createWithEmptyTriggerContext(new EpochBasedClock(), $pollingMetadata),
             PeriodicTrigger::create(1, 0),
-            new PollerTaskExecutor($messageHandlerBuilder->getEndpointId(), $messageHandlerBuilder->getInputMessageChannelName(), $pollableChannel, $gateway)
+            new PollerTaskExecutor($messageHandlerBuilder->getInputMessageChannelName(), $pollableChannel, $gateway)
         );
     }
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        $this->entrypointGateway->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor(
-            $builder->getInterfaceToCallRegistry(),
-            $pollingMetadata
-        ));
+        $builder->register(PollingConsumerContext::class, [new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]);
+        $builder->register(PollingConsumerPostSendAroundInterceptor::class, [new Reference(PollingConsumerContext::class)]);
+        $builder->register(PollingConsumerErrorInterceptor::class, [new Reference(PollingConsumerContext::class), new Reference(ChannelResolver::class)]);
+        $builder->register(new ChannelReference($this->requestChannelName), new Definition(PollingConsumerChannel::class, [
+            new Reference(PollingConsumerContext::class),
+        ]));
+        // TODO: Add this back in
+//        $gatewayBuilder->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor(
+//            $builder->getInterfaceToCallRegistry(),
+//            $pollingMetadata
+//        ));
+        $gatewayBuilder = clone $this->entrypointGateway;
 
-        $gatewayReference = $this->entrypointGateway->compile($builder);
-
+        return $this->compiledGatewayReference = $gatewayBuilder
+            ->addAroundInterceptor(
+                AroundInterceptorReference::create(
+                    PollingConsumerPostSendAroundInterceptor::class,
+                    $builder->getInterfaceToCall(new InterfaceToCallReference(PollingConsumerPostSendAroundInterceptor::class, 'postSend')),
+                    Precedence::ASYNCHRONOUS_CONSUMER_INTERCEPTOR_PRECEDENCE,
+                )
+            )
+            ->addAroundInterceptor(
+                AroundInterceptorReference::create(
+                    PollingConsumerErrorInterceptor::class,
+                    $builder->getInterfaceToCall(new InterfaceToCallReference(PollingConsumerErrorInterceptor::class, 'handle')),
+                    Precedence::ASYNCHRONOUS_CONSUMER_INTERCEPTOR_PRECEDENCE,
+                )
+            )
+            ->compile($builder);
     }
 }

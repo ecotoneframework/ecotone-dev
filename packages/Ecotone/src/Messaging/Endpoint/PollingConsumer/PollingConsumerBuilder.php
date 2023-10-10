@@ -155,7 +155,7 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
         if ($this->compiledGatewayReference) {
             return $this->compiledGatewayReference;
         }
-        $builder->register(PollingConsumerContext::class, [new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]);
+        $builder->register(PollingConsumerContext::class, [new Reference(Clock::class), new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]);
         $builder->register(PollingConsumerPostSendAroundInterceptor::class, [new Reference(PollingConsumerContext::class)]);
         $builder->register(PollingConsumerErrorInterceptor::class, [new Reference(PollingConsumerContext::class), new Reference(ChannelResolver::class)]);
         $builder->register(new ChannelReference($this->requestChannelName), new Definition(PollingConsumerChannel::class, [
@@ -188,16 +188,14 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
 
     public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
     {
-        $consumer = new Definition(PollingConsumerRunner::class, [
-            $this->compilePollingConsumerGateway($builder),
-            new Reference(PollingConsumerContext::class),
-            new Reference(Clock::class),
-            new ChannelReference($messageHandlerBuilder->getInputMessageChannelName()),
+        $executor = new Definition(PollerTaskExecutor::class, [
             $messageHandlerBuilder->getInputMessageChannelName(),
+            new ChannelReference($messageHandlerBuilder->getInputMessageChannelName()),
+            $this->compilePollingConsumerGateway($builder)
         ]);
 
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);
-        $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.runner", $consumer);
+        $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.executor", $executor);
         $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.channel", new Definition(DirectChannel::class, ['polling-connection-channel', $messageHandlerReference]));
     }
 }

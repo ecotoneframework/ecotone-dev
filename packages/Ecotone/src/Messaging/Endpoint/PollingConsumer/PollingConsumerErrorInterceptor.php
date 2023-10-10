@@ -20,7 +20,7 @@ class PollingConsumerErrorInterceptor
         try {
             return $methodInvocation->proceed();
         } catch (Throwable $exception) {
-            $errorChannelName = $this->pollingConsumerContext->getPollingMetadata()->getErrorChannelName();
+            $errorChannelName = $this->pollingConsumerContext->getErrorChannelName();
             if ($errorChannelName) {
                 $errorChannel = $this->channelResolver->resolve($errorChannelName);
                 $errorChannel->send(ErrorMessage::create(MessageHandlingException::fromOtherException($exception, $requestMessage)));

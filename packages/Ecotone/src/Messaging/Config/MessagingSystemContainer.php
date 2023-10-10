@@ -73,15 +73,9 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function run(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
-        $pollingMetadata = $this->getPollingMetadata($endpointId, $executionPollingMetadata);
+        /** @var PollingConsumerContext $pollingConsumerContext */
         $pollingConsumerContext = $this->container->get(PollingConsumerContext::class);
-        $consumer = $this->container->get('polling.'.$endpointId.'.runner');
-        $pollingConsumerContext->setPollingMetadate($pollingMetadata);
-        try {
-            $consumer->run();
-        } finally {
-            $pollingConsumerContext->reset();
-        }
+        $pollingConsumerContext->runEndpointWithExecutionPollingMetadata($endpointId, $executionPollingMetadata);
     }
 
     public function list(): array
@@ -94,11 +88,6 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         Assert::isTrue($messagingSystem instanceof MessagingSystemContainer, 'Can only replace with ' . self::class);
 
         $this->container = $messagingSystem->container;
-    }
-
-    private function getPollingMetadata(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): PollingMetadata
-    {
-        return $this->container->get('polling.'.$endpointId.'.metadata')->applyExecutionPollingMetadata($executionPollingMetadata);
     }
 
     public function getGatewayList(): array

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
@@ -13,30 +12,19 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
-use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
-use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapter;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
-use Ecotone\Messaging\Endpoint\InterceptedMessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
+use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\Clock;
-use Ecotone\Messaging\Scheduling\EpochBasedClock;
-use Ecotone\Messaging\Scheduling\PeriodicTrigger;
-use Ecotone\Messaging\Scheduling\SyncTaskScheduler;
-use Ecotone\Messaging\Support\Assert;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -45,9 +33,9 @@ use Psr\Log\LoggerInterface;
  * @package Ecotone\Messaging\Endpoint\PollingConsumer
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder implements MessageHandlerConsumerBuilder
+class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, InterceptedEndpoint
 {
-    private \Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder $entrypointGateway;
+    private GatewayProxyBuilder $entrypointGateway;
     private string $requestChannelName;
     private ?Reference $compiledGatewayReference = null;
 
@@ -159,42 +147,6 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
     public function isSupporting(MessageHandlerBuilder $messageHandlerBuilder, MessageChannelBuilder $relatedMessageChannel): bool
     {
         return $relatedMessageChannel->isPollable();
-    }
-
-    /**
-     * @inheritDoc
-     */
-    protected function buildAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, MessageHandlerBuilder $messageHandlerBuilder, PollingMetadata $pollingMetadata): ConsumerLifecycle
-    {
-        Assert::notNullAndEmpty($messageHandlerBuilder->getEndpointId(), "Message Endpoint name can't be empty for {$messageHandlerBuilder}");
-        Assert::notNull($pollingMetadata, "No polling meta data defined for polling endpoint {$messageHandlerBuilder}");
-
-        $this->entrypointGateway->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor(
-            $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME),
-            $pollingMetadata
-        ));
-
-        $messageHandler = $messageHandlerBuilder->build($channelResolver, $referenceSearchService);
-        $connectionChannel = DirectChannel::create();
-        $connectionChannel->subscribe($messageHandler);
-
-        $pollableChannel = $channelResolver->resolve($messageHandlerBuilder->getInputMessageChannelName());
-        Assert::isTrue($pollableChannel instanceof PollableChannel, 'Channel passed to Polling Consumer must be pollable');
-
-        $gateway = $this->entrypointGateway
-            ->withErrorChannel($pollingMetadata->getErrorChannelName())
-            ->buildWithoutProxyObject(
-                $referenceSearchService,
-                InMemoryChannelResolver::createWithChannelResolver($channelResolver, [
-                    $this->requestChannelName => $connectionChannel,
-                ])
-            );
-
-        return new InboundChannelAdapter(
-            SyncTaskScheduler::createWithEmptyTriggerContext(new EpochBasedClock(), $pollingMetadata),
-            PeriodicTrigger::create(1, 0),
-            new PollerTaskExecutor($messageHandlerBuilder->getInputMessageChannelName(), $pollableChannel, $gateway)
-        );
     }
 
     private function compilePollingConsumerGateway(ContainerMessagingBuilder $builder): Reference

@@ -18,16 +18,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 class PollerTaskExecutor implements TaskExecutor
 {
-    private \Ecotone\Messaging\PollableChannel $pollableChannel;
-    private \Ecotone\Messaging\Handler\NonProxyGateway $entrypointGateway;
-    private string $pollableChannelName;
-
-
-    public function __construct(string $pollableChannelName, PollableChannel $pollableChannel, NonProxyGateway $entrypointGateway)
+    public function __construct(private string $pollableChannelName, private PollableChannel $pollableChannel, private NonProxyGateway $entrypointGateway)
     {
-        $this->pollableChannel = $pollableChannel;
-        $this->entrypointGateway = $entrypointGateway;
-        $this->pollableChannelName = $pollableChannelName;
     }
 
     public function execute(PollingMetadata $pollingMetadata): void

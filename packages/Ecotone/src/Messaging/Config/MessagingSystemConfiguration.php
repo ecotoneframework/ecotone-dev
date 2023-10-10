@@ -262,8 +262,6 @@ final class MessagingSystemConfiguration implements Configuration
         /** This $preparationInterfaceRegistry is only for preparation. We don't want to cache it, as most of the Interface may not be reused anymore. E.g. public method from Eloquent Model */
         $interfaceToCallRegistry = InterfaceToCallRegistry::createWithBackedBy($preparationInterfaceRegistry);
 
-        $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $applicationConfiguration);
-
         $this->gatewayClassesToGenerateProxies = [];
 
         $this->interfacesToCall = array_unique($this->interfacesToCall);
@@ -1303,6 +1301,8 @@ final class MessagingSystemConfiguration implements Configuration
     public function buildInContainer(ContainerImplementation $containerImplementation): void
     {
         $interfaceToCallRegistry = InterfaceToCallRegistry::createWithInterfaces($this->interfacesToCall, $this->isLazyConfiguration);
+
+        $this->prepareAndOptimizeConfiguration($interfaceToCallRegistry, $this->applicationConfiguration);
 
         $builder = new ContainerMessagingBuilder($interfaceToCallRegistry);
 

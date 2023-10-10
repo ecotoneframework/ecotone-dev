@@ -33,7 +33,7 @@ use function uniqid;
  * @package Ecotone\Modelling
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder, CompilableBuilder
+class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
 {
     private ?ClassDefinition $messageClassNameToConvertTo;
     private ClassDefinition $aggregateClassName;
@@ -84,7 +84,7 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
     {
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(AggregateIdentifierRetrevingService::class, 'convert'));
         if(! $builder->has(PropertyReaderAccessor::class)) {
-            $builder->register(PropertyReaderAccessor::class, new Definition(PropertyReaderAccessor::class));
+            $builder->register(PropertyReaderAccessor::class);
         }
         $serviceReference = $builder->register(uniqid(AggregateIdentifierRetrevingService::class), new Definition(
             AggregateIdentifierRetrevingService::class,

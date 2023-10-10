@@ -189,6 +189,9 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
                 new Reference(ReferenceSearchService::class),
             ], 'create'));
         }
+        if(! $builder->has(PropertyReaderAccessor::class)) {
+            $builder->register(PropertyReaderAccessor::class);
+        }
 
 
         $saveAggregateService = new Definition(SaveAggregateService::class, [

@@ -20,8 +20,9 @@ class LiteContainerImplementation implements ContainerImplementation
      */
     public function process(array $definitions, array $externalReferences): void
     {
-        $this->container->set(ContainerInterface::class, $this->container);
-        $this->container->set(ConfiguredMessagingSystem::class, new MessagingSystemContainer($this->container));
+        $containerInstance = $this->externalContainer ? new CombinedContainer($this->container, $this->externalContainer) : $this->container;
+        $this->container->set(ContainerInterface::class, $containerInstance);
+        $this->container->set(ConfiguredMessagingSystem::class, new MessagingSystemContainer($containerInstance));
         foreach ($definitions as $id => $definition) {
             if (! $this->container->has($id)) {
                 if ($this->externalContainer && $this->externalContainer->has($id)) {

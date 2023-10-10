@@ -187,6 +187,10 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $this->interfaceToCall, $this->interfaceToCall->getInterfaceParameters()[$index]);
         }
 
+        if(! $builder->has(PropertyReaderAccessor::class)) {
+            $builder->register(PropertyReaderAccessor::class);
+        }
+
         $callAggregateService = new Definition(CallAggregateService::class, [
             InterfaceToCallReference::fromInstance($this->interfaceToCall),
             $this->isEventSourced,

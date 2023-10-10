@@ -17,7 +17,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
 
-final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuilder, CompilableBuilder
+final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
     public function __construct(private string $collectedChannel)
     {
@@ -41,14 +41,6 @@ final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuil
     public function getPrecedence(): int
     {
         return PrecedenceChannelInterceptor::COLLECTOR_PRECEDENCE;
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
-    {
-        return new MessageCollectorChannelInterceptor(
-            $this->collector,
-            $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE)
-        );
     }
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null

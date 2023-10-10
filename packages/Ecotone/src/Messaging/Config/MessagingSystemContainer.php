@@ -75,9 +75,13 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     {
         $pollingMetadata = $this->getPollingMetadata($endpointId, $executionPollingMetadata);
         $pollingConsumerContext = $this->container->get(PollingConsumerContext::class);
-        $pollingConsumerContext->setPollingMetadate($pollingMetadata);
         $consumer = $this->container->get('polling.'.$endpointId.'.runner');
-        $consumer->run();
+        $pollingConsumerContext->setPollingMetadate($pollingMetadata);
+        try {
+            $consumer->run();
+        } finally {
+            $pollingConsumerContext->setPollingMetadate(null);
+        }
     }
 
     public function list(): array

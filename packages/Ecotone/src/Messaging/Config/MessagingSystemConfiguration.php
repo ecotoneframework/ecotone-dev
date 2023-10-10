@@ -1338,24 +1338,25 @@ final class MessagingSystemConfiguration implements Configuration
             if (! $channelReference) {
                 throw ConfigurationException::create("Channel {$channelsBuilder->getMessageChannelName()} can't be compiled");
             }
-            //            $interceptorsForChannel = [];
-            //            foreach ($channelInterceptorsByChannelName as $channelName => $interceptors) {
-            //                $regexChannel = str_replace('*', '.*', $channelName);
-            //                $regexChannel = str_replace('\\', '\\\\', $regexChannel);
-            //                if (preg_match("#^{$regexChannel}$#", $channelsBuilder->getMessageChannelName())) {
-            //                    $interceptorsForChannel = array_merge($interceptorsForChannel, array_map(function (ChannelInterceptorBuilder $channelInterceptorBuilder) use ($referenceSearchService) {
-            //                        return $channelInterceptorBuilder->build($referenceSearchService);
-            //                    }, $interceptors));
-            //                }
-            //            }
-            //
-            //            if ($messageChannel instanceof PollableChannel && $interceptorsForChannel) {
-            //                $messageChannel = new PollableChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);
-            //            } elseif ($interceptorsForChannel) {
-            //                $messageChannel = new EventDrivenChannelInterceptorAdapter($messageChannel, $interceptorsForChannel);
-            //            }
-            //
-            //            $channels[] = NamedMessageChannel::create($channelsBuilder->getMessageChannelName(), $messageChannel);
+            $interceptorsForChannel = [];
+            foreach ($channelInterceptorsByChannelName as $channelName => $interceptors) {
+                $regexChannel = str_replace('*', '.*', $channelName);
+                $regexChannel = str_replace('\\', '\\\\', $regexChannel);
+                if (preg_match("#^{$regexChannel}$#", $channelsBuilder->getMessageChannelName())) {
+                    foreach ($interceptors as $interceptor) {
+                        $interceptorsForChannel[] = $interceptor->compile($builder);
+                    }
+                }
+            }
+            if ($interceptorsForChannel) {
+                $channelDefinition = $builder->getDefinition($channelReference);
+                $isPollable = is_a($channelDefinition->getClassName(), PollableChannel::class, true);
+                $channelDefinition = new Definition($isPollable ? PollableChannelInterceptorAdapter::class : EventDrivenChannelInterceptorAdapter::class, [
+                   $channelDefinition,
+                     $interceptorsForChannel,
+                ]);
+                $builder->replace($channelReference, $channelDefinition);
+            }
         }
 
         foreach ($this->moduleReferenceSearchService->getAllRegisteredReferences() as $id => $object) {

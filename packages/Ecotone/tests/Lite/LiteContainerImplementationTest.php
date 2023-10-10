@@ -7,6 +7,8 @@ use Ecotone\Lite\LiteContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
+use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
 
 class LiteContainerImplementationTest extends TestCase
 {
@@ -23,6 +25,22 @@ class LiteContainerImplementationTest extends TestCase
         self::assertEquals(new WithAReferenceDependency($container->get("def1")), $container->get("def3"));
 
         self::assertSame($container->get("def1"), $container->get("def3")->getDependency());
+    }
+
+    public function test_it_replace_provided_dependencies(): void
+    {
+        $container = InMemoryPSRContainer::createEmpty();
+        $logger = LoggerExample::create();
+        $externalContainer = InMemoryPSRContainer::createFromAssociativeArray([
+            "logger" => $logger,
+        ]);
+        $containerImplementation = new LiteContainerImplementation($container, $externalContainer);
+
+        $definitions["logger"] = new Definition(NullLogger::class);
+
+        $containerImplementation->process($definitions, []);
+
+        self::assertSame($logger, $container->get("logger"));
     }
 }
 

@@ -24,10 +24,30 @@ class LiteContainerImplementation implements ContainerImplementation
         $this->container->set(ConfiguredMessagingSystem::class, new MessagingSystemContainer($this->container));
         foreach ($definitions as $id => $definition) {
             if (! $this->container->has($id)) {
-                $object = $this->resolveArgument($definition, $definitions);
-                $this->container->set($id, $object);
+                if ($this->externalContainer && $this->externalContainer->has($id)) {
+                    $this->container->set($id, $this->externalContainer->get($id));
+                } else {
+                    $object = $this->resolveArgument($definition, $definitions);
+                    $this->container->set($id, $object);
+                }
             }
         }
+    }
+
+    private function has(string $id): bool
+    {
+        return $this->container->has($id) || ($this->externalContainer && $this->externalContainer->has($id));
+    }
+
+    private function get(string $id): mixed
+    {
+        if ($this->container->has($id)) {
+            return $this->container->get($id);
+        }
+        if ($this->externalContainer && $this->externalContainer->has($id)) {
+            return $this->externalContainer->get($id);
+        }
+        throw new \InvalidArgumentException("Reference {$id} was not found in definitions");
     }
 
     private function resolveArgument(mixed $argument, array $definitions): mixed
@@ -49,11 +69,8 @@ class LiteContainerImplementation implements ContainerImplementation
             }
         } else if ($argument instanceof Reference) {
             $id = $argument->getId();
-            if ($this->container->has($id)) {
-                return $this->container->get($id);
-            }
-            if ($this->externalContainer && $this->externalContainer->has($id)) {
-                return $this->externalContainer->get($id);
+            if ($this->has($id)) {
+                return $this->get($id);
             }
             if (!isset($definitions[$id])){
                 throw new \InvalidArgumentException("Reference {$id} was not found in definitions");

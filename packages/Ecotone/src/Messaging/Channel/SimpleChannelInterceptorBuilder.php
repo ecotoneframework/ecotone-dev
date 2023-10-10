@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 
@@ -17,7 +20,6 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
     private int $precedence;
     private string $channelName;
     private string $referenceName;
-    private ?object $directObject = null;
 
     /**
      * SimpleChannelInterceptorBuilder constructor.
@@ -42,12 +44,12 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
         return new self(0, $channelName, $referenceName);
     }
 
+    /**
+     * @deprecated
+     */
     public static function createWithDirectObject(string $channelName, object $object): self
     {
-        $self = new self(0, $channelName, '');
-        $self->directObject = $object;
-
-        return $self;
+        throw new \InvalidArgumentException("Direct object is not supported anymore");
     }
 
     /**
@@ -96,5 +98,10 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
     public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
     {
         return $this->directObject ? $this->directObject : $referenceSearchService->get($this->referenceName);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        return Reference::to($this->referenceName);
     }
 }

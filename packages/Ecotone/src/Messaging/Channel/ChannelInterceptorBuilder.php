@@ -2,16 +2,16 @@
 
 namespace Ecotone\Messaging\Channel;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 /**
  * Interface ChannelInterceptorBuilder
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-interface ChannelInterceptorBuilder
+interface ChannelInterceptorBuilder extends CompilableBuilder
 {
     /**
      * @return string
@@ -35,10 +35,4 @@ interface ChannelInterceptorBuilder
      * @return int
      */
     public function getPrecedence(): int;
-
-    /**
-     * @param ReferenceSearchService $referenceSearchService
-     * @return ChannelInterceptor
-     */
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor;
 }

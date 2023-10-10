@@ -190,9 +190,11 @@ final class EcotoneLite
         }
 
         $containerBuilder = InMemoryPSRContainer::createFromAssociativeArray([
-            'logger' => new NullLogger(),
             ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
         ]);
+        if (! $externalContainer->has('logger')) {
+            $containerBuilder->set('logger', new NullLogger());
+        }
 
 
         $messagingConfiguration->buildInContainer(new LiteContainerImplementation($containerBuilder, $externalContainer));

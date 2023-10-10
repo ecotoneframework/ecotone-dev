@@ -14,7 +14,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Precedence;
 
-final class SpiedChannelAdapterBuilder implements ChannelInterceptorBuilder, CompilableBuilder
+final class SpiedChannelAdapterBuilder implements ChannelInterceptorBuilder
 {
     public function __construct(private string $relatedChannel)
     {

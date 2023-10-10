@@ -60,7 +60,7 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        return $builder->register(\uniqid(SendRetryChannelInterceptor::class), [
+        return new Definition(SendRetryChannelInterceptor::class, [
             $this->relatedChannel,
             $this->retryTemplate->getDefinition(),
             $this->errorChannel,

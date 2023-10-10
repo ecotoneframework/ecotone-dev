@@ -6,6 +6,9 @@ namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -45,6 +48,7 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
 
     public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
     {
+        throw new \InvalidArgumentException("This builder is not supported");
         /** @var ServiceConfiguration $serviceConfiguration */
         $serviceConfiguration = $referenceSearchService->get(ServiceConfiguration::class);
 
@@ -55,5 +59,16 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
             ),
             $referenceSearchService->get(ConversionService::REFERENCE_NAME)
         );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        return new Definition(OutboundSerializationChannelInterceptor::class, [
+            new Definition(OutboundMessageConverter::class, [
+                $this->headerMapper->getDefinition(),
+                $this->channelConversionMediaType?->getDefinition() ?: MediaType::createApplicationXPHP()->getDefinition(), // TODO: Add service configuration default media type
+            ]),
+            Reference::to(ConversionService::REFERENCE_NAME),
+        ]);
     }
 }

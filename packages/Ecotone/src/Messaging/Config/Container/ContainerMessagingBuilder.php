@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\TypeResolver;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use function get_class;
 
 use InvalidArgumentException;
@@ -38,7 +39,8 @@ class ContainerMessagingBuilder
     {
         $this->typeResolver = TypeResolver::create();
         $this->definitions[Bridge::class] = new Definition(Bridge::class);
-        $this->definitions[LoggerInterface::class] = new Reference('logger');
+        $this->definitions[LoggerInterface::class] = new Definition(NullLogger::class);
+        $this->definitions['logger'] = new Reference(LoggerInterface::class);
         $this->definitions[Clock::class] = new Definition(EpochBasedClock::class);
     }
 

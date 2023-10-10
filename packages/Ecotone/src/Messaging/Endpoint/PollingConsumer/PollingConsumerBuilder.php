@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
@@ -38,7 +39,6 @@ use Ecotone\Messaging\Scheduling\SyncTaskScheduler;
 use Ecotone\Messaging\Support\Assert;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
-use Ramsey\Uuid\Uuid;
 
 /**
  * Class PollingConsumerBuilder
@@ -59,7 +59,7 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
             InboundChannelAdapterEntrypoint::class,
             'executeEntrypoint',
             $this->requestChannelName
-        );
+        )->withEndpointAnnotations([new AttributeDefinition(AsynchronousRunningEndpoint::class, [""])]); // TODO: the endpoint id was passed in here
     }
 
     public function isPollingConsumer(): bool

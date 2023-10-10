@@ -202,8 +202,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             new Reference(PropertyEditorAccessor::class),
             $this->isCommandHandler,
             $this->interfaceToCall->isStaticallyCalled(),
-            // TODO: this is a fake implementation, we need to implement it
-            new Definition(EventSourcingHandlerExecutor::class, [$this->interfaceToCall->getInterfaceName(), []]),
+            $this->eventSourcingHandlerExecutor->getDefinition(),
             $this->aggregateVersionProperty,
             $this->isAggregateVersionAutomaticallyIncreased,
             $this->aggregateMethodWithEvents,

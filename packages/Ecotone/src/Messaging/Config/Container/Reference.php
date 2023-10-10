@@ -18,6 +18,11 @@ class Reference
         return new ChannelReference($id);
     }
 
+    public static function toInterface(string $className, string $methodName): InterfaceToCallReference
+    {
+        return new InterfaceToCallReference($className, $methodName);
+    }
+
     public function getId(): string
     {
         return $this->id;

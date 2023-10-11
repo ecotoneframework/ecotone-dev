@@ -90,6 +90,10 @@ class ProxyFactory
             return;
         }
 
+        if (! $this->serviceCacheConfiguration->shouldUseCache()) {
+            return;
+        }
+
         if (self::$registeredAutoloader) {
             // another ProxyFactory instance may have already registered an autoloader.
             // this should not happen normally, but just in case we will unload

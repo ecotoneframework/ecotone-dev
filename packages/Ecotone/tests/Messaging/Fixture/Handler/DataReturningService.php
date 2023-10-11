@@ -2,6 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
@@ -12,7 +14,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use InvalidArgumentException;
 use Throwable;
 
-class DataReturningService
+class DataReturningService implements DefinedObject
 {
     private $data;
     /**
@@ -26,7 +28,7 @@ class DataReturningService
 
     private ?Throwable $exception;
 
-    private function __construct($data, bool $asAMessage, array $headers, ?Throwable $exception)
+    public function __construct($data, bool $asAMessage, array $headers, ?Throwable $exception)
     {
         $this->data = $data;
         $this->asAMessage = $asAMessage;
@@ -83,5 +85,23 @@ class DataReturningService
         }
 
         return $this->data;
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class, [
+            $this->data,
+            $this->asAMessage,
+            $this->headers,
+            $this->exception ? new Definition(Throwable::class, [\serialize($this->exception)], [self::class, 'unserialize']) : null,
+        ]);
+    }
+
+    /**
+     * @internal
+     */
+    public static function unserialize(string $serializedException): Throwable
+    {
+        return unserialize($serializedException);
     }
 }

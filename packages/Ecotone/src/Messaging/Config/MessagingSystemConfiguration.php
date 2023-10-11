@@ -6,6 +6,8 @@ namespace Ecotone\Messaging\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
+use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Lite\LiteContainerImplementation;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\WithRequiredReferenceNameList;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
@@ -1412,49 +1414,15 @@ final class MessagingSystemConfiguration implements Configuration
         $builder->compile();
     }
 
+    /**
+     * @deprecated
+     */
     public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService, ?ContainerImplementation $containerImplementation = null): ConfiguredMessagingSystem
     {
-        if (! $this->isLazyConfiguration) {
-            $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
-        }
-
-        $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
-        $channelInterceptorsByChannelName = [];
-        foreach ($channelInterceptorsByImportance as $channelInterceptors) {
-            /** @var ChannelInterceptorBuilder $channelInterceptor */
-            foreach ($channelInterceptors as $channelInterceptor) {
-                $channelInterceptorsByChannelName[$channelInterceptor->relatedChannelName()][] = $channelInterceptor;
-            }
-        }
-
-        $converters = [];
-        foreach ($this->converterBuilders as $converterBuilder) {
-            $converters[] = $converterBuilder->build($referenceSearchService);
-        }
-        $referenceSearchService = $this->prepareReferenceSearchServiceWithInternalReferences($referenceSearchService, $converters, $this->interfaceToCallRegistry);
-        /** @var ServiceCacheConfiguration $serviceCacheConfiguration */
-        $serviceCacheConfiguration = $referenceSearchService->get(ServiceCacheConfiguration::class);
-        /** @var ProxyFactory $proxyFactory */
-        $proxyFactory = ProxyFactory::createWithCache($serviceCacheConfiguration);
-        $this->registerAutoloader($proxyFactory->getConfiguration()->getProxyAutoloader());
-
-        /** @var GatewayProxyBuilder[][] $preparedGateways */
-        $preparedGateways = [];
-        foreach ($this->gatewayBuilders as $gatewayBuilder) {
-            $preparedGateways[$gatewayBuilder->getReferenceName()][] = $gatewayBuilder->withMessageConverters($this->messageConverterReferenceNames);
-        }
-
-        return MessagingSystem::createFrom(
-            $referenceSearchService,
-            $this->channelBuilders,
-            $channelInterceptorsByChannelName,
-            $preparedGateways,
-            $this->consumerFactories,
-            $this->pollingMetadata,
-            $this->messageHandlerBuilders,
-            $this->channelAdapters,
-            $this->consoleCommands
-        );
+        $container = InMemoryPSRContainer::createEmpty();
+        $containerImplementation ??= new LiteContainerImplementation($container, $referenceSearchService);
+        $this->buildInContainer($containerImplementation);
+        return $container->get(ConfiguredMessagingSystem::class);
     }
 
     /**

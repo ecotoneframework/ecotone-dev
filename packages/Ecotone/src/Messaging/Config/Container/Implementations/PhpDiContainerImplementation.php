@@ -3,15 +3,14 @@
 namespace Ecotone\Messaging\Config\Container\Implementations;
 
 use DI\ContainerBuilder;
-use Ecotone\Messaging\Config\Container\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-
+use ReflectionMethod;
 use function is_array;
 
-use ReflectionMethod;
-
-class PhpDiContainerImplementation implements ContainerImplementation
+class PhpDiContainerImplementation implements CompilerPass
 {
     public function __construct(private ContainerBuilder $containerBuilder)
     {
@@ -20,31 +19,12 @@ class PhpDiContainerImplementation implements ContainerImplementation
     /**
      * @inheritDoc
      */
-    public function process(array $definitions, array $externalReferences): void
+    public function process(ContainerMessagingBuilder $builder): void
     {
         $phpDiDefinitions = [];
 
-        //        $phpDiDefinitions['channelResolver_legacy'] = static function (ContainerInterface $c) {
-        //            return $c->get("external_reference_search_service")->get(ChannelResolver::class);
-        //        };
-
-        foreach ($definitions as $id => $definition) {
+        foreach ($builder->getDefinitions() as $id => $definition) {
             $phpDiDefinitions[$id] = $this->resolveArgument($definition);
-        }
-
-        foreach ($externalReferences as $id => $reference) {
-            //            if ($reference instanceof ChannelReference) {
-            //                if (!isset($phpDiDefinitions[$id])) {
-            //                    $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
-            //                        $channelName = substr($entry->getName(), 8); // remove `channel-` prefix
-            //                        return $c->get("channelResolver_legacy")->resolve($channelName);
-            //                    };
-            //                }
-            //            } else {
-            //                $phpDiDefinitions[$id] = static function (ContainerInterface $c, RequestedEntry $entry) {
-            //                    return $c->get("external_reference_search_service")->get($entry->getName());
-            //                };
-            //            }
         }
 
         $this->containerBuilder->addDefinitions($phpDiDefinitions);

@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Config\Container\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
@@ -173,7 +173,7 @@ interface Configuration
      */
     public function buildMessagingSystemFromConfiguration(ReferenceSearchService $externalReferenceSearchService): ConfiguredMessagingSystem;
 
-    public function buildInContainer(ContainerImplementation $containerImplementation): void;
+    public function buildInContainer(CompilerPass $containerImplementation): void;
 
     public function registerServiceDefinition(string|Reference $id, Container\Definition $definition): Configuration;
 }

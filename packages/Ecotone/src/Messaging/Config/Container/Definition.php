@@ -15,6 +15,9 @@ class Definition
      */
     private array $methodCalls = [];
 
+    /**
+     * @param array<string|int, Definition|Reference|DefinedObject|int|string> $constructorArguments
+     */
     public function __construct(protected string $className, protected array $constructorArguments = [], protected string|array $factory = '')
     {
     }
@@ -45,6 +48,11 @@ class Definition
     {
         $this->constructorArguments[$index] = $argument;
         return $this;
+    }
+
+    public function replaceArguments(array $arguments): void
+    {
+        $this->constructorArguments = $arguments;
     }
 
     public function getFactory(): array
@@ -108,5 +116,10 @@ class MethodCall
     public function getArguments(): array
     {
         return $this->arguments;
+    }
+
+    public function replaceArguments(array $arguments): void
+    {
+        $this->arguments = $arguments;
     }
 }

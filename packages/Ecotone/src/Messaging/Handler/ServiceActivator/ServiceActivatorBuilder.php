@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -31,7 +30,6 @@ use Ecotone\Messaging\Support\Assert;
 use InvalidArgumentException;
 use ReflectionException;
 use ReflectionMethod;
-
 use function uniqid;
 
 /**

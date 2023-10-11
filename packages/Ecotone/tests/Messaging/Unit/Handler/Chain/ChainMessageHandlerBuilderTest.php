@@ -582,7 +582,8 @@ class ChainMessageHandlerBuilderTest extends TestCase
         $container = InMemoryPSRContainer::createFromAssociativeArray([
             ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createEmpty(),
         ]);
-        $containerBuilder->process(new LiteContainerImplementation($container));
+        $containerBuilder->addCompilerPass(new LiteContainerImplementation($container));
+        $containerBuilder->compile();
         $chainHandler = $container->get((string) $reference);
 
         $chainHandler->handle(

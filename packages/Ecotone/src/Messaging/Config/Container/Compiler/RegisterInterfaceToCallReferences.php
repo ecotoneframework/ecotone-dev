@@ -1,0 +1,46 @@
+<?php
+
+namespace Ecotone\Messaging\Config\Container\Compiler;
+
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Handler\TypeResolver;
+
+class RegisterInterfaceToCallReferences implements CompilerPass
+{
+    private TypeResolver $typeResolver;
+
+    public function __construct()
+    {
+        $this->typeResolver = TypeResolver::create();
+    }
+
+    public function process(ContainerMessagingBuilder $builder): void
+    {
+        $this->registerAllReferences($builder->getDefinitions(), $builder);
+    }
+
+    private function registerAllReferences($argument, ContainerMessagingBuilder $containerBuilder): void
+    {
+        if ($argument instanceof Definition) {
+            $this->registerAllReferences($argument->getConstructorArguments(), $containerBuilder);
+            foreach ($argument->getMethodCalls() as $methodCall) {
+                $this->registerAllReferences($methodCall->getArguments(), $containerBuilder);
+            }
+        } elseif (is_array($argument)) {
+            foreach ($argument as $value) {
+                $this->registerAllReferences($value, $containerBuilder);
+            }
+        } elseif ($argument instanceof InterfaceToCallReference) {
+            if (! $containerBuilder->has($argument->getId())) {
+                $this->typeResolver->registerInterfaceToCallDefinition($containerBuilder, $argument);
+            }
+        } elseif ($argument instanceof InterfaceParameterReference) {
+            if (! $containerBuilder->has($argument->getId())) {
+                $this->typeResolver->registerInterfaceToCallDefinition($containerBuilder, $argument->interfaceToCallReference());
+            }
+        }
+    }
+}

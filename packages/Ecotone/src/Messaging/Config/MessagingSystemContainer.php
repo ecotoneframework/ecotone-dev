@@ -29,7 +29,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function getNonProxyGatewayByName(string $gatewayReferenceName): NonProxyCombinedGateway
     {
-        return $this->container->get($gatewayReferenceName.'.nonProxy');
+        return $this->container->get('gateway.'.$gatewayReferenceName);
     }
 
     public function runConsoleCommand(string $commandName, array $parameters): mixed

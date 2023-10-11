@@ -177,31 +177,26 @@ final class EcotoneLite
             $enableTesting
         );
 
-        if ($allowGatewaysToBeRegisteredInContainer) {
-            Assert::isTrue(method_exists($externalContainer, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
-            foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
-                $externalContainer->set($gatewayProxyBuilder->getReferenceName(), ProxyFactory::createFor(
-                    $gatewayProxyBuilder->getReferenceName(),
-                    $externalContainer,
-                    $gatewayProxyBuilder->getInterfaceName(),
-                    $serviceCacheConfiguration
-                ));
-            }
-        }
-
-        $containerBuilder = InMemoryPSRContainer::createFromAssociativeArray([
+        $container = InMemoryPSRContainer::createFromAssociativeArray([
             ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
         ]);
-        if (! $externalContainer->has('logger')) {
-            $containerBuilder->set('logger', new NullLogger());
-        }
 
-
-        $messagingConfiguration->buildInContainer(new LiteContainerImplementation($containerBuilder, $externalContainer));
-        $messagingSystem = $containerBuilder->get(ConfiguredMessagingSystem::class);
+        $messagingConfiguration->buildInContainer(new LiteContainerImplementation($container, $externalContainer));
+        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
 
         if ($allowGatewaysToBeRegisteredInContainer) {
             $externalContainer->set(ConfiguredMessagingSystem::class, $messagingSystem);
+            if ($allowGatewaysToBeRegisteredInContainer) {
+                Assert::isTrue(method_exists($externalContainer, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
+                foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
+                    $externalContainer->set($gatewayProxyBuilder->getReferenceName(), ProxyFactory::createFor(
+                        $gatewayProxyBuilder->getReferenceName(),
+                        $container->get(ContainerInterface::class),
+                        $gatewayProxyBuilder->getInterfaceName(),
+                        $serviceCacheConfiguration
+                    ));
+                }
+            }
         } elseif ($externalContainer->has(ConfiguredMessagingSystem::class)) {
             /** @var ConfiguredMessagingSystem $alreadyConfiguredMessaging */
             $alreadyConfiguredMessaging = $externalContainer->get(ConfiguredMessagingSystem::class);

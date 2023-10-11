@@ -182,8 +182,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withFailFast(false),
         );
-
-        // Running this endpoint first will make the $queueName to have two interceptors registered
+        
         $ecotoneLite->run('incorrectOrdersEndpoint');
 
         /** https://www.rabbitmq.com/channels.html */

@@ -49,7 +49,6 @@ class ProxyFactory
         $configuration = new Configuration();
 
         if ($this->serviceCacheConfiguration->shouldUseCache()) {
-            MessagingSystemConfiguration::prepareCacheDirectory($this->serviceCacheConfiguration);
             $configuration->setProxiesTargetDir($this->serviceCacheConfiguration->getPath());
             $fileLocator = new FileLocator($configuration->getProxiesTargetDir());
             $configuration->setGeneratorStrategy(new FileWriterGeneratorStrategy($fileLocator));

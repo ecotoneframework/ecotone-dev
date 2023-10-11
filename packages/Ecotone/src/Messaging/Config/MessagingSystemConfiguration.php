@@ -1266,6 +1266,7 @@ final class MessagingSystemConfiguration implements Configuration
         $referenceSearchService = $this->prepareReferenceSearchServiceWithInternalReferences($referenceSearchService, $converters, $interfaceToCallRegistry);
         /** @var ServiceCacheConfiguration $serviceCacheConfiguration */
         $serviceCacheConfiguration = $referenceSearchService->get(ServiceCacheConfiguration::class);
+        self::prepareCacheDirectory($serviceCacheConfiguration);
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];

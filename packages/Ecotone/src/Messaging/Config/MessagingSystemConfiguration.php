@@ -857,9 +857,12 @@ final class MessagingSystemConfiguration implements Configuration
 
         $cacheDirectoryPath = $serviceCacheConfiguration->getPath();
         if (! is_dir($cacheDirectoryPath)) {
-            @mkdir($cacheDirectoryPath, 0775, true);
+            $mkdirResult = @mkdir($cacheDirectoryPath, 0775, true);
+            Assert::isTrue(
+                $mkdirResult,
+                "Not enough permissions to create cache directory {$cacheDirectoryPath}"
+            );
         }
-        Assert::isTrue(is_writable($cacheDirectoryPath), "Not enough permissions to write into cache directory {$cacheDirectoryPath}");
 
         Assert::isFalse(is_file($cacheDirectoryPath), 'Cache directory is file, should be directory');
     }
@@ -872,6 +875,10 @@ final class MessagingSystemConfiguration implements Configuration
     private static function deleteFiles(string $target, bool $deleteDirectory): void
     {
         if (is_dir($target)) {
+            Assert::isTrue(
+                is_writable($target),
+                "Not enough permissions to delete from cache directory {$target}"
+            );
             $files = glob($target . '*', GLOB_MARK);
 
             foreach ($files as $file) {
@@ -882,6 +889,10 @@ final class MessagingSystemConfiguration implements Configuration
                 rmdir($target);
             }
         } elseif (is_file($target)) {
+            Assert::isTrue(
+                is_writable($target),
+                "Not enough permissions to delete cache file {$target}"
+            );
             unlink($target);
         }
     }

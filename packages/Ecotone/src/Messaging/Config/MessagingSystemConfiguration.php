@@ -1323,6 +1323,10 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
+        foreach ($this->pollingMetadata as $pollingMetadata) {
+            $builder->register('polling.'.$pollingMetadata->getEndpointId().'.metadata', $pollingMetadata);
+        }
+
         foreach ($this->channelBuilders as $channelsBuilder) {
             $channelReference = $channelsBuilder->compile($builder);
             if (! $channelReference) {
@@ -1354,10 +1358,6 @@ final class MessagingSystemConfiguration implements Configuration
                 throw ConfigurationException::create("Reference {$id} is not compilable");
             }
             $builder->register($id, $object->compile($builder));
-        }
-
-        foreach ($this->pollingMetadata as $pollingMetadata) {
-            $builder->register('polling.'.$pollingMetadata->getEndpointId().'.metadata', $pollingMetadata->getDefinition());
         }
 
         foreach ($this->channelAdapters as $channelAdapter) {

@@ -16,6 +16,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
@@ -199,5 +200,10 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
         $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.channel", new Definition(DirectChannel::class, ['polling-connection-channel', $messageHandlerReference]));
         // Alias to PollingConsumerContext singleton
         $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.runner", new Reference(PollingConsumerContext::class));
+
+        // Continuous polling
+        /** @var PollingMetadata $pollingMetadata */
+        $pollingMetadata = $builder->getDefinition("polling.{$messageHandlerBuilder->getEndpointId()}.metadata");
+        $builder->replace("polling.{$messageHandlerBuilder->getEndpointId()}.metadata", $pollingMetadata->setFixedRateInMilliseconds(1)->setInitialDelayInMilliseconds(0));
     }
 }

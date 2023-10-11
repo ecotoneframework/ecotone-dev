@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\NonProxyCombinedGateway;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\CommandBus;
@@ -26,7 +27,7 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
         return $this->configuredMessagingSystem->getGatewayByName($gatewayReferenceName);
     }
 
-    public function getNonProxyGatewayByName(string $gatewayReferenceName): NonProxyCombinedGateway
+    public function getNonProxyGatewayByName(string $gatewayReferenceName): Gateway
     {
         return $this->configuredMessagingSystem->getNonProxyGatewayByName($gatewayReferenceName);
     }

@@ -13,6 +13,10 @@ use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -177,12 +181,7 @@ final class EcotoneLite
             $enableTesting
         );
 
-        $container = InMemoryPSRContainer::createFromAssociativeArray([
-            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
-        ]);
-
-        $messagingConfiguration->buildInContainer(new LiteContainerImplementation($container, $externalContainer));
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
+        $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($messagingConfiguration, $externalContainer);
 
         if ($allowGatewaysToBeRegisteredInContainer) {
             $externalContainer->set(ConfiguredMessagingSystem::class, $messagingSystem);
@@ -191,7 +190,7 @@ final class EcotoneLite
                 foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
                     $externalContainer->set($gatewayProxyBuilder->getReferenceName(), ProxyFactory::createFor(
                         $gatewayProxyBuilder->getReferenceName(),
-                        $container->get(ContainerInterface::class),
+                        $messagingSystem,
                         $gatewayProxyBuilder->getInterfaceName(),
                         $serviceCacheConfiguration
                     ));

@@ -69,7 +69,7 @@ final class MethodInvoker implements MessageProcessor
         return new self($objectToInvokeOn, $interfaceToCall->getMethodName(), $methodParameterConverters, $interfaceToCall, true);
     }
 
-    public static function createDefinition(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, string|Reference|Definition $reference, array $methodParametersConverterBuilders, array $endpointAnnotations = []): Definition|null
+    public static function createDefinition(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, string|object $reference, array $methodParametersConverterBuilders, array $endpointAnnotations = []): Definition|null
     {
         $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $methodParametersConverterBuilders, $endpointAnnotations, null, false);
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Chain;
 
 use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Lite\LiteContainerImplementation;
+use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
@@ -582,7 +582,7 @@ class ChainMessageHandlerBuilderTest extends TestCase
         $container = InMemoryPSRContainer::createFromAssociativeArray([
             ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createEmpty(),
         ]);
-        $containerBuilder->addCompilerPass(new LiteContainerImplementation($container));
+        $containerBuilder->addCompilerPass(new InMemoryContainerImplementation($container));
         $containerBuilder->compile();
         $chainHandler = $container->get((string) $reference);
 

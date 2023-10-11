@@ -3,6 +3,7 @@
 namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Handler\ReferenceNotFoundException;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Psr\Container\ContainerInterface;
 
 class CombinedContainer implements ContainerInterface
@@ -26,7 +27,7 @@ class CombinedContainer implements ContainerInterface
             }
         }
 
-        throw ReferenceNotFoundException::create("Could not find reference {$id}");
+        throw InvalidArgumentException::create("Could not find reference {$id}");
     }
 
     public function has(string $id): bool

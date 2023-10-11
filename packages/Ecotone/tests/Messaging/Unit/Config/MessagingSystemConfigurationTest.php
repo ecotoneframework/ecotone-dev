@@ -47,6 +47,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use stdClass;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\CalculatingServiceInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Gateway\CombinedGatewayExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Gateway\SingleMethodGatewayExample;
@@ -87,13 +88,13 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $subscribableChannel = DirectChannel::create();
         $messageHandler = NoReturnMessageHandler::create();
 
-        $this->createMessagingSystemConfiguration()
+        $messagingSystem = $this->createMessagingSystemConfiguration()
             ->registerMessageHandler(DumbMessageHandlerBuilder::create($messageHandler, $subscribableChannelName))
             ->registerMessageChannel(SimpleMessageChannelBuilder::create($subscribableChannelName, $subscribableChannel))
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
-        $subscribableChannel->send(MessageBuilder::withPayload('a')->build());
+        $messagingSystem->getMessageChannelByName($subscribableChannelName)->send(MessageBuilder::withPayload('a')->build());
 
         $this->assertTrue($messageHandler->wasCalled());
     }
@@ -213,50 +214,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $this->expectException(InvalidArgumentException::class);
 
         $messagingSystem->run('some');
-    }
-
-    public function test_adding_optional_references()
-    {
-        $messagingSystemConfiguration = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty());
-        $messagingSystemConfiguration->requireReferences([OptionalReference::create('reference')]);
-
-        $this->assertEquals(['reference'], $messagingSystemConfiguration->getOptionalReferences());
-    }
-
-    public function test_registering_reference_names_from_interceptors()
-    {
-        $messagingSystem = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty());
-
-        $messagingSystem
-            ->registerBeforeMethodInterceptor(
-                MethodInterceptor::create(
-                    'some',
-                    InterfaceToCall::create(CalculatingService::class, 'sum'),
-                    ServiceActivatorBuilder::create('reference1', InterfaceToCall::create(CalculatingService::class, 'sum')),
-                    Precedence::DEFAULT_PRECEDENCE,
-                    CalculatingService::class
-                )
-            )
-            ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::createWithNoPointcut(
-                    'reference2',
-                    InterfaceToCall::create(CalculatingService::class, 'multiply')
-                )
-            )
-            ->registerAfterMethodInterceptor(
-                MethodInterceptor::create(
-                    'some',
-                    InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                    ServiceActivatorBuilder::create('reference3', InterfaceToCall::create(CalculatingService::class, 'multiply')),
-                    Precedence::DEFAULT_PRECEDENCE,
-                    CalculatingService::class
-                )
-            );
-
-        $this->assertEquals(
-            ['reference1', 'reference2', 'reference3'],
-            $messagingSystem->getRequiredReferences()
-        );
     }
 
     public function test_throwing_exception_if_registered_asynchronous_for_not_existing_endpoint()
@@ -711,7 +668,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->registerAsynchronousEndpoint('asyncChannel', 'endpointId')
             ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->setExecutionAmountLimit(1))
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('asyncChannel'))
-            ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::createWithDirectObject('inputChannel', $channelInterceptor))
+            ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create('inputChannel', $channelInterceptor))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         $replyChannel = QueueChannel::create();
@@ -741,31 +698,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
             );
 
         $channel->send($requestMessage);
-    }
-
-    public function test_registering_reference_from_interface_to_call_on_prepare_method()
-    {
-        $messagingSystem = MessagingSystemConfiguration::prepareWithModuleRetrievingService(
-            InMemoryModuleMessaging::createWith(
-                [
-                    ExampleModuleConfiguration::createWithHandlers(
-                        [
-                            ServiceActivatorBuilder::create('reference0', InterfaceToCall::create(TransactionalInterceptorExample::class, 'doAction'))
-                                ->withInputChannelName('some'),
-                        ]
-                    ),
-                ],
-                []
-            ),
-            InterfaceToCallRegistry::createEmpty(),
-            ServiceConfiguration::createWithDefaults(),
-            ServiceCacheConfiguration::noCache()
-        );
-
-        $this->assertEquals(
-            [stdClass::class, 'reference0', 'reference2', 'reference1'],
-            $messagingSystem->getRequiredReferences()
-        );
     }
 
     public function test_registering_with_extension_media_type_serializer_applied_to_application_configuration()
@@ -1349,7 +1281,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerPollingMetadata(
                 PollingMetadata::create($endpointName)
-                    ->setHandledMessageLimit(1)
+                    ->withTestingSetup()
             )
             ->registerBeforeMethodInterceptor(
                 MethodInterceptor::create(
@@ -1683,24 +1615,26 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
     public function test_building_non_proxy_gateway_from_multiple_methods()
     {
-        $buyGateway = GatewayProxyBuilder::create('combinedGateway', CombinedGatewayExample::class, 'buy', 'buy');
-        $sellGateway = GatewayProxyBuilder::create('combinedGateway', CombinedGatewayExample::class, 'sell', 'sell');
+        $buyGatewayBuilder = GatewayProxyBuilder::create('combinedGateway', CombinedGatewayExample::class, 'buy', 'buy');
+        $sellGatewayBuilder = GatewayProxyBuilder::create('combinedGateway', CombinedGatewayExample::class, 'sell', 'sell');
 
         $messagingSystem = $this->createMessagingSystemConfiguration()
-            ->registerGatewayBuilder($buyGateway)
-            ->registerGatewayBuilder($sellGateway)
+            ->registerGatewayBuilder($buyGatewayBuilder)
+            ->registerGatewayBuilder($sellGatewayBuilder)
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('buy'))
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('sell'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
-        $combinedGateway = $messagingSystem
-            ->getNonProxyGatewayByName('combinedGateway');
+        $buyGateway = $messagingSystem
+            ->getNonProxyGatewayByName('combinedGateway::buy');
+        $sellGateway = $messagingSystem
+            ->getNonProxyGatewayByName('combinedGateway::sell');
 
-        $combinedGateway->executeMethod('buy', []);
+        $buyGateway->execute([]);
         $this->assertNotNull($messagingSystem->getMessageChannelByName('buy')->receive());
         $this->assertNull($messagingSystem->getMessageChannelByName('sell')->receive());
 
-        $combinedGateway->executeMethod('sell', []);
+        $sellGateway->execute([]);
         $this->assertNull($messagingSystem->getMessageChannelByName('buy')->receive());
         $this->assertNotNull($messagingSystem->getMessageChannelByName('sell')->receive());
     }
@@ -1719,8 +1653,9 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('sell'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
-        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName('combinedGateway'));
-        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName('gateway'));
+        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName('combinedGateway::buy'));
+        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName('combinedGateway::sell'));
+        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName('gateway::buy'));
     }
 
     public function test_building_non_proxy_gateway_for_single_method()
@@ -1738,7 +1673,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messagingSystem->getMessageChannelByName('replyChannel')->send(MessageBuilder::withPayload('some')->build());
 
         $combinedGateway = $messagingSystem
-            ->getNonProxyGatewayByName('combinedGateway');
+            ->getNonProxyGatewayByName('combinedGateway::buy');
 
         $this->assertEquals('some', $combinedGateway->executeMethod('buy', []));
         $this->assertNotNull($messagingSystem->getMessageChannelByName('buy')->receive());

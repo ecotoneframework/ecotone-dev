@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Messaging\Unit\Config\Container;
 
 use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use PHPUnit\Framework\TestCase;
@@ -14,7 +14,7 @@ class ResolveDefinedObjectsPassTest extends TestCase
 {
     public function test_it_resolves_simple_defined_objects()
     {
-        $builder = new ContainerMessagingBuilder();
+        $builder = new ContainerBuilder();
         $builder->register("someId", new SimpleDefinedObject(1, "aString"));
         $builder->addCompilerPass(new ResolveDefinedObjectsPass());
         $builder->compile();
@@ -26,7 +26,7 @@ class ResolveDefinedObjectsPassTest extends TestCase
 
     public function test_it_resolves_complex_defined_objects()
     {
-        $builder = new ContainerMessagingBuilder();
+        $builder = new ContainerBuilder();
         $builder->register("someId", new ComplexDefinedObject(1, new SimpleDefinedObject(1, "aString"), ["a", new SimpleDefinedObject(2, "anotherString")]));
         $builder->addCompilerPass(new ResolveDefinedObjectsPass());
         $builder->compile();
@@ -51,7 +51,7 @@ class ResolveDefinedObjectsPassTest extends TestCase
 
     public function test_it_resolves_reference_to_same_object()
     {
-        $builder = new ContainerMessagingBuilder();
+        $builder = new ContainerBuilder();
         $aSingleton = new SimpleDefinedObject(1, "aSingleton");
         $differentReferenceToEqualObject = new SimpleDefinedObject(1, "aSingleton");
         $builder->register("someId", new ComplexDefinedObject(1, $aSingleton, [$aSingleton]));

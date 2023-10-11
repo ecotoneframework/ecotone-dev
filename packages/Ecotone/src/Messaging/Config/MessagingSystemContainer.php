@@ -7,6 +7,7 @@ use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
@@ -27,7 +28,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         return $this->container->get($gatewayReferenceName);
     }
 
-    public function getNonProxyGatewayByName(string $gatewayReferenceName): NonProxyCombinedGateway
+    public function getNonProxyGatewayByName(string $gatewayReferenceName): Gateway
     {
         return $this->container->get('gateway.'.$gatewayReferenceName);
     }

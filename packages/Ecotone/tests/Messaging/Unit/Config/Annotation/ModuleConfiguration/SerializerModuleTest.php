@@ -7,10 +7,11 @@ namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Lite\LiteContainerImplementation;
+use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConverterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SerializerModule;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -56,8 +57,7 @@ class SerializerModuleTest extends AnnotationConfigurationTest
             ExampleSingleConverterService::class => new ExampleSingleConverterService(),
             ServiceCacheConfiguration::REFERENCE_NAME => ServiceCacheConfiguration::noCache(),
         ]);
-        $configuration->buildInContainer(new LiteContainerImplementation($container));
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
+        $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($configuration, $container);
         /** @var Serializer $gateway */
         $gateway = $messagingSystem->getGatewayByName(Serializer::class);
 
@@ -84,8 +84,7 @@ class SerializerModuleTest extends AnnotationConfigurationTest
             ExampleSingleConverterService::class => new ExampleSingleConverterService(),
             ServiceCacheConfiguration::REFERENCE_NAME => ServiceCacheConfiguration::noCache(),
         ]);
-        $configuration->buildInContainer(new LiteContainerImplementation($container));
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
+        $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($configuration, $container);
 
         /** @var Serializer $gateway */
         $gateway = $messagingSystem->getGatewayByName(Serializer::class);

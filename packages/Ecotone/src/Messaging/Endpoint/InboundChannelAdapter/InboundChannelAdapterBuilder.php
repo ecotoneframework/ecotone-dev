@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -181,7 +182,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             throw InvalidArgumentException::create("{$this->interfaceToCall} for InboundChannelAdapter should not have any parameters");
         }
 
-        $objectReference = $this->directObject ? $this->directObject->getDefinition() : new Reference($this->referenceName);
+        $objectReference = $this->directObject ?: new Reference($this->referenceName);
         $methodName = $this->interfaceToCall->getMethodName();
         if ($this->interfaceToCall->hasReturnTypeVoid()) {
             if ($this->requestChannelName !== NullableMessageChannel::CHANNEL_NAME) {
@@ -193,6 +194,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         }
 
         $gateway = $this->inboundGateway->compile($builder);
+        $builder->register("polling.{$this->endpointId}.runner", Reference::to(PollingConsumerContext::class));
         $builder->register('polling.'.$this->endpointId.'.executor', new Definition(InboundChannelTaskExecutor::class, [
             $gateway,
             $objectReference,

@@ -10,14 +10,14 @@ use Psr\Container\ContainerInterface;
 
 class EcotoneRemoteAdapter implements AdapterInterface
 {
-    public function __construct(private ContainerInterface $container, private string $referenceName)
+    public function __construct(private ConfiguredMessagingSystem $messagingSystem, private string $referenceName)
     {
     }
 
     public function call(string $wrappedClass, string $method, array $params = [])
     {
         /** @var Gateway $gateway */
-        $gateway = $this->container->get('gateway.'.$this->referenceName.'::'.$method);
+        $gateway = $this->messagingSystem->getNonProxyGatewayByName($this->referenceName.'::'.$method);
         return $gateway->execute($params);
     }
 }

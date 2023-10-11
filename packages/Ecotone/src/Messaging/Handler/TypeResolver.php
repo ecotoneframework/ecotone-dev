@@ -8,7 +8,7 @@ use Ecotone\Messaging\Attribute\IgnoreDocblockTypeHint;
 use Ecotone\Messaging\Attribute\IsAbstract;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\AttributeReference;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
@@ -99,7 +99,7 @@ class TypeResolver
         return $parameters;
     }
 
-    public function registerInterfaceToCallDefinition(ContainerMessagingBuilder $builder, InterfaceToCallReference $reference): InterfaceToCallReference
+    public function registerInterfaceToCallDefinition(ContainerBuilder $builder, InterfaceToCallReference $reference): InterfaceToCallReference
     {
         if ($builder->has($reference)) {
             return $reference;
@@ -155,7 +155,7 @@ class TypeResolver
     /**
      * @return InterfaceParameterReference[]
      */
-    public function registerMethodParametersDefinitions(ContainerMessagingBuilder $builder, ReflectionClass $reflectionClass, string $methodName): array
+    public function registerMethodParametersDefinitions(ContainerBuilder $builder, ReflectionClass $reflectionClass, string $methodName): array
     {
         $parameters = [];
         $reflectionMethod = $reflectionClass->getMethod($methodName);
@@ -195,7 +195,7 @@ class TypeResolver
         return $parameters;
     }
 
-    private function registerAttributeDefinition(ContainerMessagingBuilder $builder, AttributeDefinition $attributeDefinition, string $className, ?string $methodName = null): Definition|Reference
+    private function registerAttributeDefinition(ContainerBuilder $builder, AttributeDefinition $attributeDefinition, string $className, ?string $methodName = null): Definition|Reference
     {
         $reference = new AttributeReference($attributeDefinition->getClassName(), $className, $methodName);
         if (! $builder->has($reference)) {

@@ -4,13 +4,13 @@ namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Psr\Container\ContainerInterface;
 
-class LiteContainerImplementation implements CompilerPass
+class InMemoryContainerImplementation implements CompilerPass
 {
     public function __construct(private InMemoryPSRContainer $container, private ?ContainerInterface $externalContainer = null)
     {
@@ -19,7 +19,7 @@ class LiteContainerImplementation implements CompilerPass
     /**
      * @inheritDoc
      */
-    public function process(ContainerMessagingBuilder $builder): void
+    public function process(ContainerBuilder $builder): void
     {
         $containerInstance = $this->externalContainer ? new CombinedContainer($this->container, $this->externalContainer) : $this->container;
         $this->container->set(ContainerInterface::class, $containerInstance);
@@ -53,7 +53,7 @@ class LiteContainerImplementation implements CompilerPass
         throw new \InvalidArgumentException("Reference {$id} was not found in definitions");
     }
 
-    private function resolveArgument(mixed $argument, ContainerMessagingBuilder $builder): mixed
+    private function resolveArgument(mixed $argument, ContainerBuilder $builder): mixed
     {
         if (is_array($argument)) {
             return array_map(fn($argument) => $this->resolveArgument($argument, $builder), $argument);

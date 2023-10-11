@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\CommandBus;
@@ -27,7 +28,7 @@ class LazyConfiguredMessagingSystem implements ConfiguredMessagingSystem
         return $this->getConfiguredSystem()->getGatewayByName($gatewayReferenceName);
     }
 
-    public function getNonProxyGatewayByName(string $gatewayReferenceName): NonProxyCombinedGateway
+    public function getNonProxyGatewayByName(string $gatewayReferenceName): Gateway
     {
         return $this->getConfiguredSystem()->getNonProxyGatewayByName($gatewayReferenceName);
     }

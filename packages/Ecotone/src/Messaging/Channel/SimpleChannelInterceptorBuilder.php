@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel;
 
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -17,39 +18,13 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  */
 class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
-    private int $precedence;
-    private string $channelName;
-    private string $referenceName;
-
-    /**
-     * SimpleChannelInterceptorBuilder constructor.
-     * @param int $precedence
-     * @param string $channelName
-     * @param string $referenceName
-     */
-    private function __construct(int $precedence, string $channelName, string $referenceName)
+    private function __construct(private int $precedence, private string $channelName, private $referenceName)
     {
-        $this->precedence = $precedence;
-        $this->channelName = $channelName;
-        $this->referenceName = $referenceName;
     }
 
-    /**
-     * @param string $channelName
-     * @param string $referenceName
-     * @return SimpleChannelInterceptorBuilder
-     */
-    public static function create(string $channelName, string $referenceName): self
+    public static function create(string $channelName, $referenceName): self
     {
         return new self(0, $channelName, $referenceName);
-    }
-
-    /**
-     * @deprecated
-     */
-    public static function createWithDirectObject(string $channelName, object $object): self
-    {
-        throw new \InvalidArgumentException("Direct object is not supported anymore");
     }
 
     /**
@@ -92,16 +67,8 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
         return [];
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
+    public function compile(ContainerMessagingBuilder $builder): object
     {
-        return $this->directObject ? $this->directObject : $referenceSearchService->get($this->referenceName);
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
-    {
-        return Reference::to($this->referenceName);
+        return \is_string($this->referenceName) ? Reference::to($this->referenceName) : $this->referenceName;
     }
 }

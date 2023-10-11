@@ -36,7 +36,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
     private int $precedence;
     private string $interceptorName;
     private Pointcut $pointcut;
-    private ?DefinedObject $directObject = null;
+    private ?object $directObject = null;
     private string $referenceName = '';
     /**
      * @var ParameterConverterBuilder[]
@@ -83,7 +83,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
     /**
      * @var ParameterConverterBuilder[] $parameterConverters
      */
-    public static function createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry $interfaceToCallRegistry, DefinedObject $referenceObject, string $methodName, int $precedence, string $pointcut): self
+    public static function createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry $interfaceToCallRegistry, object $referenceObject, string $methodName, int $precedence, string $pointcut): self
     {
         $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
         $interfaceToCall = $interfaceToCallRegistry->getFor($referenceObject, $methodName);
@@ -284,7 +284,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         }
 
         return new Definition(AroundMethodInterceptor::class, [
-            $this->directObject ? $this->directObject->getDefinition() : new Reference($this->referenceName),
+            $this->directObject ?: new Reference($this->referenceName),
             InterfaceToCallReference::fromInstance($this->interfaceToCall),
             $converterDefinitions,
             $hasMethodInvocation,

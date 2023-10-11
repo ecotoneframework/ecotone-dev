@@ -70,7 +70,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         return new self($objectToInvokeOnReferenceName, $interfaceToCall);
     }
 
-    public static function createWithDirectReference(DefinedObject $directObjectReference, string $methodName): self
+    public static function createWithDirectReference(object $directObjectReference, string $methodName): self
     {
         return (new self('', $methodName))
                         ->withDirectObjectReference($directObjectReference);
@@ -218,8 +218,8 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         $reference = $this->objectToInvokeReferenceName;
         $className = $this->getInterfaceName();
         if (! $this->isStaticallyCalled() && $this->directObjectReference) {
-            $reference = $this->directObjectReference->getDefinition();
-            $className = $reference->getClassName();
+            $reference = $this->directObjectReference;
+            $className = \get_class($reference);
         }
         if ($this->compiled) {
             throw new InvalidArgumentException("Trying to compile {$this} twice");

@@ -5,7 +5,7 @@ namespace Test\Ecotone\Messaging\Behat\Bootstrap;
 use Behat\Behat\Context\Context;
 use Behat\Gherkin\Node\TableNode;
 use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Lite\LiteContainerImplementation;
+use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -208,7 +208,7 @@ class DomainContext implements Context
         $this->getMessagingSystemConfiguration()
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder())
-            ->buildInContainer(new LiteContainerImplementation($this->inMemoryPsrContainer));
+            ->buildInContainer(new InMemoryContainerImplementation($this->inMemoryPsrContainer));
         $this->messagingSystem = $this->inMemoryPsrContainer->get(ConfiguredMessagingSystem::class);
     }
 

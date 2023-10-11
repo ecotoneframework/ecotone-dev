@@ -6,8 +6,6 @@ namespace Ecotone\Messaging\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
-use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Lite\LiteContainerImplementation;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\WithRequiredReferenceNameList;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
@@ -21,13 +19,10 @@ use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelResolverWithContainer;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
-use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
-use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
-use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InMemoryContainerImplementation;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\Container\ReferenceSearchServiceWithContainer;
 use Ecotone\Messaging\ConfigurationVariableService;
@@ -37,7 +32,7 @@ use Ecotone\Messaging\Conversion\ConverterBuilder;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerRunner;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
@@ -189,7 +184,7 @@ final class MessagingSystemConfiguration implements Configuration
      * @param object[] $extensionObjects
      * @param string[] $skippedModulesPackages
      */
-    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration)
+    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration, private ServiceCacheConfiguration $serviceCacheConfiguration)
     {
         $extensionObjects = array_merge($extensionObjects, $serviceConfiguration->getExtensionObjects());
         $extensionApplicationConfiguration = [];
@@ -273,36 +268,10 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     /**
-     * @param string[] $referenceNames
-     *
-     * @return Configuration
+     * @deprecated
      */
     public function requireReferences(array $referenceNames): Configuration
     {
-        foreach ($referenceNames as $referenceName) {
-            $isRequired = true;
-            if ($referenceName instanceof RequiredReference) {
-                $referenceName = $referenceName->getReferenceName();
-            } elseif ($referenceName instanceof OptionalReference) {
-                $isRequired = false;
-                $referenceName = $referenceName->getReferenceName();
-            }
-
-            if (in_array($referenceName, [InterfaceToCallRegistry::REFERENCE_NAME, ConversionService::REFERENCE_NAME])) {
-                continue;
-            }
-
-            if ($referenceName) {
-                if ($isRequired) {
-                    $this->requiredReferences[] = $referenceName;
-                } else {
-                    $this->optionalReferences[] = $referenceName;
-                }
-            }
-        }
-
-        $this->requiredReferences = array_unique($this->requiredReferences);
-
         return $this;
     }
 
@@ -786,7 +755,7 @@ final class MessagingSystemConfiguration implements Configuration
 
     public static function prepareWithDefaults(ModuleRetrievingService $moduleConfigurationRetrievingService, ?ServiceConfiguration $serviceConfiguration = null): MessagingSystemConfiguration
     {
-        return new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults());
+        return new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults(), ServiceCacheConfiguration::noCache());
     }
 
     public static function prepare(
@@ -880,6 +849,7 @@ final class MessagingSystemConfiguration implements Configuration
             $moduleConfigurationRetrievingService->findAllExtensionObjects(),
             $preparationInterfaceRegistry,
             $applicationConfiguration,
+            $serviceCacheConfiguration,
         );
 
         if ($serviceCacheConfiguration->shouldUseCache()) {
@@ -1305,17 +1275,18 @@ final class MessagingSystemConfiguration implements Configuration
     /**
      * @inheritDoc
      */
-    public function buildInContainer(CompilerPass $containerImplementation): void
+    public function process(ContainerBuilder $builder): void
     {
         $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
 
-        $builder = new ContainerMessagingBuilder($this->interfaceToCallRegistry);
+        $builder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry);
         $builder->register(Bridge::class, new Definition(Bridge::class));
         $builder->register('logger', new Definition(NullLogger::class));
         $builder->register(LoggerInterface::class, new Reference('logger'));
         $builder->register(Clock::class, new Definition(EpochBasedClock::class));
         $builder->register(ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
         $builder->register(ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
+        $builder->register(ServiceCacheConfiguration::class, $this->serviceCacheConfiguration);
 
         foreach ($this->serviceDefinitions as $id => $definition) {
             $builder->register($id, $definition);
@@ -1331,6 +1302,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
         $builder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters], 'createWith'));
         $builder->register(ExpressionEvaluationService::REFERENCE, new Definition(SymfonyExpressionEvaluationAdapter::class, factory: 'create'));
+        $builder->register(PollingConsumerContext::class, [new Reference(Clock::class), new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]);
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];
@@ -1400,29 +1372,21 @@ final class MessagingSystemConfiguration implements Configuration
             $referenceName = $gatewayBuilder->getReferenceName();
             if (! $builder->has($gatewayBuilder->getReferenceName())) {
                 $builder->register($gatewayBuilder->getReferenceName(), new Definition($gatewayBuilder->getReferenceName(), [
-                    'referenceName' => $gatewayBuilder->getReferenceName(),
-                    'container' => new Reference(ContainerInterface::class),
-                    'interface' => $gatewayBuilder->getInterfaceName(),
-                    'serviceCacheConfiguration' => new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
+                    $gatewayBuilder->getReferenceName(),
+                    new Reference(ConfiguredMessagingSystem::class),
+                    $gatewayBuilder->getInterfaceName(),
+                    new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
                 ], [ProxyFactory::class, 'createFor']));
             }
         }
-
-        $builder->addCompilerPass(new ResolveDefinedObjectsPass());
-        $builder->addCompilerPass(new RegisterInterfaceToCallReferences());
-        $builder->addCompilerPass($containerImplementation);
-        $builder->compile();
     }
 
     /**
      * @deprecated
      */
-    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService, ?ContainerImplementation $containerImplementation = null): ConfiguredMessagingSystem
+    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService): ConfiguredMessagingSystem
     {
-        $container = InMemoryPSRContainer::createEmpty();
-        $containerImplementation ??= new LiteContainerImplementation($container, $referenceSearchService);
-        $this->buildInContainer($containerImplementation);
-        return $container->get(ConfiguredMessagingSystem::class);
+        return ContainerConfig::buildMessagingSystemInMemoryContainer($this, $referenceSearchService);
     }
 
     /**

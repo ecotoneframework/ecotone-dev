@@ -25,7 +25,7 @@ use Ecotone\Messaging\Handler\Type;
  * @package Ecotone\Messaging\Config
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-interface Configuration
+interface Configuration extends CompilerPass
 {
     /**
      * @param MessageChannelBuilder $messageChannelBuilder
@@ -172,8 +172,6 @@ interface Configuration
      * @return ConfiguredMessagingSystem
      */
     public function buildMessagingSystemFromConfiguration(ReferenceSearchService $externalReferenceSearchService): ConfiguredMessagingSystem;
-
-    public function buildInContainer(CompilerPass $containerImplementation): void;
 
     public function registerServiceDefinition(string|Reference $id, Container\Definition $definition): Configuration;
 }

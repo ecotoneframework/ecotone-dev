@@ -13,6 +13,7 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageHandler;
 use LogicException;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Class DumbMessageHandlerBuilder
@@ -72,7 +73,7 @@ class DumbMessageHandlerBuilder extends InputOutputMessageHandlerBuilder impleme
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        throw new LogicException("Not implemented");
+        return $builder->register(Uuid::uuid4(), $this->messageHandler);
     }
 
     /**

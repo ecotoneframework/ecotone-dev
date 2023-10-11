@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\EcotoneRemoteAdapter;
+use Ecotone\Messaging\Config\MessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use ProxyManager\Configuration;
@@ -60,21 +62,21 @@ class ProxyFactory
         return $factory->createProxy($interfaceName);
     }
 
-    public static function createFor(string $referenceName, ContainerInterface $container, string $interface, ServiceCacheConfiguration $serviceCacheConfiguration): object
+    public static function createFor(string $referenceName, ConfiguredMessagingSystem $messagingSystem, string $interface, ServiceCacheConfiguration $serviceCacheConfiguration): object
     {
         $proxyFactory = self::createWithCache($serviceCacheConfiguration);
 
         return $proxyFactory->createProxyClassWithAdapter(
             $interface,
-            new EcotoneRemoteAdapter($container, $referenceName)
+            new EcotoneRemoteAdapter($messagingSystem, $referenceName)
         );
     }
 
-    public function createWithCurrentConfiguration(string $referenceName, ContainerInterface $container, string $interface): object
+    public function createWithCurrentConfiguration(string $referenceName, ConfiguredMessagingSystem $messagingSystem, string $interface): object
     {
         return $this->createProxyClassWithAdapter(
             $interface,
-            new EcotoneRemoteAdapter($container, $referenceName)
+            new EcotoneRemoteAdapter($messagingSystem, $referenceName)
         );
     }
 }

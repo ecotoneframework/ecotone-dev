@@ -27,18 +27,6 @@ class EventDrivenConsumerBuilder implements MessageHandlerConsumerBuilder
     /**
      * @inheritDoc
      */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, MessageHandlerBuilder $messageHandlerBuilder, PollingMetadata $pollingMetadata): ConsumerLifecycle
-    {
-        /** @var SubscribableChannel $subscribableChannel */
-        $subscribableChannel = $channelResolver->resolve($messageHandlerBuilder->getInputMessageChannelName());
-
-        return new EventDrivenConsumer(
-            $messageHandlerBuilder->getEndpointId(),
-            $subscribableChannel,
-            $messageHandlerBuilder->build($channelResolver, $referenceSearchService)
-        );
-    }
-
     public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
     {
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);

@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Lite;
 
 use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -42,14 +43,14 @@ abstract class ContainerImplementationTestCase extends TestCase
 
     private static function buildContainerFromDefinitions(array $definitions, ?ContainerInterface $externalContainer = null): ContainerInterface
     {
-        $builder = new ContainerMessagingBuilder();
+        $builder = new ContainerBuilder();
         foreach ($definitions as $id => $definition) {
             $builder->replace($id, $definition);
         }
         return static::getContainerFrom($builder, $externalContainer);
     }
 
-    abstract protected static function getContainerFrom(ContainerMessagingBuilder $builder, ?ContainerInterface $externalContainer = null): ContainerInterface;
+    abstract protected static function getContainerFrom(ContainerBuilder $builder, ?ContainerInterface $externalContainer = null): ContainerInterface;
 }
 
 /**

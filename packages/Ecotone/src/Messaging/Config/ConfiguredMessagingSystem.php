@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\CommandBus;
@@ -35,7 +36,7 @@ interface ConfiguredMessagingSystem
      * @param string $gatewayReferenceName
      * @throws InvalidArgumentException if trying to find not existing gateway reference
      */
-    public function getNonProxyGatewayByName(string $gatewayReferenceName): NonProxyCombinedGateway;
+    public function getNonProxyGatewayByName(string $gatewayReferenceName): Gateway;
 
     public function runConsoleCommand(string $commandName, array $parameters): mixed;
 

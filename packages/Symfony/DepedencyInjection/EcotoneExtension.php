@@ -2,6 +2,8 @@
 
 namespace Ecotone\SymfonyBundle\DepedencyInjection;
 
+use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -64,6 +66,12 @@ class EcotoneExtension extends Extension
 
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
 
+        $container->register(ServiceCacheConfiguration::class)
+            ->setArguments([
+                $serviceConfiguration->getCacheDirectoryPath(),
+                true,
+            ]);
+
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
             realpath(($container->hasParameter('kernel.project_dir') ? $container->getParameter('kernel.project_dir') : $container->getParameter('kernel.root_dir') . '/..')),
             $configurationVariableService,
@@ -71,13 +79,10 @@ class EcotoneExtension extends Extension
             new ServiceCacheConfiguration($serviceConfiguration->getCacheDirectoryPath(), true),
         );
 
-        $container->register(ServiceCacheConfiguration::class)
-            ->setArguments([
-                $serviceConfiguration->getCacheDirectoryPath(),
-                true,
-            ]);
-
-        $messagingConfiguration->buildInContainer(new SymfonyContainerAdapter($container));
-
+        $containerBuilder = new \Ecotone\Messaging\Config\Container\ContainerBuilder();
+        $containerBuilder->addCompilerPass($messagingConfiguration);
+        $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
+        $containerBuilder->addCompilerPass(new ResolveDefinedObjectsPass());
+        $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
     }
 }

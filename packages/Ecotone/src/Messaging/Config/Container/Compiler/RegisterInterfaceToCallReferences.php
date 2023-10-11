@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Container\Compiler;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
@@ -17,12 +17,12 @@ class RegisterInterfaceToCallReferences implements CompilerPass
         $this->typeResolver = TypeResolver::create();
     }
 
-    public function process(ContainerMessagingBuilder $builder): void
+    public function process(ContainerBuilder $builder): void
     {
         $this->registerAllReferences($builder->getDefinitions(), $builder);
     }
 
-    private function registerAllReferences($argument, ContainerMessagingBuilder $containerBuilder): void
+    private function registerAllReferences($argument, ContainerBuilder $containerBuilder): void
     {
         if ($argument instanceof Definition) {
             $this->registerAllReferences($argument->getConstructorArguments(), $containerBuilder);

@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Container\Compiler;
 
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -27,7 +28,7 @@ class ResolveDefinedObjectsPass implements CompilerPass
         return new Reference("defined_object." . \spl_object_id($definedObject));
     }
 
-    public function process(ContainerMessagingBuilder $builder): void
+    public function process(ContainerBuilder $builder): void
     {
         $definitions = $builder->getDefinitions();
         $this->countReferenceToSameDefinedObject($definitions);

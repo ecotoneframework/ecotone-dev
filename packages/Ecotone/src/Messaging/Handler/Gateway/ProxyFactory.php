@@ -41,10 +41,7 @@ class ProxyFactory
         return new self($serviceCacheConfiguration);
     }
 
-    /**
-     * @return Configuration
-     */
-    public function getConfiguration(): Configuration
+    private function getConfiguration(): Configuration
     {
         $configuration = new Configuration();
 

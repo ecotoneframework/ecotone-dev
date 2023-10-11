@@ -4,6 +4,9 @@ namespace Ecotone\Dbal\DocumentStore;
 
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -57,5 +60,10 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
     public function getRequiredReferenceNames(): array
     {
         return [];
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+
     }
 }

@@ -5,6 +5,9 @@ namespace Ecotone\EventSourcing\Config;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -75,5 +78,10 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
     public static function getProjectionManagerActionChannel(string $projectionManagerReference, string $methodName): string
     {
         return $projectionManagerReference . $methodName;
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        // TODO: Implement compile() method.
     }
 }

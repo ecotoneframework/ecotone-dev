@@ -6,6 +6,9 @@ use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -66,5 +69,10 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
     public function getRequiredReferenceNames(): array
     {
         return [];
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        // TODO: Implement compile() method.
     }
 }

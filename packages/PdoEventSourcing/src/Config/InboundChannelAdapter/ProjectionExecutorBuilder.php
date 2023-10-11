@@ -6,6 +6,9 @@ use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -60,5 +63,10 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
     public function getRequiredReferenceNames(): array
     {
         return [];
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        // TODO: Implement compile() method.
     }
 }

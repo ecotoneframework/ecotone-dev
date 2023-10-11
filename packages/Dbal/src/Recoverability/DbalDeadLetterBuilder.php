@@ -4,6 +4,9 @@ namespace Ecotone\Dbal\Recoverability;
 
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -191,5 +194,10 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public function getRequiredReferenceNames(): array
     {
         return [];
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        // TODO: Implement compile() method.
     }
 }

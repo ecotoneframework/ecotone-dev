@@ -197,5 +197,7 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);
         $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.executor", $executor);
         $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.channel", new Definition(DirectChannel::class, ['polling-connection-channel', $messageHandlerReference]));
+        // Alias to PollingConsumerContext singleton
+        $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.runner", new Reference(PollingConsumerContext::class));
     }
 }

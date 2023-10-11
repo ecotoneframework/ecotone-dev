@@ -15,13 +15,6 @@ use Ecotone\Messaging\MessageHandler;
 interface MessageHandlerBuilder extends CompilableBuilder
 {
     /**
-     * @param ChannelResolver $channelResolver
-     * @param ReferenceSearchService $referenceSearchService
-     * @return MessageHandler
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler;
-
-    /**
      * It returns, internal reference objects that will be called during handling method
      *
      * @param InterfaceToCallRegistry $interfaceToCallRegistry

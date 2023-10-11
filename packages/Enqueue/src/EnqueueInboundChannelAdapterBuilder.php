@@ -2,16 +2,14 @@
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 {
@@ -48,12 +46,10 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
             : NullEntrypointGateway::create();
     }
 
-    protected function buildGatewayFor(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver, PollingMetadata $pollingMetadata): InboundChannelAdapterEntrypoint
+    protected function compileGateway(ContainerMessagingBuilder $builder): InboundChannelAdapterEntrypoint
     {
         if (! $this->isNullableGateway()) {
-            return $this->inboundGateway
-                ->withErrorChannel($pollingMetadata->getErrorChannelName())
-                ->build($referenceSearchService, $channelResolver);
+            return $this->inboundGateway->compile($builder);
         }
 
         return $this->inboundGateway;
@@ -220,6 +216,4 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     {
         return $this->inboundGateway instanceof NullEntrypointGateway;
     }
-
-    abstract public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter;
 }

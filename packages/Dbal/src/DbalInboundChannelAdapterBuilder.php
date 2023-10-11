@@ -6,6 +6,9 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -38,5 +41,31 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper, EnqueueHeader::HEADER_ACKNOWLEDGE),
             $conversionService
         );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+            new Definition(DbalReconnectableConnectionFactory::class, [
+                new Reference($this->connectionReferenceName)
+            ])
+        ], 'createFor');
+        $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
+            $this->endpointId,
+            $this->acknowledgeMode,
+            DefaultHeaderMapper::createWith($this->headerMapper, [])->getDefinition(),
+            EnqueueHeader::HEADER_ACKNOWLEDGE
+        ]);
+
+        $builder->register('polling.'.$this->endpointId.'.executor', new Definition(DbalInboundChannelAdapter::class, [
+            $connectionFactory,
+            $this->compileGateway($builder),
+            $this->declareOnStartup,
+            $this->messageChannelName,
+            $this->receiveTimeoutInMilliseconds,
+            $inboundMessageConverter,
+            new Reference(ConversionService::REFERENCE_NAME)
+        ]));
+        return null;
     }
 }

@@ -264,12 +264,9 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                 }
             }
 
-            $handlerDefinition = new Definition(HandlerReplyProcessor::class, [
-                $handlerDefinition,
-            ]);
             $handlerDefinition = new Definition(AroundInterceptorHandler::class, [
                 $interceptors,
-                $handlerDefinition,
+                new Definition(HandlerReplyProcessor::class, [$handlerDefinition]),
             ]);
         }
         $this->compiled = $builder->register(uniqid((string) $this), $handlerDefinition);

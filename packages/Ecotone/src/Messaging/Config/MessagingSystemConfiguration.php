@@ -1365,6 +1365,14 @@ final class MessagingSystemConfiguration implements Configuration
             $builder->register($id, $object->compile($builder));
         }
 
+        foreach ($this->pollingMetadata as $pollingMetadata) {
+            $builder->register('polling.'.$pollingMetadata->getEndpointId().'.metadata', $pollingMetadata->getDefinition());
+        }
+
+        foreach ($this->channelAdapters as $channelAdapter) {
+            $channelAdapter->compile($builder);
+        }
+
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             $inputChannelBuilder = $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] ?? throw ConfigurationException::create("Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
             foreach ($this->consumerFactories as $consumerFactory) {
@@ -1389,10 +1397,6 @@ final class MessagingSystemConfiguration implements Configuration
                     'serviceCacheConfiguration' => new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
                 ], [ProxyFactory::class, 'createFor']));
             }
-        }
-
-        foreach ($this->pollingMetadata as $pollingMetadata) {
-            $builder->register('polling.'.$pollingMetadata->getEndpointId().'.metadata', $pollingMetadata->getDefinition());
         }
 
         $builder->process($containerImplementation);

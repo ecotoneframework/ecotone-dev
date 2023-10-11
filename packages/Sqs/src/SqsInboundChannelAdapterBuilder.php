@@ -10,7 +10,11 @@ use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
 use Ecotone\Enqueue\InboundMessageConverter;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -42,5 +46,32 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper, EnqueueHeader::HEADER_ACKNOWLEDGE),
             $conversionService
         );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+            new Definition(HttpReconnectableConnectionFactory::class, [
+                new Reference($this->connectionReferenceName)
+            ])
+        ], 'createFor');
+        $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
+            $this->endpointId,
+            $this->acknowledgeMode,
+            DefaultHeaderMapper::createWith($this->headerMapper, [])->getDefinition(),
+            EnqueueHeader::HEADER_ACKNOWLEDGE
+        ]);
+
+        $builder->register('polling.'.$this->endpointId.'.executor', new Definition(SqsInboundChannelAdapter::class, [
+            $connectionFactory,
+            $this->compileGateway($builder),
+            $this->declareOnStartup,
+            $this->messageChannelName,
+            $this->receiveTimeoutInMilliseconds,
+            $inboundMessageConverter,
+            new Reference(ConversionService::REFERENCE_NAME),
+        ]));
+
+        return null;
     }
 }

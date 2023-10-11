@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint\InboundChannelAdapter;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
@@ -167,37 +170,35 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         return false;
     }
 
-    /**
-     * @inheritDoc
-     */
-    protected function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): InboundChannelTaskExecutor
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        Assert::notNullAndEmpty($this->endpointId, "Endpoint Id for inbound channel adapter can't be empty");
+        // There was this code
+        // $pollingMetadata = $this->withContinuesPolling() ? $pollingMetadata->setFixedRateInMilliseconds(1) : $pollingMetadata;
 
-        $referenceService = $this->directObject ?: $referenceSearchService->get($this->referenceName);
+        Assert::notNullAndEmpty($this->endpointId, "Endpoint Id for inbound channel adapter can't be empty");
 
         if (! $this->interfaceToCall->hasNoParameters()) {
             throw InvalidArgumentException::create("{$this->interfaceToCall} for InboundChannelAdapter should not have any parameters");
         }
 
+        $objectReference = $this->directObject ? $this->directObject->getDefinition() : new Reference($this->referenceName);
         $methodName = $this->interfaceToCall->getMethodName();
         if ($this->interfaceToCall->hasReturnTypeVoid()) {
             if ($this->requestChannelName !== NullableMessageChannel::CHANNEL_NAME) {
                 throw InvalidArgumentException::create("{$this->interfaceToCall} for InboundChannelAdapter should not be void, if channel name is not nullChannel");
             }
 
-            $referenceService = new PassThroughService($referenceService, $methodName);
+            $objectReference = new Definition(PassThroughService::class, [$objectReference, $methodName]);
             $methodName = 'execute';
         }
 
-        $gateway = $this->inboundGateway
-            ->buildWithoutProxyObject($referenceSearchService, $channelResolver);
-
-        return new InboundChannelTaskExecutor(
+        $gateway = $this->inboundGateway->compile($builder);
+        $builder->register('polling.'.$this->endpointId.'.executor', new Definition(InboundChannelTaskExecutor::class, [
             $gateway,
-            $referenceService,
+            $objectReference,
             $methodName
-        );
+        ]));
+        return null;
     }
 
 

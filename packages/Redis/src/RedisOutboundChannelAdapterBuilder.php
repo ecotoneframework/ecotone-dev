@@ -8,11 +8,15 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageHandler;
 use Enqueue\Redis\RedisConnectionFactory;
+use Ramsey\Uuid\Uuid;
 
 final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
@@ -50,5 +54,31 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
             ),
             $conversionService
         );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+            new Definition(HttpReconnectableConnectionFactory::class, [
+                new Reference($this->connectionFactoryReferenceName)
+            ])
+        ], 'createFor');
+
+        $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
+            $this->headerMapper->getDefinition(),
+            $this->defaultConversionMediaType->getDefinition(),
+            $this->defaultDeliveryDelay,
+            $this->defaultTimeToLive,
+            $this->defaultPriority,
+            []
+        ]);
+
+        return $builder->register(Uuid::uuid4()->toString(), new Definition(RedisOutboundChannelAdapter::class, [
+            $connectionFactory,
+            $this->queueName,
+            $this->autoDeclare,
+            $outboundMessageConverter,
+            new Reference(ConversionService::REFERENCE_NAME)
+        ]));
     }
 }

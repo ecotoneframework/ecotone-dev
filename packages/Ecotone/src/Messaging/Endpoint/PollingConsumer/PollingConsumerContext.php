@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
+use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapter;
 use Ecotone\Messaging\Endpoint\InterceptedConsumer;
@@ -16,7 +17,7 @@ use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
-class PollingConsumerContext
+class PollingConsumerContext implements EndpointRunner
 {
     private ?PollingMetadata $currentPollingMetadata = null;
     /**
@@ -47,7 +48,10 @@ class PollingConsumerContext
         return $this->consumerInterceptors;
     }
 
-    public function runEndpointWithExecutionPollingMetadata(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata)
+    /**
+     * @inheritDoc
+     */
+    public function runEndpointWithExecutionPollingMetadata(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata): void
     {
         $this->currentPollingMetadata = $this->getPollingMetadataForEndpoint($endpointId)->applyExecutionPollingMetadata($executionPollingMetadata);
 

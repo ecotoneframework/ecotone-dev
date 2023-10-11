@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -73,8 +74,8 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function run(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
-        /** @var PollingConsumerContext $pollingConsumerContext */
-        $pollingConsumerContext = $this->container->get(PollingConsumerContext::class);
+        /** @var EndpointRunner $pollingConsumerContext */
+        $pollingConsumerContext = $this->container->get("polling.{$endpointId}.runner");
         $pollingConsumerContext->runEndpointWithExecutionPollingMetadata($endpointId, $executionPollingMetadata);
     }
 

@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint;
 
-use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 /**
  * Interface ConsumerBuilder
  * @package Ecotone\Messaging\Endpoint
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder, InterceptedEndpoint
+interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder, InterceptedEndpoint, CompilableBuilder
 {
     /**
      * @return string
@@ -37,14 +36,4 @@ interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder, Interc
      * @return $this
      */
     public function addAfterInterceptor(MethodInterceptor $methodInterceptor): self;
-
-
-    /**
-     * @param ChannelResolver $channelResolver
-     * @param ReferenceSearchService $referenceSearchService
-     *
-     * @param PollingMetadata $pollingMetadata
-     * @return ConsumerLifecycle
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): ConsumerLifecycle;
 }

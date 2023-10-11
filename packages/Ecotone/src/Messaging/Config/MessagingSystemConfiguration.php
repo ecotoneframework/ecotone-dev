@@ -26,7 +26,6 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -50,11 +49,7 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
 use Exception;
-use ProxyManager\Autoloader\AutoloaderInterface;
 use Ramsey\Uuid\Uuid;
-
-use function spl_autoload_register;
-use function spl_autoload_unregister;
 
 /**
  * Class Configuration
@@ -63,8 +58,6 @@ use function spl_autoload_unregister;
  */
 final class MessagingSystemConfiguration implements Configuration
 {
-    private static ?AutoloaderInterface $registered_autoloader = null;
-
     /**
      * @var MessageChannelBuilder[]
      */
@@ -1273,9 +1266,6 @@ final class MessagingSystemConfiguration implements Configuration
         $referenceSearchService = $this->prepareReferenceSearchServiceWithInternalReferences($referenceSearchService, $converters, $interfaceToCallRegistry);
         /** @var ServiceCacheConfiguration $serviceCacheConfiguration */
         $serviceCacheConfiguration = $referenceSearchService->get(ServiceCacheConfiguration::class);
-        /** @var ProxyFactory $proxyFactory */
-        $proxyFactory = ProxyFactory::createWithCache($serviceCacheConfiguration);
-        $this->registerAutoloader($proxyFactory->getConfiguration()->getProxyAutoloader());
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];
@@ -1375,14 +1365,5 @@ final class MessagingSystemConfiguration implements Configuration
                 $this->afterCallMethodInterceptors
             )
         );
-    }
-
-    private function registerAutoloader(AutoloaderInterface $autoloader)
-    {
-        if (self::$registered_autoloader) {
-            spl_autoload_unregister(self::$registered_autoloader);
-        }
-        spl_autoload_register($autoloader);
-        self::$registered_autoloader = $autoloader;
     }
 }

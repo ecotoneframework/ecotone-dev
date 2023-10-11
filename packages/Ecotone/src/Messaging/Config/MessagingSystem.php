@@ -144,14 +144,8 @@ final class MessagingSystem implements ConfiguredMessagingSystem
             foreach ($messageHandlerConsumerFactories as $messageHandlerConsumerBuilder) {
                 if ($messageHandlerConsumerBuilder->isSupporting($messageHandlerBuilder, $messageChannel)) {
                     if ($messageHandlerConsumerBuilder->isPollingConsumer()) {
-                        $consumerBuilderForGivenHandler = $messageHandlerConsumerBuilder;
-                        if ($messageHandlerConsumerBuilder instanceof InterceptedEndpoint) {
-                            $consumerBuilderForGivenHandler = clone $messageHandlerConsumerBuilder;
-                            $consumerBuilderForGivenHandler->withEndpointAnnotations([new AsynchronousRunningEndpoint($messageHandlerBuilder->getEndpointId())]);
-                        }
-
                         $pollingConsumerBuilders[$messageHandlerBuilder->getEndpointId()] = [
-                            self::CONSUMER_BUILDER => $consumerBuilderForGivenHandler,
+                            self::CONSUMER_BUILDER => $messageHandlerConsumerBuilder,
                             self::CONSUMER_HANDLER => $messageHandlerBuilder,
                         ];
                     } else {

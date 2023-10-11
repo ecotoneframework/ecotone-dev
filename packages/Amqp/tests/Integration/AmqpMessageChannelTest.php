@@ -182,6 +182,8 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withFailFast(false),
         );
+        
+        $ecotoneLite->run('incorrectOrdersEndpoint');
 
         /** https://www.rabbitmq.com/channels.html */
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');

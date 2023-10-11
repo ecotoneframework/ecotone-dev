@@ -18,6 +18,7 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
+use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
@@ -661,12 +662,12 @@ final class MessagingSystemConfiguration implements Configuration
                 continue;
             }
 
+            /** Name will be provided during build for given Message Handler. Looking in PollingConsumerBuilder. This is only for pointcut lookup */
             $endpointAnnotations = [new AsynchronousRunningEndpoint('')];
             if ($this->aroundMethodInterceptors) {
                 $aroundInterceptors = $this->getRelatedInterceptors(
                     $this->aroundMethodInterceptors,
                     $consumerFactory->getInterceptedInterface($interfaceRegistry),
-                    /** Name will be provided during build for given Message Handler. Looking in MessagingSystem */
                     $endpointAnnotations,
                     $consumerFactory->getRequiredInterceptorNames(),
                     $interfaceRegistry

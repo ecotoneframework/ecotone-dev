@@ -17,13 +17,17 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\ChannelResolverWithContainer;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InMemoryContainerImplementation;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\Container\ReferenceSearchServiceWithContainer;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -33,8 +37,10 @@ use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
+use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
@@ -60,11 +66,15 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
+use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
 use Exception;
 use ProxyManager\Autoloader\AutoloaderInterface;
 use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Ramsey\Uuid\Uuid;
 use function is_a;
 use function spl_autoload_register;
@@ -1298,6 +1308,12 @@ final class MessagingSystemConfiguration implements Configuration
         $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
 
         $builder = new ContainerMessagingBuilder($this->interfaceToCallRegistry);
+        $builder->register(Bridge::class, new Definition(Bridge::class));
+        $builder->register('logger', new Definition(NullLogger::class));
+        $builder->register(LoggerInterface::class, new Reference('logger'));
+        $builder->register(Clock::class, new Definition(EpochBasedClock::class));
+        $builder->register(ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
+        $builder->register(ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
 
         foreach ($this->serviceDefinitions as $id => $definition) {
             $builder->register($id, $definition);
@@ -1390,6 +1406,8 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
+        $builder->addCompilerPass(new ResolveDefinedObjectsPass());
+        $builder->addCompilerPass(new RegisterInterfaceToCallReferences());
         $builder->addCompilerPass($containerImplementation);
         $builder->compile();
     }

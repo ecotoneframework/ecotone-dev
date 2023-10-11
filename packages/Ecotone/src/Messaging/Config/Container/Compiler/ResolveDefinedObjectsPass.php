@@ -22,6 +22,11 @@ class ResolveDefinedObjectsPass implements CompilerPass
      */
     private array $referenceToRegister = [];
 
+    public static function referenceForDefinedObject(DefinedObject $definedObject): Reference
+    {
+        return new Reference("defined_object." . \spl_object_id($definedObject));
+    }
+
     public function process(ContainerMessagingBuilder $builder): void
     {
         $definitions = $builder->getDefinitions();
@@ -71,7 +76,7 @@ class ResolveDefinedObjectsPass implements CompilerPass
             if ($this->resolvedObjectsReferenceCount[$objectId] === 1) {
                 return $this->convertDefinition($argument->getDefinition());
             } else {
-                $referenceId = new Reference('defined_object.'.$objectId);
+                $referenceId = self::referenceForDefinedObject($argument);
                 $this->referenceToRegister[(string) $referenceId] = $this->convertDefinition($argument->getDefinition());
                 return $referenceId;
             }

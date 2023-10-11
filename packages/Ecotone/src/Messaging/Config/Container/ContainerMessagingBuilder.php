@@ -46,14 +46,6 @@ class ContainerMessagingBuilder
     public function __construct(?InterfaceToCallRegistry $interfaceToCallRegistry = null)
     {
         $this->interfaceToCallRegistry = $interfaceToCallRegistry ?? InterfaceToCallRegistry::createEmpty();
-        $this->definitions[Bridge::class] = new Definition(Bridge::class);
-        $this->definitions['logger'] = new Definition(NullLogger::class);
-        $this->definitions[LoggerInterface::class] = new Reference('logger');
-        $this->definitions[Clock::class] = new Definition(EpochBasedClock::class);
-        $this->definitions[ChannelResolver::class] = new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]);
-        $this->definitions[ReferenceSearchService::class] = new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]);
-        $this->addCompilerPass(new ResolveDefinedObjectsPass());
-        $this->addCompilerPass(new RegisterInterfaceToCallReferences());
     }
 
     public function register(string|Reference $id, Definition|Reference|DefinedObject|array $definition = []): Reference

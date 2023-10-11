@@ -448,7 +448,7 @@ final class PollingMetadata implements DefinedObject
             $this->executionAmountLimit,
             $this->maxMessagePerPoll,
             $this->executionTimeLimitInMilliseconds,
-            $this->connectionRetryTemplate->getDefinition(),
+            $this->connectionRetryTemplate,
             $this->withSignalInterceptors,
             $this->triggerReferenceName,
             $this->taskExecutorName,

@@ -487,7 +487,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
         }
         $internalHandlerReference = $this->compileGatewayInternalHandler($builder);
         if (! $internalHandlerReference) {
-            return null;
+            throw InvalidArgumentException::create("Cannot compile gateway {$this->interfaceName}::{$this->methodName} because internal handler was not compiled");
         }
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);

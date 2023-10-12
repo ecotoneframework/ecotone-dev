@@ -143,7 +143,7 @@ class TypeResolver
                 $classAnnotations,
                 $methodAnnotations,
                 $parametersReferences,
-                Definition::fromType($returnType),
+                $returnType,
                 $doesReturnTypeAllowNulls,
                 $isStaticallyCalled,
             ])
@@ -182,7 +182,7 @@ class TypeResolver
                 $reference,
                 new Definition(InterfaceParameter::class, [
                     $parameter->getName(),
-                    Definition::fromType($parameterType),
+                    $parameterType,
                     $parameter->getType() ? $parameter->getType()->allowsNull() : true,
                     $parameter->isDefaultValueAvailable(),
                     $parameter->isDefaultValueAvailable() ? $parameter->getDefaultValue() : null,

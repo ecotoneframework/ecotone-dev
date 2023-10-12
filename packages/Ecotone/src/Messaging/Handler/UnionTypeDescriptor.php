@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\MessagingException;
 
 /**
@@ -11,7 +13,7 @@ use Ecotone\Messaging\MessagingException;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class UnionTypeDescriptor implements Type
+class UnionTypeDescriptor implements Type, DefinedObject
 {
     /**
      * @var TypeDescriptor[]
@@ -407,5 +409,10 @@ class UnionTypeDescriptor implements Type
     public function __toString()
     {
         return $this->toString();
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class, [$this->typeDescriptors]);
     }
 }

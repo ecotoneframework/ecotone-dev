@@ -81,8 +81,8 @@ class ReferenceServiceConverterBuilder implements ConverterBuilder
         return new Definition(ReferenceServiceConverter::class, [
             new Reference($this->referenceName),
             $this->methodName,
-            Definition::fromType($this->sourceType),
-            Definition::fromType($this->targetType),
+            $this->sourceType,
+            $this->targetType,
         ]);
     }
 

@@ -92,7 +92,7 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
                 $this->aggregateClassName->getClassType()->toString(),
                 new Reference(ConversionService::REFERENCE_NAME),
                 new Reference(PropertyReaderAccessor::class),
-                Definition::fromType($this->typeToConvertTo),
+                $this->typeToConvertTo,
                 $this->metadataIdentifierMapping,
                 $this->payloadIdentifierMapping,
             ]

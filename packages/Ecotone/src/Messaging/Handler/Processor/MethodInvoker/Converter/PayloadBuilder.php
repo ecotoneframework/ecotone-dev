@@ -74,7 +74,7 @@ class PayloadBuilder implements ParameterConverterBuilder
             new Reference(ConversionService::REFERENCE_NAME),
             '',
             '',
-            Definition::fromType($interfaceParameter->getTypeDescriptor()),
+            $interfaceParameter->getTypeDescriptor(),
         ]);
     }
 }

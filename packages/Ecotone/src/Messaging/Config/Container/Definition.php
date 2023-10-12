@@ -9,7 +9,6 @@ use function get_class;
 
 class Definition
 {
-    private bool $isLazy = false;
     /**
      * @var MethodCall[]
      */
@@ -20,13 +19,6 @@ class Definition
      */
     public function __construct(protected string $className, protected array $constructorArguments = [], protected string|array $factory = '')
     {
-    }
-
-    public static function fromType(Type $type): self
-    {
-        $typeDescriptorArgument = $type instanceof UnionTypeDescriptor ? $type->getUnionTypes() : $type->toString();
-
-        return new self(get_class($type), [$typeDescriptorArgument]);
     }
 
     public function getClassName(): string
@@ -72,17 +64,6 @@ class Definition
     {
         $this->factory = $factory;
         return $this;
-    }
-
-    public function lazy(bool $isLazy = true): self
-    {
-        $this->isLazy = $isLazy;
-        return $this;
-    }
-
-    public function islLazy(): bool
-    {
-        return $this->isLazy;
     }
 
     public function addMethodCall(string $string, array $array)

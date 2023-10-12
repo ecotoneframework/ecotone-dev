@@ -4,6 +4,7 @@ namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Psr\Container\ContainerInterface;
@@ -47,6 +48,9 @@ class InMemoryContainerImplementation implements CompilerPass
         } else if ($argument instanceof Reference) {
             return $this->resolveReference($argument, $builder);
         } else {
+            if (\is_object($argument) && ! ($argument instanceof DefinedObject)) {
+                echo "Argument is not a self defined object: " . \get_class($argument) . "\n";
+            }
             return $argument;
         }
     }
@@ -57,8 +61,10 @@ class InMemoryContainerImplementation implements CompilerPass
         if ($definition->hasFactory()) {
             $factory = $definition->getFactory();
             if (\method_exists($factory[0], $factory[1]) && (new \ReflectionMethod($factory[0], $factory[1]))->isStatic()) {
+                // static call
                 return $factory(...$arguments);
             } else {
+                // method call from a service instance
                 $service = $this->resolveReference(new Reference($factory[0]), $builder);
                 return $service->{$factory[1]}(...$arguments);
             }

@@ -16,7 +16,7 @@ class Definition
     private array $methodCalls = [];
 
     /**
-     * @param array<string|int, Definition|Reference|DefinedObject|int|string> $constructorArguments
+     * @param array<string|int, mixed> $constructorArguments
      */
     public function __construct(protected string $className, protected array $constructorArguments = [], protected string|array $factory = '')
     {

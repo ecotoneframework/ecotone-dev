@@ -124,10 +124,6 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        if (! ($this->messageChannel instanceof DefinedObject)) {
-            $class = get_class($this->messageChannel);
-            throw new InvalidArgumentException("Unsupported channel {$this->messageChannelName} : {$class}");
-        }
         $channelReference = new ChannelReference($this->messageChannelName);
         $definition = $this->messageChannel->getDefinition();
         $builder->register($channelReference, $definition);

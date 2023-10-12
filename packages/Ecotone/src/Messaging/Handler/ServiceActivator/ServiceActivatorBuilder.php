@@ -169,52 +169,8 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         return $this->methodParameterConverterBuilders;
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        if ($this->compiled) {
-            return $referenceSearchService->get(ContainerImplementation::REFERENCE_ID)->get((string) $this->compiled);
-        }
-        $objectToInvoke = $this->objectToInvokeReferenceName;
-        if (! $this->isStaticallyCalled()) {
-            $objectToInvoke = $this->directObjectReference ? $this->directObjectReference : $referenceSearchService->get($this->objectToInvokeReferenceName);
-        }
-
-        /** @var InterfaceToCallRegistry $interfaceToCallRegistry */
-        $interfaceToCallRegistry = $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME);
-        $interfaceToCall = $interfaceToCallRegistry->getFor($objectToInvoke, $this->getMethodName());
-
-        $messageProcessor = MethodInvoker::createWith(
-            $interfaceToCall,
-            $objectToInvoke,
-            $this->methodParameterConverterBuilders,
-            $referenceSearchService,
-            $this->getEndpointAnnotations()
-        );
-        if ($this->shouldWrapResultInMessage) {
-            $messageProcessor = WrapWithMessageBuildProcessor::createWith(
-                $interfaceToCall,
-                $messageProcessor,
-            );
-        }
-
-        return RequestReplyProducer::createRequestAndReply(
-            $this->outputMessageChannelName,
-            $messageProcessor,
-            $channelResolver,
-            $this->isReplyRequired,
-            $this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid(),
-            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $this->annotatedInterfaceToCall ?? $interfaceToCall),
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Reference|null
     {
-        if ($this->directObjectReference && ! $this->directObjectReference instanceof DefinedObject) {
-            return null;
-        }
         $reference = $this->objectToInvokeReferenceName;
         $className = $this->getInterfaceName();
         if (! $this->isStaticallyCalled() && $this->directObjectReference) {

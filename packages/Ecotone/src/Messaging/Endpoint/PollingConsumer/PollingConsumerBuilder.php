@@ -156,8 +156,6 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
         if ($this->compiledGatewayReference) {
             return $this->compiledGatewayReference;
         }
-        $builder->register(PollingConsumerPostSendAroundInterceptor::class, [new Reference(PollingConsumerContext::class)]);
-        $builder->register(PollingConsumerErrorInterceptor::class, [new Reference(PollingConsumerContext::class), new Reference(ChannelResolver::class)]);
         $builder->register(new ChannelReference($this->requestChannelName), new Definition(PollingConsumerChannel::class, [
             new Reference(PollingConsumerContext::class),
         ]));

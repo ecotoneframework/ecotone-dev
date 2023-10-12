@@ -51,8 +51,6 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
 
     public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
     {
-        $builder->register(PollingConsumerContext::class, [new Reference(Clock::class), new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]);
-
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);
         $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.runner", new Definition(PollOrThrowExceptionConsumer::class, [
             Reference::toChannel($messageHandlerBuilder->getInputMessageChannelName()),

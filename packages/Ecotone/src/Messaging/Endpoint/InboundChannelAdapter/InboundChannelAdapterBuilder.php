@@ -6,11 +6,13 @@ namespace Ecotone\Messaging\Endpoint\InboundChannelAdapter;
 
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerPostSendAroundInterceptor;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -22,6 +24,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\NullableMessageChannel;
+use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
@@ -192,8 +195,16 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             $objectReference = new Definition(PassThroughService::class, [$objectReference, $methodName]);
             $methodName = 'execute';
         }
-
-        $gateway = $this->inboundGateway->compile($builder);
+        $gatewayBuilder = clone $this->inboundGateway;
+        $gateway = $gatewayBuilder
+            ->addAroundInterceptor(
+                AroundInterceptorReference::create(
+                    PollingConsumerPostSendAroundInterceptor::class,
+                    $builder->getInterfaceToCall(new InterfaceToCallReference(PollingConsumerPostSendAroundInterceptor::class, 'postSend')),
+                    Precedence::ASYNCHRONOUS_CONSUMER_INTERCEPTOR_PRECEDENCE,
+                )
+            )
+            ->compile($builder);
         $builder->register("polling.{$this->endpointId}.runner", Reference::to(PollingConsumerContext::class));
         $builder->register('polling.'.$this->endpointId.'.executor', new Definition(InboundChannelTaskExecutor::class, [
             $gateway,

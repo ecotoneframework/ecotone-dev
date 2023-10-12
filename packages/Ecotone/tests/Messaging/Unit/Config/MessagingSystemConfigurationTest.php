@@ -1675,7 +1675,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $combinedGateway = $messagingSystem
             ->getNonProxyGatewayByName('combinedGateway::buy');
 
-        $this->assertEquals('some', $combinedGateway->executeMethod('buy', []));
+        $this->assertEquals('some', $combinedGateway->execute([]));
         $this->assertNotNull($messagingSystem->getMessageChannelByName('buy')->receive());
         $this->assertEquals(
             [new GatewayReference('combinedGateway', SingleMethodGatewayExample::class)],

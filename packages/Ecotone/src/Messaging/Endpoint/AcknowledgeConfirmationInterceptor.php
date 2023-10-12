@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Endpoint;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
@@ -25,13 +26,13 @@ use Throwable;
  */
 class AcknowledgeConfirmationInterceptor implements DefinedObject
 {
-    private function __construct(private bool $shouldStopOnError)
+    private function __construct()
     {
     }
 
-    public static function createAroundInterceptor(InterfaceToCallRegistry $interfaceToCallRegistry, PollingMetadata $pollingMetadata): AroundInterceptorReference
+    public static function createAroundInterceptor(InterfaceToCallRegistry $interfaceToCallRegistry): AroundInterceptorReference
     {
-        return AroundInterceptorReference::createWithDirectObjectAndResolveConverters($interfaceToCallRegistry, new self($pollingMetadata->isStoppedOnError()), 'ack', Precedence::MESSAGE_ACKNOWLEDGE_PRECEDENCE, '');
+        return AroundInterceptorReference::createWithDirectObjectAndResolveConverters($interfaceToCallRegistry, new self(), 'ack', Precedence::MESSAGE_ACKNOWLEDGE_PRECEDENCE, '');
     }
 
     /**
@@ -41,7 +42,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
      * @throws Throwable
      * @throws MessagingException
      */
-    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference('logger')] LoggerInterface $logger)
+    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference('logger')] LoggerInterface $logger, #[Reference] PollingConsumerContext $pollingConsumerContext)
     {
         $logger->info(
             sprintf(
@@ -84,7 +85,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
             }
         }
 
-        if ($this->shouldStopOnError && $exception !== null) {
+        if ($pollingConsumerContext->isStoppedOnError() === true && $exception !== null) {
             $logger->info('Should stop on error configuration enabled, stopping Message Consumer.');
             throw $exception;
         }
@@ -94,6 +95,6 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->shouldStopOnError]);
+        return new Definition(self::class);
     }
 }

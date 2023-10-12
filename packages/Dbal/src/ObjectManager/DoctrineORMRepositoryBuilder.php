@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\Persistence\ManagerRegistry;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Modelling\EventSourcedRepository;
@@ -45,5 +48,25 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         $registry = $property->getValue($connectionFactory);
 
         return new ManagerRegistryRepository($registry, $this->relatedClasses);
+    }
+
+    public static function createFromManagerRegistryConnectionFactory(ManagerRegistryConnectionFactory $connectionFactory, ?array $relatedClasses)
+    {
+        // TODO: this seems really wrong to use reflection here
+        $registry = new ReflectionClass($connectionFactory);
+        $property = $registry->getProperty('registry');
+        $property->setAccessible(true);
+        /** @var ManagerRegistry $registry */
+        $registry = $property->getValue($connectionFactory);
+
+        return new ManagerRegistryRepository($registry, $relatedClasses);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): object|null
+    {
+        return new Definition(ManagerRegistryRepository::class, [
+            new Reference($this->connectionReferenceName),
+            $this->relatedClasses,
+        ], [self::class, 'createFromManagerRegistryConnectionFactory']);
     }
 }

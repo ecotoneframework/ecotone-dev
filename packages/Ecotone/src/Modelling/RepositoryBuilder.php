@@ -2,10 +2,11 @@
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 
-interface RepositoryBuilder
+interface RepositoryBuilder extends CompilableBuilder
 {
     public function canHandle(string $aggregateClassName): bool;
 

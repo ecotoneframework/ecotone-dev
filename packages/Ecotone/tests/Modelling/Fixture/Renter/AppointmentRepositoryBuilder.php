@@ -2,6 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Renter;
 
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Modelling\EventSourcedRepository;
@@ -46,5 +48,10 @@ class AppointmentRepositoryBuilder implements RepositoryBuilder
     public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository|StandardRepository
     {
         return AppointmentStandardRepository::createWith($this->appointments);
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): object|null
+    {
+        return new Definition(AppointmentStandardRepository::class, [$this->appointments], 'createWith');
     }
 }

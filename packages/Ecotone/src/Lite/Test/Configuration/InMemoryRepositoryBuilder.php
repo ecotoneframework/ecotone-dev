@@ -16,7 +16,7 @@ use Ecotone\Modelling\InMemoryStandardRepository;
 use Ecotone\Modelling\RepositoryBuilder;
 use Ecotone\Modelling\StandardRepository;
 
-final class InMemoryRepositoryBuilder implements RepositoryBuilder, CompilableBuilder
+final class InMemoryRepositoryBuilder implements RepositoryBuilder
 {
     public function __construct(private array $aggregateClassNames, private bool $isEventSourced)
     {

@@ -6,6 +6,7 @@ use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
@@ -21,6 +22,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
+use Ramsey\Uuid\Uuid;
 
 class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 {
@@ -169,6 +171,40 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             ->build($channelResolver, $referenceSearchService);
     }
 
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    {
+        $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName;
+        if (!$builder->has($deadLetterHandlerReference)) {
+            $deadLetterHandler = new Definition(DbalDeadLetterHandler::class, [
+                new Definition(CachedConnectionFactory::class, [
+                    new Definition(DbalReconnectableConnectionFactory::class, [
+                        new Reference($this->connectionReferenceName)
+                    ])
+                ], 'createFor'),
+                DefaultHeaderMapper::createAllHeadersMapping(),
+                new Reference(ConversionService::REFERENCE_NAME)
+            ]);
+
+            $builder->register($deadLetterHandlerReference, $deadLetterHandler);
+        }
+
+        $messageHandler = ServiceActivatorBuilder::create(
+            $deadLetterHandlerReference,
+            new InterfaceToCallReference(DbalDeadLetterHandler::class, $this->methodName),
+        );
+
+        foreach ($this->orderedAroundInterceptors as $orderedAroundInterceptor) {
+            $messageHandler->addAroundInterceptor($orderedAroundInterceptor);
+        }
+
+        return $messageHandler
+            ->withMethodParameterConverters($this->parameterConverters)
+            ->withEndpointId($this->getEndpointId())
+            ->withInputChannelName($this->getInputMessageChannelName())
+            ->withOutputMessageChannel($this->getOutputMessageChannelName())
+            ->compile($builder);
+    }
+
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [
@@ -194,10 +230,5 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public function getRequiredReferenceNames(): array
     {
         return [];
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
-    {
-        // TODO: Implement compile() method.
     }
 }

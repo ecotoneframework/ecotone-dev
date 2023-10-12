@@ -34,6 +34,11 @@ class PollingConsumerContext implements EndpointRunner
         return $this->currentPollingMetadata?->getEndpointId();
     }
 
+    public function isStoppedOnError(): ?bool
+    {
+        return $this->currentPollingMetadata?->isStoppedOnError();
+    }
+
     public function getErrorChannelName(): string
     {
         return $this->currentPollingMetadata->getErrorChannelName();

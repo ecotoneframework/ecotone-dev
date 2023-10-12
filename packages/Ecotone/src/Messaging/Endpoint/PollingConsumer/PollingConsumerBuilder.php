@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
@@ -160,13 +161,13 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
             new Reference(PollingConsumerContext::class),
         ]));
         // TODO: Add this back in
-//        $gatewayBuilder->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor(
-//            $builder->getInterfaceToCallRegistry(),
-//            $pollingMetadata
-//        ));
+
         $gatewayBuilder = clone $this->entrypointGateway;
 
         return $this->compiledGatewayReference = $gatewayBuilder
+            ->addAroundInterceptor(
+                AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry(),)
+            )
             ->addAroundInterceptor(
                 AroundInterceptorReference::create(
                     PollingConsumerPostSendAroundInterceptor::class,
@@ -186,9 +187,6 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
 
     public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
     {
-//        if ($builder->has("polling.{$messageHandlerBuilder->getEndpointId()}.executor")) {
-//            return;
-//        }
         $executor = new Definition(PollerTaskExecutor::class, [
             $messageHandlerBuilder->getInputMessageChannelName(),
             new ChannelReference($messageHandlerBuilder->getInputMessageChannelName()),

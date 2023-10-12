@@ -17,8 +17,7 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
         private Message $message,
         private bool $isAutoAck = true,
         private bool $wasAcked = false
-    )
-    {
+    ) {
     }
 
     /**
@@ -42,7 +41,7 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
      */
     public function accept(): void
     {
-        Assert::isFalse($this->wasAcked, "Trying to acknowledge message that was already acknowledged");
+        Assert::isFalse($this->wasAcked, 'Trying to acknowledge message that was already acknowledged');
 
         $this->wasAcked = true;
     }

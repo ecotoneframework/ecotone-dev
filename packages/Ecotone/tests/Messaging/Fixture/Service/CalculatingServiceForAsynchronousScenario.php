@@ -36,7 +36,7 @@ class CalculatingServiceForAsynchronousScenario
     }
 
     #[Asynchronous('asyncOne')]
-    #[CommandHandler('getResultOne', endpointId: "getResultOneEndpoint")]
+    #[CommandHandler('getResultOne', endpointId: 'getResultOneEndpoint')]
     public function resultOne(int $amount): int
     {
         $this->lastResult = $amount;
@@ -44,7 +44,7 @@ class CalculatingServiceForAsynchronousScenario
     }
 
     #[Asynchronous('asyncTwo')]
-    #[CommandHandler('getResultTwo', endpointId: "getResultTwoEndpoint")]
+    #[CommandHandler('getResultTwo', endpointId: 'getResultTwoEndpoint')]
     public function resultTwo(int $amount): int
     {
         $this->lastResult = $amount;

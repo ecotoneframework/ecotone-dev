@@ -48,8 +48,7 @@ class PollingConsumerBuilder extends InterceptedMessageHandlerConsumerBuilder im
         private array $beforeInterceptors = [],
         private array $afterInterceptors = [],
         private array $endpointAnnotations = [],
-    )
-    {
+    ) {
 
     }
 

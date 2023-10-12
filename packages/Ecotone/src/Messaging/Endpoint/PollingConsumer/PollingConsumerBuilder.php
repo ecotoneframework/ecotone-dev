@@ -179,7 +179,7 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
                 AroundInterceptorReference::create(
                     PollingConsumerErrorInterceptor::class,
                     $builder->getInterfaceToCall(new InterfaceToCallReference(PollingConsumerErrorInterceptor::class, 'handle')),
-                    Precedence::ASYNCHRONOUS_CONSUMER_INTERCEPTOR_PRECEDENCE,
+                    Precedence::ERROR_CHANNEL_PRECEDENCE,
                 )
             )
             ->compile($builder);

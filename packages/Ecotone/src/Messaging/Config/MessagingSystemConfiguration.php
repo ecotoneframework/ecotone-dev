@@ -1283,8 +1283,8 @@ final class MessagingSystemConfiguration implements Configuration
 
         $builder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry);
         $builder->register(Bridge::class, new Definition(Bridge::class));
-        $builder->register('logger', new Definition(NullLogger::class));
-        $builder->register(LoggerInterface::class, new Reference('logger'));
+//        $builder->register('logger', new Definition(NullLogger::class));
+//        $builder->register(LoggerInterface::class, new Reference('logger'));
         $builder->register(Clock::class, new Definition(EpochBasedClock::class));
         $builder->register(ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
         $builder->register(ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));

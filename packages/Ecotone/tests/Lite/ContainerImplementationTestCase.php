@@ -36,9 +36,9 @@ abstract class ContainerImplementationTestCase extends TestCase
         $externalContainer = InMemoryPSRContainer::createFromAssociativeArray([
             "logger" => $logger,
         ]);
-        $container = self::buildContainerFromDefinitions(["logger" => new Definition(NullLogger::class)], $externalContainer);
+        $container = self::buildContainerFromDefinitions(["aReference" => new Reference('logger')], $externalContainer);
 
-        self::assertSame($logger, $container->get("logger"));
+        self::assertSame($logger, $container->get("aReference"));
     }
 
     private static function buildContainerFromDefinitions(array $definitions, ?ContainerInterface $externalContainer = null): ContainerInterface

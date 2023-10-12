@@ -119,52 +119,6 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         return $this;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        $aggregateRepository = $this->isEventSourced
-            ? LazyEventSourcedRepository::create(
-                $this->interfaceToCall->getInterfaceName(),
-                $this->isEventSourced,
-                $channelResolver,
-                $referenceSearchService,
-                $this->aggregateRepositoryReferenceNames
-            ) : LazyStandardRepository::create(
-                $this->interfaceToCall->getInterfaceName(),
-                $this->isEventSourced,
-                $channelResolver,
-                $referenceSearchService,
-                $this->aggregateRepositoryReferenceNames
-            );
-
-        $eventBus = $referenceSearchService->get(EventBus::class);
-
-        return ServiceActivatorBuilder::createWithDirectReference(
-            new SaveAggregateService(
-                $this->interfaceToCall,
-                $this->interfaceToCall->isStaticallyCalled(),
-                $this->isEventSourced,
-                $aggregateRepository,
-                PropertyEditorAccessor::create($referenceSearchService),
-                $this->getPropertyReaderAccessor(),
-                $eventBus,
-                $this->aggregateMethodWithEvents,
-                $this->aggregateIdentifierMapping,
-                $this->aggregateIdentifierGetMethods,
-                $this->aggregateVersionProperty,
-                $this->isAggregateVersionAutomaticallyIncreased,
-                $this->useSnapshot,
-                $this->snapshotTriggerThreshold,
-                $this->useSnapshot ? $referenceSearchService->get($this->documentStoreReference) : InMemoryDocumentStore::createEmpty()
-            ),
-            'save'
-        )
-            ->withOutputMessageChannel($this->outputMessageChannelName)
-            ->build($channelResolver, $referenceSearchService);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         // TODO: Duplication with LoadAggregateServiceBuilder
@@ -174,14 +128,14 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
-                $this->aggregateRepositoryReferenceNames,
+                array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create')
             : new Definition(LazyStandardRepository::class, [
                 $this->interfaceToCall->getInterfaceName(),
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
-                $this->aggregateRepositoryReferenceNames,
+                array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create');
 
         if (! $builder->has(PropertyEditorAccessor::class)) {
@@ -215,10 +169,10 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         $reference = $builder->register(uniqid(SaveAggregateService::class), $saveAggregateService);
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(SaveAggregateService::class, 'save'));
 
-        $serviceActivator = ServiceActivatorBuilder::create($reference, $interfaceToCall)
+        $serviceActivatorReference = ServiceActivatorBuilder::create($reference, $interfaceToCall)
             ->withOutputMessageChannel($this->outputMessageChannelName)
             ->compile($builder);
-        return $serviceActivator;
+        return $serviceActivatorReference;
     }
 
     /**

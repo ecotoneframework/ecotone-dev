@@ -57,43 +57,6 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         return $interfaceToCallRegistry->getFor($this->aggregateClassName, $this->methodName);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        $aggregateRepository = $this->isEventSourced
-            ? LazyEventSourcedRepository::create(
-                $this->aggregateClassName,
-                $this->isEventSourced,
-                $channelResolver,
-                $referenceSearchService,
-                $this->aggregateRepositoryReferenceNames
-            ) : LazyStandardRepository::create(
-                $this->aggregateClassName,
-                $this->isEventSourced,
-                $channelResolver,
-                $referenceSearchService,
-                $this->aggregateRepositoryReferenceNames
-            );
-
-        return ServiceActivatorBuilder::createWithDirectReference(
-            new LoadAggregateService(
-                $aggregateRepository,
-                $this->aggregateClassName,
-                $this->isEventSourced,
-                $this->methodName,
-                $this->messageVersionPropertyName,
-                $this->aggregateVersionPropertyName,
-                $this->isAggregateVersionAutomaticallyIncreased,
-                new PropertyReaderAccessor(),
-                PropertyEditorAccessor::create($referenceSearchService),
-                $this->eventSourcingHandlerExecutor,
-                $this->loadAggregateMode
-            ),
-            'load'
-        )
-            ->withOutputMessageChannel($this->getOutputMessageChannelName())
-            ->build($channelResolver, $referenceSearchService);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         $repository = $this->isEventSourced
@@ -102,14 +65,14 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
-                $this->aggregateRepositoryReferenceNames,
+                array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create')
             : new Definition(LazyStandardRepository::class, [
                 $this->aggregateClassName,
                 $this->isEventSourced,
                 new Reference(ChannelResolver::class),
                 new Reference(ReferenceSearchService::class),
-                $this->aggregateRepositoryReferenceNames,
+                array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create');
 
         if (! $builder->has(PropertyEditorAccessor::class)) {

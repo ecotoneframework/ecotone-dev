@@ -60,6 +60,14 @@ class ContainerBuilder
         return $this->definitions;
     }
 
+    /**
+     * @return array<string, Reference>
+     */
+    public function getExternalReferences(): array
+    {
+        return $this->externalReferences;
+    }
+
     public function compile(): void
     {
         foreach ($this->compilerPasses as $compilerPass) {

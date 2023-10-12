@@ -2,13 +2,13 @@
 
 namespace Ecotone\Lite;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class InMemoryContainerImplementation implements CompilerPass
 {
@@ -21,35 +21,16 @@ class InMemoryContainerImplementation implements CompilerPass
      */
     public function process(ContainerBuilder $builder): void
     {
-        $containerInstance = $this->externalContainer ? new CombinedContainer($this->container, $this->externalContainer) : $this->container;
-        $this->container->set(ContainerInterface::class, $containerInstance);
-        $definitions = $builder->getDefinitions();
-        foreach ($definitions as $id => $definition) {
+        // We don't need to combine containers as required references are resolved
+        // directly from this compiler pass
+        // $containerInstance = $this->externalContainer ? new CombinedContainer($this->container, $this->externalContainer) : $this->container;
+        $this->container->set(ContainerInterface::class, $this->container);
+        foreach ($builder->getDefinitions() as $id => $definition) {
             if (! $this->container->has($id)) {
-//                if ($this->externalContainer && $this->externalContainer->has($id)) {
-//                    $this->container->set($id, $this->externalContainer->get($id));
-//                } else {
-                    $object = $this->resolveArgument($definition, $builder);
-                    $this->container->set($id, $object);
-//                }
+                $object = $this->resolveArgument($definition, $builder);
+                $this->container->set($id, $object);
             }
         }
-    }
-
-    private function has(string $id): bool
-    {
-        return $this->container->has($id) || ($this->externalContainer && $this->externalContainer->has($id));
-    }
-
-    private function get(string $id): mixed
-    {
-        if ($this->container->has($id)) {
-            return $this->container->get($id);
-        }
-        if ($this->externalContainer && $this->externalContainer->has($id)) {
-            return $this->externalContainer->get($id);
-        }
-        throw new \InvalidArgumentException("Reference {$id} was not found in definitions");
     }
 
     private function resolveArgument(mixed $argument, ContainerBuilder $builder): mixed
@@ -71,16 +52,26 @@ class InMemoryContainerImplementation implements CompilerPass
             }
         } else if ($argument instanceof Reference) {
             $id = $argument->getId();
-            if ($this->has($id)) {
-                return $this->get($id);
+            if ($this->container->has($id)) {
+                return $this->container->get($id);
             }
-            if (!$builder->has($id)) {
-                throw new \InvalidArgumentException("Reference {$id} was not found in definitions");
-            }
-            $object = $this->resolveArgument($builder->getDefinition($id), $builder);
-            $this->container->set($id, $object);
+            if ($builder->has($id)) {
+                $object = $this->resolveArgument($builder->getDefinition($id), $builder);
+                $this->container->set($id, $object);
 
-            return $this->container->get($argument->getId());
+                return $this->container->get($argument->getId());
+            }
+            if ($this->externalContainer->has($id)) {
+                return $this->externalContainer->get($id);
+            }
+            // This is the only default service we provide
+            if ($id === 'logger' || $id === LoggerInterface::class) {
+                $logger = new NullLogger();
+                $this->container->set('logger', $logger);
+                $this->container->set(LoggerInterface::class, $logger);
+                return $logger;
+            }
+            throw new \InvalidArgumentException("Reference {$id} was not found in definitions");
         } else {
             return $argument;
         }

@@ -30,7 +30,7 @@ class ProxyFactory
     public const REFERENCE_NAME = 'gatewayProxyConfiguration';
 
     private static ?AutoloaderInterface $registeredAutoloader = null;
-    private bool $autoloaderRegistered = false;
+    private ?Configuration $configuration = null;
 
     private function __construct(private ServiceCacheConfiguration $serviceCacheConfiguration)
     {
@@ -42,6 +42,11 @@ class ProxyFactory
     }
 
     private function getConfiguration(): Configuration
+    {
+        return $this->configuration ??= $this->buildConfiguration();
+    }
+
+    private function buildConfiguration(): Configuration
     {
         $configuration = new Configuration();
 
@@ -83,23 +88,24 @@ class ProxyFactory
 
     private function registerProxyAutoloader(): void
     {
-        if ($this->autoloaderRegistered) {
-            return;
-        }
-
         if (! $this->serviceCacheConfiguration->shouldUseCache()) {
             return;
         }
 
-        if (self::$registeredAutoloader) {
+        $autoloader = $this->getConfiguration()->getProxyAutoloader();
+
+        if (self::$registeredAutoloader === $autoloader) {
+            return;
+        }
+
+        if (self::$registeredAutoloader !== null) {
             // another ProxyFactory instance may have already registered an autoloader.
             // this should not happen normally, but just in case we will unload
             // the old autoloader.
             spl_autoload_unregister(self::$registeredAutoloader);
         }
 
-        self::$registeredAutoloader = $this->getConfiguration()->getProxyAutoloader();
+        self::$registeredAutoloader = $autoloader;
         spl_autoload_register(self::$registeredAutoloader);
-        $this->autoloaderRegistered = true;
     }
 }

@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace Ecotone\Lite;
 
 use CompiledContainer;
-use DI\ContainerBuilder;
+use DI\ContainerBuilder as PhpDiContainerBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\Container\Implementations\PhpDiContainerImplementation;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
+use Ecotone\Messaging\Config\Container\ConfigurationVariableReference;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
+use Ecotone\SymfonyBundle\DepedencyInjection\SymfonyContainerAdapter;
 use Psr\Container\ContainerInterface;
 
 class EcotoneLiteApplication
@@ -47,17 +51,23 @@ class EcotoneLiteApplication
                 $serviceCacheConfiguration,
             );
 
-            $builder = new ContainerBuilder();
+            $builder = new PhpDiContainerBuilder();
             if ($serviceCacheConfiguration->shouldUseCache()) {
                 $builder->enableCompilation($serviceCacheConfiguration->getPath());
             }
-            //            $builder->useAutowiring(false);
-            $messagingConfiguration->buildInContainer(new PhpDiContainerImplementation($builder));
-            $builder->addDefinitions([
-                ConfiguredMessagingSystem::class => \DI\create(MessagingSystemContainer::class)->constructor(\DI\get(ContainerInterface::class)),
-            ]);
+
+            $containerBuilder = new ContainerBuilder();
+            $containerBuilder->addCompilerPass($messagingConfiguration);
+            $containerBuilder->addCompilerPass(new ResolveDefinedObjectsPass());
+            $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
+            $containerBuilder->addCompilerPass(new PhpDiContainerImplementation($builder));
+            $containerBuilder->compile();
 
             $container = $builder->build();
+        }
+
+        foreach ($configurationVariables as $name => $value) {
+            $container->set((new ConfigurationVariableReference($name))->getId(), $value);
         }
 
         foreach ($objectsToRegister as $referenceName => $object) {

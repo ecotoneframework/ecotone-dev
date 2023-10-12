@@ -12,7 +12,7 @@ use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 
-class AllHeadersBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
+class AllHeadersBuilder implements ParameterConverterBuilder
 {
     private string $parameterName;
 

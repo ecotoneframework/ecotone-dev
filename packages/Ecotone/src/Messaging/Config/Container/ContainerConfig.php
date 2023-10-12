@@ -12,9 +12,9 @@ use Psr\Container\ContainerInterface;
 
 class ContainerConfig
 {
-    public static function buildMessagingSystemInMemoryContainer(Configuration $configuration, ?ContainerInterface $externalContainer = null): ConfiguredMessagingSystem
+    public static function buildMessagingSystemInMemoryContainer(Configuration $configuration, ?ContainerInterface $externalContainer = null, array $configurationVariables = []): ConfiguredMessagingSystem
     {
-        $container = InMemoryPSRContainer::createEmpty();
+        $container = InMemoryPSRContainer::createFromAssociativeArray($configurationVariables);
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass($configuration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());

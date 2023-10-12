@@ -1,10 +1,10 @@
 <?php
 
-namespace Ecotone\Messaging\Config\Container\Implementations;
+namespace Ecotone\Lite;
 
-use DI\ContainerBuilder;
+use DI\ContainerBuilder as PhpDiContainerBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use ReflectionMethod;
@@ -12,14 +12,14 @@ use function is_array;
 
 class PhpDiContainerImplementation implements CompilerPass
 {
-    public function __construct(private ContainerBuilder $containerBuilder)
+    public function __construct(private PhpDiContainerBuilder $containerBuilder)
     {
     }
 
     /**
      * @inheritDoc
      */
-    public function process(ContainerMessagingBuilder $builder): void
+    public function process(ContainerBuilder $builder): void
     {
         $phpDiDefinitions = [];
 

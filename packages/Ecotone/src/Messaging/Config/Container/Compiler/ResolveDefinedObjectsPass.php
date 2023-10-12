@@ -58,7 +58,7 @@ class ResolveDefinedObjectsPass implements CompilerPass
         }
     }
 
-    private function convertDefinition($argument)
+    private function convertDefinition($argument): mixed
     {
         if ($argument instanceof Definition) {
             $argument->replaceArguments($this->convertDefinition($argument->getConstructorArguments()));

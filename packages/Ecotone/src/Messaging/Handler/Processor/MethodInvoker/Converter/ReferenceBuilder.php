@@ -19,7 +19,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class ReferenceBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
+class ReferenceBuilder implements ParameterConverterBuilder
 {
     private string $parameterName;
     private string $referenceServiceName;

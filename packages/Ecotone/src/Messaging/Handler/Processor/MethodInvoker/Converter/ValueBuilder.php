@@ -17,7 +17,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 /**
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class ValueBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
+class ValueBuilder implements ParameterConverterBuilder
 {
     public function __construct(private string $parameterName, private mixed $staticValue)
     {

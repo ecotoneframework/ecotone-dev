@@ -1287,7 +1287,7 @@ final class MessagingSystemConfiguration implements Configuration
         $builder->register(LoggerInterface::class, new Reference('logger'));
         $builder->register(Clock::class, new Definition(EpochBasedClock::class));
         $builder->register(ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
-        $builder->register(ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
+        $builder->register(ReferenceSearchService::class, new Reference(ContainerInterface::class));
         $builder->register(ServiceCacheConfiguration::class, $this->serviceCacheConfiguration);
 
         foreach ($this->serviceDefinitions as $id => $definition) {

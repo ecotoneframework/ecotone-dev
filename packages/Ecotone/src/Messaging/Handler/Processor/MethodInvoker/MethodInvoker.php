@@ -74,12 +74,12 @@ final class MethodInvoker implements MessageProcessor
         $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $methodParametersConverterBuilders, $endpointAnnotations, null, false);
 
         $compiledMethodParameterConverters = [];
-        foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
-            if (! ($methodParameterConverter instanceof CompilableParameterConverterBuilder)) {
+        foreach ($methodParameterConverterBuilders as $index => $methodParameterConverterBuilder) {
+            if (! ($methodParameterConverterBuilder instanceof CompilableParameterConverterBuilder)) {
                 // Cannot continue without every parameter converters compilable
-                return null;
+                throw InvalidArgumentException::create("Every parameter converter must be compilable");
             }
-            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
+            $compiledMethodParameterConverters[] = $methodParameterConverterBuilder->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
         }
         if (\is_string($reference)) {
             $reference = $interfaceToCall->isStaticallyCalled() ? $reference : new Reference($reference);

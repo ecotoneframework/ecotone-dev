@@ -21,7 +21,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class HeaderBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
+class HeaderBuilder implements ParameterConverterBuilder
 {
     private function __construct(private string $parameterName, private string $headerName, private bool $isRequired)
     {

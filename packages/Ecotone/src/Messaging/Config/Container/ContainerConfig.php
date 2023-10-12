@@ -7,7 +7,6 @@ use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
-use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
 use Psr\Container\ContainerInterface;
 
 class ContainerConfig
@@ -15,9 +14,6 @@ class ContainerConfig
     public static function buildMessagingSystemInMemoryContainer(Configuration $configuration, ?ContainerInterface $externalContainer = null, array $configurationVariables = []): ConfiguredMessagingSystem
     {
         $container = InMemoryPSRContainer::createFromAssociativeArray($configurationVariables);
-        if ($externalContainer && $externalContainer->has(ConfiguredMessagingSystem::class)) {
-//            $container->set(ConfiguredMessagingSystem::class, $externalContainer->get(ConfiguredMessagingSystem::class));
-        }
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass($configuration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());

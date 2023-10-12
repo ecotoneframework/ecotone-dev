@@ -29,6 +29,7 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
@@ -1282,9 +1283,8 @@ final class MessagingSystemConfiguration implements Configuration
         $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
 
         $builder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry);
+
         $builder->register(Bridge::class, new Definition(Bridge::class));
-//        $builder->register('logger', new Definition(NullLogger::class));
-//        $builder->register(LoggerInterface::class, new Reference('logger'));
         $builder->register(Clock::class, new Definition(EpochBasedClock::class));
         $builder->register(ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
         $builder->register(ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
@@ -1297,6 +1297,9 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->serviceDefinitions as $id => $definition) {
             $builder->register($id, $definition);
         }
+
+        // TODO: some service configuration should be handled at runtime. Here they are cached in the container
+        $builder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
 
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {

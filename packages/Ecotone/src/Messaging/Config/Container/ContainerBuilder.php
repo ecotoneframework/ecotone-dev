@@ -26,7 +26,7 @@ class ContainerBuilder
     {
     }
 
-    public function register(string|Reference $id, object|array $definition = []): Reference
+    public function register(string|Reference $id, object|array|string $definition = []): Reference
     {
         if (((string) $id) === 'polling.orders.executor') {
             $i = 0;
@@ -37,7 +37,7 @@ class ContainerBuilder
         return $this->replace($id, $definition);
     }
 
-    public function replace(string|Reference $id, object|array $definition = []): Reference
+    public function replace(string|Reference $id, object|array|string $definition = []): Reference
     {
         if (isset($this->externalReferences[(string) $id])) {
             unset($this->externalReferences[(string) $id]);

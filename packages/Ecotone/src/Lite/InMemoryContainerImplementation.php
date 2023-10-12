@@ -26,12 +26,12 @@ class InMemoryContainerImplementation implements CompilerPass
         $definitions = $builder->getDefinitions();
         foreach ($definitions as $id => $definition) {
             if (! $this->container->has($id)) {
-                if ($this->externalContainer && $this->externalContainer->has($id)) {
-                    $this->container->set($id, $this->externalContainer->get($id));
-                } else {
+//                if ($this->externalContainer && $this->externalContainer->has($id)) {
+//                    $this->container->set($id, $this->externalContainer->get($id));
+//                } else {
                     $object = $this->resolveArgument($definition, $builder);
                     $this->container->set($id, $object);
-                }
+//                }
             }
         }
     }

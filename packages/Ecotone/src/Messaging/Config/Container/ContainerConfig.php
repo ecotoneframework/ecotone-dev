@@ -15,6 +15,9 @@ class ContainerConfig
     public static function buildMessagingSystemInMemoryContainer(Configuration $configuration, ?ContainerInterface $externalContainer = null, array $configurationVariables = []): ConfiguredMessagingSystem
     {
         $container = InMemoryPSRContainer::createFromAssociativeArray($configurationVariables);
+        if ($externalContainer && $externalContainer->has(ConfiguredMessagingSystem::class)) {
+//            $container->set(ConfiguredMessagingSystem::class, $externalContainer->get(ConfiguredMessagingSystem::class));
+        }
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass($configuration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());

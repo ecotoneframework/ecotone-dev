@@ -55,12 +55,12 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             []
         ]);
 
-        return $builder->register(Uuid::uuid4(), new Definition(DbalOutboundChannelAdapter::class, [
+        return new Definition(DbalOutboundChannelAdapter::class, [
             $connectionFactory,
             $this->queueName,
             $this->autoDeclare,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME)
-        ]));
+        ]);
     }
 }

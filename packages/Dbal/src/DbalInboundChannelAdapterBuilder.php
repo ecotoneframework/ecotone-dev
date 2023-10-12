@@ -47,9 +47,9 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        if ($this->compiled) {
-            return $this->compiled;
-        }
+//        if ($this->compiled) {
+//            return $this->compiled;
+//        }
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(DbalReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName)
@@ -62,7 +62,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             EnqueueHeader::HEADER_ACKNOWLEDGE
         ]);
 
-        return $this->compiled = $builder->register('polling.'.$this->endpointId.'.executor', new Definition(DbalInboundChannelAdapter::class, [
+        return new Definition(DbalInboundChannelAdapter::class, [
             $connectionFactory,
             $this->compileGateway($builder),
             $this->declareOnStartup,
@@ -70,6 +70,6 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $this->receiveTimeoutInMilliseconds,
             $inboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME)
-        ]));
+        ]);
     }
 }

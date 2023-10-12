@@ -24,4 +24,9 @@ class AttributeReference extends Reference
     {
         return $this->methodName;
     }
+
+    public function getInterfaceToCallReference(): InterfaceToCallReference
+    {
+        return new InterfaceToCallReference($this->className, $this->methodName);
+    }
 }

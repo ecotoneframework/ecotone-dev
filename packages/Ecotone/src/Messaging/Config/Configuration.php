@@ -19,6 +19,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\Type;
+use Psr\Container\ContainerInterface;
 
 /**
  * Class Configuration
@@ -167,11 +168,7 @@ interface Configuration extends CompilerPass
      */
     public function registerMessageConverter(string $referenceName): Configuration;
 
-    /**
-     * @param ReferenceSearchService $externalReferenceSearchService
-     * @return ConfiguredMessagingSystem
-     */
-    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $externalReferenceSearchService): ConfiguredMessagingSystem;
+    public function buildMessagingSystemFromConfiguration(ContainerInterface $externalReferenceSearchService): ConfiguredMessagingSystem;
 
     public function registerServiceDefinition(string|Reference $id, Container\Definition $definition): Configuration;
 }

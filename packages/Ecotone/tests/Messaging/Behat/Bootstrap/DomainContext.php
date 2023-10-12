@@ -205,11 +205,10 @@ class DomainContext implements Context
      */
     public function iRunMessagingSystem()
     {
-        $this->getMessagingSystemConfiguration()
+        $this->messagingSystem = $this->getMessagingSystemConfiguration()
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder())
-            ->buildInContainer(new InMemoryContainerImplementation($this->inMemoryPsrContainer));
-        $this->messagingSystem = $this->inMemoryPsrContainer->get(ConfiguredMessagingSystem::class);
+            ->buildMessagingSystemFromConfiguration($this->inMemoryPsrContainer);
     }
 
     /**

@@ -1373,9 +1373,8 @@ final class MessagingSystemConfiguration implements Configuration
             } else {
                 throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
             }
-            $referenceName = $gatewayBuilder->getReferenceName();
-            if (! $builder->has($gatewayBuilder->getReferenceName())) {
-                $builder->register($gatewayBuilder->getReferenceName(), new Definition($gatewayBuilder->getReferenceName(), [
+            if (! $builder->has($gatewayBuilder->getInterfaceName())) {
+                $builder->register($gatewayBuilder->getInterfaceName(), new Definition($gatewayBuilder->getInterfaceName(), [
                     $gatewayBuilder->getReferenceName(),
                     new Reference(ConfiguredMessagingSystem::class),
                     $gatewayBuilder->getInterfaceName(),
@@ -1390,7 +1389,7 @@ final class MessagingSystemConfiguration implements Configuration
     /**
      * @deprecated
      */
-    public function buildMessagingSystemFromConfiguration(ReferenceSearchService $referenceSearchService): ConfiguredMessagingSystem
+    public function buildMessagingSystemFromConfiguration(ContainerInterface $referenceSearchService): ConfiguredMessagingSystem
     {
         return ContainerConfig::buildMessagingSystemInMemoryContainer($this, $referenceSearchService);
     }

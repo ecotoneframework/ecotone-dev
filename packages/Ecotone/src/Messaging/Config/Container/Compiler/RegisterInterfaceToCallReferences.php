@@ -2,7 +2,9 @@
 
 namespace Ecotone\Messaging\Config\Container\Compiler;
 
+use Ecotone\Messaging\Config\Container\AttributeReference;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
@@ -24,15 +26,17 @@ class RegisterInterfaceToCallReferences implements CompilerPass
 
     private function registerAllReferences($argument, ContainerBuilder $containerBuilder): void
     {
-        if ($argument instanceof Definition) {
+        if (is_array($argument)) {
+            foreach ($argument as $value) {
+                $this->registerAllReferences($value, $containerBuilder);
+            }
+        } elseif ($argument instanceof Definition) {
             $this->registerAllReferences($argument->getConstructorArguments(), $containerBuilder);
             foreach ($argument->getMethodCalls() as $methodCall) {
                 $this->registerAllReferences($methodCall->getArguments(), $containerBuilder);
             }
-        } elseif (is_array($argument)) {
-            foreach ($argument as $value) {
-                $this->registerAllReferences($value, $containerBuilder);
-            }
+        } elseif ($argument instanceof DefinedObject) {
+            $this->registerAllReferences($argument->getDefinition(), $containerBuilder);
         } elseif ($argument instanceof InterfaceToCallReference) {
             if (! $containerBuilder->has($argument->getId())) {
                 $this->typeResolver->registerInterfaceToCallDefinition($containerBuilder, $argument);
@@ -40,6 +44,10 @@ class RegisterInterfaceToCallReferences implements CompilerPass
         } elseif ($argument instanceof InterfaceParameterReference) {
             if (! $containerBuilder->has($argument->getId())) {
                 $this->typeResolver->registerInterfaceToCallDefinition($containerBuilder, $argument->interfaceToCallReference());
+            }
+        } elseif ($argument instanceof AttributeReference) {
+            if (! $containerBuilder->has($argument->getId())) {
+                $this->typeResolver->registerInterfaceToCallDefinition($containerBuilder, $argument->getInterfaceToCallReference());
             }
         }
     }

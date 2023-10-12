@@ -49,7 +49,7 @@ class InMemoryContainerImplementation implements CompilerPass
             return $this->resolveReference($argument, $builder);
         } else {
             if (\is_object($argument) && ! ($argument instanceof DefinedObject)) {
-                echo "Argument is not a self defined object: " . \get_class($argument) . "\n";
+                echo "WARNING: Argument is not a self defined object: " . \get_class($argument) . "\n";
             }
             return $argument;
         }

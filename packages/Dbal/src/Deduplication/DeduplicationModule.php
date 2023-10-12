@@ -10,12 +10,15 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Precedence;
-use Ecotone\Messaging\Scheduling\EpochBasedClock;
+use Ecotone\Messaging\Scheduling\Clock;
 
 #[ModuleAnnotation]
 class DeduplicationModule implements AnnotationModule
@@ -50,16 +53,23 @@ class DeduplicationModule implements AnnotationModule
             $pointcut .= '||' . AsynchronousRunningEndpoint::class;
         }
 
+        $messagingConfiguration->registerServiceDefinition(
+            DeduplicationInterceptor::class,
+            new Definition(
+                DeduplicationInterceptor::class,
+                [
+                    new Reference($connectionFactory),
+                    new Reference(Clock::class),
+                    $minimumTimeToRemoveMessageFromDeduplication,
+                    new Reference(PollingConsumerContext::class),
+                ]
+            ));
+
         $messagingConfiguration
             ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                    $interfaceToCallRegistry,
-                    new DeduplicationInterceptor(
-                        $connectionFactory,
-                        new EpochBasedClock(),
-                        $minimumTimeToRemoveMessageFromDeduplication
-                    ),
-                    'deduplicate',
+                AroundInterceptorReference::create(
+                    DeduplicationInterceptor::class,
+                    $interfaceToCallRegistry->getFor(DeduplicationInterceptor::class, 'deduplicate'),
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE + 100,
                     $pointcut
                 )

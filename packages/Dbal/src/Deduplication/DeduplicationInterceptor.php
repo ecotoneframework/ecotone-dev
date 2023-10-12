@@ -10,13 +10,17 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\Clock;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
+use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 use Psr\Log\LoggerInterface;
@@ -31,22 +35,14 @@ class DeduplicationInterceptor
 {
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
     private bool $isInitialized = false;
-    private Clock $clock;
-    private int $minimumTimeToRemoveMessageInMilliseconds;
-    private string $connectionReferenceName;
 
-    public function __construct(string $connectionReferenceName, Clock $clock, int $minimumTimeToRemoveMessageInMilliseconds)
+    public function __construct(private DbalConnectionFactory|ManagerRegistryConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private PollingConsumerContext $pollingConsumerContext)
     {
-        $this->clock = $clock;
-        $this->minimumTimeToRemoveMessageInMilliseconds = $minimumTimeToRemoveMessageInMilliseconds;
-        $this->connectionReferenceName = $connectionReferenceName;
     }
 
-    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint)
+    public function deduplicate(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggerInterface $logger, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation)
     {
-        $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName)));
-        /** @var LoggerInterface $logger */
-        $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
+        $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connection));
 
         if (! $this->isInitialized) {
             $this->createDataBaseTable($connectionFactory, $logger);
@@ -55,7 +51,7 @@ class DeduplicationInterceptor
         $this->removeExpiredMessages($connectionFactory);
         $messageId = $deduplicatedAttribute?->getDeduplicationHeaderName() ? $message->getHeaders()->get($deduplicatedAttribute->getDeduplicationHeaderName()) : $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
         /** If global deduplication consumer_endpoint_id will be used */
-        $consumerEndpointId = $asynchronousRunningEndpoint ? $asynchronousRunningEndpoint->getEndpointId() : '';
+        $consumerEndpointId = $this->pollingConsumerContext->getCurrentlyRunningEndpointId();
         /** IF handler deduplication then endpoint id will be used */
         $routingSlip = $deduplicatedAttribute === null && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
             ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)

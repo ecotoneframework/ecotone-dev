@@ -32,7 +32,7 @@ class EcotoneExtension extends Extension
             ->withLoadCatalog($config['loadSrcNamespaces'] ? 'src' : '')
             ->withNamespaces($config['namespaces'])
             ->withSkippedModulePackageNames($skippedModules)
-//            ->withCacheDirectoryPath($container->getParameter('kernel.cache_dir'))
+            ->withCacheDirectoryPath($container->getParameter('kernel.cache_dir'))
         ;
 
         if (isset($config['serviceName'])) {
@@ -84,5 +84,6 @@ class EcotoneExtension extends Extension
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
         $containerBuilder->addCompilerPass(new ResolveDefinedObjectsPass());
         $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
+        $containerBuilder->compile();
     }
 }

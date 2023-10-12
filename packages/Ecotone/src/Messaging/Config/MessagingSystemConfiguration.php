@@ -1373,8 +1373,8 @@ final class MessagingSystemConfiguration implements Configuration
             } else {
                 throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
             }
-            if (! $builder->has($gatewayBuilder->getInterfaceName())) {
-                $builder->register($gatewayBuilder->getInterfaceName(), new Definition($gatewayBuilder->getInterfaceName(), [
+            if (! $builder->has($gatewayBuilder->getReferenceName())) {
+                $builder->register($gatewayBuilder->getReferenceName(), new Definition($gatewayBuilder->getInterfaceName(), [
                     $gatewayBuilder->getReferenceName(),
                     new Reference(ConfiguredMessagingSystem::class),
                     $gatewayBuilder->getInterfaceName(),

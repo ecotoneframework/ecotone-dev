@@ -4,13 +4,12 @@ namespace Ecotone\SymfonyBundle\DepedencyInjection;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
-use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Psr\Container\ContainerInterface;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition as SymfonyDefinition;
 use Symfony\Component\DependencyInjection\Reference as SymfonyReference;
 use function is_array;
@@ -18,18 +17,22 @@ use function is_string;
 
 class SymfonyContainerAdapter implements CompilerPass
 {
-    public function __construct(private ContainerBuilder $container)
+    public function __construct(private SymfonyContainerBuilder $container)
     {
     }
 
-    public function process(ContainerMessagingBuilder $builder): void
+    public function process(ContainerBuilder $builder): void
     {
         $this->container->setAlias(ContainerInterface::class, 'service_container');
         $this->container->register(ConfiguredMessagingSystem::class, MessagingSystemContainer::class);
 
         foreach ($builder->getDefinitions() as $id => $definition) {
             $symfonyDefinition = $this->resolveArgument($definition);
-            $this->container->setDefinition($id, $symfonyDefinition);
+            if ($symfonyDefinition instanceof SymfonyReference) {
+                $this->container->setAlias($id, $symfonyDefinition);
+            } else {
+                $this->container->setDefinition($id, $symfonyDefinition);
+            }
         }
     }
 

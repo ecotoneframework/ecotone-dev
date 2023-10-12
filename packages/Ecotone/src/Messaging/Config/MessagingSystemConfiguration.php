@@ -1383,6 +1383,8 @@ final class MessagingSystemConfiguration implements Configuration
                 ], [ProxyFactory::class, 'createFor']));
             }
         }
+
+        $builder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $builder->getPollingEndpoints()]));
     }
 
     /**

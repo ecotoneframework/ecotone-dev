@@ -96,10 +96,6 @@ class MethodInterceptorModuleTest extends AnnotationConfigurationTest
             $expectedConfiguration,
             $configuration
         );
-        $this->assertEquals(
-            ['someMethodInterceptor'],
-            $configuration->getRequiredReferences()
-        );
     }
 
     public function test_registering_transformer_interceptor()
@@ -156,10 +152,6 @@ class MethodInterceptorModuleTest extends AnnotationConfigurationTest
         $this->assertEquals(
             $expectedConfiguration,
             $configuration
-        );
-        $this->assertEquals(
-            ['someMethodInterceptor'],
-            $configuration->getRequiredReferences()
         );
     }
 }

@@ -23,7 +23,6 @@ class InMemoryContainerImplementation implements CompilerPass
     {
         $containerInstance = $this->externalContainer ? new CombinedContainer($this->container, $this->externalContainer) : $this->container;
         $this->container->set(ContainerInterface::class, $containerInstance);
-        $this->container->set(ConfiguredMessagingSystem::class, new MessagingSystemContainer($containerInstance));
         $definitions = $builder->getDefinitions();
         foreach ($definitions as $id => $definition) {
             if (! $this->container->has($id)) {

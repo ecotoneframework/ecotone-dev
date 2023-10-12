@@ -211,6 +211,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             $objectReference,
             $methodName
         ]));
+        $builder->registerPollingEndpoint($this->endpointId, "polling.{$this->endpointId}.runner");
         return null;
     }
 

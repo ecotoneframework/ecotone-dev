@@ -56,5 +56,6 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
             Reference::toChannel($messageHandlerBuilder->getInputMessageChannelName()),
             $messageHandlerReference
         ], 'create'));
+        $builder->registerPollingEndpoint($messageHandlerBuilder->getEndpointId(), "polling.{$messageHandlerBuilder->getEndpointId()}.runner");
     }
 }

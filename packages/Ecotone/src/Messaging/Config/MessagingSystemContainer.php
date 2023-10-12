@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\EventBus;
@@ -19,7 +20,7 @@ use Psr\Container\ContainerInterface;
 
 class MessagingSystemContainer implements ConfiguredMessagingSystem
 {
-    public function __construct(private ContainerInterface $container)
+    public function __construct(private ContainerInterface $container, private array $pollingEndpoints)
     {
     }
 
@@ -75,14 +76,17 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function run(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
+        if (!isset($this->pollingEndpoints[$endpointId])) {
+            throw InvalidArgumentException::create("Endpoint with id {$endpointId} was not found");
+        }
         /** @var EndpointRunner $pollingConsumerContext */
-        $pollingConsumerContext = $this->container->get("polling.{$endpointId}.runner");
+        $pollingConsumerContext = $this->container->get($this->pollingEndpoints[$endpointId]);
         $pollingConsumerContext->runEndpointWithExecutionPollingMetadata($endpointId, $executionPollingMetadata);
     }
 
     public function list(): array
     {
-        // TODO: Implement list() method.
+        return \array_keys($this->pollingEndpoints);
     }
 
     public function replaceWith(ConfiguredMessagingSystem $messagingSystem): void

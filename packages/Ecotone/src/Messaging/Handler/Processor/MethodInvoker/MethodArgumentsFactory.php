@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -12,6 +13,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AttributeBuilder
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AttributeDefinitionBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PollingMetadataConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -42,12 +44,14 @@ class MethodArgumentsFactory
             }
 
             foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
-                if ($interfaceParameter->isAnnotation()) {
+                if ($interfaceParameter->isAnnotation() || self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter)) {
                     continue;
                 }
-                if (! self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter) && $interfaceParameter->isMessage()) {
+                if ($interfaceParameter->isMessage()) {
                     $passedMethodParameterConverters[] = MessageConverterBuilder::create($interfaceParameter->getName());
-                } elseif (! self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter) && $interfaceParameter->getTypeDescriptor()->isClassOrInterface()) {
+                } elseif ($interfaceParameter->canBePassedIn(TypeDescriptor::create(PollingMetadata::class))) {
+                    $passedMethodParameterConverters[] = new PollingMetadataConverterBuilder($interfaceParameter->getName());
+                } elseif ($interfaceParameter->getTypeDescriptor()->isClassOrInterface()) {
                     $passedMethodParameterConverters[] = ReferenceBuilder::create($interfaceParameter->getName(), $interfaceParameter->getTypeHint());
                 }
             }

@@ -19,6 +19,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\Clock;
+use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
 class DeduplicationModule implements AnnotationModule
@@ -61,7 +62,7 @@ class DeduplicationModule implements AnnotationModule
                     new Reference($connectionFactory),
                     new Reference(Clock::class),
                     $minimumTimeToRemoveMessageFromDeduplication,
-                    new Reference(PollingConsumerContext::class),
+                    new Reference(LoggerInterface::class),
                 ]
             ));
 

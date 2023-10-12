@@ -58,7 +58,6 @@ class DbalTransactionModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
             array_map(fn(string $id) => new Reference($id), $connectionFactories),
             $dbalConfiguration->getDisabledTransactionsOnAsynchronousEndpointNames(),
-            Reference::to(PollingConsumerContext::class)
         ]);
 
         $messagingConfiguration

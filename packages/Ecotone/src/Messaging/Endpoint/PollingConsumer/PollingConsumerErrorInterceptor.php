@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -11,17 +12,16 @@ use Throwable;
 
 class PollingConsumerErrorInterceptor
 {
-    public function __construct(private PollingConsumerContext $pollingConsumerContext, private ChannelResolver $channelResolver)
+    public function __construct(private ChannelResolver $channelResolver)
     {
     }
 
-    public function handle(MethodInvocation $methodInvocation, Message $requestMessage)
+    public function handle(MethodInvocation $methodInvocation, Message $requestMessage, ?PollingMetadata $pollingMetadata)
     {
         try {
             return $methodInvocation->proceed();
         } catch (Throwable $exception) {
-            $errorChannelName = $this->pollingConsumerContext->getErrorChannelName();
-            if ($errorChannelName) {
+            if ($errorChannelName = $pollingMetadata?->getErrorChannelName()) {
                 $errorChannel = $this->channelResolver->resolve($errorChannelName);
                 $errorChannel->send(ErrorMessage::create(MessageHandlingException::fromOtherException($exception, $requestMessage)));
                 return null;

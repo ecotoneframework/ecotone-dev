@@ -56,24 +56,23 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        if ($this->inMemoryEventStore) {
-            // TODO: implement that with serialization ?
-            throw new Exception("In memory event store is not supported for document store");
-        }
         $documentStoreReference = DbalDocumentStore::class.'.'.$this->connectionReferenceName;
         if (!$builder->has($documentStoreReference)) {
-            $documentStore = new Definition(DbalDocumentStore::class, [
-                new Definition(CachedConnectionFactory::class, [
-                    new Definition(DbalReconnectableConnectionFactory::class, [
-                        new Reference($this->connectionReferenceName)
-                    ])
-                ], 'createFor'),
+            $documentStore = $this->inMemoryEventStore
+                ? new Definition(InMemoryDocumentStore::class, [], 'createEmpty')
+                : new Definition(DbalDocumentStore::class, [
+                    new Definition(CachedConnectionFactory::class, [
+                        new Definition(DbalReconnectableConnectionFactory::class, [
+                            new Reference($this->connectionReferenceName)
+                        ])
+                    ], 'createFor'),
                 $this->initializeDocumentStore,
                 new Reference(ConversionService::REFERENCE_NAME)
             ]);
 
             $builder->register($documentStoreReference, $documentStore);
         }
+
 
         return ServiceActivatorBuilder::create(
             $documentStoreReference,

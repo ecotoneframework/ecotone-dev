@@ -23,10 +23,4 @@ interface ParameterConverterBuilder extends CompilableParameterConverterBuilder
      * @return bool
      */
     public function isHandling(InterfaceParameter $parameter): bool;
-
-    /**
-     * @param ReferenceSearchService $referenceSearchService
-     * @return ParameterConverter
-     */
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter;
 }

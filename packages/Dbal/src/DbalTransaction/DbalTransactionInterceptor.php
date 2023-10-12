@@ -6,13 +6,11 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
@@ -32,13 +30,13 @@ class DbalTransactionInterceptor
      * @param array<string, DbalConnectionFactory|ManagerRegistryConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      */
-    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private PollingConsumerContext $consumerContext)
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints)
     {
     }
 
-    public function transactional(MethodInvocation $methodInvocation, ?DbalTransaction $DbalTransaction, #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)] LoggerInterface $logger)
+    public function transactional(MethodInvocation $methodInvocation, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata, #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)] LoggerInterface $logger)
     {
-        $endpointId = $this->consumerContext->getCurrentlyRunningEndpointId();
+        $endpointId = $pollingMetadata?->getEndpointId();
 
         $connections = [];
         if (! in_array($endpointId, $this->disableTransactionOnAsynchronousEndpoints)) {

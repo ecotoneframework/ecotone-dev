@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Scheduling;
 
 use DateTime;
 use DateTimeZone;
+use Psr\Clock\ClockInterface;
 
 /**
  * Class StubClock
@@ -40,6 +41,16 @@ class StubUTCClock implements Clock
     public function unixTimeInMilliseconds(): int
     {
         return $this->currentTime;
+    }
+
+    public function sleep(int $seconds): void
+    {
+        $this->currentTime += $seconds * 1000;
+    }
+
+    public function usleep(int $microseconds): void
+    {
+        $this->currentTime += (int)round($microseconds / 1000);
     }
 
     /**

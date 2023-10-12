@@ -34,6 +34,7 @@ use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContextProvider;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerErrorInterceptor;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerPostSendAroundInterceptor;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -1290,9 +1291,9 @@ final class MessagingSystemConfiguration implements Configuration
         $builder->register(ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
         $builder->register(ServiceCacheConfiguration::class, $this->serviceCacheConfiguration);
         $builder->register(ExpressionEvaluationService::REFERENCE, new Definition(SymfonyExpressionEvaluationAdapter::class, factory: 'create'));
-        $builder->register(PollingConsumerContext::class, [new Reference(Clock::class), new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]);
+        $builder->register(PollingConsumerContext::class, new Definition(PollingConsumerContextProvider::class, [new Reference(Clock::class), new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]));
         $builder->register(PollingConsumerPostSendAroundInterceptor::class, [new Reference(PollingConsumerContext::class)]);
-        $builder->register(PollingConsumerErrorInterceptor::class, [new Reference(PollingConsumerContext::class), new Reference(ChannelResolver::class)]);
+        $builder->register(PollingConsumerErrorInterceptor::class, [new Reference(ChannelResolver::class)]);
 
         foreach ($this->serviceDefinitions as $id => $definition) {
             $builder->register($id, $definition);

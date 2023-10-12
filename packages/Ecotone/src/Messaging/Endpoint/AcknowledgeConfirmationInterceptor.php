@@ -7,7 +7,6 @@ namespace Ecotone\Messaging\Endpoint;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
@@ -26,10 +25,6 @@ use Throwable;
  */
 class AcknowledgeConfirmationInterceptor implements DefinedObject
 {
-    private function __construct()
-    {
-    }
-
     public static function createAroundInterceptor(InterfaceToCallRegistry $interfaceToCallRegistry): AroundInterceptorReference
     {
         return AroundInterceptorReference::createWithDirectObjectAndResolveConverters($interfaceToCallRegistry, new self(), 'ack', Precedence::MESSAGE_ACKNOWLEDGE_PRECEDENCE, '');
@@ -42,7 +37,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
      * @throws Throwable
      * @throws MessagingException
      */
-    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference('logger')] LoggerInterface $logger, #[Reference] PollingConsumerContext $pollingConsumerContext)
+    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference('logger')] LoggerInterface $logger, PollingMetadata $pollingMetadata)
     {
         $logger->info(
             sprintf(
@@ -85,7 +80,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
             }
         }
 
-        if ($pollingConsumerContext->isStoppedOnError() === true && $exception !== null) {
+        if ($pollingMetadata->isStoppedOnError() === true && $exception !== null) {
             $logger->info('Should stop on error configuration enabled, stopping Message Consumer.');
             throw $exception;
         }

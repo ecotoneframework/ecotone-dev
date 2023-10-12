@@ -29,6 +29,11 @@ class PollingConsumerContext implements EndpointRunner
     {
     }
 
+    public function getCurrentlyRunningEndpointId(): ?string
+    {
+        return $this->currentPollingMetadata?->getEndpointId();
+    }
+
     public function getErrorChannelName(): string
     {
         return $this->currentPollingMetadata->getErrorChannelName();

@@ -94,6 +94,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         Assert::isTrue($messagingSystem instanceof MessagingSystemContainer, 'Can only replace with ' . self::class);
 
         $this->container = $messagingSystem->container;
+        $this->pollingEndpoints = $messagingSystem->pollingEndpoints;
     }
 
     public function getGatewayList(): array

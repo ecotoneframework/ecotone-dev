@@ -35,6 +35,7 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
 
     protected string $connectionReferenceName;
 
+
     public function __construct(string $messageChannelName, string $endpointId, ?string $requestChannelName, string $connectionReferenceName)
     {
         $this->messageChannelName = $messageChannelName;

@@ -185,16 +185,14 @@ final class EcotoneLite
 
         if ($allowGatewaysToBeRegisteredInContainer) {
             $externalContainer->set(ConfiguredMessagingSystem::class, $messagingSystem);
-            if ($allowGatewaysToBeRegisteredInContainer) {
-                Assert::isTrue(method_exists($externalContainer, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
-                foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
-                    $externalContainer->set($gatewayProxyBuilder->getReferenceName(), ProxyFactory::createFor(
-                        $gatewayProxyBuilder->getReferenceName(),
-                        $messagingSystem,
-                        $gatewayProxyBuilder->getInterfaceName(),
-                        $serviceCacheConfiguration
-                    ));
-                }
+            Assert::isTrue(method_exists($externalContainer, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
+            foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
+                $externalContainer->set($gatewayProxyBuilder->getReferenceName(), ProxyFactory::createFor(
+                    $gatewayProxyBuilder->getReferenceName(),
+                    $messagingSystem,
+                    $gatewayProxyBuilder->getInterfaceName(),
+                    $serviceCacheConfiguration
+                ));
             }
         } elseif ($externalContainer->has(ConfiguredMessagingSystem::class)) {
             /** @var ConfiguredMessagingSystem $alreadyConfiguredMessaging */

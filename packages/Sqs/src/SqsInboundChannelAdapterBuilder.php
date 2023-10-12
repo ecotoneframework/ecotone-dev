@@ -62,7 +62,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             EnqueueHeader::HEADER_ACKNOWLEDGE
         ]);
 
-        $builder->register('polling.'.$this->endpointId.'.executor', new Definition(SqsInboundChannelAdapter::class, [
+        return $builder->register('polling.'.$this->endpointId.'.executor', new Definition(SqsInboundChannelAdapter::class, [
             $connectionFactory,
             $this->compileGateway($builder),
             $this->declareOnStartup,
@@ -71,7 +71,5 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             $inboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
         ]));
-
-        return null;
     }
 }

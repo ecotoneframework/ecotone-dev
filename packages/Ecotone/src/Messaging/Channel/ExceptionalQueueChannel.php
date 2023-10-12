@@ -20,7 +20,7 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\PollableChannel;
 use RuntimeException;
 
-class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSerializationBuilder, CompilableBuilder
+class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSerializationBuilder
 {
     private int $exceptionCount = 0;
     private QueueChannel $queueChannel;

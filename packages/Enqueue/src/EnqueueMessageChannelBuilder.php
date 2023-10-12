@@ -3,6 +3,9 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -11,11 +14,13 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\PollableChannel;
+use Exception;
 
 abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;
     protected EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapter;
+    private ?ChannelReference $compiled = null;
 
     public function __construct(EnqueueInboundChannelAdapterBuilder $inboundChannelAdapterBuilder, EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapterBuilder)
     {
@@ -142,5 +147,19 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
             $this->inboundChannelAdapter->createInboundChannelAdapter($inMemoryChannelResolver, $referenceSearchService, $pollingMetadata),
             $this->outboundChannelAdapter->build($inMemoryChannelResolver, $referenceSearchService)
         );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): object|null
+    {
+        if ($this->compiled) {
+            throw new Exception("Message Channel {$this->getMessageChannelName()} is already compiled");
+            return $this->compiled;
+        }
+        $this->compiled = $channelReference = new ChannelReference($this->getMessageChannelName());
+        $builder->register($channelReference, new Definition(EnqueueMessageChannel::class, [
+            $this->inboundChannelAdapter->compile($builder),
+            $this->outboundChannelAdapter->compile($builder),
+        ]));
+        return $channelReference;
     }
 }

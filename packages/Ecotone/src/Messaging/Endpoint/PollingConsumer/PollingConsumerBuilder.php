@@ -186,6 +186,9 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
 
     public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
     {
+//        if ($builder->has("polling.{$messageHandlerBuilder->getEndpointId()}.executor")) {
+//            return;
+//        }
         $executor = new Definition(PollerTaskExecutor::class, [
             $messageHandlerBuilder->getInputMessageChannelName(),
             new ChannelReference($messageHandlerBuilder->getInputMessageChannelName()),

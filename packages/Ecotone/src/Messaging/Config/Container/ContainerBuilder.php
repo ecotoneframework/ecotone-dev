@@ -28,6 +28,9 @@ class ContainerBuilder
 
     public function register(string|Reference $id, object|array $definition = []): Reference
     {
+        if (((string) $id) === 'polling.orders.executor') {
+            $i = 0;
+        }
         if (isset($this->definitions[(string) $id])) {
             throw new InvalidArgumentException("Definition with id {$id} already exists");
         }

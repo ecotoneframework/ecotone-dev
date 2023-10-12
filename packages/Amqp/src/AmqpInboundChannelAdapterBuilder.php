@@ -51,7 +51,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             EnqueueHeader::HEADER_ACKNOWLEDGE
         ]);
 
-        $builder->register('polling.'.$this->endpointId.'.executor', new Definition(AmqpInboundChannelAdapter::class, [
+        return $builder->register('polling.'.$this->endpointId.'.executor', new Definition(AmqpInboundChannelAdapter::class, [
             $connectionFactory,
             $this->compileGateway($builder),
             new Reference(AmqpAdmin::REFERENCE_NAME),
@@ -61,6 +61,5 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $inboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME)
         ]));
-        return null;
     }
 }

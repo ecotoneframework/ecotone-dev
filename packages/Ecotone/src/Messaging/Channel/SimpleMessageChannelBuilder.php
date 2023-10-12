@@ -25,7 +25,7 @@ use InvalidArgumentException;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuilder, CompilableBuilder
+class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
     private function __construct(
         private string $messageChannelName,

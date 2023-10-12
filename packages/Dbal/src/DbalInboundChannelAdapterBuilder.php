@@ -18,6 +18,8 @@ use Enqueue\Dbal\DbalConnectionFactory;
 
 class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
+    private ?Reference $compiled = null;
+
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = DbalConnectionFactory::class): self
     {
         return new self($queueName, $endpointId, $requestChannelName, $connectionReferenceName);
@@ -45,6 +47,9 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
+        if ($this->compiled) {
+            return $this->compiled;
+        }
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(DbalReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName)
@@ -57,7 +62,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             EnqueueHeader::HEADER_ACKNOWLEDGE
         ]);
 
-        $builder->register('polling.'.$this->endpointId.'.executor', new Definition(DbalInboundChannelAdapter::class, [
+        return $this->compiled = $builder->register('polling.'.$this->endpointId.'.executor', new Definition(DbalInboundChannelAdapter::class, [
             $connectionFactory,
             $this->compileGateway($builder),
             $this->declareOnStartup,
@@ -66,6 +71,5 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $inboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME)
         ]));
-        return null;
     }
 }

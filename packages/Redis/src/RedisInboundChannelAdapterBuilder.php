@@ -37,7 +37,7 @@ final class RedisInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapt
             EnqueueHeader::HEADER_ACKNOWLEDGE
         ]);
 
-        $builder->register('polling.'.$this->endpointId.'.executor', new Definition(RedisInboundChannelAdapter::class, [
+        return $builder->register('polling.'.$this->endpointId.'.executor', new Definition(RedisInboundChannelAdapter::class, [
             $connectionFactory,
             $this->compileGateway($builder),
             $this->declareOnStartup,
@@ -46,6 +46,5 @@ final class RedisInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapt
             $inboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME)
         ]));
-        return null;
     }
 }

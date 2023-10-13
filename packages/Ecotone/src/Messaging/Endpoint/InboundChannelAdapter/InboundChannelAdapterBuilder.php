@@ -205,14 +205,13 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
                 )
             )
             ->compile($builder);
+        $builder->registerPollingEndpoint($this->endpointId, "polling.{$this->endpointId}.runner");
         $builder->register("polling.{$this->endpointId}.runner", Reference::to(PollingConsumerContext::class));
-        $builder->register('polling.'.$this->endpointId.'.executor', new Definition(InboundChannelTaskExecutor::class, [
+        return $builder->register('polling.'.$this->endpointId.'.executor', new Definition(InboundChannelTaskExecutor::class, [
             $gateway,
             $objectReference,
             $methodName
         ]));
-        $builder->registerPollingEndpoint($this->endpointId, "polling.{$this->endpointId}.runner");
-        return null;
     }
 
 

@@ -16,6 +16,9 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContextProvider;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ramsey\Uuid\Uuid;
 
@@ -72,6 +75,13 @@ class ComponentTestBuilder
 
         $this->compile();
         return $this->container->get($referenceToReturn->getId());
+    }
+
+    public function runEndpoint(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): void
+    {
+        /** @var PollingConsumerContextProvider $pollingEndpointRunner */
+        $pollingEndpointRunner = $this->container->get(PollingConsumerContext::class);
+        $pollingEndpointRunner->runEndpointWithExecutionPollingMetadata($endpointId, $executionPollingMetadata);
     }
 
     private function compile(): void

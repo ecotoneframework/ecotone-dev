@@ -22,6 +22,7 @@ use Ecotone\Messaging\Transaction\Null\NullTransaction;
 use Ecotone\Messaging\Transaction\Null\NullTransactionFactory;
 use Ecotone\Messaging\Transaction\Transactional;
 use Ecotone\Messaging\Transaction\TransactionInterceptor;
+use Ecotone\Test\ComponentTestBuilder;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerStoppingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingNoArguments;
@@ -43,19 +44,16 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
     public function test_throwing_exception_if_passed_reference_service_has_parameters()
     {
         $this->expectException(InvalidArgumentException::class);
-
-        InboundChannelAdapterBuilder::create(
-            'channelName',
-            'someRef',
-            InterfaceToCall::create(ServiceExpectingOneArgument::class, 'withReturnValue')
-        )
-            ->withEndpointId('test')
+        ComponentTestBuilder::create()
+            ->withReference("someRef", ServiceExpectingOneArgument::create())
+            ->withPollingMetadata(PollingMetadata::create("test"))
             ->build(
-                InMemoryChannelResolver::createEmpty(),
-                InMemoryReferenceSearchService::createWith([
-                    'someRef' => ServiceExpectingOneArgument::create(),
-                ]),
-                PollingMetadata::create('test')
+                InboundChannelAdapterBuilder::create(
+                    'channelName',
+                    'someRef',
+                    InterfaceToCall::create(ServiceExpectingOneArgument::class, 'withReturnValue')
+                )
+                ->withEndpointId('test')
             );
     }
 
@@ -66,19 +64,15 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
     public function test_passed_reference_should_return_parameters()
     {
         $this->expectException(InvalidArgumentException::class);
-
-        InboundChannelAdapterBuilder::create(
-            'channelName',
-            'someRef',
-            InterfaceToCall::create(ServiceExpectingNoArguments::class, 'withoutReturnValue')
-        )
-            ->withEndpointId('test')
+        ComponentTestBuilder::create()
+            ->withReference("someRef", ServiceExpectingOneArgument::create())
+            ->withPollingMetadata(PollingMetadata::create("test"))
             ->build(
-                InMemoryChannelResolver::createEmpty(),
-                InMemoryReferenceSearchService::createWith([
-                    'someRef' => ServiceExpectingNoArguments::create(),
-                ]),
-                PollingMetadata::create('test')
+                InboundChannelAdapterBuilder::create(
+                    'channelName',
+                    'someRef',
+                    InterfaceToCall::create(ServiceExpectingNoArguments::class, 'withoutReturnValue')
+                )->withEndpointId('test')
             );
     }
 
@@ -87,22 +81,19 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         $inputChannelName = NullableMessageChannel::CHANNEL_NAME;
         $service = ServiceExpectingNoArguments::create();
 
-        $inboundChannel = InboundChannelAdapterBuilder::create(
-            $inputChannelName,
-            'someRef',
-            InterfaceToCall::create($service::class, 'withoutReturnValue')
-        )
-            ->withEndpointId('test')
-            ->build(
-                InMemoryChannelResolver::createEmpty(),
-                InMemoryReferenceSearchService::createWith([
-                    'someRef' => $service,
-                ]),
-                PollingMetadata::create('test')
-                    ->setHandledMessageLimit(1)
+        $componentTest = ComponentTestBuilder::create()
+            ->withReference("someRef", $service)
+            ->withPollingMetadata(PollingMetadata::create("test")->setHandledMessageLimit(1));
+        $componentTest
+            ->build(InboundChannelAdapterBuilder::create(
+                    $inputChannelName,
+                    'someRef',
+                    InterfaceToCall::create($service::class, 'withoutReturnValue')
+                )
+                ->withEndpointId('test')
             );
 
-        $inboundChannel->run();
+        $componentTest->runEndpoint('test');
 
         $this->assertTrue($service->wasCalled());
     }

@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\Annotation\LogAfter;
 use Ecotone\Messaging\Handler\Logger\Annotation\LogBefore;
@@ -23,7 +24,9 @@ use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Precedence;
+use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
 class LoggingModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -59,18 +62,12 @@ class LoggingModule extends NoExternalConfigurationModule implements AnnotationM
                 LogAfter::class
             )
         );
-        $messagingConfiguration->registerServiceDefinition(
-            LoggingInterceptor::class. '.logException',
-            new Definition(LoggingInterceptor::class, [null])
-        );
-        $loggingInterceptorInterfaceToCall = $interfaceToCallRegistry->getFor(LoggingInterceptor::class, 'logException');
         $messagingConfiguration->registerAroundMethodInterceptor(
             AroundInterceptorReference::create(
-                LoggingInterceptor::class. '.logException',
-                $loggingInterceptorInterfaceToCall,
+                LoggingInterceptor::class,
+                $interfaceToCallRegistry->getFor(LoggingInterceptor::class, 'logException'),
                 Precedence::EXCEPTION_LOGGING_PRECEDENCE,
                 LogError::class . '||' . AsynchronousRunningEndpoint::class,
-                []
             )
         );
     }

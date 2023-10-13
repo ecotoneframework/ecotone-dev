@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Support\MessageBuilder;
 
+use Ecotone\Test\ComponentTestBuilder;
 use function json_encode;
 
 use Psr\Log\LoggerInterface;
@@ -69,21 +70,16 @@ class LoggingHandlerBuilderTest extends MessagingTest
             ->getMock();
 
         $queueChannel = QueueChannel::create();
-        $loggingHandler = LoggingHandlerBuilder::createForBefore()
+        $componentTest = ComponentTestBuilder::create()
+            ->withChannel('outputChannel', $queueChannel)
+            ->withReference(LoggingHandlerBuilder::LOGGER_REFERENCE, $logger)
+        ;
+        $loggingHandler = $componentTest->build(LoggingHandlerBuilder::createForBefore()
             ->withOutputMessageChannel('outputChannel')
             ->withMethodParameterConverters([
                 MessageConverterBuilder::create('message'),
                 MethodArgumentsFactory::getAnnotationValueConverter($logParameter, InterfaceToCall::create(ServiceActivatorWithLoggerExample::class, 'sendMessage'), []),
-            ])
-            ->build(
-                InMemoryChannelResolver::createFromAssociativeArray([
-                    'outputChannel' => $queueChannel,
-                ]),
-                InMemoryReferenceSearchService::createWith([
-                    ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createEmpty(),
-                    LoggingHandlerBuilder::LOGGER_REFERENCE => $logger,
-                ])
-            );
+            ]));
 
         $message = MessageBuilder::withPayload('some')->build();
 

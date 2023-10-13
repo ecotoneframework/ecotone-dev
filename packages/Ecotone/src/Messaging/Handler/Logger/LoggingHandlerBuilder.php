@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Logger;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -19,6 +21,7 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHandler;
 use LogicException;
+use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
 /**
@@ -37,16 +40,13 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
      * @var ParameterConverterBuilder[]
      */
     private array $methodParameterConverters = [];
-    private bool $isBefore;
 
     /**
      * LoggingHandlerBuilder constructor.
      * @param bool $isBefore
      */
-    private function __construct(bool $isBefore)
+    private function __construct(private bool $isBefore)
     {
-        $this->isBefore = $isBefore;
-        $this->methodParameterConverters[] = MessageConverterBuilder::create('message');
     }
 
     /**
@@ -105,23 +105,23 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
     /**
      * @inheritDoc
      */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        return
-            ServiceActivatorBuilder::createWithDirectReference(
-                new LoggingInterceptor(
-                    new LoggingService(
-                        $referenceSearchService->get(ConversionService::REFERENCE_NAME),
-                        $referenceSearchService->get(self::LOGGER_REFERENCE)
-                    )
-                ),
-                $this->getMethodName()
-            )
-                ->withMethodParameterConverters($this->getParameterConverters())
-                ->withPassThroughMessageOnVoidInterface(true)
-                ->withOutputMessageChannel($this->outputMessageChannelName)
-                ->build($channelResolver, $referenceSearchService);
+        if (!$builder->has(LoggingInterceptor::class)) {
+            $builder->register(LoggingInterceptor::class, [
+                new Definition(LoggingService::class, [Reference::to(ConversionService::REFERENCE_NAME), Reference::to(self::LOGGER_REFERENCE)]),
+            ]);
+        }
+        return ServiceActivatorBuilder::create(
+            LoggingInterceptor::class,
+            $builder->getInterfaceToCall(new InterfaceToCallReference(LoggingInterceptor::class, $this->getMethodName()))
+        )
+            ->withPassThroughMessageOnVoidInterface(true)
+            ->withOutputMessageChannel($this->getOutputMessageChannelName())
+            ->withMethodParameterConverters($this->methodParameterConverters)
+            ->compile($builder);
     }
+
 
     /**
      * @inheritDoc
@@ -153,10 +153,5 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
     private function getMethodName(): string
     {
         return $this->isBefore ? 'logBefore' : 'logAfter';
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
-    {
-        throw new LogicException("Not implemented");
     }
 }

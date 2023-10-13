@@ -29,16 +29,6 @@ final class UninterruptibleServiceActivator implements MessageHandlerBuilderWith
     }
 
     /**
-     * @param ChannelResolver $channelResolver
-     * @param ReferenceSearchService $referenceSearchService
-     * @return MessageHandler
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        return $this->serviceActivatorBuilder->build($channelResolver, $referenceSearchService);
-    }
-
-    /**
      * It returns, internal reference objects that will be called during handling method
      *
      * @param InterfaceToCallRegistry $interfaceToCallRegistry

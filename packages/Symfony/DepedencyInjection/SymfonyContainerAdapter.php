@@ -68,9 +68,6 @@ class SymfonyContainerAdapter implements CompilerPass
                 $this->normalizeNamedArgument($this->resolveArgument($methodCall->getArguments()))
             );
         }
-        if ($ecotoneDefinition->islLazy()) {
-            $sfDefinition->setLazy(true);
-        }
         return $sfDefinition->setPublic(true);
     }
 

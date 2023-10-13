@@ -12,12 +12,9 @@ use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
 use Ecotone\Messaging\Config\Container\ConfigurationVariableReference;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
-use Ecotone\SymfonyBundle\DepedencyInjection\SymfonyContainerAdapter;
-use Psr\Container\ContainerInterface;
 
 class EcotoneLiteApplication
 {
@@ -58,8 +55,8 @@ class EcotoneLiteApplication
 
             $containerBuilder = new ContainerBuilder();
             $containerBuilder->addCompilerPass($messagingConfiguration);
-            $containerBuilder->addCompilerPass(new ResolveDefinedObjectsPass());
             $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
+            $containerBuilder->addCompilerPass(new ResolveDefinedObjectsPass());
             $containerBuilder->addCompilerPass(new PhpDiContainerImplementation($builder));
             $containerBuilder->compile();
 

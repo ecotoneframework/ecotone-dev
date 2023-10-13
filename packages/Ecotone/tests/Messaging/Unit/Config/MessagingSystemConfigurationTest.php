@@ -167,16 +167,15 @@ class MessagingSystemConfigurationTest extends MessagingTest
     public function test_running_pollable_consumer()
     {
         $messageChannelName = 'pollableChannel';
-        $pollableChannel = QueueChannel::create();
         $messageHandler = NoReturnMessageHandler::create();
 
         $messagingSystem = $this->createMessagingSystemConfiguration()
             ->registerMessageHandler(DumbMessageHandlerBuilder::create($messageHandler, $messageChannelName))
-            ->registerMessageChannel(SimpleMessageChannelBuilder::create($messageChannelName, $pollableChannel))
+            ->registerMessageChannel(SimpleMessageChannelBuilder::create($messageChannelName, QueueChannel::create()))
             ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder())
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
-        $pollableChannel->send(MessageBuilder::withPayload('a')->build());
+        $messagingSystem->getMessageChannelByName($messageChannelName)->send(MessageBuilder::withPayload('a')->build());
 
         $messagingSystem->run($messagingSystem->list()[0]);
 

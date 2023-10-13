@@ -54,9 +54,6 @@ class PhpDiContainerImplementation implements CompilerPass
         }
         $phpdi = \DI\create($definition->getClassName())
             ->constructor(...$this->resolveArgument($definition->getConstructorArguments()));
-        if ($definition->islLazy()) {
-            $phpdi->lazy();
-        }
         foreach ($definition->getMethodCalls() as $methodCall) {
             $phpdi->method($methodCall->getMethodName(), ...$this->resolveArgument($methodCall->getArguments()));
         }

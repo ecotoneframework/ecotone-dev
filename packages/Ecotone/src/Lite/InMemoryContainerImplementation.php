@@ -93,7 +93,8 @@ class InMemoryContainerImplementation implements CompilerPass
         if ($id === 'logger' || $id === LoggerInterface::class) {
             $alias = $id === 'logger' ? LoggerInterface::class : 'logger';
             $logger = $this->externalContainer?->has($alias) ? $this->externalContainer->get($alias) : new NullLogger();
-            $this->container->set($id, $logger);
+            $this->container->set('logger', $logger);
+            $this->container->set(LoggerInterface::class, $logger);
             return $logger;
         }
         throw new \InvalidArgumentException("Reference {$id} was not found in definitions");

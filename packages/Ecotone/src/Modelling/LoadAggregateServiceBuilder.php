@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -77,7 +78,7 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
 
         if (! $builder->has(PropertyEditorAccessor::class)) {
             $builder->register(PropertyEditorAccessor::class, new Definition(PropertyEditorAccessor::class, [
-                new Reference(ReferenceSearchService::class),
+                new Reference(ExpressionEvaluationService::REFERENCE),
             ], 'create'));
         }
 

@@ -34,7 +34,7 @@ class RegisterSingletonMessagingServices implements CompilerPass
         $this->registerDefault($builder, Clock::class, new Definition(EpochBasedClock::class));
         $this->registerDefault($builder, ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
         $this->registerDefault($builder, ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
-        $this->registerDefault($builder, ExpressionEvaluationService::REFERENCE, new Definition(SymfonyExpressionEvaluationAdapter::class, factory: 'create'));
+        $this->registerDefault($builder, ExpressionEvaluationService::REFERENCE, new Definition(SymfonyExpressionEvaluationAdapter::class, [new Reference(ReferenceSearchService::class)], 'create'));
         $this->registerDefault($builder, PollingConsumerContext::class, new Definition(PollingConsumerContextProvider::class, [new Reference(Clock::class), new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]));
         $this->registerDefault($builder, PollingConsumerPostSendAroundInterceptor::class, [new Reference(PollingConsumerContext::class)]);
         $this->registerDefault($builder, PollingConsumerErrorInterceptor::class, [new Reference(ChannelResolver::class)]);

@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Router;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -39,6 +40,7 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
     private ?string $defaultResolution = null;
     private bool $applySequence = false;
     private ?string $endpointId = '';
+    private ?DefinedObject $directObjectToInvoke = null;
 
     private function __construct(private string|Reference|Definition $objectToInvokeReference, private string|InterfaceToCall $methodNameOrInterface)
     {
@@ -158,6 +160,9 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
     {
         if ($this->methodNameOrInterface instanceof InterfaceToCall) {
             $interfaceToCall = $this->methodNameOrInterface;
+        } elseif ($this->directObjectToInvoke) {
+            $className = \get_class($this->directObjectToInvoke);
+            $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference($className, $this->methodNameOrInterface));
         } else {
             $className = $this->objectToInvokeReference instanceof Definition ? $this->objectToInvokeReference->getClassName() : (string) $this->objectToInvokeReference;
             $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference($className, $this->methodNameOrInterface));
@@ -165,7 +170,7 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
         $methodInvoker = MethodInvoker::createDefinition(
             $builder,
             $interfaceToCall,
-            $this->objectToInvokeReference,
+            $this->directObjectToInvoke ?: $this->objectToInvokeReference,
             $this->methodParameterConverters
         );
         return $builder->register(uniqid('router.'), new Definition(Router::class, [
@@ -226,9 +231,8 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
         return $this;
     }
 
-    private function setObjectToInvoke(object $objectToInvoke): void
+    private function setObjectToInvoke(DefinedObject $objectToInvoke): void
     {
-        throw new \InvalidArgumentException("Router can't be invoked directly");
         $this->directObjectToInvoke = $objectToInvoke;
     }
 

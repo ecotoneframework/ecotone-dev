@@ -16,7 +16,7 @@ use Ecotone\Messaging\Message;
  */
 class PayloadExpressionConverter implements ParameterConverter
 {
-    public function __construct(private ReferenceSearchService $referenceSearchService, private ExpressionEvaluationService $expressionEvaluationService, private string $expression)
+    public function __construct(private ExpressionEvaluationService $expressionEvaluationService, private string $expression)
     {
     }
 
@@ -32,7 +32,6 @@ class PayloadExpressionConverter implements ParameterConverter
                 'headers' => $message->getHeaders()->headers(),
                 'payload' => $message->getPayload(),
             ],
-            $this->referenceSearchService
         );
     }
 }

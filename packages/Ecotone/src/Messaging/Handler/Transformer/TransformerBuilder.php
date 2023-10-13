@@ -104,7 +104,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         return $transformerBuilder;
     }
 
-    public static function createWithDirectObject(object $referenceObject, string $methodName): self
+    public static function createWithDirectObject(DefinedObject $referenceObject, string $methodName): self
     {
         $transformerBuilder = new self('', $methodName);
         $transformerBuilder->setDirectObjectToInvoke($referenceObject);
@@ -212,8 +212,8 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             $objectToInvokeOn = new Definition(ExpressionTransformer::class, [$this->expression, new Reference(ExpressionEvaluationService::REFERENCE), new Reference(ReferenceSearchService::class)]);
             $interfaceToCallReference = new InterfaceToCallReference(ExpressionTransformer::class, 'transform');
         } else {
-            $objectToInvokeOn = $this->directObject ? $this->directObject->getDefinition() : new Reference($this->objectToInvokeReferenceName);
-            $className = $this->directObject ? $objectToInvokeOn->getClassName() : $this->objectToInvokeReferenceName;
+            $objectToInvokeOn = $this->directObject ?: new Reference($this->objectToInvokeReferenceName);
+            $className = $this->directObject ? \get_class($objectToInvokeOn) : $this->objectToInvokeReferenceName;
             $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
         }
 
@@ -223,10 +223,6 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
 
         $compiledMethodParameterConverters = [];
         foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
-            if (! ($methodParameterConverter instanceof CompilableParameterConverterBuilder)) {
-                // Cannot continue without every parameter converters compilable
-                return null;
-            }
             $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
         }
 
@@ -292,7 +288,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
 
     public function __toString()
     {
-        $reference = $this->objectToInvokeReferenceName ? $this->objectToInvokeReferenceName : get_class($this->directObject);
+        $reference = $this->directObject ? get_class($this->directObject) : $this->objectToInvokeReferenceName;
 
         return sprintf('Transformer - %s:%s with name `%s` for input channel `%s`', $reference, $this->getMethodName(), $this->getEndpointId(), $this->getInputMessageChannelName());
     }

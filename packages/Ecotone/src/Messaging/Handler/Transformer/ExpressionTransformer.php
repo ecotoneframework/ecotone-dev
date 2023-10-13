@@ -15,22 +15,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class ExpressionTransformer
 {
-    private \Ecotone\Messaging\Handler\ExpressionEvaluationService $expressionEvaluationService;
-    private string $expression;
-    private \Ecotone\Messaging\Handler\ReferenceSearchService $referenceSearchService;
-
-    /**
-     * ExpressionTransformer constructor.
-     *
-     * @param string $expression
-     * @param ExpressionEvaluationService $expressionEvaluationService
-     * @param ReferenceSearchService $referenceSearchService
-     */
-    public function __construct(string $expression, ExpressionEvaluationService $expressionEvaluationService, ReferenceSearchService $referenceSearchService)
+    public function __construct(private string $expression, private ExpressionEvaluationService $expressionEvaluationService)
     {
-        $this->expression = $expression;
-        $this->expressionEvaluationService = $expressionEvaluationService;
-        $this->referenceSearchService = $referenceSearchService;
     }
 
     /**
@@ -46,7 +32,6 @@ final class ExpressionTransformer
                 'payload' => $message->getPayload(),
                 'headers' => $message->getHeaders()->headers(),
             ],
-            $this->referenceSearchService
         );
 
         return MessageBuilder::fromMessage($message)

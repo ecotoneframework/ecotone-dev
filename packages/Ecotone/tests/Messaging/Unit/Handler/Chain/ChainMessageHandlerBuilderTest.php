@@ -31,6 +31,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ComponentTestBuilder;
 use Exception;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -494,16 +495,13 @@ class ChainMessageHandlerBuilderTest extends TestCase
     {
         $outputChannelName = 'outputChannel';
         $outputChannel = QueueChannel::create();
-        $chainBuilder = ChainMessageHandlerBuilder::create()
+        $componentTest = ComponentTestBuilder::create()
+            ->withChannel($outputChannelName, $outputChannel);
+        $chainBuilder = $componentTest->build(ChainMessageHandlerBuilder::create()
             ->chain(TransformerBuilder::createWithExpression('1 + 1'))
             ->chain(TransformerBuilder::createWithExpression('payload + 1'))
             ->withOutputMessageHandler(RouterBuilder::createRecipientListRouter([$outputChannelName]))
-            ->build(
-                InMemoryChannelResolver::createFromAssociativeArray([
-                    $outputChannelName => $outputChannel,
-                ]),
-                InMemoryReferenceSearchService::createWith([ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create()])
-            );
+        );
 
         $chainBuilder->handle(MessageBuilder::withPayload('some1')->build());
 

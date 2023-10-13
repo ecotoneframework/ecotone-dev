@@ -25,7 +25,7 @@ class PsrContainerReferenceSearchService implements ReferenceSearchService
         $this->container = $container;
         $this->defaults = $defaults;
         $this->lazyConfiguredMessagingSystem = new LazyConfiguredMessagingSystem();
-        $this->symfonyExpressionEvaluationAdapter = SymfonyExpressionEvaluationAdapter::create();
+        $this->symfonyExpressionEvaluationAdapter = SymfonyExpressionEvaluationAdapter::create($this);
     }
 
     /**

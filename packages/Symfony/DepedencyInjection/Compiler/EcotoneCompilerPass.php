@@ -198,6 +198,7 @@ class EcotoneCompilerPass implements CompilerPassInterface
         $definition = new Definition();
         $definition->setClass(MessagingSystemFactory::class);
         $definition->addArgument(new Reference('service_container'));
+        $definition->addArgument(new Reference(ServiceCacheConfiguration::REFERENCE_NAME));
         $definition->addArgument(new Reference(ReferenceSearchService::class));
         $container->setDefinition(MessagingSystemFactory::class, $definition);
 

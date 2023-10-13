@@ -19,6 +19,7 @@ use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelResolverWithContainer;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
@@ -1283,17 +1284,9 @@ final class MessagingSystemConfiguration implements Configuration
     {
         $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
 
-        $builder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry);
+        $messagingBuilder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry);
 
-        $builder->register(Bridge::class, new Definition(Bridge::class));
-        $builder->register(Clock::class, new Definition(EpochBasedClock::class));
-        $builder->register(ChannelResolver::class, new Definition(ChannelResolverWithContainer::class, [new Reference(ContainerInterface::class)]));
-        $builder->register(ReferenceSearchService::class, new Definition(ReferenceSearchServiceWithContainer::class, [new Reference(ContainerInterface::class)]));
         $builder->register(ServiceCacheConfiguration::class, $this->serviceCacheConfiguration);
-        $builder->register(ExpressionEvaluationService::REFERENCE, new Definition(SymfonyExpressionEvaluationAdapter::class, factory: 'create'));
-        $builder->register(PollingConsumerContext::class, new Definition(PollingConsumerContextProvider::class, [new Reference(Clock::class), new Reference(LoggerInterface::class), new Reference(ContainerInterface::class)]));
-        $builder->register(PollingConsumerPostSendAroundInterceptor::class, [new Reference(PollingConsumerContext::class)]);
-        $builder->register(PollingConsumerErrorInterceptor::class, [new Reference(ChannelResolver::class)]);
 
         foreach ($this->serviceDefinitions as $id => $definition) {
             $builder->register($id, $definition);
@@ -1305,7 +1298,7 @@ final class MessagingSystemConfiguration implements Configuration
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {
             if ($converterBuilder instanceof CompilableBuilder) {
-                $converters[] = $converterBuilder->compile($builder);
+                $converters[] = $converterBuilder->compile($messagingBuilder);
             } else {
                 throw ConfigurationException::create("Converter can't be compiled");
             }
@@ -1326,7 +1319,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         foreach ($this->channelBuilders as $channelsBuilder) {
-            $channelReference = $channelsBuilder->compile($builder);
+            $channelReference = $channelsBuilder->compile($messagingBuilder);
             if (! $channelReference) {
                 throw ConfigurationException::create("Channel {$channelsBuilder->getMessageChannelName()} can't be compiled");
             }
@@ -1336,7 +1329,7 @@ final class MessagingSystemConfiguration implements Configuration
                 $regexChannel = str_replace('\\', '\\\\', $regexChannel);
                 if (preg_match("#^{$regexChannel}$#", $channelsBuilder->getMessageChannelName())) {
                     foreach ($interceptors as $interceptor) {
-                        $interceptorsForChannel[] = $interceptor->compile($builder);
+                        $interceptorsForChannel[] = $interceptor->compile($messagingBuilder);
                     }
                 }
             }
@@ -1355,39 +1348,29 @@ final class MessagingSystemConfiguration implements Configuration
             if (! $object instanceof CompilableBuilder) {
                 throw ConfigurationException::create("Reference {$id} is not compilable");
             }
-            $builder->register($id, $object->compile($builder));
+            $builder->register($id, $object->compile($messagingBuilder));
         }
 
         foreach ($this->channelAdapters as $channelAdapter) {
-            $channelAdapter->compile($builder);
+            $channelAdapter->compile($messagingBuilder);
         }
 
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             $inputChannelBuilder = $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] ?? throw ConfigurationException::create("Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
             foreach ($this->consumerFactories as $consumerFactory) {
                 if ($consumerFactory->isSupporting($messageHandlerBuilder, $inputChannelBuilder)) {
-                    $consumerFactory->registerConsumer($builder, $messageHandlerBuilder);
+                    $consumerFactory->registerConsumer($messagingBuilder, $messageHandlerBuilder);
                     break;
                 }
             }
         }
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
-            if ($gatewayBuilder instanceof CompilableBuilder) {
-                $gatewayBuilder->compile($builder);
-            } else {
-                throw ConfigurationException::create("Gateway {$gatewayBuilder->getReferenceName()} can't be compiled");
-            }
-            if (! $builder->has($gatewayBuilder->getReferenceName())) {
-                $builder->register($gatewayBuilder->getReferenceName(), new Definition($gatewayBuilder->getInterfaceName(), [
-                    $gatewayBuilder->getReferenceName(),
-                    new Reference(ConfiguredMessagingSystem::class),
-                    $gatewayBuilder->getInterfaceName(),
-                    new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
-                ], [ProxyFactory::class, 'createFor']));
-            }
+            $gatewayBuilder->compile($messagingBuilder);
+            $gatewayBuilder->registerProxy($messagingBuilder);
         }
 
-        $builder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $builder->getPollingEndpoints()]));
+        $builder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints()]));
+        (new RegisterSingletonMessagingServices())->process($builder);
     }
 
     /**

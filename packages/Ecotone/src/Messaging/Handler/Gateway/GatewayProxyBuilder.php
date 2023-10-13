@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
@@ -478,6 +479,18 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
                 $channelResolver,
                 $referenceSearchService
             );
+    }
+
+    public function registerProxy(ContainerMessagingBuilder $builder): void
+    {
+        if (! $builder->has($this->getReferenceName())) {
+            $builder->register($this->getReferenceName(), new Definition($this->getInterfaceName(), [
+                $this->getReferenceName(),
+                new Reference(ConfiguredMessagingSystem::class),
+                $this->getInterfaceName(),
+                new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
+            ], [ProxyFactory::class, 'createFor']));
+        }
     }
 
     public function compile(ContainerMessagingBuilder $builder): Reference|null

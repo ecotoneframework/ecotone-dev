@@ -141,7 +141,7 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
 
         if (! $builder->has(PropertyEditorAccessor::class)) {
             $builder->register(PropertyEditorAccessor::class, new Definition(PropertyEditorAccessor::class, [
-                new Reference(ExpressionEvaluationService::class),
+                new Reference(ExpressionEvaluationService::REFERENCE),
             ], 'create'));
         }
         if(! $builder->has(PropertyReaderAccessor::class)) {

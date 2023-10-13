@@ -32,9 +32,8 @@ use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Class PollingConsumerBuilder
- * @package Ecotone\Messaging\Endpoint\PollingConsumer
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * This class is stateless Service which creates Message Consumers for Message Handlers.
+ * It should not hold any state, as it will be reused for different endpoints.
  */
 class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, InterceptedEndpoint
 {

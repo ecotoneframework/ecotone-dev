@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\Interceptor;
 
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Throwable;
 
 class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor

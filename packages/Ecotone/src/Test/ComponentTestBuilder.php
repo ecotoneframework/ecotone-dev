@@ -91,4 +91,9 @@ class ComponentTestBuilder
         }
         $this->builder->compile();
     }
+
+    public function getPollingConsumer(string $endpointId)
+    {
+        return $this->container->get("polling.{$endpointId}.runner");
+    }
 }

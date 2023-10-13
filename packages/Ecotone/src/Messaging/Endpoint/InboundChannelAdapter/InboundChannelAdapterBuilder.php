@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
@@ -197,6 +198,9 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         }
         $gatewayBuilder = clone $this->inboundGateway;
         $gateway = $gatewayBuilder
+            ->addAroundInterceptor(
+                AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry())
+            )
             ->addAroundInterceptor(
                 AroundInterceptorReference::create(
                     PollingConsumerPostSendAroundInterceptor::class,

@@ -195,6 +195,23 @@ class TypeResolver
         return $parameters;
     }
 
+    public function registerAttribute(ContainerBuilder $builder, AttributeReference $attributeReference): void
+    {
+        $className = $attributeReference->getClassName();
+        if ($methodName = $attributeReference->getMethodName()) {
+            $reflection = new ReflectionMethod($className, $methodName);
+        } else {
+            $reflection = new ReflectionClass($className);
+        }
+        $attributes = $reflection->getAttributes($attributeReference->getAttributeClass());
+        if ($attributes > 1) {
+            // Warning ?
+        } else if ($attributes === 0) {
+            throw new InvalidArgumentException("Invalid attribute reference {$attributeReference}");
+        }
+        self::registerAttributeDefinition($builder, AttributeDefinition::fromReflection($attributes[0]), $className, $methodName);
+    }
+
     private function registerAttributeDefinition(ContainerBuilder $builder, AttributeDefinition $attributeDefinition, string $className, ?string $methodName = null): Definition|Reference
     {
         $reference = new AttributeReference($attributeDefinition->getClassName(), $className, $methodName);

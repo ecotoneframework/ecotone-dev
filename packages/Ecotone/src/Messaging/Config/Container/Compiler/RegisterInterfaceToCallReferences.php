@@ -45,7 +45,7 @@ class RegisterInterfaceToCallReferences implements CompilerPass
             }
         } elseif ($argument instanceof AttributeReference) {
             if (! $containerBuilder->has($argument->getId())) {
-                $this->typeResolver->registerInterfaceToCallDefinition($containerBuilder, $argument->getInterfaceToCallReference());
+                $this->typeResolver->registerAttribute($containerBuilder, $argument);
             }
         }
     }

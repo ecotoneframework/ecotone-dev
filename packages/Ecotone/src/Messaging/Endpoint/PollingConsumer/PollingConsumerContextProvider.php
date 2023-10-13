@@ -17,13 +17,14 @@ use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
-class PollingConsumerContextProvider implements PollingConsumerContext, EndpointRunner
+class PollingConsumerContextProvider implements PollingConsumerContext, EndpointRunner, ConsumerLifecycle
 {
     private ?PollingMetadata $currentPollingMetadata = null;
     /**
      * @var \Ecotone\Messaging\Endpoint\ConsumerInterceptor[]
      */
     private ?array $consumerInterceptors = null;
+    private ?ConsumerLifecycle $runningConsumer = null;
 
     public function __construct(private Clock $clock, private LoggerInterface $logger, private ContainerInterface $container)
     {
@@ -54,12 +55,13 @@ class PollingConsumerContextProvider implements PollingConsumerContext, Endpoint
     public function runEndpointWithExecutionPollingMetadata(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata): void
     {
         $this->currentPollingMetadata = $this->getPollingMetadataForEndpoint($endpointId)->applyExecutionPollingMetadata($executionPollingMetadata);
-
+        $this->runningConsumer = $this->getPollingConsumer();
         try {
-            $this->getPollingConsumer()->run();
+            $this->run();
         } finally {
             $this->currentPollingMetadata = null;
             $this->consumerInterceptors = null;
+            $this->runningConsumer = null;
         }
     }
 
@@ -90,5 +92,20 @@ class PollingConsumerContextProvider implements PollingConsumerContext, Endpoint
     private function getPollingMetadataForEndpoint(string $endpointId): PollingMetadata
     {
         return $this->container->get("polling.".$endpointId.'.metadata');
+    }
+
+    public function run(): void
+    {
+        $this->runningConsumer->run();
+    }
+
+    public function stop(): void
+    {
+        $this->runningConsumer->stop();
+    }
+
+    public function isRunningInSeparateThread(): bool
+    {
+        $this->runningConsumer->isRunningInSeparateThread();
     }
 }

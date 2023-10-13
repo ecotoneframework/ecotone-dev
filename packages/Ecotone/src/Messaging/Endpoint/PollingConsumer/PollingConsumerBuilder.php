@@ -164,7 +164,7 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
 
         return $this->compiledGatewayReference = $gatewayBuilder
             ->addAroundInterceptor(
-                AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry(),)
+                AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry())
             )
             ->addAroundInterceptor(
                 AroundInterceptorReference::create(

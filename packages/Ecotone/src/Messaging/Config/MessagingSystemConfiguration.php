@@ -39,6 +39,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContextProvider;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerErrorInterceptor;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerPostSendAroundInterceptor;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
@@ -1298,7 +1299,7 @@ final class MessagingSystemConfiguration implements Configuration
             $messagingBuilder->register($id, $definition);
         }
 
-        // TODO: some service configuration should be handled at runtime. Here they are cached in the container
+        // TODO: some service configuration should be handled at runtime. Here they are all cached in the container
         $messagingBuilder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
 
         $converters = [];
@@ -1373,6 +1374,13 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
             $gatewayBuilder->compile($messagingBuilder);
             $gatewayBuilder->registerProxy($messagingBuilder);
+        }
+
+        foreach ($this->consoleCommands as $consoleCommandConfiguration) {
+            $builder->register("console.{$consoleCommandConfiguration->getName()}", new Definition(ConsoleCommandRunner::class, [
+                Reference::to(MessagingEntrypoint::class),
+                $consoleCommandConfiguration,
+            ]));
         }
 
         $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints()]));

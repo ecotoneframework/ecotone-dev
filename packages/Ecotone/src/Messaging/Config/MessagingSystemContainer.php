@@ -7,6 +7,7 @@ use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
@@ -20,6 +21,10 @@ use Psr\Container\ContainerInterface;
 
 class MessagingSystemContainer implements ConfiguredMessagingSystem
 {
+    /**
+     * @param array<string, string> $pollingEndpoints a Map of endpointId => consumer lifecycle runner reference
+     * @param array $consoleCommands
+     */
     public function __construct(private ContainerInterface $container, private array $pollingEndpoints)
     {
     }
@@ -36,7 +41,13 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function runConsoleCommand(string $commandName, array $parameters): mixed
     {
-        return null;
+        $consoleCommandReference = "console.{$commandName}";
+        if (!$this->container->has($consoleCommandReference)) {
+            throw InvalidArgumentException::create("Trying to run not existing console command {$commandName}");
+        }
+        /** @var ConsoleCommandRunner $commandRunner */
+        $commandRunner = $this->container->get($consoleCommandReference);
+        return $commandRunner->run($parameters);
     }
 
     public function getCommandBus(): CommandBus

@@ -49,7 +49,7 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
             InboundChannelAdapterEntrypoint::class,
             'executeEntrypoint',
             $this->requestChannelName
-        )->withEndpointAnnotations([new AttributeDefinition(AsynchronousRunningEndpoint::class, [""])]); // TODO: the endpoint id was passed in here
+        )->withEndpointAnnotations([new AttributeDefinition(AsynchronousRunningEndpoint::class, [""])]);
     }
 
     public function isPollingConsumer(): bool
@@ -159,7 +159,6 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
         $builder->register(new ChannelReference($this->requestChannelName), new Definition(PollingConsumerChannel::class, [
             new Reference(PollingConsumerContext::class),
         ]));
-        // TODO: Add this back in
 
         $gatewayBuilder = clone $this->entrypointGateway;
 

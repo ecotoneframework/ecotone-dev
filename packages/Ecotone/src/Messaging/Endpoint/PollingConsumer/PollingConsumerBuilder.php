@@ -199,7 +199,7 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
 
         // Continuous polling
         /** @var PollingMetadata $pollingMetadata */
-        $pollingMetadata = $builder->getDefinition("polling.{$messageHandlerBuilder->getEndpointId()}.metadata");
+        $pollingMetadata = $builder->getDefinition("polling.{$messageHandlerBuilder->getEndpointId()}.metadata")->instance();
         $builder->replace("polling.{$messageHandlerBuilder->getEndpointId()}.metadata", $pollingMetadata->setFixedRateInMilliseconds(1)->setInitialDelayInMilliseconds(0));
 
         // Register polling endpoint

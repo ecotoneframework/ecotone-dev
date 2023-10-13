@@ -33,7 +33,7 @@ final class RedisInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapt
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,
-            DefaultHeaderMapper::createWith($this->headerMapper, [])->getDefinition(),
+            DefaultHeaderMapper::createWith($this->headerMapper, []),
             EnqueueHeader::HEADER_ACKNOWLEDGE
         ]);
 

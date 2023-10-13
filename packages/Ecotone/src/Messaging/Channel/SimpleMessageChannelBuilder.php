@@ -125,7 +125,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         $channelReference = new ChannelReference($this->messageChannelName);
-        $definition = $this->messageChannel->getDefinition();
+        $definition = $this->messageChannel;
         $builder->register($channelReference, $definition);
         return $channelReference;
     }

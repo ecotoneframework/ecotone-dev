@@ -65,8 +65,8 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
         ], 'createFor');
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
-            $this->headerMapper->getDefinition(),
-            $this->defaultConversionMediaType->getDefinition(),
+            $this->headerMapper,
+            $this->defaultConversionMediaType,
             $this->defaultDeliveryDelay,
             $this->defaultTimeToLive,
             $this->defaultPriority,

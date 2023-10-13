@@ -92,7 +92,7 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             $this->isAggregateVersionAutomaticallyIncreased,
             new Reference(PropertyReaderAccessor::class),
             new Reference(PropertyEditorAccessor::class),
-            $this->eventSourcingHandlerExecutor->getDefinition(),
+            $this->eventSourcingHandlerExecutor,
             new Definition(LoadAggregateMode::class, [$this->loadAggregateMode->getType()]),
         ]);
 

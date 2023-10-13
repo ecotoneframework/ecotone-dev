@@ -1292,14 +1292,14 @@ final class MessagingSystemConfiguration implements Configuration
 
         $messagingBuilder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry);
 
-        $builder->register(ServiceCacheConfiguration::class, $this->serviceCacheConfiguration);
+        $messagingBuilder->register(ServiceCacheConfiguration::class, $this->serviceCacheConfiguration);
 
         foreach ($this->serviceDefinitions as $id => $definition) {
-            $builder->register($id, $definition);
+            $messagingBuilder->register($id, $definition);
         }
 
         // TODO: some service configuration should be handled at runtime. Here they are cached in the container
-        $builder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
+        $messagingBuilder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
 
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {
@@ -1309,7 +1309,7 @@ final class MessagingSystemConfiguration implements Configuration
                 throw ConfigurationException::create("Converter can't be compiled");
             }
         }
-        $builder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters], 'createWith'));
+        $messagingBuilder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters], 'createWith'));
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];
@@ -1321,7 +1321,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         foreach ($this->pollingMetadata as $pollingMetadata) {
-            $builder->register('polling.'.$pollingMetadata->getEndpointId().'.metadata', $pollingMetadata);
+            $messagingBuilder->register('polling.'.$pollingMetadata->getEndpointId().'.metadata', $pollingMetadata);
         }
 
         foreach ($this->channelBuilders as $channelsBuilder) {
@@ -1340,13 +1340,13 @@ final class MessagingSystemConfiguration implements Configuration
                 }
             }
             if ($interceptorsForChannel) {
-                $channelDefinition = $builder->getDefinition($channelReference);
+                $channelDefinition = $messagingBuilder->getDefinition($channelReference);
                 $isPollable = is_a($channelDefinition->getClassName(), PollableChannel::class, true);
                 $channelDefinition = new Definition($isPollable ? PollableChannelInterceptorAdapter::class : EventDrivenChannelInterceptorAdapter::class, [
                    $channelDefinition,
                      $interceptorsForChannel,
                 ]);
-                $builder->replace($channelReference, $channelDefinition);
+                $messagingBuilder->replace($channelReference, $channelDefinition);
             }
         }
 
@@ -1354,7 +1354,7 @@ final class MessagingSystemConfiguration implements Configuration
             if (! $object instanceof CompilableBuilder) {
                 throw ConfigurationException::create("Reference {$id} is not compilable");
             }
-            $builder->register($id, $object->compile($messagingBuilder));
+            $messagingBuilder->register($id, $object->compile($messagingBuilder));
         }
 
         foreach ($this->channelAdapters as $channelAdapter) {
@@ -1375,7 +1375,7 @@ final class MessagingSystemConfiguration implements Configuration
             $gatewayBuilder->registerProxy($messagingBuilder);
         }
 
-        $builder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints()]));
+        $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints()]));
         (new RegisterSingletonMessagingServices())->process($builder);
     }
 

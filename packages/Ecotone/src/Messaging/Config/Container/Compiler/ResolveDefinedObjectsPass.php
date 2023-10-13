@@ -7,6 +7,7 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 
 /**
  * This compiler pass will convert DefinedObject to their definitions
@@ -42,6 +43,10 @@ class ResolveDefinedObjectsPass implements CompilerPass
 
     private function countReferenceToSameDefinedObject($argument): void
     {
+        if ($argument instanceof DefinedObjectWrapper) {
+            $argument = $argument->instance();
+        }
+
         if ($argument instanceof Definition) {
             $this->countReferenceToSameDefinedObject($argument->getConstructorArguments());
             foreach ($argument->getMethodCalls() as $methodCall) {
@@ -60,6 +65,10 @@ class ResolveDefinedObjectsPass implements CompilerPass
 
     private function convertDefinition($argument): mixed
     {
+        if ($argument instanceof DefinedObjectWrapper) {
+            $argument = $argument->instance();
+        }
+
         if ($argument instanceof Definition) {
             $argument->replaceArguments($this->convertDefinition($argument->getConstructorArguments()));
             foreach ($argument->getMethodCalls() as $methodCall) {

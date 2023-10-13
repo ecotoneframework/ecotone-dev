@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Config\Container;
 
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use InvalidArgumentException;
 
 class ContainerBuilder
@@ -28,9 +29,6 @@ class ContainerBuilder
 
     public function register(string|Reference $id, object|array|string $definition = []): Reference
     {
-        if (((string) $id) === 'polling.orders.executor') {
-            $i = 0;
-        }
         if (isset($this->definitions[(string) $id])) {
             throw new InvalidArgumentException("Definition with id {$id} already exists");
         }
@@ -45,6 +43,8 @@ class ContainerBuilder
         if (is_array($definition)) {
             // Parameters are passed directly, transform to a definition
             $definition = new Definition((string) $id, $definition);
+        } else if ($definition instanceof DefinedObject) {
+            $definition = new DefinedObjectWrapper($definition);
         }
         $this->definitions[(string) $id] = $definition;
         return $id instanceof Reference ? $id : new Reference($id);

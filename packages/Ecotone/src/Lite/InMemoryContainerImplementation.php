@@ -7,6 +7,7 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -57,6 +58,10 @@ class InMemoryContainerImplementation implements CompilerPass
 
     private function instantiateDefinition(Definition $definition, ContainerBuilder $builder): mixed
     {
+        if ($definition instanceof DefinedObjectWrapper) {
+            return $definition->instance();
+        }
+
         $arguments = $this->resolveArgument($definition->getConstructorArguments(), $builder);
         if ($definition->hasFactory()) {
             $factory = $definition->getFactory();

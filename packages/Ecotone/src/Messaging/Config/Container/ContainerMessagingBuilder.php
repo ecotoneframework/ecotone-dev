@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
@@ -53,7 +54,7 @@ class ContainerMessagingBuilder
         return $this->builder->replace($id, $definition);
     }
 
-    public function getDefinition(string|Reference $id): Definition|Reference|DefinedObject
+    public function getDefinition(string|Reference $id): Definition
     {
         return $this->builder->getDefinition($id);
     }

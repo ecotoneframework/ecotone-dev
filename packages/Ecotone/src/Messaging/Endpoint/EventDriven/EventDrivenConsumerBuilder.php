@@ -32,6 +32,11 @@ class EventDrivenConsumerBuilder implements MessageHandlerConsumerBuilder
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);
         $inputChannel = $messageHandlerBuilder->getInputMessageChannelName();
         $channelDefinition = $builder->getDefinition(new ChannelReference($inputChannel));
+        if ($channelDefinition instanceof SubscribableChannel) {
+            $channelDefinition->subscribe($messageHandlerReference);
+
+            return;
+        }
         $channelDefinition->addMethodCall('subscribe', [$messageHandlerReference]);
     }
 

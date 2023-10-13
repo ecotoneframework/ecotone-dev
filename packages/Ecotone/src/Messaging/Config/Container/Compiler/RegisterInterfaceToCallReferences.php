@@ -35,8 +35,6 @@ class RegisterInterfaceToCallReferences implements CompilerPass
             foreach ($argument->getMethodCalls() as $methodCall) {
                 $this->registerAllReferences($methodCall->getArguments(), $containerBuilder);
             }
-        } elseif ($argument instanceof DefinedObject) {
-            $this->registerAllReferences($argument->getDefinition(), $containerBuilder);
         } elseif ($argument instanceof InterfaceToCallReference) {
             if (! $containerBuilder->has($argument->getId())) {
                 $this->typeResolver->registerInterfaceToCallDefinition($containerBuilder, $argument);

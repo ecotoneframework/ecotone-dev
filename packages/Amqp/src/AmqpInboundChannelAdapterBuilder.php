@@ -47,7 +47,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,
-            DefaultHeaderMapper::createWith($this->headerMapper, [])->getDefinition(),
+            DefaultHeaderMapper::createWith($this->headerMapper, []),
             EnqueueHeader::HEADER_ACKNOWLEDGE
         ]);
 

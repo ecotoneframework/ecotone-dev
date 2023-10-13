@@ -202,7 +202,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             new Reference(PropertyEditorAccessor::class),
             $this->isCommandHandler,
             $this->interfaceToCall->isStaticallyCalled(),
-            $this->eventSourcingHandlerExecutor->getDefinition(),
+            $this->eventSourcingHandlerExecutor,
             $this->aggregateVersionProperty,
             $this->isAggregateVersionAutomaticallyIncreased,
             $this->aggregateMethodWithEvents,

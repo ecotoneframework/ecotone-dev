@@ -44,6 +44,10 @@ class LoggingModule extends NoExternalConfigurationModule implements AnnotationM
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $messagingConfiguration->registerServiceDefinition(LoggingInterceptor::class, [
+            new Definition(LoggingService::class, [Reference::to(ConversionService::REFERENCE_NAME), Reference::to(LoggerInterface::class)]),
+        ]);
+
         $messagingConfiguration->registerBeforeMethodInterceptor(
             MethodInterceptor::create(
                 'beforeLog',

@@ -62,7 +62,7 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
     {
         return new Definition(SendRetryChannelInterceptor::class, [
             $this->relatedChannel,
-            $this->retryTemplate->getDefinition(),
+            $this->retryTemplate,
             $this->errorChannel,
             new Reference(ConfiguredMessagingSystem::class),
             new Reference(LoggerInterface::class),

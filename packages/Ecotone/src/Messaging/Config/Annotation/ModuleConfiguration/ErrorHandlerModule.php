@@ -58,7 +58,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
 
             $reference = 'error_handler_'.$index;
             $messagingConfiguration->registerServiceDefinition($reference, new Definition(ErrorHandler::class, [
-                $extensionObject->getDelayedRetryTemplate()->getDefinition(),
+                $extensionObject->getDelayedRetryTemplate(),
                 (bool)$extensionObject->getDeadLetterQueueChannel()
             ]));
             $errorHandler = ServiceActivatorBuilder::create(

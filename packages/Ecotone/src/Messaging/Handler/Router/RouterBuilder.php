@@ -93,7 +93,8 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
 
     public static function createHeaderMappingRouter(string $headerName, array $headerValueToChannelMapping): self
     {
-        $routerBuilder = new self(HeaderMappingRouter::create($headerName, $headerValueToChannelMapping)->getDefinition(), 'route');
+        $routerBuilder = new self('', 'route');
+        $routerBuilder->setObjectToInvoke(HeaderMappingRouter::create($headerName, $headerValueToChannelMapping));
 
         return $routerBuilder;
     }

@@ -24,7 +24,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     /**
      * @param array<string, string> $pollingEndpoints a map of endpointId => consumer lifecycle runner reference id
      */
-    public function __construct(private ContainerInterface $container, private array $pollingEndpoints)
+    public function __construct(private ContainerInterface $container, private array $pollingEndpoints, private array $gatewayList)
     {
     }
 
@@ -109,6 +109,6 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function getGatewayList(): array
     {
-        return [];
+        return $this->gatewayList;
     }
 }

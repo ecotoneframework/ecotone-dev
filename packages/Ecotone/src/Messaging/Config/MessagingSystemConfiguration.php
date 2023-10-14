@@ -1376,9 +1376,15 @@ final class MessagingSystemConfiguration implements Configuration
                 }
             }
         }
+        $gatewayList = [];
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
             $gatewayBuilder->compile($messagingBuilder);
             $gatewayBuilder->registerProxy($messagingBuilder);
+            $gatewayList[$gatewayBuilder->getReferenceName()] = $gatewayBuilder->getInterfaceName();
+        }
+        $gatewayListReferences = [];
+        foreach ($gatewayList as $referenceName => $interfaceName) {
+            $gatewayListReferences[] = new GatewayReference($referenceName, $interfaceName);
         }
 
         foreach ($this->consoleCommands as $consoleCommandConfiguration) {
@@ -1388,7 +1394,7 @@ final class MessagingSystemConfiguration implements Configuration
             ]));
         }
 
-        $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints()]));
+        $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints(), $gatewayListReferences]));
         (new RegisterSingletonMessagingServices())->process($builder);
     }
 

@@ -22,8 +22,7 @@ use Psr\Container\ContainerInterface;
 class MessagingSystemContainer implements ConfiguredMessagingSystem
 {
     /**
-     * @param array<string, string> $pollingEndpoints a Map of endpointId => consumer lifecycle runner reference
-     * @param array $consoleCommands
+     * @param array<string, string> $pollingEndpoints a map of endpointId => consumer lifecycle runner reference id
      */
     public function __construct(private ContainerInterface $container, private array $pollingEndpoints)
     {

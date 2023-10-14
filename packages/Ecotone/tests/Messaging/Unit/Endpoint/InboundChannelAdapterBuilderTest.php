@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\NullableMessageChannel;
+use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Messaging\Transaction\Null\NullTransaction;
@@ -84,7 +85,8 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         $componentTest = ComponentTestBuilder::create()
             ->withReference("someRef", $service)
             ->withPollingMetadata(PollingMetadata::create("test")->setHandledMessageLimit(1));
-        $componentTest
+        /** @var TaskExecutor $adapter */
+        $adapter = $componentTest
             ->build(InboundChannelAdapterBuilder::create(
                     $inputChannelName,
                     'someRef',
@@ -93,6 +95,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
                 ->withEndpointId('test')
             );
 
+        $adapter->execute(PollingMetadata::create("test")->setHandledMessageLimit(1));
         $componentTest->runEndpoint('test');
 
         $this->assertTrue($service->wasCalled());

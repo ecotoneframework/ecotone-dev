@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -62,7 +63,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             EnqueueHeader::HEADER_ACKNOWLEDGE
         ]);
 
-        return $builder->register('polling.'.$this->endpointId.'.executor', new Definition(SqsInboundChannelAdapter::class, [
+        return new Definition(SqsInboundChannelAdapter::class, [
             $connectionFactory,
             $this->compileGateway($builder),
             $this->declareOnStartup,
@@ -70,6 +71,6 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             $this->receiveTimeoutInMilliseconds,
             $inboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
-        ]));
+        ]);
     }
 }

@@ -37,9 +37,6 @@ abstract class InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
      */
     public function withOutputMessageChannel(string $messageChannelName): self
     {
-        if (isset($this->compiled)) {
-            throw new InvalidArgumentException("Can't change output channel name after compilation");
-        }
         $self = clone $this;
         $self->outputMessageChannelName = $messageChannelName;
 

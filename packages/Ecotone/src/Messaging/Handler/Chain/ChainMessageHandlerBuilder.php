@@ -49,7 +49,6 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
     private ?MessageHandlerBuilder $outputMessageHandler = null;
 
     private ?int $interceptedHandlerOffset = null;
-    private ?Reference $compiled = null;
 
     /**
      * ChainMessageHandlerBuilder constructor.
@@ -107,13 +106,10 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
         return $this;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         if ($this->outputMessageHandler && $this->outputMessageChannelName) {
             throw InvalidArgumentException::create("Can't configure output message handler and output message channel for chain handler");
-        }
-        if (! $this->canBeCompiled()) {
-            throw InvalidArgumentException::create("Can't compile {$this}");
         }
 
         if (count($this->chainedMessageHandlerBuilders) === 1 && ! $this->outputMessageHandler) {
@@ -174,22 +170,7 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
             }
         }
 
-        return $this->compiled = $serviceActivator->compile($builder);
-    }
-
-    private function canBeCompiled(): bool
-    {
-        if ($this->outputMessageHandler && ! $this->outputMessageHandler instanceof CompilableBuilder) {
-            throw InvalidArgumentException::create("Output message handler {$this->outputMessageHandler} must be compilable");
-            return false;
-        }
-        foreach ($this->chainedMessageHandlerBuilders as $chainedMessageHandlerBuilder) {
-            if (! ($chainedMessageHandlerBuilder instanceof CompilableBuilder)) {
-                throw InvalidArgumentException::create("Chained message handler {$chainedMessageHandlerBuilder} must be compilable");
-                return false;
-            }
-        }
-        return true;
+        return $serviceActivator->compile($builder);
     }
 
     /**

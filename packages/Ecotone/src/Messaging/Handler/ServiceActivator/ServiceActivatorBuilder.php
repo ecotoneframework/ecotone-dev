@@ -39,41 +39,42 @@ use function uniqid;
  */
 final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
 {
-    private string $objectToInvokeReferenceName;
     private bool $isReplyRequired = false;
     private array $methodParameterConverterBuilders = [];
     /**
      * @var string[]
      */
     private array $requiredReferenceNames = [];
-    private ?object $directObjectReference = null;
     private bool $shouldPassThroughMessage = false;
     private bool $shouldWrapResultInMessage = true;
 
     private ?InterfaceToCall $annotatedInterfaceToCall = null;
-    protected ?Reference $compiled = null;
 
-    private function __construct(string $objectToInvokeOnReferenceName, private string|InterfaceToCall|InterfaceToCallReference $methodNameOrInterfaceToCall)
+    /**
+     * @param Reference|Definition|DefinedObject $objectToInvokeOn
+     */
+    private function __construct(private object $objectToInvokeOn, private InterfaceToCallReference $interfaceToCallReference)
     {
-        $this->objectToInvokeReferenceName = $objectToInvokeOnReferenceName;
-
-        if ($objectToInvokeOnReferenceName) {
-            $this->requiredReferenceNames[] = $objectToInvokeOnReferenceName;
-        }
     }
 
-    public static function create(string $objectToInvokeOnReferenceName, InterfaceToCall|InterfaceToCallReference|string $interfaceToCall): self
+    public static function create(string $objectToInvokeOnReferenceName, InterfaceToCall|InterfaceToCallReference|string $interfaceToCallOrReference): self
     {
-        if (is_string($interfaceToCall)) {
-            $interfaceToCall = new InterfaceToCallReference($objectToInvokeOnReferenceName, $interfaceToCall);
+        if (is_string($interfaceToCallOrReference)) {
+            $interfaceToCallOrReference = new InterfaceToCallReference($objectToInvokeOnReferenceName, $interfaceToCallOrReference);
+        } elseif ($interfaceToCallOrReference instanceof InterfaceToCall) {
+            $interfaceToCallOrReference = InterfaceToCallReference::fromInstance($interfaceToCallOrReference);
         }
-        return new self($objectToInvokeOnReferenceName, $interfaceToCall);
+        return new self(new Reference($objectToInvokeOnReferenceName), $interfaceToCallOrReference);
+    }
+
+    public static function createWithDefinition(Definition $definition, string $methodName): self
+    {
+        return new self($definition, new InterfaceToCallReference($definition->getClassName(), $methodName));
     }
 
     public static function createWithDirectReference(object $directObjectReference, string $methodName): self
     {
-        return (new self('', $methodName))
-                        ->withDirectObjectReference($directObjectReference);
+        return new self($directObjectReference, new InterfaceToCallReference(\get_class($directObjectReference), $methodName));
     }
 
     /**
@@ -143,12 +144,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
      */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
-        if ($this->methodNameOrInterfaceToCall instanceof InterfaceToCallReference) {
-            return $interfaceToCallRegistry->getFor($this->methodNameOrInterfaceToCall->getClassName(), $this->methodNameOrInterfaceToCall->getMethodName());
-        }
-        return $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
-            ? $this->methodNameOrInterfaceToCall
-            : $interfaceToCallRegistry->getFor($this->directObjectReference, $this->getMethodName());
+        return $interfaceToCallRegistry->getFor($this->interfaceToCallReference->getClassName(), $this->interfaceToCallReference->getMethodName());
     }
 
     /**
@@ -159,8 +155,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         return [$this->getInterceptedInterface($interfaceToCallRegistry)];
     }
 
-
-
     /**
      * @inheritDoc
      */
@@ -169,26 +163,14 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         return $this->methodParameterConverterBuilders;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|null
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        $reference = $this->objectToInvokeReferenceName;
-        $className = $this->getInterfaceName();
-        if (! $this->isStaticallyCalled() && $this->directObjectReference) {
-            $reference = $this->directObjectReference;
-            $className = \get_class($reference);
-        }
-        if ($this->compiled) {
-            throw new InvalidArgumentException("Trying to compile {$this} twice");
-        }
-
-        $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
-
-        $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
+        $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 
         $methodInvokerDefinition = MethodInvoker::createDefinition(
             $builder,
             $interfaceToCall,
-            $reference,
+            $this->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,
             $this->methodParameterConverterBuilders,
             $this->getEndpointAnnotations()
         );
@@ -197,7 +179,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
         if ($this->shouldWrapResultInMessage) {
             $methodInvokerDefinition = new Definition(WrapWithMessageBuildProcessor::class, [
-                $interfaceToCallReference,
+                $this->interfaceToCallReference,
                 $methodInvokerDefinition,
             ]);
         }
@@ -212,12 +194,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         if ($this->orderedAroundInterceptors) {
             $interceptors = [];
             foreach (AroundInterceptorReference::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
-                if ($interceptor = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $this->annotatedInterfaceToCall ?? $interfaceToCall)) {
-                    $interceptors[] = $interceptor;
-                } else {
-                    // Cannot continue without every interceptor being compilable
-                    return null;
-                }
+                $interceptors[] = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $this->annotatedInterfaceToCall ?? $interfaceToCall);
             }
 
             $handlerDefinition = new Definition(AroundInterceptorHandler::class, [
@@ -225,8 +202,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                 new Definition(HandlerReplyProcessor::class, [$handlerDefinition]),
             ]);
         }
-        $this->compiled = $builder->register(uniqid((string) $this), $handlerDefinition);
-        return $this->compiled;
+        return $handlerDefinition;
     }
 
     /**
@@ -235,57 +211,28 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
      */
     private function isStaticallyCalled(): bool
     {
-        if (class_exists($this->objectToInvokeReferenceName)) {
-            $referenceMethod = new ReflectionMethod($this->objectToInvokeReferenceName, $this->getMethodName());
+        $referenceMethod = new ReflectionMethod($this->interfaceToCallReference->getClassName(), $this->getMethodName());
 
-            if ($referenceMethod->isStatic()) {
-                return true;
-            }
+        if ($referenceMethod->isStatic()) {
+            return true;
         }
 
         return false;
     }
 
-    /**
-     * @param object $object
-     *
-     * @return ServiceActivatorBuilder
-     * @throws \Ecotone\Messaging\MessagingException
-     */
-    private function withDirectObjectReference($object): self
-    {
-        Assert::isObject($object, 'Direct reference passed to service activator must be object');
-
-        $this->directObjectReference = $object;
-
-        return $this;
-    }
-
     public function __toString()
     {
-        $reference = $this->objectToInvokeReferenceName ? $this->objectToInvokeReferenceName : get_class($this->directObjectReference);
-
-        return sprintf('Service Activator - %s:%s', $reference, $this->getMethodName());
+        return sprintf('Service Activator - %s:%s', $this->getInterfaceName(), $this->getMethodName());
     }
 
     private function getMethodName(): string
     {
-        if ($this->methodNameOrInterfaceToCall instanceof InterfaceToCallReference) {
-            return $this->methodNameOrInterfaceToCall->getMethodName();
-        }
-        return $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
-            ? $this->methodNameOrInterfaceToCall->getMethodName()
-            : $this->methodNameOrInterfaceToCall;
+        return $this->interfaceToCallReference->getMethodName();
     }
 
     private function getInterfaceName(): string
     {
-        if ($this->methodNameOrInterfaceToCall instanceof InterfaceToCallReference) {
-            return $this->methodNameOrInterfaceToCall->getClassName();
-        }
-        return $this->methodNameOrInterfaceToCall instanceof InterfaceToCall
-            ? $this->methodNameOrInterfaceToCall->getInterfaceName()
-            : $this->objectToInvokeReferenceName;
+        return $this->interfaceToCallReference->getClassName();
     }
 
     public function withAroundInterceptors(array $orderedAroundInterceptors): self

@@ -561,7 +561,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         return $builder->register('gateway.'.$this->referenceName.'::'.$this->methodName, $gateway);
     }
 
-    private function compileGatewayInternalHandler(ContainerMessagingBuilder $builder): Reference|null
+    private function compileGatewayInternalHandler(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);

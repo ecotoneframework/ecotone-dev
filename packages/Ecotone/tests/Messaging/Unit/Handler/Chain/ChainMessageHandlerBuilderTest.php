@@ -365,14 +365,13 @@ class ChainMessageHandlerBuilderTest extends TestCase
         $outputChannel = QueueChannel::create();
         $requestPayload = 'some';
 
-        $chainHandler = ChainMessageHandlerBuilder::create()
-            ->chain(TransformerBuilder::createHeaderEnricher([
-                'token' => '123',
-            ]))
-            ->withOutputMessageChannel($outputChannelName)
-            ->build(InMemoryChannelResolver::createFromAssociativeArray([
-                $outputChannelName => $outputChannel,
-            ]), InMemoryReferenceSearchService::createEmpty());
+        $chainHandler = ComponentTestBuilder::create()
+            ->withChannel($outputChannelName, $outputChannel)
+            ->build(ChainMessageHandlerBuilder::create()
+                ->chain(TransformerBuilder::createHeaderEnricher([
+                    'token' => '123',
+                ]))
+                ->withOutputMessageChannel($outputChannelName));
 
         $chainHandler->handle(
             MessageBuilder::withPayload($requestPayload)
@@ -549,14 +548,10 @@ class ChainMessageHandlerBuilderTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        ChainMessageHandlerBuilder::create()
+        ComponentTestBuilder::create()->build(ChainMessageHandlerBuilder::create()
             ->chain(TransformerBuilder::createWithExpression('1 + 1'))
             ->withOutputMessageHandler(RouterBuilder::createRecipientListRouter(['some']))
-            ->withOutputMessageChannel('some')
-            ->build(
-                InMemoryChannelResolver::createEmpty(),
-                InMemoryReferenceSearchService::createEmpty()
-            );
+            ->withOutputMessageChannel('some'));
     }
 
     /**

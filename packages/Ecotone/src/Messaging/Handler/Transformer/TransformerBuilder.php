@@ -167,45 +167,6 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         return $this->methodParameterConverterBuilders;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        if ($this->expression) {
-            $expressionEvaluationService = $referenceSearchService->get(ExpressionEvaluationService::REFERENCE);
-            /** @var ExpressionEvaluationService $expressionEvaluationService */
-            Assert::isSubclassOf($expressionEvaluationService, ExpressionEvaluationService::class, 'Expected expression service ' . ExpressionEvaluationService::REFERENCE . ' but got something else.');
-
-            $this->directObject = new ExpressionTransformer($this->expression, $expressionEvaluationService, $referenceSearchService);
-        }
-
-        $objectToInvokeOn = $this->directObject ? $this->directObject : $referenceSearchService->get($this->objectToInvokeReferenceName);
-        /** @var InterfaceToCallRegistry $interfaceCallRegistry */
-        $interfaceCallRegistry = $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME);
-        $interfaceToCall = $interfaceCallRegistry->getFor($objectToInvokeOn, $this->getMethodName());
-
-        if (! $interfaceToCall->canReturnValue()) {
-            throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
-        }
-
-        return RequestReplyProducer::createRequestAndReply(
-            $this->outputMessageChannelName,
-            TransformerMessageProcessor::createFrom(
-                MethodInvoker::createWith(
-                    $interfaceToCall,
-                    $objectToInvokeOn,
-                    $this->methodParameterConverterBuilders,
-                    $referenceSearchService,
-                    $this->getEndpointAnnotations()
-                )
-            ),
-            $channelResolver,
-            false,
-            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         if ($this->expression) {
@@ -213,11 +174,19 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             $interfaceToCallReference = new InterfaceToCallReference(ExpressionTransformer::class, 'transform');
         } else {
             $objectToInvokeOn = $this->directObject ?: new Reference($this->objectToInvokeReferenceName);
-            $className = $this->directObject ? \get_class($objectToInvokeOn) : $this->objectToInvokeReferenceName;
-            $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
+            if ($this->methodNameOrInterface instanceof InterfaceToCall) {
+                $interfaceToCallReference = InterfaceToCallReference::fromInstance($this->methodNameOrInterface);
+            } else {
+                $className = $this->directObject ? \get_class($objectToInvokeOn) : $this->objectToInvokeReferenceName;
+                $interfaceToCallReference = new InterfaceToCallReference($className, $this->getMethodName());
+            }
         }
 
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
+
+        if (! $interfaceToCall->canReturnValue()) {
+            throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
+        }
 
         $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $this->methodParameterConverterBuilders, $this->getEndpointAnnotations(), null, false);
 

@@ -16,9 +16,12 @@ class RepositoryStorage
      */
     private array $aggregateRepositories;
 
-    public function __construct(private string $aggregateClassName, private bool $isEventSourcedAggregate, private ChannelResolver $channelResolver, private ReferenceSearchService $referenceSearchService, array $aggregateRepositoryReferenceNames)
+    /**
+     * @param array<EventSourcedRepository|StandardRepository|RepositoryBuilder> $aggregateRepositories
+     */
+    public function __construct(private string $aggregateClassName, private bool $isEventSourcedAggregate, private ChannelResolver $channelResolver, private ReferenceSearchService $referenceSearchService, array $aggregateRepositories)
     {
-        $this->aggregateRepositories = array_values($aggregateRepositoryReferenceNames);
+        $this->aggregateRepositories = array_values($aggregateRepositories);
     }
 
     public function getRepository(): EventSourcedRepository|StandardRepository

@@ -58,6 +58,7 @@ class ComponentTestBuilder
 
     public function withReference(string $referenceName, object $object): self
     {
+        $this->messagingBuilder->register($referenceName, new Definition(\get_class($object)));
         $this->container->set($referenceName, $object);
 
         return $this;

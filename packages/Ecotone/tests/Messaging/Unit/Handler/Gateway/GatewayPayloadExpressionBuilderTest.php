@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\MethodArgument;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ComponentTestBuilder;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
 use Test\Ecotone\Messaging\Unit\MessagingTest;
 
@@ -29,11 +30,9 @@ class GatewayPayloadExpressionBuilderTest extends MessagingTest
      */
     public function test_evaluating_gateway_parameter()
     {
-        $converter = GatewayPayloadExpressionBuilder::create('test', "reference('calculatingService').sum(value)")
-                        ->build(InMemoryReferenceSearchService::createWith([
-                            ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-                            'calculatingService' => CalculatingService::create(1),
-                        ]));
+        $converter = ComponentTestBuilder::create()
+            ->withReference('calculatingService', CalculatingService::create(1))
+            ->build(GatewayPayloadExpressionBuilder::create('test', "reference('calculatingService').sum(value)"));
 
         $this->assertEquals(
             MessageBuilder::withPayload('some')

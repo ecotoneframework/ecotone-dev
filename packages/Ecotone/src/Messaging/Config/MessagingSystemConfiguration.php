@@ -1384,7 +1384,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
         $gatewayListReferences = [];
         foreach ($gatewayList as $referenceName => $interfaceName) {
-            $gatewayListReferences[] = new GatewayReference($referenceName, $interfaceName);
+            $gatewayListReferences[] = new Definition(GatewayReference::class, [$referenceName, $interfaceName]);
         }
 
         foreach ($this->consoleCommands as $consoleCommandConfiguration) {

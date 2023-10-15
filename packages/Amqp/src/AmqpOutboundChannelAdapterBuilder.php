@@ -117,7 +117,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->staticHeadersToAdd
         ]);
 
-        return $builder->register(Uuid::uuid4(), new Definition(AmqpOutboundChannelAdapter::class, [
+        return $builder->register(Uuid::uuid4()->toString(), new Definition(AmqpOutboundChannelAdapter::class, [
             $connectionFactory,
             $this->autoDeclare ? new Reference(AmqpAdmin::REFERENCE_NAME) : new Definition(AmqpAdmin::class, factory: 'createEmpty'),
             $this->exchangeName,

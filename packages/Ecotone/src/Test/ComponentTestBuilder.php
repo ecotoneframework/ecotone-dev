@@ -67,9 +67,7 @@ class ComponentTestBuilder
     public function build(CompilableBuilder $compilableBuilder): mixed
     {
         $reference = $compilableBuilder->compile($this->messagingBuilder);
-        if ($compilableBuilder instanceof ProxyBuilder) {
-            $referenceToReturn = $compilableBuilder->registerProxy($this->messagingBuilder);
-        } elseif ($reference instanceof Definition) {
+        if ($reference instanceof Definition) {
             $id = Uuid::uuid4();
             $this->builder->register($id, $reference);
             $referenceToReturn = new Reference($id);
@@ -78,6 +76,13 @@ class ComponentTestBuilder
         }
 
         $this->compile();
+        return $this->container->get($referenceToReturn->getId());
+    }
+
+    public function buildWithProxy(ProxyBuilder $compilableBuilder): mixed
+    {
+        $referenceToReturn = $compilableBuilder->registerProxy($this->messagingBuilder);
+        $this->build($compilableBuilder);
         return $this->container->get($referenceToReturn->getId());
     }
 

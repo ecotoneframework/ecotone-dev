@@ -287,4 +287,11 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             ? $this->methodNameOrInterfaceToCall->getInterfaceName()
             : $this->objectToInvokeReferenceName;
     }
+
+    public function withAroundInterceptors(array $orderedAroundInterceptors): self
+    {
+        $this->orderedAroundInterceptors = $orderedAroundInterceptors;
+
+        return $this;
+    }
 }

@@ -229,7 +229,10 @@ class ChainMessageHandlerBuilderTest extends TestCase
         $internalOutputChannelName = 'internalOutputChannelName';
         $externalOutputChannelName = 'externalOutputChannelName';
         $internalOutputChannel = DirectChannel::create();
-        $internalOutputChannel->subscribe(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum')->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty()));
+        $componentTest = ComponentTestBuilder::create();
+        $internalOutputChannel->subscribe(
+            $componentTest->build(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
+        );
         $externalOutputChannel = QueueChannel::create();
 
         $chainHandler = ChainMessageHandlerBuilder::create()
@@ -238,15 +241,15 @@ class ChainMessageHandlerBuilderTest extends TestCase
             ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
             ->withOutputMessageChannel($internalOutputChannelName);
 
-        $chainHandler = ChainMessageHandlerBuilder::create()
+        $chainHandler = $componentTest
+            ->withChannel($internalOutputChannelName, $internalOutputChannel)
+            ->withChannel($externalOutputChannelName, $externalOutputChannel)
+            ->build(ChainMessageHandlerBuilder::create()
                 ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
                 ->chain($chainHandler)
                 ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
                 ->withOutputMessageChannel($externalOutputChannelName)
-                ->build(InMemoryChannelResolver::createFromAssociativeArray([
-                    $internalOutputChannelName => $internalOutputChannel,
-                    $externalOutputChannelName => $externalOutputChannel,
-                ]), InMemoryReferenceSearchService::createEmpty());
+            );
 
 
         $chainHandler->handle(MessageBuilder::withPayload(0)->build());
@@ -264,18 +267,18 @@ class ChainMessageHandlerBuilderTest extends TestCase
             ConsumerContinuouslyWorkingService::class
         );
 
-        $chainHandler               = ChainMessageHandlerBuilder::create()
-            ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
-            ->chain(
-                ChainMessageHandlerBuilder::create()
-                    ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
-                    ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
-                    ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
-                    ->addAroundInterceptor($aroundAddOneAfterCall)
-            )
-            ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
-            ->addAroundInterceptor($aroundAddOneAfterCall)
-            ->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty());
+        $chainHandler = ComponentTestBuilder::create()->build(
+            ChainMessageHandlerBuilder::create()
+                ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
+                ->chain(
+                    ChainMessageHandlerBuilder::create()
+                        ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
+                        ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
+                        ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
+                        ->addAroundInterceptor($aroundAddOneAfterCall)
+                )
+                ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
+                ->addAroundInterceptor($aroundAddOneAfterCall));
 
         $replyChannel = QueueChannel::create();
         $chainHandler->handle(
@@ -297,7 +300,7 @@ class ChainMessageHandlerBuilderTest extends TestCase
             ConsumerContinuouslyWorkingService::class
         );
 
-        $chainHandler               = ChainMessageHandlerBuilder::create()
+        $chainHandler               = ComponentTestBuilder::create()->build(ChainMessageHandlerBuilder::create()
             ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
             ->chain(
                 ChainMessageHandlerBuilder::create()
@@ -307,8 +310,7 @@ class ChainMessageHandlerBuilderTest extends TestCase
                     ->addAroundInterceptor($aroundAddOneAfterCall)
             )
             ->chainInterceptedHandler(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
-            ->addAroundInterceptor($aroundAddOneAfterCall)
-            ->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty());
+            ->addAroundInterceptor($aroundAddOneAfterCall));
 
         $replyChannel = QueueChannel::create();
         $chainHandler->handle(
@@ -324,7 +326,9 @@ class ChainMessageHandlerBuilderTest extends TestCase
     {
         $internalOutputChannelName = 'internalOutputChannelName';
         $internalOutputChannel = DirectChannel::create();
-        $internalOutputChannel->subscribe(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum')->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty()));
+        $internalOutputChannel->subscribe(
+            ComponentTestBuilder::create()->build(
+                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum')));
 
         $aroundAddOneAfterCall = AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
             InterfaceToCallRegistry::createEmpty(),
@@ -334,17 +338,16 @@ class ChainMessageHandlerBuilderTest extends TestCase
             ConsumerContinuouslyWorkingService::class
         );
 
-        $chainHandler               = ChainMessageHandlerBuilder::create()
-            ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'sum'))
-            ->chainInterceptedHandler(
-                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply')
-                    ->withOutputMessageChannel($internalOutputChannelName)
-            )
-            ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
-            ->addAroundInterceptor($aroundAddOneAfterCall)
-            ->build(InMemoryChannelResolver::createFromAssociativeArray([
-                $internalOutputChannelName => $internalOutputChannel,
-            ]), InMemoryReferenceSearchService::createEmpty());
+        $chainHandler = ComponentTestBuilder::create()
+            ->withChannel($internalOutputChannelName, $internalOutputChannel)
+            ->build(ChainMessageHandlerBuilder::create()
+                ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'sum'))
+                ->chainInterceptedHandler(
+                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply')
+                        ->withOutputMessageChannel($internalOutputChannelName)
+                )
+                ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
+                ->addAroundInterceptor($aroundAddOneAfterCall));
 
         $replyChannel = QueueChannel::create();
         $chainHandler->handle(
@@ -515,22 +518,17 @@ class ChainMessageHandlerBuilderTest extends TestCase
     {
         $outputChannelName = 'outputChannel';
         $outputChannel = QueueChannel::create();
-        $chainBuilder = ChainMessageHandlerBuilder::create()
-            ->chain(ServiceActivatorBuilder::createWithDirectReference(new OrderNamePrefixer('ecotone.'), 'transform'))
-            ->chain(ServiceActivatorBuilder::createWithDirectReference(new OrderIdIncreaser(), 'increase'))
-            ->chain(ServiceActivatorBuilder::createWithDirectReference(new OrderReceiver(), 'receive'))
-            ->withOutputMessageChannel($outputChannelName)
-            ->build(
-                InMemoryChannelResolver::createFromAssociativeArray([
-                    $outputChannelName => $outputChannel,
-                ]),
-                InMemoryReferenceSearchService::createWith([
-                    ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createWith([
-                        ReferenceServiceConverter::create(new OrderConverter(), 'convertFromArrayToObject', TypeDescriptor::createArrayType(), TypeDescriptor::create(Order::class)),
-                        ReferenceServiceConverter::create(new OrderConverter(), 'fromObjectToArray', TypeDescriptor::create(Order::class), TypeDescriptor::createArrayType()),
-                    ]),
-                ])
-            );
+        $chainBuilder = ComponentTestBuilder::create()
+            ->withChannel($outputChannelName, $outputChannel)
+            ->withReference(ConversionService::REFERENCE_NAME, AutoCollectionConversionService::createWith([
+                ReferenceServiceConverter::create(new OrderConverter(), 'convertFromArrayToObject', TypeDescriptor::createArrayType(), TypeDescriptor::create(Order::class)),
+                ReferenceServiceConverter::create(new OrderConverter(), 'fromObjectToArray', TypeDescriptor::create(Order::class), TypeDescriptor::createArrayType()),
+            ]))
+            ->build(ChainMessageHandlerBuilder::create()
+                ->chain(ServiceActivatorBuilder::createWithDirectReference(new OrderNamePrefixer('ecotone.'), 'transform'))
+                ->chain(ServiceActivatorBuilder::createWithDirectReference(new OrderIdIncreaser(), 'increase'))
+                ->chain(ServiceActivatorBuilder::createWithDirectReference(new OrderReceiver(), 'receive'))
+                ->withOutputMessageChannel($outputChannelName));
 
         $chainBuilder->handle(
             MessageBuilder::withPayload(new Order('1', 'shop'))
@@ -575,14 +573,8 @@ class ChainMessageHandlerBuilderTest extends TestCase
             $chainHandlerBuilder = $chainHandlerBuilder->chain($messageHandler);
         }
 
-        $containerBuilder = new ContainerMessagingBuilder();
-        $reference = $chainHandlerBuilder->compile($containerBuilder);
-        $container = InMemoryPSRContainer::createFromAssociativeArray([
-            ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createEmpty(),
-        ]);
-        $containerBuilder->addCompilerPass(new InMemoryContainerImplementation($container));
-        $containerBuilder->compile();
-        $chainHandler = $container->get((string) $reference);
+        $chainHandler = ComponentTestBuilder::create()
+            ->build($chainHandlerBuilder);
 
         $chainHandler->handle(
             MessageBuilder::withPayload($requestPayload)

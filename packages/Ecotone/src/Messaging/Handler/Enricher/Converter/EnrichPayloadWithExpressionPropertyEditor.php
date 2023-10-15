@@ -23,7 +23,6 @@ class EnrichPayloadWithExpressionPropertyEditor implements PropertyEditor
     private \Ecotone\Messaging\Handler\Enricher\PropertyPath $propertyPath;
     private string $expression;
     private \Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor $dataSetter;
-    private string $mappingExpression;
     private string $nullResultExpression;
 
     /**
@@ -37,13 +36,12 @@ class EnrichPayloadWithExpressionPropertyEditor implements PropertyEditor
      * @param string $nullResultExpression
      * @param string $mappingExpression
      */
-    public function __construct(ExpressionEvaluationService $expressionEvaluationService, PropertyEditorAccessor $dataSetter, PropertyPath $propertyPath, string $expression, string $nullResultExpression, string $mappingExpression)
+    public function __construct(ExpressionEvaluationService $expressionEvaluationService, PropertyEditorAccessor $dataSetter, PropertyPath $propertyPath, string $expression, string $nullResultExpression)
     {
         $this->expressionEvaluationService = $expressionEvaluationService;
         $this->propertyPath                = $propertyPath;
         $this->expression                  = $expression;
         $this->dataSetter = $dataSetter;
-        $this->mappingExpression = $mappingExpression;
         $this->nullResultExpression = $nullResultExpression;
     }
 

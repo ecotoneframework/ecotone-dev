@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Enricher;
 
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -20,6 +22,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use LogicException;
@@ -144,10 +147,7 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
         return $interfaceToCallRegistry->getFor(InternalEnrichingService::class, 'enrich');
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         if (empty($this->propertyEditors)) {
             throw ConfigurationException::create("Can't configure enricher with no property setters");
@@ -155,47 +155,33 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
 
         $propertySetters = [];
         foreach ($this->propertyEditors as $setterBuilder) {
-            $propertySetters[] = $setterBuilder->build($referenceSearchService);
+            $propertySetters[] = $setterBuilder->compile($builder);
         }
 
         $gateway = null;
         if ($this->requestChannelName) {
             /** @var EnrichGateway $gateway */
             $gateway = GatewayProxyBuilder::create(Uuid::uuid4()->toString(), EnrichGateway::class, 'execute', $this->requestChannelName)
-                        ->build($referenceSearchService, $channelResolver);
+                ->compile($builder);
         }
 
-        $internalEnrichingService = new InternalEnrichingService(
+        $internalEnrichingService = new Definition(InternalEnrichingService::class, [
             $gateway,
-            $referenceSearchService->get(ExpressionEvaluationService::REFERENCE),
-            $referenceSearchService,
-            $referenceSearchService->get(ConversionService::REFERENCE_NAME),
+            new Reference(ExpressionEvaluationService::REFERENCE),
+            new Reference(ConversionService::REFERENCE_NAME),
             $propertySetters,
             $this->requestPayloadExpression,
             $this->requestHeaders
-        );
+        ]);
 
-        /** @var InterfaceToCallRegistry $interfaceToCallRegistry */
-        $interfaceToCallRegistry = $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME);
-        $interfaceToCall = $interfaceToCallRegistry->getFor($internalEnrichingService, 'enrich');
+        $reference = $builder->register(Uuid::uuid4()->toString(), $internalEnrichingService);
+        return ServiceActivatorBuilder::create($reference->getId(), new InterfaceToCallReference(InternalEnrichingService::class, 'enrich'))
+                ->withEndpointId($this->getEndpointId())
+                ->withInputChannelName($this->getInputMessageChannelName())
+                ->withOutputMessageChannel($this->outputMessageChannelName)
+                ->withAroundInterceptors($this->orderedAroundInterceptors)
+                ->withEndpointAnnotations($this->getEndpointAnnotations())
+                ->compile($builder);
 
-        return RequestReplyProducer::createRequestAndReply(
-            $this->outputMessageChannelName,
-            MethodInvoker::createWith(
-                $interfaceToCall,
-                $internalEnrichingService,
-                [],
-                $referenceSearchService,
-                $this->getEndpointAnnotations()
-            ),
-            $channelResolver,
-            false,
-            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
-        );
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
-    {
-        throw new LogicException("Not implemented");
     }
 }

@@ -14,6 +14,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateIdentifierRetrevingServiceBuilder;
 use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\ChangeArticleContentCommand;
@@ -40,13 +41,9 @@ class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
         );
 
         $orderId                 = 1000;
-        $aggregateCommandHandler = $aggregateCallingCommandHandler->build(
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                'repository' => InMemoryStandardRepository::createEmpty(),
-                ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-            ])
-        );
+        $aggregateCommandHandler = ComponentTestBuilder::create()
+            ->withReference("repository", InMemoryStandardRepository::createEmpty())
+            ->build($aggregateCallingCommandHandler);
 
         $replyChannel = QueueChannel::create();
         $command = PaymentWasDoneEvent::create();
@@ -70,13 +67,9 @@ class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
         );
 
         $orderId                 = 1000;
-        $aggregateRetrievingService = $aggregateRetrevingServiceHandler->build(
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                'repository' => InMemoryStandardRepository::createEmpty(),
-                ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-            ])
-        );
+        $aggregateRetrievingService = ComponentTestBuilder::create()
+            ->withReference("repository", InMemoryStandardRepository::createEmpty())
+            ->build($aggregateRetrevingServiceHandler);
 
         $replyChannel = QueueChannel::create();
         $command = PaymentWasDoneEvent::create();
@@ -99,13 +92,9 @@ class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
         );
 
         $orderId                 = 1000;
-        $aggregateCommandHandler = $aggregateCallingCommandHandler->build(
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                'repository' => InMemoryStandardRepository::createEmpty(),
-                ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-            ])
-        );
+        $aggregateCommandHandler = ComponentTestBuilder::create()
+            ->withReference("repository", InMemoryStandardRepository::createEmpty())
+            ->build($aggregateCallingCommandHandler);
 
         $replyChannel = QueueChannel::create();
         $command = PaymentWasDoneEvent::create();
@@ -128,13 +117,9 @@ class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
         );
 
         $aggregateIds                 = ['author' => 1000, 'title' => 'Some'];
-        $aggregateCommandHandler = $aggregateCallingCommandHandler->build(
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                'repository' => InMemoryStandardRepository::createEmpty(),
-                ExpressionEvaluationService::REFERENCE => SymfonyExpressionEvaluationAdapter::create(),
-            ])
-        );
+        $aggregateCommandHandler = ComponentTestBuilder::create()
+            ->withReference("repository", InMemoryStandardRepository::createEmpty())
+            ->build($aggregateCallingCommandHandler);
 
         $replyChannel = QueueChannel::create();
         $command = PaymentWasDoneEvent::create();

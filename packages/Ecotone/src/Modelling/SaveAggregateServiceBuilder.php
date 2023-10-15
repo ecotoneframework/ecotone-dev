@@ -139,15 +139,6 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
                 array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create');
 
-        if (! $builder->has(PropertyEditorAccessor::class)) {
-            $builder->register(PropertyEditorAccessor::class, new Definition(PropertyEditorAccessor::class, [
-                new Reference(ExpressionEvaluationService::REFERENCE),
-            ], 'create'));
-        }
-        if(! $builder->has(PropertyReaderAccessor::class)) {
-            $builder->register(PropertyReaderAccessor::class);
-        }
-
 
         $saveAggregateService = new Definition(SaveAggregateService::class, [
             InterfaceToCallReference::fromInstance($this->interfaceToCall),

@@ -83,9 +83,6 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(AggregateIdentifierRetrevingService::class, 'convert'));
-        if(! $builder->has(PropertyReaderAccessor::class)) {
-            $builder->register(PropertyReaderAccessor::class);
-        }
         $serviceReference = $builder->register(uniqid(AggregateIdentifierRetrevingService::class), new Definition(
             AggregateIdentifierRetrevingService::class,
             [

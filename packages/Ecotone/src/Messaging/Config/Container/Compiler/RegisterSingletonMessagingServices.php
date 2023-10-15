@@ -18,6 +18,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerPostSendAroundInte
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
+use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
@@ -43,6 +44,7 @@ class RegisterSingletonMessagingServices implements CompilerPass
         $this->registerDefault($builder, PollingConsumerErrorInterceptor::class, [new Reference(ChannelResolver::class)]);
         $this->registerDefault($builder, ServiceCacheConfiguration::class, new Definition(ServiceCacheConfiguration::class, factory: 'noCache'));
         $this->registerDefault($builder, PropertyEditorAccessor::class, new Definition(PropertyEditorAccessor::class, [new Reference(ExpressionEvaluationService::REFERENCE)], 'create'));
+        $this->registerDefault($builder,PropertyReaderAccessor::class, new Definition(PropertyReaderAccessor::class));
         $this->registerDefault($builder, ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), [], []]));
     }
 

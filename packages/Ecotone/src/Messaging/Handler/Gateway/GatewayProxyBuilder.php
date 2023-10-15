@@ -498,18 +498,25 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
 
     public function compile(ContainerMessagingBuilder $builder): Reference|null
     {
-        if ($this->compiled) {
-            throw InvalidArgumentException::create("Gateway {$this->interfaceName}::{$this->methodName} was already compiled");
-        }
-        $internalHandlerReference = $this->compileGatewayInternalHandler($builder);
-        if (! $internalHandlerReference) {
-            throw InvalidArgumentException::create("Cannot compile gateway {$this->interfaceName}::{$this->methodName} because internal handler was not compiled");
-        }
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
 
         if (! $interfaceToCall->canReturnValue() && $this->replyChannelName) {
             throw InvalidArgumentException::create("Can't set reply channel for {$interfaceToCall}");
+        }
+
+        if (! ($interfaceToCall->canItReturnNull() || $interfaceToCall->hasReturnTypeVoid())) {
+            $requestChannelDefinition = $builder->getDefinition(ChannelReference::toChannel($this->requestChannelName));
+            Assert::isTrue(\is_a($requestChannelDefinition->getClassName(), SubscribableChannel::class, true), 'Gateway request channel should not be pollable if expected return type is not nullable');
+        }
+
+        if (! $interfaceToCall->canItReturnNull() && $this->errorChannelName && ! $interfaceToCall->hasReturnTypeVoid()) {
+            throw InvalidArgumentException::create("Gateway {$interfaceToCall} with error channel must allow nullable return type");
+        }
+
+        if ($this->replyChannelName) {
+            $replyChannelDefinition = $builder->getDefinition(ChannelReference::toChannel($this->replyChannelName));
+            Assert::isTrue(\is_a($replyChannelDefinition->getClassName(), PollableChannel::class, true), 'Reply channel must be pollable');
         }
 
         $methodArgumentConverters = [];
@@ -534,6 +541,8 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             $messageConverters[] = new Reference($messageConverterReferenceName);
         }
 
+        $internalHandlerReference = $this->compileGatewayInternalHandler($builder);
+
         $gateway =  new Definition(Gateway::class, [
             $interfaceToCallReference,
             new Definition(MethodCallToMessageConverter::class, [
@@ -549,7 +558,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             $internalHandlerReference,
         ]);
 
-        return $this->compiled = $builder->register('gateway.'.$this->referenceName.'::'.$this->methodName, $gateway);
+        return $builder->register('gateway.'.$this->referenceName.'::'.$this->methodName, $gateway);
     }
 
     private function compileGatewayInternalHandler(ContainerMessagingBuilder $builder): Reference|null

@@ -160,9 +160,9 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
 
         $gateway = null;
         if ($this->requestChannelName) {
-            /** @var EnrichGateway $gateway */
-            $gateway = GatewayProxyBuilder::create(Uuid::uuid4()->toString(), EnrichGateway::class, 'execute', $this->requestChannelName)
-                ->compile($builder);
+            $gatewayBuilder = GatewayProxyBuilder::create(Uuid::uuid4()->toString(), EnrichGateway::class, 'execute', $this->requestChannelName);
+            $gatewayBuilder->compile($builder);
+            $gateway = $gatewayBuilder->registerProxy($builder);
         }
 
         $internalEnrichingService = new Definition(InternalEnrichingService::class, [

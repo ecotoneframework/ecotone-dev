@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\ProxyBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -65,7 +66,9 @@ class ComponentTestBuilder
     public function build(CompilableBuilder $compilableBuilder): mixed
     {
         $reference = $compilableBuilder->compile($this->messagingBuilder);
-        if ($reference instanceof Definition) {
+        if ($compilableBuilder instanceof ProxyBuilder) {
+            $referenceToReturn = $compilableBuilder->registerProxy($this->messagingBuilder);
+        } elseif ($reference instanceof Definition) {
             $id = Uuid::uuid4();
             $this->builder->register($id, $reference);
             $referenceToReturn = new Reference($id);
@@ -95,5 +98,10 @@ class ComponentTestBuilder
     public function getPollingConsumer(string $endpointId)
     {
         return $this->container->get("polling.{$endpointId}.runner");
+    }
+
+    public function getGatewayByName(string $name)
+    {
+        return $this->container->get($name);
     }
 }

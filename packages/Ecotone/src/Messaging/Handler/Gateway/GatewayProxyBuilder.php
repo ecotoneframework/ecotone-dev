@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\ProxyBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\NonProxyCombinedGateway;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -50,7 +51,7 @@ use function uniqid;
  * @package Ecotone\Messaging\Config
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
+class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, ProxyBuilder
 {
     public const DEFAULT_REPLY_MILLISECONDS_TIMEOUT = -1;
 
@@ -481,7 +482,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
             );
     }
 
-    public function registerProxy(ContainerMessagingBuilder $builder): void
+    public function registerProxy(ContainerMessagingBuilder $builder): Reference
     {
         if (! $builder->has($this->getReferenceName())) {
             $builder->register($this->getReferenceName(), new Definition($this->getInterfaceName(), [
@@ -491,6 +492,8 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
                 new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
             ], [ProxyFactory::class, 'createFor']));
         }
+
+        return new Reference($this->getReferenceName());
     }
 
     public function compile(ContainerMessagingBuilder $builder): Reference|null
@@ -504,21 +507,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
         }
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
-
-        if ($this->errorChannelName) {
-            $interceptorReference = $builder->register(
-                'error_channel_interceptor.'.$this->errorChannelName,
-                new Definition(ErrorChannelInterceptor::class, [
-                    new ChannelReference($this->errorChannelName),
-                ])
-            );
-            $channelInterceptorInterface = $builder->getInterfaceToCall(new InterfaceToCallReference(ErrorChannelInterceptor::class, 'handle'));
-            $this->addAroundInterceptor(AroundInterceptorReference::create(
-                $interceptorReference->getId(),
-                $channelInterceptorInterface,
-                Precedence::ERROR_CHANNEL_PRECEDENCE,
-            ));
-        }
 
         if (! $interfaceToCall->canReturnValue() && $this->replyChannelName) {
             throw InvalidArgumentException::create("Can't set reply channel for {$interfaceToCall}");
@@ -578,6 +566,22 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
             ])
         );
 
+        $aroundInterceptors = $this->aroundInterceptors;
+        if ($this->errorChannelName) {
+            $interceptorReference = $builder->register(
+                'error_channel_interceptor.'.$this->errorChannelName,
+                new Definition(ErrorChannelInterceptor::class, [
+                    new ChannelReference($this->errorChannelName),
+                ])
+            );
+            $channelInterceptorInterface = $builder->getInterfaceToCall(new InterfaceToCallReference(ErrorChannelInterceptor::class, 'handle'));
+            $aroundInterceptors[] = AroundInterceptorReference::create(
+                $interceptorReference->getId(),
+                $channelInterceptorInterface,
+                Precedence::ERROR_CHANNEL_PRECEDENCE,
+            );
+        }
+
         $chainHandler = ChainMessageHandlerBuilder::create();
         foreach ($this->getSortedInterceptors($this->beforeInterceptors) as $beforeInterceptor) {
             $chainHandler = $chainHandler->chain($beforeInterceptor);
@@ -592,7 +596,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder
             $chainHandler = $chainHandler->chain($afterInterceptor);
         }
 
-        foreach ($this->getSortedAroundInterceptors($this->aroundInterceptors) as $aroundInterceptorReference) {
+        foreach ($this->getSortedAroundInterceptors($aroundInterceptors) as $aroundInterceptorReference) {
             $chainHandler = $chainHandler->addAroundInterceptor($aroundInterceptorReference);
         }
 

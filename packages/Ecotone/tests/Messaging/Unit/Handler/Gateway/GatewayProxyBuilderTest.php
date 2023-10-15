@@ -42,6 +42,7 @@ use Ecotone\Messaging\Transaction\Null\NullTransaction;
 use Ecotone\Messaging\Transaction\Null\NullTransactionFactory;
 use Ecotone\Messaging\Transaction\Transactional;
 use Ecotone\Messaging\Transaction\TransactionInterceptor;
+use Ecotone\Test\ComponentTestBuilder;
 use Exception;
 use ProxyManager\Proxy\RemoteObjectInterface;
 use Ramsey\Uuid\Uuid;
@@ -94,14 +95,9 @@ class GatewayProxyBuilderTest extends MessagingTest
         $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName);
 
         /** @var ServiceInterfaceSendOnly $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::create(
-                [
-                    NamedMessageChannel::create($requestChannelName, $requestChannel),
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->build($gatewayProxyBuilder);
         $gatewayProxy->sendMail('test');
 
         $this->assertTrue($messageHandler->wasCalled());
@@ -120,15 +116,10 @@ class GatewayProxyBuilderTest extends MessagingTest
 
         $this->expectException(InvalidArgumentException::class);
 
-        $gatewayProxyBuilder->buildWithoutProxyObject(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::create(
-                [
-                    NamedMessageChannel::create($requestChannelName, $requestChannel),
-                    NamedMessageChannel::create('replyChannel', QueueChannel::create()),
-                ]
-            )
-        );
+        ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel('replyChannel', QueueChannel::create())
+            ->build($gatewayProxyBuilder);
     }
 
     public function test_creating_gateway_for_receive_only()
@@ -148,15 +139,11 @@ class GatewayProxyBuilderTest extends MessagingTest
         $gatewayProxyBuilder->withReplyChannel($replyChannelName);
 
         /** @var ServiceInterfaceReceiveOnly $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->build($gatewayProxyBuilder);
+
         $this->assertEquals(
             $payload,
             $gatewayProxy->sendMail()
@@ -173,26 +160,28 @@ class GatewayProxyBuilderTest extends MessagingTest
         $payload = 'replyData';
         $replyMessage = MessageBuilder::withPayload($payload)->build();
         $replyChannelName = 'reply-channel';
-        $replyChannel = $this->createMock(PollableChannel::class);
-        $replyChannel
-            ->method('receiveWithTimeout')
-            ->with(1)
-            ->willReturn($replyMessage);
+        $replyChannel = new class ($replyMessage) extends QueueChannel {
+            public function __construct(private Message $replyMessage){
+                parent::__construct("");
+            }
+            public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message {
+                if ($timeoutInMilliseconds === 1) {
+                    return $this->replyMessage;
+                }
+                throw InvalidArgumentException::create("Timeout should be 1, but got {$timeoutInMilliseconds}");
+            }
+        };
 
         $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceReceiveOnly::class, 'sendMail', $requestChannelName);
         $gatewayProxyBuilder->withReplyChannel($replyChannelName);
         $gatewayProxyBuilder->withReplyMillisecondTimeout(1);
 
         /** @var ServiceInterfaceReceiveOnly $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->build($gatewayProxyBuilder);
+
         $this->assertEquals(
             $payload,
             $gatewayProxy->sendMail()
@@ -217,14 +206,10 @@ class GatewayProxyBuilderTest extends MessagingTest
         );
 
         /** @var ServiceInterfaceSendOnlyWithTwoArguments $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->build($gatewayProxyBuilder);
+
         $gatewayProxy->sendMail($personId, $content);
 
         $this->assertEquals(
@@ -266,14 +251,9 @@ class GatewayProxyBuilderTest extends MessagingTest
         );
 
         /** @var ServiceInterfaceSendOnly $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->build($gatewayProxyBuilder);
         $gatewayProxy->sendMailWithMetadata(3, ['personId' => 2]);
 
         $message = $messageHandler->message();
@@ -297,14 +277,9 @@ class GatewayProxyBuilderTest extends MessagingTest
         );
 
         /** @var ServiceInterfaceSendOnly $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->build($gatewayProxyBuilder);
         $gatewayProxy->sendMail($content);
 
         $message = $messageHandler->message();
@@ -324,14 +299,9 @@ class GatewayProxyBuilderTest extends MessagingTest
 
         $this->expectException(InvalidArgumentException::class);
 
-        $gatewayProxyBuilder->buildWithoutProxyObject(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                ]
-            )
-        );
+        ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->build($gatewayProxyBuilder);
     }
 
     /**
@@ -345,14 +315,9 @@ class GatewayProxyBuilderTest extends MessagingTest
         $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName);
 
         /** @var ServiceInterfaceSendOnly $gateway */
-        $gateway = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                ]
-            )
-        );
+        $gateway = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->build($gatewayProxyBuilder);
         $gateway->sendMail('some');
 
         $this->assertEquals(
@@ -379,15 +344,10 @@ class GatewayProxyBuilderTest extends MessagingTest
         $gatewayProxyBuilder->withReplyChannel($replyChannelName);
 
         /** @var ServiceInterfaceWithFutureReceive $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->build($gatewayProxyBuilder);
         $this->assertEquals(
             $payload,
             $gatewayProxy->someLongRunningWork()->resolve()
@@ -409,15 +369,10 @@ class GatewayProxyBuilderTest extends MessagingTest
         $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendAndReceive::class, 'getById', $requestChannelName);
         $gatewayProxyBuilder->withReplyChannel($replyChannelName);
         /** @var ServiceInterfaceSendAndReceive $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->build($gatewayProxyBuilder);
 
         $this->expectException(Exception::class);
 
@@ -439,15 +394,10 @@ class GatewayProxyBuilderTest extends MessagingTest
         $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceWithFutureReceive::class, 'someLongRunningWork', $requestChannelName);
         $gatewayProxyBuilder->withReplyChannel($replyChannelName);
         /** @var ServiceInterfaceWithFutureReceive $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->build($gatewayProxyBuilder);
 
         $this->expectException(MessageHandlingException::class);
 
@@ -468,15 +418,10 @@ class GatewayProxyBuilderTest extends MessagingTest
         $gatewayProxyBuilder->withReplyChannel($replyChannelName);
 
         /** @var ServiceInterfaceReceiveOnly $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->build($gatewayProxyBuilder);
 
         $this->assertNull(
             $gatewayProxy->sendMail()
@@ -499,15 +444,10 @@ class GatewayProxyBuilderTest extends MessagingTest
         $this->expectException(InvalidArgumentException::class);
 
         /** @var ServiceInterfaceReceiveOnly $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->build($gatewayProxyBuilder);
 
         $gatewayProxy->sendMail();
     }
@@ -568,15 +508,10 @@ class GatewayProxyBuilderTest extends MessagingTest
         if ($replyChannel) {
             $gatewayProxyBuilder->withReplyChannel('replyChannel');
         }
-        return $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    'requestChannel' => $requestChannel,
-                    'replyChannel' => $replyChannel ? $replyChannel : QueueChannel::create(),
-                ]
-            )
-        );
+        return ComponentTestBuilder::create()
+            ->withChannel('requestChannel', $requestChannel)
+            ->withChannel('replyChannel', $replyChannel ? $replyChannel : QueueChannel::create())
+            ->build($gatewayProxyBuilder);
     }
 
     public function test_propagating_error_to_error_channel()
@@ -591,15 +526,10 @@ class GatewayProxyBuilderTest extends MessagingTest
             ->withErrorChannel($errorChannelName);
 
         /** @var ServiceInterfaceReceiveOnly $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $errorChannelName => $errorChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($errorChannelName, $errorChannel)
+            ->build($gatewayProxyBuilder);
 
         $gatewayProxy->sendMail();
 
@@ -630,16 +560,11 @@ class GatewayProxyBuilderTest extends MessagingTest
             ->withErrorChannel($errorChannelName);
 
         /** @var ServiceInterfaceSendAndReceive $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                    $errorChannelName => $errorChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->withChannel($errorChannelName, $errorChannel)
+            ->build($gatewayProxyBuilder);
 
         $gatewayProxy->getById(123);
 
@@ -670,16 +595,11 @@ class GatewayProxyBuilderTest extends MessagingTest
             ->withErrorChannel($errorChannelName);
 
         /** @var ServiceInterfaceSendAndReceive $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                    $errorChannelName => $errorChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->withChannel($errorChannelName, $errorChannel)
+            ->build($gatewayProxyBuilder);
 
         $gatewayProxy->getById(123);
 
@@ -706,15 +626,10 @@ class GatewayProxyBuilderTest extends MessagingTest
             ->withReplyChannel($replyChannelName);
 
         /** @var ServiceInterfaceSendAndReceive $gatewayProxy */
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InMemoryChannelResolver::createFromAssociativeArray(
-                [
-                    $requestChannelName => $requestChannel,
-                    $replyChannelName => $replyChannel,
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withChannel($replyChannelName, $replyChannel)
+            ->build($gatewayProxyBuilder);
 
         $this->expectException(RuntimeException::class);
 
@@ -729,13 +644,9 @@ class GatewayProxyBuilderTest extends MessagingTest
         $requestChannel->subscribe(DataReturningService::createServiceActivator($replyData));
 
         /** @var ServiceReceivingMessageAndReturningMessage $gateway */
-        $gateway = GatewayProxyBuilder::create('ref-name', ServiceReceivingMessageAndReturningMessage::class, 'execute', $requestChannelName)
-            ->build(
-                InMemoryReferenceSearchService::createEmpty(),
-                InMemoryChannelResolver::createFromAssociativeArray([
-                    $requestChannelName => $requestChannel,
-                ])
-            );
+        $gateway = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->build(GatewayProxyBuilder::create('ref-name', ServiceReceivingMessageAndReturningMessage::class, 'execute', $requestChannelName));
 
         $replyMessage = $gateway->execute(MessageBuilder::withPayload('some')->setHeader('token', '123')->build());
 
@@ -764,17 +675,12 @@ class GatewayProxyBuilderTest extends MessagingTest
 
         $this->assertEquals([ServiceCacheConfiguration::REFERENCE_NAME, 'transactionInterceptor'], $gatewayProxyBuilder->getRequiredReferences());
 
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createWith([
-                'transactionFactory' => $transactionFactoryOne,
-                'transactionInterceptor' => $transactionInterceptor,
-            ]),
-            InMemoryChannelResolver::create(
-                [
-                    NamedMessageChannel::create($requestChannelName, $requestChannel),
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withReference('transactionFactory', $transactionFactoryOne)
+            ->withReference('transactionInterceptor', $transactionInterceptor)
+            ->build(GatewayProxyBuilder::create('ref-name', ServiceReceivingMessageAndReturningMessage::class, 'execute', $requestChannelName));
+
 
         $gatewayProxy->sendMail('test');
 
@@ -823,16 +729,9 @@ class GatewayProxyBuilderTest extends MessagingTest
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
             );
 
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createWith([
-                'transactionFactory' => $transactionFactoryOne,
-            ]),
-            InMemoryChannelResolver::create(
-                [
-                    NamedMessageChannel::create($requestChannelName, $requestChannel),
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->build($gatewayProxyBuilder);
 
         $gatewayProxy->invoke('test');
 
@@ -855,16 +754,10 @@ class GatewayProxyBuilderTest extends MessagingTest
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
             );
 
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createWith([
-                'transactionFactory' => $transactionFactoryOne,
-            ]),
-            InMemoryChannelResolver::create(
-                [
-                    NamedMessageChannel::create($requestChannelName, $requestChannel),
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withReference('transactionFactory', $transactionFactoryOne)
+            ->build($gatewayProxyBuilder);
 
         $gatewayProxy->invoke('test');
 
@@ -887,16 +780,10 @@ class GatewayProxyBuilderTest extends MessagingTest
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
             );
 
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createWith([
-                'transactionFactory2' => $transactionFactoryOne,
-            ]),
-            InMemoryChannelResolver::create(
-                [
-                    NamedMessageChannel::create($requestChannelName, $requestChannel),
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withReference('transactionFactory2', $transactionFactoryOne)
+            ->build($gatewayProxyBuilder);
 
         $gatewayProxy->invoke('test');
 
@@ -920,16 +807,10 @@ class GatewayProxyBuilderTest extends MessagingTest
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
             );
 
-        $gatewayProxy = $gatewayProxyBuilder->build(
-            InMemoryReferenceSearchService::createWith([
-                'transactionFactory0' => $transactionFactoryOne,
-            ]),
-            InMemoryChannelResolver::create(
-                [
-                    NamedMessageChannel::create($requestChannelName, $requestChannel),
-                ]
-            )
-        );
+        $gatewayProxy = ComponentTestBuilder::create()
+            ->withChannel($requestChannelName, $requestChannel)
+            ->withReference('transactionFactory0', $transactionFactoryOne)
+            ->build($gatewayProxyBuilder);
 
         $gatewayProxy->invoke('test');
 

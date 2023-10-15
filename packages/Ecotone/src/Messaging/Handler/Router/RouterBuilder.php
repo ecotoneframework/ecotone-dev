@@ -53,8 +53,7 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
 
     public static function createPayloadTypeRouter(array $typeToChannelMapping): self
     {
-        $routerBuilder = new self('', 'route');
-        $routerBuilder->setObjectToInvoke(PayloadTypeRouter::create($typeToChannelMapping));
+        $routerBuilder = new self(new Definition(PayloadTypeRouter::class, [$typeToChannelMapping], 'create'), 'route');
 
         return $routerBuilder;
     }
@@ -77,8 +76,7 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
 
     public static function createPayloadTypeRouterByClassName(): self
     {
-        $routerBuilder = new self('', 'route');
-        $routerBuilder->setObjectToInvoke(PayloadTypeRouter::createWithRoutingByClass());
+        $routerBuilder = new self(new Definition(PayloadTypeRouter::class, factory: 'createWithRoutingByClass'), 'route');
 
         return $routerBuilder;
     }

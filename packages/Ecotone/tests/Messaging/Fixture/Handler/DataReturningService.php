@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ComponentTestBuilder;
 use InvalidArgumentException;
 use Throwable;
 
@@ -38,17 +39,12 @@ class DataReturningService implements DefinedObject
 
     public static function createServiceActivator($dataToReturn): MessageHandler
     {
-        return self::createServiceActivatorBuilder($dataToReturn)->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty());
-    }
-
-    public static function createExceptionalServiceActivator(): MessageHandler
-    {
-        return (ServiceActivatorBuilder::createWithDirectReference(new self('', false, [], new InvalidArgumentException('error during handling')), 'handle'))->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty());
+        return ComponentTestBuilder::create()->build(self::createServiceActivatorBuilder($dataToReturn));
     }
 
     public static function createServiceActivatorWithReturnMessage($payload, array $headers): MessageHandler
     {
-        return self::createServiceActivatorBuilderWithReturnMessage($payload, $headers)->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty());
+        return ComponentTestBuilder::create()->build(self::createServiceActivatorBuilderWithReturnMessage($payload, $headers));
     }
 
     public static function createServiceActivatorBuilder($dataToReturn): ServiceActivatorBuilder

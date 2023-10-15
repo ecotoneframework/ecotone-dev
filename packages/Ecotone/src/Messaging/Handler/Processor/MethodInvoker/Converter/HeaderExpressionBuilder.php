@@ -82,8 +82,12 @@ class HeaderExpressionBuilder implements ParameterConverterBuilder
 
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
     {
-        // TODO: Implement compile() method.
-        throw new \Exception("Not implemented yet");
+        return new Definition(HeaderExpressionConverter::class, [
+            Reference::to(ExpressionEvaluationService::REFERENCE),
+            $this->headerName,
+            $this->expression,
+            $this->isRequired
+        ]);
     }
 
     /**

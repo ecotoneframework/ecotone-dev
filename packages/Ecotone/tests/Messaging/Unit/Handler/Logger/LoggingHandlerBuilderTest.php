@@ -37,21 +37,16 @@ class LoggingHandlerBuilderTest extends MessagingTest
         $logParameter = InterfaceToCall::create(LoggingInterceptor::class, 'logAfter')->getParameterWithName('log');
         $logger = LoggerExample::create();
         $queueChannel = QueueChannel::create();
-        $loggingHandler = LoggingHandlerBuilder::createForAfter()
-                            ->withOutputMessageChannel('outputChannel')
-                            ->withMethodParameterConverters([
-                                MessageConverterBuilder::create('message'),
-                                MethodArgumentsFactory::getAnnotationValueConverter($logParameter, InterfaceToCall::create(ServiceActivatorWithLoggerExample::class, 'sendMessage'), []),
-                            ])
-                            ->build(
-                                InMemoryChannelResolver::createFromAssociativeArray([
-                                    'outputChannel' => $queueChannel,
-                                ]),
-                                InMemoryReferenceSearchService::createWith([
-                                    ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createWith([]),
-                                    LoggingHandlerBuilder::LOGGER_REFERENCE => $logger,
-                                ])
-                            );
+        $loggingHandler = ComponentTestBuilder::create()
+            ->withChannel('outputChannel', $queueChannel)
+            ->withReference(LoggingHandlerBuilder::LOGGER_REFERENCE, $logger)
+            ->build(
+                LoggingHandlerBuilder::createForAfter()
+                    ->withOutputMessageChannel('outputChannel')
+                    ->withMethodParameterConverters([
+                        MessageConverterBuilder::create('message'),
+                        MethodArgumentsFactory::getAnnotationValueConverter($logParameter, InterfaceToCall::create(ServiceActivatorWithLoggerExample::class, 'sendMessage'), []),
+                    ]));
 
         $message = MessageBuilder::withPayload('some')->build();
         $loggingHandler->handle($message);

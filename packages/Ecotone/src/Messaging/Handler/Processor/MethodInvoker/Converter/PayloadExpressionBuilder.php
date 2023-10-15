@@ -74,7 +74,6 @@ class PayloadExpressionBuilder implements ParameterConverterBuilder
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
     {
         return new Definition(PayloadExpressionConverter::class, [
-            new Reference(ReferenceSearchService::class),
             new Reference(ExpressionEvaluationService::REFERENCE),
             $this->expression
         ]);

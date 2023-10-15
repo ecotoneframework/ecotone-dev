@@ -13,6 +13,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ComponentTestBuilder;
 use Exception;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\CalculatingServiceInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
@@ -37,11 +38,7 @@ class ServiceActivatorBuilderTest extends MessagingTest
     public function test_building_service_activator()
     {
         $objectToInvoke = ServiceExpectingOneArgument::create();
-        $serviceActivator = ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'withoutReturnValue')
-                                ->build(
-                                    InMemoryChannelResolver::createEmpty(),
-                                    InMemoryReferenceSearchService::createEmpty()
-                                );
+        $serviceActivator = ComponentTestBuilder::create()->build(ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'withoutReturnValue'));
 
         $serviceActivator->handle(MessageBuilder::withPayload('some')->build());
 
@@ -59,11 +56,7 @@ class ServiceActivatorBuilderTest extends MessagingTest
                     ->build();
         $objectToInvoke = ServiceReturningMessage::createWith($message);
 
-        $serviceActivator = ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'get')
-            ->build(
-                InMemoryChannelResolver::createEmpty(),
-                InMemoryReferenceSearchService::createEmpty()
-            );
+        $serviceActivator = ComponentTestBuilder::create()->build(ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'get'));
 
         $serviceActivator->handle(MessageBuilder::withPayload('someOther')->setReplyChannel($replyChannel)->build());
 
@@ -78,9 +71,7 @@ class ServiceActivatorBuilderTest extends MessagingTest
     {
         $reference = StaticallyCalledService::class;
 
-        $serviceActivator = ServiceActivatorBuilder::create($reference, InterfaceToCall::create($reference, 'run'))
-                                ->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty());
-
+        $serviceActivator = ComponentTestBuilder::create()->build(ServiceActivatorBuilder::create($reference, InterfaceToCall::create($reference, 'run')));
 
         $payload = 'Hello World';
         $replyChannel = QueueChannel::create();
@@ -104,11 +95,7 @@ class ServiceActivatorBuilderTest extends MessagingTest
     {
         $objectToInvoke = ServiceExpectingOneArgument::create();
 
-        $serviceActivator = ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'withoutReturnValue')
-            ->build(
-                InMemoryChannelResolver::createEmpty(),
-                InMemoryReferenceSearchService::createEmpty()
-            );
+        $serviceActivator = ComponentTestBuilder::create()->build(ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'withoutReturnValue'));
 
         $serviceActivator->handle(MessageBuilder::withPayload('some')->build());
 
@@ -123,13 +110,8 @@ class ServiceActivatorBuilderTest extends MessagingTest
     {
         $objectToInvoke = ServiceExpectingOneArgument::create();
 
-        $serviceActivator = ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'withoutReturnValue')
-            ->withPassThroughMessageOnVoidInterface(true)
-            ->build(
-                InMemoryChannelResolver::createEmpty(),
-                InMemoryReferenceSearchService::createEmpty()
-            );
-
+        $serviceActivator = ComponentTestBuilder::create()->build(ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'withoutReturnValue')
+            ->withPassThroughMessageOnVoidInterface(true));
 
         $replyChannel = QueueChannel::create();
         $message = MessageBuilder::withPayload('test')
@@ -151,13 +133,8 @@ class ServiceActivatorBuilderTest extends MessagingTest
     {
         $objectToInvoke = ServiceExpectingOneArgument::create();
 
-        $serviceActivator = ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'withReturnValue')
-            ->withPassThroughMessageOnVoidInterface(true)
-            ->build(
-                InMemoryChannelResolver::createEmpty(),
-                InMemoryReferenceSearchService::createEmpty()
-            );
-
+        $serviceActivator = ComponentTestBuilder::create()->build(ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'withReturnValue')
+            ->withPassThroughMessageOnVoidInterface(true));
 
         $replyChannel = QueueChannel::create();
         $message = MessageBuilder::withPayload('test')
@@ -183,15 +160,14 @@ class ServiceActivatorBuilderTest extends MessagingTest
         $thirdInterceptor = AroundInterceptorReference::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 3, '', []);
         $replyChannel = QueueChannel::create();
 
-        $serviceActivator = ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'result')
+        $serviceActivator = ComponentTestBuilder::create()
+            ->withReference('calculator', CalculatingServiceInterceptorExample::create(2))
+            ->build(ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'result')
                             ->withInputChannelName('someName')
                             ->withEndpointId('someEndpoint')
                             ->addAroundInterceptor($secondInterceptor)
                             ->addAroundInterceptor($thirdInterceptor)
-                            ->addAroundInterceptor($firstInterceptor)
-                            ->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createWith([
-                                'calculator' => CalculatingServiceInterceptorExample::create(2),
-                            ]));
+                            ->addAroundInterceptor($firstInterceptor));
 
         $serviceActivator->handle(MessageBuilder::withPayload(1)->setReplyChannel($replyChannel)->build());
 

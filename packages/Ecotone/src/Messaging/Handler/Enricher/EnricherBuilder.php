@@ -174,8 +174,7 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
             $this->requestHeaders
         ]);
 
-        $reference = $builder->register(Uuid::uuid4()->toString(), $internalEnrichingService);
-        return ServiceActivatorBuilder::create($reference->getId(), new InterfaceToCallReference(InternalEnrichingService::class, 'enrich'))
+        return ServiceActivatorBuilder::createWithDefinition($internalEnrichingService, 'enrich')
                 ->withEndpointId($this->getEndpointId())
                 ->withInputChannelName($this->getInputMessageChannelName())
                 ->withOutputMessageChannel($this->outputMessageChannelName)

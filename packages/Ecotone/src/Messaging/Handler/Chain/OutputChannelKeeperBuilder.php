@@ -52,9 +52,7 @@ class OutputChannelKeeperBuilder extends InputOutputMessageHandlerBuilder
     public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
         $gateway = $this->keeperGateway->compile($builder);
-        $serviceId = Uuid::uuid4();
-        $builder->register($serviceId, new Definition(OutputChannelKeeper::class, [$gateway]));
-        return ServiceActivatorBuilder::create($serviceId, new InterfaceToCallReference(OutputChannelKeeper::class, 'keep'))
+        return ServiceActivatorBuilder::createWithDefinition(new Definition(OutputChannelKeeper::class, [$gateway]), 'keep')
             ->compile($builder);
     }
 }

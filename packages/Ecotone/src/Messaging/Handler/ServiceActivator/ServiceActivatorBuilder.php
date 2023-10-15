@@ -175,8 +175,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             $this->getEndpointAnnotations()
         );
 
-        Assert::notNull($methodInvokerDefinition, "Can't compile {$this} because some of parameter converters are not compilable");
-
         if ($this->shouldWrapResultInMessage) {
             $methodInvokerDefinition = new Definition(WrapWithMessageBuildProcessor::class, [
                 $this->interfaceToCallReference,

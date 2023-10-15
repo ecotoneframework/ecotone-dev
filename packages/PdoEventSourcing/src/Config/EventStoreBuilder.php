@@ -46,19 +46,21 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(EcotoneEventStoreProophWrapper::class, $this->methodName);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        return ServiceActivatorBuilder::createWithDirectReference(
-            EcotoneEventStoreProophWrapper::prepare(
-                new LazyProophEventStore($this->eventSourcingConfiguration, $referenceSearchService),
-                $referenceSearchService->get(ConversionService::REFERENCE_NAME),
-                $referenceSearchService->get(EventMapper::class)
-            ),
-            $this->methodName
-        )
+        $eventStoreProophWrapper = new Definition(EcotoneEventStoreProophWrapper::class, [
+            new Definition(LazyProophEventStore::class, [
+                new Reference(EventSourcingConfiguration::class),
+                new Reference(ReferenceSearchService::class),
+            ]),
+            new Reference(ConversionService::REFERENCE_NAME),
+            new Reference(EventMapper::class)
+        ], 'prepare');
+
+        return ServiceActivatorBuilder::createWithDefinition($eventStoreProophWrapper, $this->methodName)
             ->withMethodParameterConverters($this->parameterConverters)
             ->withInputChannelName($this->getInputMessageChannelName())
-            ->build($channelResolver, $referenceSearchService);
+            ->compile($builder);
     }
 
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
@@ -69,10 +71,5 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
     public function getRequiredReferenceNames(): array
     {
         return [];
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
-    {
-        // TODO: Implement compile() method.
     }
 }

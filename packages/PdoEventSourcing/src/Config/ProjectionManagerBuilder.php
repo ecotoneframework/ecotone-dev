@@ -54,15 +54,21 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(LazyProophProjectionManager::class, $this->methodName);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
     {
-        return ServiceActivatorBuilder::createWithDirectReference(
-            new LazyProophProjectionManager($this->eventSourcingConfiguration, $this->projectionSetupConfigurations, $referenceSearchService),
-            $this->methodName
-        )
+        $lazyProophProjectionManager = new Definition(
+            LazyProophProjectionManager::class,
+            [
+                $this->eventSourcingConfiguration,
+                $this->projectionSetupConfigurations,
+                new Reference(ReferenceSearchService::class),
+            ]
+        );
+
+        return ServiceActivatorBuilder::createWithDefinition($lazyProophProjectionManager, $this->methodName)
             ->withMethodParameterConverters($this->parameterConverters)
             ->withInputChannelName($this->getInputMessageChannelName())
-            ->build($channelResolver, $referenceSearchService);
+            ->compile($builder);
     }
 
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
@@ -78,10 +84,5 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
     public static function getProjectionManagerActionChannel(string $projectionManagerReference, string $methodName): string
     {
         return $projectionManagerReference . $methodName;
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
-    {
-        // TODO: Implement compile() method.
     }
 }

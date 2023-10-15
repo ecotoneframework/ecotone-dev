@@ -38,6 +38,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -258,6 +259,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
+
+        $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, new Definition(EventSourcingConfiguration::class, [
+            \serialize($eventSourcingConfiguration)
+        ], [self::class, 'configurationFromSerializedString']));
 
         $this->registerProjections($serviceConfiguration, $interfaceToCallRegistry, $moduleReferenceSearchService, $messagingConfiguration, $extensionObjects, $eventSourcingConfiguration);
         foreach ($this->projectionLifeCycleServiceActivators as $serviceActivator) {
@@ -594,5 +599,13 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 }
             }
         }
+    }
+
+    // TODO: remove this method
+    public static function configurationFromSerializedString(string $serialized): EventSourcingConfiguration
+    {
+        $configuration = unserialize($serialized);
+
+        return $configuration;
     }
 }

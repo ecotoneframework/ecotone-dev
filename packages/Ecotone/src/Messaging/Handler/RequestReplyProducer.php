@@ -20,8 +20,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 class RequestReplyProducer implements MessageHandler
 {
-    private const REQUEST_REPLY_METHOD = 1;
-    private const REQUEST_SPLIT_METHOD = 2;
+    public const REQUEST_REPLY_METHOD = 1;
+    public const REQUEST_SPLIT_METHOD = 2;
 
     public function __construct(
         private ?MessageChannel $outputChannel,

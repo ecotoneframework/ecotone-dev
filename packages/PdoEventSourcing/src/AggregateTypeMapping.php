@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing;
 
-final class AggregateTypeMapping
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+
+final class AggregateTypeMapping implements CompilableBuilder
 {
     private function __construct(private array $aggregateTypeMapping)
     {
@@ -23,5 +27,12 @@ final class AggregateTypeMapping
     public function getAggregateTypeMapping(): array
     {
         return $this->aggregateTypeMapping;
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): object|null
+    {
+        return new Definition(self::class, [
+            $this->aggregateTypeMapping
+        ], 'createWith');
     }
 }

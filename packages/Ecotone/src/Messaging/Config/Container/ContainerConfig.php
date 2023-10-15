@@ -21,18 +21,4 @@ class ContainerConfig
         $containerBuilder->compile();
         return $container->get(ConfiguredMessagingSystem::class);
     }
-
-    public static function buildForComponentTesting(CompilableBuilder $componentBuilder) {
-        $container = InMemoryPSRContainer::createEmpty();
-        $containerBuilder = new ContainerBuilder();
-        $containerBuilder->addCompilerPass(new InMemoryContainerImplementation($container));
-        $messagingBuilder = new ContainerMessagingBuilder($containerBuilder);
-        $reference = $componentBuilder->compile($messagingBuilder);
-
-        if ($reference instanceof Reference) {
-            return $container->get($reference->getId());
-        } else {
-            throw new \InvalidArgumentException("Reference must be returned");
-        }
-    }
 }

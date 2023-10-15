@@ -4,6 +4,9 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -79,5 +82,35 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
             $documentStoreReferences,
             $conversionService
         );
+    }
+
+    public function compile(ContainerMessagingBuilder $builder): object|null
+    {
+        $headerMapper = $this->headerMapper
+            ? DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper)
+            : DefaultHeaderMapper::createAllHeadersMapping();
+
+        $documentStoreReferences = [];
+        foreach ($this->eventSourcingConfiguration->getSnapshotsConfig() as $aggregateClass => $config) {
+            $documentStoreReferences[$aggregateClass] = new Reference($config['documentStore']);
+        }
+
+        return new Definition(EventSourcingRepository::class, [
+            new Definition(EcotoneEventStoreProophWrapper::class, [
+                new Definition(LazyProophEventStore::class, [
+                    new Reference(EventSourcingConfiguration::class),
+                    new Reference(ReferenceSearchService::class),
+                ]),
+                new Reference(ConversionService::REFERENCE_NAME),
+                new Reference(EventMapper::class)
+            ], 'prepare'),
+            $this->handledAggregateClassNames,
+            $headerMapper,
+            new Reference(EventSourcingConfiguration::class),
+            new Reference(AggregateStreamMapping::class),
+            new Reference(AggregateTypeMapping::class),
+            $documentStoreReferences,
+            new Reference(ConversionService::REFERENCE_NAME)
+        ]);
     }
 }

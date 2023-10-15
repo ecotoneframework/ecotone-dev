@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use PHPUnit\Framework\TestCase;
 
@@ -17,7 +18,7 @@ class SymfonyExpressionEvaluationAdapterTest extends TestCase
 {
     public function test_is_array_function()
     {
-        $expressionLanguage = SymfonyExpressionEvaluationAdapter::create();
+        $expressionLanguage = SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty());
 
         $this->assertTrue($expressionLanguage->evaluate('isArray([])', [], InMemoryReferenceSearchService::createEmpty()));
         $this->assertFalse($expressionLanguage->evaluate("isArray('some')", [], InMemoryReferenceSearchService::createEmpty()));
@@ -25,7 +26,7 @@ class SymfonyExpressionEvaluationAdapterTest extends TestCase
 
     public function test_do_for_each_element_in_array()
     {
-        $expressionLanguage = SymfonyExpressionEvaluationAdapter::create();
+        $expressionLanguage = SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty());
 
         $this->assertEquals(
             [

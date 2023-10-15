@@ -6,6 +6,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
@@ -96,13 +97,17 @@ class BusRoutingModuleTest extends MessagingTest
         $annotationRegistrationService = InMemoryAnnotationFinder::createFrom($annotatedClasses);
         $extendedConfiguration = $this->prepareModule($annotationRegistrationService);
 
+        $propagateHeadersInterfaceToCall = InterfaceToCall::create(MessageHeadersPropagatorInterceptor::class, 'propagateHeaders');
+        $storeHeadersInterfaceToCall= InterfaceToCall::create(MessageHeadersPropagatorInterceptor::class, 'storeHeaders');
+
         $this->assertEquals(
             MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
+                ->registerServiceDefinition(MessageHeadersPropagatorInterceptor::class)
                 ->registerBeforeMethodInterceptor(
                     MethodInterceptor::create(
                         MessageHeadersPropagatorInterceptor::class,
-                        InterfaceToCall::create(MessageHeadersPropagatorInterceptor::class, 'propagateHeaders'),
-                        TransformerBuilder::createWithDirectObject(new MessageHeadersPropagatorInterceptor(), 'propagateHeaders')
+                        $propagateHeadersInterfaceToCall,
+                        TransformerBuilder::create(MessageHeadersPropagatorInterceptor::class, $propagateHeadersInterfaceToCall)
                             ->withMethodParameterConverters([
                                 AllHeadersBuilder::createWith('headers'),
                             ]),
@@ -111,12 +116,12 @@ class BusRoutingModuleTest extends MessagingTest
                     )
                 )
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                        InterfaceToCallRegistry::createEmpty(),
-                        new MessageHeadersPropagatorInterceptor(),
-                        'storeHeaders',
+                    AroundInterceptorReference::create(
+                        MessageHeadersPropagatorInterceptor::class,
+                        $storeHeadersInterfaceToCall,
                         Precedence::ENDPOINT_HEADERS_PRECEDENCE - 1,
-                        CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class
+                        CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class,
+                        ParameterConverterAnnotationFactory::create()->createParameterConverters($storeHeadersInterfaceToCall),
                     )
                 )
                 ->registerMessageHandler(BusRouterBuilder::createCommandBusByObject($commandObjectMapping))

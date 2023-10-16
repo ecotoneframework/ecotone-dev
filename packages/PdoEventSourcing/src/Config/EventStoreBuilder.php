@@ -22,7 +22,7 @@ use Ecotone\Messaging\MessageHandler;
 
 class EventStoreBuilder extends InputOutputMessageHandlerBuilder
 {
-    private function __construct(private string $methodName, private array $parameterConverters, private EventSourcingConfiguration $eventSourcingConfiguration, private Reference $eventSourcingConfigurationReference)
+    private function __construct(private string $methodName, private array $parameterConverters, private EventSourcingConfiguration $eventSourcingConfiguration, private Reference $eventStoreReference)
     {
         $this->inputMessageChannelName = $eventSourcingConfiguration->getEventStoreReferenceName() . $methodName;
     }
@@ -30,9 +30,9 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
     /**
      * @param ParameterConverterBuilder[] $parameterConverters
      */
-    public static function create(string $methodName, array $parameterConverters, EventSourcingConfiguration $eventSourcingConfiguration, Reference $eventSourcingConfigurationReference): static
+    public static function create(string $methodName, array $parameterConverters, EventSourcingConfiguration $eventSourcingConfiguration, Reference $eventStoreReference): static
     {
-        return new self($methodName, $parameterConverters, $eventSourcingConfiguration, $eventSourcingConfigurationReference);
+        return new self($methodName, $parameterConverters, $eventSourcingConfiguration, $eventStoreReference);
     }
 
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
@@ -43,7 +43,7 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $eventStoreProophWrapper = new Definition(EcotoneEventStoreProophWrapper::class, [
-            new Reference(LazyProophEventStore::class),
+            $this->eventStoreReference,
             new Reference(ConversionService::REFERENCE_NAME),
             new Reference(EventMapper::class)
         ], 'prepare');

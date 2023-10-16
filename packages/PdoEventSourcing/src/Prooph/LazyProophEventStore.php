@@ -62,7 +62,6 @@ class LazyProophEventStore implements EventStore
 
     public function __construct(
         private EventSourcingConfiguration $eventSourcingConfiguration,
-        private ReferenceSearchService $referenceSearchService,
         private EventMapper $messageFactory,
         private ?DbalConnectionFactory $connectionFactory,
     )

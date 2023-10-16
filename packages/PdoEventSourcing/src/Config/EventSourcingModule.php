@@ -260,7 +260,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $messagingConfiguration->registerServiceDefinition(LazyProophEventStore::class, new Definition(LazyProophEventStore::class, [
             new Reference(EventSourcingConfiguration::class),
-            new Reference(ReferenceSearchService::class),
             new Reference(EventMapper::class),
             new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE)
         ]));
@@ -446,7 +445,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     private function registerEventStoreAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration): void
     {
-        $messageHandlerBuilder = EventStoreBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration, Reference::to(EventSourcingConfiguration::class));
+        $messageHandlerBuilder = EventStoreBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration, Reference::to(LazyProophEventStore::class));
         $configuration->registerMessageHandler($messageHandlerBuilder);
 
         $configuration->registerGatewayBuilder(
@@ -458,12 +457,18 @@ class EventSourcingModule extends NoExternalConfigurationModule
     private function registerEventStreamEmitter(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
     {
         $eventSourcingConfiguration = (clone $eventSourcingConfiguration)->withSimpleStreamPersistenceStrategy();
-        $reference = new Reference(EventSourcingConfiguration::class.'eventStreamEmitter');
-        $configuration->registerServiceDefinition($reference->getId(), new Definition(EventSourcingConfiguration::class, [
+        $eventSourcingConfigurationReference = new Reference(EventSourcingConfiguration::class.'.eventStreamEmitter');
+        $configuration->registerServiceDefinition($eventSourcingConfigurationReference->getId(), new Definition(EventSourcingConfiguration::class, [
             \serialize($eventSourcingConfiguration)
         ], [self::class, 'configurationFromSerializedString']));
+        $eventStoreReference = new Reference(LazyProophEventStore::class.'.eventStreamEmitter');
+        $configuration->registerServiceDefinition($eventStoreReference->getId(), new Definition(LazyProophEventStore::class, [
+            $eventSourcingConfigurationReference,
+            new Reference(EventMapper::class),
+            new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE)
+        ]));
 
-        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration, $reference)
+        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration, $eventStoreReference)
             ->withInputChannelName(Uuid::uuid4()->toString())
         ;
         $configuration->registerMessageHandler($eventStoreHandler);

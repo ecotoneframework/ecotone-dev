@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
 
 final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuilder
@@ -34,7 +35,7 @@ final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuil
             MessageCollectorChannelInterceptor::class,
             [
                 $this->collectorStorageReference,
-                new Reference('logger'),
+                new Reference(LoggingHandlerBuilder::LOGGER_REFERENCE),
             ]
         );
     }

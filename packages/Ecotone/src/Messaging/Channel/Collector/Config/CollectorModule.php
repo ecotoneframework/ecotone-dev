@@ -82,8 +82,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
                     $collectorSenderInterceptorReference,
                     $collectorSenderInterceptorInterfaceToCall,
                     Precedence::COLLECTOR_SENDER_PRECEDENCE,
-                    CommandBus::class . '||' . AsynchronousRunningEndpoint::class,
-                    []
+                    CommandBus::class . '||' . AsynchronousRunningEndpoint::class
                 )
             );
         }

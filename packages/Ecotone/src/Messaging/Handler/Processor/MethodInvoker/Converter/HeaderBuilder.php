@@ -50,10 +50,10 @@ class HeaderBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Definition
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall): Definition
     {
         return new Definition(HeaderConverter::class, [
-            InterfaceParameterReference::fromInstance($interfaceToCall, $interfaceParameter),
+            InterfaceParameterReference::fromInstance($interfaceToCall, $this->parameterName),
             $this->headerName,
             $this->isRequired,
             new Reference(ConversionService::REFERENCE_NAME),

@@ -12,6 +12,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionService;
 use Test\Ecotone\Messaging\Fixture\Service\CallableService;
 
 /**
@@ -28,8 +29,7 @@ class AllHeadersBuilderTest extends TestCase
         $result = ComponentTestBuilder::create()
             ->build(new BoundParameterConverter(
                 AllHeadersBuilder::createWith('some'),
-                InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('some', TypeDescriptor::createStringType()),
+                InterfaceToCall::create(HeadersConversionService::class, 'withNullableString'),
             ))->getArgumentFrom(
             MessageBuilder::withPayload('some')
                 ->setHeader('someId', 123)

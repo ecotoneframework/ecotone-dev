@@ -7,5 +7,5 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 
 interface CompilableParameterConverterBuilder
 {
-    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Definition|Reference;
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall): Definition|Reference;
 }

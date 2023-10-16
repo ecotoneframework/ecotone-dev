@@ -10,13 +10,12 @@ class BoundParameterConverter implements CompilableBuilder
     public function __construct(
         private CompilableParameterConverterBuilder $parameterConverterBuilder,
         private InterfaceToCall $interfaceToCall,
-        private InterfaceParameter $parameter,
     )
     {
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        return $this->parameterConverterBuilder->compile($builder, $this->interfaceToCall, $this->parameter);
+        return $this->parameterConverterBuilder->compile($builder, $this->interfaceToCall);
     }
 }

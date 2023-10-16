@@ -149,10 +149,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         foreach ($interceptingInterface->getInterfaceParameters() as $parameter) {
             foreach ($alreadyResolvedParameterConverters as $parameterConverter) {
                 if ($parameterConverter->isHandling($parameter)) {
-                    if (! $parameterConverter instanceof CompilableParameterConverterBuilder) {
-                        throw MessagingException::create("No compilable builder for {$parameter}");
-                    }
-                    $converterDefinitions[] = $parameterConverter->compile($builder, $interceptingInterface, $parameter);
+                    $converterDefinitions[] = $parameterConverter->compile($builder, $interceptingInterface);
                     if ($parameterConverter instanceof PayloadConverter) {
                         $hasPayloadConverter = true;
                     }
@@ -192,14 +189,14 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
                 continue;
             }
             if (! $hasPayloadConverter) {
-                $converterDefinitions[] = PayloadBuilder::create($parameter->getName())->compile($builder, $interceptingInterface, $parameter);
+                $converterDefinitions[] = PayloadBuilder::create($parameter->getName())->compile($builder, $interceptingInterface);
                 $hasPayloadConverter = true;
                 continue;
             } elseif ($parameter->getTypeDescriptor()->isNonCollectionArray()) {
-                $converterDefinitions[] = AllHeadersBuilder::createWith($parameter->getName())->compile($builder, $interceptingInterface, $parameter);
+                $converterDefinitions[] = AllHeadersBuilder::createWith($parameter->getName())->compile($builder, $interceptingInterface);
                 continue;
             } elseif ($parameter->getTypeDescriptor()->isClassOrInterface()) {
-                $converterDefinitions[] = ReferenceBuilder::create($parameter->getName(), $parameter->getTypeHint())->compile($builder, $interceptingInterface, $parameter);
+                $converterDefinitions[] = ReferenceBuilder::create($parameter->getName(), $parameter->getTypeHint())->compile($builder, $interceptingInterface);
                 continue;
             }
             throw new InvalidArgumentException("Can't build around interceptor for {$this->interfaceToCall} because can't find converter for parameter {$parameter}");

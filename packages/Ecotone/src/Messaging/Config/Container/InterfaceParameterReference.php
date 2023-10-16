@@ -12,9 +12,9 @@ class InterfaceParameterReference extends Reference
         parent::__construct('interfaceParameter-' . $className . '::' . $methodName . '::$' . $parameterName);
     }
 
-    public static function fromInstance(InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): self
+    public static function fromInstance(InterfaceToCall $interfaceToCall, string $interfaceParameter): self
     {
-        return new self($interfaceToCall->getInterfaceName(), $interfaceToCall->getMethodName(), $interfaceParameter->getName());
+        return new self($interfaceToCall->getInterfaceName(), $interfaceToCall->getMethodName(), $interfaceParameter);
     }
 
     public function getClassName(): string

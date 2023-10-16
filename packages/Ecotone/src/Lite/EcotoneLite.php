@@ -172,16 +172,17 @@ final class EcotoneLite
             $serviceConfiguration->getCacheDirectoryPath(),
             $useCachedVersion
         );
+        $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
             $pathToRootCatalog,
-            InMemoryConfigurationVariableService::create($configurationVariables),
+            $configurationVariableService,
             $serviceConfiguration,
             $serviceCacheConfiguration,
             $classesToResolve,
             $enableTesting
         );
 
-        $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($messagingConfiguration, $externalContainer, $configurationVariables);
+        $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($messagingConfiguration, $externalContainer, $configurationVariableService);
 
         if ($allowGatewaysToBeRegisteredInContainer) {
             $externalContainer->set(ConfiguredMessagingSystem::class, $messagingSystem);

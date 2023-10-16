@@ -16,19 +16,21 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\ProxyBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContextProvider;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ramsey\Uuid\Uuid;
 
 class ComponentTestBuilder
 {
     private ContainerMessagingBuilder $messagingBuilder;
 
-    public function __construct(private InMemoryPSRContainer $container, private ContainerBuilder $builder)
+    private function __construct(private InMemoryPSRContainer $container, private ContainerBuilder $builder)
     {
         $this->messagingBuilder = new ContainerMessagingBuilder($builder);
     }
@@ -61,13 +63,6 @@ class ComponentTestBuilder
     {
         $this->messagingBuilder->register($referenceName, new Definition(\get_class($object)));
         $this->container->set($referenceName, $object);
-
-        return $this;
-    }
-
-    public function withConfiguration(string $parameterName, mixed $value): self
-    {
-        $this->container->set(new ConfigurationVariableReference($parameterName), $value);
 
         return $this;
     }

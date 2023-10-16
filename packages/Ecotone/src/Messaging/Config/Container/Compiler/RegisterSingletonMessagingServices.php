@@ -11,6 +11,7 @@ use Ecotone\Messaging\Config\Container\ReferenceSearchServiceWithContainer;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContextProvider;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerErrorInterceptor;
@@ -22,6 +23,7 @@ use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
+use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
@@ -46,6 +48,7 @@ class RegisterSingletonMessagingServices implements CompilerPass
         $this->registerDefault($builder, PropertyEditorAccessor::class, new Definition(PropertyEditorAccessor::class, [new Reference(ExpressionEvaluationService::REFERENCE)], 'create'));
         $this->registerDefault($builder,PropertyReaderAccessor::class, new Definition(PropertyReaderAccessor::class));
         $this->registerDefault($builder, ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), [], []]));
+        $this->registerDefault($builder, ConfigurationVariableService::class, new Definition(InMemoryConfigurationVariableService::class, [], 'createEmpty'));
     }
 
     private function registerDefault(ContainerBuilder $builder, string $id, object|array|string $definition): void

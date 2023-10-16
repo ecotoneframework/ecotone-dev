@@ -11,4 +11,5 @@ interface HeadersConversionService
     public function withUuid(UuidInterface $uuid) : void;
     public function withStdClass(stdClass $uuid) : void;
     public function withDefaultValue(string $name = '') : void;
+    public function withIntDefaultValue(int $number = 100) : void;
 }

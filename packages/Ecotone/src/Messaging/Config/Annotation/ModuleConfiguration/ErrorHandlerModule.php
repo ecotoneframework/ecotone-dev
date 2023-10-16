@@ -56,14 +56,12 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                 continue;
             }
 
-            $reference = 'error_handler_'.$index;
-            $messagingConfiguration->registerServiceDefinition($reference, new Definition(ErrorHandler::class, [
-                $extensionObject->getDelayedRetryTemplate(),
-                (bool)$extensionObject->getDeadLetterQueueChannel()
-            ]));
-            $errorHandler = ServiceActivatorBuilder::create(
-                $reference,
-                new InterfaceToCallReference(ErrorHandler::class, 'handle'),
+            $errorHandler = ServiceActivatorBuilder::createWithDefinition(
+                new Definition(ErrorHandler::class, [
+                    $extensionObject->getDelayedRetryTemplate(),
+                    (bool)$extensionObject->getDeadLetterQueueChannel()
+                ]),
+                'handle',
             )
                 ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName())
                 ->withInputChannelName($extensionObject->getErrorChannelName())
@@ -76,18 +74,15 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                     ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getDeadLetterQueueChannel()));
             }
 
-            $reference = new Reference(HeaderRouter::class . '.'.MessageHeaders::POLLED_CHANNEL_NAME);
-            $messagingConfiguration->registerServiceDefinition(
-                $reference->getId(),
-                new Definition(HeaderRouter::class, [MessageHeaders::POLLED_CHANNEL_NAME])
-            );
             $messagingConfiguration
                 ->registerMessageHandler($errorHandler)
                 ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getErrorChannelName()))
                 ->registerMessageHandler(
-                    RouterBuilder::create($reference->getId(), $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route'))
-                        ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName() . '.router')
-                        ->withInputChannelName('ecotone.recoverability.reply')
+                    RouterBuilder::create(
+                        new Definition(HeaderRouter::class, [MessageHeaders::POLLED_CHANNEL_NAME]),
+                        $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route'))
+                    ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName() . '.router')
+                    ->withInputChannelName('ecotone.recoverability.reply')
                 );
         }
     }

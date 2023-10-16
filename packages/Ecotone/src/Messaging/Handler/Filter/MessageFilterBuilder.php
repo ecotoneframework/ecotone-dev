@@ -43,8 +43,6 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
     {
         $this->referenceNameOrObject     = $referenceName;
         $this->methodNameOrInterface        = $methodName;
-
-        $this->initialize();
     }
 
     public static function createWithReferenceName(string $referenceName, InterfaceToCall $interfaceToCall): self
@@ -151,14 +149,6 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
         $serviceActivatorBuilder->orderedAroundInterceptors = $this->orderedAroundInterceptors;
 
         return $serviceActivatorBuilder->compile($builder);
-    }
-
-
-    private function initialize(): void
-    {
-        if (is_string($this->referenceNameOrObject)) {
-            $this->requiredReferences[] = $this->referenceNameOrObject;
-        }
     }
 
     /**

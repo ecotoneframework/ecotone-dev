@@ -6,6 +6,7 @@ use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -21,24 +22,17 @@ use Ecotone\Messaging\MessageHandler;
 
 class EventStoreBuilder extends InputOutputMessageHandlerBuilder
 {
-    private string $methodName;
-    private EventSourcingConfiguration $eventSourcingConfiguration;
-    private array $parameterConverters;
-
-    private function __construct(string $methodName, array $parameterConverters, EventSourcingConfiguration $eventSourcingConfiguration)
+    private function __construct(private string $methodName, private array $parameterConverters, private EventSourcingConfiguration $eventSourcingConfiguration, private Reference $eventSourcingConfigurationReference)
     {
-        $this->methodName = $methodName;
-        $this->parameterConverters = $parameterConverters;
-        $this->eventSourcingConfiguration = $eventSourcingConfiguration;
-        $this->inputMessageChannelName = $this->eventSourcingConfiguration->getEventStoreReferenceName() . $this->methodName;
+        $this->inputMessageChannelName = $eventSourcingConfiguration->getEventStoreReferenceName() . $methodName;
     }
 
     /**
      * @param ParameterConverterBuilder[] $parameterConverters
      */
-    public static function create(string $methodName, array $parameterConverters, EventSourcingConfiguration $eventSourcingConfiguration): static
+    public static function create(string $methodName, array $parameterConverters, EventSourcingConfiguration $eventSourcingConfiguration, Reference $eventSourcingConfigurationReference): static
     {
-        return new self($methodName, $parameterConverters, $eventSourcingConfiguration);
+        return new self($methodName, $parameterConverters, $eventSourcingConfiguration, $eventSourcingConfigurationReference);
     }
 
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
@@ -49,11 +43,7 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $eventStoreProophWrapper = new Definition(EcotoneEventStoreProophWrapper::class, [
-            new Definition(LazyProophEventStore::class, [
-                new Reference(EventSourcingConfiguration::class),
-                new Reference(ReferenceSearchService::class),
-                new Reference(EventMapper::class),
-            ]),
+            new Reference(LazyProophEventStore::class),
             new Reference(ConversionService::REFERENCE_NAME),
             new Reference(EventMapper::class)
         ], 'prepare');

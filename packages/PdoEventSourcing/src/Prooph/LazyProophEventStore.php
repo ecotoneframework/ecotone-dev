@@ -10,6 +10,7 @@ use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStream
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Iterator;
 use PDO;
 use Prooph\Common\Messaging\MessageConverter;
@@ -59,7 +60,12 @@ class LazyProophEventStore implements EventStore
     private bool $requireInitialization;
     private array $ensuredExistingStreams = [];
 
-    public function __construct(private EventSourcingConfiguration $eventSourcingConfiguration, private ReferenceSearchService $referenceSearchService, private EventMapper $messageFactory)
+    public function __construct(
+        private EventSourcingConfiguration $eventSourcingConfiguration,
+        private ReferenceSearchService $referenceSearchService,
+        private EventMapper $messageFactory,
+        private ?DbalConnectionFactory $connectionFactory,
+    )
     {
         $this->messageConverter = new FromProophMessageToArrayConverter();
         $this->requireInitialization = $eventSourcingConfiguration->isInitializedOnStart();
@@ -259,7 +265,7 @@ class LazyProophEventStore implements EventStore
 
     public function getConnection(): \Doctrine\DBAL\Connection
     {
-        $connectionFactory = new DbalReconnectableConnectionFactory($this->referenceSearchService->get($this->eventSourcingConfiguration->getConnectionReferenceName()));
+        $connectionFactory = new DbalReconnectableConnectionFactory($this->connectionFactory);
 
         return $connectionFactory->getConnection();
     }

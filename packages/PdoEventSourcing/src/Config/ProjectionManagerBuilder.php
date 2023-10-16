@@ -5,6 +5,7 @@ namespace Ecotone\EventSourcing\Config;
 use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
+use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -60,10 +61,10 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
         $lazyProophProjectionManager = new Definition(
             LazyProophProjectionManager::class,
             [
-                $this->eventSourcingConfiguration,
+                new Reference(EventSourcingConfiguration::class),
                 $this->projectionSetupConfigurations,
                 new Reference(ReferenceSearchService::class),
-                new Reference(EventMapper::class),
+                new Reference(LazyProophEventStore::class),
             ]
         );
 

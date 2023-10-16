@@ -2,9 +2,11 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
+
 class Reference
 {
-    public function __construct(private string $id)
+    public function __construct(private string $id, private int $invalidBehavior = ContainerImplementation::EXCEPTION_ON_INVALID_REFERENCE)
     {
     }
 
@@ -26,6 +28,14 @@ class Reference
     public function getId(): string
     {
         return $this->id;
+    }
+
+    /**
+     * Returns the behavior to be used when the service does not exist.
+     */
+    public function getInvalidBehavior(): int
+    {
+        return $this->invalidBehavior;
     }
 
     public function __toString(): string

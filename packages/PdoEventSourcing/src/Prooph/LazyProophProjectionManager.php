@@ -35,7 +35,7 @@ class LazyProophProjectionManager implements ProjectionManager
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private array                      $projectionSetupConfigurations,
         private ReferenceSearchService     $referenceSearchService,
-        private EventMapper                $eventMapper,
+        private LazyProophEventStore       $lazyProophEventStore,
     ) {
     }
 
@@ -206,7 +206,8 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function getLazyProophEventStore(): LazyProophEventStore
     {
-        return new LazyProophEventStore($this->eventSourcingConfiguration, $this->referenceSearchService, $this->eventMapper);
+        return $this->lazyProophEventStore;
+//        return new LazyProophEventStore($this->eventSourcingConfiguration, $this->referenceSearchService, $this->eventMapper);
     }
 
     private function triggerActionOnProjection(string $name): void

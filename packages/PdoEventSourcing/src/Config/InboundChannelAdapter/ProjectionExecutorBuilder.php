@@ -26,7 +26,6 @@ use Ecotone\Messaging\MessageHandler;
 class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
 {
     public function __construct(
-        private EventSourcingConfiguration $eventSourcingConfiguration,
         private ProjectionSetupConfiguration $projectionSetupConfiguration,
         private array $projectSetupConfigurations,
         private ProjectionRunningConfiguration $projectionRunningConfiguration,
@@ -45,10 +44,10 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
             ProjectionEventHandler::class,
             [
                 new Definition(LazyProophProjectionManager::class, [
-                    $this->eventSourcingConfiguration,
+                    Reference::to(EventSourcingConfiguration::class),
                     $this->projectSetupConfigurations,
                     Reference::to(ReferenceSearchService::class),
-                    Reference::to(EventMapper::class)
+                    Reference::to(LazyProophEventStore::class)
                 ]),
                 $this->projectionSetupConfiguration,
                 $this->projectionRunningConfiguration,

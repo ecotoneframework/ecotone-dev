@@ -3,6 +3,7 @@
 namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -13,7 +14,7 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Throwable;
 
-class InMemoryContainerImplementation implements CompilerPass
+class InMemoryContainerImplementation implements ContainerImplementation
 {
     public function __construct(private InMemoryPSRContainer $container, private ?ContainerInterface $externalContainer = null)
     {
@@ -101,6 +102,9 @@ class InMemoryContainerImplementation implements CompilerPass
             $this->container->set('logger', $logger);
             $this->container->set(LoggerInterface::class, $logger);
             return $logger;
+        }
+        if ($reference->getInvalidBehavior() === self::NULL_ON_INVALID_REFERENCE) {
+            return null;
         }
         throw new \InvalidArgumentException("Reference {$id} was not found in definitions");
     }

@@ -4,6 +4,7 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -67,11 +68,7 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
 
         return new Definition(EventSourcingRepository::class, [
             new Definition(EcotoneEventStoreProophWrapper::class, [
-                new Definition(LazyProophEventStore::class, [
-                    new Reference(EventSourcingConfiguration::class),
-                    new Reference(ReferenceSearchService::class),
-                    new Reference(EventMapper::class),
-                ]),
+                new Reference(LazyProophEventStore::class),
                 new Reference(ConversionService::REFERENCE_NAME),
                 new Reference(EventMapper::class)
             ], 'prepare'),

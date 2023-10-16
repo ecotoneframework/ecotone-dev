@@ -26,6 +26,7 @@ use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
+use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -38,7 +39,9 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -55,6 +58,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
@@ -254,6 +258,13 @@ class EventSourcingModule extends NoExternalConfigurationModule
             \serialize($eventSourcingConfiguration)
         ], [self::class, 'configurationFromSerializedString']));
 
+        $messagingConfiguration->registerServiceDefinition(LazyProophEventStore::class, new Definition(LazyProophEventStore::class, [
+            new Reference(EventSourcingConfiguration::class),
+            new Reference(ReferenceSearchService::class),
+            new Reference(EventMapper::class),
+            new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE)
+        ]));
+
         $this->registerProjections($serviceConfiguration, $interfaceToCallRegistry, $moduleReferenceSearchService, $messagingConfiguration, $extensionObjects, $eventSourcingConfiguration);
         foreach ($this->projectionLifeCycleServiceActivators as $serviceActivator) {
             $messagingConfiguration->registerMessageHandler($serviceActivator);
@@ -435,7 +446,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     private function registerEventStoreAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration): void
     {
-        $messageHandlerBuilder = EventStoreBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration);
+        $messageHandlerBuilder = EventStoreBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration, Reference::to(EventSourcingConfiguration::class));
         $configuration->registerMessageHandler($messageHandlerBuilder);
 
         $configuration->registerGatewayBuilder(
@@ -447,8 +458,12 @@ class EventSourcingModule extends NoExternalConfigurationModule
     private function registerEventStreamEmitter(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
     {
         $eventSourcingConfiguration = (clone $eventSourcingConfiguration)->withSimpleStreamPersistenceStrategy();
+        $reference = new Reference(EventSourcingConfiguration::class.'eventStreamEmitter');
+        $configuration->registerServiceDefinition($reference->getId(), new Definition(EventSourcingConfiguration::class, [
+            \serialize($eventSourcingConfiguration)
+        ], [self::class, 'configurationFromSerializedString']));
 
-        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration)
+        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration, $reference)
             ->withInputChannelName(Uuid::uuid4()->toString())
         ;
         $configuration->registerMessageHandler($eventStoreHandler);
@@ -553,7 +568,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
             /** Our main entrypoint for projection execution */
             $messagingConfiguration->registerMessageHandler(
-                (new ProjectionExecutorBuilder($eventSourcingConfiguration, $projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'execute'))
+                (new ProjectionExecutorBuilder($projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'execute'))
                     ->withEndpointId($projectionSetupConfiguration->getProjectionEndpointId())
                     ->withInputChannelName($projectionSetupConfiguration->getProjectionInputChannel())
             );

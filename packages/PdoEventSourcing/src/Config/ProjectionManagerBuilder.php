@@ -76,11 +76,6 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
         return [$interfaceToCallRegistry->getFor(LazyProophProjectionManager::class, $this->methodName)];
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public static function getProjectionManagerActionChannel(string $projectionManagerReference, string $methodName): string
     {
         return $projectionManagerReference . $methodName;

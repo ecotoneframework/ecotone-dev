@@ -24,11 +24,6 @@ class PollingMetadataConverterBuilder implements ParameterConverterBuilder
         return new Reference(PollingMetadataConverter::class);
     }
 
-    public function getRequiredReferences(): array
-    {
-        return [];
-    }
-
     public function isHandling(InterfaceParameter $parameter): bool
     {
         return $parameter->getName() === $this->parameterName;

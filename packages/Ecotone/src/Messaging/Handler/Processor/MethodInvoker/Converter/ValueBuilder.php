@@ -31,22 +31,6 @@ class ValueBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferences(): array
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
-    {
-        return ValueConverter::createWith($this->staticValue instanceof AttributeDefinition ? $this->staticValue->instance() : $this->staticValue);
-    }
-
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Definition
     {
         return new Definition(ValueConverter::class, [$this->staticValue]);

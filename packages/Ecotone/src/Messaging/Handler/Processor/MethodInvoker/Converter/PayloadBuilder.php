@@ -22,15 +22,8 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  */
 class PayloadBuilder implements ParameterConverterBuilder
 {
-    private string $parameterName;
-
-    /**
-     * PayloadParameterConverterBuilder constructor.
-     * @param string $parameterName
-     */
-    private function __construct(string $parameterName)
+    private function __construct(private string $parameterName)
     {
-        $this->parameterName = $parameterName;
     }
 
     /**
@@ -58,14 +51,6 @@ class PayloadBuilder implements ParameterConverterBuilder
     public function isHandling(InterfaceParameter $parameter): bool
     {
         return $parameter->getName() === $this->parameterName;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferences(): array
-    {
-        return [];
     }
 
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Definition

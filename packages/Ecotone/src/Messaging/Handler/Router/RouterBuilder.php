@@ -100,14 +100,6 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
     /**
      * @inheritDoc
      */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferenceNames;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function withMethodParameterConverters(array $methodParameterConverterBuilders): self
     {
         Assert::allInstanceOfType($methodParameterConverterBuilders, ParameterConverterBuilder::class);
@@ -241,15 +233,5 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
     public function __toString()
     {
         return sprintf('Router for input channel `%s` with name `%s`', $this->inputMessageChannelName, $this->getEndpointId());
-    }
-
-    private function getMethodName(): string
-    {
-        return $this->methodNameOrInterface instanceof InterfaceToCall ? $this->methodNameOrInterface->getMethodName() : $this->methodNameOrInterface;
-    }
-
-    private function getInterfaceToCall(ContainerMessagingBuilder $builder)
-    {
-
     }
 }

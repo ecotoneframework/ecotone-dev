@@ -33,11 +33,6 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
         return $this->relatedChannel;
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];
@@ -46,21 +41,6 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
     public function getPrecedence(): int
     {
         return PrecedenceChannelInterceptor::MESSAGE_SERIALIZATION;
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
-    {
-        throw new \InvalidArgumentException("This builder is not supported");
-        /** @var ServiceConfiguration $serviceConfiguration */
-        $serviceConfiguration = $referenceSearchService->get(ServiceConfiguration::class);
-
-        return new OutboundSerializationChannelInterceptor(
-            new OutboundMessageConverter(
-                $this->headerMapper,
-                $this->channelConversionMediaType ?: MediaType::parseMediaType($serviceConfiguration->getDefaultSerializationMediaType())
-            ),
-            $referenceSearchService->get(ConversionService::REFERENCE_NAME)
-        );
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition

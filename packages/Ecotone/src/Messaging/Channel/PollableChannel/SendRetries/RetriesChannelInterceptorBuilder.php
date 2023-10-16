@@ -32,11 +32,6 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
         return $this->relatedChannel;
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];
@@ -45,17 +40,6 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
     public function getPrecedence(): int
     {
         return PrecedenceChannelInterceptor::DEFAULT_PRECEDENCE;
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
-    {
-        return new SendRetryChannelInterceptor(
-            $this->relatedChannel,
-            $this->retryTemplate,
-            $this->errorChannel,
-            $referenceSearchService->get(ConfiguredMessagingSystem::class),
-            $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE)
-        );
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition

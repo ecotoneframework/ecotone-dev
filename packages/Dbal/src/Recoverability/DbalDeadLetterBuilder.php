@@ -148,29 +148,6 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, $this->methodName);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        $messageHandler = ServiceActivatorBuilder::createWithDirectReference(
-            new DbalDeadLetterHandler(
-                CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName))),
-                DefaultHeaderMapper::createAllHeadersMapping(),
-                $referenceSearchService->get(ConversionService::REFERENCE_NAME)
-            ),
-            $this->methodName
-        );
-
-        foreach ($this->orderedAroundInterceptors as $orderedAroundInterceptor) {
-            $messageHandler->addAroundInterceptor($orderedAroundInterceptor);
-        }
-
-        return $messageHandler
-            ->withMethodParameterConverters($this->parameterConverters)
-            ->withEndpointId($this->getEndpointId())
-            ->withInputChannelName($this->getInputMessageChannelName())
-            ->withOutputMessageChannel($this->getOutputMessageChannelName())
-            ->build($channelResolver, $referenceSearchService);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName;
@@ -225,10 +202,5 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public function withEndpointId(string $endpointId): self
     {
         return $this;
-    }
-
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
     }
 }

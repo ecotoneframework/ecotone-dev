@@ -14,11 +14,6 @@ use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 interface ParameterConverterBuilder extends CompilableParameterConverterBuilder
 {
     /**
-     * @return string[]
-     */
-    public function getRequiredReferences(): array;
-
-    /**
      * @param InterfaceParameter $parameter
      * @return bool
      */

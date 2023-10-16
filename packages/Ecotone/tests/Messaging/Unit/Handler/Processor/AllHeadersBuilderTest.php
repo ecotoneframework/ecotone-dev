@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
+use Ecotone\Messaging\Config\Container\BoundParameterConverter;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -9,6 +10,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilde
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Service\CallableService;
 
@@ -23,11 +25,12 @@ class AllHeadersBuilderTest extends TestCase
 {
     public function test_retrieving_all_headers()
     {
-        $result = AllHeadersBuilder::createWith('some')->build(
-            InMemoryReferenceSearchService::createEmpty(),
-            InterfaceToCall::create(CallableService::class, 'wasCalled'),
-            InterfaceParameter::createNullable('some', TypeDescriptor::createStringType()),
-        )->getArgumentFrom(
+        $result = ComponentTestBuilder::create()
+            ->build(new BoundParameterConverter(
+                AllHeadersBuilder::createWith('some'),
+                InterfaceToCall::create(CallableService::class, 'wasCalled'),
+                InterfaceParameter::createNullable('some', TypeDescriptor::createStringType()),
+            ))->getArgumentFrom(
             MessageBuilder::withPayload('some')
                 ->setHeader('someId', 123)
                 ->build(),

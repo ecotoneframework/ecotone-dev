@@ -68,7 +68,7 @@ class AnnotationModuleRetrievingService implements ModuleRetrievingService
 
             $parameters = [];
             foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
-                $variableName = null;
+                $variableName = $interfaceParameter->getName();
                 if ($interfaceParameter->hasAnnotation(ConfigurationVariable::class)) {
                     /** @var ConfigurationVariable $variable */
                     $variable = $interfaceParameter->getAnnotationsOfType(ConfigurationVariable::class)[0];
@@ -76,10 +76,10 @@ class AnnotationModuleRetrievingService implements ModuleRetrievingService
                     $variableName = $variable->getName();
                 }
 
-                $parameters[] = ConfigurationVariableBuilder::createFrom($variableName, $interfaceParameter);
+                $parameters[] = $this->variableConfigurationService->getByName($variableName);
             }
-            $methodInvoker = MethodInvoker::createWith($interfaceToCall, $newInstance, $parameters, InMemoryReferenceSearchService::createWith([ConfigurationVariableService::REFERENCE_NAME => $this->variableConfigurationService]));
-            $extensionObjectToResolve = $methodInvoker->executeEndpoint(MessageBuilder::withPayload('stub')->build());
+            // TODO: check from @dgafka
+            $extensionObjectToResolve = $newInstance->{$interfaceToCall->getMethodName()}(...$parameters);
 
             if (! is_array($extensionObjectToResolve)) {
                 Assert::isObject($extensionObjectToResolve, "Incorrect configuration given in {$annotationRegistration->getClassName()}:{$annotationRegistration->getMethodName()}. Configuration returned by ServiceContext must be object or array of objects.");

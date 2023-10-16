@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
@@ -141,10 +142,10 @@ interface Configuration extends CompilerPass
     public function isLazyLoaded(): bool;
 
     /**
-     * @param ConverterBuilder $converterBuilder
+     * @param CompilableBuilder $converterBuilder
      * @return Configuration
      */
-    public function registerConverter(ConverterBuilder $converterBuilder): Configuration;
+    public function registerConverter(CompilableBuilder $converterBuilder): Configuration;
 
     /**
      * @param string $referenceName

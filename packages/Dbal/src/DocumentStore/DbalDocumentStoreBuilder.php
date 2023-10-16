@@ -34,26 +34,6 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(DbalDocumentStore::class, $this->method);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        $documentStore = $this->inMemoryEventStore
-            ? $this->inMemoryDocumentStore
-            : new DbalDocumentStore(
-                CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName))),
-                $this->initializeDocumentStore,
-                $referenceSearchService->get(ConversionService::REFERENCE_NAME)
-            );
-
-        return ServiceActivatorBuilder::createWithDirectReference(
-            $documentStore,
-            $this->method
-        )
-            ->withInputChannelName($this->getInputMessageChannelName())
-            ->withOutputMessageChannel($this->getOutputMessageChannelName())
-            ->withMethodParameterConverters($this->methodParameterConverterBuilders)
-            ->build($channelResolver, $referenceSearchService);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $documentStoreReference = DbalDocumentStore::class.'.'.$this->connectionReferenceName;
@@ -87,10 +67,5 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [$interfaceToCallRegistry->getFor(DbalDocumentStore::class, $this->method)];
-    }
-
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
     }
 }

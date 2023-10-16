@@ -25,11 +25,8 @@ use Ecotone\Messaging\MessageHandler;
  */
 class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
 {
-    private string $methodName;
-
-    private function __construct(string $methodName)
+    private function __construct(private string $methodName)
     {
-        $this->methodName = $methodName;
     }
 
     public static function createFromPHP(): self
@@ -48,20 +45,6 @@ class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implemen
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         return $interfaceToCallRegistry->getFor(Serializer::class, $this->methodName);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        /** @var ConversionService $converter */
-        $converter = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-
-        return ServiceActivatorBuilder::createWithDirectReference(
-            new SerializerHandler($converter),
-            $this->methodName
-        )->build($channelResolver, $referenceSearchService);
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition
@@ -85,13 +68,5 @@ class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implemen
             $interfaceToCallRegistry->getFor(Serializer::class, $this->methodName),
             $interfaceToCallRegistry->getFor(SerializerHandler::class, $this->methodName),
         ];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
     }
 }

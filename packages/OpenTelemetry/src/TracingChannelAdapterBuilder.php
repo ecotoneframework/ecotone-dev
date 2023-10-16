@@ -25,11 +25,6 @@ final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
         return $this->channelName;
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];
@@ -38,11 +33,6 @@ final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
     public function getPrecedence(): int
     {
         return Precedence::DEFAULT_PRECEDENCE;
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
-    {
-        return new TracingChannelInterceptor($this->channelName, $referenceSearchService->get(TracerInterface::class));
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition

@@ -22,24 +22,8 @@ use Ecotone\Messaging\Support\Assert;
  */
 class HeaderExpressionBuilder implements ParameterConverterBuilder
 {
-    private string $parameterName;
-    private string $expression;
-    private string $headerName;
-    private bool $isRequired;
-
-    /**
-     * ExpressionBuilder constructor.
-     * @param string $parameterName
-     * @param string $headerName
-     * @param string $expression
-     * @param bool $isRequired
-     */
-    private function __construct(string $parameterName, string $headerName, string $expression, bool $isRequired)
+    private function __construct(private string $parameterName, private string $headerName, private string $expression, private bool $isRequired)
     {
-        $this->parameterName = $parameterName;
-        $this->expression = $expression;
-        $this->headerName = $headerName;
-        $this->isRequired = $isRequired;
     }
 
     /**
@@ -62,24 +46,6 @@ class HeaderExpressionBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
-    {
-        /** @var ExpressionEvaluationService $expressionService */
-        $expressionService = $referenceSearchService->get(ExpressionEvaluationService::REFERENCE);
-        Assert::isSubclassOf($expressionService, ExpressionEvaluationService::class, "You're using expression converter parameter, so you must define reference service " . ExpressionEvaluationService::REFERENCE . ' in your registry container, which is subclass of ' . ExpressionEvaluationService::class);
-
-        return new HeaderExpressionConverter(
-            $referenceSearchService,
-            $expressionService,
-            $this->headerName,
-            $this->expression,
-            $this->isRequired
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
     {
         return new Definition(HeaderExpressionConverter::class, [
@@ -88,13 +54,5 @@ class HeaderExpressionBuilder implements ParameterConverterBuilder
             $this->expression,
             $this->isRequired
         ]);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferences(): array
-    {
-        return [];
     }
 }

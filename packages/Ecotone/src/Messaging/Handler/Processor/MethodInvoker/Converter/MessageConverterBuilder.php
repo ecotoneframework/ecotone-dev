@@ -21,15 +21,8 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  */
 class MessageConverterBuilder implements ParameterConverterBuilder
 {
-    private string $parameterName;
-
-    /**
-     * MessageParameterConverterBuilder constructor.
-     * @param string $parameterName
-     */
-    private function __construct(string $parameterName)
+    private function __construct(private string $parameterName)
     {
-        $this->parameterName = $parameterName;
     }
 
     /**
@@ -41,12 +34,9 @@ class MessageConverterBuilder implements ParameterConverterBuilder
         return new self($parameterName);
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
     {
-        return MessageConverter::create();
+        return new Definition(MessageConverter::class);
     }
 
     /**
@@ -55,18 +45,5 @@ class MessageConverterBuilder implements ParameterConverterBuilder
     public function isHandling(InterfaceParameter $parameter): bool
     {
         return $parameter->getName() === $this->parameterName;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferences(): array
-    {
-        return [];
-    }
-
-    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
-    {
-        return new Definition(MessageConverter::class);
     }
 }

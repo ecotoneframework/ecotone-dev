@@ -87,14 +87,6 @@ final class UninterruptibleServiceActivator implements MessageHandlerBuilderWith
     }
 
     /**
-     * @return string[] empty string means no required reference name exists
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->serviceActivatorBuilder->getRequiredReferenceNames();
-    }
-
-    /**
      * @param array|ParameterConverterBuilder[] $methodParameterConverterBuilders
      * @return static
      */

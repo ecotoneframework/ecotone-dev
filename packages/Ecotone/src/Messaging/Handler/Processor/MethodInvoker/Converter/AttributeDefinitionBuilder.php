@@ -13,25 +13,15 @@ use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 
-class AttributeDefinitionBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
+class AttributeDefinitionBuilder implements ParameterConverterBuilder
 {
     public function __construct(private string $parameterName, private AttributeDefinition $attributeDefinition)
     {
     }
 
-    public function getRequiredReferences(): array
-    {
-        return [];
-    }
-
     public function isHandling(InterfaceParameter $parameter): bool
     {
         return $parameter->getName() === $this->parameterName;
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
-    {
-        return new ValueConverter($this->attributeDefinition->instance());
     }
 
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null

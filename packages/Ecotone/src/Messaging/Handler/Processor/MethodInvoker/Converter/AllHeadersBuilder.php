@@ -14,16 +14,8 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 class AllHeadersBuilder implements ParameterConverterBuilder
 {
-    private string $parameterName;
-
-    /**
-     * AllHeadersConverter constructor.
-     *
-     * @param string $parameterName
-     */
-    private function __construct(string $parameterName)
+    private function __construct(private string $parameterName)
     {
-        $this->parameterName = $parameterName;
     }
 
     /**
@@ -39,25 +31,9 @@ class AllHeadersBuilder implements ParameterConverterBuilder
     /**
      * @inheritDoc
      */
-    public function getRequiredReferences(): array
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function isHandling(InterfaceParameter $parameter): bool
     {
         return $parameter->getName() === $this->parameterName;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
-    {
-        return new AllHeadersConverter();
     }
 
 

@@ -23,11 +23,6 @@ final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuil
         return $this->collectedChannel;
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];

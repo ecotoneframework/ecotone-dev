@@ -67,9 +67,4 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
     {
         return [$interfaceToCallRegistry->getFor(EcotoneEventStoreProophWrapper::class, $this->methodName)];
     }
-
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
 }

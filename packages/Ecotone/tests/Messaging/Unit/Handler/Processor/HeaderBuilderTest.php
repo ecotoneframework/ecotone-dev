@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
+use Ecotone\Messaging\Config\Container\BoundParameterConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -13,6 +14,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -35,12 +37,12 @@ class HeaderBuilderTest extends TestCase
      */
     public function test_creating_header_converter()
     {
-        $converter = HeaderBuilder::create('x', 'token');
-        $converter = $converter->build(
-            InMemoryReferenceSearchService::createEmpty(),
+        $converter = new BoundParameterConverter(
+            HeaderBuilder::create('x', 'token'),
             InterfaceToCall::create(CallableService::class, 'wasCalled'),
-            InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')),
-        );
+            InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', '')));
+        $converter = ComponentTestBuilder::create()
+            ->build($converter);
 
         $this->assertEquals(
             123,

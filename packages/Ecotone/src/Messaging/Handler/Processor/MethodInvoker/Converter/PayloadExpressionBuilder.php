@@ -10,10 +10,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Support\Assert;
 
 /**
  * Class ExpressionBuilder
@@ -22,18 +19,8 @@ use Ecotone\Messaging\Support\Assert;
  */
 class PayloadExpressionBuilder implements ParameterConverterBuilder
 {
-    private string $parameterName;
-    private string $expression;
-
-    /**
-     * ExpressionBuilder constructor.
-     * @param string $parameterName
-     * @param string $expression
-     */
-    private function __construct(string $parameterName, string $expression)
+    private function __construct(private string $parameterName, private string $expression)
     {
-        $this->parameterName = $parameterName;
-        $this->expression = $expression;
     }
 
     /**
@@ -54,36 +41,11 @@ class PayloadExpressionBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
-    {
-        /** @var ExpressionEvaluationService $expressionService */
-        $expressionService = $referenceSearchService->get(ExpressionEvaluationService::REFERENCE);
-        Assert::isSubclassOf($expressionService, ExpressionEvaluationService::class, "You're using expression converter parameter, so you must define reference service " . ExpressionEvaluationService::REFERENCE . ' in your registry container, which is subclass of ' . ExpressionEvaluationService::class);
-
-
-        return new PayloadExpressionConverter(
-            $referenceSearchService,
-            $expressionService,
-            $this->expression
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
     {
         return new Definition(PayloadExpressionConverter::class, [
             new Reference(ExpressionEvaluationService::REFERENCE),
             $this->expression
         ]);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferences(): array
-    {
-        return [];
     }
 }

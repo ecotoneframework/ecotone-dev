@@ -121,11 +121,6 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         ];
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     private function initialize(ClassDefinition $aggregateClassDefinition, ?ClassDefinition $handledMessageClassName, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $this->isEventSourced = $aggregateClassDefinition->hasClassAnnotation(TypeDescriptor::create(EventSourcingAggregate::class));

@@ -19,11 +19,6 @@ interface ChannelInterceptorBuilder extends CompilableBuilder
     public function relatedChannelName(): string;
 
     /**
-     * @return string[] empty string means no required reference name exists
-     */
-    public function getRequiredReferenceNames(): array;
-
-    /**
      * It returns, internal reference objects that will be called during handling method
      *
      * @param InterfaceToCallRegistry $interfaceToCallRegistry

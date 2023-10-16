@@ -31,10 +31,6 @@ class DumbMessageHandlerBuilder extends InputOutputMessageHandlerBuilder impleme
      * @var string
      */
     private $messageChannel;
-    /**
-     * @var string[]
-     */
-    private $requiredReferenceNames = [];
 
     /**
      * DumbMessageHandlerBuilder constructor.
@@ -45,8 +41,6 @@ class DumbMessageHandlerBuilder extends InputOutputMessageHandlerBuilder impleme
     {
         $this->messageHandler = $messageHandler;
         $this->messageChannel = $inputMessageChannelName;
-
-        $this->requiredReferenceNames = [get_class($this->messageHandler)];
     }
 
     /**
@@ -99,14 +93,6 @@ class DumbMessageHandlerBuilder extends InputOutputMessageHandlerBuilder impleme
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferenceNames;
     }
 
     /**

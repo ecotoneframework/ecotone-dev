@@ -21,7 +21,7 @@ use Ecotone\Messaging\MessageHandler;
  * @package Ecotone\Messaging\Handler\Bridge
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel, CompilableBuilder
+class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel
 {
     private \Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder $bridgeBuilder;
 
@@ -143,15 +143,7 @@ class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel, Compilabl
         return $this->bridgeBuilder->getInterceptedInterface($interfaceToCallRegistry);
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        return $this->bridgeBuilder->build($channelResolver, $referenceSearchService);
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(ContainerMessagingBuilder $builder): Reference
     {
         if (! $builder->has(Bridge::class)) {
             return $builder->register(Bridge::class, new Definition(Bridge::class));
@@ -165,13 +157,5 @@ class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel, Compilabl
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return $this->bridgeBuilder->resolveRelatedInterfaces($interfaceToCallRegistry);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->bridgeBuilder->getRequiredReferenceNames();
     }
 }

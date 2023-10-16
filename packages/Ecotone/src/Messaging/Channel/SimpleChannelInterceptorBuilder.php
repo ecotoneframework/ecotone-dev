@@ -55,14 +55,6 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
         return $this->precedence;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->referenceName ? [$this->referenceName] : [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];

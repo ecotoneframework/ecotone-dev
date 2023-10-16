@@ -41,10 +41,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 {
     private bool $isReplyRequired = false;
     private array $methodParameterConverterBuilders = [];
-    /**
-     * @var string[]
-     */
-    private array $requiredReferenceNames = [];
     private bool $shouldPassThroughMessage = false;
     private bool $shouldWrapResultInMessage = true;
 
@@ -129,14 +125,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         $this->annotatedInterfaceToCall = $interfaceToCall;
 
         return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferenceNames;
     }
 
     /**

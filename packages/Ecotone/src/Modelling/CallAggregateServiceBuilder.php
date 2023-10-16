@@ -41,10 +41,6 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
      */
     private array $methodParameterConverterBuilders = [];
     /**
-     * @var string[]
-     */
-    private array $requiredReferences = [];
-    /**
      * @var bool
      */
     private bool $isCommandHandler;
@@ -129,14 +125,6 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     /**
      * @inheritDoc
      */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferences;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function withMethodParameterConverters(array $methodParameterConverterBuilders): self
     {
         Assert::allInstanceOfType($methodParameterConverterBuilders, ParameterConverterBuilder::class);
@@ -146,33 +134,11 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         return $this;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        $orderedAroundInterceptors = AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $this->interfaceToCall);
-        $methodParameterConverters = MethodArgumentsFactory::createDefaultMethodParameters($this->interfaceToCall, $this->methodParameterConverterBuilders, $this->getEndpointAnnotations(), null, false);
-        $handler = ServiceActivatorBuilder::createWithDirectReference(
-            new CallAggregateService($this->interfaceToCall, $this->isEventSourced, $channelResolver, $methodParameterConverters, $orderedAroundInterceptors, $referenceSearchService, new PropertyReaderAccessor(), PropertyEditorAccessor::create($referenceSearchService), $this->isCommandHandler, $this->interfaceToCall->isStaticallyCalled(), $this->eventSourcingHandlerExecutor, $this->aggregateVersionProperty, $this->isAggregateVersionAutomaticallyIncreased, $this->aggregateMethodWithEvents),
-            'call'
-        )
-            ->withPassThroughMessageOnVoidInterface($this->isVoidMethod)
-            ->withOutputMessageChannel($this->outputMessageChannelName);
-
-        return $handler->build($channelResolver, $referenceSearchService);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $interceptors = [];
         foreach (AroundInterceptorReference::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
-            if ($interceptor = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $this->interfaceToCall)) {
-                $interceptors[] = $interceptor;
-            } else {
-                // Cannot continue without every interceptor being compilable
-                throw new Exception("Cannot compile {$this} due to un-compilable interceptor {$aroundInterceptorReference}");
-            }
+            $interceptors[] = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $this->interfaceToCall);
         }
 
         // TODO: code duplication with ServiceActivatorBuilder
@@ -180,10 +146,6 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
 
         $compiledMethodParameterConverters = [];
         foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
-            if (! ($methodParameterConverter instanceof CompilableParameterConverterBuilder)) {
-                // Cannot continue without every parameter converters compilable
-                return null;
-            }
             $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $this->interfaceToCall, $this->interfaceToCall->getInterfaceParameters()[$index]);
         }
 
@@ -207,10 +169,9 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         $reference = $builder->register(uniqid(CallAggregateService::class), $callAggregateService);
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(CallAggregateService::class, 'call'));
 
-        $serviceActivator = ServiceActivatorBuilder::create($reference, $interfaceToCall)
+        return ServiceActivatorBuilder::create($reference, $interfaceToCall)
             ->withOutputMessageChannel($this->outputMessageChannelName)
             ->compile($builder);
-        return $serviceActivator;
     }
 
     /**
@@ -218,6 +179,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
      */
     public function withAggregateRepositoryFactories(array $aggregateRepositoryReferenceNames): self
     {
+        // TODO: this should not be strings but `Reference`
         $this->aggregateRepositoryReferenceNames = $aggregateRepositoryReferenceNames;
 
         return $this;

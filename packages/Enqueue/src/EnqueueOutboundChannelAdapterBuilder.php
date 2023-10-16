@@ -168,14 +168,6 @@ abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBui
         return $this;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferenceNames;
-    }
-
     public function __toString()
     {
         return 'Outbound Adapter for channel ' . $this->inputChannelName;
@@ -183,7 +175,6 @@ abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBui
 
     protected function initialize(string $connectionReferenceName): void
     {
-        $this->requiredReferenceNames[] = $connectionReferenceName;
         $this->headerMapper = DefaultHeaderMapper::createNoMapping();
     }
 }

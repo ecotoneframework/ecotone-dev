@@ -25,11 +25,6 @@ final class SpiedChannelAdapterBuilder implements ChannelInterceptorBuilder
         return $this->relatedChannel;
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];
@@ -38,11 +33,6 @@ final class SpiedChannelAdapterBuilder implements ChannelInterceptorBuilder
     public function getPrecedence(): int
     {
         return Precedence::DEFAULT_PRECEDENCE;
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
-    {
-        throw new \InvalidArgumentException("Can't spy channel {$this->relatedChannel} without MessageCollectorHandler registered in container");
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition

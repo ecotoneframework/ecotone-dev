@@ -114,11 +114,6 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
         ]);
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];

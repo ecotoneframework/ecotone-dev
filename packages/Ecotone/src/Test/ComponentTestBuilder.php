@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
+use Ecotone\Messaging\Config\Container\ConfigurationVariableReference;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
@@ -60,6 +61,13 @@ class ComponentTestBuilder
     {
         $this->messagingBuilder->register($referenceName, new Definition(\get_class($object)));
         $this->container->set($referenceName, $object);
+
+        return $this;
+    }
+
+    public function withConfiguration(string $parameterName, mixed $value): self
+    {
+        $this->container->set(new ConfigurationVariableReference($parameterName), $value);
 
         return $this;
     }

@@ -34,10 +34,6 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
      * @var ParameterConverterBuilder[]
      */
     private array $parameterConverters = [];
-    /**
-     * @var string[]
-     */
-    private array $requiredReferences = [];
     private string|object $referenceNameOrObject;
     private string|InterfaceToCall $methodNameOrInterface;
     private ?string $discardChannelName = null;
@@ -89,14 +85,6 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
         return $this->methodNameOrInterface instanceof InterfaceToCall
             ? $this->methodNameOrInterface
             : $interfaceToCallRegistry->getFor($this->referenceNameOrObject, $this->getMethodName());
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferences;
     }
 
     /**

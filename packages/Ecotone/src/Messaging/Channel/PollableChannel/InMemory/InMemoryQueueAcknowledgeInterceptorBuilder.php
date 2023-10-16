@@ -24,11 +24,6 @@ final class InMemoryQueueAcknowledgeInterceptorBuilder implements ChannelInterce
         return $this->relatedChannel;
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];
@@ -37,11 +32,6 @@ final class InMemoryQueueAcknowledgeInterceptorBuilder implements ChannelInterce
     public function getPrecedence(): int
     {
         return PrecedenceChannelInterceptor::DEFAULT_PRECEDENCE;
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
-    {
-        return new InMemoryQueueAcknowledgeInterceptor();
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition

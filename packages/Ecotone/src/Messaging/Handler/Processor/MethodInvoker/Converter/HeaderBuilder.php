@@ -50,27 +50,6 @@ class HeaderBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferences(): array
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
-    {
-        return new HeaderConverter(
-            $interfaceParameter,
-            $this->headerName,
-            $this->isRequired,
-            $referenceSearchService->get(ConversionService::REFERENCE_NAME),
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
     {
         return new Definition(HeaderConverter::class, [

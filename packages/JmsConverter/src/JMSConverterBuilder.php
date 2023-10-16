@@ -2,19 +2,18 @@
 
 namespace Ecotone\JMSConverter;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\Converter;
-use Ecotone\Messaging\Conversion\ConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use JMS\Serializer\Handler\HandlerRegistry;
 use JMS\Serializer\Naming\CamelCaseNamingStrategy;
 use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
 use JMS\Serializer\SerializerBuilder;
 
-class JMSConverterBuilder implements ConverterBuilder
+class JMSConverterBuilder implements CompilableBuilder
 {
     /**
      * @var JMSHandlerAdapter[]
@@ -68,10 +67,5 @@ class JMSConverterBuilder implements ConverterBuilder
     {
         // TODO
         return null;
-    }
-
-    public function getRequiredReferences(): array
-    {
-        return [];
     }
 }

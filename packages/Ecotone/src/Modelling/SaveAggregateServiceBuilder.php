@@ -48,10 +48,6 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     /**
      * @var string[]
      */
-    private array $requiredReferences = [];
-    /**
-     * @var string[]
-     */
     private array $aggregateRepositoryReferenceNames = [];
     private array $aggregateIdentifierMapping;
     private array $aggregateIdentifierGetMethods = [];
@@ -88,14 +84,6 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     public function getParameterConverters(): array
     {
         return $this->methodParameterConverterBuilders;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferences;
     }
 
     /**

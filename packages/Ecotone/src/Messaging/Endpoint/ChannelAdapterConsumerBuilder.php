@@ -21,11 +21,6 @@ interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder, Interc
     public function getEndpointId(): string;
 
     /**
-     * @return string[]
-     */
-    public function getRequiredReferences(): array;
-
-    /**
      * @param MethodInterceptor $methodInterceptor
      * @return $this
      */

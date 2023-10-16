@@ -6,13 +6,9 @@ use Ecotone\Messaging\Config\Container\ConfigurationVariableReference;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 
 class ConfigurationVariableBuilder implements ParameterConverterBuilder
 {
@@ -30,31 +26,9 @@ class ConfigurationVariableBuilder implements ParameterConverterBuilder
         return new self($interfaceParameter->getName(), $variableName ?: $interfaceParameter->getName(), ! $interfaceParameter->doesAllowNulls() && ! $interfaceParameter->hasDefaultValue(), $interfaceParameter->hasDefaultValue() ? $interfaceParameter->getDefaultValue() : null);
     }
 
-    public function getRequiredReferences(): array
-    {
-        return [ConfigurationVariableService::REFERENCE_NAME];
-    }
-
     public function isHandling(InterfaceParameter $parameter): bool
     {
         return $this->parameterName === $parameter->getName();
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
-    {
-        /** @var ConfigurationVariableService $configurationVariableService */
-        $configurationVariableService = $referenceSearchService->get(ConfigurationVariableService::REFERENCE_NAME);
-
-        $variableValue = null;
-        if ($configurationVariableService->hasName($this->variableName)) {
-            $variableValue = $configurationVariableService->getByName($this->variableName);
-        } elseif (! $this->isRequired) {
-            $variableValue = $this->defaultValue;
-        } else {
-            throw InvalidArgumentException::create('Trying to access configuration variable `' . $this->variableName . "` however it's missing");
-        }
-
-        return new ValueConverter($variableValue);
     }
 
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null

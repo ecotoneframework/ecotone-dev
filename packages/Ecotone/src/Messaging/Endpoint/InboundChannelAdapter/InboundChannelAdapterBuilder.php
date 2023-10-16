@@ -64,14 +64,6 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
     /**
      * @inheritDoc
      */
-    public function getRequiredReferences(): array
-    {
-        return array_merge([$this->referenceName], $this->inboundGateway->getRequiredReferences());
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getEndpointId(): string
     {
         return $this->endpointId;

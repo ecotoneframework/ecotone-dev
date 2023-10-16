@@ -246,14 +246,6 @@ class BusRouterBuilder implements MessageHandlerBuilder
         return $this->inputChannelName;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function __toString()
     {
         return BusRouterBuilder::class;

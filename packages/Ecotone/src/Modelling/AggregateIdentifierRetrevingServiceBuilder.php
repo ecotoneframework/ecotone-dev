@@ -58,28 +58,6 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
     /**
      * @inheritDoc
      */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-
-        Assert::isSubclassOf($conversionService, ConversionService::class, 'Have you forgot to register ' . ConversionService::REFERENCE_NAME . '?');
-
-        return ServiceActivatorBuilder::createWithDirectReference(
-            new AggregateIdentifierRetrevingService(
-                $this->aggregateClassName->getClassType()->toString(),
-                $conversionService,
-                new PropertyReaderAccessor(),
-                $this->typeToConvertTo,
-                $this->metadataIdentifierMapping,
-                $this->payloadIdentifierMapping
-            ),
-            'convert'
-        )
-                    ->withOutputMessageChannel($this->getOutputMessageChannelName())
-                    ->build($channelResolver, $referenceSearchService);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(AggregateIdentifierRetrevingService::class, 'convert'));
@@ -113,14 +91,6 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         return $interfaceToCallRegistry->getFor(AggregateIdentifierRetrevingService::class, 'convert');
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return [ConversionService::REFERENCE_NAME];
     }
 
     private function hasAccordingIdentifier(InterfaceToCallRegistry $interfaceToCallRegistry, ClassDefinition $aggregateClassName, $propertyName): bool

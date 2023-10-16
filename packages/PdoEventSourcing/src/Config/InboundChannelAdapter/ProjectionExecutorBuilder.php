@@ -37,22 +37,6 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
         return $interfaceToCallRegistry->getFor(ProjectionEventHandler::class, $this->methodName);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        return ServiceActivatorBuilder::createWithDirectReference(
-            new ProjectionEventHandler(
-                new LazyProophProjectionManager($this->eventSourcingConfiguration, $this->projectSetupConfigurations, $referenceSearchService),
-                $this->projectionSetupConfiguration,
-                $this->projectionRunningConfiguration,
-                $referenceSearchService->get(ConversionService::REFERENCE_NAME)
-            ),
-            $this->methodName
-        )
-            ->withOutputMessageChannel($this->getOutputMessageChannelName())
-            ->withMethodParameterConverters([ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointWithHeadersPropagation::class)])
-            ->build($channelResolver, $referenceSearchService);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $projectionEventHandler =  new Definition(
@@ -79,10 +63,5 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
         return [
             $interfaceToCallRegistry->getFor(ProjectionEventHandler::class, $this->methodName),
         ];
-    }
-
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
     }
 }

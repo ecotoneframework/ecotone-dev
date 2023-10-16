@@ -70,10 +70,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     /**
      * @var string[]
      */
-    private array $requiredReferenceNames = [];
-    /**
-     * @var string[]
-     */
     private array $messageConverterReferenceNames = [];
     /**
      * @var AroundInterceptorReference[]
@@ -178,14 +174,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     /**
      * @inheritDoc
      */
-    public function getRequiredReferences(): array
-    {
-        return $this->requiredReferenceNames;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getReferenceName(): string
     {
         return $this->referenceName;
@@ -246,7 +234,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
      */
     public function addAroundInterceptor(AroundInterceptorReference $aroundInterceptorReference): self
     {
-        $this->requiredReferenceNames = array_merge($this->requiredReferenceNames, $aroundInterceptorReference->getRequiredReferenceNames());
         $this->aroundInterceptors[] = $aroundInterceptorReference;
         return $this;
     }
@@ -338,28 +325,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     public function getEndpointAnnotations(): array
     {
         return $this->endpointAnnotations;
-    }
-
-    /**
-     * This will be with proxy class, so the resulting object will be implementing interface
-     */
-    public function build(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): object
-    {
-        /** @var ServiceCacheConfiguration $serviceCacheConfiguration */
-        $serviceCacheConfiguration = $referenceSearchService->get(ServiceCacheConfiguration::REFERENCE_NAME);
-        $proxyFactory = ProxyFactory::createWithCache($serviceCacheConfiguration);
-
-        $adapter = new GatewayProxyAdapter(
-            NonProxyCombinedGateway::createWith(
-                $this->referenceName,
-                $this->interfaceName,
-                [$this->getRelatedMethodName() => $this],
-                $referenceSearchService,
-                $channelResolver
-            )
-        );
-
-        return $proxyFactory->createProxyClassWithAdapter($this->interfaceName, $adapter);
     }
 
     public function registerProxy(ContainerMessagingBuilder $builder): Reference
@@ -505,24 +470,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         );
 
         return $aroundInterceptors;
-    }
-
-    /**
-     * @param array $registeredAnnotations
-     * @param object $annotation
-     * @return bool
-     * @throws MessagingException
-     * @throws TypeDefinitionException
-     */
-    private function canBeAddedToRegisteredAnnotations(array $registeredAnnotations, object $annotation): bool
-    {
-        foreach ($registeredAnnotations as $registeredAnnotation) {
-            if (TypeDescriptor::createFromVariable($registeredAnnotation)->equals(TypeDescriptor::createFromVariable($annotation))) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**

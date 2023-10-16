@@ -123,14 +123,6 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
     /**
      * @inheritDoc
      */
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [

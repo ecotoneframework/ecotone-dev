@@ -42,7 +42,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     {
         $this->messageChannelName = $messageChannelName;
         $this->connectionReferenceName = $connectionReferenceName;
-        $this->requiredReferenceNames[] = $connectionReferenceName;
         $this->endpointId = $endpointId;
         $this->inboundGateway = $requestChannelName
             ? GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName)
@@ -119,14 +118,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         $this->receiveTimeoutInMilliseconds = $timeoutInMilliseconds;
 
         return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferences(): array
-    {
-        return array_merge($this->requiredReferenceNames, $this->isNullableGateway() ? [] : $this->inboundGateway->getRequiredReferences());
     }
 
     /**

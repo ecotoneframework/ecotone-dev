@@ -93,11 +93,6 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return $this->getOutboundChannelAdapter()->getDefaultConversionMediaType();
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return array_merge($this->getInboundChannelAdapter()->getRequiredReferences(), $this->getOutboundChannelAdapter()->getRequiredReferenceNames());
-    }
-
     public function getMessageChannelName(): string
     {
         return $this->getInboundChannelAdapter()->getMessageChannelName();

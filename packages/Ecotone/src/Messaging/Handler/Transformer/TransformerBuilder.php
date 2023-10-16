@@ -122,17 +122,6 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
     /**
      * @inheritDoc
      */
-    public function getRequiredReferenceNames(): array
-    {
-        $requiredReferenceNames = $this->requiredReferenceNames;
-        $requiredReferenceNames[] = $this->objectToInvokeReferenceName;
-
-        return $requiredReferenceNames;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         if ($this->expression) {
@@ -218,12 +207,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         if ($this->orderedAroundInterceptors) {
             $interceptors = [];
             foreach (AroundInterceptorReference::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
-                if ($interceptor = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $interfaceToCall)) {
-                    $interceptors[] = $interceptor;
-                } else {
-                    // Cannot continue without every interceptor being compilable
-                    return null;
-                }
+                $interceptors[] = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $interfaceToCall);
             }
 
             $handlerDefinition = new Definition(HandlerReplyProcessor::class, [

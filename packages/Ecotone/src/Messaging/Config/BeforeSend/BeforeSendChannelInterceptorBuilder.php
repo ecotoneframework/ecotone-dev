@@ -43,14 +43,6 @@ class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
         return $this->inputChannelName;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return array_merge(

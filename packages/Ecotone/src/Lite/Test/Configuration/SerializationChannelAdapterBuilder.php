@@ -26,11 +26,6 @@ final class SerializationChannelAdapterBuilder implements ChannelInterceptorBuil
         return $this->relatedChannel;
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [];
@@ -39,14 +34,6 @@ final class SerializationChannelAdapterBuilder implements ChannelInterceptorBuil
     public function getPrecedence(): int
     {
         return Precedence::DEFAULT_PRECEDENCE;
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService): ChannelInterceptor
-    {
-        return new SerializationChannelAdapter(
-            $this->targetMediaType,
-            $referenceSearchService->get(ConversionService::REFERENCE_NAME)
-        );
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition

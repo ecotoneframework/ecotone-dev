@@ -36,11 +36,6 @@ use LogicException;
 class SplitterBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
 {
     private array $methodParameterConverterBuilders = [];
-    /**
-     * @var string[]
-     */
-    private array $requiredReferenceNames = [];
-    private ?object $directObject = null;
 
     private function __construct(private Reference|Definition|DefinedObject $reference, private InterfaceToCallReference $interfaceToCallReference)
     {
@@ -70,14 +65,6 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
     public static function createMessagePayloadSplitter(): self
     {
         return self::createWithDefinition(DirectMessageSplitter::class, 'split');
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferenceNames;
     }
 
     /**

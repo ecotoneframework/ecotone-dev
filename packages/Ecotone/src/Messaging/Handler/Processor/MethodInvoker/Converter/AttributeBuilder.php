@@ -15,25 +15,15 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 use function get_class;
 
-class AttributeBuilder implements ParameterConverterBuilder, CompilableParameterConverterBuilder
+class AttributeBuilder implements ParameterConverterBuilder
 {
     public function __construct(private string $parameterName, private object $attributeInstance, private string $className, private ?string $methodName = null)
     {
     }
 
-    public function getRequiredReferences(): array
-    {
-        return [];
-    }
-
     public function isHandling(InterfaceParameter $parameter): bool
     {
         return $parameter->getName() === $this->parameterName;
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): ParameterConverter
-    {
-        return new ValueConverter($this->attributeInstance);
     }
 
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null

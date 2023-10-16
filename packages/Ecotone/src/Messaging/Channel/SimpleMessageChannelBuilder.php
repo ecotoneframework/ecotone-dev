@@ -77,14 +77,6 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
     }
 
     /**
-     * @return string[] empty string means no required reference name exists
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
-    }
-
-    /**
      * @inheritDoc
      */
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
@@ -110,21 +102,13 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return DefaultHeaderMapper::createAllHeadersMapping();
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService): MessageChannel
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        return $this->messageChannel;
+        return new DefinedObjectWrapper($this->messageChannel);
     }
 
     public function __toString()
     {
         return (string)$this->messageChannel;
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Definition
-    {
-        return new DefinedObjectWrapper($this->messageChannel);
     }
 }

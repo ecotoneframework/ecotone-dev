@@ -32,12 +32,4 @@ class ConverterReferenceBuilder implements CompilableBuilder
     {
         return new Reference($this->referenceName);
     }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferences(): array
-    {
-        return [$this->referenceName];
-    }
 }

@@ -140,14 +140,6 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
     }
 
     /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return [self::LOGGER_REFERENCE];
-    }
-
-    /**
      * @return string
      */
     private function getMethodName(): string

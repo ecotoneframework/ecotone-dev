@@ -36,18 +36,12 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         return false;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository|StandardRepository
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        /** @var ManagerRegistryConnectionFactory $connectionFactory */
-        $connectionFactory = $referenceSearchService->get($this->connectionReferenceName);
-
-        $registry = new ReflectionClass($connectionFactory);
-        $property = $registry->getProperty('registry');
-        $property->setAccessible(true);
-        /** @var ManagerRegistry $registry */
-        $registry = $property->getValue($connectionFactory);
-
-        return new ManagerRegistryRepository($registry, $this->relatedClasses);
+        return new Definition(ManagerRegistryRepository::class, [
+            new Reference($this->connectionReferenceName),
+            $this->relatedClasses,
+        ], [self::class, 'createFromManagerRegistryConnectionFactory']);
     }
 
     public static function createFromManagerRegistryConnectionFactory(ManagerRegistryConnectionFactory $connectionFactory, ?array $relatedClasses)
@@ -60,13 +54,5 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         $registry = $property->getValue($connectionFactory);
 
         return new ManagerRegistryRepository($registry, $relatedClasses);
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Definition
-    {
-        return new Definition(ManagerRegistryRepository::class, [
-            new Reference($this->connectionReferenceName),
-            $this->relatedClasses,
-        ], [self::class, 'createFromManagerRegistryConnectionFactory']);
     }
 }

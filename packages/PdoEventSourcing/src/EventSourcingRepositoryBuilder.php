@@ -54,36 +54,6 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
         return true;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository
-    {
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-        $headerMapper = DefaultHeaderMapper::createAllHeadersMapping();
-        if ($this->headerMapper) {
-            $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper);
-        }
-
-        $documentStoreReferences = [];
-        foreach ($this->eventSourcingConfiguration->getSnapshotsConfig() as $aggregateClass => $config) {
-            $documentStoreReferences[$aggregateClass] = $referenceSearchService->get($config['documentStore']);
-        }
-
-        return new EventSourcingRepository(
-            EcotoneEventStoreProophWrapper::prepare(
-                new LazyProophEventStore($this->eventSourcingConfiguration, $referenceSearchService),
-                $conversionService,
-                $referenceSearchService->get(EventMapper::class)
-            ),
-            $this->handledAggregateClassNames,
-            $headerMapper,
-            $this->eventSourcingConfiguration,
-            $referenceSearchService->get(AggregateStreamMapping::class),
-            $referenceSearchService->get(AggregateTypeMapping::class),
-            $documentStoreReferences,
-            $conversionService
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $headerMapper = $this->headerMapper

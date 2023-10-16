@@ -52,15 +52,6 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder
         return $this->isEventSourced;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository|StandardRepository
-    {
-        if ($this->isEventSourced) {
-            return new InMemoryEventSourcedRepository([], $this->aggregateClassNames);
-        } else {
-            return new InMemoryStandardRepository([], $this->aggregateClassNames);
-        }
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return match ($this->isEventSourced) {

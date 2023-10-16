@@ -45,11 +45,6 @@ class AppointmentRepositoryBuilder implements RepositoryBuilder
         return false;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository|StandardRepository
-    {
-        return AppointmentStandardRepository::createWith($this->appointments);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(AppointmentStandardRepository::class, [$this->appointments], 'createWith');

@@ -27,11 +27,6 @@ final class DocumentStoreAggregateRepositoryBuilder implements RepositoryBuilder
         return false;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository|StandardRepository
-    {
-        return new DocumentStoreAggregateRepository($referenceSearchService->get($this->documentStoreReferenceName));
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(DocumentStoreAggregateRepository::class, [

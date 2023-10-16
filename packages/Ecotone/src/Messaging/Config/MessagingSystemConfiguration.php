@@ -1135,7 +1135,7 @@ final class MessagingSystemConfiguration implements Configuration
     {
         $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
 
-        $messagingBuilder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry);
+        $messagingBuilder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry, $this->applicationConfiguration);
 
         $messagingBuilder->register(ServiceCacheConfiguration::class, $this->serviceCacheConfiguration);
 
@@ -1144,7 +1144,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         // TODO: some service configuration should be handled at runtime. Here they are all cached in the container
-        $messagingBuilder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
+//        $messagingBuilder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
 
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {

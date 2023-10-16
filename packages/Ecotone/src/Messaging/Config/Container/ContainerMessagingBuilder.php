@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
-use Ecotone\Messaging\Config\DefinedObjectWrapper;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
@@ -15,10 +15,12 @@ class ContainerMessagingBuilder
      * @var array<string, string> $pollingEndpoints
      */
     private array $pollingEndpoints = [];
+    private ServiceConfiguration $applicationConfiguration;
 
-    public function __construct(private ContainerBuilder $builder, ?InterfaceToCallRegistry $interfaceToCallRegistry = null)
+    public function __construct(private ContainerBuilder $builder, ?InterfaceToCallRegistry $interfaceToCallRegistry = null, ?ServiceConfiguration $serviceConfiguration = null)
     {
         $this->interfaceToCallRegistry = $interfaceToCallRegistry ?? InterfaceToCallRegistry::createEmpty();
+        $this->applicationConfiguration = $serviceConfiguration ?? ServiceConfiguration::createWithDefaults();
     }
 
     public function getInterfaceToCall(InterfaceToCallReference $interfaceToCallReference): InterfaceToCall
@@ -29,6 +31,11 @@ class ContainerMessagingBuilder
     public function getInterfaceToCallRegistry(): InterfaceToCallRegistry
     {
         return $this->interfaceToCallRegistry;
+    }
+
+    public function getServiceConfiguration(): ServiceConfiguration
+    {
+        return $this->applicationConfiguration;
     }
 
     public function registerPollingEndpoint(string $endpointId, string $endpointRunnerReferenceName): void

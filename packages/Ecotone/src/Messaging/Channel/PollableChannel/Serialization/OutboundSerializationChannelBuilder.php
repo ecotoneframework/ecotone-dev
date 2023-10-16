@@ -43,7 +43,7 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
         return new Definition(OutboundSerializationChannelInterceptor::class, [
             new Definition(OutboundMessageConverter::class, [
                 $this->headerMapper,
-                $this->channelConversionMediaType ?: new Reference('config.defaultSerializationMediaType'),
+                $this->channelConversionMediaType ?: MediaType::parseMediaType($builder->getServiceConfiguration()->getDefaultSerializationMediaType()),
             ]),
             Reference::to(ConversionService::REFERENCE_NAME),
         ]);

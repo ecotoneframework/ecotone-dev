@@ -41,13 +41,6 @@ class ReferenceServiceConverterBuilder implements CompilableBuilder
 
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        $className = $builder->getDefinition($this->referenceName)->getClassName();
-        $reflectionMethod = new ReflectionMethod($className, $this->methodName);
-
-        if (count($reflectionMethod->getParameters()) !== 1) {
-            throw InvalidArgumentException::create("Converter should have only single parameter: {$reflectionMethod}");
-        }
-
         return new Definition(ReferenceServiceConverter::class, [
             new Reference($this->referenceName),
             $this->methodName,

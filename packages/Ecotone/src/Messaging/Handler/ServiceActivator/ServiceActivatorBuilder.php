@@ -22,6 +22,7 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\HandlerReplyProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\Processor\WrapWithMessageBuildProcessor;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
@@ -147,13 +148,12 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 
-        $methodInvokerDefinition = MethodInvoker::createDefinition(
-            $builder,
-            $interfaceToCall,
+        $methodInvokerDefinition = MethodInvokerBuilder::create(
             $this->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,
+            $this->interfaceToCallReference,
             $this->methodParameterConverterBuilders,
-            $this->getEndpointAnnotations()
-        );
+            $this->getEndpointAnnotations(),
+        )->compile($builder);
 
         if ($this->shouldWrapResultInMessage) {
             $methodInvokerDefinition = new Definition(WrapWithMessageBuildProcessor::class, [

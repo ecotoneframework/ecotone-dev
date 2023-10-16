@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
@@ -134,20 +135,19 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         if ($this->methodNameOrInterface instanceof InterfaceToCall) {
-            $interfaceToCall = $this->methodNameOrInterface;
+            $interfaceToCallReference = InterfaceToCallReference::fromInstance($this->methodNameOrInterface);
         } elseif ($this->directObjectToInvoke) {
             $className = \get_class($this->directObjectToInvoke);
-            $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference($className, $this->methodNameOrInterface));
+            $interfaceToCallReference = new InterfaceToCallReference($className, $this->methodNameOrInterface);
         } else {
             $className = $this->objectToInvokeReference instanceof Definition ? $this->objectToInvokeReference->getClassName() : (string) $this->objectToInvokeReference;
-            $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference($className, $this->methodNameOrInterface));
+            $interfaceToCallReference = new InterfaceToCallReference($className, $this->methodNameOrInterface);
         }
-        $methodInvoker = MethodInvoker::createDefinition(
-            $builder,
-            $interfaceToCall,
+        $methodInvoker = MethodInvokerBuilder::create(
             $this->directObjectToInvoke ?: $this->objectToInvokeReference,
+            $interfaceToCallReference,
             $this->methodParameterConverters
-        );
+        )->compile($builder);
         return new Definition(Router::class, [
             new Reference(ChannelResolver::class),
             $methodInvoker,

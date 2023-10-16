@@ -21,6 +21,7 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\HandlerReplyProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\MessageHandler;
@@ -98,13 +99,12 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        $methodInvokerDefinition = MethodInvoker::createDefinition(
-            $builder,
-            $interfaceToCall,
+        $methodInvokerDefinition = MethodInvokerBuilder::create(
             $interfaceToCall->isStaticallyCalled() ? $this->reference->getId() : $this->reference,
+            $this->interfaceToCallReference,
             $this->methodParameterConverterBuilders,
             $this->getEndpointAnnotations()
-        );
+        )->compile($builder);
 
         $handlerDefinition = new Definition(RequestReplyProducer::class, [
             $this->outputMessageChannelName ? new ChannelReference($this->outputMessageChannelName) : null,

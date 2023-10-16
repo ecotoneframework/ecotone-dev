@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHandler;
@@ -48,11 +49,6 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
     public static function createWithReferenceName(string $referenceName, InterfaceToCall $interfaceToCall): self
     {
         return new self($referenceName, $interfaceToCall);
-    }
-
-    public static function createWithDirectObject(object $referenceObject, string $methodName): self
-    {
-        return new self($referenceObject, $methodName);
     }
 
     /**
@@ -120,28 +116,29 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
         $messageSelector = is_object($this->referenceNameOrObject) ? $this->referenceNameOrObject : new Reference($this->referenceNameOrObject);
 
         $messageSelectorClass = $messageSelector instanceof Reference ? $builder->getDefinition($messageSelector)->getClassName() : get_class($messageSelector);
-        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference($messageSelectorClass, $this->getMethodName()));
+        $interfaceToCallReference = new InterfaceToCallReference($messageSelectorClass, $this->getMethodName());
+        $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
         if (! $interfaceToCall->hasReturnValueBoolean()) {
             throw InvalidArgumentException::create("Object with reference {$messageSelectorClass} should return bool for method {$this->getMethodName()} while using Message Filter");
         }
 
         $discardChannel = $this->discardChannelName ? new ChannelReference($this->discardChannelName) : null;
 
-        $methodInvoker = MethodInvoker::createDefinition(
-            $builder,
-            $interfaceToCall,
+        $methodInvoker = MethodInvokerBuilder::create(
             $messageSelector,
+            $interfaceToCallReference,
             $this->parameterConverters,
             $this->getEndpointAnnotations()
-        );
-        $messageFilterReference = $builder->register(Uuid::uuid4()->toString(), new Definition(MessageFilter::class, [
+        )->compile($builder);
+
+        $messageFilterReference = new Definition(MessageFilter::class, [
             $methodInvoker,
             $discardChannel,
             $this->throwExceptionOnDiscard
-        ]));
-        $serviceActivatorBuilder = ServiceActivatorBuilder::create(
-            $messageFilterReference->getId(),
-            new InterfaceToCallReference(MessageFilter::class, 'handle')
+        ]);
+        $serviceActivatorBuilder = ServiceActivatorBuilder::createWithDefinition(
+            $messageFilterReference,
+            'handle',
         )
             ->withInputChannelName($this->inputMessageChannelName)
             ->withOutputMessageChannel($this->outputMessageChannelName);

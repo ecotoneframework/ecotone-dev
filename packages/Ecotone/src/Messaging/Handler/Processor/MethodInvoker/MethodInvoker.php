@@ -56,45 +56,6 @@ final class MethodInvoker implements MessageProcessor
     }
 
     /**
-     * @param ParameterConverterBuilder[] $methodParametersConverterBuilders
-     */
-    public static function createWith(InterfaceToCall $interfaceToCall, $objectToInvokeOn, array $methodParametersConverterBuilders, ReferenceSearchService $referenceSearchService, array $endpointAnnotations = []): self
-    {
-        $methodParametersConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $methodParametersConverterBuilders, $endpointAnnotations, null, false);
-        $methodParameterConverters         = [];
-        foreach ($methodParametersConverterBuilders as $index => $methodParameter) {
-            $methodParameterConverters[] = $methodParameter->build($referenceSearchService, $interfaceToCall, $interfaceToCall->getParameterAtIndex($index));
-        }
-
-        return new self($objectToInvokeOn, $interfaceToCall->getMethodName(), $methodParameterConverters, $interfaceToCall, true);
-    }
-
-    public static function createDefinition(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, string|object $reference, array $methodParametersConverterBuilders, array $endpointAnnotations = []): Definition|null
-    {
-        $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $methodParametersConverterBuilders, $endpointAnnotations, null, false);
-
-        $compiledMethodParameterConverters = [];
-        foreach ($methodParameterConverterBuilders as $index => $methodParameterConverterBuilder) {
-            if (! ($methodParameterConverterBuilder instanceof CompilableParameterConverterBuilder)) {
-                // Cannot continue without every parameter converters compilable
-                throw InvalidArgumentException::create("Every parameter converter must be compilable");
-            }
-            $compiledMethodParameterConverters[] = $methodParameterConverterBuilder->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
-        }
-        if (\is_string($reference)) {
-            $reference = $interfaceToCall->isStaticallyCalled() ? $reference : new Reference($reference);
-        }
-
-        return new Definition(MethodInvoker::class, [
-            $reference,
-            $interfaceToCall->getMethodName(),
-            $compiledMethodParameterConverters,
-            InterfaceToCallReference::fromInstance($interfaceToCall),
-            true,
-        ]);
-    }
-
-    /**
      * @inheritDoc
      */
     public function executeEndpoint(Message $message)

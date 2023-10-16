@@ -24,7 +24,7 @@ class AttributeDefinitionBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Definition
     {
         return new Definition(ValueConverter::class, [$this->attributeDefinition]);
     }

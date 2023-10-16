@@ -37,7 +37,7 @@ class AllHeadersBuilder implements ParameterConverterBuilder
     }
 
 
-    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall, InterfaceParameter $interfaceParameter): Definition
     {
         return new Definition(AllHeadersConverter::class);
     }

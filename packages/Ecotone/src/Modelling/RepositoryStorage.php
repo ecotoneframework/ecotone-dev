@@ -12,14 +12,14 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 class RepositoryStorage
 {
     /**
-     * @var array<EventSourcedRepository|StandardRepository|RepositoryBuilder> $aggregateRepositories
+     * @var array<EventSourcedRepository|StandardRepository> $aggregateRepositories
      */
     private array $aggregateRepositories;
 
     /**
-     * @param array<EventSourcedRepository|StandardRepository|RepositoryBuilder> $aggregateRepositories
+     * @param array<EventSourcedRepository|StandardRepository> $aggregateRepositories
      */
-    public function __construct(private string $aggregateClassName, private bool $isEventSourcedAggregate, private ChannelResolver $channelResolver, private ReferenceSearchService $referenceSearchService, array $aggregateRepositories)
+    public function __construct(private string $aggregateClassName, private bool $isEventSourcedAggregate, array $aggregateRepositories)
     {
         $this->aggregateRepositories = array_values($aggregateRepositories);
     }
@@ -67,10 +67,12 @@ class RepositoryStorage
         throw InvalidArgumentException::create('There is no repository available for aggregate: ' . $this->aggregateClassName);
     }
 
-    private function returnRepository(EventSourcedRepository|StandardRepository|RepositoryBuilder $repository): EventSourcedRepository|StandardRepository
+    private function returnRepository(EventSourcedRepository|StandardRepository|LazyRepositoryBuilder $repository): EventSourcedRepository|StandardRepository
     {
-        if ($repository instanceof RepositoryBuilder) {
-            $repository = $repository->build($this->channelResolver, $this->referenceSearchService);
+        // TODO: is RepositoryBuilder a public interface (regarding BC) ?
+        // it does not make much sense with containers to have a lazy builder
+        if ($repository instanceof LazyRepositoryBuilder) {
+            $repository = $repository->build();
         }
 
         if ($this->isEventSourcedAggregate) {

@@ -30,10 +30,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             Order::class,
             false,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                InMemoryStandardRepository::class => $repository,
-            ]),
             [InMemoryStandardRepository::class => $repository]
         );
 
@@ -50,10 +46,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             Order::class,
             true,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                InMemoryEventSourcedRepository::class => $repository,
-            ]),
             [InMemoryEventSourcedRepository::class => $repository]
         );
 
@@ -70,10 +62,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             Order::class,
             false,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                InMemoryEventSourcedRepository::class => $repository,
-            ]),
             [InMemoryEventSourcedRepository::class => $repository]
         );
 
@@ -89,10 +77,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             Order::class,
             true,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                InMemoryStandardRepository::class => $repository,
-            ]),
             [InMemoryStandardRepository::class => $repository]
         );
 
@@ -108,11 +92,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             Order::class,
             false,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty(),
-                InMemoryStandardRepository::class => $repository,
-            ]),
             [
                 InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty(),
                 InMemoryStandardRepository::class => $repository
@@ -132,11 +111,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             Order::class,
             true,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty(),
-                InMemoryEventSourcedRepository::class => $repository,
-            ]),
             [
                 InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty(),
                 InMemoryEventSourcedRepository::class => $repository,
@@ -156,11 +130,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             Article::class,
             false,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                'incorrect' => AppointmentStandardRepository::createEmpty(),
-                'correct' => $repository,
-            ]),
             [
                 'incorrect' => AppointmentStandardRepository::createEmpty(),
                 'correct' => $repository,
@@ -178,11 +147,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             Article::class,
             false,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                1 => InMemoryEventSourcedRepository::createEmpty(),
-                2 => InMemoryEventSourcedRepository::createEmpty(),
-            ]),
             [
                 1 => InMemoryEventSourcedRepository::createEmpty(),
                 2 => InMemoryEventSourcedRepository::createEmpty(),
@@ -201,11 +165,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             stdClass::class,
             false,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                'incorrect' => AppointmentStandardRepository::createEmpty(),
-                'correct' => $repository,
-            ]),
             [
                 'incorrect' => AppointmentStandardRepository::createEmpty(),
                 'correct' => $repository,
@@ -222,10 +181,6 @@ class RepositoryStorageTest extends TestCase
         $repositoryStorage = new RepositoryStorage(
             Appointment::class,
             false,
-            InMemoryChannelResolver::createEmpty(),
-            InMemoryReferenceSearchService::createWith([
-                AppointmentRepositoryBuilder::class => AppointmentRepositoryBuilder::createEmpty(),
-            ]),
             [
                 AppointmentRepositoryBuilder::class => AppointmentRepositoryBuilder::createEmpty(),
             ]

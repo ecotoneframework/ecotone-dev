@@ -99,16 +99,13 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
             ->registerInternalGateway(TypeDescriptor::create(InboundGatewayEntrypoint::class))
             ->registerInternalGateway(TypeDescriptor::create(EnrichGateway::class));
 
-        $reference = new Reference(uniqid(HeaderRouter::class . '.'.MessagingEntrypoint::ENTRYPOINT));
-        $messagingConfiguration->registerServiceDefinition(
-            $reference->getId(),
-            new Definition(HeaderRouter::class, [MessagingEntrypoint::ENTRYPOINT])
-        );
-
         $messagingConfiguration
             ->registerMessageHandler(
-                RouterBuilder::create($reference, $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route'))
-                    ->withInputChannelName(MessagingEntrypoint::ENTRYPOINT)
+                RouterBuilder::create(
+                    new Definition(HeaderRouter::class,[MessagingEntrypoint::ENTRYPOINT]),
+                    $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route')
+                )
+                ->withInputChannelName(MessagingEntrypoint::ENTRYPOINT)
             );
 
         $messagingConfiguration->registerGatewayBuilder(

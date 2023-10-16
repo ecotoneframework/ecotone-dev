@@ -7,10 +7,11 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Modelling\EventSourcedRepository;
+use Ecotone\Modelling\LazyRepositoryBuilder;
 use Ecotone\Modelling\RepositoryBuilder;
 use Ecotone\Modelling\StandardRepository;
 
-class AppointmentRepositoryBuilder implements RepositoryBuilder
+class AppointmentRepositoryBuilder implements LazyRepositoryBuilder
 {
     /**
      * @var Appointment[]
@@ -43,6 +44,11 @@ class AppointmentRepositoryBuilder implements RepositoryBuilder
     public function isEventSourced(): bool
     {
         return false;
+    }
+
+    public function build(): EventSourcedRepository|StandardRepository
+    {
+        return AppointmentStandardRepository::createWith($this->appointments);
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition

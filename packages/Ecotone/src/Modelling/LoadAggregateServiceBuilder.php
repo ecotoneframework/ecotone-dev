@@ -64,15 +64,11 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             ? new Definition(LazyEventSourcedRepository::class, [
                 $this->aggregateClassName,
                 $this->isEventSourced,
-                new Reference(ChannelResolver::class),
-                new Reference(ReferenceSearchService::class),
                 array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create')
             : new Definition(LazyStandardRepository::class, [
                 $this->aggregateClassName,
                 $this->isEventSourced,
-                new Reference(ChannelResolver::class),
-                new Reference(ReferenceSearchService::class),
                 array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create');
 

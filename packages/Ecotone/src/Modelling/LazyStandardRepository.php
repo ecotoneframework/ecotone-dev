@@ -14,10 +14,10 @@ class LazyStandardRepository implements StandardRepository
         $this->repositoryStorage = $repositoryStorage;
     }
 
-    public static function create(string $aggregateClassName, bool $isEventSourcedAggregate, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, array $aggregateRepositories): self
+    public static function create(string $aggregateClassName, bool $isEventSourcedAggregate, array $aggregateRepositories): self
     {
         /** @phpstan-ignore-next-line */
-        return new static(new RepositoryStorage($aggregateClassName, $isEventSourcedAggregate, $channelResolver, $referenceSearchService, $aggregateRepositories));
+        return new static(new RepositoryStorage($aggregateClassName, $isEventSourcedAggregate, $aggregateRepositories));
     }
 
     public function canHandle(string $aggregateClassName): bool

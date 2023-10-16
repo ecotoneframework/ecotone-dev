@@ -2,7 +2,7 @@
 
 namespace Ecotone\Modelling;
 
-interface RepositoryBuilderLazy extends RepositoryBuilder
+interface LazyRepositoryBuilder extends RepositoryBuilder
 {
-    public function build():
+    public function build(): EventSourcedRepository|StandardRepository;
 }

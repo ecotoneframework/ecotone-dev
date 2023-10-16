@@ -115,15 +115,11 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             ? new Definition(LazyEventSourcedRepository::class, [
                 $this->interfaceToCall->getInterfaceName(),
                 $this->isEventSourced,
-                new Reference(ChannelResolver::class),
-                new Reference(ReferenceSearchService::class),
                 array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create')
             : new Definition(LazyStandardRepository::class, [
                 $this->interfaceToCall->getInterfaceName(),
                 $this->isEventSourced,
-                new Reference(ChannelResolver::class),
-                new Reference(ReferenceSearchService::class),
                 array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create');
 

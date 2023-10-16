@@ -6,8 +6,10 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\MessageHeaders;
+use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\Order;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\OrderWasPlacedConverter;
 
@@ -20,7 +22,7 @@ final class HeaderPropagationTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [Order::class, OrderWasPlacedConverter::class],
-            [new OrderWasPlacedConverter()]
+            [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()]
         );
 
         $messageId = Uuid::uuid4()->toString();
@@ -53,7 +55,7 @@ final class HeaderPropagationTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [Order::class, OrderWasPlacedConverter::class],
-            [new OrderWasPlacedConverter()]
+            [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()]
         );
 
         $messageId = Uuid::uuid4()->toString();

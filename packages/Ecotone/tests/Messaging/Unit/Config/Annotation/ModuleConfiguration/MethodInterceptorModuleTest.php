@@ -114,7 +114,6 @@ class MethodInterceptorModuleTest extends AnnotationConfigurationTest
                     ServiceActivatorInterceptorExample::class
                 )
             )
-            ->registerRelatedInterfaces([InterfaceToCall::create(TransformerInterceptorExample::class, 'beforeSend')])
             ->registerBeforeMethodInterceptor(
                 MethodInterceptor::create(
                     'someMethodInterceptor',

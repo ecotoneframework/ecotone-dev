@@ -113,12 +113,6 @@ interface Configuration extends CompilerPass
     public function registerGatewayBuilder(GatewayProxyBuilder $gatewayBuilder): Configuration;
 
     /**
-     * @param InterfaceToCall[] $relatedInterfaces
-     * @return Configuration
-     */
-    public function registerRelatedInterfaces(array $relatedInterfaces): Configuration;
-
-    /**
      * @return GatewayProxyBuilder[]
      */
     public function getRegisteredGateways(): array;

@@ -85,10 +85,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
     private EventMapper $eventMapper;
     private AggregateStreamMapping $aggregateToStreamMapping;
     private AggregateTypeMapping $aggregateTypeMapping;
-    /** @var InterfaceToCall[] */
-    private array $relatedInterfaces = [];
-    /** @var string[] */
-    private array $requiredReferences = [];
 
     /**
      * @var ProjectionSetupConfiguration[]
@@ -96,15 +92,13 @@ class EventSourcingModule extends NoExternalConfigurationModule
      * @var ServiceActivatorBuilder[]
      * @var GatewayProxyBuilder[]
      */
-    private function __construct(array $projectionConfigurations, private array $projectionEventHandlers, private AsynchronousModule $asynchronousModule, array $projectionLifeCycleServiceActivators, EventMapper $eventMapper, AggregateStreamMapping $aggregateToStreamMapping, AggregateTypeMapping $aggregateTypeMapping, array $relatedInterfaces, array $requiredReferences, private array $projectionStateGateways)
+    private function __construct(array $projectionConfigurations, private array $projectionEventHandlers, private AsynchronousModule $asynchronousModule, array $projectionLifeCycleServiceActivators, EventMapper $eventMapper, AggregateStreamMapping $aggregateToStreamMapping, AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways)
     {
         $this->projectionSetupConfigurations = $projectionConfigurations;
         $this->projectionLifeCycleServiceActivators = $projectionLifeCycleServiceActivators;
         $this->eventMapper = $eventMapper;
         $this->aggregateToStreamMapping = $aggregateToStreamMapping;
         $this->aggregateTypeMapping = $aggregateTypeMapping;
-        $this->relatedInterfaces = $relatedInterfaces;
-        $this->requiredReferences = $requiredReferences;
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
@@ -162,11 +156,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $projectionSetupConfigurations = [];
         $projectionLifeCyclesServiceActivators = [];
 
-        $relatedInterfaces = [];
-        $requiredReferences = [];
         foreach ($projectionClassNames as $projectionClassName) {
             $referenceName = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $projectionClassName);
-            $requiredReferences[] = $referenceName;
 
             $projectionLifeCycle = ProjectionLifeCycleConfiguration::create();
 
@@ -175,7 +166,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionDelete = TypeDescriptor::create(ProjectionDelete::class);
             $projectionReset = TypeDescriptor::create(ProjectionReset::class);
             foreach ($classDefinition->getPublicMethodNames() as $publicMethodName) {
-                $relatedInterfaces[] = $interfaceToCallRegistry->getFor($projectionClassName, $publicMethodName);
                 foreach ($annotationRegistrationService->getAnnotationsForMethod($projectionClassName, $publicMethodName) as $attribute) {
                     $attributeType = TypeDescriptor::createFromVariable($attribute);
                     if ($attributeType->equals($projectionInitialization)) {
@@ -252,7 +242,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration;
         }
 
-        return new self($projectionSetupConfigurations, $projectionEventHandlers, AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry), $projectionLifeCyclesServiceActivators, EventMapper::createWith($fromClassToNameMapping, $fromNameToClassMapping), AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $relatedInterfaces, array_unique($requiredReferences), $projectionStateGateways);
+        return new self($projectionSetupConfigurations, $projectionEventHandlers, AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry), $projectionLifeCyclesServiceActivators, EventMapper::createWith($fromClassToNameMapping, $fromNameToClassMapping), AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $projectionStateGateways);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -546,7 +536,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $moduleReferenceSearchService->store(EventMapper::class, $this->eventMapper);
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
-        $messagingConfiguration->registerRelatedInterfaces($this->relatedInterfaces);
 
         foreach ($this->projectionSetupConfigurations as $index => $projectionSetupConfiguration) {
             $projectionRunningConfiguration = ProjectionRunningConfiguration::createEventDriven($projectionSetupConfiguration->getProjectionName());

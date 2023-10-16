@@ -47,8 +47,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\Handler\ReferenceNotFoundException;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
 use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
@@ -121,25 +119,13 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $afterCallMethodInterceptors = [];
     /**
-     * @var string[]
-     */
-    private array $requiredReferences = [];
-    /**
-     * @var string[]
-     */
-    private array $optionalReferences = [];
-    /**
-     * @var ConverterBuilder[]
+     * @var CompilableBuilder[]
      */
     private array $converterBuilders = [];
     /**
      * @var string[]
      */
     private array $messageConverterReferenceNames = [];
-    /**
-     * @var InterfaceToCall[]
-     */
-    private array $interfacesToCall = [];
     private ?ModuleReferenceSearchService $moduleReferenceSearchService;
     private bool $isLazyConfiguration;
     private array $asynchronousEndpoints = [];
@@ -166,7 +152,6 @@ final class MessagingSystemConfiguration implements Configuration
 
     /**
      * @param object[] $extensionObjects
-     * @param string[] $skippedModulesPackages
      */
     private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration, private ServiceCacheConfiguration $serviceCacheConfiguration)
     {
@@ -245,7 +230,6 @@ final class MessagingSystemConfiguration implements Configuration
 
         $this->gatewayClassesToGenerateProxies = [];
 
-        $this->interfacesToCall = array_unique($this->interfacesToCall);
         $this->moduleReferenceSearchService = $moduleReferenceSearchService;
     }
 
@@ -1089,16 +1073,6 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerConsumerFactory(MessageHandlerConsumerBuilder $consumerFactory): Configuration
     {
         $this->consumerFactories[] = $consumerFactory;
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function registerRelatedInterfaces(array $relatedInterfaces): Configuration
-    {
-        $this->interfacesToCall = array_merge($this->interfacesToCall, $relatedInterfaces);
 
         return $this;
     }

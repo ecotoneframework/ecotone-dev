@@ -95,15 +95,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         $messagingConfiguration->registerConverter(new SerializingConverterBuilder());
         $messagingConfiguration->registerConverter(new DeserializingConverterBuilder());
 
-        $messagingConfiguration->registerRelatedInterfaces([
-            $interfaceToCallRegistry->getFor(PostSendInterceptor::class, 'postSend'),
-            $interfaceToCallRegistry->getFor(ChainForwardPublisher::class, 'forward'),
-            $interfaceToCallRegistry->getFor(BeforeSendGateway::class, 'execute'),
-            $interfaceToCallRegistry->getFor(AcknowledgeConfirmationInterceptor::class, 'ack'),
-            $interfaceToCallRegistry->getFor(InboundGatewayEntrypoint::class, 'executeEntrypoint'),
-            $interfaceToCallRegistry->getFor(InboundChannelAdapterEntrypoint::class, 'executeEntrypoint'),
-            $interfaceToCallRegistry->getFor(LoggingInterceptor::class, 'logException'),
-        ]);
         $messagingConfiguration
             ->registerInternalGateway(TypeDescriptor::create(InboundGatewayEntrypoint::class))
             ->registerInternalGateway(TypeDescriptor::create(EnrichGateway::class));

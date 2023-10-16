@@ -61,7 +61,7 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder
         }
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return match ($this->isEventSourced) {
             true => new Definition(

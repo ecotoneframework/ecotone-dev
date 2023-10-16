@@ -54,7 +54,7 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
             ->build($channelResolver, $referenceSearchService);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $documentStoreReference = DbalDocumentStore::class.'.'.$this->connectionReferenceName;
         if (!$builder->has($documentStoreReference)) {

@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 
@@ -67,7 +68,7 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
         return [];
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object
+    public function compile(ContainerMessagingBuilder $builder): Reference
     {
         return \is_string($this->referenceName) ? Reference::to($this->referenceName) : $this->referenceName;
     }

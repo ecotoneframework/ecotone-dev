@@ -481,14 +481,6 @@ class ChainMessageHandlerBuilderTest extends TestCase
         );
     }
 
-    public function test_passing_references_objects_to_top_handler()
-    {
-        $chainBuilder = ChainMessageHandlerBuilder::create()
-                        ->chain(TransformerBuilder::create('some', InterfaceToCall::create(TransformerWithMethodParameterExample::class, 'send')));
-
-        $this->assertEquals(['some'], $chainBuilder->getRequiredReferenceNames());
-    }
-
     /**
      * @throws \Ecotone\Messaging\MessagingException
      * @throws Exception

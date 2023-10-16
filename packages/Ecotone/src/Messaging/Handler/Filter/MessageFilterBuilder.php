@@ -141,7 +141,7 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
         return $this;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $messageSelector = is_object($this->referenceNameOrObject) ? $this->referenceNameOrObject : new Reference($this->referenceNameOrObject);
 

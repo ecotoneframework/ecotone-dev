@@ -105,7 +105,7 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
     /**
      * @inheritDoc
      */
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         if (!$builder->has(LoggingInterceptor::class)) {
             $builder->register(LoggingInterceptor::class, [

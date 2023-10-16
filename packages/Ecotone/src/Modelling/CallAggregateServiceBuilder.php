@@ -163,7 +163,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         return $handler->build($channelResolver, $referenceSearchService);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $interceptors = [];
         foreach (AroundInterceptorReference::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {

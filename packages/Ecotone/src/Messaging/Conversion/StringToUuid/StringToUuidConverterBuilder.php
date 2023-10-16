@@ -26,7 +26,7 @@ class StringToUuidConverterBuilder implements ConverterBuilder
         return new StringToUuidConverter();
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(StringToUuidConverter::class);
     }

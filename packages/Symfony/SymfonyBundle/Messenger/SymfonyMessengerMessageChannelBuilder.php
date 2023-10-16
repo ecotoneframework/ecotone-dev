@@ -23,7 +23,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  * Symfony Channel does not implements MessageChannelWithSerializationBuilder to avoid
  * using PollableChannelSerializationModule, as serialization is done on the symfony transport layer instead.
  */
-final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder, CompilableBuilder
+final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder
 {
     private const TRANSPORT_SERVICE_PREFIX = 'messenger.transport.';
 
@@ -63,43 +63,17 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
         return $this;
     }
 
-    public function build(ReferenceSearchService $referenceSearchService): MessageChannel
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        /** @var TransportInterface $transport */
-        $transport = $referenceSearchService->get($this->getTransportServiceName());
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-
-        return new SymfonyMessengerMessageChannel(
-            $transport,
-            new SymfonyMessageConverter(
+        return new Definition(
+            SymfonyMessengerMessageChannel::class, [
+            new Reference($this->getTransportServiceName()),
+            new Definition(SymfonyMessageConverter::class, [
                 $this->headerMapper,
                 $this->acknowledgeMode,
-                $conversionService
-            )
-        );
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): object|null
-    {
-        return $builder->register(
-            new ChannelReference($this->transportName),
-            new Definition(
-                SymfonyMessengerMessageChannel::class, [
-                    new Reference($this->getTransportServiceName()),
-                    new Definition(SymfonyMessageConverter::class, [
-                        $this->headerMapper,
-                        $this->acknowledgeMode,
-                        new Reference(ConversionService::REFERENCE_NAME),
-                    ]),
-                ]));
-    }
-
-    public function getRequiredReferenceNames(): array
-    {
-        return [
-            $this->getTransportServiceName(),
-        ];
+                new Reference(ConversionService::REFERENCE_NAME),
+            ]),
+        ]);
     }
 
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable

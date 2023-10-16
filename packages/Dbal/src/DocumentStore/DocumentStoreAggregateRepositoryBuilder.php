@@ -32,7 +32,7 @@ final class DocumentStoreAggregateRepositoryBuilder implements RepositoryBuilder
         return new DocumentStoreAggregateRepository($referenceSearchService->get($this->documentStoreReferenceName));
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(DocumentStoreAggregateRepository::class, [
             new Reference($this->documentStoreReferenceName)

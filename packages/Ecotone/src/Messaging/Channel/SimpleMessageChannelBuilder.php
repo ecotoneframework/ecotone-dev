@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -122,11 +123,8 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return (string)$this->messageChannel;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        $channelReference = new ChannelReference($this->messageChannelName);
-        $definition = $this->messageChannel;
-        $builder->register($channelReference, $definition);
-        return $channelReference;
+        return new DefinedObjectWrapper($this->messageChannel);
     }
 }

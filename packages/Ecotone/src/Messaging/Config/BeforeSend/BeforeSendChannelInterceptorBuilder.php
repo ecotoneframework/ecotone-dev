@@ -70,7 +70,7 @@ class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
     /**
      * @inheritDoc
      */
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $messageHandlerReference = $this->methodInterceptor->getInterceptingObject()->compile($builder);
         $builder->register(new ChannelReference($this->internalRequestChannelName), new Definition(DirectChannel::class, [$this->internalRequestChannelName, $messageHandlerReference]));

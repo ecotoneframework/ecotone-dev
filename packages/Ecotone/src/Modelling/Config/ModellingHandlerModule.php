@@ -326,7 +326,6 @@ class ModellingHandlerModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $moduleExtensions, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
-        $messagingConfiguration->requireReferences($this->aggregateRepositoryReferenceNames);
         foreach ($moduleExtensions as $aggregateRepositoryBuilder) {
             if ($aggregateRepositoryBuilder instanceof RepositoryBuilder) {
                 $referenceId = Uuid::uuid4()->toString();

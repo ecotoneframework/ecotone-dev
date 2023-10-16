@@ -48,7 +48,7 @@ class EnrichHeaderWithValueBuilder implements PropertyEditorBuilder
         return new self($name, $value);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(EnrichHeaderWithValuePropertyEditor::class, [
             new Definition(PropertyEditorAccessor::class, [new Reference(ExpressionEvaluationService::REFERENCE), ''], 'createWithMapping'),

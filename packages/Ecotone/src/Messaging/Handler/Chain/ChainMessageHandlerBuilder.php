@@ -33,26 +33,16 @@ use function uniqid;
  * @package Ecotone\Messaging\Handler\Chain
  * @author  Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
+class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
 {
     /**
      * @var MessageHandlerBuilderWithOutputChannel[]
      */
     private array $chainedMessageHandlerBuilders;
-    /**
-     * @var string[]
-     */
-    private array $requiredReferences = [];
-    /**
-     * @var MessageHandlerBuilder|null
-     */
     private ?MessageHandlerBuilder $outputMessageHandler = null;
 
     private ?int $interceptedHandlerOffset = null;
 
-    /**
-     * ChainMessageHandlerBuilder constructor.
-     */
     private function __construct()
     {
     }
@@ -75,7 +65,6 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
 
     public function chain(MessageHandlerBuilderWithOutputChannel $messageHandler): self
     {
-        $this->requiredReferences = array_merge($this->requiredReferences, MessagingSystemConfiguration::resolveRequiredReferenceForBuilder($messageHandler));
         $outputChannelToKeep = $messageHandler->getOutputMessageChannelName();
         $messageHandler = $messageHandler
             ->withInputChannelName('')
@@ -100,13 +89,12 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
      */
     public function withOutputMessageHandler(MessageHandlerBuilder $outputMessageHandler): self
     {
-        $this->requiredReferences = array_merge($this->requiredReferences, MessagingSystemConfiguration::resolveRequiredReferenceForBuilder($outputMessageHandler));
         $this->outputMessageHandler = $outputMessageHandler;
 
         return $this;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         if ($this->outputMessageHandler && $this->outputMessageChannelName) {
             throw InvalidArgumentException::create("Can't configure output message handler and output message channel for chain handler");
@@ -222,13 +210,5 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder implem
         }
 
         return $relatedReferences;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferences;
     }
 }

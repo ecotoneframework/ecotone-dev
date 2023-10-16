@@ -104,14 +104,14 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
         return $this;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        return $builder->register(new ChannelReference($this->channelName), new Definition(ExceptionalQueueChannel::class, [
+        return new Definition(ExceptionalQueueChannel::class, [
             $this->channelName,
             $this->exceptionOnReceive,
             $this->exceptionOnSend,
             $this->stopFailingAfterAttempt
-        ]));
+        ]);
     }
 
     public function getRequiredReferenceNames(): array

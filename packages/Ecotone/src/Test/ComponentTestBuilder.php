@@ -82,7 +82,8 @@ class ComponentTestBuilder
     public function buildWithProxy(ProxyBuilder $compilableBuilder): mixed
     {
         $referenceToReturn = $compilableBuilder->registerProxy($this->messagingBuilder);
-        $this->build($compilableBuilder);
+
+        $this->compile();
         return $this->container->get($referenceToReturn->getId());
     }
 

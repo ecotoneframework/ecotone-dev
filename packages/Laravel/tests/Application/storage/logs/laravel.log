@@ -1,0 +1,16 @@
+[2023-10-15 21:59:12] dev.ERROR: Class Ecotone\Laravel\EloquentRepositoryBuilder contains 1 abstract method and must therefore be declared abstract or implement the remaining methods (Ecotone\Messaging\Config\Container\CompilableBuilder::compile) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Class Ecotone\\Laravel\\EloquentRepositoryBuilder contains 1 abstract method and must therefore be declared abstract or implement the remaining methods (Ecotone\\Messaging\\Config\\Container\\CompilableBuilder::compile) at /data/app/packages/Laravel/src/EloquentRepositoryBuilder.php:11)
+[stacktrace]
+#0 {main}
+"} 
+[2023-10-16 06:13:35] dev.ERROR: Class Ecotone\Laravel\EloquentRepositoryBuilder contains 1 abstract method and must therefore be declared abstract or implement the remaining methods (Ecotone\Messaging\Config\Container\CompilableBuilder::compile) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Class Ecotone\\Laravel\\EloquentRepositoryBuilder contains 1 abstract method and must therefore be declared abstract or implement the remaining methods (Ecotone\\Messaging\\Config\\Container\\CompilableBuilder::compile) at /data/app/packages/Laravel/src/EloquentRepositoryBuilder.php:11)
+[stacktrace]
+#0 {main}
+"} 
+[2023-10-16 06:14:28] dev.ERROR: Class Ecotone\Laravel\EloquentRepositoryBuilder contains 1 abstract method and must therefore be declared abstract or implement the remaining methods (Ecotone\Messaging\Config\Container\CompilableBuilder::compile) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Class Ecotone\\Laravel\\EloquentRepositoryBuilder contains 1 abstract method and must therefore be declared abstract or implement the remaining methods (Ecotone\\Messaging\\Config\\Container\\CompilableBuilder::compile) at /data/app/packages/Laravel/src/EloquentRepositoryBuilder.php:11)
+[stacktrace]
+#0 {main}
+"} 
+[2023-10-16 06:18:29] dev.ERROR: Class Ecotone\Laravel\EloquentRepositoryBuilder contains 1 abstract method and must therefore be declared abstract or implement the remaining methods (Ecotone\Messaging\Config\Container\CompilableBuilder::compile) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Class Ecotone\\Laravel\\EloquentRepositoryBuilder contains 1 abstract method and must therefore be declared abstract or implement the remaining methods (Ecotone\\Messaging\\Config\\Container\\CompilableBuilder::compile) at /data/app/packages/Laravel/src/EloquentRepositoryBuilder.php:11)
+[stacktrace]
+#0 {main}
+"} 

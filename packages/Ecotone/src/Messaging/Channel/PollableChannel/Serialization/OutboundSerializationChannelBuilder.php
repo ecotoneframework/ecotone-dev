@@ -63,7 +63,7 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
         );
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(OutboundSerializationChannelInterceptor::class, [
             new Definition(OutboundMessageConverter::class, [

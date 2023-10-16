@@ -362,128 +362,10 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         return $proxyFactory->createProxyClassWithAdapter($this->interfaceName, $adapter);
     }
 
-    /**
-     * This is used for Framework cases, where framework build their own proxy classes
-     */
-    public function buildWithoutProxyObject(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver): NonProxyGateway
-    {
-        Assert::isInterface($this->interfaceName, "Gateway should point to interface instead of got {$this->interfaceName} which is not correct interface");
-
-        if ($this->compiled) {
-            return $referenceSearchService->get(ContainerImplementation::REFERENCE_ID)->get((string) $this->compiled);
-        }
-
-        /** @var InterfaceToCallRegistry $interfaceToCallRegistry */
-        $interfaceToCallRegistry = $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME);
-        $replyChannel = $this->replyChannelName ? $channelResolver->resolve($this->replyChannelName) : null;
-        $requestChannel = $channelResolver->resolve($this->requestChannelName);
-        $interfaceToCall = $interfaceToCallRegistry->getFor($this->interfaceName, $this->methodName);
-
-        if (! ($interfaceToCall->canItReturnNull() || $interfaceToCall->hasReturnTypeVoid())) {
-            /** @var DirectChannel $requestChannel */
-            Assert::isSubclassOf($requestChannel, SubscribableChannel::class, 'Gateway request channel should not be pollable if expected return type is not nullable');
-        }
-
-        if (! $interfaceToCall->canItReturnNull() && $this->errorChannelName && ! $interfaceToCall->hasReturnTypeVoid()) {
-            throw InvalidArgumentException::create("Gateway {$interfaceToCall} with error channel must allow nullable return type");
-        }
-
-        if ($replyChannel) {
-            /** @var PollableChannel $replyChannel */
-            Assert::isSubclassOf($replyChannel, PollableChannel::class, 'Reply channel must be pollable');
-        }
-        $errorChannel = $this->errorChannelName ? $channelResolver->resolve($this->errorChannelName) : null;
-        if ($errorChannel) {
-            $this->addAroundInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                $interfaceToCallRegistry,
-                new ErrorChannelInterceptor($errorChannel),
-                'handle',
-                Precedence::ERROR_CHANNEL_PRECEDENCE,
-                $this->interfaceName
-            ));
-        }
-
-        if (! $interfaceToCall->canReturnValue() && $this->replyChannelName) {
-            throw InvalidArgumentException::create("Can't set reply channel for {$interfaceToCall}");
-        }
-
-        $methodArgumentConverters = [];
-        if ($this->replyContentType) {
-            $methodArgumentConverters[] = GatewayHeaderValueBuilder::create(MessageHeaders::REPLY_CONTENT_TYPE, $this->replyContentType)->build($referenceSearchService);
-        }
-        if ($interfaceToCall->hasFirstParameter() && ! $this->hasConverterFor($interfaceToCall->getFirstParameter())) {
-            $methodArgumentConverters[] = GatewayPayloadBuilder::create($interfaceToCall->getFirstParameter()->getName())->build($referenceSearchService);
-        }
-        if ($interfaceToCall->hasSecondParameter() && ! $this->hasConverterFor($interfaceToCall->getSecondParameter())) {
-            if ($interfaceToCall->getSecondParameter()->getTypeDescriptor()->isNonCollectionArray()) {
-                $methodArgumentConverters[] = GatewayHeadersBuilder::create($interfaceToCall->getSecondParameter()->getName())->build($referenceSearchService);
-            }
-        }
-
-        foreach ($this->methodArgumentConverters as $messageConverterBuilder) {
-            $methodArgumentConverters[] = $messageConverterBuilder->build($referenceSearchService);
-        }
-
-        $messageConverters = [];
-        foreach ($this->messageConverterReferenceNames as $messageConverterReferenceName) {
-            $messageConverters[] = $referenceSearchService->get($messageConverterReferenceName);
-        }
-
-        return new Gateway(
-            $interfaceToCall,
-            new MethodCallToMessageConverter(
-                $interfaceToCall,
-                $methodArgumentConverters
-            ),
-            $messageConverters,
-            new GatewayReplyConverter(
-                $referenceSearchService->get(ConversionService::REFERENCE_NAME),
-                $interfaceToCall,
-                $messageConverters,
-            ),
-            $this->buildGatewayInternalHandler($interfaceToCall, $referenceSearchService, $channelResolver)
-        );
-    }
-
-    private function buildGatewayInternalHandler(
-        InterfaceToCall $interfaceToCall,
-        ReferenceSearchService $referenceSearchService,
-        ChannelResolver $channelResolver
-    ): MessageHandler {
-        $gatewayInternalHandler = new GatewayInternalHandler(
-            $interfaceToCall,
-            $channelResolver->resolve($this->requestChannelName),
-            $this->replyChannelName ? $channelResolver->resolve($this->replyChannelName) : null,
-            $this->replyMilliSecondsTimeout
-        );
-
-        $chainHandler = ChainMessageHandlerBuilder::create();
-        foreach ($this->getSortedInterceptors($this->beforeInterceptors) as $beforeInterceptor) {
-            $chainHandler = $chainHandler->chain($beforeInterceptor);
-        }
-        $chainHandler = $chainHandler->chainInterceptedHandler(
-            ServiceActivatorBuilder::createWithDirectReference($gatewayInternalHandler, 'handle')
-                ->withWrappingResultInMessage(false)
-                ->withEndpointAnnotations($this->endpointAnnotations)
-                ->withAnnotatedInterface($this->annotatedInterfaceToCall ?? $interfaceToCall)
-        );
-        foreach ($this->getSortedInterceptors($this->afterInterceptors) as $afterInterceptor) {
-            $chainHandler = $chainHandler->chain($afterInterceptor);
-        }
-
-        foreach ($this->getSortedAroundInterceptors($this->aroundInterceptors) as $aroundInterceptorReference) {
-            $chainHandler = $chainHandler->addAroundInterceptor($aroundInterceptorReference);
-        }
-
-        return $chainHandler
-            ->build(
-                $channelResolver,
-                $referenceSearchService
-            );
-    }
-
     public function registerProxy(ContainerMessagingBuilder $builder): Reference
     {
+        $gateway = $this->compile($builder);
+        $builder->register('gateway.'.$this->getReferenceName().'::'.$this->getRelatedMethodName(), $gateway);
         if (! $builder->has($this->getReferenceName())) {
             $builder->register($this->getReferenceName(), new Definition($this->getInterfaceName(), [
                 $this->getReferenceName(),
@@ -496,7 +378,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         return new Reference($this->getReferenceName());
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
@@ -543,7 +425,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
 
         $internalHandlerReference = $this->compileGatewayInternalHandler($builder);
 
-        $gateway =  new Definition(Gateway::class, [
+        return new Definition(Gateway::class, [
             $interfaceToCallReference,
             new Definition(MethodCallToMessageConverter::class, [
                 $interfaceToCallReference,
@@ -557,11 +439,9 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             ]),
             $internalHandlerReference,
         ]);
-
-        return $builder->register('gateway.'.$this->referenceName.'::'.$this->methodName, $gateway);
     }
 
-    private function compileGatewayInternalHandler(ContainerMessagingBuilder $builder): Reference|Definition|null
+    private function compileGatewayInternalHandler(ContainerMessagingBuilder $builder): Definition
     {
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);

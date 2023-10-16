@@ -38,7 +38,7 @@ final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuil
         return PrecedenceChannelInterceptor::COLLECTOR_PRECEDENCE;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(
             MessageCollectorChannelInterceptor::class,

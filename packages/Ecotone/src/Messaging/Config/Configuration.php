@@ -90,12 +90,6 @@ interface Configuration extends CompilerPass
      */
     public function registerAfterMethodInterceptor(MethodInterceptor $methodInterceptor): Configuration;
 
-    /**
-     * @param string[] $referenceNames
-     * @return Configuration
-     */
-    public function requireReferences(array $referenceNames): Configuration;
-
     public function requireConsumer(string $endpointId): Configuration;
 
     /**
@@ -116,16 +110,6 @@ interface Configuration extends CompilerPass
      * @return Configuration
      */
     public function registerGatewayBuilder(GatewayProxyBuilder $gatewayBuilder): Configuration;
-
-    /**
-     * @return string[]
-     */
-    public function getRequiredReferences(): array;
-
-    /**
-     * @return string[]
-     */
-    public function getOptionalReferences(): array;
 
     /**
      * @param InterfaceToCall[] $relatedInterfaces

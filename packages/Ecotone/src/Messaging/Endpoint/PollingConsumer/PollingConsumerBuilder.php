@@ -162,7 +162,7 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
 
         $gatewayBuilder = clone $this->entrypointGateway;
 
-        return $this->compiledGatewayReference = $gatewayBuilder
+        $gateway = $gatewayBuilder
             ->addAroundInterceptor(
                 AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry())
             )
@@ -181,6 +181,8 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
                 )
             )
             ->compile($builder);
+
+        return $this->compiledGatewayReference = $builder->register("gateway.inbound", $gateway);
     }
 
     public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void

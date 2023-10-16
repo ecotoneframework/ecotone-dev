@@ -100,7 +100,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         return $this;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
@@ -117,7 +117,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->staticHeadersToAdd
         ]);
 
-        return $builder->register(Uuid::uuid4()->toString(), new Definition(AmqpOutboundChannelAdapter::class, [
+        return new Definition(AmqpOutboundChannelAdapter::class, [
             $connectionFactory,
             $this->autoDeclare ? new Reference(AmqpAdmin::REFERENCE_NAME) : new Definition(AmqpAdmin::class, factory: 'createEmpty'),
             $this->exchangeName,
@@ -128,6 +128,6 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->autoDeclare,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME)
-        ]));
+        ]);
     }
 }

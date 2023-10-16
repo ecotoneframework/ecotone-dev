@@ -58,7 +58,7 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         return $interfaceToCallRegistry->getFor($this->aggregateClassName, $this->methodName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $repository = $this->isEventSourced
             ? new Definition(LazyEventSourcedRepository::class, [

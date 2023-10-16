@@ -147,7 +147,7 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
         return $interfaceToCallRegistry->getFor(InternalEnrichingService::class, 'enrich');
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         if (empty($this->propertyEditors)) {
             throw ConfigurationException::create("Can't configure enricher with no property setters");

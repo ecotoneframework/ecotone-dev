@@ -26,17 +26,6 @@ interface MessageChannelBuilder extends CompilableBuilder
     public function isPollable(): bool;
 
     /**
-     * @param ReferenceSearchService $referenceSearchService
-     * @return MessageChannel
-     */
-    public function build(ReferenceSearchService $referenceSearchService): MessageChannel;
-
-    /**
-     * @return string[] empty string means no required reference name exists
-     */
-    public function getRequiredReferenceNames(): array;
-
-    /**
      * @param InterfaceToCallRegistry $interfaceToCallRegistry
      *
      * @return InterfaceToCall[]

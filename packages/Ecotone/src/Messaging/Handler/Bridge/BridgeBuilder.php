@@ -151,7 +151,7 @@ class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel, Compilabl
         return $this->bridgeBuilder->build($channelResolver, $referenceSearchService);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         if (! $builder->has(Bridge::class)) {
             return $builder->register(Bridge::class, new Definition(Bridge::class));

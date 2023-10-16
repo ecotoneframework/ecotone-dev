@@ -38,7 +38,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         return new self($queueName, $connectionFactoryReferenceName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(DbalReconnectableConnectionFactory::class, [

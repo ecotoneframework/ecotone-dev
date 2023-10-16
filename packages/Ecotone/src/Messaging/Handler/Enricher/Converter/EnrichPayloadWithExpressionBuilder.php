@@ -78,7 +78,7 @@ class EnrichPayloadWithExpressionBuilder implements PropertyEditorBuilder
     /**
      * @inheritDoc
      */
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(EnrichPayloadWithExpressionPropertyEditor::class, [
             new Reference(ExpressionEvaluationService::REFERENCE),

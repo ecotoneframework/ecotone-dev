@@ -49,7 +49,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
         );
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(HttpReconnectableConnectionFactory::class, [

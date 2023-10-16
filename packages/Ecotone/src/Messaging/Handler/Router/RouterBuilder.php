@@ -155,7 +155,7 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
         throw new InvalidArgumentException("Not supported");
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         if ($this->methodNameOrInterface instanceof InterfaceToCall) {
             $interfaceToCall = $this->methodNameOrInterface;
@@ -172,13 +172,13 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
             $this->directObjectToInvoke ?: $this->objectToInvokeReference,
             $this->methodParameterConverters
         );
-        return $builder->register(uniqid('router.'), new Definition(Router::class, [
+        return new Definition(Router::class, [
             new Reference(ChannelResolver::class),
             $methodInvoker,
             $this->resolutionRequired,
             $this->defaultResolution,
             $this->applySequence,
-        ]));
+        ]);
     }
 
     /**

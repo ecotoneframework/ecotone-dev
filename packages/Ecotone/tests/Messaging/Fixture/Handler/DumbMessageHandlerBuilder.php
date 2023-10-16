@@ -5,6 +5,7 @@ namespace Test\Ecotone\Messaging\Fixture\Handler;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -71,9 +72,9 @@ class DumbMessageHandlerBuilder extends InputOutputMessageHandlerBuilder impleme
         return $this->messageHandler;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        return $builder->register(Uuid::uuid4(), $this->messageHandler);
+        return new DefinedObjectWrapper($this->messageHandler);
     }
 
     /**

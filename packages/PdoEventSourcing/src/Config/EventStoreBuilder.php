@@ -46,7 +46,7 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(EcotoneEventStoreProophWrapper::class, $this->methodName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $eventStoreProophWrapper = new Definition(EcotoneEventStoreProophWrapper::class, [
             new Definition(LazyProophEventStore::class, [

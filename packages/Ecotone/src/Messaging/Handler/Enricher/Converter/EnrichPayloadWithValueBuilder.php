@@ -53,7 +53,7 @@ class EnrichPayloadWithValueBuilder implements PropertyEditorBuilder
     /**
      * @inheritDoc
      */
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(EnrichPayloadWithValuePropertyEditor::class, [
             new Reference(PropertyEditorAccessor::class),

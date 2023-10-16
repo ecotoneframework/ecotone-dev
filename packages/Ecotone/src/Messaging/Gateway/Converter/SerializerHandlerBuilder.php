@@ -64,7 +64,7 @@ class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implemen
         )->build($channelResolver, $referenceSearchService);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         if (! $builder->has(SerializerHandler::class)) {
             $builder->register(SerializerHandler::class, new Definition(SerializerHandler::class, [

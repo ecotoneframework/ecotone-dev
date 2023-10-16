@@ -52,7 +52,7 @@ class GatewayPayloadBuilder implements GatewayParameterConverterBuilder
         return GatewayPayloadConverter::create($this->parameterName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(
             GatewayPayloadConverter::class,

@@ -62,7 +62,7 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         return new ManagerRegistryRepository($registry, $relatedClasses);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(ManagerRegistryRepository::class, [
             new Reference($this->connectionReferenceName),

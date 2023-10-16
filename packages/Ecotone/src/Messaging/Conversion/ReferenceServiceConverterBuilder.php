@@ -76,7 +76,7 @@ class ReferenceServiceConverterBuilder implements ConverterBuilder
         );
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(ReferenceServiceConverter::class, [
             new Reference($this->referenceName),

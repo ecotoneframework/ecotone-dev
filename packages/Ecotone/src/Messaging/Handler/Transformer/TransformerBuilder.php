@@ -167,7 +167,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         return $this->methodParameterConverterBuilders;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         if ($this->expression) {
             $objectToInvokeOn = new Definition(ExpressionTransformer::class, [$this->expression, new Reference(ExpressionEvaluationService::REFERENCE), new Reference(ReferenceSearchService::class)]);
@@ -235,7 +235,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             ]);
         }
 
-        return $builder->register(uniqid((string) $this), $handlerDefinition);
+        return $handlerDefinition;
     }
 
     private function setDirectObjectToInvoke(DefinedObject $objectToInvoke): void

@@ -45,9 +45,4 @@ interface MessageHandlerBuilder extends CompilableBuilder
      * @return string
      */
     public function getInputMessageChannelName(): string;
-
-    /**
-     * @return string[] empty string means no required reference name exists
-     */
-    public function getRequiredReferenceNames(): array;
 }

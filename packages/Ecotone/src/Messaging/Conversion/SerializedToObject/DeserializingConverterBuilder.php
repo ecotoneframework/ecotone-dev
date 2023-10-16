@@ -26,7 +26,7 @@ class DeserializingConverterBuilder implements ConverterBuilder
         return new DeserializingConverter();
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(DeserializingConverter::class);
     }

@@ -175,7 +175,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         return false;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         // There was this code
         // $pollingMetadata = $this->withContinuesPolling() ? $pollingMetadata->setFixedRateInMilliseconds(1) : $pollingMetadata;

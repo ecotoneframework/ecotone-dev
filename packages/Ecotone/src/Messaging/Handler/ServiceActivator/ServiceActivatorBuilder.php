@@ -163,7 +163,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         return $this->methodParameterConverterBuilders;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 

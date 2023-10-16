@@ -22,7 +22,7 @@ use Exception;
  * @package Ecotone\Modelling\Config
  * @author  Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class BusRouterBuilder implements MessageHandlerBuilder, CompilableBuilder
+class BusRouterBuilder implements MessageHandlerBuilder
 {
     private ?string $endpointId;
 
@@ -142,68 +142,7 @@ class BusRouterBuilder implements MessageHandlerBuilder, CompilableBuilder
         );
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        switch ($this->type) {
-            case 'eventByObject': {
-                return RouterBuilder::createRouterFromObject(
-                    new EventBusRouter($this->channelNamesRouting),
-                    'routeByObject'
-                )   ->setResolutionRequired(false)
-                    ->build($channelResolver, $referenceSearchService);
-            }
-            case 'eventByName': {
-                return RouterBuilder::createRouterFromObject(
-                    new EventBusRouter($this->channelNamesRouting),
-                    'routeByName'
-                )
-                    ->setResolutionRequired(false)
-                    ->withMethodParameterConverters([
-                        HeaderBuilder::createOptional('routedName', BusModule::EVENT_CHANNEL_NAME_BY_NAME),
-                    ])
-                    ->build($channelResolver, $referenceSearchService);
-            }
-            case 'commandByObject': {
-                return RouterBuilder::createRouterFromObject(
-                    new CommandBusRouter($this->channelNamesRouting),
-                    'routeByObject'
-                )->build($channelResolver, $referenceSearchService);
-            }
-            case 'commandByName': {
-                return RouterBuilder::createRouterFromObject(
-                    new CommandBusRouter($this->channelNamesRouting),
-                    'routeByName'
-                )
-                    ->withMethodParameterConverters([
-                        HeaderBuilder::createOptional('name', BusModule::COMMAND_CHANNEL_NAME_BY_NAME),
-                    ])
-                    ->build($channelResolver, $referenceSearchService);
-            }
-            case 'queryByObject': {
-                return RouterBuilder::createRouterFromObject(
-                    new QueryBusRouter($this->channelNamesRouting),
-                    'routeByObject'
-                )->build($channelResolver, $referenceSearchService);
-            }
-            case 'queryByName': {
-                return RouterBuilder::createRouterFromObject(
-                    new QueryBusRouter($this->channelNamesRouting),
-                    'routeByName'
-                )
-                    ->withMethodParameterConverters([
-                        HeaderBuilder::createOptional('name', BusModule::QUERY_CHANNEL_NAME_BY_NAME),
-                    ])
-                    ->build($channelResolver, $referenceSearchService);
-            }
-        }
-
-        throw InvalidArgumentException::create("Incorrect type {$this->type}");
-    }
-
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $configs = [
             'eventByObject' => [

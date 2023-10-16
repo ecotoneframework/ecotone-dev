@@ -54,7 +54,7 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(LazyProophProjectionManager::class, $this->methodName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $lazyProophProjectionManager = new Definition(
             LazyProophProjectionManager::class,

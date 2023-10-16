@@ -20,7 +20,6 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;
     protected EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapter;
-    private ?ChannelReference $compiled = null;
 
     public function __construct(EnqueueInboundChannelAdapterBuilder $inboundChannelAdapterBuilder, EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapterBuilder)
     {
@@ -149,17 +148,11 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         );
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        if ($this->compiled) {
-            throw new Exception("Message Channel {$this->getMessageChannelName()} is already compiled");
-            return $this->compiled;
-        }
-        $this->compiled = $channelReference = new ChannelReference($this->getMessageChannelName());
-        $builder->register($channelReference, new Definition(EnqueueMessageChannel::class, [
+        return new Definition(EnqueueMessageChannel::class, [
             $this->inboundChannelAdapter->compile($builder),
             $this->outboundChannelAdapter->compile($builder),
-        ]));
-        return $channelReference;
+        ]);
     }
 }

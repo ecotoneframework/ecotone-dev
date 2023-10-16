@@ -26,7 +26,7 @@ class ArrayToJsonConverterBuilder implements ConverterBuilder
         return new ArrayToJsonConverter();
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(ArrayToJsonConverter::class);
     }

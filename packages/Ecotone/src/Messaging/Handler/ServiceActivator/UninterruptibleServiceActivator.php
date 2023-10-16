@@ -113,7 +113,7 @@ final class UninterruptibleServiceActivator implements MessageHandlerBuilderWith
         return $this->serviceActivatorBuilder->getParameterConverters();
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return $this->serviceActivatorBuilder->compile($builder);
     }

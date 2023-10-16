@@ -44,7 +44,7 @@ final class InMemoryQueueAcknowledgeInterceptorBuilder implements ChannelInterce
         return new InMemoryQueueAcknowledgeInterceptor();
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(InMemoryQueueAcknowledgeInterceptor::class);
     }

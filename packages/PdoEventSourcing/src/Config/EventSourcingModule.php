@@ -547,7 +547,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
         $messagingConfiguration->registerRelatedInterfaces($this->relatedInterfaces);
-        $messagingConfiguration->requireReferences($this->requiredReferences);
 
         foreach ($this->projectionSetupConfigurations as $index => $projectionSetupConfiguration) {
             $projectionRunningConfiguration = ProjectionRunningConfiguration::createEventDriven($projectionSetupConfiguration->getProjectionName());

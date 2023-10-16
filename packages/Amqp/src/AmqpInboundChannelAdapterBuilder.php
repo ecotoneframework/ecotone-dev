@@ -31,7 +31,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         return new self($queueName, $endpointId, $requestChannelName, $amqpConnectionReferenceName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         // There was this code:
         // if ($pollingMetadata->getExecutionTimeLimitInMilliseconds()) {

@@ -60,10 +60,6 @@ class AmqpTransactionModule implements AnnotationModule
             $connectionFactories = $amqpConfiguration->getDefaultConnectionReferenceNames();
         }
 
-        if ($isTransactionWrapperEnabled) {
-            $messagingConfiguration->requireReferences($connectionFactories);
-        }
-
         $messagingConfiguration
             ->registerAroundMethodInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(

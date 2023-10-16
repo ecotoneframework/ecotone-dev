@@ -50,7 +50,7 @@ class AppointmentRepositoryBuilder implements RepositoryBuilder
         return AppointmentStandardRepository::createWith($this->appointments);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(AppointmentStandardRepository::class, [$this->appointments], 'createWith');
     }

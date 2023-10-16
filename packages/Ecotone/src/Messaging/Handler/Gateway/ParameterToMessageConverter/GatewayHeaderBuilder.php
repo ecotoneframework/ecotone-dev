@@ -56,7 +56,7 @@ class GatewayHeaderBuilder implements GatewayParameterConverterBuilder
         return GatewayHeaderConverter::create($this->parameterName, $this->headerName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(GatewayHeaderConverter::class, [
             $this->parameterName,

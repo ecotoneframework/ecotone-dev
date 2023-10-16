@@ -111,7 +111,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
     /**
      * @inheritDoc
      */
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 

@@ -45,7 +45,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         );
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
 //        if ($this->compiled) {
 //            return $this->compiled;

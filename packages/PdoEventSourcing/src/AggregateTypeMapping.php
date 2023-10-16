@@ -29,7 +29,7 @@ final class AggregateTypeMapping implements CompilableBuilder
         return $this->aggregateTypeMapping;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(self::class, [
             $this->aggregateTypeMapping

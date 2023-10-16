@@ -30,7 +30,7 @@ class AggregateStreamMapping implements CompilableBuilder
         return $this->aggregateToStreamMapping;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(self::class, [
             $this->aggregateToStreamMapping

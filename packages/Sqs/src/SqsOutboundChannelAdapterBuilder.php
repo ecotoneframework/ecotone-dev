@@ -45,7 +45,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         );
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(HttpReconnectableConnectionFactory::class, [
@@ -62,12 +62,12 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
             []
         ]);
 
-        return $builder->register(Uuid::uuid4()->toString(), new Definition(SqsOutboundChannelAdapter::class, [
+        return new Definition(SqsOutboundChannelAdapter::class, [
             $connectionFactory,
             $this->queueName,
             $this->autoDeclare,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME)
-        ]));
+        ]);
     }
 }

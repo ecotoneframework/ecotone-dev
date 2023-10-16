@@ -15,12 +15,6 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 interface ConverterBuilder extends CompilableBuilder
 {
     /**
-     * @param ReferenceSearchService $referenceSearchService
-     * @return Converter
-     */
-    public function build(ReferenceSearchService $referenceSearchService): Converter;
-
-    /**
      * @return string[]
      */
     public function getRequiredReferences(): array;

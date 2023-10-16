@@ -171,7 +171,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             ->build($channelResolver, $referenceSearchService);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName;
         if (!$builder->has($deadLetterHandlerReference)) {

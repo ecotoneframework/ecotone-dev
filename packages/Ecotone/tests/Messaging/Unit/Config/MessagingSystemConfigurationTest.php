@@ -695,8 +695,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->registerAsynchronousEndpoint('asyncChannel', 'endpointId')
             ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->setExecutionAmountLimit(1))
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('asyncChannel'))
-            ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create('inputChannel', $channelInterceptor))
-            ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
+            ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create('inputChannel', 'ref-name'))
+            ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith(['ref-name' => $channelInterceptor]));
 
         $replyChannel = QueueChannel::create();
         $requestMessage = MessageBuilder::withPayload(2)

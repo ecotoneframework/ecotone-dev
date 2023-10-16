@@ -80,7 +80,7 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
                     ->build($channelResolver, $referenceSearchService);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(AggregateIdentifierRetrevingService::class, 'convert'));
         $serviceReference = $builder->register(uniqid(AggregateIdentifierRetrevingService::class), new Definition(

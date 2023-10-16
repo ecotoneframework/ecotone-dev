@@ -64,7 +64,7 @@ class JMSConverterBuilder implements ConverterBuilder
         return new JMSConverter($builder->build(), $this->jmsConverterConfiguration);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference|Definition|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         // TODO
         return null;

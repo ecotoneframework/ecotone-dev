@@ -53,7 +53,7 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
             ->build($channelResolver, $referenceSearchService);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $projectionEventHandler =  new Definition(
             ProjectionEventHandler::class,

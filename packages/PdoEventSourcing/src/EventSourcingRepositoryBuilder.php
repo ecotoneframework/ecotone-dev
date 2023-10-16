@@ -84,7 +84,7 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
         );
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $headerMapper = $this->headerMapper
             ? DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper)

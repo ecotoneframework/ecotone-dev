@@ -69,7 +69,7 @@ class EventMapper implements MessageFactory, CompilableBuilder
         return $type;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): object|null
+    public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(self::class, [
             $this->eventToNameMapping,

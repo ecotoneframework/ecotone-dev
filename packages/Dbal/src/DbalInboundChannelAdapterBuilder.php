@@ -18,38 +18,13 @@ use Enqueue\Dbal\DbalConnectionFactory;
 
 class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    private ?Reference $compiled = null;
-
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = DbalConnectionFactory::class): self
     {
         return new self($queueName, $endpointId, $requestChannelName, $connectionReferenceName);
     }
 
-    public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): DbalInboundChannelAdapter
-    {
-        /** @var DbalConnection $connectionFactory */
-        $connectionFactory = $referenceSearchService->get($this->connectionReferenceName);
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-
-        $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, []);
-
-        return new DbalInboundChannelAdapter(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory)),
-            $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata),
-            $this->declareOnStartup,
-            $this->messageChannelName,
-            $this->receiveTimeoutInMilliseconds,
-            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper, EnqueueHeader::HEADER_ACKNOWLEDGE),
-            $conversionService
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
-//        if ($this->compiled) {
-//            return $this->compiled;
-//        }
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(DbalReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName)

@@ -104,37 +104,6 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return $this->getOutboundChannelAdapter()->getHeaderMapper();
     }
 
-    public function build(ReferenceSearchService $referenceSearchService): PollableChannel
-    {
-        $pollingMetadata = PollingMetadata::create('');
-
-        /** @var ServiceConfiguration|null $serviceConfiguration */
-        $serviceConfiguration = $referenceSearchService->has(ServiceConfiguration::class) ? $referenceSearchService->get(ServiceConfiguration::class) : null;
-        if (! $this->getConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
-            $this->withDefaultConversionMediaType($serviceConfiguration->getDefaultSerializationMediaType());
-        }
-
-        if ($serviceConfiguration && $serviceConfiguration->getDefaultErrorChannel()) {
-            $pollingMetadata = $pollingMetadata
-                ->setErrorChannelName($serviceConfiguration->getDefaultErrorChannel());
-        }
-        if ($serviceConfiguration && $serviceConfiguration->getDefaultMemoryLimitInMegabytes()) {
-            $pollingMetadata = $pollingMetadata
-                ->setMemoryLimitInMegaBytes($serviceConfiguration->getDefaultMemoryLimitInMegabytes());
-        }
-        if ($serviceConfiguration && $serviceConfiguration->getConnectionRetryTemplate()) {
-            $pollingMetadata = $pollingMetadata
-                ->setConnectionRetryTemplate($serviceConfiguration->getConnectionRetryTemplate());
-        }
-
-        $inMemoryChannelResolver = InMemoryChannelResolver::createEmpty();
-
-        return new EnqueueMessageChannel(
-            $this->inboundChannelAdapter->createInboundChannelAdapter($inMemoryChannelResolver, $referenceSearchService, $pollingMetadata),
-            $this->outboundChannelAdapter->build($inMemoryChannelResolver, $referenceSearchService)
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(EnqueueMessageChannel::class, [

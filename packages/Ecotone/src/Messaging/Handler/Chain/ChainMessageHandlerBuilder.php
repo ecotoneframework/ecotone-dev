@@ -172,16 +172,6 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
     }
 
     /**
-     * @param array $messageHandlersToChain
-     * @param $previousHandlerKey
-     * @return bool
-     */
-    private function hasPreviousHandler(array $messageHandlersToChain, $previousHandlerKey): bool
-    {
-        return isset($messageHandlersToChain[$previousHandlerKey]);
-    }
-
-    /**
      * @inheritDoc
      */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
@@ -191,24 +181,5 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
         }
 
         return $interfaceToCallRegistry->getFor(ChainForwardPublisher::class, 'forward');
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        $relatedReferences = [];
-        if ($this->outputMessageHandler) {
-            $relatedReferences = array_merge($relatedReferences, $this->outputMessageHandler->resolveRelatedInterfaces($interfaceToCallRegistry));
-        }
-
-        foreach ($this->chainedMessageHandlerBuilders as $chainedMessageHandlerBuilder) {
-            foreach ($chainedMessageHandlerBuilder->resolveRelatedInterfaces($interfaceToCallRegistry) as $resolveRelatedReference) {
-                $relatedReferences[] = $resolveRelatedReference;
-            }
-        }
-
-        return $relatedReferences;
     }
 }

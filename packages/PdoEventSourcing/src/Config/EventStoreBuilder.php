@@ -62,9 +62,4 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
             ->withInputChannelName($this->getInputMessageChannelName())
             ->compile($builder);
     }
-
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$interfaceToCallRegistry->getFor(EcotoneEventStoreProophWrapper::class, $this->methodName)];
-    }
 }

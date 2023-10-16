@@ -99,11 +99,6 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
         return true;
     }
 
-    public function build(ReferenceSearchService $referenceSearchService): MessageChannel
-    {
-        return $this;
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(ExceptionalQueueChannel::class, [
@@ -112,10 +107,5 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
             $this->exceptionOnSend,
             $this->stopFailingAfterAttempt
         ]);
-    }
-
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
     }
 }

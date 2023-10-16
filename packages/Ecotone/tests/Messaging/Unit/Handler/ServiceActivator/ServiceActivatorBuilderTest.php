@@ -176,38 +176,4 @@ class ServiceActivatorBuilderTest extends MessagingTest
             $replyChannel->receive()->getPayload()
         );
     }
-
-    public function test_resolving_correct_interface_from_direct_object()
-    {
-        $objectToInvoke = CalculatingServiceInterceptorExample::create(0);
-        $serviceActivator = ServiceActivatorBuilder::createWithDirectReference($objectToInvoke, 'result');
-
-        $this->assertEquals(
-            [
-                InterfaceToCall::create($objectToInvoke, 'result'),
-            ],
-            $serviceActivator->resolveRelatedInterfaces(
-                InterfaceToCallRegistry::createWith(InMemoryAnnotationFinder::createFrom([CalculatingServiceInterceptorExample::class])),
-            )
-        );
-    }
-
-    public function test_resolving_correct_interface_from_reference_object()
-    {
-        $objectToInvokeOnReference = 'service-a';
-        $objectToInvoke = CalculatingServiceInterceptorExample::create(0);
-
-        $serviceActivator = ServiceActivatorBuilder::create($objectToInvokeOnReference, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'result'));
-
-        $this->assertEquals(
-            [
-                InterfaceToCall::create($objectToInvoke, 'result'),
-            ],
-            $serviceActivator->resolveRelatedInterfaces(
-                InterfaceToCallRegistry::createWith(
-                    InMemoryAnnotationFinder::createFrom([CalculatingServiceInterceptorExample::class])
-                )
-            )
-        );
-    }
 }

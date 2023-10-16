@@ -73,17 +73,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     }
 
     /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        $resolvedInterfaces = $this->isNullableGateway() ? [] : $this->inboundGateway->resolveRelatedInterfaces($interfaceToCallRegistry);
-        $resolvedInterfaces[] = $interfaceToCallRegistry->getFor(InboundChannelAdapterEntrypoint::class, 'executeEntrypoint');
-
-        return $resolvedInterfaces;
-    }
-
-    /**
      * @return string
      */
     public function getEndpointId(): string

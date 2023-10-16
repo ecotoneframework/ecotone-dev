@@ -38,9 +38,4 @@ class OutputChannelKeeperBuilder extends InputOutputMessageHandlerBuilder
         return ServiceActivatorBuilder::createWithDefinition(new Definition(OutputChannelKeeper::class, [$gateway]), 'keep')
             ->compile($builder);
     }
-
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$interfaceToCallRegistry->getFor(OutputChannelKeeper::class, 'keep')];
-    }
 }

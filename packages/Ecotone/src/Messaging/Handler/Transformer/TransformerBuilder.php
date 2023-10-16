@@ -58,23 +58,6 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         }
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        if ($this->expression) {
-            $interfaceToCallRegistry->getFor(ExpressionTransformer::class, 'transform');
-            return [];
-        }
-
-        return [
-            $this->methodNameOrInterface instanceof InterfaceToCall
-                ? $this->methodNameOrInterface
-                : $interfaceToCallRegistry->getFor($this->directObject, $this->getMethodName()),
-        ];
-    }
-
     public static function create(string $objectToInvokeReference, InterfaceToCall $interfaceToCall): self
     {
         return new self($objectToInvokeReference, $interfaceToCall);

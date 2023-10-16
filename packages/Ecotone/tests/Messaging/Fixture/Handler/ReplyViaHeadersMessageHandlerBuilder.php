@@ -46,12 +46,4 @@ class ReplyViaHeadersMessageHandlerBuilder extends InputOutputMessageHandlerBuil
     {
         return $interfaceToCallRegistry->getFor(ReplyViaHeadersMessageHandler::class, 'handle');
     }
-
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
 }

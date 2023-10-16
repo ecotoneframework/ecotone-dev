@@ -19,14 +19,6 @@ interface ChannelInterceptorBuilder extends CompilableBuilder
     public function relatedChannelName(): string;
 
     /**
-     * It returns, internal reference objects that will be called during handling method
-     *
-     * @param InterfaceToCallRegistry $interfaceToCallRegistry
-     * @return InterfaceToCall[]
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable;
-
-    /**
      * @return int
      */
     public function getPrecedence(): int;

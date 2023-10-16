@@ -269,25 +269,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     }
 
     /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        $resolvedInterfaces = [
-            $interfaceToCallRegistry->getFor(GatewayInternalHandler::class, 'handle'),
-            $interfaceToCallRegistry->getFor(ErrorChannelInterceptor::class, 'handle'),
-            $interfaceToCallRegistry->getFor(GatewayReplyConverter::class, 'convert'),
-            $interfaceToCallRegistry->getFor($this->interfaceName, $this->methodName),
-        ];
-
-        foreach ($this->aroundInterceptors as $aroundInterceptor) {
-            $resolvedInterfaces[] = $aroundInterceptor->getInterceptingInterface();
-        }
-
-        return $resolvedInterfaces;
-    }
-
-    /**
      * @param AttributeDefinition[] $endpointAnnotations
      * @return static
      */

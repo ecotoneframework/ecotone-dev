@@ -23,11 +23,6 @@ final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuil
         return $this->collectedChannel;
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
     public function getPrecedence(): int
     {
         return PrecedenceChannelInterceptor::COLLECTOR_PRECEDENCE;

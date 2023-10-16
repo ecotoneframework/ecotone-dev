@@ -15,14 +15,6 @@ use Ecotone\Messaging\MessageHandler;
 interface MessageHandlerBuilder extends CompilableBuilder
 {
     /**
-     * It returns, internal reference objects that will be called during handling method
-     *
-     * @param InterfaceToCallRegistry $interfaceToCallRegistry
-     * @return InterfaceToCall[]
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable;
-
-    /**
      * @param string $inputChannelName
      *
      * @return static

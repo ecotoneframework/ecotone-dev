@@ -76,11 +76,6 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
         ]);
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
     private function getTransportServiceName(): string
     {
         return self::TRANSPORT_SERVICE_PREFIX . $this->transportName;

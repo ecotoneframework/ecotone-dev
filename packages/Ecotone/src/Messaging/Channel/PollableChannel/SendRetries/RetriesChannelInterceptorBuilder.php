@@ -32,11 +32,6 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
         return $this->relatedChannel;
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
     public function getPrecedence(): int
     {
         return PrecedenceChannelInterceptor::DEFAULT_PRECEDENCE;

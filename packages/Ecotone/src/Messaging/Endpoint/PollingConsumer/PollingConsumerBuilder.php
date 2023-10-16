@@ -126,16 +126,6 @@ class PollingConsumerBuilder implements MessageHandlerConsumerBuilder, Intercept
     /**
      * @inheritDoc
      */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return array_merge([
-            $interfaceToCallRegistry->getFor(InboundGatewayEntrypoint::class, 'executeEntrypoint'),
-        ], $this->entrypointGateway->resolveRelatedInterfaces($interfaceToCallRegistry));
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function withRequiredInterceptorNames(iterable $interceptorNames): self
     {
         $this->entrypointGateway->withRequiredInterceptorNames($interceptorNames);

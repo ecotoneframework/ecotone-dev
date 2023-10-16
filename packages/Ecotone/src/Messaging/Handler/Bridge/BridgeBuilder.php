@@ -143,19 +143,8 @@ class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel
         return $this->bridgeBuilder->getInterceptedInterface($interfaceToCallRegistry);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference
+    public function compile(ContainerMessagingBuilder $builder): Definition|Reference
     {
-        if (! $builder->has(Bridge::class)) {
-            return $builder->register(Bridge::class, new Definition(Bridge::class));
-        }
         return $this->bridgeBuilder->compile($builder);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return $this->bridgeBuilder->resolveRelatedInterfaces($interfaceToCallRegistry);
     }
 }

@@ -158,18 +158,6 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     /**
      * @inheritDoc
      */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [
-            $interfaceToCallRegistry->getFor($this->interfaceToCall->getInterfaceName(), $this->interfaceToCall->getMethodName()),
-            $interfaceToCallRegistry->getFor(CallAggregateService::class, 'call'),
-            $interfaceToCallRegistry->getFor(SaveAggregateService::class, 'save'),
-        ];
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         return $interfaceToCallRegistry->getFor(SaveAggregateService::class, 'save');

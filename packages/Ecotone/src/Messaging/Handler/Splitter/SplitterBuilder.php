@@ -54,14 +54,6 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
         return new self($definition, new InterfaceToCallReference($definition->getClassName(), $methodName));
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$interfaceToCallRegistry->getFor($this->interfaceToCallReference->getClassName(), $this->interfaceToCallReference->getMethodName())];
-    }
-
     public static function createMessagePayloadSplitter(): self
     {
         return self::createWithDefinition(DirectMessageSplitter::class, 'split');

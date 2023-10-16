@@ -58,15 +58,4 @@ class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implemen
         return ServiceActivatorBuilder::create(SerializerHandler::class, $interfaceToCall)
             ->compile($builder);
     }
-
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [
-            $interfaceToCallRegistry->getFor(Serializer::class, $this->methodName),
-            $interfaceToCallRegistry->getFor(SerializerHandler::class, $this->methodName),
-        ];
-    }
 }

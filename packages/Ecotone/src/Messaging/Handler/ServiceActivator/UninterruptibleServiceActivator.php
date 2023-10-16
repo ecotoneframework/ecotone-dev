@@ -29,17 +29,6 @@ final class UninterruptibleServiceActivator implements MessageHandlerBuilderWith
     }
 
     /**
-     * It returns, internal reference objects that will be called during handling method
-     *
-     * @param InterfaceToCallRegistry $interfaceToCallRegistry
-     * @return InterfaceToCall[]
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return $this->serviceActivatorBuilder->resolveRelatedInterfaces($interfaceToCallRegistry);
-    }
-
-    /**
      * @param string $inputChannelName
      *
      * @return static

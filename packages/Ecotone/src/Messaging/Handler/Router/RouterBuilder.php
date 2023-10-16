@@ -58,14 +58,6 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
         return $routerBuilder;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
     public static function createRouterFromObject(object $customRouterObject, string $methodName): self
     {
         $routerBuilder = new self('', $methodName);
@@ -137,14 +129,6 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
         $this->defaultResolution = $channelName;
 
         return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        throw new InvalidArgumentException("Not supported");
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition

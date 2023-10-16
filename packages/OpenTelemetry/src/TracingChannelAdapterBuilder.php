@@ -25,11 +25,6 @@ final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
         return $this->channelName;
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
     public function getPrecedence(): int
     {
         return Precedence::DEFAULT_PRECEDENCE;

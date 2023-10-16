@@ -80,14 +80,6 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
     /**
      * @inheritDoc
      */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$interfaceToCallRegistry->getFor(AggregateIdentifierRetrevingService::class, 'convert')];
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         return $interfaceToCallRegistry->getFor(AggregateIdentifierRetrevingService::class, 'convert');

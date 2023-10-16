@@ -25,11 +25,6 @@ final class SpiedChannelAdapterBuilder implements ChannelInterceptorBuilder
         return $this->relatedChannel;
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
     public function getPrecedence(): int
     {
         return Precedence::DEFAULT_PRECEDENCE;

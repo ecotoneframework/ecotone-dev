@@ -33,11 +33,6 @@ final class OutboundSerializationChannelBuilder implements ChannelInterceptorBui
         return $this->relatedChannel;
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
     public function getPrecedence(): int
     {
         return PrecedenceChannelInterceptor::MESSAGE_SERIALIZATION;

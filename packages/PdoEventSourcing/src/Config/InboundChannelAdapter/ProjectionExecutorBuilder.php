@@ -57,11 +57,4 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
             ->withMethodParameterConverters([ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointWithHeadersPropagation::class)])
             ->compile($builder);
     }
-
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [
-            $interfaceToCallRegistry->getFor(ProjectionEventHandler::class, $this->methodName),
-        ];
-    }
 }

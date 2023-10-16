@@ -138,14 +138,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     /**
      * @inheritDoc
      */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$this->getInterceptedInterface($interfaceToCallRegistry)];
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getParameterConverters(): array
     {
         return $this->methodParameterConverterBuilders;

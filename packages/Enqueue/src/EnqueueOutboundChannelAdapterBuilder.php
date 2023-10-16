@@ -49,18 +49,6 @@ abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBui
      * @var int|null
      */
     protected $defaultPriority = self::DEFAULT_PRIORITY;
-    /**
-     * @var string[]
-     */
-    protected $requiredReferenceNames = [];
-
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
 
     public function withDefaultTimeToLive(?int $timeInMilliseconds): self
     {

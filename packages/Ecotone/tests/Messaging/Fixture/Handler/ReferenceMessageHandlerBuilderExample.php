@@ -72,14 +72,6 @@ class ReferenceMessageHandlerBuilderExample extends InputOutputMessageHandlerBui
     /**
      * @inheritDoc
      */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         return $interfaceToCallRegistry->getFor(ReplyViaHeadersMessageHandler::class, 'handle');

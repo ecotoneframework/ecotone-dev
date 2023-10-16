@@ -24,11 +24,4 @@ interface MessageChannelBuilder extends CompilableBuilder
      * @return bool
      */
     public function isPollable(): bool;
-
-    /**
-     * @param InterfaceToCallRegistry $interfaceToCallRegistry
-     *
-     * @return InterfaceToCall[]
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable;
 }

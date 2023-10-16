@@ -104,14 +104,6 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return $this->getOutboundChannelAdapter()->getHeaderMapper();
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return array_merge(
-            $this->getInboundChannelAdapter()->resolveRelatedInterfaces($interfaceToCallRegistry),
-            $this->getOutboundChannelAdapter()->resolveRelatedInterfaces($interfaceToCallRegistry)
-        );
-    }
-
     public function build(ReferenceSearchService $referenceSearchService): PollableChannel
     {
         $pollingMetadata = PollingMetadata::create('');

@@ -79,14 +79,6 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
     /**
      * @inheritDoc
      */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getMessageChannelName(): string
     {
         return $this->messageChannelName;

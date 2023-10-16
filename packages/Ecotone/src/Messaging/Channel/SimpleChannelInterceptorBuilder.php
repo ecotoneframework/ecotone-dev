@@ -55,11 +55,6 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
         return $this->precedence;
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Reference
     {
         return \is_string($this->referenceName) ? Reference::to($this->referenceName) : $this->referenceName;

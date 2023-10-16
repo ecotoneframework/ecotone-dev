@@ -63,9 +63,4 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
             ->withMethodParameterConverters($this->methodParameterConverterBuilders)
             ->compile($builder);
     }
-
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$interfaceToCallRegistry->getFor(DbalDocumentStore::class, $this->method)];
-    }
 }

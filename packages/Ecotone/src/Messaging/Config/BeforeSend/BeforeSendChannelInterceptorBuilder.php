@@ -43,14 +43,6 @@ class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
         return $this->inputChannelName;
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return array_merge(
-            $this->gateway->resolveRelatedInterfaces($interfaceToCallRegistry),
-            $this->methodInterceptor->getMessageHandler()->resolveRelatedInterfaces($interfaceToCallRegistry)
-        );
-    }
-
     /**
      * @inheritDoc
      */

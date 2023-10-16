@@ -277,15 +277,6 @@ final class MessagingSystemConfiguration implements Configuration
         $this->configureAsynchronousEndpoints();
         $this->configureInterceptors($interfaceToCallRegistry);
 
-        foreach ($this->channelBuilders as $channelBuilder) {
-            $channelBuilder->resolveRelatedInterfaces($interfaceToCallRegistry);
-        }
-        foreach ($this->channelInterceptorBuilders as $channelInterceptorForName) {
-            foreach ($channelInterceptorForName as $channelInterceptorBuilder) {
-                $channelInterceptorBuilder->resolveRelatedInterfaces($interfaceToCallRegistry);
-            }
-        }
-
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             $this->addDefaultPollingConfiguration($messageHandlerBuilder->getEndpointId());
         }

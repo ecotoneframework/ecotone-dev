@@ -71,11 +71,6 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
             ->compile($builder);
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$interfaceToCallRegistry->getFor(LazyProophProjectionManager::class, $this->methodName)];
-    }
-
     public static function getProjectionManagerActionChannel(string $projectionManagerReference, string $methodName): string
     {
         return $projectionManagerReference . $methodName;

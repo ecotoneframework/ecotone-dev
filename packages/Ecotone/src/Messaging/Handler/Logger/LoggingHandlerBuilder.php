@@ -122,15 +122,6 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
             ->compile($builder);
     }
 
-
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$interfaceToCallRegistry->getFor(LoggingInterceptor::class, $this->getMethodName())];
-    }
-
     /**
      * @inheritDoc
      */

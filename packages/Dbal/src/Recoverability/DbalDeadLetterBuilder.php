@@ -182,18 +182,6 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             ->compile($builder);
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'list'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'show'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'reply'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'replyAll'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'delete'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'store'),
-        ];
-    }
-
     public function getEndpointId(): ?string
     {
         return $this->getInputMessageChannelName() . '.endpoint';

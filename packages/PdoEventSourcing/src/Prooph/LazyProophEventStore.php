@@ -55,20 +55,14 @@ class LazyProophEventStore implements EventStore
     public const AGGREGATE_ID = '_aggregate_id';
 
     private ?EventStore $initializedEventStore = null;
-    private ReferenceSearchService $referenceSearchService;
-    private MessageFactory $messageFactory;
     private MessageConverter $messageConverter;
     private bool $requireInitialization;
     private array $ensuredExistingStreams = [];
-    private EventSourcingConfiguration $eventSourcingConfiguration;
 
-    public function __construct(EventSourcingConfiguration $eventSourcingConfiguration, ReferenceSearchService $referenceSearchService)
+    public function __construct(private EventSourcingConfiguration $eventSourcingConfiguration, private ReferenceSearchService $referenceSearchService, private EventMapper $messageFactory)
     {
         $this->messageConverter = new FromProophMessageToArrayConverter();
-        $this->messageFactory = $referenceSearchService->get(EventMapper::class);
-        $this->eventSourcingConfiguration = $eventSourcingConfiguration;
         $this->requireInitialization = $eventSourcingConfiguration->isInitializedOnStart();
-        $this->referenceSearchService = $referenceSearchService;
     }
 
     public function fetchStreamMetadata(StreamName $streamName): array

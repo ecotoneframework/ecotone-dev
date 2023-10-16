@@ -2,9 +2,11 @@
 
 namespace Ecotone\EventSourcing\Config\InboundChannelAdapter;
 
+use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
+use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -46,6 +48,7 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
                     $this->eventSourcingConfiguration,
                     $this->projectSetupConfigurations,
                     Reference::to(ReferenceSearchService::class),
+                    Reference::to(EventMapper::class)
                 ]),
                 $this->projectionSetupConfiguration,
                 $this->projectionRunningConfiguration,

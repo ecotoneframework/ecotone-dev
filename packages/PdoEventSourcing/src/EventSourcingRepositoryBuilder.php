@@ -70,6 +70,7 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
                 new Definition(LazyProophEventStore::class, [
                     new Reference(EventSourcingConfiguration::class),
                     new Reference(ReferenceSearchService::class),
+                    new Reference(EventMapper::class),
                 ]),
                 new Reference(ConversionService::REFERENCE_NAME),
                 new Reference(EventMapper::class)

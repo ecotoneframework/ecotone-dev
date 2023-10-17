@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Config\Container;
 
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
@@ -42,6 +43,14 @@ class ContainerMessagingBuilder
     {
         if (isset($this->pollingEndpoints[$endpointId])) {
             throw new \InvalidArgumentException("Endpoint with id {$endpointId} already exists");
+        }
+        if (!$this->has($endpointRunnerReferenceName)) {
+            throw new \InvalidArgumentException("Endpoint runner with id {$endpointRunnerReferenceName} does not exists");
+        }
+        $definition = $this->getDefinition($endpointRunnerReferenceName);
+        $className = $definition->getClassName();
+        if (!is_subclass_of($className, EndpointRunner::class, true)) {
+            throw new \InvalidArgumentException("Endpoint runner {$className} must implement " . EndpointRunner::class);
         }
         $this->pollingEndpoints[$endpointId] = $endpointRunnerReferenceName;
     }

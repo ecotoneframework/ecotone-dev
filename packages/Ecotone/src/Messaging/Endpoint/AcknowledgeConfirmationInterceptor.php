@@ -37,7 +37,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
      * @throws Throwable
      * @throws MessagingException
      */
-    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference('logger')] LoggerInterface $logger, PollingMetadata $pollingMetadata)
+    public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference('logger')] LoggerInterface $logger)
     {
         $logger->info(
             sprintf(
@@ -80,6 +80,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
             }
         }
 
+        $pollingMetadata = $message->getHeaders()->get(MessageHeaders::POLLING_METADATA);
         if ($pollingMetadata->isStoppedOnError() === true && $exception !== null) {
             $logger->info('Should stop on error configuration enabled, stopping Message Consumer.');
             throw $exception;

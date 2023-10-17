@@ -9,6 +9,7 @@ use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
@@ -34,6 +35,9 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
         $message = $this->receiveMessage($pollingMetadata->getExecutionTimeLimitInMilliseconds());
 
         if ($message) {
+            $message = MessageBuilder::fromMessage($message)
+                ->setHeader(MessageHeaders::POLLING_METADATA, $pollingMetadata)
+                ->build();
             $this->entrypointGateway->executeEntrypoint($message);
         }
     }

@@ -2,7 +2,9 @@
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Container\ChannelReference;
+use Ecotone\Messaging\Endpoint\AsynchronousEndpointConsumerFactory;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
@@ -89,9 +91,9 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         if (!isset($this->pollingEndpoints[$endpointId])) {
             throw InvalidArgumentException::create("Endpoint with id {$endpointId} was not found");
         }
-        /** @var EndpointRunner $pollingConsumerContext */
-        $pollingConsumerContext = $this->container->get($this->pollingEndpoints[$endpointId]);
-        $pollingConsumerContext->runEndpointWithExecutionPollingMetadata($endpointId, $executionPollingMetadata);
+        /** @var EndpointRunner $endpointRunner */
+        $endpointRunner = $this->container->get($this->pollingEndpoints[$endpointId]);
+        $endpointRunner->runEndpointWithExecutionPollingMetadata($endpointId, $executionPollingMetadata);
     }
 
     public function list(): array

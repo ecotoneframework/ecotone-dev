@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint\InboundChannelAdapter;
 
+use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
+use Ecotone\Messaging\Endpoint\InterceptedPollerConsumerRunner;
+use Ecotone\Messaging\Endpoint\InterceptedTaskConsumerRunner;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerPostSendAroundInterceptor;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -26,8 +30,10 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class InboundChannelAdapterBuilder
@@ -162,7 +168,8 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         // There was this code
-        // $pollingMetadata = $this->withContinuesPolling() ? $pollingMetadata->setFixedRateInMilliseconds(1) : $pollingMetadata;
+         $pollingMetadata = $this->withContinuesPolling() ? $pollingMetadata->setFixedRateInMilliseconds(1) : $pollingMetadata;
+
 
         Assert::notNullAndEmpty($this->endpointId, "Endpoint Id for inbound channel adapter can't be empty");
 
@@ -180,24 +187,20 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             $objectReference = new Definition(PassThroughService::class, [$objectReference, $methodName]);
             $methodName = 'execute';
         }
-        $gatewayBuilder = clone $this->inboundGateway;
-        $gateway = $gatewayBuilder
+        $gateway = $this->inboundGateway
             ->addAroundInterceptor(
                 AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry())
             )
-            ->addAroundInterceptor(
-                AroundInterceptorReference::create(
-                    PollingConsumerPostSendAroundInterceptor::class,
-                    $builder->getInterfaceToCall(new InterfaceToCallReference(PollingConsumerPostSendAroundInterceptor::class, 'postSend')),
-                    Precedence::ASYNCHRONOUS_CONSUMER_INTERCEPTOR_PRECEDENCE,
-                )
-            )
+            ->withAnnotatedInterface($this->interfaceToCall)
             ->compile($builder);
 
-        return new Definition(InboundChannelTaskExecutor::class, [
+        return new Definition(InterceptedTaskConsumerRunner::class, [
             $gateway,
             $objectReference,
-            $methodName
+            $methodName,
+            new PollingMetadataReference($this->endpointId),
+            new Reference(Clock::class),
+            new Reference(LoggerInterface::class),
         ]);
     }
 

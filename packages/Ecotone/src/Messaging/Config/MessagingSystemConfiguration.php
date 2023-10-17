@@ -23,6 +23,7 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
@@ -30,6 +31,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
+use Ecotone\Messaging\Endpoint\CompilationPollingMetadata;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
@@ -1166,7 +1168,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         foreach ($this->pollingMetadata as $pollingMetadata) {
-            $messagingBuilder->register('polling.'.$pollingMetadata->getEndpointId().'.metadata', $pollingMetadata);
+            $messagingBuilder->register(new PollingMetadataReference($pollingMetadata->getEndpointId()), $pollingMetadata);
         }
 
         foreach ($this->channelBuilders as $channelsBuilder) {
@@ -1214,7 +1216,12 @@ final class MessagingSystemConfiguration implements Configuration
             $inputChannelBuilder = $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] ?? throw ConfigurationException::create("Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
             foreach ($this->consumerFactories as $consumerFactory) {
                 if ($consumerFactory->isSupporting($messageHandlerBuilder, $inputChannelBuilder)) {
-                    $consumerFactory->registerConsumer($messagingBuilder, $messageHandlerBuilder);
+                    $consumerFactory->registerConsumer(
+                        $messagingBuilder,
+                        $messageHandlerBuilder,
+                        isset($this->pollingMetadata[$messageHandlerBuilder->getEndpointId()])
+                            ? CompilationPollingMetadata::fromPollingMetadata($this->pollingMetadata[$messageHandlerBuilder->getEndpointId()])
+                            : null);
                     break;
                 }
             }

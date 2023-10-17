@@ -28,7 +28,7 @@ class CacheWarmer implements CacheWarmerInterface
         foreach ($messagingSystem->getGatewayList() as $gatewayReference) {
             $this->proxyFactory->createWithCurrentConfiguration(
                 $gatewayReference->getReferenceName(),
-                $this->containerInterface,
+                $messagingSystem,
                 $gatewayReference->getInterfaceName()
             );
         }

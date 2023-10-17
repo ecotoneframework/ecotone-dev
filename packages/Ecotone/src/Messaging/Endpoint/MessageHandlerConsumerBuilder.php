@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Endpoint;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
@@ -17,12 +18,9 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  */
 interface MessageHandlerConsumerBuilder
 {
-    /**
-     * @inheritDoc
-     */
     public function isSupporting(MessageHandlerBuilder $messageHandlerBuilder, MessageChannelBuilder $relatedMessageChannel): bool;
 
     public function isPollingConsumer(): bool;
 
-    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void;
+    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder, ?CompilationPollingMetadata $pollingMetadata): void;
 }

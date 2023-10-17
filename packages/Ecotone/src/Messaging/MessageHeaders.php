@@ -94,6 +94,10 @@ final class MessageHeaders
      */
     public const POLLED_CHANNEL_NAME = 'polledChannelName';
     /**
+     * Current polling metadata
+     */
+    public const POLLING_METADATA = 'pollingMetadata';
+    /**
      * Expected content type of reply
      */
     public const REPLY_CONTENT_TYPE = 'replyContentType';
@@ -163,6 +167,7 @@ final class MessageHeaders
             self::STREAM_BASED_SOURCED,
             MessagingEntrypoint::ENTRYPOINT,
             self::CHANNEL_SEND_RETRY_NUMBER,
+            self::POLLING_METADATA,
         ];
     }
 
@@ -234,6 +239,7 @@ final class MessageHeaders
             $metadata[self::CONTENT_TYPE],
             $metadata[self::CONSUMER_ACK_HEADER_LOCATION],
             $metadata[self::POLLED_CHANNEL_NAME],
+            $metadata[self::POLLING_METADATA],
             $metadata[self::REPLY_CHANNEL]
         );
 

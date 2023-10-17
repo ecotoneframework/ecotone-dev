@@ -9,6 +9,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Endpoint\CompilationPollingMetadata;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
@@ -40,13 +41,14 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
         return true;
     }
 
-    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
+    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder, ?CompilationPollingMetadata $pollingMetadata): void
     {
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);
-        $builder->register("polling.{$messageHandlerBuilder->getEndpointId()}.runner", new Definition(PollOrThrowExceptionConsumer::class, [
+        $reference = "polling.{$messageHandlerBuilder->getEndpointId()}.runner";
+        $builder->register($reference, new Definition(PollOrThrowExceptionConsumer::class, [
             Reference::toChannel($messageHandlerBuilder->getInputMessageChannelName()),
             $messageHandlerReference
         ], 'create'));
-        $builder->registerPollingEndpoint($messageHandlerBuilder->getEndpointId(), "polling.{$messageHandlerBuilder->getEndpointId()}.runner");
+        $builder->registerPollingEndpoint($messageHandlerBuilder->getEndpointId(), $reference);
     }
 }

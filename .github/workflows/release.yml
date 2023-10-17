@@ -1,0 +1,133 @@
+name: 'Releasing latest changes'
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  # 1. for Github split
+  GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+
+jobs:
+  prepare-code-for-release:
+    name: "Auto fix PHP CS and set up required package versions"
+    runs-on: ubuntu-latest
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.1
+          coverage: none
+
+      -
+#        In order to not be in detached state due to tag checkout
+        uses: actions/checkout@v2
+        with:
+          ref: "main"
+
+      - name: Install PHP-CS-Fixer
+        run: |
+          composer global require friendsofphp/php-cs-fixer
+          export PATH="$PATH:$HOME/.composer/vendor/bin"
+
+      - name: Run PHP CS Fixer
+        run: php-cs-fixer fix --config=.php-cs-fixer.dist.php --allow-risky=yes
+
+      - name: Run Update Required Packages
+        run: php bin/update-required-packages.php ${{ github.ref_name }}
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Release ${{ github.ref_name }}
+
+  get_packages:
+    name: Package splitting
+    needs: prepare-code-for-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set Up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.1
+          coverage: none
+
+      - uses: actions/checkout@v2
+
+      - name: Get Packages
+        id: get_json
+        run: echo "::set-output name=json::$(bin/get-packages)"
+
+      - name: Output Packages
+        run: echo "${{ steps.get_json.outputs.json }}"
+
+    outputs:
+      matrix: ${{ steps.get_json.outputs.json }}
+
+  split_packages:
+    name: Split Package ${{ matrix.package.name }}
+    needs: get_packages
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJson(needs.get_packages.outputs.matrix) }}
+
+    steps:
+      -
+        if: "startsWith(github.ref, 'refs/tags/')"
+        uses: actions/checkout@v2
+        with:
+#          this is because we need to commit to main branch changes with composer.json required versions
+          ref: "main"
+          fetch-depth: '0'
+      -
+        uses: "danharrin/monorepo-split-github-action@v2.3.0"
+        with:
+          # ↓ split "packages/easy-coding-standard" directory
+          package_directory: '${{ matrix.package.directory }}'
+
+          # ↓ into https://github.com/symplify/easy-coding-standard repository
+          repository_organization: '${{ matrix.package.organisation }}'
+          repository_name: '${{ matrix.package.repository }}'
+
+          # ↓ the user signed under the split commit
+          user_name: "Dariusz Gafka"
+          user_email: "dgafka.mail@gmail.com"
+      -
+        uses: "danharrin/monorepo-split-github-action@v2.3.0"
+        if: '${{ matrix.package.publish-version }} == true'
+        with:
+          tag: ${GITHUB_REF#refs/tags/}
+
+          # ↓ split "packages/easy-coding-standard" directory
+          package_directory: '${{ matrix.package.directory }}'
+
+          # ↓ into https://github.com/symplify/easy-coding-standard repository
+          repository_organization: '${{ matrix.package.organisation }}'
+          repository_name: '${{ matrix.package.repository }}'
+
+          # ↓ the user signed under the split commit
+          user_name: "Dariusz Gafka"
+          user_email: "dgafka.mail@gmail.com"
+  tweet:
+    runs-on: ubuntu-latest
+    needs: split_packages
+    steps:
+      - uses: Eomm/why-don-t-you-tweet@v1
+        with:
+          tweet-message: New Ecotone version was released ${{ github.ref_name }}. Check the changelog on https://github.com/ecotoneframework/ecotone-dev/releases/tag/${{ github.ref_name }}
+        env:
+          # Get your tokens from https://developer.twitter.com/apps
+          TWITTER_CONSUMER_API_KEY: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
+          TWITTER_CONSUMER_API_SECRET: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
+          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}

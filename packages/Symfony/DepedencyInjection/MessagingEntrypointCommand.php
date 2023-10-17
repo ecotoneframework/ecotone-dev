@@ -52,7 +52,7 @@ class MessagingEntrypointCommand extends Command
     public function execute(InputInterface $input, OutputInterface $output)
     {
         /** @var ConsoleCommandResultSet $result */
-        $result = $this->consoleCommandRunner->execute($this->name, $input->getArguments());
+        $result = $this->consoleCommandRunner->execute($this->name, array_merge($input->getArguments(), $input->getOptions()));
 
         if ($result) {
             $table = new Table($output);

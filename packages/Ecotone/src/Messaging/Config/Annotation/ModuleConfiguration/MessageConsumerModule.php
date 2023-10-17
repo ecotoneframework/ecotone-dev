@@ -35,7 +35,7 @@ final class MessageConsumerModule extends NoExternalConfigurationModule implemen
             $amqpConsumerAnnotation = $amqpConsumer->getAnnotationForMethod();
 
             $endpointId = $amqpConsumerAnnotation->getEndpointId();
-            $serviceActivators[] = ServiceActivatorBuilder::create($reference, $amqpConsumer->getMethodName())
+            $serviceActivators[] = ServiceActivatorBuilder::create($reference, $interfaceToCallRegistry->getFor($amqpConsumer->getClassName(), $amqpConsumer->getMethodName()))
                 ->withEndpointId($endpointId . '.target')
                 ->withInputChannelName($endpointId)
                 ->withMethodParameterConverters($annotationParameterBuilder->createParameterWithDefaults(
@@ -47,10 +47,10 @@ final class MessageConsumerModule extends NoExternalConfigurationModule implemen
         return new self($serviceActivators);
     }
 
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         foreach ($this->serviceActivators as $serviceActivator) {
-            $configuration->registerMessageHandler($serviceActivator);
+            $messagingConfiguration->registerMessageHandler($serviceActivator);
         }
     }
 

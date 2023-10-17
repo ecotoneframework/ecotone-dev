@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
@@ -31,7 +32,6 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
      * @var object
      */
     private $directObject;
-    private string $methodName;
     private array $methodParameterConverterBuilders = [];
     /**
      * @var string[]
@@ -39,15 +39,9 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
     private array $requiredReferenceNames = [];
     private ?string $expression = null;
 
-    /**
-     * TransformerBuilder constructor.
-     * @param string $objectToInvokeReference
-     * @param string $methodName
-     */
-    private function __construct(string $objectToInvokeReference, string $methodName)
+    private function __construct(string $objectToInvokeReference, private string|InterfaceToCall $methodNameOrInterface)
     {
         $this->objectToInvokeReferenceName = $objectToInvokeReference;
-        $this->methodName = $methodName;
 
         if ($objectToInvokeReference) {
             $this->requiredReferenceNames[] = $objectToInvokeReference;
@@ -65,20 +59,15 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         }
 
         return [
-            $this->directObject
-                ? $interfaceToCallRegistry->getFor($this->directObject, $this->methodName)
-                : $interfaceToCallRegistry->getForReferenceName($this->objectToInvokeReferenceName, $this->methodName),
+            $this->methodNameOrInterface instanceof InterfaceToCall
+                ? $this->methodNameOrInterface
+                : $interfaceToCallRegistry->getFor($this->directObject, $this->getMethodName()),
         ];
     }
 
-    /**
-     * @param string $objectToInvokeReference
-     * @param string $methodName
-     * @return TransformerBuilder
-     */
-    public static function create(string $objectToInvokeReference, string $methodName): self
+    public static function create(string $objectToInvokeReference, InterfaceToCall $interfaceToCall): self
     {
-        return new self($objectToInvokeReference, $methodName);
+        return new self($objectToInvokeReference, $interfaceToCall);
     }
 
     /**
@@ -105,30 +94,14 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         return $transformerBuilder;
     }
 
-    /**
-     * @param object $referenceObject
-     * @param string $methodName
-     *
-     * @return TransformerBuilder
-     * @throws \Ecotone\Messaging\MessagingException
-     */
-    public static function createWithDirectObject($referenceObject, string $methodName): self
+    public static function createWithDirectObject(object $referenceObject, string $methodName): self
     {
-        Assert::isObject($referenceObject, 'Reference object for transformer must be object');
-
         $transformerBuilder = new self('', $methodName);
         $transformerBuilder->setDirectObjectToInvoke($referenceObject);
 
         return $transformerBuilder;
     }
 
-    /**
-     * Replace payload with result of expression evaluation
-     *
-     * @param string $expression
-     *
-     * @return TransformerBuilder
-     */
     public static function createWithExpression(string $expression): self
     {
         $transformerBuilder = new self('', 'transform');
@@ -156,7 +129,9 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             return $interfaceToCallRegistry->getFor(ExpressionTransformer::class, 'transform');
         }
 
-        return $this->objectToInvokeReferenceName ? $interfaceToCallRegistry->getForReferenceName($this->objectToInvokeReferenceName, $this->methodName) : $interfaceToCallRegistry->getFor($this->directObject, $this->methodName);
+        return $this->methodNameOrInterface instanceof InterfaceToCall
+            ? $this->methodNameOrInterface
+            : $interfaceToCallRegistry->getFor($this->directObject, $this->getMethodName());
     }
 
     /**
@@ -198,29 +173,26 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         $objectToInvokeOn = $this->directObject ? $this->directObject : $referenceSearchService->get($this->objectToInvokeReferenceName);
         /** @var InterfaceToCallRegistry $interfaceCallRegistry */
         $interfaceCallRegistry = $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME);
-        $interfaceToCall = $interfaceCallRegistry->getFor($objectToInvokeOn, $this->methodName);
+        $interfaceToCall = $interfaceCallRegistry->getFor($objectToInvokeOn, $this->getMethodName());
 
         if (! $interfaceToCall->canReturnValue()) {
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        return new Transformer(
-            RequestReplyProducer::createRequestAndReply(
-                $this->outputMessageChannelName,
-                TransformerMessageProcessor::createFrom(
-                    MethodInvoker::createWith(
-                        $interfaceToCall,
-                        $objectToInvokeOn,
-                        $this->methodParameterConverterBuilders,
-                        $referenceSearchService,
-                        $channelResolver,
-                        $this->orderedAroundInterceptors,
-                        $this->getEndpointAnnotations()
-                    )
-                ),
-                $channelResolver,
-                false
-            )
+        return RequestReplyProducer::createRequestAndReply(
+            $this->outputMessageChannelName,
+            TransformerMessageProcessor::createFrom(
+                MethodInvoker::createWith(
+                    $interfaceToCall,
+                    $objectToInvokeOn,
+                    $this->methodParameterConverterBuilders,
+                    $referenceSearchService,
+                    $this->getEndpointAnnotations()
+                )
+            ),
+            $channelResolver,
+            false,
+            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
         );
     }
 
@@ -248,6 +220,13 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
     {
         $reference = $this->objectToInvokeReferenceName ? $this->objectToInvokeReferenceName : get_class($this->directObject);
 
-        return sprintf('Transformer - %s:%s with name `%s` for input channel `%s`', $reference, $this->methodName, $this->getEndpointId(), $this->getInputMessageChannelName());
+        return sprintf('Transformer - %s:%s with name `%s` for input channel `%s`', $reference, $this->getMethodName(), $this->getEndpointId(), $this->getInputMessageChannelName());
+    }
+
+    private function getMethodName(): string|InterfaceToCall
+    {
+        return $this->methodNameOrInterface instanceof InterfaceToCall
+            ? $this->methodNameOrInterface->getMethodName()
+            : $this->methodNameOrInterface;
     }
 }

@@ -37,6 +37,7 @@
                 "packages/PdoEventSourcing/src"
             ],
             "Ecotone\\JMSConverter\\": "packages/JmsConverter/src",
+            "Ecotone\\Redis\\": "packages/Redis/src",
             "Ecotone\\Sqs\\": "packages/Sqs/src",
             "Ecotone\\Laravel\\": "packages/Laravel/src",
             "Ecotone\\Lite\\": [
@@ -45,6 +46,7 @@
             ],
             "Ecotone\\Messaging\\": "packages/Ecotone/src/Messaging/",
             "Ecotone\\Modelling\\": "packages/Ecotone/src/Modelling/",
+            "Ecotone\\OpenTelemetry\\": "packages/OpenTelemetry/src",
             "Ecotone\\SymfonyBundle\\": "packages/Symfony/SymfonyBundle",
             "Ecotone\\SymfonyBundle\\DepedencyInjection\\": "packages/Symfony/DepedencyInjection",
             "Monorepo\\": "Monorepo"
@@ -82,8 +84,14 @@
             "Test\\Ecotone\\JMSConverter\\": [
                 "packages/JmsConverter/tests"
             ],
+            "Test\\Ecotone\\Redis\\": [
+                "packages/Redis/tests"
+            ],
             "Test\\Ecotone\\Sqs\\": [
                 "packages/Sqs/tests"
+            ],
+            "Test\\Ecotone\\OpenTelemetry\\": [
+                "packages/OpenTelemetry/tests"
             ],
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
             "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
@@ -92,10 +100,11 @@
     },
     "require": {
         "php": "^8.0",
-        "doctrine/dbal": "^3.3.7",
+        "doctrine/dbal": "^2.12.0|^3.0",
         "doctrine/persistence": "^2.5",
-        "enqueue/amqp-ext": "^0.10.4",
+        "enqueue/amqp-ext": "^0.10.18",
         "enqueue/dbal": "^0.10.17",
+        "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0",
@@ -103,7 +112,7 @@
         "friendsofphp/proxy-manager-lts": "^1.0.12",
         "jms/serializer": "^3.17",
         "laminas/laminas-zendframework-bridge": "^1.0.0",
-        "laravel/framework": "^9.0",
+        "laravel/framework": "^9.0|^10.0",
         "prooph/pdo-event-store": "^1.15.1",
         "psr/log": "^2.0|^3.0",
         "queue-interop/queue-interop": "^0.8",
@@ -112,7 +121,7 @@
         "symfony/console": "^5.4|^6.0",
         "symfony/framework-bundle": "^5.4|^6.0",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "php-di/php-di": "^6.3"
+        "php-di/php-di": "^7.0.1"
     },
     "require-dev": {
         "behat/behat": "^3.10",
@@ -126,24 +135,41 @@
         "php-coveralls/php-coveralls": "^2.5",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^9.5",
+        "predis/predis": "^1.1.10",
         "symfony/expression-language": "^6.0",
-        "symplify/monorepo-builder": "^11.1.21"
+        "symplify/monorepo-builder": "11.1.21",
+        "aws/aws-sdk-php": "<=3.269.5",
+        "symfony/messenger": "^5.4|^6.0",
+        "symfony/amqp-messenger": "^5.4|^6.0",
+        "symfony/doctrine-messenger": "^5.4|^6.0",
+        "doctrine/doctrine-bundle": "^2.7.2",
+        "phpbench/phpbench": "^1.2",
+        "enqueue/null": "^0.10.18",
+        "open-telemetry/api": "@dev",
+        "open-telemetry/sdk": "@dev",
+        "open-telemetry/transport-grpc": "@dev",
+        "open-telemetry/exporter-otlp": "@dev"
     },
     "extra": {
         "laravel": {
             "providers": [
                 "Ecotone\\Laravel\\EcotoneProvider"
             ]
+        },
+        "merge-plugin": {
+            "include": [
+                "local-packages.json"
+            ]
         }
     },
     "replace": {
-        "ecotone/amqp": "1.67.1",
-        "ecotone/dbal": "1.67.1",
-        "ecotone/enqueue": "1.67.1",
-        "ecotone/jms-converter": "1.67.1",
-        "ecotone/laravel": "1.67.1",
-        "ecotone/pdo-event-sourcing": "1.67.1",
-        "ecotone/symfony-bundle": "1.67.1"
+        "ecotone/amqp": "1.82.0",
+        "ecotone/dbal": "1.82.0",
+        "ecotone/enqueue": "1.82.0",
+        "ecotone/jms-converter": "1.82.0",
+        "ecotone/laravel": "1.82.0",
+        "ecotone/pdo-event-sourcing": "1.82.0",
+        "ecotone/symfony-bundle": "1.82.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
@@ -159,11 +185,17 @@
             "@tests:phpstan",
             "@tests:phpunit",
             "@tests:behat"
+        ],
+        "tests:phpbench": [
+            "(cd packages/Ecotone && composer update --prefer-stable --prefer-dist --no-interaction && composer tests:phpbench)",
+            "(cd packages/Laravel && composer update --prefer-stable --prefer-dist --no-interaction && composer tests:phpbench)",
+            "(cd packages/Symfony && composer update --prefer-stable --prefer-dist --no-interaction && composer tests:phpbench)"
         ]
     },
     "config": {
         "allow-plugins": {
-            "wikimedia/composer-merge-plugin": true
+            "wikimedia/composer-merge-plugin": true,
+            "php-http/discovery": false
         }
     },
     "minimum-stability": "dev",

@@ -4,10 +4,11 @@ namespace Ecotone\EventSourcing\Attribute;
 
 use Attribute;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\Messaging\Attribute\StreamBasedSource;
 use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-class Projection
+class Projection extends StreamBasedSource
 {
     private string $name;
     private array $fromStreams;

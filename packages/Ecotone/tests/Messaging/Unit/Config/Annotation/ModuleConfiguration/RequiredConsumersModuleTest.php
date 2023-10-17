@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Test\Ecotone\Messaging\Fixture\Annotation\Consumer\ExampleConsumer;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
@@ -49,7 +50,7 @@ class RequiredConsumersModuleTest extends AnnotationConfigurationTest
             InterfaceToCallRegistry::createEmpty()
         );
         $configuration = $this->createMessagingSystemConfiguration()
-            ->registerConsumerFactory(new PollingConsumerBuilder(InterfaceToCallRegistry::createEmpty()))
+            ->registerConsumerFactory(new PollingConsumerBuilder())
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('requestChannel'))
             ->registerMessageHandler(
                 DataReturningService::createExceptionalServiceActivatorBuilder()
@@ -76,7 +77,7 @@ class RequiredConsumersModuleTest extends AnnotationConfigurationTest
                 InboundChannelAdapterBuilder::createWithDirectObject(
                     'requestChannel',
                     ConsumerContinuouslyWorkingService::createWithReturn(5),
-                    'executeReturn'
+                    InterfaceToCall::create(ConsumerContinuouslyWorkingService::class, 'executeReturn')
                 )->withEndpointId('someId')
             );
         $annotationConfiguration->prepare($configuration, [], ModuleReferenceSearchService::createEmpty(), InterfaceToCallRegistry::createEmpty());

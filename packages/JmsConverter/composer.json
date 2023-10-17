@@ -35,7 +35,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "^1.68",
+        "ecotone/ecotone": "~1.109.1",
         "jms/serializer": "^3.17",
         "symfony/cache": "^5.4|^6.1"
     },
@@ -57,18 +57,19 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.68-dev"
+            "dev-main": "1.109.1-dev"
         },
         "ecotone": {
             "repository": "jms-converter"
         },
         "merge-plugin": {
             "include": [
-                "../config.json"
+                "../local_packages.json"
             ]
         }
     },
     "config": {
+        "sort-packages": true,
         "allow-plugins": {
             "wikimedia/composer-merge-plugin": true
         }

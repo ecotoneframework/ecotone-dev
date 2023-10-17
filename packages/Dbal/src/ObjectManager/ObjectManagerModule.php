@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Modelling\CommandBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 #[ModuleAnnotation]
@@ -34,7 +35,7 @@ class ObjectManagerModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
@@ -43,8 +44,16 @@ class ObjectManagerModule implements AnnotationModule
             $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames();
         }
 
+        $pointcut = [];
         if ($dbalConfiguration->isClearObjectManagerOnAsynchronousEndpoints()) {
-            $configuration
+            $pointcut[] = AsynchronousRunningEndpoint::class;
+        }
+        if ($dbalConfiguration->isClearAndFlushObjectManagerOnCommandBus()) {
+            $pointcut[] = CommandBus::class;
+        }
+
+        if ($pointcut !== []) {
+            $messagingConfiguration
                 ->requireReferences($connectionFactories)
                 ->registerAroundMethodInterceptor(
                     AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
@@ -52,7 +61,7 @@ class ObjectManagerModule implements AnnotationModule
                         new ObjectManagerInterceptor($connectionFactories),
                         'transactional',
                         Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
-                        AsynchronousRunningEndpoint::class
+                        implode('||', $pointcut)
                     )
                 );
         }

@@ -6,19 +6,21 @@ namespace Ecotone\Sqs;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
-use Ecotone\Enqueue\OutboundMessageConverter;
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Enqueue\Sqs\SqsContext;
 use Enqueue\Sqs\SqsDestination;
 
 final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {
-    public function __construct(CachedConnectionFactory $connectionFactory, private string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter)
+    public function __construct(CachedConnectionFactory $connectionFactory, private string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter, ConversionService $conversionService)
     {
         parent::__construct(
             $connectionFactory,
             new SqsDestination($queueName),
             $autoDeclare,
-            $outboundMessageConverter
+            $outboundMessageConverter,
+            $conversionService
         );
     }
 

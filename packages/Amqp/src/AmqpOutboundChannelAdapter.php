@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Amqp;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Enqueue\OutboundMessageConverter;
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Interop\Amqp\AmqpMessage;
@@ -19,57 +20,22 @@ use Interop\Amqp\Impl\AmqpTopic;
 class AmqpOutboundChannelAdapter implements MessageHandler
 {
     /**
-     * @var CachedConnectionFactory
-     */
-    private $connectionFactory;
-    /**
-     * @var string|null
-     */
-    private $routingKey;
-    /**
-     * @var string
-     */
-    private $exchangeName;
-    /**
-     * @var AmqpAdmin
-     */
-    private $amqpAdmin;
-    /**
-     * @var bool
-     */
-    private $defaultPersistentDelivery;
-    /**
-     * @var bool
-     */
-    private $autoDeclare;
-    /**
-     * @var string|null
-     */
-    private $routingKeyFromHeaderName;
-    /**
-     * @var string|null
-     */
-    private $exchangeFromHeaderName;
-    /**
-     * @var OutboundMessageConverter
-     */
-    private $outboundMessageConverter;
-    /**
      * @var bool
      */
     private $initialized = false;
 
-    public function __construct(CachedConnectionFactory $connectionFactory, AmqpAdmin $amqpAdmin, string $exchangeName, ?string $routingKey, ?string $routingKeyFromHeaderName, ?string $exchangeFromHeaderName, bool $defaultPersistentDelivery, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter)
-    {
-        $this->connectionFactory         = $connectionFactory;
-        $this->routingKey                = $routingKey;
-        $this->exchangeName              = $exchangeName;
-        $this->amqpAdmin                 = $amqpAdmin;
-        $this->defaultPersistentDelivery = $defaultPersistentDelivery;
-        $this->autoDeclare               = $autoDeclare;
-        $this->routingKeyFromHeaderName  = $routingKeyFromHeaderName;
-        $this->exchangeFromHeaderName    = $exchangeFromHeaderName;
-        $this->outboundMessageConverter  = $outboundMessageConverter;
+    public function __construct(
+        private CachedConnectionFactory $connectionFactory,
+        private AmqpAdmin $amqpAdmin,
+        private string $exchangeName,
+        private ?string $routingKey,
+        private ?string $routingKeyFromHeaderName,
+        private ?string $exchangeFromHeaderName,
+        private bool $defaultPersistentDelivery,
+        private bool $autoDeclare,
+        private OutboundMessageConverter $outboundMessageConverter,
+        private ConversionService $conversionService
+    ) {
     }
 
     /**
@@ -86,7 +52,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             $this->initialized = true;
         }
 
-        $outboundMessage = $this->outboundMessageConverter->prepare($message);
+        $outboundMessage = $this->outboundMessageConverter->prepare($message, $this->conversionService);
         $messageToSend   = new \Interop\Amqp\Impl\AmqpMessage($outboundMessage->getPayload(), $outboundMessage->getHeaders(), []);
 
         if ($this->routingKeyFromHeaderName) {

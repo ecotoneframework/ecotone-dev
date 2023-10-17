@@ -12,6 +12,8 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandler;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
@@ -36,7 +38,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if (! $this->hasErrorConfiguration($extensionObjects)) {
             $extensionObjects = [ErrorHandlerConfiguration::createDefault()];
@@ -49,17 +51,23 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
             }
 
             $errorHandler = ServiceActivatorBuilder::createWithDirectReference(
-                new ErrorHandler($extensionObject->getDelayedRetryTemplate(), (bool)$extensionObject->getDeadLetterQueueChannel()),
+                new ErrorHandler(
+                    $extensionObject->getDelayedRetryTemplate(),
+                    (bool)$extensionObject->getDeadLetterQueueChannel()
+                ),
                 'handle'
             )
                 ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName())
-                ->withInputChannelName($extensionObject->getErrorChannelName());
+                ->withInputChannelName($extensionObject->getErrorChannelName())
+                ->withMethodParameterConverters([
+                    ReferenceBuilder::create('logger', LoggingHandlerBuilder::LOGGER_REFERENCE),
+                ]);
             if ($extensionObject->getDeadLetterQueueChannel()) {
                 $errorHandler = $errorHandler->withOutputMessageChannel($extensionObject->getDeadLetterQueueChannel());
-                $configuration
+                $messagingConfiguration
                     ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getDeadLetterQueueChannel()));
             }
-            $configuration
+            $messagingConfiguration
                 ->registerMessageHandler($errorHandler)
                 ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getErrorChannelName()))
                 ->registerMessageHandler(

@@ -2,23 +2,29 @@
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\AsynchronousHandler\OrderService;
+use Test\Ecotone\Dbal\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal
  */
-class DbalBackedMessageChannelTest extends DbalMessagingTest
+class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 {
     public function test_sending_and_receiving_via_channel()
     {
@@ -186,10 +192,9 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
         $this->assertNull($messageChannel->receiveWithTimeout(1));
     }
 
-    public function test_failing_to_receive_message_when_not_declared()
+    public function test_failing_to_receive_message_when_not_declared_and_auto_declare_off()
     {
         $queueName = Uuid::uuid4()->toString();
-        $messagePayload = 'some';
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [
@@ -206,10 +211,52 @@ class DbalBackedMessageChannelTest extends DbalMessagingTest
         /** @var PollableChannel $messageChannel */
         $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
 
-        $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
+        $this->expectException(TableNotFoundException::class);
 
-        /** Dbal handle handle not declared queues as long as database table is created first */
+        $messageChannel->receiveWithTimeout(1);
+    }
 
-        $this->assertNotNull($messageChannel->receiveWithTimeout(1));
+    public function test_failing_to_consume_due_to_connection_failure()
+    {
+        $loggerExample = LoggerExample::create();
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            containerOrAvailableServices: [
+                new OrderService(),
+                DbalConnectionFactory::class => new DbalConnectionFactory(['dsn' => 'pgsql://ecotone:secret@localhost:1000/ecotone']),
+                'logger' => $loggerExample,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withConnectionRetryTemplate(
+                    RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
+                )
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create('async'),
+                ])
+        );
+
+        $wasFinallyRethrown = false;
+        try {
+            $ecotoneLite->run(
+                'async',
+                ExecutionPollingMetadata::createWithDefaults()
+                    ->withHandledMessageLimit(1)
+                    ->withExecutionTimeLimitInMilliseconds(100)
+                    ->withStopOnError(false)
+            );
+        } catch (\Doctrine\DBAL\Exception\ConnectionException) {
+            $wasFinallyRethrown = true;
+        }
+
+        $this->assertTrue($wasFinallyRethrown, 'Connection exception was not propagated');
+        $this->assertEquals(
+            [
+                ConnectionException::connectionRetryMessage(1, 1),
+                ConnectionException::connectionRetryMessage(2, 3),
+                ConnectionException::connectionRetryMessage(3, 9),
+            ],
+            $loggerExample->getInfo()
+        );
     }
 }

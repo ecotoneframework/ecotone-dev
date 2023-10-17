@@ -14,8 +14,9 @@ use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\Gateway\CombinedGatewayBuilder;
+use Ecotone\Messaging\Handler\Gateway\GatewayProxyAdapter;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageChannel;
@@ -36,8 +37,9 @@ use Ecotone\Modelling\QueryBus;
  */
 final class MessagingSystem implements ConfiguredMessagingSystem
 {
-    public const POLLING_CONSUMER_BUILDER = 'builder';
-    public const POLLING_CONSUMER_HANDLER = 'handler';
+    public const CONSUMER_BUILDER = 'builder';
+    public const CONSUMER_HANDLER = 'handler';
+    public const EXECUTION = 'built';
 
     /**
      * Application constructor.
@@ -90,7 +92,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      * @param PollingMetadata[] $pollingMetadataConfigurations
      * @param MessageHandlerBuilder[] $messageHandlerBuilders
      * @param ChannelAdapterConsumerBuilder[] $channelAdapterConsumerBuilders
-     * @param bool $isLazyConfiguration
      * @param ConsoleCommandConfiguration[] $consoleCommands
      * @throws MessagingException
      */
@@ -103,20 +104,36 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         array                  $pollingMetadataConfigurations,
         array $messageHandlerBuilders,
         array $channelAdapterConsumerBuilders,
-        bool                   $isLazyConfiguration,
         array                  $consoleCommands
     ): MessagingSystem {
         $channelResolver = self::createChannelResolver($messageChannelInterceptors, $messageChannelBuilders, $referenceSearchService);
 
-        [$gateways, $nonProxyGateways] = self::configureGateways($gatewayBuilders, $referenceSearchService, $channelResolver, $isLazyConfiguration);
+        $nonProxyGateways = [];
+        foreach ($gatewayBuilders as $referenceName => $preparedGatewaysForReference) {
+            $nonProxyCombinedGatewaysMethods = [];
+            foreach ($preparedGatewaysForReference as $proxyBuilder) {
+                $nonProxyCombinedGatewaysMethods[$proxyBuilder->getRelatedMethodName()] = $proxyBuilder;
+            }
 
-        $gatewayReferences = [];
-        foreach ($gateways as $gateway) {
-            $gatewayReferences[$gateway->getReferenceName()] = $gateway->getGateway();
-            $referenceSearchService->registerReferencedObject($gateway->getReferenceName(), $gatewayReferences[$gateway->getReferenceName()]);
+            $nonProxyGateways[$referenceName] = NonProxyCombinedGateway::createWith(
+                $referenceName,
+                $preparedGatewaysForReference[0]->getInterfaceName(),
+                $nonProxyCombinedGatewaysMethods,
+                $referenceSearchService,
+                $channelResolver
+            );
+
+            $referenceSearchService->registerReferencedObject(
+                $referenceName,
+                fn ($referenceName) => self::createGatewayByName(
+                    $referenceName,
+                    $nonProxyGateways,
+                    $referenceSearchService->get(ServiceCacheConfiguration::REFERENCE_NAME)
+                )
+            );
         }
-        $referenceSearchService->registerReferencedObject(ChannelResolver::class, $channelResolver);
 
+        $referenceSearchService->registerReferencedObject(ChannelResolver::class, $channelResolver);
         $eventDrivenConsumers = [];
         $pollingConsumerBuilders = [];
         foreach ($messageHandlerBuilders as $messageHandlerBuilder) {
@@ -126,8 +143,8 @@ final class MessagingSystem implements ConfiguredMessagingSystem
                 if ($messageHandlerConsumerBuilder->isSupporting($messageHandlerBuilder, $messageChannel)) {
                     if ($messageHandlerConsumerBuilder->isPollingConsumer()) {
                         $pollingConsumerBuilders[$messageHandlerBuilder->getEndpointId()] = [
-                            self::POLLING_CONSUMER_BUILDER => $messageHandlerConsumerBuilder,
-                            self::POLLING_CONSUMER_HANDLER => $messageHandlerBuilder,
+                            self::CONSUMER_BUILDER => $messageHandlerConsumerBuilder,
+                            self::CONSUMER_HANDLER => $messageHandlerBuilder,
                         ];
                     } else {
                         $eventDrivenConsumers[] = $messageHandlerConsumerBuilder->build($channelResolver, $referenceSearchService, $messageHandlerBuilder, self::getPollingMetadata($messageHandlerBuilder->getEndpointId(), $pollingMetadataConfigurations));
@@ -139,10 +156,15 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         $inboundChannelAdapterBuilders = [];
         foreach ($channelAdapterConsumerBuilders as $channelAdapter) {
             $endpointId = $channelAdapter->getEndpointId();
-            $inboundChannelAdapterBuilders[$endpointId] = $channelAdapter;
+            $inboundChannelAdapterBuilders[$endpointId][self::CONSUMER_BUILDER] = $channelAdapter;
         }
 
-        return new self($eventDrivenConsumers, $pollingConsumerBuilders, $inboundChannelAdapterBuilders, $gateways, $nonProxyGateways, $channelResolver, $referenceSearchService, $pollingMetadataConfigurations, $consoleCommands);
+        return new self($eventDrivenConsumers, $pollingConsumerBuilders, $inboundChannelAdapterBuilders, [], $nonProxyGateways, $channelResolver, $referenceSearchService, $pollingMetadataConfigurations, $consoleCommands);
+    }
+
+    public function getGatewayList(): array
+    {
+        return array_values(array_map(fn (NonProxyCombinedGateway $gateway) => new GatewayReference($gateway->getReferenceName(), $gateway->getInterfaceName()), $this->nonProxyCombinedGateways));
     }
 
     /**
@@ -179,50 +201,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         return InMemoryChannelResolver::create($channels);
     }
 
-    /**
-     * @param GatewayProxyBuilder[][] $preparedGateways
-     * @param ReferenceSearchService $referenceSearchService
-     * @param ChannelResolver $channelResolver
-     * @param bool $isLazyConfiguration
-     * @return GatewayReference[]
-     * @throws MessagingException
-     */
-    private static function configureGateways(array $preparedGateways, ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver, bool $isLazyConfiguration): array
-    {
-        $gateways = [];
-        $nonProxyCombinedGateways = [];
-        foreach ($preparedGateways as $referenceName => $preparedGatewaysForReference) {
-            $referenceName = $preparedGatewaysForReference[0]->getReferenceName();
-
-            if (count($preparedGatewaysForReference) === 1) {
-                $gatewayProxyBuilder = $preparedGatewaysForReference[0]
-                    ->withLazyBuild($isLazyConfiguration);
-                $nonProxyCombinedGateways[$referenceName] = NonProxyCombinedGateway::createWith($referenceName, [$gatewayProxyBuilder->getRelatedMethodName() => $gatewayProxyBuilder->buildWithoutProxyObject($referenceSearchService, $channelResolver)]);
-                $gateways[$referenceName] = GatewayReference::createWith(
-                    $referenceName,
-                    $gatewayProxyBuilder->build($referenceSearchService, $channelResolver)
-                );
-            } else {
-                $nonProxyCombinedGatewaysMethods = [];
-                foreach ($preparedGatewaysForReference as $proxyBuilder) {
-                    $nonProxyCombinedGatewaysMethods[$proxyBuilder->getRelatedMethodName()] =
-                        $proxyBuilder
-                            ->withLazyBuild($isLazyConfiguration)
-                            ->buildWithoutProxyObject($referenceSearchService, $channelResolver);
-                }
-
-                $nonProxyCombinedGateways[$referenceName] = NonProxyCombinedGateway::createWith($referenceName, $nonProxyCombinedGatewaysMethods);
-                $gateways[$referenceName] =
-                    GatewayReference::createWith(
-                        $referenceName,
-                        CombinedGatewayBuilder::create($preparedGatewaysForReference[0]->getInterfaceName(), $nonProxyCombinedGatewaysMethods)
-                            ->build($referenceSearchService, $channelResolver)
-                    );
-            }
-        }
-        return [$gateways, $nonProxyCombinedGateways];
-    }
-
     private static function getPollingMetadata(string $endpointId, array $pollingMetadataConfigurations): PollingMetadata
     {
         return array_key_exists($endpointId, $pollingMetadataConfigurations) ? $pollingMetadataConfigurations[$endpointId] : PollingMetadata::create($endpointId);
@@ -234,21 +212,34 @@ final class MessagingSystem implements ConfiguredMessagingSystem
             ->applyExecutionPollingMetadata($executionPollingMetadata);
 
         if (array_key_exists($name, $this->pollingConsumerBuilders)) {
-            /** @var MessageHandlerConsumerBuilder $consumerBuilder */
-            $consumerBuilder = $this->pollingConsumerBuilders[$name][self::POLLING_CONSUMER_BUILDER];
+            if (! isset($this->pollingConsumerBuilders[$name][self::EXECUTION])) {
+                /** @var MessageHandlerConsumerBuilder $consumerBuilder */
+                $consumerBuilder = $this->pollingConsumerBuilders[$name][self::CONSUMER_BUILDER];
 
-            $consumerBuilder->build(
-                $this->channelResolver,
-                $this->referenceSearchService,
-                $this->pollingConsumerBuilders[$name][self::POLLING_CONSUMER_HANDLER],
-                $pollingMetadata
-            )->run();
+                $consumerLifecycle = $consumerBuilder->build(
+                    $this->channelResolver,
+                    $this->referenceSearchService,
+                    $this->pollingConsumerBuilders[$name][self::CONSUMER_HANDLER],
+                    $pollingMetadata
+                );
+                $this->pollingConsumerBuilders[$name][self::EXECUTION] = $consumerLifecycle;
+            }
+
+            $this->pollingConsumerBuilders[$name][self::EXECUTION]->run();
         } elseif (array_key_exists($name, $this->inboundChannelAdapterBuilders)) {
-            $this->inboundChannelAdapterBuilders[$name]->build(
-                $this->channelResolver,
-                $this->referenceSearchService,
-                $pollingMetadata
-            )->run();
+            if (! isset($this->inboundChannelAdapterBuilders[$name][self::EXECUTION])) {
+                /** @var InboundChannelAdapterBuilder $inboundChannelAdapter */
+                $inboundChannelAdapter = $this->inboundChannelAdapterBuilders[$name][self::CONSUMER_BUILDER];
+
+                $consumerLifecycle = $inboundChannelAdapter->build(
+                    $this->channelResolver,
+                    $this->referenceSearchService,
+                    $pollingMetadata
+                );
+                $this->inboundChannelAdapterBuilders[$name][self::EXECUTION] = $consumerLifecycle;
+            }
+
+            $this->inboundChannelAdapterBuilders[$name][self::EXECUTION]->run();
         } else {
             throw InvalidArgumentException::create("Can't run `{$name}` as it does not exists. Please verify, if the name is correct using `ecotone:list`.");
         }
@@ -266,13 +257,31 @@ final class MessagingSystem implements ConfiguredMessagingSystem
      */
     public function getGatewayByName(string $gatewayReferenceName): object
     {
-        foreach ($this->gatewayReferences as $gatewayReference) {
-            if ($gatewayReference->hasReferenceName($gatewayReferenceName)) {
-                return $gatewayReference->getGateway();
-            }
+        if (isset($this->gatewayReferences[$gatewayReferenceName])) {
+            return $this->gatewayReferences[$gatewayReferenceName];
         }
 
-        throw InvalidArgumentException::create("Gateway with reference {$gatewayReferenceName} does not exists");
+        $this->gatewayReferences[$gatewayReferenceName] = self::createGatewayByName(
+            $gatewayReferenceName,
+            $this->nonProxyCombinedGateways,
+            $this->referenceSearchService->get(ServiceCacheConfiguration::REFERENCE_NAME)
+        );
+
+        return $this->gatewayReferences[$gatewayReferenceName];
+    }
+
+    public static function createGatewayByName(
+        string $gatewayReferenceName,
+        array $nonProxyGateways,
+        ServiceCacheConfiguration $serviceCacheConfiguration
+    ): object {
+        $proxyFactory = ProxyFactory::createWithCache($serviceCacheConfiguration);
+        $nonProxyCombinedGateway = $nonProxyGateways[$gatewayReferenceName];
+
+        return $proxyFactory->createProxyClassWithAdapter(
+            $nonProxyCombinedGateway->getInterfaceName(),
+            new GatewayProxyAdapter($nonProxyCombinedGateway)
+        );
     }
 
     public function getNonProxyGatewayByName(string $gatewayReferenceName): NonProxyCombinedGateway
@@ -314,14 +323,6 @@ final class MessagingSystem implements ConfiguredMessagingSystem
         }
 
         return $gateway->sendWithHeaders([], $arguments, $consoleCommandConfiguration->getChannelName());
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getGatewayList(): iterable
-    {
-        return $this->gatewayReferences;
     }
 
     public function getCommandBus(): CommandBus

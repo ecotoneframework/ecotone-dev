@@ -11,8 +11,11 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
+use Ecotone\Messaging\PollableChannel;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\BusModule;
@@ -50,9 +53,9 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function publishEvent(object $event): self
+    public function publishEvent(object $event, array $metadata = []): self
     {
-        $this->eventBus->publish($event);
+        $this->eventBus->publish($event, $metadata);
 
         return $this;
     }
@@ -89,6 +92,27 @@ final class FlowTestSupport
         return $this;
     }
 
+    /**
+     * @return mixed[]
+     */
+    public function getSpiedChannelRecordedMessagePayloads(string $channelName): array
+    {
+        return $this->testSupportGateway->getSpiedChannelRecordedMessagePayloads($channelName);
+    }
+
+    /**
+     * @return Message[]
+     */
+    public function getSpiedChannelRecordedMessages(string $channelName): array
+    {
+        return $this->testSupportGateway->getSpiedChannelRecordedMessages($channelName);
+    }
+
+    public function getMessageChannel(string $channelName): MessageChannel|PollableChannel
+    {
+        return $this->configuredMessagingSystem->getMessageChannelByName($channelName);
+    }
+
     public function run(string $name, ?ExecutionPollingMetadata $executionPollingMetadata = null): self
     {
         $this->configuredMessagingSystem->run($name, $executionPollingMetadata);
@@ -106,6 +130,26 @@ final class FlowTestSupport
         return $this;
     }
 
+    public function deleteEventStream(string $streamName): self
+    {
+        $gateway = $this->getGateway(EventStore::class);
+        if (! $gateway->hasStream($streamName)) {
+            return $this;
+        }
+
+        $gateway->delete($streamName);
+
+        return $this;
+    }
+
+    /**
+     * @return Event[]
+     */
+    public function getEventStreamEvents(string $streamName): array
+    {
+        return $this->getGateway(EventStore::class)->load($streamName);
+    }
+
     /**
      * @param Event[]|object[]|array[] $streamEvents
      */
@@ -121,7 +165,7 @@ final class FlowTestSupport
             ModellingHandlerModule::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass)
         );
 
-        return $this;
+        return $this->discardRecordedMessages();
     }
 
     /**
@@ -143,6 +187,36 @@ final class FlowTestSupport
     public function triggerProjection(string $projectionName): self
     {
         $this->getGateway(ProjectionManager::class)->triggerProjection($projectionName);
+
+        return $this;
+    }
+
+    public function initializeProjection(string $projectionName): self
+    {
+        $this->getGateway(ProjectionManager::class)->initializeProjection($projectionName);
+
+        return $this;
+    }
+
+    public function stopProjection(string $projectionName): self
+    {
+        $this->getGateway(ProjectionManager::class)->stopProjection($projectionName);
+
+        return $this;
+    }
+
+    public function resetProjection(string $projectionName): self
+    {
+        $this->getGateway(ProjectionManager::class)->resetProjection($projectionName);
+
+        return $this;
+    }
+
+    public function deleteProjection(string $projectionName): self
+    {
+        // fixme Calling ProjectionManager to delete the projection throws `Header with name ecotone.eventSourcing.manager.deleteEmittedEvents does not exists` exception
+        //$this->getGateway(ProjectionManager::class)->deleteProjection($projectionName);
+        $this->configuredMessagingSystem->runConsoleCommand('ecotone:es:delete-projection', ['name' => $projectionName]);
 
         return $this;
     }
@@ -236,6 +310,23 @@ final class FlowTestSupport
     public function getSaga(string $className, string|array $identifiers): object
     {
         return $this->getAggregate($className, $identifiers);
+    }
+
+    public function sendDirectToChannel(string $targetChannel, mixed $payload = '', array $metadata = []): mixed
+    {
+        /** @var MessagingEntrypoint $messagingEntrypoint */
+        $messagingEntrypoint = $this->configuredMessagingSystem->getGatewayByName(MessagingEntrypoint::class);
+
+        return $messagingEntrypoint->sendWithHeaders($payload, $metadata, $targetChannel);
+    }
+
+    public function sendMessageDirectToChannel(Message $message): mixed
+    {
+        Assert::isTrue($message->getHeaders()->containsKey(MessagingEntrypoint::ENTRYPOINT), "Message must be sent directly to channel, so it must contains `ecotone.messaging.entrypoint` header. Use `sendDirectToChannel` method instead, if you don't want to add it manually.");
+        /** @var MessagingEntrypoint $messagingEntrypoint */
+        $messagingEntrypoint = $this->configuredMessagingSystem->getGatewayByName(MessagingEntrypoint::class);
+
+        return $messagingEntrypoint->sendMessage($message);
     }
 
     /**

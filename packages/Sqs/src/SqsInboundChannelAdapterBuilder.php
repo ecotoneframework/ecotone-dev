@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Sqs;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
@@ -30,7 +31,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
         /** @var ConversionService $conversionService */
         $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
 
-        $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, [], $conversionService);
+        $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, []);
 
         return new SqsInboundChannelAdapter(
             CachedConnectionFactory::createFor(new HttpReconnectableConnectionFactory($connectionFactory)),
@@ -38,7 +39,8 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             $this->declareOnStartup,
             $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
-            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper)
+            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper, EnqueueHeader::HEADER_ACKNOWLEDGE),
+            $conversionService
         );
     }
 }

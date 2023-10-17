@@ -11,6 +11,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use ReflectionClass;
+use ReflectionException;
 
 /**
  * Class InterfaceToCall
@@ -422,6 +423,11 @@ class InterfaceToCall
         return "{$this->interfaceName}::{$this->methodName}";
     }
 
+    public function toString(): string
+    {
+        return (string)$this;
+    }
+
     /**
      * @return int
      */
@@ -440,7 +446,7 @@ class InterfaceToCall
             try {
                 $reflectionClass = new ReflectionClass($interfaceName);
                 $reflectionMethod = $reflectionClass->getMethod($methodName);
-            } catch (\ReflectionException) {
+            } catch (ReflectionException) {
                 throw InvalidArgumentException::create("Interface {$interfaceName} has no method named {$methodName}");
             }
 

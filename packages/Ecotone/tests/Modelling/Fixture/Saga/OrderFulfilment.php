@@ -2,14 +2,14 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Saga;
 
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\Saga;
 
 #[Saga]
 class OrderFulfilment
 {
-    #[AggregateIdentifier]
+    #[Identifier]
     private $orderId;
     /**
      * @var string

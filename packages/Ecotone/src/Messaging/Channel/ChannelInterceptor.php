@@ -35,13 +35,16 @@ interface ChannelInterceptor
 
     /**
      * Invoked after the completion of a send regardless of any exception that have been raised thus allowing for proper resource cleanup.
+     * In case of exception, if true is returned, it means that exception was handled and should be skipped
      * Note that this will be invoked only if preSend did not return null.
      *
      * @param Message $message
      * @param MessageChannel $messageChannel
      * @param Throwable|null $exception
+     *
+     * @return bool In case of exception, return true to indicate that exception was handled and exception can be skipped
      */
-    public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): void;
+    public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool;
 
     /**
      * Invoked as soon as receive is called and before a Message is actually retrieved.
@@ -55,15 +58,6 @@ interface ChannelInterceptor
     public function preReceive(MessageChannel $messageChannel): bool;
 
     /**
-     * Invoked immediately after a Message has been retrieved but before it is returned to the caller.
-     *
-     * @param Message $message message that was received
-     * @param MessageChannel $messageChannel message channel that message was received from
-     * @return Message|null
-     */
-    public function postReceive(Message $message, MessageChannel $messageChannel): ?Message;
-
-    /**
      * Invoked after the completion of a receive regardless of any exception that have been raised thus allowing for proper resource cleanup.
      * This will only called when preReceive return true
      * @param Message|null $message
@@ -72,4 +66,13 @@ interface ChannelInterceptor
      * @return void
      */
     public function afterReceiveCompletion(?Message $message, MessageChannel $messageChannel, ?Throwable $exception): void;
+
+    /**
+     * Invoked immediately after a Message has been retrieved but before it is returned to the caller.
+     *
+     * @param Message $message message that was received
+     * @param MessageChannel $messageChannel message channel that message was received from
+     * @return Message|null
+     */
+    public function postReceive(Message $message, MessageChannel $messageChannel): ?Message;
 }

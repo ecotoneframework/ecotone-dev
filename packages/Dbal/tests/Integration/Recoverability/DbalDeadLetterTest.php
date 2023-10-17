@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Integration\Recoverability;
 
-use Ecotone\Dbal\Recoverability\DbalDeadLetter;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
@@ -10,17 +10,17 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
 
 /**
  * @internal
  */
-class DbalDeadLetterTest extends DbalMessagingTest
+class DbalDeadLetterTest extends DbalMessagingTestCase
 {
     public function test_retrieving_error_message_details()
     {
-        $dbalDeadLetter = new DbalDeadLetter($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(InMemoryConversionService::createWithoutConversion()));
+        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion());
 
         $errorMessage = MessageBuilder::withPayload('')->build();
         $dbalDeadLetter->store($errorMessage);
@@ -33,7 +33,7 @@ class DbalDeadLetterTest extends DbalMessagingTest
 
     public function test_storing_wrapped_error_message()
     {
-        $dbalDeadLetter = new DbalDeadLetter($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(InMemoryConversionService::createWithoutConversion()));
+        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion());
 
 
         $errorMessage = MessageBuilder::withPayload('')->build();
@@ -52,7 +52,7 @@ class DbalDeadLetterTest extends DbalMessagingTest
 
     public function test_listing_error_messages()
     {
-        $dbalDeadLetter = new DbalDeadLetter($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(InMemoryConversionService::createWithoutConversion()));
+        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion());
 
         $errorMessage = MessageBuilder::withPayload('error1')
                                 ->setMultipleHeaders([
@@ -73,7 +73,7 @@ class DbalDeadLetterTest extends DbalMessagingTest
 
     public function test_deleting_error_message()
     {
-        $dbalDeadLetter = new DbalDeadLetter($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(InMemoryConversionService::createWithoutConversion()));
+        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion());
 
         $message = MessageBuilder::withPayload('error2')->build();
 

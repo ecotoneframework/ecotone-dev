@@ -17,7 +17,10 @@
         "cqrs",
         "EventSourcing",
         "ecotone",
-        "service-bus"
+        "service-bus",
+        "message-driven",
+        "event",
+        "event-driven"
     ],
     "description": "Supporting you in building DDD, CQRS, Event Sourcing applications with ease.",
     "autoload": {
@@ -59,10 +62,15 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.68-dev"
+            "dev-main": "1.109.1-dev"
         },
         "ecotone": {
             "repository": "ecotone"
+        },
+        "merge-plugin": {
+            "include": [
+                "../local_packages.json"
+            ]
         }
     },
     "config": {

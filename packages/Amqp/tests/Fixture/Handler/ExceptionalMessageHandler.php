@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\Handler;
 
+use Ecotone\Messaging\Attribute\MessageConsumer;
+use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
+use Exception;
 use RuntimeException;
 
 /**
@@ -15,21 +18,24 @@ use RuntimeException;
  */
 class ExceptionalMessageHandler implements MessageHandler
 {
-    private function __construct()
+    private function __construct(private Exception $exception)
     {
     }
 
     public static function create(): self
     {
-        return new self();
+        return new self(new RuntimeException('test error, should be caught'));
     }
 
-    /**
-     * @inheritDoc
-     */
+    public static function createWithRejectException()
+    {
+        return new self(new RejectMessageException('test error, should be caught'));
+    }
+
+    #[MessageConsumer(endpointId: 'normal_queue')]
     public function handle(Message $message): void
     {
-        throw new RuntimeException('test error, should be caught');
+        throw $this->exception;
     }
 
     public function __toString()

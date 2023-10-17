@@ -4,11 +4,9 @@ namespace Test\Ecotone\Messaging\Behat\Bootstrap;
 
 use Behat\Behat\Context\Context;
 use Doctrine\Common\Annotations\AnnotationException;
-use Ecotone\Lite\EcotoneLiteConfiguration;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
@@ -22,6 +20,7 @@ use Ecotone\Modelling\QueryBus;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Ramsey\Uuid\Uuid;
 use ReflectionException;
 use Test\Ecotone\Messaging\Fixture\Behat\Calculating\Calculator;
 use Test\Ecotone\Messaging\Fixture\Behat\Calculating\CalculatorInterceptor;
@@ -351,23 +350,23 @@ class AnnotationBasedMessagingContext extends TestCase implements Context
         }
 
         $objects['logger'] = new NullLogger();
-        $cacheDirectoryPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone_testing_behat_cache';
+        $cacheDirectoryPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString() . 'ecotone_testing_behat_cache';
 
-        $applicationConfiguration = ServiceConfiguration::createWithDefaults()
+        $applicationConfiguration = ServiceConfiguration::createWithAsynchronicityOnly()
             ->withEnvironment('prod')
             ->withCacheDirectoryPath($cacheDirectoryPath)
             ->withFailFast(false)
-            ->withNamespaces([$namespace])
-            ->withSkippedModulePackageNames([ModulePackageList::AMQP_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE]);
+            ->withNamespaces([$namespace]);
 
-        MessagingSystemConfiguration::cleanCache($applicationConfiguration->getCacheDirectoryPath());
-        self::$messagingSystem = EcotoneLiteConfiguration::createWithConfiguration(
-            __DIR__ . '/../../../../',
+        $ecotoneLite = EcotoneLite::bootstrap(
+            [],
             InMemoryPSRContainer::createFromObjects($objects),
             $applicationConfiguration,
-            [],
-            true
+            useCachedVersion: true,
+            pathToRootCatalog: __DIR__ . '/../../../../'
         );
+
+        self::$messagingSystem = $ecotoneLite;
     }
 
     public static function getLoadedNamespaces(): array

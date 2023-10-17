@@ -8,6 +8,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -52,17 +53,17 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         return new self();
     }
 
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $testConfiguration = ExtensionObjectResolver::resolveUnique(TestConfiguration::class, $extensionObjects, TestConfiguration::createWithDefaults());
 
         $messageCollectorHandler = new MessageCollectorHandler();
-        $this->registerMessageCollector($messageCollectorHandler, $configuration, $interfaceToCallRegistry);
-        $this->registerMessageReleasingHandler($configuration);
+        $this->registerMessageCollector($messageCollectorHandler, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerMessageReleasingHandler($messagingConfiguration);
 
         $allowMissingDestination = new AllowMissingDestination();
         if (! $testConfiguration->isFailingOnCommandHandlerNotFound()) {
-            $configuration
+            $messagingConfiguration
                 ->registerAroundMethodInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
                     $interfaceToCallRegistry,
                     $allowMissingDestination,
@@ -72,7 +73,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 ));
         }
         if (! $testConfiguration->isFailingOnQueryHandlerNotFound()) {
-            $configuration
+            $messagingConfiguration
                 ->registerAroundMethodInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
                     $interfaceToCallRegistry,
                     $allowMissingDestination,
@@ -83,12 +84,12 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         }
 
         if ($testConfiguration->getPollableChannelMediaTypeConversion()) {
-            $configuration
+            $messagingConfiguration
                 ->registerChannelInterceptor(new SerializationChannelAdapterBuilder($testConfiguration->getChannelToConvertOn(), $testConfiguration->getPollableChannelMediaTypeConversion()));
         }
         if ($testConfiguration->getSpiedChannels()) {
             foreach ($testConfiguration->getSpiedChannels() as $spiedChannel) {
-                $configuration
+                $messagingConfiguration
                     ->registerChannelInterceptor(new SpiedChannelAdapterBuilder($spiedChannel, $messageCollectorHandler))
                     ->registerMessageHandler(ServiceActivatorBuilder::createWithDirectReference(
                         $messageCollectorHandler,
@@ -128,7 +129,9 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof TestConfiguration;
+        return
+            $extensionObject instanceof TestConfiguration
+            || ($extensionObject instanceof MessageChannelBuilder && $extensionObject->isPollable());
     }
 
     public function getModulePackageName(): string

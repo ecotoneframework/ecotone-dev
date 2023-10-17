@@ -38,8 +38,5 @@ interface ConsumerInterceptor
      */
     public function postRun(): void;
 
-    /**
-     * Called after each sending message to request channel
-     */
     public function postSend(): void;
 }

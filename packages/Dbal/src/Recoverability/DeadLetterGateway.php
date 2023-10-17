@@ -21,4 +21,6 @@ interface DeadLetterGateway
     public function replyAll(): void;
 
     public function delete(string|array $messageId): void;
+
+    public function deleteAll(): void;
 }

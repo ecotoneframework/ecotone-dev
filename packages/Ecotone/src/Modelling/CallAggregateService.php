@@ -9,8 +9,8 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvocation;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -54,7 +54,7 @@ class CallAggregateService
     public function __construct(InterfaceToCall $interfaceToCall, bool $isEventSourced, ChannelResolver $channelResolver, array $parameterConverterBuilders, array $aroundMethodInterceptors, ReferenceSearchService $referenceSearchService, PropertyReaderAccessor $propertyReaderAccessor, PropertyEditorAccessor $propertyEditorAccessor, bool $isCommand, bool $isFactoryMethod, private EventSourcingHandlerExecutor $eventSourcingHandlerExecutor, ?string $aggregateVersionProperty, bool $isAggregateVersionAutomaticallyIncreased, ?string $aggregateMethodWithEvents)
     {
         Assert::allInstanceOfType($parameterConverterBuilders, ParameterConverterBuilder::class);
-        Assert::allInstanceOfType($aroundMethodInterceptors, AroundInterceptorReference::class);
+        Assert::allInstanceOfType($aroundMethodInterceptors, AroundMethodInterceptor::class);
 
         $this->parameterConverterBuilders = $parameterConverterBuilders;
         $this->channelResolver = $channelResolver;
@@ -102,12 +102,19 @@ class CallAggregateService
             $aggregate ? $aggregate : $this->aggregateInterface->getInterfaceType()->toString(),
             $this->parameterConverterBuilders,
             $this->referenceSearchService,
-            $this->channelResolver,
-            $this->aroundMethodInterceptors,
-            []
         );
 
-        $result = $methodInvoker->processMessage($message);
+        if ($this->aroundMethodInterceptors) {
+            $methodInvokerChainProcessor = new AroundMethodInvocation(
+                $message,
+                $this->aroundMethodInterceptors,
+                $methodInvoker,
+            );
+            $result = $methodInvokerChainProcessor->proceed();
+        } else {
+            $result = $methodInvoker->executeEndpoint($message);
+        }
+
         $resultType = TypeDescriptor::createFromVariable($result);
         if ($resultType->isIterable() && $this->aggregateInterface->getReturnType()->isCollection()) {
             $interfaceReturnType = $this->aggregateInterface->getReturnType();

@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
@@ -26,7 +27,6 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 class SplitterBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
 {
     private string $referenceName;
-    private string $methodName;
     private array $methodParameterConverterBuilders = [];
     /**
      * @var string[]
@@ -34,29 +34,18 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
     private array $requiredReferenceNames = [];
     private ?object $directObject = null;
 
-    /**
-     * ServiceActivatorBuilder constructor.
-     * @param string $referenceName
-     * @param string $methodName
-     */
-    private function __construct(string $referenceName, string $methodName)
+    private function __construct(string $referenceName, private string|InterfaceToCall $methodNameOrInterface)
     {
         $this->referenceName = $referenceName;
-        $this->methodName = $methodName;
 
         if ($referenceName) {
             $this->requiredReferenceNames[] = $referenceName;
         }
     }
 
-    /**
-     * @param string $referenceName
-     * @param string $methodName
-     * @return SplitterBuilder
-     */
-    public static function create(string $referenceName, string $methodName): self
+    public static function create(string $referenceName, InterfaceToCall $interfaceToCall): self
     {
-        return new self($referenceName, $methodName);
+        return new self($referenceName, $interfaceToCall);
     }
 
     /**
@@ -65,33 +54,19 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
     public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
     {
         return [
-            $this->directObject
-                ? $interfaceToCallRegistry->getFor($this->directObject, $this->methodName)
-                : $interfaceToCallRegistry->getForReferenceName($this->referenceName, $this->methodName),
+            $this->methodNameOrInterface instanceof InterfaceToCall
+                ? $this->methodNameOrInterface
+                : $interfaceToCallRegistry->getFor($this->directObject, $this->methodNameOrInterface),
         ];
     }
 
-    /**
-     * Splits directly from message payload, without using any service
-     *
-     * @return SplitterBuilder
-     * @throws \Ecotone\Messaging\MessagingException
-     */
     public static function createMessagePayloadSplitter(): self
     {
         return self::createWithDirectObject(new DirectMessageSplitter(), 'split');
     }
 
-    /**
-     * @param object $directReferenceObject
-     * @param string $methodName
-     * @return SplitterBuilder
-     * @throws \Ecotone\Messaging\MessagingException
-     */
-    public static function createWithDirectObject($directReferenceObject, string $methodName): self
+    public static function createWithDirectObject(object $directReferenceObject, string $methodName): self
     {
-        Assert::isObject($directReferenceObject, 'Direct reference must be object');
-
         $splitterBuilder = new self('', $methodName);
         $splitterBuilder->setDirectObject($directReferenceObject);
 
@@ -131,7 +106,9 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
      */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
-        return $this->referenceName ? $interfaceToCallRegistry->getForReferenceName($this->referenceName, $this->methodName) : $interfaceToCallRegistry->getFor($this->directObject, $this->methodName);
+        return $this->methodNameOrInterface instanceof InterfaceToCall
+            ? $this->methodNameOrInterface
+            : $interfaceToCallRegistry->getFor($this->directObject, $this->methodNameOrInterface);
     }
 
     /**
@@ -140,26 +117,23 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
     public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
     {
         $objectToInvokeOn = $this->directObject ? $this->directObject : $referenceSearchService->get($this->referenceName);
-        $interfaceToCall = $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME)->getFor($objectToInvokeOn, $this->methodName);
+        $interfaceToCall = $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME)->getFor($objectToInvokeOn, $this->methodNameOrInterface);
 
         if (! $interfaceToCall->doesItReturnIterable()) {
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        return new Splitter(
-            RequestReplyProducer::createRequestAndSplit(
-                $this->outputMessageChannelName,
-                MethodInvoker::createWith(
-                    $interfaceToCall,
-                    $objectToInvokeOn,
-                    $this->methodParameterConverterBuilders,
-                    $referenceSearchService,
-                    $channelResolver,
-                    $this->orderedAroundInterceptors,
-                    $this->getEndpointAnnotations()
-                ),
-                $channelResolver
-            )
+        return RequestReplyProducer::createRequestAndSplit(
+            $this->outputMessageChannelName,
+            MethodInvoker::createWith(
+                $interfaceToCall,
+                $objectToInvokeOn,
+                $this->methodParameterConverterBuilders,
+                $referenceSearchService,
+                $this->getEndpointAnnotations()
+            ),
+            $channelResolver,
+            aroundInterceptors: AroundInterceptorReference::createAroundInterceptorsWithChannel($referenceSearchService, $this->orderedAroundInterceptors, $this->getEndpointAnnotations(), $interfaceToCall),
         );
     }
 
@@ -175,6 +149,6 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
     {
         $reference = $this->referenceName ? $this->referenceName : get_class($this->directObject);
 
-        return sprintf('Splitter - %s:%s with name `%s` for input channel `%s`', $reference, $this->methodName, $this->getEndpointId(), $this->getInputMessageChannelName());
+        return sprintf('Splitter - %s:%s with name `%s` for input channel `%s`', $reference, $this->methodNameOrInterface, $this->getEndpointId(), $this->getInputMessageChannelName());
     }
 }

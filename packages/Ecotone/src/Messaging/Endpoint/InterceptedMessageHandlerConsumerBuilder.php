@@ -24,13 +24,14 @@ abstract class InterceptedMessageHandlerConsumerBuilder implements MessageHandle
      */
     final public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, MessageHandlerBuilder $messageHandlerBuilder, PollingMetadata $pollingMetadata): ConsumerLifecycle
     {
-        $interceptors = InterceptedConsumer::createInterceptorsForPollingMetadata($pollingMetadata);
+        $interceptors = InterceptedConsumer::createInterceptorsForPollingMetadata($pollingMetadata, $referenceSearchService);
 
-        foreach ($interceptors as $interceptor) {
+        if ($interceptors) {
+            $postSendInterceptor = new PostSendInterceptor($interceptors);
             $this->addAroundInterceptor(
                 AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
                     $referenceSearchService->get(InterfaceToCallRegistry::REFERENCE_NAME),
-                    $interceptor,
+                    $postSendInterceptor,
                     'postSend',
                     Precedence::ASYNCHRONOUS_CONSUMER_INTERCEPTOR_PRECEDENCE,
                     ''

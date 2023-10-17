@@ -8,9 +8,11 @@
 [![Total Downloads](http://poser.pugx.org/ecotone/ecotone/downloads)](https://packagist.org/packages/ecotone/ecotone)
 [![PHP Version Require](http://poser.pugx.org/ecotone/ecotone/require/php)](https://packagist.org/packages/ecotone/ecotone)
 
-`Ecotone` is `Service Bus` Implementation, which enables `message driven architecture` with `DDD`, `CQRS`, `Event Sourcing` in `PHP`
+`Ecotone Framework` is a `Service Bus` which enables `Message-Driven` architecture in `PHP`.  
+Based on  resilient Message-Driven principles provides support for building applications that follows `Domain-Driven Design` (DDD), `Command Query Responsibility Segregation` (CQRS) and `Event Sourcing` (ES).
 
-Ecotone provides PHP with `Command Bus`, `Query Bus`, `Event Bus`, `Interceptors`, `Aggregates`, `Sagas`, `Event Sourcing` built on solutions that are message driven at the fundamental levels, and using integration with well known and stable solutions like `Enqueue for asynchronous communication` and `Prooph for Event Sourcing`.
+> The term "Ecotone", in ecology means transition area between ecosystems, such as forest and grassland.  
+The Ecotone Framework functions as transition area between your components, modules and services. It glues things together, yet respects the boundaries of each area.
 
 > Ecotone can be used with [Symfony](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing) and [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing) frameworks.
 
@@ -18,38 +20,11 @@ Ecotone provides PHP with `Command Bus`, `Query Bus`, `Event Bus`, `Interceptors
 
 The quickstart [page](https://docs.ecotone.tech/quick-start) of the 
 [reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.  
-Read more on the [Blog](https://blog.ecotone.tech).
+Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
 
-# Development
+## Contribution
 
-Copy `.env.dist` to `.env` and start docker containers
-
-```php
-docker-compose up -d
-```
-
-To run tests for monorepo:
-
-```php
-docker exec -it ecotone_development composer tests:local
-```
-
-To run tests for given module
-```php
-docker exec -it -w=/data/app/packages/Dbal ecotone_development composer tests:ci
-```
-
-Clear environment
-```php
-docker-compose down
-```
-
-Debugging code with Xdebug.    
-To have enabled Xdebug all the time, change line in your .env file to `XDEBUG_ENABLED="1"`
-To enable xdebug conditionally for given test run:  
-```php
-docker exec -it ecotone_development xdebug vendor/bin/phpunit --filter test_calling_command_on_aggregate_and_receiving_aggregate_instance
-```
+Visit [Ecotone's Documentation](https://docs.ecotone.tech/messaging/contributing-to-ecotone) for more information about contributing.
 
 ## Feature requests and issue reporting
 

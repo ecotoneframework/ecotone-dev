@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Endpoint\Interceptor;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 class ConnectionExceptionRetryInterceptor implements ConsumerInterceptor
@@ -14,7 +15,7 @@ class ConnectionExceptionRetryInterceptor implements ConsumerInterceptor
     private int $currentNumberOfRetries = 0;
     private ?\Ecotone\Messaging\Handler\Recoverability\RetryTemplate $retryTemplate;
 
-    public function __construct(?RetryTemplateBuilder $retryTemplate)
+    public function __construct(private LoggerInterface $logger, ?RetryTemplateBuilder $retryTemplate, private bool $isStoppedOnError)
     {
         $this->retryTemplate = $retryTemplate ? $retryTemplate->build() : null;
     }
@@ -40,15 +41,21 @@ class ConnectionExceptionRetryInterceptor implements ConsumerInterceptor
      */
     public function shouldBeThrown(Throwable $exception): bool
     {
-        if (! ($exception instanceof ConnectionException)) {
+        if (! ($exception instanceof ConnectionException) || $this->isStoppedOnError) {
             return true;
         }
 
         $this->currentNumberOfRetries++;
         if (! $this->retryTemplate || ! $this->retryTemplate->canBeCalledNextTime($this->currentNumberOfRetries)) {
+            $this->logger->critical('Connection retry to Message Channel was exceed.', ['exception' => $exception]);
             return true;
         }
 
+        $retryConnectionIn = $this->retryTemplate->calculateNextDelay($this->currentNumberOfRetries);
+        $this->logger->info(
+            ConnectionException::connectionRetryMessage($this->currentNumberOfRetries, $retryConnectionIn),
+            ['exception' => $exception]
+        );
         return false;
     }
 

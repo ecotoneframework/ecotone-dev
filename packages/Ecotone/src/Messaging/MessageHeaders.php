@@ -3,7 +3,12 @@
 namespace Ecotone\Messaging;
 
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+
+use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Modelling\Config\BusModule;
+use Ecotone\Modelling\DistributionEntrypoint;
 
 use function json_encode;
 
@@ -27,7 +32,7 @@ final class MessageHeaders
     /**
      * Used to point parent message
      */
-    public const CAUSATION_MESSAGE_ID = 'parentId';
+    public const PARENT_MESSAGE_ID = 'parentId';
     /**
      * content-type values are parsed as media types, e.g., application/json or text/plain;charset=UTF-8
      */
@@ -85,10 +90,6 @@ final class MessageHeaders
      */
     public const CONSUMER_ACK_HEADER_LOCATION = 'consumerAcknowledgeCallbackHeader';
     /**
-     * Consumer which started flow
-     */
-    public const CONSUMER_ENDPOINT_ID = 'consumerEndpointId';
-    /**
      * Consumed channel name
      */
     public const POLLED_CHANNEL_NAME = 'polledChannelName';
@@ -101,8 +102,11 @@ final class MessageHeaders
      */
     public const REVISION = 'revision';
 
-    private ?array $headers;
+    public const STREAM_BASED_SOURCED = 'streamBasedSourced';
 
+    public const CHANNEL_SEND_RETRY_NUMBER = 'channelSendRetryNumber';
+
+    private array $headers;
 
     /**
      * MessageHeaders constructor.
@@ -130,7 +134,7 @@ final class MessageHeaders
         return static::createMessageHeadersWith($headers);
     }
 
-    final public function headers(): ?array
+    final public function headers(): array
     {
         return $this->headers;
     }
@@ -140,7 +144,7 @@ final class MessageHeaders
         return [
             self::MESSAGE_ID,
             self::MESSAGE_CORRELATION_ID,
-            self::CAUSATION_MESSAGE_ID,
+            self::PARENT_MESSAGE_ID,
             self::CONTENT_TYPE,
             self::TYPE_ID,
             self::CONTENT_ENCODING,
@@ -156,8 +160,59 @@ final class MessageHeaders
             self::DELIVERY_DELAY,
             self::POLLED_CHANNEL_NAME,
             self::REPLY_CONTENT_TYPE,
-            self::CONSUMER_ENDPOINT_ID,
+            self::STREAM_BASED_SOURCED,
+            MessagingEntrypoint::ENTRYPOINT,
+            self::CHANNEL_SEND_RETRY_NUMBER,
         ];
+    }
+
+    public static function unsetFrameworkKeys(array $metadata): array
+    {
+        foreach (self::getFrameworksHeaderNames() as $frameworksHeaderName) {
+            unset($metadata[$frameworksHeaderName]);
+        }
+
+        return $metadata;
+    }
+
+    public static function unsetTransportMessageKeys(array $metadata): array
+    {
+        unset($metadata[self::MESSAGE_ID]);
+
+        return $metadata;
+    }
+
+    public static function propagateContextHeaders(array $context, array $headers)
+    {
+        $headers = array_merge($context, $headers);
+        if (array_key_exists(MessageHeaders::MESSAGE_CORRELATION_ID, $context)) {
+            $headers[MessageHeaders::MESSAGE_CORRELATION_ID] = $context[MessageHeaders::MESSAGE_CORRELATION_ID];
+        }
+        if (array_key_exists(MessageHeaders::MESSAGE_CORRELATION_ID, $context) && $headers[MessageHeaders::MESSAGE_ID] !== $context[MessageHeaders::MESSAGE_ID]) {
+            $headers[MessageHeaders::PARENT_MESSAGE_ID] = $context[MessageHeaders::MESSAGE_ID];
+        }
+
+        return $headers;
+    }
+
+    public static function unsetAllFrameworkHeaders(array $metadata): array
+    {
+        $metadata =  self::unsetCoreFrameworkHeaders($metadata);
+        $metadata = self::unsetAsyncKeys($metadata);
+        $metadata = self::unsetEnqueueMetadata($metadata);
+        $metadata = self::unsetDistributionKeys($metadata);
+        $metadata = self::unsetBusKeys($metadata);
+
+        return self::unsetAggregateKeys($metadata);
+    }
+
+    public static function unsetCoreFrameworkHeaders(array $metadata): array
+    {
+        foreach (self::getFrameworksHeaderNames() as $frameworksHeaderName) {
+            unset($metadata[$frameworksHeaderName]);
+        }
+
+        return $metadata;
     }
 
     public static function unsetAsyncKeys(array $metadata): array
@@ -165,6 +220,71 @@ final class MessageHeaders
         unset($metadata[self::TYPE_ID]);
 
         return $metadata;
+    }
+
+    public static function unsetEnqueueMetadata(array $metadata): array
+    {
+        if (isset($metadata[self::CONSUMER_ACK_HEADER_LOCATION])) {
+            unset($metadata[$metadata[self::CONSUMER_ACK_HEADER_LOCATION]]);
+        }
+
+        unset(
+            $metadata[self::DELIVERY_DELAY],
+            $metadata[self::TIME_TO_LIVE],
+            $metadata[self::CONTENT_TYPE],
+            $metadata[self::CONSUMER_ACK_HEADER_LOCATION],
+            $metadata[self::POLLED_CHANNEL_NAME],
+            $metadata[self::REPLY_CHANNEL]
+        );
+
+        return $metadata;
+    }
+
+    public static function unsetDistributionKeys(array $metadata): array
+    {
+        unset(
+            $metadata[DistributionEntrypoint::DISTRIBUTED_CHANNEL],
+            $metadata[DistributionEntrypoint::DISTRIBUTED_PAYLOAD_TYPE],
+            $metadata[DistributionEntrypoint::DISTRIBUTED_ROUTING_KEY]
+        );
+
+        return $metadata;
+    }
+
+    public static function unsetBusKeys(array $metadata): array
+    {
+        unset(
+            $metadata[BusModule::COMMAND_CHANNEL_NAME_BY_NAME],
+            $metadata[BusModule::COMMAND_CHANNEL_NAME_BY_OBJECT],
+            $metadata[BusModule::EVENT_CHANNEL_NAME_BY_NAME],
+            $metadata[BusModule::EVENT_CHANNEL_NAME_BY_OBJECT],
+            $metadata[BusModule::QUERY_CHANNEL_NAME_BY_NAME],
+            $metadata[BusModule::QUERY_CHANNEL_NAME_BY_OBJECT]
+        );
+
+        return $metadata;
+    }
+
+    public static function unsetAggregateKeys(array $metadata): array
+    {
+        unset(
+            $metadata[AggregateMessage::AGGREGATE_ID],
+            $metadata[AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER],
+            $metadata[AggregateMessage::AGGREGATE_OBJECT],
+            $metadata[AggregateMessage::TARGET_VERSION]
+        );
+
+        return $metadata;
+    }
+
+    public static function unsetNonUserKeys(array $metadata): array
+    {
+        $metadata = self::unsetEnqueueMetadata($metadata);
+        $metadata = self::unsetDistributionKeys($metadata);
+        $metadata = self::unsetAsyncKeys($metadata);
+        $metadata = self::unsetBusKeys($metadata);
+
+        return self::unsetAggregateKeys($metadata);
     }
 
     /**
@@ -279,6 +399,11 @@ final class MessageHeaders
         return $this->containsKey(self::CONTENT_TYPE);
     }
 
+    public function hasReplyChannel(): bool
+    {
+        return $this->containsKey(self::REPLY_CHANNEL);
+    }
+
     /**
      * @return string
      * @throws MessagingException
@@ -286,6 +411,18 @@ final class MessageHeaders
     public function getMessageId(): string
     {
         return $this->get(MessageHeaders::MESSAGE_ID);
+    }
+
+    public function getCorrelationId(): string
+    {
+        return $this->get(MessageHeaders::MESSAGE_CORRELATION_ID);
+    }
+
+    public function getParentId(): ?string
+    {
+        return $this->containsKey(MessageHeaders::PARENT_MESSAGE_ID)
+            ? $this->get(MessageHeaders::PARENT_MESSAGE_ID)
+            : null;
     }
 
     /**
@@ -317,6 +454,9 @@ final class MessageHeaders
             if (is_null($headerName) || $headerName === '') {
                 throw InvalidMessageHeaderException::create('Passed empty header name');
             }
+            if (! is_string($headerName)) {
+                throw InvalidMessageHeaderException::create(sprintf('Passed header name must be string `%s` given, with value `%s`', $headerName, $headerValue));
+            }
         }
 
         $this->headers = $headers;
@@ -333,6 +473,9 @@ final class MessageHeaders
         }
         if (! array_key_exists(self::TIMESTAMP, $headers)) {
             $headers[self::TIMESTAMP] = (int)round(microtime(true));
+        }
+        if (! array_key_exists(self::MESSAGE_CORRELATION_ID, $headers)) {
+            $headers[self::MESSAGE_CORRELATION_ID] = Uuid::uuid4()->toString();
         }
 
         return new static($headers);

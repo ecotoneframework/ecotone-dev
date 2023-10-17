@@ -2,14 +2,13 @@ version: "3.8"
 
 services:
   app:
-    image: simplycodedsoftware/php:8.1
+    image: simplycodedsoftware/php:8.2
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
     command: sleep 99999
-    container_name: "ecotone_development"
-    networks:
-      - default
+    container_name: "ecotone_development_8_2"
+    user: "${USER_PID:-1000}:${USER_PID:-1000}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # 172.17.0.1
@@ -19,14 +18,69 @@ services:
       COMPOSER_ROOT_VERSION: 'dev-main'
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      APP_DB_HOST: database-mysql
+      APP_DB_PORT: 3306
+      APP_DB_DRIVER: pdo_mysql
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
-      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4576&version=latest
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
+      REDIS_DSN: redis://redis:6379
+      APP_MERGE_PLUGIN: "yes"
+    env_file:
+      - ".env"
+  app8_1:
+    image: simplycodedsoftware/php:8.1
+    volumes:
+      - "$PWD:/data/app"
+    working_dir: "/data/app"
+    command: sleep 99999
+    container_name: "ecotone_development_8_0"
+    user: "${USER_PID:-1000}:${USER_PID:-1000}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # 172.17.0.1
+    environment:
+      COMPOSER_HOME: /data/app
+      COMPOSE_HTTP_TIMEOUT: 9999
+      COMPOSER_ROOT_VERSION: 'dev-main'
+      RABBIT_HOST: "amqp://rabbitmq:5672"
+      DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      APP_DB_HOST: database-mysql
+      APP_DB_PORT: 3306
+      APP_DB_DRIVER: pdo_mysql
+      DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
+      REDIS_DSN: redis://redis:6379
+      APP_MERGE_PLUGIN: "yes"
+    env_file:
+      - ".env"
+  app8_0:
+    image: simplycodedsoftware/php:8.0
+    volumes:
+      - "$PWD:/data/app"
+    working_dir: "/data/app"
+    command: sleep 99999
+    container_name: "ecotone_development"
+    user: "${USER_PID:-1000}:${USER_PID:-1000}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # 172.17.0.1
+    environment:
+      COMPOSER_HOME: /data/app
+      COMPOSE_HTTP_TIMEOUT: 9999
+      COMPOSER_ROOT_VERSION: 'dev-main'
+      RABBIT_HOST: "amqp://rabbitmq:5672"
+      DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      APP_DB_HOST: database
+      APP_DB_PORT: 5432
+      APP_DB_DRIVER: pdo_pgsql
+      DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
+      REDIS_DSN: redis://redis:6379
+      APP_MERGE_PLUGIN: "yes"
     env_file:
       - ".env"
   database:
     image: postgres:12.1
-    networks:
-      - default
     environment:
       POSTGRES_USER: "ecotone"
       POSTGRES_PASSWORD: "secret"
@@ -34,8 +88,6 @@ services:
       - "5432:5432"
   database-mysql:
     image: mysql:8.0
-    networks:
-      - default
     environment:
       MYSQL_ROOT_PASSWORD: "secret"
       MYSQL_USER: "ecotone"
@@ -44,26 +96,45 @@ services:
     ports:
       - "3306:3306"
   rabbitmq:
-    image: rabbitmq:3.8-management-alpine
+    image: rabbitmq:3.11-management-alpine
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-    networks:
-      - default
     ports:
       - "15672:15672"
       - "5672:5672"
   localstack:
-    image: localstack/localstack:0.8.10
-    networks:
-      - default
+    image: localstack/localstack:2.2.0
     environment:
-      HOSTNAME_EXTERNAL: 'localstack'
+      LOCALSTACK_HOST: 'localstack'
       SERVICES: 'sqs,sns'
     ports:
-      - '4576:4576'
-      - '4575:4575'
-networks:
-  default:
-    external:
-      name: ecotone-test
+      - "4566:4566"            # LocalStack Gateway
+      - "4510-4559:4510-4559"  # external services port range
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.73.0
+    networks:
+      - default
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./.docker/collector/otel-collector-config.yaml:/etc/otel-collector-config.yml
+    ports:
+      - "9411"   # Zipkin receiver
+      - "4317:4317"        # OTLP gRPC receiver
+      - "4318:4318" # OTLP/HTTP receiver
+  zipkin:
+    image: openzipkin/zipkin-slim
+    networks:
+      - default
+    ports:
+      - 9411:9411
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    networks:
+      - default
+    ports:
+      - 16686:16686

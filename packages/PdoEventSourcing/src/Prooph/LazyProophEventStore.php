@@ -29,6 +29,8 @@ use Prooph\EventStore\StreamName;
 
 use function str_contains;
 
+use Throwable;
+
 class LazyProophEventStore implements EventStore
 {
     public const DEFAULT_ENABLE_WRITE_LOCK_STRATEGY = false;
@@ -268,12 +270,14 @@ class LazyProophEventStore implements EventStore
         return $connectionFactory->getConnection();
     }
 
-    /** @phpstan-ignore-next-line */
-    public function getWrappedConnection(): PDOConnection|PDO
+    /**
+     * @return PDOConnection|PDO
+     */
+    public function getWrappedConnection()
     {
         try {
             return $this->getConnection()->getNativeConnection();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return $this->getConnectionInLegacyOrLaravelWay();
         }
     }

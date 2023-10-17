@@ -8,7 +8,7 @@ use App\Testing\Domain\User\Command\RegisterUser;
 use App\Testing\Domain\User\Event\UserWasRegistered;
 use Assert\Assert;
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateEvents;
@@ -20,7 +20,7 @@ final class User
     use WithAggregateEvents;
 
     public function __construct(
-        #[AggregateIdentifier] private UuidInterface $userId,
+        #[Identifier] private UuidInterface $userId,
         private string $name,
         private Email $email,
         private PhoneNumber $phoneNumber,

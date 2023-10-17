@@ -4,15 +4,21 @@ namespace Ecotone\Laravel;
 
 use const DIRECTORY_SEPARATOR;
 
+use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
-use Ecotone\Messaging\Config\LazyConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ProxyGenerator;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+
 use Ecotone\Messaging\Config\ServiceConfiguration;
+
 use Ecotone\Messaging\ConfigurationVariableService;
+
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -21,7 +27,6 @@ use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
-
 use Illuminate\Support\ServiceProvider;
 
 class EcotoneProvider extends ServiceProvider
@@ -42,26 +47,24 @@ class EcotoneProvider extends ServiceProvider
 
         $environment            = App::environment();
         $rootCatalog            = App::basePath();
-        $isCachingConfiguration = $environment === 'prod' ? true : Config::get('ecotone.cacheConfiguration');
-        $cacheDirectory         = App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'ecotone';
-
-        if (! is_dir($cacheDirectory)) {
-            mkdir($cacheDirectory, 0775, true);
-        }
+        $useCache               = in_array($environment, ['prod', 'production']) ? true : Config::get('ecotone.cacheConfiguration');
+        $cacheDirectory         = $this->getCacheDirectoryPath();
 
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
+        $skippedModules = Config::get('ecotone.skippedModulePackageNames');
+        if (! Config::get('ecotone.test')) {
+            $skippedModules[] = ModulePackageList::TEST_PACKAGE;
+        }
+
+        /** @TODO Ecotone 2.0 use ServiceContext to configure Laravel */
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
             ->withNamespaces(Config::get('ecotone.namespaces'))
-            ->withSkippedModulePackageNames(Config::get('ecotone.skippedModulePackageNames'));
-
-        if ($isCachingConfiguration) {
-            $applicationConfiguration = $applicationConfiguration
-                ->withCacheDirectoryPath($cacheDirectory);
-        }
+            ->withSkippedModulePackageNames($skippedModules)
+            ->withCacheDirectoryPath($cacheDirectory);
 
         $serializationMediaType = Config::get('ecotone.defaultSerializationMediaType');
         if ($serializationMediaType) {
@@ -93,12 +96,12 @@ class EcotoneProvider extends ServiceProvider
 
         $applicationConfiguration = $applicationConfiguration->withExtensionObjects([new EloquentRepositoryBuilder()]);
 
+        $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, $useCache);
         $configuration = MessagingSystemConfiguration::prepare(
             $rootCatalog,
-            new LaravelReferenceSearchService($this->app),
             new LaravelConfigurationVariableService(),
             $applicationConfiguration,
-            $isCachingConfiguration
+            $serviceCacheConfiguration
         );
 
         $this->app->singleton(
@@ -113,16 +116,20 @@ class EcotoneProvider extends ServiceProvider
                 return new EloquentRepository();
             }
         );
+        $this->app->singleton(
+            ServiceCacheConfiguration::REFERENCE_NAME,
+            fn () => $serviceCacheConfiguration
+        );
 
         foreach ($configuration->getRegisteredGateways() as $registeredGateway) {
             $this->app->singleton(
                 $registeredGateway->getReferenceName(),
-                function ($app) use ($registeredGateway, $cacheDirectory) {
-                    return ProxyGenerator::createFor(
+                function ($app) use ($registeredGateway) {
+                    return ProxyFactory::createFor(
                         $registeredGateway->getReferenceName(),
-                        $app,
+                        $this->app,
                         $registeredGateway->getInterfaceName(),
-                        $cacheDirectory
+                        $this->app->get(ServiceCacheConfiguration::REFERENCE_NAME)
                     );
                 }
             );
@@ -153,7 +160,7 @@ class EcotoneProvider extends ServiceProvider
                         $self      = $this;
 
                         /** @var ConsoleCommandResultSet $result */
-                        $result = $consoleCommandRunner->execute($self->getName(), $self->arguments());
+                        $result = $consoleCommandRunner->execute($self->getName(), array_merge($self->arguments(), $self->options()));
 
                         if ($result) {
                             $self->table($result->getColumnHeaders(), $result->getRows());
@@ -167,15 +174,11 @@ class EcotoneProvider extends ServiceProvider
 
         $this->app->singleton(
             ConfiguredMessagingSystem::class,
-            function () {
-                return new LazyConfiguredMessagingSystem($this->app);
-            }
-        );
-
-        $this->app->singleton(
-            LazyConfiguredMessagingSystem::class,
             function () use ($configuration) {
-                return $configuration->buildMessagingSystemFromConfiguration(new LaravelReferenceSearchService($this->app));
+                $referenceSearchService = new PsrContainerReferenceSearchService($this->app);
+                $messagingSystem = $configuration->buildMessagingSystemFromConfiguration($referenceSearchService);
+                $referenceSearchService->setConfiguredMessagingSystem($messagingSystem);
+                return $messagingSystem;
             }
         );
     }
@@ -206,5 +209,10 @@ class EcotoneProvider extends ServiceProvider
                 }
             );
         }
+    }
+
+    private function getCacheDirectoryPath(): string
+    {
+        return App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'ecotone';
     }
 }

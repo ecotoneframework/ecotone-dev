@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
+use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\PollableChannel;
 
@@ -15,44 +18,46 @@ use Ecotone\Messaging\PollableChannel;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class SimpleMessageChannelBuilder implements MessageChannelBuilder
+class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
-    private string $messageChannelName;
-    private MessageChannel $messageChannel;
-    private bool $isPollable;
-
-    private function __construct(string $messageChannelName, MessageChannel $messageChannel, bool $isPollable)
-    {
-        $this->messageChannelName = $messageChannelName;
-        $this->messageChannel = $messageChannel;
-        $this->isPollable = $isPollable;
+    private function __construct(
+        private string $messageChannelName,
+        private MessageChannel $messageChannel,
+        private bool $isPollable,
+        private ?MediaType $conversionMediaType
+    ) {
     }
 
-    public static function create(string $messageChannelName, MessageChannel $messageChannel): self
+    public static function create(string $messageChannelName, MessageChannel $messageChannel, string|MediaType|null $conversionMediaType = null): self
     {
-        return new self($messageChannelName, $messageChannel, $messageChannel instanceof PollableChannel);
+        return new self(
+            $messageChannelName,
+            $messageChannel,
+            $messageChannel instanceof PollableChannel,
+            $conversionMediaType ? (is_string($conversionMediaType) ? MediaType::parseMediaType($conversionMediaType) : $conversionMediaType) : null
+        );
     }
 
     public static function createDirectMessageChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, DirectChannel::create($messageChannelName));
+        return self::create($messageChannelName, DirectChannel::create($messageChannelName), null);
     }
 
     public static function createPublishSubscribeChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, PublishSubscribeChannel::create($messageChannelName));
+        return self::create($messageChannelName, PublishSubscribeChannel::create($messageChannelName), null);
     }
 
-    public static function createQueueChannel(string $messageChannelName, bool $delayable = false): self
+    public static function createQueueChannel(string $messageChannelName, bool $delayable = false, string|MediaType|null $conversionMediaType = null): self
     {
         $messageChannel = $delayable ? DelayableQueueChannel::create($messageChannelName) : QueueChannel::create($messageChannelName);
 
-        return self::create($messageChannelName, $messageChannel);
+        return self::create($messageChannelName, $messageChannel, $conversionMediaType);
     }
 
     public static function createNullableChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, NullableMessageChannel::create());
+        return self::create($messageChannelName, NullableMessageChannel::create(), null);
     }
 
     /**
@@ -85,6 +90,16 @@ class SimpleMessageChannelBuilder implements MessageChannelBuilder
     public function getMessageChannelName(): string
     {
         return $this->messageChannelName;
+    }
+
+    public function getConversionMediaType(): ?MediaType
+    {
+        return $this->conversionMediaType;
+    }
+
+    public function getHeaderMapper(): HeaderMapper
+    {
+        return DefaultHeaderMapper::createAllHeadersMapping();
     }
 
     /**

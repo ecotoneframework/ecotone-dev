@@ -3,17 +3,18 @@
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\StubMethodInvocation;
 
 /**
  * @internal
  */
-class DbalDeduplicationInterceptorTest extends DbalMessagingTest
+class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 {
     public function test_not_deduplicating_for_different_endpoints()
     {
@@ -23,15 +24,13 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTest
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint2',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint2'));
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }
@@ -44,15 +43,13 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTest
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
     }
@@ -65,16 +62,14 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTest
 
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
         usleep(2000);
         $dbalTransactionInterceptor->deduplicate($methodInvocation, MessageBuilder::withPayload([])->setMultipleHeaders([
             MessageHeaders::MESSAGE_ID => 1,
-            MessageHeaders::CONSUMER_ENDPOINT_ID => 'endpoint1',
-        ])->build(), $this->getReferenceSearchServiceWithConnection());
+        ])->build(), $this->getReferenceSearchServiceWithConnection(), null, null, new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }

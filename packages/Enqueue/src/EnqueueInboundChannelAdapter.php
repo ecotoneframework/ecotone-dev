@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -24,6 +25,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
         protected string                          $queueName,
         protected int                             $receiveTimeoutInMilliseconds,
         protected InboundMessageConverter         $inboundMessageConverter,
+        protected ConversionService $conversionService
     ) {
     }
 
@@ -45,30 +47,46 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
 
     public function receiveMessage(int $timeout = 0): ?Message
     {
-        if ($this->declareOnStartup && $this->initialized === false) {
-            $this->initialize();
-
-            $this->initialized = true;
-        }
-
-        $consumer = $this->connectionFactory->getConsumer(
-            $this->connectionFactory->createContext()->createQueue($this->queueName)
-        );
-
         try {
+            if ($this->declareOnStartup && $this->initialized === false) {
+                $this->initialize();
+
+                $this->initialized = true;
+            }
+
+            $consumer = $this->connectionFactory->getConsumer(
+                $this->connectionFactory->createContext()->createQueue($this->queueName)
+            );
+
             /** @var EnqueueMessage $message */
             $message = $consumer->receive($timeout ?: $this->receiveTimeoutInMilliseconds);
+
+            if (! $message) {
+                return null;
+            }
+
+            $convertedMessage = $this->inboundMessageConverter->toMessage($message, $consumer, $this->conversionService);
+            $convertedMessage = $this->enrichMessage($message, $convertedMessage);
+
+            return $convertedMessage->build();
         } catch (Exception $exception) {
-            throw new ConnectionException('There was a problem while polling channel', 0, $exception);
+            if ($this->isConnectionException($exception) || ($exception->getPrevious() && $this->isConnectionException($exception->getPrevious()))) {
+                throw new ConnectionException('There was a problem while polling message channel', 0, $exception);
+            }
+
+            throw $exception;
         }
+    }
 
-        if (! $message) {
-            return null;
-        }
+    abstract public function connectionException(): string;
 
-        $convertedMessage = $this->inboundMessageConverter->toMessage($message, $consumer);
-        $convertedMessage = $this->enrichMessage($message, $convertedMessage);
+    private function isConnectionException(Exception $exception): bool
+    {
+        return is_subclass_of($exception, $this->connectionException()) || $exception::class === $this->connectionException();
+    }
 
-        return $convertedMessage->build();
+    public function getQueueName(): string
+    {
+        return $this->queueName;
     }
 }

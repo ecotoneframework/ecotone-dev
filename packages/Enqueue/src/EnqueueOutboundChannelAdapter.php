@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
@@ -17,7 +19,8 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         protected CachedConnectionFactory  $connectionFactory,
         protected Destination              $destination,
         protected bool                     $autoDeclare,
-        protected OutboundMessageConverter $outboundMessageConverter
+        protected OutboundMessageConverter $outboundMessageConverter,
+        private ConversionService $conversionService
     ) {
     }
 
@@ -30,7 +33,7 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
             $this->initialized = true;
         }
 
-        $outboundMessage                       = $this->outboundMessageConverter->prepare($message);
+        $outboundMessage                       = $this->outboundMessageConverter->prepare($message, $this->conversionService);
         $headers                               = $outboundMessage->getHeaders();
         $headers[MessageHeaders::CONTENT_TYPE] = $outboundMessage->getContentType();
 

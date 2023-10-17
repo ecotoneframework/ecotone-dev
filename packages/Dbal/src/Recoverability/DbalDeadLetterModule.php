@@ -37,7 +37,7 @@ class DbalDeadLetterModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
         $isDeadLetterEnabled = $dbalConfiguration->isDeadLetterEnabled();
@@ -48,16 +48,16 @@ class DbalDeadLetterModule implements AnnotationModule
             return;
         }
 
-        $this->registerOneTimeCommand('list', self::LIST_COMMAND_NAME, $configuration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('show', self::SHOW_COMMAND_NAME, $configuration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('reply', self::REPLAY_COMMAND_NAME, $configuration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('replyAll', self::REPLAY_ALL_COMMAND_NAME, $configuration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $configuration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $configuration, $interfaceToCallRegistry);
+        $this->registerOneTimeCommand('list', self::LIST_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerOneTimeCommand('show', self::SHOW_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerOneTimeCommand('reply', self::REPLAY_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerOneTimeCommand('replyAll', self::REPLAY_ALL_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
 
-        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, false, $configuration);
+        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, false, $messagingConfiguration);
         foreach ($customDeadLetterGateways as $customDeadLetterGateway) {
-            $this->registerGateway($customDeadLetterGateway->getGatewayReferenceName(), $customDeadLetterGateway->getConnectionReferenceName(), true, $configuration);
+            $this->registerGateway($customDeadLetterGateway->getGatewayReferenceName(), $customDeadLetterGateway->getConnectionReferenceName(), true, $messagingConfiguration);
         }
     }
 
@@ -109,6 +109,7 @@ class DbalDeadLetterModule implements AnnotationModule
 
         $configuration
             ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createDeleteAll($referenceName, $connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createShow($referenceName, $connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createList($referenceName, $connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createCount($referenceName, $connectionFactoryReference))
@@ -164,6 +165,14 @@ class DbalDeadLetterModule implements AnnotationModule
                     DeadLetterGateway::class,
                     'delete',
                     DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::DELETE_CHANNEL)
+                )
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create(
+                    $referenceName,
+                    DeadLetterGateway::class,
+                    'deleteAll',
+                    DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::DELETE_ALL_CHANNEL)
                 )
             );
     }

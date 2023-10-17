@@ -4,10 +4,10 @@ namespace Test\Ecotone\EventSourcing\Fixture\Basket;
 
 use Ecotone\EventSourcing\Attribute\AggregateType;
 use Ecotone\EventSourcing\Attribute\Stream;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateEvents;
 use Ecotone\Modelling\WithAggregateVersioning;
@@ -26,7 +26,7 @@ class Basket
     public const BASKET_STREAM = 'basket_stream';
     public const AGGREGATE_TYPE = 'basket';
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $id;
 
     private array $currentBasket = [];

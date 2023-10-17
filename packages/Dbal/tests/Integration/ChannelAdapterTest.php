@@ -11,12 +11,12 @@ use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Dbal\DbalMessagingTest;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
  * @internal
  */
-class ChannelAdapterTest extends DbalMessagingTest
+class ChannelAdapterTest extends DbalMessagingTestCase
 {
     public function test_sending_and_receiving_message()
     {

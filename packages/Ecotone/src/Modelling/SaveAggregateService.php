@@ -11,14 +11,13 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\NamedEvent;
-use Ecotone\Modelling\Config\BusModule;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Class SaveAggregateService
@@ -56,8 +55,8 @@ class SaveAggregateService
         array $aggregateIdentifierGetMethods,
         ?string $aggregateVersionProperty,
         bool $isAggregateVersionAutomaticallyIncreased,
-        private int                               $snapshotTriggerThreshold,
-        private array $aggregateClassesToSnapshot,
+        private bool $useSnapshot,
+        private int $snapshotTriggerThreshold,
         private DocumentStore $documentStore
     ) {
         $this->aggregateRepository = $aggregateRepository;
@@ -76,26 +75,19 @@ class SaveAggregateService
 
     public function save(Message $message, array $metadata): Message
     {
-        $aggregate = $message->getHeaders()->get(AggregateMessage::AGGREGATE_OBJECT);
-        $events = [];
+        $metadata = MessageHeaders::unsetNonUserKeys($metadata);
 
-        if ($this->isEventSourced) {
-            $events = $message->getPayload();
-            Assert::isIterable($events, "Return value Event Sourced Aggregate {$this->aggregateInterface} must return array of events");
-        } elseif ($this->aggregateMethodWithEvents) {
-            $events = call_user_func([$aggregate, $this->aggregateMethodWithEvents]);
-        }
-        foreach ($events as $event) {
-            if (! is_object($event)) {
-                $typeDescriptor = TypeDescriptor::createFromVariable($event);
-                throw InvalidArgumentException::create("Events return by after calling {$this->aggregateInterface} must all be objects, {$typeDescriptor->toString()} given");
-            }
+        $events = $this->resolveEvents($message, $metadata);
+
+        if ($this->isEventSourced && $events === []) {
+            return MessageBuilder::fromMessage($message)->build();
         }
 
         $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION)
             ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION)
             : null;
 
+        $aggregate = $message->getHeaders()->get(AggregateMessage::AGGREGATE_OBJECT);
         if ($this->aggregateVersionProperty && $this->isAggregateVersionAutomaticallyIncreased) {
             $this->propertyEditorAccessor->enrichDataWith(
                 PropertyPath::createWith($this->aggregateVersionProperty),
@@ -111,25 +103,8 @@ class SaveAggregateService
                             : [];
         $aggregateIds = $aggregateIds ?: $this->getAggregateIds($aggregateIds, $aggregate, $this->isEventSourced);
 
-        unset($metadata[AggregateMessage::AGGREGATE_ID]);
-        unset($metadata[AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER]);
-        unset($metadata[AggregateMessage::AGGREGATE_OBJECT]);
-        unset($metadata[AggregateMessage::TARGET_VERSION]);
-        unset($metadata[BusModule::COMMAND_CHANNEL_NAME_BY_NAME]);
-        unset($metadata[BusModule::COMMAND_CHANNEL_NAME_BY_OBJECT]);
-        unset($metadata[BusModule::EVENT_CHANNEL_NAME_BY_NAME]);
-        unset($metadata[BusModule::EVENT_CHANNEL_NAME_BY_OBJECT]);
-        unset($metadata[BusModule::QUERY_CHANNEL_NAME_BY_NAME]);
-        unset($metadata[BusModule::QUERY_CHANNEL_NAME_BY_OBJECT]);
-        unset($metadata[MessageHeaders::REPLY_CHANNEL]);
-        unset($metadata[MessageHeaders::CONTENT_TYPE]);
-
         if ($this->isEventSourced) {
-            if ($this->snapshotTriggerThreshold !== self::NO_SNAPSHOT_THRESHOLD && in_array(is_string($aggregate) ? $aggregate : $aggregate::class, $this->aggregateClassesToSnapshot)) {
-                if (! is_object($aggregate)) {
-                    throw MessagingException::create(sprintf("Can't use repository shortcuts together with snapshots for %s", $aggregate));
-                }
-
+            if ($this->useSnapshot && is_object($aggregate)) {
                 $version = $versionBeforeHandling;
                 foreach ($events as $event) {
                     $version += 1;
@@ -160,17 +135,15 @@ class SaveAggregateService
         }
 
         foreach ($events as $event) {
-            // @TODO Ecotone 2.0 make use of Event (with metadata):
-            $metadata = RevisionMetadataEnricher::enrich($metadata, $event);
-            $this->eventBus->publish($event, $metadata);
+            $this->eventBus->publish($event->getPayload(), $event->getMetadata());
 
-            $eventDefinition = ClassDefinition::createFor(TypeDescriptor::createFromVariable($event));
+            $eventDefinition = ClassDefinition::createFor(TypeDescriptor::createFromVariable($event->getPayload()));
             $namedEvent = TypeDescriptor::create(NamedEvent::class);
             if ($eventDefinition->hasClassAnnotation($namedEvent)) {
                 /** @var NamedEvent $namedEvent */
                 $namedEvent = $eventDefinition->getSingleClassAnnotation($namedEvent);
 
-                $this->eventBus->publishWithRouting($namedEvent->getName(), $event, MediaType::APPLICATION_X_PHP, $metadata);
+                $this->eventBus->publishWithRouting($namedEvent->getName(), $event->getPayload(), MediaType::APPLICATION_X_PHP, $event->getMetadata());
             }
         }
 
@@ -217,5 +190,45 @@ class SaveAggregateService
         }
 
         return AggregateIdResolver::resolveArrayOfIdentifiers(get_class($aggregate), $aggregateIds);
+    }
+
+    /**
+     * @return array<Event>
+     */
+    private function resolveEvents(Message $message, array $metadata): array
+    {
+        $events = [];
+
+        if ($this->isEventSourced) {
+            $events = $message->getPayload();
+            Assert::isIterable($events, "Return value Event Sourced Aggregate {$this->aggregateInterface} must return array of events");
+        }
+
+        if ($events === [] && $this->aggregateMethodWithEvents) {
+            $aggregate = $message->getHeaders()->get(AggregateMessage::AGGREGATE_OBJECT);
+            $events = call_user_func([$aggregate, $this->aggregateMethodWithEvents]);
+        }
+
+        return array_map(function ($event) use ($message, $metadata): Event {
+            if (! is_object($event)) {
+                $typeDescriptor = TypeDescriptor::createFromVariable($event);
+                throw InvalidArgumentException::create("Events return by after calling {$this->aggregateInterface} must all be objects, {$typeDescriptor->toString()} given");
+            }
+            if ($event instanceof Event) {
+                $metadata = $event->getMetadata();
+                $event = $event->getPayload();
+            }
+
+            $metadata = MessageHeaders::unsetAllFrameworkHeaders($metadata);
+            $metadata = RevisionMetadataEnricher::enrich($metadata, $event);
+            $metadata[MessageHeaders::MESSAGE_ID] ??= Uuid::uuid4()->toString();
+            $metadata[MessageHeaders::TIMESTAMP] ??= (int)round(microtime(true));
+            $metadata = MessageHeaders::propagateContextHeaders([
+                MessageHeaders::MESSAGE_ID => $message->getHeaders()->getMessageId(),
+                MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId(),
+            ], $metadata);
+
+            return Event::create($event, $metadata);
+        }, $events);
     }
 }

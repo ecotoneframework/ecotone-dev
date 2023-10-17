@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Config;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Support\Assert;
 
 class ServiceConfiguration
 {
@@ -17,7 +18,7 @@ class ServiceConfiguration
 
     private string $serviceName = self::DEFAULT_SERVICE_NAME;
     private bool $failFast = self::DEFAULT_FAIL_FAST;
-    private ?string $cacheDirectoryPath = null;
+    private string $cacheDirectoryPath;
     private string $environment = self::DEFAULT_ENVIRONMENT;
     private ?string $loadCatalog = '';
     /**
@@ -27,7 +28,7 @@ class ServiceConfiguration
     /**
      * @var string[]
      */
-    private array $skippedModulesPackages = [];
+    private array $skippedModulesPackages = [ModulePackageList::TEST_PACKAGE];
     private bool $areSkippedPackagesDefined = false;
     private ?string $defaultSerializationMediaType = null;
     private ?string $defaultErrorChannel = null;
@@ -43,11 +44,17 @@ class ServiceConfiguration
 
     private function __construct()
     {
+        $this->cacheDirectoryPath = sys_get_temp_dir();
     }
 
     public static function createWithDefaults(): self
     {
-        return new self();
+        return (new self());
+    }
+
+    public static function createWithAsynchronicityOnly(): self
+    {
+        return self::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]));
     }
 
     /**
@@ -116,10 +123,7 @@ class ServiceConfiguration
         return $clone;
     }
 
-    /**
-     * @param string|null $cacheDirectoryPath
-     */
-    public function withCacheDirectoryPath(?string $cacheDirectoryPath): self
+    public function withCacheDirectoryPath(string $cacheDirectoryPath): self
     {
         $clone                     = clone $this;
         $clone->cacheDirectoryPath = rtrim($cacheDirectoryPath, '/');
@@ -151,6 +155,9 @@ class ServiceConfiguration
 
     public function withExtensionObjects(array $extensionObjects): self
     {
+        foreach ($extensionObjects as $extensionObject) {
+            Assert::isObject($extensionObject, 'Extension object must be an object, given: ' . gettype($extensionObject));
+        }
         $clone              = clone $this;
         $clone->extensionObjects = $extensionObjects;
 
@@ -189,13 +196,10 @@ class ServiceConfiguration
         return $clone;
     }
 
-    /**
-     * @param string $defaultSerializationMediaType
-     */
-    public function withDefaultSerializationMediaType(string $defaultSerializationMediaType): self
+    public function withDefaultSerializationMediaType(string|MediaType $defaultSerializationMediaType): self
     {
         $clone                                = clone $this;
-        $clone->defaultSerializationMediaType = $defaultSerializationMediaType;
+        $clone->defaultSerializationMediaType = is_string($defaultSerializationMediaType) ? $defaultSerializationMediaType : $defaultSerializationMediaType->toString();
 
         return $clone;
     }
@@ -320,9 +324,10 @@ class ServiceConfiguration
     }
 
     /**
-     * @return string|null
+     * @TODO Ecotone 2.0 Rethink if it should still be here, if ServiceCacheDirectory can be used instead
+     * @deprecated use ServiceCacheDirectory
      */
-    public function getCacheDirectoryPath(): ?string
+    public function getCacheDirectoryPath(): string
     {
         return $this->cacheDirectoryPath;
     }

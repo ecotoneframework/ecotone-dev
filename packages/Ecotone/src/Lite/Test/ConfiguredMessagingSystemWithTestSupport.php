@@ -36,11 +36,6 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
         return $this->configuredMessagingSystem->runConsoleCommand($commandName, $parameters);
     }
 
-    public function getGatewayList(): iterable
-    {
-        return $this->configuredMessagingSystem->getGatewayList();
-    }
-
     public function getCommandBus(): CommandBus
     {
         return $this->configuredMessagingSystem->getCommandBus();
@@ -59,6 +54,14 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
     public function getDistributedBus(): DistributedBus
     {
         return $this->configuredMessagingSystem->getDistributedBus();
+    }
+
+    public function sendMessage(string $targetChannel, mixed $payload = '', array $metadata = []): mixed
+    {
+        /** @var MessagingEntrypoint $messagingEntrypoint */
+        $messagingEntrypoint = $this->configuredMessagingSystem->getGatewayByName(MessagingEntrypoint::class);
+
+        return $messagingEntrypoint->sendWithHeaders($payload, $metadata, $targetChannel);
     }
 
     public function getMessagePublisher(string $referenceName = MessagePublisher::class): MessagePublisher
@@ -101,6 +104,11 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
     public function list(): array
     {
         return $this->configuredMessagingSystem->list();
+    }
+
+    public function getGatewayList(): array
+    {
+        return $this->configuredMessagingSystem->getGatewayList();
     }
 
     public function replaceWith(ConfiguredMessagingSystem $messagingSystem): void

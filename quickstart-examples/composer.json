@@ -35,12 +35,16 @@
             "(cd MicroservicesAdvanced && composer update && php run_example.php)",
             "(cd Schedule && composer update && php run_example.php)",
             "(cd StatefulProjection && composer update && php run_example.php)",
-            "(cd OutboxPattern && composer update && php run_example.php)"
+            "(cd OutboxPattern && composer update && php run_example.php)",
+            "(cd RefactorToReactiveSystem && composer update && php run_example.php Stage_1 && php run_example.php Stage_2 && php run_example.php Stage_3)",
+            "(cd ErrorHandling && composer update && php run_example.php)",
+            "(cd Testing && composer update && php run_example.php && vendor/bin/phpunit tests)",
+            "(cd BuildingBlocks && composer update && php run_example.php && vendor/bin/phpunit tests)"
         ]
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.68-dev"
+            "dev-main": "1.109.1-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"

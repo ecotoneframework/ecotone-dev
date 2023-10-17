@@ -28,4 +28,9 @@ final class EnqueueMessageChannel implements PollableChannel
     {
         return $this->inboundChannelAdapter->receiveMessage($timeoutInMilliseconds);
     }
+
+    public function __toString()
+    {
+        return 'enqueue: ' . $this->inboundChannelAdapter->getQueueName();
+    }
 }

@@ -5,19 +5,20 @@ namespace Ecotone\Messaging\Config;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
-use Psr\Container\ContainerInterface;
+use InvalidArgumentException;
 
 /**
  * configured messaging system is set up on boot, so in case of fetching it during initialization we need to provide lazy config
  */
 class LazyConfiguredMessagingSystem implements ConfiguredMessagingSystem
 {
-    public function __construct(private ContainerInterface $container)
+    private ?ConfiguredMessagingSystem $configuredMessagingSystem = null;
+
+    public function __construct()
     {
     }
 
@@ -29,11 +30,6 @@ class LazyConfiguredMessagingSystem implements ConfiguredMessagingSystem
     public function getNonProxyGatewayByName(string $gatewayReferenceName): NonProxyCombinedGateway
     {
         return $this->getConfiguredSystem()->getNonProxyGatewayByName($gatewayReferenceName);
-    }
-
-    public function getGatewayList(): iterable
-    {
-        return $this->getConfiguredSystem()->getGatewayList();
     }
 
     public function getMessageChannelByName(string $channelName): MessageChannel
@@ -48,9 +44,7 @@ class LazyConfiguredMessagingSystem implements ConfiguredMessagingSystem
 
     public function getServiceFromContainer(string $referenceName): object
     {
-        Assert::isTrue($this->container->has($referenceName), "Service with reference {$referenceName} does not exists");
-
-        return $this->container->get($referenceName);
+        return $this->getConfiguredSystem()->getServiceFromContainer($referenceName);
     }
 
     public function getCommandBus(): CommandBus
@@ -83,6 +77,11 @@ class LazyConfiguredMessagingSystem implements ConfiguredMessagingSystem
         return $this->getConfiguredSystem()->list();
     }
 
+    public function getGatewayList(): array
+    {
+        return $this->getConfiguredSystem()->getGatewayList();
+    }
+
     public function runConsoleCommand(string $commandName, array $parameters): mixed
     {
         return $this->getConfiguredSystem()->runConsoleCommand($commandName, $parameters);
@@ -90,11 +89,14 @@ class LazyConfiguredMessagingSystem implements ConfiguredMessagingSystem
 
     public function replaceWith(ConfiguredMessagingSystem $messagingSystem): void
     {
-        $this->getConfiguredSystem()->replaceWith($messagingSystem);
+        $this->configuredMessagingSystem = $messagingSystem;
     }
 
     private function getConfiguredSystem(): ConfiguredMessagingSystem
     {
-        return $this->container->get(LazyConfiguredMessagingSystem::class);
+        if (! $this->configuredMessagingSystem) {
+            throw new InvalidArgumentException('Configured messaging system was not set');
+        }
+        return $this->configuredMessagingSystem;
     }
 }

@@ -13,6 +13,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Service\CallableService;
+use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**
  * @internal
@@ -26,15 +27,16 @@ class ConfigurationVariableBuilderTest extends TestCase
 
         $this->assertEquals(
             100,
-            $configurationVariable->build(InMemoryReferenceSearchService::createWith([
-                ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
-                    'name' => 100,
+            $configurationVariable->build(
+                InMemoryReferenceSearchService::createWith([
+                    ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
+                        'name' => 100,
+                    ]),
                 ]),
-            ]))->getArgumentFrom(
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
+            )->getArgumentFrom(
                 MessageBuilder::withPayload('some')->build(),
-                []
             )
         );
     }
@@ -46,15 +48,16 @@ class ConfigurationVariableBuilderTest extends TestCase
 
         $this->assertEquals(
             100,
-            $configurationVariable->build(InMemoryReferenceSearchService::createWith([
-                ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
-                    'name' => 100,
+            $configurationVariable->build(
+                InMemoryReferenceSearchService::createWith([
+                    ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::create([
+                        'name' => 100,
+                    ]),
                 ]),
-            ]))->getArgumentFrom(
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
+            )->getArgumentFrom(
                 MessageBuilder::withPayload('some')->build(),
-                []
             )
         );
     }
@@ -65,13 +68,14 @@ class ConfigurationVariableBuilderTest extends TestCase
         $configurationVariable = ConfigurationVariableBuilder::createFrom('name', $interfaceParameter);
 
         $this->assertNull(
-            $configurationVariable->build(InMemoryReferenceSearchService::createWith([
-                ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
-            ]))->getArgumentFrom(
+            $configurationVariable->build(
+                InMemoryReferenceSearchService::createWith([
+                    ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
+                ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
+            )->getArgumentFrom(
                 MessageBuilder::withPayload('some')->build(),
-                []
             )
         );
     }
@@ -84,26 +88,28 @@ class ConfigurationVariableBuilderTest extends TestCase
 
         $this->assertEquals(
             $defaultValue,
-            $configurationVariable->build(InMemoryReferenceSearchService::createWith([
-                ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
-            ]))->getArgumentFrom(
+            $configurationVariable->build(
+                InMemoryReferenceSearchService::createWith([
+                    ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
+                ]),
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
                 $interfaceParameter,
+            )->getArgumentFrom(
                 MessageBuilder::withPayload('some')->build(),
-                []
             )
         );
     }
 
     public function test_throwing_exception_if_missing_configuration_variable()
     {
-        $interfaceParameter    = InterfaceParameter::createNotNullable('johny', TypeDescriptor::createIntegerType());
+        $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, 'withReturnValue');
+        $interfaceParameter    = $interfaceToCall->getInterfaceParameters()[0];
         $configurationVariable = ConfigurationVariableBuilder::createFrom('name', $interfaceParameter);
 
         $this->expectException(InvalidArgumentException::class);
 
         $configurationVariable->build(InMemoryReferenceSearchService::createWith([
             ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
-        ]));
+        ]), $interfaceToCall, $interfaceParameter);
     }
 }

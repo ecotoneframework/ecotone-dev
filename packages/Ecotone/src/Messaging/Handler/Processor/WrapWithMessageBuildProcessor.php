@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Handler\Processor;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -34,7 +34,7 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
         $this->messageProcessor = $messageProcessor;
     }
 
-    public static function createWith(InterfaceToCall $interfaceToCall, MessageProcessor $messageProcessor, ReferenceSearchService $referenceSearchService)
+    public static function createWith(InterfaceToCall $interfaceToCall, MessageProcessor $messageProcessor)
     {
         return new self($interfaceToCall, $messageProcessor);
     }
@@ -42,9 +42,9 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
     /**
      * @inheritDoc
      */
-    public function processMessage(Message $message): ?Message
+    public function executeEndpoint(Message $message): ?Message
     {
-        $result = $this->messageProcessor->processMessage($message);
+        $result = $this->messageProcessor->executeEndpoint($message);
 
         if (is_null($result)) {
             return null;
@@ -90,6 +90,26 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
             ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($returnType->toString()))
             ->setPayload($result)
             ->build();
+    }
+
+    public function getMethodCall(Message $message): MethodCall
+    {
+        return $this->messageProcessor->getMethodCall($message);
+    }
+
+    public function getObjectToInvokeOn(): string|object
+    {
+        return $this->messageProcessor->getObjectToInvokeOn();
+    }
+
+    public function getMethodName(): string
+    {
+        return $this->messageProcessor->getMethodName();
+    }
+
+    public function getInterfaceToCall(): InterfaceToCall
+    {
+        return $this->messageProcessor->getInterfaceToCall();
     }
 
     /**

@@ -67,7 +67,7 @@ class LoggingServiceTest extends TestCase
         $logger
             ->expects($this->once())
             ->method('debug')
-            ->with(serialize($payload));
+            ->with(addslashes(serialize($payload)));
 
         $loggingService = new LoggingService(AutoCollectionConversionService::createWith([
             new SerializingConverter(),
@@ -131,6 +131,7 @@ class LoggingServiceTest extends TestCase
                 'headers' => json_encode([
                     'id' => $message->getHeaders()->get(MessageHeaders::MESSAGE_ID),
                     'timestamp' => $message->getHeaders()->get(MessageHeaders::TIMESTAMP),
+                    'correlationId' => $message->getHeaders()->getCorrelationId(),
                 ]),
             ]);
 

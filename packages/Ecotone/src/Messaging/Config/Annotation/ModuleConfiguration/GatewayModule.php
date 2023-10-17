@@ -16,7 +16,6 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Handler\Gateway\GatewayBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
@@ -32,14 +31,14 @@ class GatewayModule extends NoExternalConfigurationModule implements AnnotationM
     public const MODULE_NAME = 'gatewayModule';
 
     /**
-     * @var GatewayBuilder[]
+     * @var GatewayProxyBuilder[]
      */
     private array $gatewayBuilders = [];
 
     /**
      * AnnotationGatewayConfiguration constructor.
      *
-     * @param GatewayBuilder[] $gatewayBuilders
+     * @param GatewayProxyBuilder[] $gatewayBuilders
      */
     private function __construct(array $gatewayBuilders)
     {
@@ -118,10 +117,10 @@ class GatewayModule extends NoExternalConfigurationModule implements AnnotationM
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
-            $configuration->registerGatewayBuilder($gatewayBuilder);
+            $messagingConfiguration->registerGatewayBuilder($gatewayBuilder);
         }
     }
 

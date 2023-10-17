@@ -40,7 +40,7 @@ abstract class ConsumerRegisterConfiguration extends NoExternalConfigurationModu
     {
         $consumerBuilders = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(static::getConsumerAnnotation()) as $annotationRegistration) {
-            $consumerBuilders[] = static::createConsumerFrom($annotationRegistration);
+            $consumerBuilders[] = static::createConsumerFrom($annotationRegistration, $interfaceToCallRegistry);
         }
 
         /** @phpstan-ignore-next-line */
@@ -52,15 +52,15 @@ abstract class ConsumerRegisterConfiguration extends NoExternalConfigurationModu
      */
     abstract public static function getConsumerAnnotation(): string;
 
-    abstract public static function createConsumerFrom(AnnotatedFinding $annotationRegistration): ConsumerLifecycleBuilder;
+    abstract public static function createConsumerFrom(AnnotatedFinding $annotationRegistration, InterfaceToCallRegistry $interfaceToCallRegistry): ConsumerLifecycleBuilder;
 
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
-            $configuration->registerConsumer($messageHandlerBuilder);
+            $messagingConfiguration->registerConsumer($messageHandlerBuilder);
         }
     }
 

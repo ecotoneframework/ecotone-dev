@@ -5,6 +5,7 @@ namespace Ecotone\Modelling\Config;
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
@@ -22,6 +23,7 @@ use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Distributed;
@@ -134,6 +136,14 @@ class BusRoutingModule implements AnnotationModule
             }
         }
         foreach ($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class) as $registration) {
+            if ($registration->hasMethodAnnotation(Asynchronous::class)) {
+                /** @var Asynchronous $asynchronous */
+                $asynchronous = $registration->getMethodAnnotationsWithType(Asynchronous::class)[0];
+                /** @var CommandHandler $annotationForMethod */
+                $annotationForMethod = $registration->getAnnotationForMethod();
+                Assert::isTrue(! in_array($annotationForMethod->getInputChannelName(), $asynchronous->getChannelName()), "Command Handler routing key can't be equal to asynchronous channel name in {$registration}");
+            }
+
             if ($registration->hasClassAnnotation(Aggregate::class)) {
                 continue;
             }
@@ -226,15 +236,23 @@ class BusRoutingModule implements AnnotationModule
                 continue;
             }
 
-            $classChannels           = ModellingHandlerModule::getEventPayloadClasses($registration, $interfaceToCallRegistry);
+            $unionEventClasses           = ModellingHandlerModule::getEventPayloadClasses($registration, $interfaceToCallRegistry);
             $namedMessageChannelFor = ModellingHandlerModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
 
-            foreach ($classChannels as $classChannel) {
+            foreach ($unionEventClasses as $classChannel) {
                 $objectEventHandlers[$classChannel][] = $namedMessageChannelFor;
                 $objectEventHandlers[$classChannel]   = array_unique($objectEventHandlers[$classChannel]);
             }
         }
         foreach ($annotationRegistrationService->findAnnotatedMethods(EventHandler::class) as $registration) {
+            if ($registration->hasMethodAnnotation(Asynchronous::class)) {
+                /** @var Asynchronous $asynchronous */
+                $asynchronous = $registration->getMethodAnnotationsWithType(Asynchronous::class)[0];
+                /** @var EventHandler $annotationForMethod */
+                $annotationForMethod = $registration->getAnnotationForMethod();
+                Assert::isTrue(! in_array($annotationForMethod->getListenTo(), $asynchronous->getChannelName()), "Event Handler listen to routing can't be equal to asynchronous channel name in {$registration}");
+            }
+
             if ($registration->hasClassAnnotation(Aggregate::class)) {
                 continue;
             }
@@ -246,9 +264,9 @@ class BusRoutingModule implements AnnotationModule
                 continue;
             }
 
-            $classChannels           = ModellingHandlerModule::getEventPayloadClasses($registration, $interfaceToCallRegistry);
+            $unionEventClasses           = ModellingHandlerModule::getEventPayloadClasses($registration, $interfaceToCallRegistry);
             $namedMessageChannelFor = ModellingHandlerModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
-            foreach ($classChannels as $classChannel) {
+            foreach ($unionEventClasses as $classChannel) {
                 if (! EventBusRouter::isRegexBasedRoute($namedMessageChannelFor)) {
                     $objectEventHandlers[$classChannel][] = $namedMessageChannelFor;
                     $objectEventHandlers[$classChannel]   = array_unique($objectEventHandlers[$classChannel]);
@@ -272,22 +290,10 @@ class BusRoutingModule implements AnnotationModule
                 continue;
             }
 
-            $chanelName = ModellingHandlerModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
-
             if ($annotation->getListenTo()) {
+                $chanelName = ModellingHandlerModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
                 $namedEventHandlers[$chanelName][] = $chanelName;
                 $namedEventHandlers[$chanelName]   = array_unique($namedEventHandlers[$chanelName]);
-            } else {
-                $type = TypeDescriptor::create($chanelName);
-                if ($type->isUnionType()) {
-                    foreach ($type->getUnionTypes() as $type) {
-                        $namedEventHandlers[$type->toString()][] = $chanelName;
-                        $namedEventHandlers[$type->toString()]   = array_unique($namedEventHandlers[$type->toString()]);
-                    }
-                } else {
-                    $namedEventHandlers[$chanelName][] = $chanelName;
-                    $namedEventHandlers[$chanelName]   = array_unique($namedEventHandlers[$chanelName]);
-                }
             }
         }
         foreach ($annotationRegistrationService->findCombined(Aggregate::class, EventHandler::class) as $registration) {
@@ -362,9 +368,10 @@ class BusRoutingModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $configuration
+        $pointcut = CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class;
+        $messagingConfiguration
             ->registerBeforeMethodInterceptor(
                 MethodInterceptor::create(
                     MessageHeadersPropagatorInterceptor::class,
@@ -376,7 +383,7 @@ class BusRoutingModule implements AnnotationModule
                             ]
                         ),
                     Precedence::ENDPOINT_HEADERS_PRECEDENCE - 2,
-                    CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class
+                    $pointcut
                 )
             )
             ->registerAroundMethodInterceptor(
@@ -385,7 +392,7 @@ class BusRoutingModule implements AnnotationModule
                     $this->messageHeadersPropagator,
                     'storeHeaders',
                     Precedence::ENDPOINT_HEADERS_PRECEDENCE - 1,
-                    CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class
+                    $pointcut
                 )
             )
             ->registerMessageHandler($this->commandBusByObject)

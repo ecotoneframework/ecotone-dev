@@ -4,6 +4,7 @@ namespace Ecotone\Lite;
 
 use DI\Container;
 use DI\ContainerBuilder;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\Type;
@@ -15,20 +16,27 @@ class LiteDIContainer implements ContainerInterface
 {
     private Container $container;
 
-    public function __construct(ServiceConfiguration $serviceConfiguration, bool $cacheConfiguration, array $configurationVariables)
+    public function __construct(ServiceConfiguration $serviceConfiguration, bool $useCache, array $configurationVariables, array $classInstancesToRegister = [])
     {
         $builder = new ContainerBuilder();
+        $serviceCacheConfiguration = new ServiceCacheConfiguration(
+            $serviceConfiguration->getCacheDirectoryPath(),
+            $useCache
+        );
 
-        if ($cacheConfiguration) {
-            $cacheDirectoryPath = $serviceConfiguration->getCacheDirectoryPath() ?? sys_get_temp_dir();
+        if ($useCache) {
             $builder = $builder
-                ->enableCompilation($cacheDirectoryPath . '/ecotone')
-                ->writeProxiesToFile(true, __DIR__ . '/ecotone/proxies')
-                ->ignorePhpDocErrors(true);
+                ->enableCompilation($serviceCacheConfiguration->getPath())
+                /** @TODO verify if using __DIR__ is correct */
+                ->writeProxiesToFile(true, __DIR__ . '/ecotone/proxies');
         }
 
         $this->container = $builder->build();
         $this->container->set(ConfigurationVariableService::REFERENCE_NAME, InMemoryConfigurationVariableService::create($configurationVariables));
+        $this->container->set(ServiceCacheConfiguration::class, $serviceCacheConfiguration);
+        foreach ($classInstancesToRegister as $referenceName => $classInstance) {
+            $this->container->set($referenceName, $classInstance);
+        }
     }
 
     public function get($id)
@@ -36,7 +44,7 @@ class LiteDIContainer implements ContainerInterface
         return $this->container->get($id);
     }
 
-    public function has($id)
+    public function has($id): bool
     {
         return $this->container->has($id);
     }

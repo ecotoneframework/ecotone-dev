@@ -5,6 +5,7 @@ namespace Ecotone\EventSourcing;
 use Ecotone\EventSourcing\InMemory\CachingInMemoryProjectionManager;
 use Ecotone\EventSourcing\InMemory\InMemoryProjectionManager;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Prooph\EventStore\InMemoryEventStore;
@@ -25,6 +26,8 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     private bool $isInMemory = false;
     private ?InMemoryEventStore $inMemoryEventStore = null;
     private ?\Prooph\EventStore\Projection\ProjectionManager $inMemoryProjectionManager = null;
+    /** @var array<string> */
+    private array $persistenceStrategies = [];
 
     private function __construct(string $connectionReferenceName = DbalConnectionFactory::class, string $eventStoreReferenceName = EventStore::class, string $projectManagerReferenceName = ProjectionManager::class)
     {
@@ -80,6 +83,21 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     public function withSimpleStreamPersistenceStrategy(): static
     {
         $this->persistenceStrategy = LazyProophEventStore::SIMPLE_STREAM_PERSISTENCE;
+
+        return $this;
+    }
+
+    public function withPersistenceStrategyFor(string $streamName, string $strategy): self
+    {
+        $allowedStrategies = [LazyProophEventStore::SIMPLE_STREAM_PERSISTENCE, LazyProophEventStore::SINGLE_STREAM_PERSISTENCE, LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE];
+
+        Assert::oneOf(
+            $strategy,
+            $allowedStrategies,
+            sprintf('Custom persistence strategy for specific stream can only be one of %s', implode(', ', $allowedStrategies))
+        );
+
+        $this->persistenceStrategies[$streamName] = $strategy;
 
         return $this;
     }
@@ -148,9 +166,12 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this->getPersistenceStrategy() === LazyProophEventStore::SINGLE_STREAM_PERSISTENCE;
     }
 
-    public function isUsingAggregateStreamStrategy(): bool
+    public function isUsingAggregateStreamStrategyFor(string $streamName): bool
     {
-        return $this->getPersistenceStrategy() === LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE;
+        return
+            $this->getPersistenceStrategy() === LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE
+            || (array_key_exists($streamName, $this->persistenceStrategies) && $this->persistenceStrategies[$streamName] === LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE)
+        ;
     }
 
     public function isUsingSimpleStreamStrategy(): bool

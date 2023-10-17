@@ -30,35 +30,33 @@
         }
     },
     "require": {
-        "ecotone/dbal": "^1.68",
+        "ecotone/dbal": "~1.109.1",
         "prooph/pdo-event-store": "^1.15.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
-        "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
+        "psr/container": "^2.0",
         "wikimedia/composer-merge-plugin": "^2.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": "vendor/bin/phpunit",
-        "tests:behat": "vendor/bin/behat -vvv",
         "tests:ci": [
             "@tests:phpstan",
-            "@tests:phpunit",
-            "@tests:behat"
+            "@tests:phpunit"
         ]
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.68-dev"
+            "dev-main": "1.109.1-dev"
         },
         "ecotone": {
             "repository": "pdo-event-sourcing"
         },
         "merge-plugin": {
             "include": [
-                "../config.json"
+                "../local_packages.json"
             ]
         }
     },

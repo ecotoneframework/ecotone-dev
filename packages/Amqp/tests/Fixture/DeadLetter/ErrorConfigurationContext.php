@@ -13,7 +13,7 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 class ErrorConfigurationContext
 {
     public const INPUT_CHANNEL       = 'correctOrders';
-    public const ERROR_CHANNEL       = 'errorChannel';
+    private const ERROR_CHANNEL       = 'errorChannel';
     public const DEAD_LETTER_CHANNEL = 'incorrectOrders';
 
 

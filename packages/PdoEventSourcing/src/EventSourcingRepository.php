@@ -2,20 +2,17 @@
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\Enqueue\OutboundMessageConverter;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\AggregateVersion;
-use Ecotone\Modelling\DistributedMetadata;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
@@ -25,23 +22,22 @@ use Prooph\EventStore\Exception\StreamNotFound;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
 use Prooph\EventStore\StreamName;
-use Ramsey\Uuid\Uuid;
 
 class EventSourcingRepository implements EventSourcedRepository
 {
-    private HeaderMapper $headerMapper;
-    private array $handledAggregateClassNames;
-    private EcotoneEventStoreProophWrapper $eventStore;
-    private EventSourcingConfiguration $eventSourcingConfiguration;
-    private AggregateStreamMapping $aggregateStreamMapping;
-
-    public function __construct(EcotoneEventStoreProophWrapper $eventStore, array $handledAggregateClassNames, HeaderMapper $headerMapper, EventSourcingConfiguration $eventSourcingConfiguration, AggregateStreamMapping $aggregateStreamMapping, private AggregateTypeMapping $aggregateTypeMapping, private array $snapshotedAggregates, private DocumentStore $documentStore)
-    {
-        $this->eventStore = $eventStore;
-        $this->headerMapper = $headerMapper;
-        $this->handledAggregateClassNames = $handledAggregateClassNames;
-        $this->eventSourcingConfiguration = $eventSourcingConfiguration;
-        $this->aggregateStreamMapping = $aggregateStreamMapping;
+    /**
+     * @param array<string, DocumentStore> $documentStoreReferences
+     */
+    public function __construct(
+        private EcotoneEventStoreProophWrapper $eventStore,
+        private array $handledAggregateClassNames,
+        private HeaderMapper $headerMapper,
+        private EventSourcingConfiguration $eventSourcingConfiguration,
+        private AggregateStreamMapping $aggregateStreamMapping,
+        private AggregateTypeMapping $aggregateTypeMapping,
+        private array $documentStoreReferences,
+        private ConversionService $conversionService
+    ) {
     }
 
     public function canHandle(string $aggregateClassName): bool
@@ -57,8 +53,8 @@ class EventSourcingRepository implements EventSourcedRepository
         $aggregateType = $this->getAggregateType($aggregateClassName);
         $snapshotEvent = [];
 
-        if (in_array($aggregateClassName, $this->snapshotedAggregates)) {
-            $aggregate = $this->documentStore->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
+        if (array_key_exists($aggregateClassName, $this->documentStoreReferences)) {
+            $aggregate = $this->documentStoreReferences[$aggregateClassName]->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
 
             if (! is_null($aggregate)) {
                 $aggregateVersion = $this->getAggregateVersion($aggregate);
@@ -103,32 +99,30 @@ class EventSourcingRepository implements EventSourcedRepository
 
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
+        $metadata = $this->headerMapper->mapFromMessageHeaders($metadata, $this->conversionService);
+        $events = array_map(static function ($event) use ($metadata): Event {
+            if ($event instanceof Event) {
+                return $event;
+            }
+
+            return Event::create($event, $metadata);
+        }, $events);
+
         $aggregateId = reset($identifiers);
         Assert::notNullAndEmpty($aggregateId, sprintf('There was a problem when retrieving identifier for %s', $aggregateClassName));
 
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
         $aggregateType = $this->getAggregateType($aggregateClassName);
-        $metadata = OutboundMessageConverter::unsetEnqueueMetadata($metadata);
-        $metadata = DistributedMetadata::unsetDistributionKeys($metadata);
-        $metadata = MessageHeaders::unsetAsyncKeys($metadata);
 
         $eventsWithMetadata = [];
         $eventsCount = count($events);
+
         for ($eventNumber = 1; $eventNumber <= $eventsCount; $eventNumber++) {
-            $event = $events[$eventNumber - 1];
-
-            $metadata = RevisionMetadataEnricher::enrich($metadata, $event);
-            $metadata = array_merge(
-                $this->headerMapper->mapFromMessageHeaders($metadata),
-                [
-                    MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
-                    LazyProophEventStore::AGGREGATE_ID => $aggregateId,
-                    LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
-                    LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
-                ]
-            );
-
-            $eventsWithMetadata[] = Event::create($event, $metadata);
+            $eventsWithMetadata[] = $events[$eventNumber - 1]->withAddedMetadata([
+                LazyProophEventStore::AGGREGATE_ID => $aggregateId,
+                LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
+                LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
+            ]);
         }
         $this->eventStore->appendTo($streamName, $eventsWithMetadata);
     }
@@ -140,7 +134,7 @@ class EventSourcingRepository implements EventSourcedRepository
             $streamName =  $this->aggregateStreamMapping->getAggregateToStreamMapping()[$aggregateClassName];
         }
 
-        if ($this->eventSourcingConfiguration->isUsingAggregateStreamStrategy()) {
+        if ($this->eventSourcingConfiguration->isUsingAggregateStreamStrategyFor($streamName)) {
             $streamName = $streamName . '-' . $aggregateId;
         }
 

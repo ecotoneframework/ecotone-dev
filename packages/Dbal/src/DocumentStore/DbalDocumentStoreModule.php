@@ -32,7 +32,7 @@ class DbalDocumentStoreModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function prepare(Configuration $configuration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
@@ -43,7 +43,7 @@ class DbalDocumentStoreModule implements AnnotationModule
         $referenceName = $dbalConfiguration->getDbalDocumentStoreReference();
         $inMemoryDocumentStore = InMemoryDocumentStore::createEmpty();
 
-        $configuration
+        $messagingConfiguration
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create($referenceName, DocumentStore::class, 'dropCollection', DocumentStoreMessageChannel::dropCollection($referenceName))
                     ->withParameterConverters(

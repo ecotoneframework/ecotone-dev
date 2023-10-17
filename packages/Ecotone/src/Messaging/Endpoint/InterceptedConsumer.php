@@ -3,12 +3,15 @@
 namespace Ecotone\Messaging\Endpoint;
 
 use Ecotone\Messaging\Endpoint\Interceptor\ConnectionExceptionRetryInterceptor;
+use Ecotone\Messaging\Endpoint\Interceptor\FinishWhenNoMessagesInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitConsumedMessagesInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitExecutionAmountInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitMemoryUsageInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\SignalInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\TimeLimitInterceptor;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 /**
  * Class ContinuouslyRunningConsumer
@@ -37,15 +40,12 @@ class InterceptedConsumer implements ConsumerLifecycle
         }
 
         while ($this->shouldBeRunning()) {
-            $runResultedInConnectionException = false;
-            if (! $runResultedInConnectionException) {
-                foreach ($this->consumerInterceptors as $consumerInterceptor) {
-                    $consumerInterceptor->preRun();
-                }
+            foreach ($this->consumerInterceptors as $consumerInterceptor) {
+                $consumerInterceptor->preRun();
             }
+            $runResultedInConnectionException = false;
             try {
                 $this->interceptedConsumer->run();
-                $runResultedInConnectionException = false;
             } catch (ConnectionException $exception) {
                 $runResultedInConnectionException = true;
                 foreach ($this->consumerInterceptors as $consumerInterceptor) {
@@ -71,12 +71,10 @@ class InterceptedConsumer implements ConsumerLifecycle
     }
 
     /**
-     * @param PollingMetadata $pollingMetadata
-     * @param array $interceptor
-     * @return array
+     * @return ConsumerInterceptor[]
      * @throws \Ecotone\Messaging\MessagingException
      */
-    public static function createInterceptorsForPollingMetadata(PollingMetadata $pollingMetadata): array
+    public static function createInterceptorsForPollingMetadata(PollingMetadata $pollingMetadata, ReferenceSearchService $referenceSearchService): array
     {
         $interceptors = [];
         if ($pollingMetadata->getHandledMessageLimit() > 0) {
@@ -94,7 +92,10 @@ class InterceptedConsumer implements ConsumerLifecycle
         if ($pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0) {
             $interceptors[] = new TimeLimitInterceptor($pollingMetadata->getExecutionTimeLimitInMilliseconds());
         }
-        $interceptors[] = new ConnectionExceptionRetryInterceptor($pollingMetadata->getConnectionRetryTemplate());
+        if ($pollingMetadata->finishWhenNoMessages()) {
+            $interceptors[] = new FinishWhenNoMessagesInterceptor();
+        }
+        $interceptors[] = new ConnectionExceptionRetryInterceptor($referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE), $pollingMetadata->getConnectionRetryTemplate(), $pollingMetadata->isStoppedOnError());
 
         return $interceptors;
     }

@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\Ticket;
 
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
@@ -20,10 +20,11 @@ class Ticket
 {
     use WithAggregateVersioning;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $ticketId;
     private string $assignedPerson;
     private string $ticketType;
+    private bool $isClosed = false;
 
     #[CommandHandler]
     public static function register(RegisterTicket $command): array
@@ -57,6 +58,12 @@ class Ticket
         $this->assignedPerson = $event->getAssignedPerson();
     }
 
+    #[EventSourcingHandler]
+    public function applyTicketWasClosed(TicketWasClosed $event): void
+    {
+        $this->isClosed = true;
+    }
+
     public function setVersion(int $version): void
     {
         $this->version = $version;
@@ -68,6 +75,12 @@ class Ticket
         return $this->assignedPerson;
     }
 
+    #[QueryHandler('ticket.isClosed')]
+    public function isTicketClosed(): bool
+    {
+        return $this->isClosed;
+    }
+
     public function toArray(): array
     {
         return [
@@ -75,6 +88,7 @@ class Ticket
             'assignedPerson' => $this->assignedPerson,
             'ticketType' => $this->ticketType,
             'version' => $this->version,
+            'isClosed' => $this->isClosed,
         ];
     }
 
@@ -85,6 +99,7 @@ class Ticket
         $ticket->assignedPerson = $data['assignedPerson'];
         $ticket->ticketType = $data['ticketType'];
         $ticket->version = $data['version'];
+        $ticket->isClosed = $data['isClosed'];
 
         return $ticket;
     }

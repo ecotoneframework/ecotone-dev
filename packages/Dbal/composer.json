@@ -30,15 +30,15 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "^1.68",
+        "ecotone/enqueue": "~1.109.1",
         "enqueue/dbal": "^0.10.17",
-        "doctrine/dbal": "^3.3.7"
+        "doctrine/dbal": "^2.12.0|^3.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
-        "behat/behat": "^3.10",
         "doctrine/persistence": "^2.5",
         "phpstan/phpstan": "^1.8",
+        "psr/container": "^2.0",
         "doctrine/orm": "^2.0|^3.0",
         "doctrine/cache": "^1.0.0",
         "doctrine/annotations": "^1.13",
@@ -47,23 +47,21 @@
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": "vendor/bin/phpunit",
-        "tests:behat": "vendor/bin/behat -vvv",
         "tests:ci": [
             "@tests:phpstan",
-            "@tests:phpunit",
-            "@tests:behat"
+            "@tests:phpunit"
         ]
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.68-dev"
+            "dev-main": "1.109.1-dev"
         },
         "ecotone": {
             "repository": "dbal"
         },
         "merge-plugin": {
             "include": [
-                "../config.json"
+                "../local_packages.json"
             ]
         }
     },

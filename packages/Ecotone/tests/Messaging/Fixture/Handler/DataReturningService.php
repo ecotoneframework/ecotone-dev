@@ -3,12 +3,14 @@
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
+use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\MessageBuilder;
 use InvalidArgumentException;
+use Throwable;
 
 class DataReturningService
 {
@@ -21,17 +23,15 @@ class DataReturningService
      * @var array
      */
     private $headers;
-    /**
-     * @var bool
-     */
-    private $throwException;
 
-    private function __construct($data, bool $asAMessage, array $headers, bool $throwException)
+    private ?Throwable $exception;
+
+    private function __construct($data, bool $asAMessage, array $headers, ?Throwable $exception)
     {
         $this->data = $data;
         $this->asAMessage = $asAMessage;
         $this->headers = $headers;
-        $this->throwException = $throwException;
+        $this->exception = $exception;
     }
 
     public static function createServiceActivator($dataToReturn): MessageHandler
@@ -41,7 +41,7 @@ class DataReturningService
 
     public static function createExceptionalServiceActivator(): MessageHandler
     {
-        return (ServiceActivatorBuilder::createWithDirectReference(new self('', false, [], true), 'handle'))->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty());
+        return (ServiceActivatorBuilder::createWithDirectReference(new self('', false, [], new InvalidArgumentException('error during handling')), 'handle'))->build(InMemoryChannelResolver::createEmpty(), InMemoryReferenceSearchService::createEmpty());
     }
 
     public static function createServiceActivatorWithReturnMessage($payload, array $headers): MessageHandler
@@ -51,23 +51,28 @@ class DataReturningService
 
     public static function createServiceActivatorBuilder($dataToReturn): ServiceActivatorBuilder
     {
-        return ServiceActivatorBuilder::createWithDirectReference(new self($dataToReturn, false, [], false), 'handle');
+        return ServiceActivatorBuilder::createWithDirectReference(new self($dataToReturn, false, [], null), 'handle');
     }
 
     public static function createExceptionalServiceActivatorBuilder(): ServiceActivatorBuilder
     {
-        return (ServiceActivatorBuilder::createWithDirectReference(new self('', false, [], true), 'handle'));
+        return (ServiceActivatorBuilder::createWithDirectReference(new self('', false, [], new InvalidArgumentException('error during handling')), 'handle'));
     }
 
     public static function createServiceActivatorBuilderWithReturnMessage($payload, array $headers): ServiceActivatorBuilder
     {
-        return ServiceActivatorBuilder::createWithDirectReference(new self($payload, true, $headers, false), 'handle');
+        return ServiceActivatorBuilder::createWithDirectReference(new self($payload, true, $headers, null), 'handle');
+    }
+
+    public static function createServiceActivatorBuilderWithRejectException(): ServiceActivatorBuilder
+    {
+        return ServiceActivatorBuilder::createWithDirectReference(new self('', true, [], new RejectMessageException('rejecting message')), 'handle');
     }
 
     public function handle(Message $message)
     {
-        if ($this->throwException) {
-            throw new InvalidArgumentException('error during handling');
+        if ($this->exception) {
+            throw new $this->exception();
         }
 
         if ($this->asAMessage) {

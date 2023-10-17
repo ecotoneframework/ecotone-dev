@@ -6,9 +6,9 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 class AmqpConfiguration
 {
-    public const DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS = true;
-    public const DEFAULT_TRANSACTION_ON_COMMAND_BUS            = true;
-    public const DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS = true;
+    public const DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS = false;
+    public const DEFAULT_TRANSACTION_ON_COMMAND_BUS            = false;
+    public const DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS = false;
 
     private bool $transactionOnAsynchronousEndpoints = self::DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS;
     private bool $transactionOnCommandBus = self::DEFAULT_TRANSACTION_ON_COMMAND_BUS;

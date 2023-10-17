@@ -13,9 +13,9 @@ class UserService
     public const CHANGE_BILLING_DETAILS = 'changeBillingDetails';
 
     #[CommandHandler(self::CHANGE_BILLING_DETAILS)]
-    public function changeBillingDetails(#[Reference] DistributedBus $commandBus)
+    public function changeBillingDetails(#[Reference] DistributedBus $distributedBus)
     {
-        $commandBus->sendCommand(
+        $distributedBus->sendCommand(
             TicketServiceMessagingConfiguration::SERVICE_NAME,
             TicketServiceReceiver::CREATE_TICKET_ENDPOINT,
             'User changed billing address'

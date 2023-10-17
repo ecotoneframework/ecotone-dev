@@ -15,42 +15,23 @@ interface MethodInvocation
 {
     /**
      * Proceed with invocation. Returns value of invoked method
-     *
-     * @return mixed
      */
-    public function proceed();
+    public function proceed(): mixed;
+
+    public function getObjectToInvokeOn(): string|object;
+
+    public function getMethodName(): string;
+
+    public function getInterfaceToCall(): InterfaceToCall;
 
     /**
-     * @var string|object
-     */
-    public function getObjectToInvokeOn();
-
-    /**
-     * @return string
-     */
-    public function getInterceptedClassName(): string;
-
-    /**
-     * @return string
-     */
-    public function getInterceptedMethodName(): string;
-
-    /**
-     * @return InterfaceToCall
-     */
-    public function getInterceptedInterface(): InterfaceToCall;
-
-    /**
-     * @return object[]
-     */
-    public function getEndpointAnnotations(): iterable;
-
-    /**
-     * @return array
+     * @return mixed[]
      */
     public function getArguments(): array;
 
     /**
+     * @TODO remove in Ecotone 2.0
+     * @deprecated Do not use. Will be removed in Ecotone 2.0
      * @param string $parameterName
      * @param mixed $value
      * @return void

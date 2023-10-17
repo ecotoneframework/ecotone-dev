@@ -26,14 +26,14 @@ class StubMethodInvocation implements MethodInvocation
         return $this->calledTimes;
     }
 
-    public function proceed()
+    public function proceed(): mixed
     {
         $this->calledTimes++;
 
         return $this->returnData;
     }
 
-    public function getObjectToInvokeOn()
+    public function getObjectToInvokeOn(): string|object
     {
         return new stdClass();
     }
@@ -61,6 +61,16 @@ class StubMethodInvocation implements MethodInvocation
     public function getArguments(): array
     {
         return [];
+    }
+
+    public function getMethodName(): string
+    {
+        return 'getInterceptedInterface';
+    }
+
+    public function getInterfaceToCall(): InterfaceToCall
+    {
+        return InterfaceToCall::create(self::class, 'getInterceptedInterface');
     }
 
     public function replaceArgument(string $parameterName, $value): void

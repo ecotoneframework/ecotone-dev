@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate;
 
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Aggregate]
 class Person
 {
-    #[AggregateIdentifier]
+    #[Identifier]
     private int $personId;
     private string $name;
 

@@ -10,10 +10,12 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollOrThrow\PollOrThrowMessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
@@ -97,7 +99,7 @@ class DomainContext implements Context
      */
     private function createServiceActivatorBuilder(string $endpointName, string $className, string $methodName, string $channelName): MessageHandlerBuilder
     {
-        return ServiceActivatorBuilder::create($className, $methodName)
+        return ServiceActivatorBuilder::create($className, InterfaceToCall::create($className, $methodName))
             ->withInputChannelName($channelName)
             ->withEndpointId($endpointName);
     }
@@ -229,7 +231,7 @@ class DomainContext implements Context
 
         $this->getMessagingSystemConfiguration()
             ->registerMessageHandler(
-                TransformerBuilder::create($className, $methodName)
+                TransformerBuilder::create($className, InterfaceToCall::create($className, $methodName))
                     ->withInputChannelName($inputChannel)
                     ->withOutputMessageChannel($outputChannel)
             );
@@ -385,7 +387,10 @@ class DomainContext implements Context
     public function iConfigureMessagingSystem()
     {
         $this->inMemoryReferenceSearchService = InMemoryReferenceSearchService::createEmpty();
-        $this->messagingSystemConfiguration = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty());
+        $this->messagingSystemConfiguration = MessagingSystemConfiguration::prepareWithDefaults(
+            InMemoryModuleMessaging::createEmpty(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+        );
     }
 
     /**

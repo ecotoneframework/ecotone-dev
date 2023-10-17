@@ -1,0 +1,26 @@
+doctrine:
+  dbal:
+    connections:
+      default:
+        schema_filter: '~^(?!messenger_messages)~'
+        dbname: ecotone
+        host: "%env(APP_DB_HOST)%"
+        port: "%env(APP_DB_PORT)%"
+        user: ecotone
+        password: secret
+        driver: "%env(APP_DB_DRIVER)%"
+
+framework:
+  messenger:
+    transports:
+      messenger_async:
+        dsn: 'doctrine://default?queue_name=async&use_notify=false'
+        options:
+          use_notify: false
+      amqp_async:
+        dsn: "%env(RABBIT_HOST)%/%2f/messages"
+
+services:
+  Doctrine\DBAL\Connection-public:
+    alias: Doctrine\DBAL\Connection
+    public: true

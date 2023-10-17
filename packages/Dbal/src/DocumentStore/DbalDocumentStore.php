@@ -6,6 +6,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -160,7 +161,7 @@ final class DbalDocumentStore implements DocumentStore
             return 0;
         }
 
-        $select = $this->getConnection()->createQueryBuilder()
+        $select = (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
             ->select('COUNT(document_id)')
             ->from($this->getTableName())
             ->andWhere('collection = :collection')
@@ -198,7 +199,7 @@ final class DbalDocumentStore implements DocumentStore
         $table->addColumn('document_id', Types::STRING);
         $table->addColumn('document_type', Types::TEXT);
         $table->addColumn('document', Types::JSON);
-        $table->addColumn('updated_at', Types::FLOAT, ['length'=>53]);
+        $table->addColumn('updated_at', Types::FLOAT, ['length' => 53]);
 
         $table->setPrimaryKey(['collection', 'document_id']);
 
@@ -272,7 +273,7 @@ final class DbalDocumentStore implements DocumentStore
 
     private function getDocumentsFor(string $collectionName): \Doctrine\DBAL\Query\QueryBuilder
     {
-        return $this->getConnection()->createQueryBuilder()
+        return (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
             ->select('document', 'document_type')
             ->from($this->getTableName())
             ->andWhere('collection = :collection')

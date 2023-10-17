@@ -4,64 +4,54 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
-use Closure;
+use Ecotone\Messaging\Config\EcotoneRemoteAdapter;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use ProxyManager\Autoloader\AutoloaderInterface;
 use ProxyManager\Configuration;
-use ProxyManager\Factory\LazyLoadingValueHolderFactory;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
 use ProxyManager\Factory\RemoteObjectFactory;
 use ProxyManager\FileLocator\FileLocator;
 use ProxyManager\GeneratorStrategy\FileWriterGeneratorStrategy;
+use ProxyManager\Proxy\RemoteObjectInterface;
 use ProxyManager\Signature\ClassSignatureGenerator;
 use ProxyManager\Signature\SignatureGenerator;
-use Serializable;
-use stdClass;
+use Psr\Container\ContainerInterface;
+
+use function spl_autoload_register;
+use function spl_autoload_unregister;
 
 /**
  * Class LazyProxyConfiguration
  * @package Ecotone\Messaging\Handler\Gateway
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class ProxyFactory implements Serializable
+class ProxyFactory
 {
     public const REFERENCE_NAME = 'gatewayProxyConfiguration';
 
-    private ?string $cacheDirectoryPath;
+    private static ?AutoloaderInterface $registeredAutoloader = null;
+    private ?Configuration $configuration = null;
 
-    /**
-     * ProxyConfiguration constructor.
-     * @param string|null $cacheDirectoryPath
-     */
-    private function __construct(?string $cacheDirectoryPath)
+    private function __construct(private ServiceCacheConfiguration $serviceCacheConfiguration)
     {
-        $this->cacheDirectoryPath = $cacheDirectoryPath;
     }
 
-    /**
-     * @param string $cacheDirectoryPath
-     * @return ProxyFactory
-     */
-    public static function createWithCache(string $cacheDirectoryPath): self
+    public static function createWithCache(ServiceCacheConfiguration $serviceCacheConfiguration): self
     {
-        return new self($cacheDirectoryPath);
+        return new self($serviceCacheConfiguration);
     }
 
-    /**
-     * @return ProxyFactory
-     */
-    public static function createNoCache(): self
+    private function getConfiguration(): Configuration
     {
-        return new self(null);
+        return $this->configuration ??= $this->buildConfiguration();
     }
 
-    /**
-     * @return Configuration
-     */
-    public function getConfiguration(): Configuration
+    private function buildConfiguration(): Configuration
     {
         $configuration = new Configuration();
 
-        if ($this->cacheDirectoryPath) {
-            $configuration->setProxiesTargetDir($this->cacheDirectoryPath);
+        if ($this->serviceCacheConfiguration->shouldUseCache()) {
+            $configuration->setProxiesTargetDir($this->serviceCacheConfiguration->getPath());
             $fileLocator = new FileLocator($configuration->getProxiesTargetDir());
             $configuration->setGeneratorStrategy(new FileWriterGeneratorStrategy($fileLocator));
             $configuration->setClassSignatureGenerator(new ClassSignatureGenerator(new SignatureGenerator()));
@@ -70,104 +60,52 @@ class ProxyFactory implements Serializable
         return $configuration;
     }
 
-    /**
-     * @param string[] $classes
-     */
-    public function warmUpCacheFor(array $classes): void
+    public function createProxyClassWithAdapter(string $interfaceName, AdapterInterface $adapter): RemoteObjectInterface
     {
-        if (! $classes || ! $this->cacheDirectoryPath) {
-            return;
-        }
-
-        foreach ($classes as $className) {
-            $factory = new LazyLoadingValueHolderFactory($this->getConfiguration());
-            $factory->createProxy(
-                $className,
-                function (& $wrappedObject, $proxy, $method, $parameters, & $initializer) {
-                    $wrappedObject = new stdClass();
-
-                    return true;
-                }
-            );
-
-            $factory = new RemoteObjectFactory(new class () implements AdapterInterface {
-                /**
-                 * @inheritDoc
-                 */
-                public function call(string $wrappedClass, string $method, array $params = []): int
-                {
-                    return 0;
-                }
-            }, $this->getConfiguration());
-
-            $factory->createProxy($className);
-        }
-    }
-
-    /**
-     * @param string $interfaceName
-     * @param Closure $buildCallback
-     */
-    public function createProxyClass(string $interfaceName, Closure $buildCallback): \ProxyManager\Proxy\RemoteObjectInterface
-    {
-        $factory = new RemoteObjectFactory(new class ($buildCallback) implements AdapterInterface {
-            private Closure $buildCallback;
-
-            /**
-             *  constructor.
-             *
-             * @param Closure $buildCallback
-             */
-            public function __construct(Closure $buildCallback)
-            {
-                $this->buildCallback = $buildCallback;
-            }
-
-            /**
-             * @inheritDoc
-             */
-            public function call(string $wrappedClass, string $method, array $params = [])
-            {
-                $buildCallback = $this->buildCallback;
-                $gateway = $buildCallback();
-
-                return $gateway->execute($params);
-            }
-        }, $this->getConfiguration());
+        $factory = new RemoteObjectFactory($adapter, $this->getConfiguration());
+        $this->registerProxyAutoloader();
 
         return $factory->createProxy($interfaceName);
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function serialize(): string
+    public static function createFor(string $referenceName, ContainerInterface $container, string $interface, ServiceCacheConfiguration $serviceCacheConfiguration): object
     {
-        return serialize($this->__serialize());
+        $proxyFactory = self::createWithCache($serviceCacheConfiguration);
+
+        return $proxyFactory->createProxyClassWithAdapter(
+            $interface,
+            new EcotoneRemoteAdapter($container, $referenceName)
+        );
     }
 
-    public function __serialize(): array
+    public function createWithCurrentConfiguration(string $referenceName, ContainerInterface $container, string $interface): object
     {
-        return ['path' => $this->cacheDirectoryPath];
+        return $this->createProxyClassWithAdapter(
+            $interface,
+            new EcotoneRemoteAdapter($container, $referenceName)
+        );
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function unserialize($serialized): void
+    private function registerProxyAutoloader(): void
     {
-        $this->__unserialize(unserialize($serialized));
-    }
-
-    public function __unserialize(array $data): void
-    {
-        $path  = $data['path'];
-        if (is_null($path)) {
-            $cache = self::createNoCache();
-        } else {
-            $cache = self::createWithCache($path);
+        if (! $this->serviceCacheConfiguration->shouldUseCache()) {
+            return;
         }
 
-        $this->cacheDirectoryPath = $cache->cacheDirectoryPath;
+        $autoloader = $this->getConfiguration()->getProxyAutoloader();
+
+        if (self::$registeredAutoloader === $autoloader) {
+            return;
+        }
+
+        if (self::$registeredAutoloader !== null) {
+            // another ProxyFactory instance may have already registered an autoloader.
+            // this should not happen normally, but just in case we will unload
+            // the old autoloader.
+            spl_autoload_unregister(self::$registeredAutoloader);
+        }
+
+        self::$registeredAutoloader = $autoloader;
+        spl_autoload_register(self::$registeredAutoloader);
     }
 }

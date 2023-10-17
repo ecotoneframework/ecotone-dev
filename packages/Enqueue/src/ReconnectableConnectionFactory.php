@@ -11,5 +11,5 @@ interface ReconnectableConnectionFactory extends ConnectionFactory
 
     public function reconnect(): void;
 
-    public function getConnectionInstanceId(): int;
+    public function getConnectionInstanceId(): string;
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Amqp;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -13,6 +14,7 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Class InboundEnqueueGatewayBuilder
@@ -41,16 +43,17 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 
         $inboundAmqpGateway = $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata);
 
-        $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, [], $conversionService);
+        $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, []);
 
         return new AmqpInboundChannelAdapter(
-            CachedConnectionFactory::createFor(new AmqpConsumerConnectionFactory($amqpConnectionFactory)),
+            CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($amqpConnectionFactory, Uuid::uuid4()->toString())),
             $inboundAmqpGateway,
             $amqpAdmin,
             $this->declareOnStartup,
             $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
-            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper),
+            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper, EnqueueHeader::HEADER_ACKNOWLEDGE),
+            $conversionService
         );
     }
 }

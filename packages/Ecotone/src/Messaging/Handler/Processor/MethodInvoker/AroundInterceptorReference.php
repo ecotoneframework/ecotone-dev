@@ -4,25 +4,29 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
-use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocationConverter;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MethodInvocationObjectConverter;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadConverter;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
+use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Precedence;
-use Ecotone\Messaging\Support\InvalidArgumentException;
-use ReflectionException;
+use InvalidArgumentException;
 
 final class AroundInterceptorReference implements InterceptorWithPointCut
 {
     private int $precedence;
     private string $interceptorName;
-    private string $methodName;
     private Pointcut $pointcut;
     private ?object $directObject = null;
     private string $referenceName = '';
@@ -34,12 +38,11 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
     /**
      * @var ParameterConverterBuilder[] $parameterConverters
      */
-    private function __construct(int $precedence, string $interceptorName, string $referenceName, string $methodName, Pointcut $pointcut, array $parameterConverters)
+    private function __construct(int $precedence, string $referenceName, private InterfaceToCall $interfaceToCall, Pointcut $pointcut, array $parameterConverters)
     {
-        $this->interceptorName = $interceptorName;
-        $this->methodName      = $methodName;
+        $this->interceptorName = $this->interfaceToCall->getInterfaceName();
         $this->precedence      = $precedence;
-        $this->pointcut        = $this->initializePointcut($interceptorName, $methodName, $pointcut, $parameterConverters);
+        $this->pointcut        = $this->initializePointcut($interfaceToCall, $pointcut, $parameterConverters);
         $this->referenceName   = $referenceName;
         $this->parameterConverters = $parameterConverters;
     }
@@ -47,28 +50,26 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
     /**
      * @var ParameterConverterBuilder[] $parameterConverters
      */
-    private function initializePointcut(string $interceptorClass, string $methodName, Pointcut $pointcut, array $parameterConverters): Pointcut
+    private function initializePointcut(InterfaceToCall $interfaceToCall, Pointcut $pointcut, array $parameterConverters): Pointcut
     {
         if (! $pointcut->isEmpty()) {
             return $pointcut;
         }
 
-        $interfaceToCall = InterfaceToCall::create($interceptorClass, $methodName);
-
         return Pointcut::initializeFrom($interfaceToCall, $parameterConverters);
     }
 
-    public static function createWithNoPointcut(string $interceptorClass, string $referenceName, string $methodName): self
+    public static function createWithNoPointcut(string $referenceName, InterfaceToCall $interfaceToCall): self
     {
-        return new self(Precedence::DEFAULT_PRECEDENCE, $interceptorClass, $referenceName, $methodName, Pointcut::createEmpty(), []);
+        return new self(Precedence::DEFAULT_PRECEDENCE, $referenceName, $interfaceToCall, Pointcut::createEmpty(), []);
     }
 
     /**
      * @var ParameterConverterBuilder[] $parameterConverters
      */
-    public static function create(string $interceptorClass, string $referenceName, string $methodName, int $precedence, string $pointcut, array $parameterConverters): self
+    public static function create(string $referenceName, InterfaceToCall $interfaceToCall, int $precedence, string $pointcut, array $parameterConverters): self
     {
-        return new self($precedence, $interceptorClass, $referenceName, $methodName, $pointcut ? Pointcut::createWith($pointcut) : Pointcut::createEmpty(), $parameterConverters);
+        return new self($precedence, $referenceName, $interfaceToCall, $pointcut ? Pointcut::createWith($pointcut) : Pointcut::createEmpty(), $parameterConverters);
     }
 
     /**
@@ -77,9 +78,10 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
     public static function createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry $interfaceToCallRegistry, object $referenceObject, string $methodName, int $precedence, string $pointcut): self
     {
         $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
-        $parameterConverters = $parameterAnnotationResolver->createParameterConverters($interfaceToCallRegistry->getFor($referenceObject, $methodName));
+        $interfaceToCall = $interfaceToCallRegistry->getFor($referenceObject, $methodName);
+        $parameterConverters = $parameterAnnotationResolver->createParameterConverters($interfaceToCall);
 
-        $aroundInterceptorReference               = new self($precedence, get_class($referenceObject), '', $methodName, Pointcut::createWith($pointcut), $parameterConverters);
+        $aroundInterceptorReference               = new self($precedence, '', $interfaceToCall, Pointcut::createWith($pointcut), $parameterConverters);
         $aroundInterceptorReference->directObject = $referenceObject;
 
         return $aroundInterceptorReference;
@@ -90,9 +92,8 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
      *
      * @return AroundMethodInterceptor[]
      */
-    public static function createAroundInterceptorsWithChannel(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, array $interceptorsReferences): array
+    public static function createAroundInterceptorsWithChannel(ReferenceSearchService $referenceSearchService, array $interceptorsReferences, array $endpointAnnotations, InterfaceToCall $interceptedInterface): array
     {
-        $aroundMethodInterceptors = [];
         usort(
             $interceptorsReferences,
             function (AroundInterceptorReference $element, AroundInterceptorReference $elementToCompare) {
@@ -103,34 +104,17 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
                 return $element->getPrecedence() > $elementToCompare->getPrecedence() ? 1 : -1;
             }
         );
-        if ($interceptorsReferences) {
-            foreach ($interceptorsReferences as $interceptorsReferenceName) {
-                $interceptingService = $interceptorsReferenceName->buildAroundInterceptor($referenceSearchService);
-
-                $aroundMethodInterceptors[] = $interceptingService;
-            }
+        $aroundMethodInterceptors = [];
+        foreach ($interceptorsReferences as $interceptorsReferenceName) {
+            $aroundMethodInterceptors[] = $interceptorsReferenceName->buildAroundInterceptor($referenceSearchService, $endpointAnnotations, $interceptedInterface);
         }
 
         return $aroundMethodInterceptors;
     }
 
-    /**
-     * @param InterfaceToCallRegistry $interfaceToCallRegistry
-     *
-     * @return InterfaceToCall
-     * @throws AnnotationException
-     * @throws InvalidArgumentException
-     * @throws MessagingException
-     * @throws ReflectionException
-     * @throws ConfigurationException
-     */
-    public function getInterceptingInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
+    public function getInterceptingInterface(): InterfaceToCall
     {
-        if ($this->directObject) {
-            return $interfaceToCallRegistry->getFor($this->directObject, $this->methodName);
-        }
-
-        return $interfaceToCallRegistry->getForReferenceName($this->referenceName, $this->methodName);
+        return $this->interfaceToCall;
     }
 
     /**
@@ -141,29 +125,70 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         return $this->precedence;
     }
 
-    public function buildAroundInterceptor(ReferenceSearchService $referenceSearchService): AroundMethodInterceptor
+    public function buildAroundInterceptor(ReferenceSearchService $referenceSearchService, array $endpointAnnotations, InterfaceToCall $interceptedInterface): AroundMethodInterceptor
     {
         $referenceToCall = $this->directObject ?: $referenceSearchService->get($this->referenceName);
 
         $builtConverters = [];
-        foreach ($this->parameterConverters as $parameterConverter) {
-            $builtConverters[] = $parameterConverter->build($referenceSearchService);
+        $hasMethodInvocation = false;
+        $hasPayloadConverter = false;
+        $interceptingInterface = $this->getInterceptingInterface();
+        $interceptedInterfaceType = $interceptedInterface->getInterfaceType();
+        foreach ($interceptingInterface->getInterfaceParameters() as $parameter) {
+            foreach ($this->parameterConverters as $parameterConverter) {
+                if ($parameterConverter->isHandling($parameter)) {
+                    $builtConverters[] = $parameterConverter->build($referenceSearchService, $interceptingInterface, $parameter);
+                    if ($parameterConverter instanceof PayloadConverter) {
+                        $hasPayloadConverter = true;
+                    }
+                    continue 2;
+                }
+            }
+            if ($parameter->canBePassedIn(TypeDescriptor::create(MethodInvocation::class))) {
+                $builtConverters[] = new MethodInvocationConverter();
+                $hasMethodInvocation = true;
+                continue;
+            }
+            if ($interceptedInterfaceType && $parameter->canBePassedIn($interceptedInterfaceType)) {
+                $builtConverters[] = new MethodInvocationObjectConverter();
+                continue;
+            }
+            if ($converterBuilder = MethodArgumentsFactory::getAnnotationValueConverter($parameter, $interceptedInterface, $endpointAnnotations)) {
+                $builtConverters[] = $converterBuilder->build($referenceSearchService, $interceptingInterface, $parameter);
+                continue;
+            }
+            if ($parameter->canBePassedIn(TypeDescriptor::create(Message::class))) {
+                $builtConverters[] = MessageConverter::create();
+                continue;
+            }
+
+            if ($parameter->canBePassedIn(TypeDescriptor::create(ReferenceSearchService::class))) {
+                $builtConverters[] = ValueConverter::createWith($referenceSearchService);
+                continue;
+            }
+
+            if ($parameter->doesAllowNulls() && $parameter->isAnnotation()) {
+                $builtConverters[] = ValueConverter::createWith(null);
+                continue;
+            }
+            if (! $hasPayloadConverter) {
+                $builtConverters[] = PayloadBuilder::create($parameter->getName())->build($referenceSearchService, $interceptingInterface, $parameter);
+                $hasPayloadConverter = true;
+                continue;
+            } elseif ($parameter->getTypeDescriptor()->isNonCollectionArray()) {
+                $builtConverters[] = AllHeadersBuilder::createWith($parameter->getName())->build($referenceSearchService, $interceptingInterface, $parameter);
+                continue;
+            }
+            throw new InvalidArgumentException("Can't build around interceptor for {$this->interfaceToCall} because can't find converter for parameter {$parameter}");
         }
 
         return AroundMethodInterceptor::createWith(
             $referenceToCall,
-            $this->methodName,
+            $this->interfaceToCall->getMethodName(),
             $referenceSearchService,
-            $builtConverters
+            $builtConverters,
+            $hasMethodInvocation
         );
-    }
-
-    /**
-     * @return string
-     */
-    public function getInterceptorName(): string
-    {
-        return $this->interceptorName;
     }
 
     /**
@@ -216,6 +241,6 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
      */
     public function __toString()
     {
-        return $this->interceptorName . $this->referenceName . $this->methodName;
+        return $this->interceptorName . $this->referenceName . $this->interfaceToCall;
     }
 }

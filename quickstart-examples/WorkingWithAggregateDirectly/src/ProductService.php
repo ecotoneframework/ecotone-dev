@@ -6,7 +6,7 @@ namespace App\WorkingWithAggregateDirectly;
 
 use App\WorkingWithAggregateDirectly\Command\ChangePrice;
 use App\WorkingWithAggregateDirectly\Command\RegisterProduct;
-use Ecotone\Messaging\Attribute\MessageGateway;
+use Ecotone\Messaging\Attribute\BusinessMethod;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 
 /**
@@ -14,12 +14,12 @@ use Ecotone\Modelling\Attribute\AggregateIdentifier;
  */
 interface ProductService
 {
-    #[MessageGateway(Product::PRODUCT_REGISTER_API)]
+    #[BusinessMethod(Product::PRODUCT_REGISTER_API)]
     public function registerProduct(RegisterProduct $command): void;
 
-    #[MessageGateway(Product::PRODUCT_CHANGE_PRICE_API)]
+    #[BusinessMethod(Product::PRODUCT_CHANGE_PRICE_API)]
     public function changePrice(ChangePrice $command): void;
 
-    #[MessageGateway(Product::PRODUCT_GET_PRICE_API)]
+    #[BusinessMethod(Product::PRODUCT_GET_PRICE_API)]
     public function getPrice(#[AggregateIdentifier] $productId): float;
 }

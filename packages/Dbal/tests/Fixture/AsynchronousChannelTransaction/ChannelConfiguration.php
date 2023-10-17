@@ -17,12 +17,12 @@ class ChannelConfiguration
                 ->withReceiveTimeout(1),
             PollingMetadata::create('orders')
                 ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(1),
+                ->setExecutionTimeLimitInMilliseconds(1000),
             DbalBackedMessageChannelBuilder::create('processOrders', 'managerRegistry')
                 ->withReceiveTimeout(1),
             PollingMetadata::create('processOrders')
                 ->setHandledMessageLimit(1)
-                ->setExecutionTimeLimitInMilliseconds(1),
+                ->setExecutionTimeLimitInMilliseconds(1000),
             DbalConfiguration::createWithDefaults()
                 ->withTransactionOnAsynchronousEndpoints(true)
                 ->withTransactionOnCommandBus(true)

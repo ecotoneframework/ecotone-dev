@@ -74,7 +74,6 @@ class LimitConsumedMessagesInterceptor implements ConsumerInterceptor
     public function postSend(): void
     {
         $this->currentSentMessages++;
-
         $this->shouldBeStopped = $this->currentSentMessages >= $this->messageLimit;
     }
 }

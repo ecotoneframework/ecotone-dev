@@ -29,14 +29,14 @@ final class TypeDescriptor implements Type
     private const BOOL_FALSE_NAME = 'false';
     public const         STRING = 'string';
 
-//    compound types
+    //    compound types
     public const ARRAY = 'array';
     public const         ITERABLE = 'iterable';
     public const CLOSURE = 'Closure';
     public const CALLABLE = 'callable';
     public const         OBJECT = 'object';
 
-//    resource
+    //    resource
     public const RESOURCE = 'resource';
 
     public const ANYTHING = 'anything';
@@ -44,6 +44,8 @@ final class TypeDescriptor implements Type
 
     public const MIXED = 'mixed';
     public const NULL = 'null';
+
+    private static array $cache = [];
 
     private string $type;
 
@@ -163,6 +165,14 @@ final class TypeDescriptor implements Type
             return false;
         }
 
+        if ($this->isNullType() && $toCompare->isNullType()) {
+            return true;
+        }
+
+        if (is_a($this->type, $toCompare->getTypeHint(), true)) {
+            return true;
+        }
+
         if ($this->isAnything() || $toCompare->isAnything()) {
             return true;
         }
@@ -173,7 +183,7 @@ final class TypeDescriptor implements Type
 
         if (! $this->isScalar() && $toCompare->isScalar()) {
             if ($this->isClassOrInterface()) {
-                if ($this->equals(TypeDescriptor::create(TypeDescriptor::OBJECT))) {
+                if ($this->isCompoundObjectType()) {
                     return false;
                 }
 
@@ -256,6 +266,10 @@ final class TypeDescriptor implements Type
 
     private static function initialize(?string $typeHint, ?string $docBlockTypeDescription): Type
     {
+        $cacheKey = $typeHint . ':' . $docBlockTypeDescription;
+        if (isset(self::$cache[$cacheKey])) {
+            return self::$cache[$cacheKey];
+        }
         $resolvedType = [];
         foreach (self::resolveType($typeHint)->getUnionTypes() as $declarationType) {
             if ($declarationType->isIterable() && ! $declarationType->isCollection() && $docBlockTypeDescription) {
@@ -280,7 +294,7 @@ final class TypeDescriptor implements Type
             }
         }
 
-        return UnionTypeDescriptor::createWith($resolvedType);
+        return self::$cache[$cacheKey] = UnionTypeDescriptor::createWith($resolvedType);
     }
 
     /**
@@ -762,6 +776,11 @@ final class TypeDescriptor implements Type
     public function isUnionType(): bool
     {
         return false;
+    }
+
+    public function isNullType(): bool
+    {
+        return $this->type === self::NULL;
     }
 
     /**

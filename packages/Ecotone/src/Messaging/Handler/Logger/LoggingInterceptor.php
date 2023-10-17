@@ -23,15 +23,8 @@ use Throwable;
  */
 class LoggingInterceptor
 {
-    private ?\Ecotone\Messaging\Handler\Logger\LoggingService $loggingService;
-
-    /**
-     * LoggingInterceptor constructor.
-     * @param LoggingService $loggingService
-     */
-    public function __construct(?LoggingService $loggingService)
+    public function __construct(private LoggingService $loggingService)
     {
-        $this->loggingService = $loggingService;
     }
 
     /**
@@ -62,19 +55,14 @@ class LoggingInterceptor
         $this->loggingService->log(LoggingLevel::create($log->logLevel, $log->logFullMessage), $message);
     }
 
-    public function logException(MethodInvocation $methodInvocation, Message $message, ?LogError $log, ReferenceSearchService $referenceSearchService)
+    public function logException(MethodInvocation $methodInvocation, Message $message, ?LogError $log)
     {
         $log ??= new LogError();
-
-        $loggingService = new LoggingService(
-            $referenceSearchService->get(ConversionService::REFERENCE_NAME),
-            $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE)
-        );
 
         try {
             $returnValue = $methodInvocation->proceed();
         } catch (Throwable $exception) {
-            $loggingService->logException(LoggingLevel::create($log->logLevel, $log->logFullMessage), $exception, $message);
+            $this->loggingService->logException(LoggingLevel::create($log->logLevel, $log->logFullMessage), $exception, $message);
 
             throw $exception;
         }

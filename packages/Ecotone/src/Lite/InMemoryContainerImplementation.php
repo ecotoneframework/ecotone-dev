@@ -16,6 +16,7 @@ use Throwable;
 
 class InMemoryContainerImplementation implements ContainerImplementation
 {
+    public const ALIAS_PREFIX = 'ecotone.testing.';
     public function __construct(private InMemoryPSRContainer $container, private ?ContainerInterface $externalContainer = null)
     {
     }
@@ -93,7 +94,10 @@ class InMemoryContainerImplementation implements ContainerImplementation
             return $this->container->get($reference->getId());
         }
         if ($this->externalContainer?->has($id)) {
-            return $this->externalContainer?->get($id);
+            return $this->externalContainer->get($id);
+        }
+        if ($this->externalContainer?->has(self::ALIAS_PREFIX . $id)) {
+            return $this->externalContainer->get(self::ALIAS_PREFIX . $id);
         }
         // This is the only default service we provide
         if ($id === 'logger' || $id === LoggerInterface::class) {

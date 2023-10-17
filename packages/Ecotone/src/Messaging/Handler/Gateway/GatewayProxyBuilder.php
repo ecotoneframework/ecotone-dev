@@ -92,7 +92,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
      */
     private array $requiredInterceptorNames = [];
     private ?InterfaceToCall $annotatedInterfaceToCall = null;
-    private ?Reference $compiled = null;
 
     /**
      * GatewayProxyBuilder constructor.
@@ -109,7 +108,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         $this->interfaceName = $interfaceName;
         $this->methodName = $methodName;
         $this->requestChannelName = $requestChannelName;
-        $this->requiredReferenceNames[] = ServiceCacheConfiguration::REFERENCE_NAME;
     }
 
     /**
@@ -221,9 +219,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     public function withMessageConverters(array $messageConverterReferenceNames): self
     {
         $this->messageConverterReferenceNames = $messageConverterReferenceNames;
-        foreach ($messageConverterReferenceNames as $messageConverterReferenceName) {
-            $this->requiredReferenceNames[] = $messageConverterReferenceName;
-        }
 
         return $this;
     }

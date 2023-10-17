@@ -14,16 +14,14 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Config\Container\ProxyBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContextProvider;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ramsey\Uuid\Uuid;
 
 class ComponentTestBuilder
@@ -92,8 +90,8 @@ class ComponentTestBuilder
 
     public function runEndpoint(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
-        /** @var PollingConsumerContextProvider $pollingEndpointRunner */
-        $pollingEndpointRunner = $this->container->get(PollingConsumerContext::class);
+        /** @var EndpointRunner $pollingEndpointRunner */
+        $pollingEndpointRunner = $this->container->get(new EndpointRunnerReference($endpointId));
         $pollingEndpointRunner->runEndpointWithExecutionPollingMetadata($endpointId, $executionPollingMetadata);
     }
 

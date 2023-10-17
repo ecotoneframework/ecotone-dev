@@ -6,16 +6,18 @@ namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
+use Ecotone\Messaging\Endpoint\MessagePoller\MessagePoller;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use Interop\Queue\Message as EnqueueMessage;
 
-abstract class EnqueueInboundChannelAdapter implements TaskExecutor
+abstract class EnqueueInboundChannelAdapter implements MessagePoller
 {
     private bool $initialized = false;
 
@@ -30,18 +32,6 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
     ) {
     }
 
-    public function execute(PollingMetadata $pollingMetadata): void
-    {
-        $message = $this->receiveMessage($pollingMetadata->getExecutionTimeLimitInMilliseconds());
-
-        if ($message) {
-            $message = MessageBuilder::fromMessage($message)
-                ->setHeader(MessageHeaders::POLLING_METADATA, $pollingMetadata)
-                ->build();
-            $this->entrypointGateway->executeEntrypoint($message);
-        }
-    }
-
     abstract public function initialize(): void;
 
     public function enrichMessage(EnqueueMessage $sourceMessage, MessageBuilder $targetMessage): MessageBuilder
@@ -49,7 +39,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
         return $targetMessage;
     }
 
-    public function receiveMessage(int $timeout = 0): ?Message
+    public function receiveWithTimeout(int $timeoutInMilliseconds = 0): ?Message
     {
         try {
             if ($this->declareOnStartup && $this->initialized === false) {
@@ -63,7 +53,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
             );
 
             /** @var EnqueueMessage $message */
-            $message = $consumer->receive($timeout ?: $this->receiveTimeoutInMilliseconds);
+            $message = $consumer->receive($timeoutInMilliseconds ?: $this->receiveTimeoutInMilliseconds);
 
             if (! $message) {
                 return null;

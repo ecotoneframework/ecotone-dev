@@ -25,8 +25,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
-use Ecotone\Messaging\Endpoint\NoConsumerFactoryForBuilderException;
+use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Endpoint\PollOrThrow\PollOrThrowMessageHandlerConsumerBuilder;
@@ -202,10 +201,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $this->assertTrue($messageHandler->wasCalled());
     }
 
-    /**
-     * @throws NoConsumerFactoryForBuilderException
-     * @throws MessagingException
-     */
     public function test_throwing_exception_if_running_not_existing_consumer()
     {
         $messagingSystem = $this->createMessagingSystemConfiguration()
@@ -775,7 +770,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
     /**
      * @throws ConfigurationException
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_intercepting_channel_before_sending()
@@ -818,7 +812,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
     /**
      * @throws ConfigurationException
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_ordering_channel_interceptors_before_sending()
@@ -874,7 +867,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
     /**
      * @throws ConfigurationException
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_intercepting_by_stopping_message_flow()
@@ -914,7 +906,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
     /**
      * @throws ConfigurationException
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_intercepting_after_sending_to_inform_it_was_successful()
@@ -954,7 +945,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
     /**
      * @throws ConfigurationException
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_intercepting_after_sending_to_inform_about_failure_handling_after_exception_occurred()
@@ -993,7 +983,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
     /**
      * @throws ConfigurationException
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_intercepting_with_multiple_channels()
@@ -1046,7 +1035,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
     /**
      * @throws ConfigurationException
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_registering_channel_interceptor_with_regex()
@@ -1089,7 +1077,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
     }
 
     /**
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_creating_implicit_direct_channel_if_not_exists()
@@ -1135,7 +1122,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
     /**
      * @throws ConfigurationException
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_replacing_implicit_direct_channel_with_real_channel_if_passed()
@@ -1286,7 +1272,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
     /**
      * @throws ConfigurationException
      * @throws Exception
-     * @throws NoConsumerFactoryForBuilderException
      * @throws MessagingException
      */
     public function test_intercepting_channel_adapter()

@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Endpoint\PollingConsumer;
+namespace Ecotone\Messaging\Endpoint\MessagePoller;
 
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\NonProxyGateway;
+use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
-use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -16,13 +15,13 @@ use Ecotone\Messaging\Support\MessageBuilder;
  * @package Ecotone\Messaging\Endpoint\PollingConsumer
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class PollerTaskExecutor implements TaskExecutor
+class ChannelPoller implements MessagePoller
 {
-    public function __construct(private string $pollableChannelName, private PollableChannel $pollableChannel, private NonProxyGateway $entrypointGateway)
+    public function __construct(private string $pollableChannelName, private PollableChannel $pollableChannel)
     {
     }
 
-    public function execute(PollingMetadata $pollingMetadata): void
+    public function poll(PollingMetadata $pollingMetadata): ?Message
     {
         $message = $pollingMetadata->getExecutionTimeLimitInMilliseconds()
             ? $this->pollableChannel->receiveWithTimeout($pollingMetadata->getExecutionTimeLimitInMilliseconds())
@@ -31,10 +30,9 @@ class PollerTaskExecutor implements TaskExecutor
         if ($message) {
             $message = MessageBuilder::fromMessage($message)
                 ->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, $this->pollableChannelName)
-                ->setHeader(MessageHeaders::POLLING_METADATA, $pollingMetadata)
+                ->setHeader(MessageHeaders::CONSUMER_POLLING_METADATA, $pollingMetadata)
                 ->build();
-
-            $this->entrypointGateway->execute([$message]);
         }
+        return $message;
     }
 }

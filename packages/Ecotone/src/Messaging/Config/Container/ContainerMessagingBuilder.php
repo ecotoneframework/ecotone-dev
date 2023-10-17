@@ -39,20 +39,19 @@ class ContainerMessagingBuilder
         return $this->applicationConfiguration;
     }
 
-    public function registerPollingEndpoint(string $endpointId, string $endpointRunnerReferenceName): void
+    public function registerPollingEndpoint(string $endpointId, Definition $definition): void
     {
         if (isset($this->pollingEndpoints[$endpointId])) {
             throw new \InvalidArgumentException("Endpoint with id {$endpointId} already exists");
         }
-        if (!$this->has($endpointRunnerReferenceName)) {
-            throw new \InvalidArgumentException("Endpoint runner with id {$endpointRunnerReferenceName} does not exists");
-        }
-        $definition = $this->getDefinition($endpointRunnerReferenceName);
+        $runnerReference = new EndpointRunnerReference($endpointId);
         $className = $definition->getClassName();
         if (!is_subclass_of($className, EndpointRunner::class, true)) {
             throw new \InvalidArgumentException("Endpoint runner {$className} must implement " . EndpointRunner::class);
         }
-        $this->pollingEndpoints[$endpointId] = $endpointRunnerReferenceName;
+
+        $this->register($runnerReference, $definition);
+        $this->pollingEndpoints[$endpointId] = $endpointId;
     }
 
     public function getPollingEndpoints(): array

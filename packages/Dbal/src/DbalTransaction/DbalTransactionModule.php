@@ -13,7 +13,6 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Precedence;

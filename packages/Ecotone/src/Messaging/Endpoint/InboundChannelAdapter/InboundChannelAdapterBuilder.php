@@ -4,32 +4,23 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint\InboundChannelAdapter;
 
-use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
-use Ecotone\Messaging\Endpoint\InterceptedPollerConsumerRunner;
-use Ecotone\Messaging\Endpoint\InterceptedTaskConsumerRunner;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerPostSendAroundInterceptor;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Endpoint\InterceptedConsumerRunner;
+use Ecotone\Messaging\Endpoint\MessagePoller\InvocationPoller;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\NullableMessageChannel;
-use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -168,7 +159,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         // There was this code
-         $pollingMetadata = $this->withContinuesPolling() ? $pollingMetadata->setFixedRateInMilliseconds(1) : $pollingMetadata;
+//         $pollingMetadata = $this->withContinuesPolling() ? $pollingMetadata->setFixedRateInMilliseconds(1) : $pollingMetadata;
 
 
         Assert::notNullAndEmpty($this->endpointId, "Endpoint Id for inbound channel adapter can't be empty");
@@ -191,13 +182,16 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             ->addAroundInterceptor(
                 AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry())
             )
-            ->withAnnotatedInterface($this->interfaceToCall)
             ->compile($builder);
 
-        return new Definition(InterceptedTaskConsumerRunner::class, [
-            $gateway,
+        $messagePoller = new Definition(InvocationPoller::class, [
             $objectReference,
             $methodName,
+        ]);
+
+        return new Definition(InterceptedConsumerRunner::class, [
+            $gateway,
+            $messagePoller,
             new PollingMetadataReference($this->endpointId),
             new Reference(Clock::class),
             new Reference(LoggerInterface::class),

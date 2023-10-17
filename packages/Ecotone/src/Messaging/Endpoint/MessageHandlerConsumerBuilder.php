@@ -22,5 +22,5 @@ interface MessageHandlerConsumerBuilder
 
     public function isPollingConsumer(): bool;
 
-    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder, ?CompilationPollingMetadata $pollingMetadata): void;
+    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void;
 }

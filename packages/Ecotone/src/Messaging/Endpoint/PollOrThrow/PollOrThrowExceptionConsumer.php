@@ -32,13 +32,6 @@ class PollOrThrowExceptionConsumer implements EndpointRunner
         return new self($pollableChannel, $messageHandler);
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function execute(PollingMetadata $pollingMetadata): void
-    {
-    }
-
     public function runEndpointWithExecutionPollingMetadata(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata): void
     {
         $message = $this->pollableChannel->receive();

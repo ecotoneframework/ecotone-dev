@@ -3,14 +3,11 @@
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Psr\Log\NullLogger;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\StubMethodInvocation;

@@ -29,18 +29,15 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\ConverterBuilder;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\CompilationPollingMetadata;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
@@ -1204,24 +1201,17 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         foreach ($this->channelAdapters as $channelAdapter) {
-            $adapter = $channelAdapter->compile($messagingBuilder);
-            Assert::isTrue($adapter instanceof Definition, "Channel adapter {$channelAdapter->getEndpointId()} should return definition");
+            $consumerRunner = $channelAdapter->compile($messagingBuilder);
+            Assert::isTrue($consumerRunner instanceof Definition, "Channel adapter {$channelAdapter->getEndpointId()} should return definition");
             $endpointId = $channelAdapter->getEndpointId();
-            $messagingBuilder->registerPollingEndpoint($endpointId, "polling.{$endpointId}.runner");
-            $messagingBuilder->register("polling.{$endpointId}.runner", Reference::to(PollingConsumerContext::class));
-            $messagingBuilder->register("polling.{$endpointId}.executor", $adapter);
+            $messagingBuilder->registerPollingEndpoint($endpointId, $consumerRunner);
         }
 
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             $inputChannelBuilder = $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] ?? throw ConfigurationException::create("Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
             foreach ($this->consumerFactories as $consumerFactory) {
                 if ($consumerFactory->isSupporting($messageHandlerBuilder, $inputChannelBuilder)) {
-                    $consumerFactory->registerConsumer(
-                        $messagingBuilder,
-                        $messageHandlerBuilder,
-                        isset($this->pollingMetadata[$messageHandlerBuilder->getEndpointId()])
-                            ? CompilationPollingMetadata::fromPollingMetadata($this->pollingMetadata[$messageHandlerBuilder->getEndpointId()])
-                            : null);
+                    $consumerFactory->registerConsumer($messagingBuilder, $messageHandlerBuilder);
                     break;
                 }
             }

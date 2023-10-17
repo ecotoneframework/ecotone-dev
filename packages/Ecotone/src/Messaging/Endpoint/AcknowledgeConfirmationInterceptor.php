@@ -80,7 +80,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
             }
         }
 
-        $pollingMetadata = $message->getHeaders()->get(MessageHeaders::POLLING_METADATA);
+        $pollingMetadata = $message->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA);
         if ($pollingMetadata->isStoppedOnError() === true && $exception !== null) {
             $logger->info('Should stop on error configuration enabled, stopping Message Consumer.');
             throw $exception;

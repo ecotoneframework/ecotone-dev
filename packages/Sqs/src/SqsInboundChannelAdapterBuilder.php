@@ -14,8 +14,6 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;

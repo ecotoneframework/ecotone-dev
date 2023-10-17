@@ -14,7 +14,6 @@ use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
-use Ecotone\Messaging\Endpoint\InterceptedConsumerRunner;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -109,6 +108,11 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
     }
 
     public function isPollingConsumer(): bool
+    {
+        return true;
+    }
+
+    protected function withContinuesPolling(): bool
     {
         return true;
     }

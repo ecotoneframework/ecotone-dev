@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
-use Ecotone\Messaging\Endpoint\InterceptedConsumerRunner;
+use Ecotone\Messaging\Endpoint\PollingConsumer\InterceptedConsumerRunner;
 use Ecotone\Messaging\Endpoint\PollingConsumer\MessagePoller\InvocationPollerAdapter;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;

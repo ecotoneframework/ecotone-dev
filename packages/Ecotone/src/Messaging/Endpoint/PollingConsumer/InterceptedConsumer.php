@@ -1,7 +1,9 @@
 <?php
 
-namespace Ecotone\Messaging\Endpoint;
+namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
+use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
+use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\Interceptor\ConnectionExceptionRetryInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\FinishWhenNoMessagesInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitConsumedMessagesInterceptor;
@@ -9,9 +11,7 @@ use Ecotone\Messaging\Endpoint\Interceptor\LimitExecutionAmountInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\LimitMemoryUsageInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\SignalInterceptor;
 use Ecotone\Messaging\Endpoint\Interceptor\TimeLimitInterceptor;
-use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Psr\Log\LoggerInterface;
 
 /**

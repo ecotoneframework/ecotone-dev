@@ -1,9 +1,12 @@
 <?php
 
-namespace Ecotone\Messaging\Endpoint;
+namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
+use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
+use Ecotone\Messaging\Endpoint\EndpointRunner;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapter;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollToGatewayTaskExecutor;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Scheduling\Clock;

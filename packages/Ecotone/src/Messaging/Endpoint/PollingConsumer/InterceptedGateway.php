@@ -1,7 +1,8 @@
 <?php
 
-namespace Ecotone\Messaging\Endpoint;
+namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
+use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 
 class InterceptedGateway implements NonProxyGateway

@@ -12,7 +12,7 @@ use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\InterceptedConsumerRunner;
-use Ecotone\Messaging\Endpoint\MessagePoller\InvocationPoller;
+use Ecotone\Messaging\Endpoint\PollingConsumer\MessagePoller\InvocationPollerAdapter;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -184,7 +184,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             )
             ->compile($builder);
 
-        $messagePoller = new Definition(InvocationPoller::class, [
+        $messagePoller = new Definition(InvocationPollerAdapter::class, [
             $objectReference,
             $methodName,
         ]);

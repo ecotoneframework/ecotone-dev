@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Endpoint\PollOrThrow;
+namespace Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;

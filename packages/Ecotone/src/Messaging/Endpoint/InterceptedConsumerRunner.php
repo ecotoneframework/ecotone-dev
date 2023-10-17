@@ -3,8 +3,9 @@
 namespace Ecotone\Messaging\Endpoint;
 
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapter;
-use Ecotone\Messaging\Endpoint\MessagePoller\MessagePoller;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollToGatewayTaskExecutor;
 use Ecotone\Messaging\Handler\NonProxyGateway;
+use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\CronTrigger;
 use Ecotone\Messaging\Scheduling\PeriodicTrigger;

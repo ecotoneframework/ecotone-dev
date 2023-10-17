@@ -24,6 +24,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\Clock;
+use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
 
 abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsumerBuilder, InterceptedEndpoint
 {

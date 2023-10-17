@@ -19,16 +19,15 @@ use Ecotone\Messaging\Config\GatewayReference;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\OptionalReference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;;
+use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
+use Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow\PollOrThrowMessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Endpoint\PollOrThrow\PollOrThrowMessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
@@ -46,7 +45,6 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use stdClass;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\CalculatingServiceInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Gateway\CombinedGatewayExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Gateway\SingleMethodGatewayExample;
@@ -57,7 +55,6 @@ use Test\Ecotone\Messaging\Fixture\Handler\DumbMessageHandlerBuilder;
 use Test\Ecotone\Messaging\Fixture\Handler\ExceptionMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithAnnotationFromMethodInterceptorExample;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\StubCallSavingService;
 use Test\Ecotone\Messaging\Fixture\SameChannelAndRouting\SomeTestCommandHandler;
 use Test\Ecotone\Messaging\Fixture\SameChannelAndRouting\SomeTestEventHandler;
@@ -67,6 +64,8 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceCalc
 use Test\Ecotone\Messaging\Fixture\Service\ServiceWithoutReturnValue;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceWithReturnValue;
 use Test\Ecotone\Messaging\Unit\MessagingTest;
+
+;
 
 /**
  * Class ApplicationTest

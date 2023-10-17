@@ -1,15 +1,12 @@
 <?php
 
-namespace Ecotone\Messaging\Endpoint\PollOrThrow;
+namespace Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow;
 
-use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageDeliveryException;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\PollableChannel;
-use Ecotone\Messaging\Scheduling\TaskExecutor;
 
 /**
  * Class PollingConsumer

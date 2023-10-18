@@ -26,15 +26,6 @@ use Test\Ecotone\Messaging\Fixture\Behat\Presend\Shop;
  */
 class MessagingConfigurationTest extends TestCase
 {
-    public function test_creating_with_cache()
-    {
-        $cacheDirectory = '/tmp/' . Uuid::uuid4()->toString();
-        $this->assertEquals(
-            $this->getConfiguration($cacheDirectory, true),
-            $this->getConfiguration($cacheDirectory, true)
-        );
-    }
-
     public function test_registering_with_gateway_aware_container()
     {
         $container = InMemoryPSRContainer::createFromObjects([
@@ -44,7 +35,7 @@ class MessagingConfigurationTest extends TestCase
                                 ->withNamespaces(["Test\Ecotone\Messaging\Fixture\Behat\Presend"])
                                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]));
 
-        EcotoneLite::bootstrap(
+        $ecotone = EcotoneLite::bootstrap(
             containerOrAvailableServices: $container,
             configuration: $serviceConfiguration,
             allowGatewaysToBeRegisteredInContainer: true,
@@ -55,20 +46,7 @@ class MessagingConfigurationTest extends TestCase
             CoinGateway::class,
             $container->get(CoinGateway::class)
         );
-    }
 
-    private function getConfiguration(string $cacheDirectory, bool $useCachedVersion): Configuration
-    {
-        $applicationConfiguration = ServiceConfiguration::createWithDefaults()
-            ->withCacheDirectoryPath($cacheDirectory)
-            ->withSkippedModulePackageNames(ModulePackageList::allPackages());
-
-        return MessagingSystemConfiguration::prepare(
-            __DIR__,
-            InMemoryConfigurationVariableService::createEmpty(),
-            $applicationConfiguration,
-            new ServiceCacheConfiguration($applicationConfiguration->getCacheDirectoryPath(), $useCachedVersion),
-            [GatewayWithReplyChannelExample::class]
-        );
+        $ecotone->terminate();
     }
 }

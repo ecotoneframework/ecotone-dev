@@ -460,6 +460,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
 
         $this->assertNotEmpty($ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+        $ecotoneLite->terminate();
     }
 
     public function test_releasing_delayed_message()

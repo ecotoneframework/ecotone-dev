@@ -124,7 +124,6 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $messageConverterReferenceNames = [];
     private ?ModuleReferenceSearchService $moduleReferenceSearchService;
-    private bool $isLazyConfiguration;
     private array $asynchronousEndpoints = [];
     /**
      * @var string[]
@@ -150,7 +149,7 @@ final class MessagingSystemConfiguration implements Configuration
     /**
      * @param object[] $extensionObjects
      */
-    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration, private ServiceCacheConfiguration $serviceCacheConfiguration)
+    private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration)
     {
         $extensionObjects = array_merge($extensionObjects, $serviceConfiguration->getExtensionObjects());
         $extensionApplicationConfiguration = [];
@@ -640,15 +639,9 @@ final class MessagingSystemConfiguration implements Configuration
         string $rootPathToSearchConfigurationFor,
         ConfigurationVariableService $configurationVariableService,
         ServiceConfiguration $serviceConfiguration,
-        ServiceCacheConfiguration $serviceCacheConfiguration,
         array $userLandClassesToRegister = [],
         bool $enableTestPackage = false
     ): Configuration {
-        $cachedVersion = self::getCachedVersion($serviceCacheConfiguration);
-        if ($cachedVersion) {
-            return $cachedVersion;
-        }
-
         $requiredModules = [ModulePackageList::CORE_PACKAGE];
         if ($enableTestPackage) {
             $requiredModules[] = ModulePackageList::TEST_PACKAGE;
@@ -673,7 +666,6 @@ final class MessagingSystemConfiguration implements Configuration
             ),
             $configurationVariableService,
             $serviceConfiguration,
-            $serviceCacheConfiguration
         );
     }
 
@@ -681,7 +673,6 @@ final class MessagingSystemConfiguration implements Configuration
         AnnotationFinder $annotationFinder,
         ConfigurationVariableService $configurationVariableService,
         ServiceConfiguration $serviceConfiguration,
-        ServiceCacheConfiguration $serviceCacheConfiguration
     ): Configuration {
         $preparationInterfaceRegistry = InterfaceToCallRegistry::createWith($annotationFinder);
 
@@ -693,22 +684,7 @@ final class MessagingSystemConfiguration implements Configuration
             ),
             $preparationInterfaceRegistry,
             $serviceConfiguration,
-            $serviceCacheConfiguration
         );
-    }
-
-    public static function getCachedVersion(ServiceCacheConfiguration $serviceCacheConfiguration): ?MessagingSystemConfiguration
-    {
-        if (! $serviceCacheConfiguration->shouldUseCache()) {
-            return null;
-        }
-
-        $messagingSystemCachePath = self::getMessagingSystemCachedFile($serviceCacheConfiguration);
-        if (file_exists($messagingSystemCachePath)) {
-            return unserialize(file_get_contents($messagingSystemCachePath));
-        }
-
-        return null;
     }
 
     /**
@@ -718,79 +694,13 @@ final class MessagingSystemConfiguration implements Configuration
         ModuleRetrievingService $moduleConfigurationRetrievingService,
         InterfaceToCallRegistry $preparationInterfaceRegistry,
         ServiceConfiguration $applicationConfiguration,
-        ServiceCacheConfiguration $serviceCacheConfiguration
     ): MessagingSystemConfiguration {
-        self::prepareCacheDirectory($serviceCacheConfiguration);
-
-        $messagingSystemConfiguration = new self(
+        return new self(
             $moduleConfigurationRetrievingService,
             $moduleConfigurationRetrievingService->findAllExtensionObjects(),
             $preparationInterfaceRegistry,
             $applicationConfiguration,
-            $serviceCacheConfiguration,
         );
-
-        if ($serviceCacheConfiguration->shouldUseCache()) {
-            $serializedMessagingSystemConfiguration = serialize($messagingSystemConfiguration);
-            file_put_contents(self::getMessagingSystemCachedFile($serviceCacheConfiguration), $serializedMessagingSystemConfiguration);
-        }
-
-        return $messagingSystemConfiguration;
-    }
-
-    public static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
-    {
-        if (! $serviceCacheConfiguration->shouldUseCache()) {
-            /** We need to clean, in case stale cache exists. So enabling cache will generate fresh one */
-            self::cleanCache($serviceCacheConfiguration);
-            return;
-        }
-
-        $cacheDirectoryPath = $serviceCacheConfiguration->getPath();
-        if (! is_dir($cacheDirectoryPath)) {
-            $mkdirResult = @mkdir($cacheDirectoryPath, 0775, true);
-            Assert::isTrue(
-                $mkdirResult,
-                "Not enough permissions to create cache directory {$cacheDirectoryPath}"
-            );
-        }
-
-        Assert::isFalse(is_file($cacheDirectoryPath), 'Cache directory is file, should be directory');
-    }
-
-    public static function cleanCache(ServiceCacheConfiguration $serviceCacheConfiguration): void
-    {
-        self::deleteFiles($serviceCacheConfiguration->getPath(), false);
-    }
-
-    private static function deleteFiles(string $target, bool $deleteDirectory): void
-    {
-        if (is_dir($target)) {
-            Assert::isTrue(
-                is_writable($target),
-                "Not enough permissions to delete from cache directory {$target}"
-            );
-            $files = glob($target . '*', GLOB_MARK);
-
-            foreach ($files as $file) {
-                self::deleteFiles($file, true);
-            }
-
-            if ($deleteDirectory) {
-                rmdir($target);
-            }
-        } elseif (is_file($target)) {
-            Assert::isTrue(
-                is_writable($target),
-                "Not enough permissions to delete cache file {$target}"
-            );
-            unlink($target);
-        }
-    }
-
-    private static function getMessagingSystemCachedFile(ServiceCacheConfiguration $serviceCacheConfiguration): string
-    {
-        return $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging_system';
     }
 
     public function requireConsumer(string $endpointId): Configuration
@@ -798,14 +708,6 @@ final class MessagingSystemConfiguration implements Configuration
         $this->requiredConsumerEndpointIds[] = $endpointId;
 
         return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function isLazyLoaded(): bool
-    {
-        return $this->isLazyConfiguration;
     }
 
     /**
@@ -1133,8 +1035,6 @@ final class MessagingSystemConfiguration implements Configuration
         $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
 
         $messagingBuilder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry, $this->applicationConfiguration);
-
-        $messagingBuilder->register(ServiceCacheConfiguration::class, $this->serviceCacheConfiguration);
 
         foreach ($this->serviceDefinitions as $id => $definition) {
             $messagingBuilder->register($id, $definition);

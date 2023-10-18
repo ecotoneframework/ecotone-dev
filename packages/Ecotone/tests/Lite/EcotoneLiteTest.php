@@ -26,5 +26,6 @@ class EcotoneLiteTest extends TestCase
 
         $ecotone->runConsoleCommand('ecotone:list', []);
         $this->expectNotToPerformAssertions();
+        $ecotone->terminate();
     }
 }

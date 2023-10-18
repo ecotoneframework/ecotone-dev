@@ -131,11 +131,6 @@ interface Configuration extends CompilerPass
     public function registerInternalGateway(Type $interfaceName): Configuration;
 
     /**
-     * @return bool
-     */
-    public function isLazyLoaded(): bool;
-
-    /**
      * @param CompilableBuilder $converterBuilder
      * @return Configuration
      */

@@ -66,9 +66,11 @@ class Definition
         return $this;
     }
 
-    public function addMethodCall(string $string, array $array)
+    public function addMethodCall(string $string, array $array): self
     {
         $this->methodCalls[] = new MethodCall($string, $array);
+
+        return $this;
     }
 
     /**

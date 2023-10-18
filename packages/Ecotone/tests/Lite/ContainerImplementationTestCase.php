@@ -5,6 +5,7 @@ namespace Test\Ecotone\Lite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use PHPUnit\Framework\TestCase;
@@ -14,7 +15,7 @@ use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
 
 abstract class ContainerImplementationTestCase extends TestCase
 {
-    public function test_it_resolves_correctly(): void
+    public function test_it_resolves_simple_definitions_and_references(): void
     {
         $container = self::buildContainerFromDefinitions([
             "def1" => new Definition(WithNoDependencies::class),
@@ -30,18 +31,31 @@ abstract class ContainerImplementationTestCase extends TestCase
         self::assertSame($container->get("def1"), $container->get("def3")->getDependency());
     }
 
-    public function test_it_replace_provided_dependencies(): void
+    public function test_it_executes_registered_method_calls(): void
     {
-        $logger = LoggerExample::create();
-        $externalContainer = InMemoryPSRContainer::createFromAssociativeArray([
-            "logger" => $logger,
-        ]);
-        $container = self::buildContainerFromDefinitions(["aReference" => new Reference('logger')], $externalContainer);
+        $aDefinition = (new Definition(WithNoDependencies::class))
+            ->addMethodCall("aMethod", ["aParameter"])
+            ->addMethodCall("aMethod", [2]);
 
-        self::assertSame($logger, $container->get("aReference"));
+        $container = self::buildContainerFromDefinitions([
+            "aDefinition" => $aDefinition,
+        ]);
+
+        self::assertEquals([["aParameter"], [2]], $container->get("aDefinition")->methodCalls);
     }
 
-    private static function buildContainerFromDefinitions(array $definitions, ?ContainerInterface $externalContainer = null): ContainerInterface
+    public function test_it_can_resolve_defined_objects(): void
+    {
+        $aDefinedObject = new ADefinedObject("aName", new ADefinedObject("anOtherName", null));
+
+        $container = self::buildContainerFromDefinitions([
+            "aDefinition" => $aDefinedObject,
+        ]);
+
+        self::assertEquals($aDefinedObject, $container->get("aDefinition"));
+    }
+
+    protected static function buildContainerFromDefinitions(array $definitions, ?ContainerInterface $externalContainer = null): ContainerInterface
     {
         $builder = new ContainerBuilder();
         foreach ($definitions as $id => $definition) {
@@ -58,6 +72,11 @@ abstract class ContainerImplementationTestCase extends TestCase
  */
 class WithNoDependencies
 {
+    public mixed $methodCalls = [];
+    public function aMethod($aParameter): void
+    {
+        $this->methodCalls[] = [$aParameter];
+    }
 }
 
 /**
@@ -82,5 +101,17 @@ class WithAReferenceDependency
     public function getDependency(): WithNoDependencies
     {
         return $this->withNoDependencies;
+    }
+}
+
+class ADefinedObject implements DefinedObject
+{
+    public function __construct(public string $name, public ?ADefinedObject $anOtherDefinedObject)
+    {
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class, [$this->name, $this->anOtherDefinedObject]);
     }
 }

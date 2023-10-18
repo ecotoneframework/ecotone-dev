@@ -24,6 +24,7 @@ use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ramsey\Uuid\Uuid;
 
@@ -38,7 +39,9 @@ class ComponentTestBuilder
 
     public static function create(): self
     {
-        $container = InMemoryPSRContainer::createEmpty();
+        $container = InMemoryPSRContainer::createFromAssociativeArray([
+            ProxyFactory::class => new ProxyFactory(null),
+        ]);
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass(new RegisterSingletonMessagingServices());
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());

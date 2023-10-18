@@ -2,6 +2,7 @@
 
 namespace Ecotone\SymfonyBundle;
 
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\SymfonyBundle\DepedencyInjection\EcotoneExtension;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
@@ -16,5 +17,19 @@ class EcotoneSymfonyBundle extends Bundle
     public function getContainerExtension(): ?ExtensionInterface
     {
         return new EcotoneExtension();
+    }
+
+    public function boot()
+    {
+        /** @var ProxyFactory $proxyFactory */
+        $proxyFactory = $this->container->get(ProxyFactory::class);
+        $proxyFactory->registerProxyAutoloader();
+    }
+
+    public function shutdown()
+    {
+        /** @var ProxyFactory $proxyFactory */
+        $proxyFactory = $this->container->get(ProxyFactory::class);
+        $proxyFactory->unregisterProxyAutoloader();
     }
 }

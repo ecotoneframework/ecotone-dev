@@ -116,4 +116,14 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
     {
         $this->configuredMessagingSystem->replaceWith($messagingSystem);
     }
+
+    public function boot(): void
+    {
+        $this->configuredMessagingSystem->boot();
+    }
+
+    public function terminate(): void
+    {
+        $this->configuredMessagingSystem->terminate();
+    }
 }

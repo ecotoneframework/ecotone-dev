@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;

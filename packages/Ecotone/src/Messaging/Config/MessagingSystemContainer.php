@@ -7,6 +7,7 @@ use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
@@ -101,6 +102,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     {
         Assert::isTrue($messagingSystem instanceof MessagingSystemContainer, 'Can only replace with ' . self::class);
 
+        $this->terminate();
         $this->container = $messagingSystem->container;
         $this->pollingEndpoints = $messagingSystem->pollingEndpoints;
     }
@@ -108,5 +110,19 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     public function getGatewayList(): array
     {
         return $this->gatewayList;
+    }
+
+    public function boot(): void
+    {
+        /** @var ProxyFactory $proxyFactory */
+        $proxyFactory = $this->container->get(ProxyFactory::class);
+        $proxyFactory->registerProxyAutoloader();
+    }
+
+    public function terminate(): void
+    {
+        /** @var ProxyFactory $proxyFactory */
+        $proxyFactory = $this->container->get(ProxyFactory::class);
+        $proxyFactory->unRegisterProxyAutoloader();
     }
 }

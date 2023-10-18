@@ -3,12 +3,16 @@
 namespace Ecotone\SymfonyBundle\DepedencyInjection;
 
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\CacheClearer;
+use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\CacheWarmer;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyConfigurationVariableService;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -66,23 +70,22 @@ class EcotoneExtension extends Extension
 
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
 
-        $container->register(ServiceCacheConfiguration::class)
-            ->setArguments([
-                $serviceConfiguration->getCacheDirectoryPath(),
-                true,
-            ]);
+        $container->register(ProxyFactory::class)
+            ->setPublic(true)
+            ->setArguments(["%kernel.cache_dir%/ecotone"]);
+
+        $container->register(CacheWarmer::class)->setAutowired(true)->addTag('kernel.cache_warmer');
 
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
             realpath(($container->hasParameter('kernel.project_dir') ? $container->getParameter('kernel.project_dir') : $container->getParameter('kernel.root_dir') . '/..')),
             $configurationVariableService,
             $serviceConfiguration,
-            new ServiceCacheConfiguration($serviceConfiguration->getCacheDirectoryPath(), true),
         );
 
         $containerBuilder = new \Ecotone\Messaging\Config\Container\ContainerBuilder();
         $containerBuilder->addCompilerPass($messagingConfiguration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-        $containerBuilder->addCompilerPass(new ResolveDefinedObjectsPass());
+        $containerBuilder->addCompilerPass(new RegisterSingletonMessagingServices());
         $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
         $containerBuilder->compile();
     }

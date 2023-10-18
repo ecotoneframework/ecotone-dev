@@ -35,6 +35,8 @@ use Psr\Log\NullLogger;
 
 final class EcotoneLite
 {
+    private static ?ConfiguredMessagingSystem $messagingSystemToTerminate = null;
+
     /**
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
@@ -154,7 +156,7 @@ final class EcotoneLite
 
     /**
      * @param string[] $packagesToEnable
-     * @param GatewayAwareContainer|object[] $containerOrAvailableServices
+     * @param ContainerInterface|object[] $containerOrAvailableServices
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
      */
@@ -177,23 +179,20 @@ final class EcotoneLite
             $pathToRootCatalog,
             $configurationVariableService,
             $serviceConfiguration,
-            $serviceCacheConfiguration,
             $classesToResolve,
             $enableTesting
         );
 
-        $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($messagingConfiguration, $externalContainer, $configurationVariableService);
+        $proxyFactory = new ProxyFactory($useCachedVersion ? $serviceCacheConfiguration->getPath() : '');
+        $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($messagingConfiguration, $externalContainer, $configurationVariableService, $proxyFactory);
 
+        $proxyFactory->warmUp($messagingSystem->getGatewayList());
         if ($allowGatewaysToBeRegisteredInContainer) {
-            $externalContainer->set(ConfiguredMessagingSystem::class, $messagingSystem);
             Assert::isTrue(method_exists($externalContainer, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
-            foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
-                $externalContainer->set($gatewayProxyBuilder->getReferenceName(), ProxyFactory::createFor(
-                    $gatewayProxyBuilder->getReferenceName(),
-                    $messagingSystem,
-                    $gatewayProxyBuilder->getInterfaceName(),
-                    $serviceCacheConfiguration
-                ));
+            $externalContainer->set(ConfiguredMessagingSystem::class, $messagingSystem);
+            foreach ($messagingSystem->getGatewayList() as $gatewayReference) {
+                $gatewayReferenceName = $gatewayReference->getReferenceName();
+                $externalContainer->set($gatewayReferenceName, $messagingSystem->getGatewayByName($gatewayReferenceName));
             }
         } elseif ($externalContainer->has(ConfiguredMessagingSystem::class)) {
             /** @var ConfiguredMessagingSystem $alreadyConfiguredMessaging */
@@ -202,7 +201,13 @@ final class EcotoneLite
             $alreadyConfiguredMessaging->replaceWith($messagingSystem);
         }
 
+        $messagingSystem->boot();
+
         if ($enableTesting) {
+            if (self::$messagingSystemToTerminate) {
+                self::$messagingSystemToTerminate->terminate();
+            }
+            self::$messagingSystemToTerminate = $messagingSystem;
             $messagingSystem = new ConfiguredMessagingSystemWithTestSupport($messagingSystem);
         }
 

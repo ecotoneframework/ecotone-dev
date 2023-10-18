@@ -6,8 +6,10 @@ use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
 use Psr\Container\ContainerInterface;
@@ -16,6 +18,7 @@ use Symfony\Component\DependencyInjection\Definition as SymfonyDefinition;
 use Symfony\Component\DependencyInjection\Reference as SymfonyReference;
 use function is_array;
 use function is_string;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 class SymfonyContainerAdapter implements CompilerPass
 {
@@ -35,7 +38,7 @@ class SymfonyContainerAdapter implements CompilerPass
         $this->symfonyBuilder->register(ConfiguredMessagingSystem::class, MessagingSystemContainer::class);
 
         $this->definitions = $builder->getDefinitions();
-        foreach ($builder->getDefinitions() as $id => $definition) {
+        foreach ($this->definitions as $id => $definition) {
             $symfonyDefinition = $this->resolveArgument($definition);
             if ($symfonyDefinition instanceof SymfonyReference) {
                 $this->symfonyBuilder->setAlias($id, $symfonyDefinition);
@@ -52,6 +55,9 @@ class SymfonyContainerAdapter implements CompilerPass
 
     private function resolveArgument($argument): mixed
     {
+        if ($argument instanceof DefinedObject) {
+            $argument = $argument->getDefinition();
+        }
         if ($argument instanceof Definition) {
             return $this->convertDefinition($argument);
         } elseif (is_array($argument)) {
@@ -72,15 +78,12 @@ class SymfonyContainerAdapter implements CompilerPass
 
     private function convertDefinition(Definition $ecotoneDefinition)
     {
-        if ($ecotoneDefinition->getClassName() === SymfonyMessengerMessageChannel::class) {
-            $i = 0;
-        }
         $sfDefinition = new SymfonyDefinition(
             $ecotoneDefinition->getClassName(),
             $this->normalizeNamedArgument($this->resolveArgument($ecotoneDefinition->getConstructorArguments()))
         );
         if ($ecotoneDefinition->hasFactory()) {
-            $sfDefinition->setFactory($ecotoneDefinition->getFactory());
+            $sfDefinition->setFactory($this->resolveFactoryArgument($ecotoneDefinition->getFactory()));
         }
         foreach ($ecotoneDefinition->getMethodCalls() as $methodCall) {
             $sfDefinition->addMethodCall(
@@ -100,5 +103,16 @@ class SymfonyContainerAdapter implements CompilerPass
             }
         }
         return $arguments;
+    }
+
+    private function resolveFactoryArgument(array $factory): array
+    {
+        if (\method_exists($factory[0], $factory[1]) && (new \ReflectionMethod($factory[0], $factory[1]))->isStatic()) {
+            // static call
+            return $factory;
+        } else {
+            // method call from a service instance
+            return [new SymfonyReference($factory[0]), $factory[1]];
+        }
     }
 }

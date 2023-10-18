@@ -6,14 +6,15 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\EcotoneRemoteAdapter;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use Ecotone\Messaging\Config\GatewayReference;
+use Ecotone\Messaging\Support\Assert;
+use LogicException;
 use ProxyManager\Autoloader\AutoloaderInterface;
 use ProxyManager\Configuration;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
 use ProxyManager\Factory\RemoteObjectFactory;
 use ProxyManager\FileLocator\FileLocator;
 use ProxyManager\GeneratorStrategy\FileWriterGeneratorStrategy;
-use ProxyManager\Proxy\RemoteObjectInterface;
 use ProxyManager\Signature\ClassSignatureGenerator;
 use ProxyManager\Signature\SignatureGenerator;
 
@@ -27,18 +28,11 @@ use function spl_autoload_unregister;
  */
 class ProxyFactory
 {
-    public const REFERENCE_NAME = 'gatewayProxyConfiguration';
-
-    private static ?AutoloaderInterface $registeredAutoloader = null;
+    private ?AutoloaderInterface $registeredAutoloader = null;
     private ?Configuration $configuration = null;
 
-    private function __construct(private ServiceCacheConfiguration $serviceCacheConfiguration)
+    public function __construct(private ?string $cacheDirectory)
     {
-    }
-
-    public static function createWithCache(ServiceCacheConfiguration $serviceCacheConfiguration): self
-    {
-        return new self($serviceCacheConfiguration);
     }
 
     private function getConfiguration(): Configuration
@@ -50,8 +44,9 @@ class ProxyFactory
     {
         $configuration = new Configuration();
 
-        if ($this->serviceCacheConfiguration->shouldUseCache()) {
-            $configuration->setProxiesTargetDir($this->serviceCacheConfiguration->getPath());
+        if ($this->cacheDirectory) {
+            $this->prepareCacheDirectory();
+            $configuration->setProxiesTargetDir($this->cacheDirectory);
             $fileLocator = new FileLocator($configuration->getProxiesTargetDir());
             $configuration->setGeneratorStrategy(new FileWriterGeneratorStrategy($fileLocator));
             $configuration->setClassSignatureGenerator(new ClassSignatureGenerator(new SignatureGenerator()));
@@ -60,52 +55,82 @@ class ProxyFactory
         return $configuration;
     }
 
-    public function createProxyClassWithAdapter(string $interfaceName, AdapterInterface $adapter): RemoteObjectInterface
+    public function createFor(string $referenceName, ConfiguredMessagingSystem $messagingSystem, string $interface): object
     {
-        $factory = new RemoteObjectFactory($adapter, $this->getConfiguration());
-        $this->registerProxyAutoloader();
+        $factory = new RemoteObjectFactory(new EcotoneRemoteAdapter($messagingSystem, $referenceName), $this->getConfiguration());
 
-        return $factory->createProxy($interfaceName);
+        return $factory->createProxy($interface);
     }
 
-    public static function createFor(string $referenceName, ConfiguredMessagingSystem $messagingSystem, string $interface, ServiceCacheConfiguration $serviceCacheConfiguration): object
+    /**
+     * @param GatewayReference[] $gatewayReferences
+     */
+    public function warmUp(array $gatewayReferences): void
     {
-        $proxyFactory = self::createWithCache($serviceCacheConfiguration);
+        $factory = new RemoteObjectFactory(new class implements AdapterInterface {
+            public function call(string $wrappedClass, string $method, array $params = [])
+            {
+            }
+        }, $this->getConfiguration());
 
-        return $proxyFactory->createProxyClassWithAdapter(
-            $interface,
-            new EcotoneRemoteAdapter($messagingSystem, $referenceName)
-        );
+        foreach ($gatewayReferences as $gatewayReference) {
+            $factory->createProxy($gatewayReference->getInterfaceName());
+        }
     }
 
-    public function createWithCurrentConfiguration(string $referenceName, ConfiguredMessagingSystem $messagingSystem, string $interface): object
+    public function registerProxyAutoloader(): void
     {
-        return $this->createProxyClassWithAdapter(
-            $interface,
-            new EcotoneRemoteAdapter($messagingSystem, $referenceName)
-        );
-    }
-
-    private function registerProxyAutoloader(): void
-    {
-        if (! $this->serviceCacheConfiguration->shouldUseCache()) {
+        if (! $this->cacheDirectory) {
+            return;
+        }
+        if ($this->registeredAutoloader) {
             return;
         }
 
-        $autoloader = $this->getConfiguration()->getProxyAutoloader();
+        $this->registeredAutoloader = $this->getConfiguration()->getProxyAutoloader();
+        spl_autoload_register($this->registeredAutoloader);
+    }
 
-        if (self::$registeredAutoloader === $autoloader) {
+    public function unRegisterProxyAutoloader(): void
+    {
+        if (! $this->cacheDirectory) {
             return;
         }
+        if (! $this->registeredAutoloader) {
+            return;
+        }
+        spl_autoload_unregister($this->registeredAutoloader);
+        $this->registeredAutoloader = null;
+    }
 
-        if (self::$registeredAutoloader !== null) {
-            // another ProxyFactory instance may have already registered an autoloader.
-            // this should not happen normally, but just in case we will unload
-            // the old autoloader.
-            spl_autoload_unregister(self::$registeredAutoloader);
+    public function prepareCacheDirectory(): void
+    {
+        if (!$this->cacheDirectory) {
+            return;
+        }
+        if (! is_dir($this->cacheDirectory)) {
+            $mkdirResult = @mkdir($this->cacheDirectory, 0775, true);
+            Assert::isTrue(
+                $mkdirResult,
+                "Not enough permissions to create cache directory {$this->cacheDirectory}"
+            );
         }
 
-        self::$registeredAutoloader = $autoloader;
-        spl_autoload_register(self::$registeredAutoloader);
+        Assert::isFalse(is_file($this->cacheDirectory), 'Cache directory is file, should be directory');
+    }
+
+    public function clearCache()
+    {
+        Assert::isTrue(
+            is_writable($this->cacheDirectory),
+            "Not enough permissions to delete cache directory {$this->cacheDirectory}"
+        );
+        $files = glob($this->cacheDirectory.'/*', GLOB_MARK);
+        foreach($files as $file) {
+            if(is_file($file)) {
+                unlink($file);
+            }
+        }
+        rmdir($this->cacheDirectory);
     }
 }

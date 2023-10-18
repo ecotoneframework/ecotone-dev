@@ -724,8 +724,8 @@ class MessagingSystemConfigurationTest extends MessagingTest
     public function test_registering_with_extension_media_type_serializer_applied_to_application_configuration()
     {
         $this->assertEquals(
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON), ServiceCacheConfiguration::noCache()),
-            MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)]), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults(), ServiceCacheConfiguration::noCache())
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()]), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)),
+            MessagingSystemConfiguration::prepareWithModuleRetrievingService(InMemoryModuleMessaging::createWith([], [ServiceConfiguration::createWithDefaults()->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)]), InterfaceToCallRegistry::createEmpty(), ServiceConfiguration::createWithDefaults())
         );
     }
 

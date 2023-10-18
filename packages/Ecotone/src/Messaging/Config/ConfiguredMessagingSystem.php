@@ -70,6 +70,15 @@ interface ConfiguredMessagingSystem
     public function list(): array;
 
     /**
+     * Register the proxy autoloader
+     */
+    public function boot(): void;
+    /**
+     * Unregister the proxy autoloader
+     */
+    public function terminate(): void;
+
+    /**
      * Allows to replace configured messaging system with new one
      */
     public function replaceWith(self $messagingSystem): void;

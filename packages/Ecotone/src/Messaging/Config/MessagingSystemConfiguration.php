@@ -174,7 +174,6 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
-        $this->isLazyConfiguration = ! $serviceConfiguration->isFailingFast();
         $this->applicationConfiguration = $serviceConfiguration;
         $this->interfaceToCallRegistry = $preparationInterfaceRegistry;
 
@@ -632,7 +631,7 @@ final class MessagingSystemConfiguration implements Configuration
 
     public static function prepareWithDefaults(ModuleRetrievingService $moduleConfigurationRetrievingService, ?ServiceConfiguration $serviceConfiguration = null): MessagingSystemConfiguration
     {
-        return new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults(), ServiceCacheConfiguration::noCache());
+        return new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults());
     }
 
     public static function prepare(

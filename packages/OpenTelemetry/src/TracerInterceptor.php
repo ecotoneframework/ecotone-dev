@@ -8,9 +8,13 @@ use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageHeaders;
+use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\Context\ContextInterface;
 use OpenTelemetry\Context\ScopeInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
 use Psr\Log\LoggerInterface;
@@ -18,6 +22,24 @@ use Throwable;
 
 final class TracerInterceptor
 {
+    public function traceAsynchronousEndpoint(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
+    {
+        /**
+         * @TODO tag polledChannelName, routingSlip
+         */
+        /** @TODO provides same parent to all child spans */
+        $carrier = $message->getHeaders()->containsKey(TracingChannelInterceptor::TRACING_CARRIER_HEADER) ? \json_decode($message->getHeaders()->get(TracingChannelInterceptor::TRACING_CARRIER_HEADER), true) : [];
+        $parentContext = TraceContextPropagator::getInstance()->extract($carrier);
+
+        return $this->trace(
+            'Receiving from channel: ' . $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME),
+            $methodInvocation,
+            $message,
+            $referenceSearchService,
+            parentContext: $parentContext
+        );
+    }
+
     public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
         return $this->trace(
@@ -78,7 +100,14 @@ final class TracerInterceptor
         );
     }
 
-    public function trace(string $type, MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
+    public function trace(
+        string $type,
+        MethodInvocation $methodInvocation,
+        Message $message,
+        ReferenceSearchService $referenceSearchService,
+        array $attributes = [],
+        ?ContextInterface $parentContext = null
+    )
     {
         /** @TODO this should be moved somewhere else */
         if (! LoggerHolder::isSet()) {
@@ -93,7 +122,9 @@ final class TracerInterceptor
             $message,
             $type,
             $tracer
-        )->startSpan();
+        )
+            ->setParent($parentContext)
+            ->startSpan();
         $spanScope = $span->activate();
 
         try {

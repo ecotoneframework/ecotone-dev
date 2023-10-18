@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Endpoint\InboundChannelAdapter;
+namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
@@ -14,7 +14,7 @@ use Ecotone\Messaging\Scheduling\Trigger;
  * @package Ecotone\Messaging\Endpoint
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-class InboundChannelAdapter implements ConsumerLifecycle
+class ScheduledTaskConsumer implements ConsumerLifecycle
 {
     public function __construct(private TaskScheduler $taskScheduler, private Trigger $trigger, private TaskExecutor $taskExecutor)
     {

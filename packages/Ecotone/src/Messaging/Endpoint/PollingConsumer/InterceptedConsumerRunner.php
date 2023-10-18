@@ -5,7 +5,6 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapter;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\MessagePoller;
@@ -26,7 +25,7 @@ class InterceptedConsumerRunner implements EndpointRunner
     {
     }
 
-    public function runEndpointWithExecutionPollingMetadata(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata): void
+    public function runEndpointWithExecutionPollingMetadata(?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
         $this->createConsumer($executionPollingMetadata)->run();
     }
@@ -37,14 +36,12 @@ class InterceptedConsumerRunner implements EndpointRunner
         $interceptors = InterceptedConsumer::createInterceptorsForPollingMetadata($pollingMetadata, $this->logger);
         $interceptedGateway = new InterceptedGateway($this->gateway, $interceptors);
 
-        $executor = new PollToGatewayTaskExecutor($this->messagePoller, $interceptedGateway);
-
-        $interceptedConsumer = new InboundChannelAdapter(
+        $interceptedConsumer = new ScheduledTaskConsumer(
             SyncTaskScheduler::createWithEmptyTriggerContext($this->clock, $pollingMetadata),
             $pollingMetadata->getCron()
                 ? CronTrigger::createWith($pollingMetadata->getCron())
                 : PeriodicTrigger::create($pollingMetadata->getFixedRateInMilliseconds(), $pollingMetadata->getInitialDelayInMilliseconds()),
-            $executor,
+            new PollToGatewayTaskExecutor($this->messagePoller, $interceptedGateway),
         );
 
         if ($interceptors) {

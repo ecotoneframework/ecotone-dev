@@ -4,5 +4,5 @@ namespace Ecotone\Messaging\Endpoint;
 
 interface EndpointRunner
 {
-    public function runEndpointWithExecutionPollingMetadata(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata): void;
+    public function runEndpointWithExecutionPollingMetadata(?ExecutionPollingMetadata $executionPollingMetadata = null): void;
 }

@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Channel;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -20,7 +21,7 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\PollableChannel;
 use RuntimeException;
 
-class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSerializationBuilder
+class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSerializationBuilder, DefinedObject
 {
     private int $exceptionCount = 0;
     private QueueChannel $queueChannel;
@@ -100,6 +101,11 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition
+    {
+        return $this->getDefinition();
+    }
+
+    public function getDefinition(): Definition
     {
         return new Definition(ExceptionalQueueChannel::class, [
             $this->channelName,

@@ -2,8 +2,10 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
@@ -46,7 +48,7 @@ class ContainerMessagingBuilder
         }
         $runnerReference = new EndpointRunnerReference($endpointId);
         $className = $definition->getClassName();
-        if (!is_subclass_of($className, EndpointRunner::class, true)) {
+        if (!is_a($className, EndpointRunner::class, true)) {
             throw new \InvalidArgumentException("Endpoint runner {$className} must implement " . EndpointRunner::class);
         }
 
@@ -72,6 +74,23 @@ class ContainerMessagingBuilder
     public function getDefinition(string|Reference $id): Definition
     {
         return $this->builder->getDefinition($id);
+    }
+
+    public function getPollingMetadata(string $endpoint): PollingMetadata
+    {
+        /** @var DefinedObjectWrapper $wrappedDefinedObject */
+        $wrappedDefinedObject = $this->builder->getDefinition(new PollingMetadataReference($endpoint));
+        /** @var PollingMetadata $pollingMetadata */
+        $pollingMetadata = $wrappedDefinedObject->instance();
+        return $pollingMetadata;
+    }
+
+    public function registerPollingMetadata(PollingMetadata $pollingMetadata): Reference
+    {
+        $endpointId = $pollingMetadata->getEndpointId();
+        $reference = new PollingMetadataReference($endpointId);
+        $this->builder->replace($reference, $pollingMetadata);
+        return $reference;
     }
 
     /**

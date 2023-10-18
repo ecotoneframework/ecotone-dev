@@ -22,6 +22,7 @@ class ChannelResolverWithContainer implements ChannelResolver
 
     public function hasChannelWithName(string $channelName): bool
     {
-        return $this->container->has(new ChannelReference($channelName));
+        $id = (string) new ChannelReference($channelName);
+        return $this->container->has($id);
     }
 }

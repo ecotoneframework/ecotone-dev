@@ -6,6 +6,7 @@ use Ecotone\Dbal\DbalInboundChannelAdapterBuilder;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
@@ -28,6 +29,7 @@ class ChannelAdapterTest extends DbalMessagingTestCase
             ->withChannel($requestChannelName, $requestChannel)
             ->withReference(DbalConnectionFactory::class, $this->getConnectionFactory());
 
+        /** @var MessagePoller $inboundChannelAdapter */
         $inboundChannelAdapter = $componentTestBuilder
             ->build(DbalInboundChannelAdapterBuilder::createWith(
                 Uuid::uuid4()->toString(),
@@ -40,23 +42,10 @@ class ChannelAdapterTest extends DbalMessagingTestCase
         $payload = 'some';
         $outboundChannelAdapter->handle(MessageBuilder::withPayload($payload)->build());
 
-        $receivedMessage = $this->receiveMessage($inboundChannelAdapter, $requestChannel, $timeoutInMilliseconds);
+        $receivedMessage = $inboundChannelAdapter->receiveWithTimeout($timeoutInMilliseconds);
         $this->assertNotNull($receivedMessage, 'Not received message');
         $this->assertEquals($payload, $receivedMessage->getPayload());
 
-        $this->assertNull($this->receiveMessage($inboundChannelAdapter, $requestChannel, $timeoutInMilliseconds), 'Received message twice instead of one');
-    }
-
-    /**
-     * @param \Ecotone\Messaging\Endpoint\ConsumerLifecycle $inboundChannelAdapter
-     * @param QueueChannel $requestChannel
-     * @return \Ecotone\Messaging\Message|null
-     */
-    private function receiveMessage(TaskExecutor $inboundChannelAdapter, QueueChannel $requestChannel, int $timeout)
-    {
-        $inboundChannelAdapter->execute(PollingMetadata::create(Uuid::uuid4()->toString())
-            ->setExecutionTimeLimitInMilliseconds($timeout));
-        $receivedMessage = $requestChannel->receive();
-        return $receivedMessage;
+        $this->assertNull($inboundChannelAdapter->receiveWithTimeout($timeoutInMilliseconds), 'Received message twice instead of one');
     }
 }

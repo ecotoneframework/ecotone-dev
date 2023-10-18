@@ -21,7 +21,9 @@ use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ramsey\Uuid\Uuid;
 
 class ComponentTestBuilder
@@ -52,7 +54,7 @@ class ComponentTestBuilder
 
     public function withPollingMetadata(PollingMetadata $pollingMetadata): self
     {
-        $this->messagingBuilder->register("polling.{$pollingMetadata->getEndpointId()}.metadata", $pollingMetadata);
+        $this->messagingBuilder->registerPollingMetadata($pollingMetadata);
 
         return $this;
     }
@@ -88,11 +90,22 @@ class ComponentTestBuilder
         return $this->container->get($referenceToReturn->getId());
     }
 
+    public function withRegisteredMessageHandlerConsumer(MessageHandlerConsumerBuilder $messageHandlerConsumerBuilder, MessageHandlerBuilder $messageHandlerBuilder): self
+    {
+        $messageHandlerConsumerBuilder->registerConsumer($this->messagingBuilder, $messageHandlerBuilder);
+
+        return $this;
+    }
+
+    public function getEndpointRunner(string $endpointId): EndpointRunner
+    {
+        $this->compile();
+        return $this->container->get(new EndpointRunnerReference($endpointId));
+    }
+
     public function runEndpoint(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
-        /** @var EndpointRunner $pollingEndpointRunner */
-        $pollingEndpointRunner = $this->container->get(new EndpointRunnerReference($endpointId));
-        $pollingEndpointRunner->runEndpointWithExecutionPollingMetadata($endpointId, $executionPollingMetadata);
+        $this->getEndpointRunner($endpointId)->runEndpointWithExecutionPollingMetadata($executionPollingMetadata);
     }
 
     private function compile(): void
@@ -103,13 +116,13 @@ class ComponentTestBuilder
         $this->builder->compile();
     }
 
-    public function getPollingConsumer(string $endpointId)
-    {
-        return $this->container->get("polling.{$endpointId}.runner");
-    }
-
     public function getGatewayByName(string $name)
     {
         return $this->container->get($name);
+    }
+
+    public function getBuilder(): ContainerMessagingBuilder
+    {
+        return $this->messagingBuilder;
     }
 }

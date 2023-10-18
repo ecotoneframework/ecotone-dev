@@ -235,7 +235,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 'async',
                 ExecutionPollingMetadata::createWithDefaults()
                     ->withHandledMessageLimit(1)
-                    ->withExecutionTimeLimitInMilliseconds(100)
+                    ->withExecutionTimeLimitInMilliseconds(0)
                     ->withStopOnError(false)
             );
         } catch (\Doctrine\DBAL\Exception\ConnectionException) {

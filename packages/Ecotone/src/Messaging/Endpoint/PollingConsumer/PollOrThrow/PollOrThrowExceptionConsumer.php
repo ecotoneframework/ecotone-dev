@@ -29,7 +29,7 @@ class PollOrThrowExceptionConsumer implements EndpointRunner
         return new self($pollableChannel, $messageHandler);
     }
 
-    public function runEndpointWithExecutionPollingMetadata(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata): void
+    public function runEndpointWithExecutionPollingMetadata(?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
         $message = $this->pollableChannel->receive();
         if (is_null($message)) {

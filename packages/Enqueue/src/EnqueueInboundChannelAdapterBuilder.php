@@ -29,8 +29,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
      */
     protected $acknowledgeMode = EnqueueAcknowledgementCallback::AUTO_ACK;
 
-    protected array $requiredReferenceNames = [];
-
     protected bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
     protected string $messageChannelName;

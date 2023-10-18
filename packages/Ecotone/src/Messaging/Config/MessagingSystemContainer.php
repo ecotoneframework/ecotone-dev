@@ -89,7 +89,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         }
         /** @var EndpointRunner $endpointRunner */
         $endpointRunner = $this->container->get(new EndpointRunnerReference($endpointId));
-        $endpointRunner->runEndpointWithExecutionPollingMetadata($endpointId, $executionPollingMetadata);
+        $endpointRunner->runEndpointWithExecutionPollingMetadata($executionPollingMetadata);
     }
 
     public function list(): array

@@ -158,10 +158,6 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        // There was this code
-//         $pollingMetadata = $this->withContinuesPolling() ? $pollingMetadata->setFixedRateInMilliseconds(1) : $pollingMetadata;
-
-
         Assert::notNullAndEmpty($this->endpointId, "Endpoint Id for inbound channel adapter can't be empty");
 
         if (! $this->interfaceToCall->hasNoParameters()) {
@@ -196,24 +192,5 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             new Reference(Clock::class),
             new Reference(LoggerInterface::class),
         ]);
-    }
-
-
-    /**
-     * @param array $registeredAnnotations
-     * @param object $annotation
-     * @return bool
-     * @throws MessagingException
-     * @throws \Ecotone\Messaging\Handler\TypeDefinitionException
-     */
-    private function canBeAddedToRegisteredAnnotations(array $registeredAnnotations, object $annotation): bool
-    {
-        foreach ($registeredAnnotations as $registeredAnnotation) {
-            if (TypeDescriptor::createFromVariable($registeredAnnotation)->equals(TypeDescriptor::createFromVariable($annotation))) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

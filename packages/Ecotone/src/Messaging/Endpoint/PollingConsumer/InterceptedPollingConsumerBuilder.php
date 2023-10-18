@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
@@ -117,8 +118,16 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         return true;
     }
 
+    abstract protected function compileMessagePoller(ContainerMessagingBuilder $builder,  MessageHandlerBuilder $messageHandlerBuilder): Definition|Reference;
+
     public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
     {
+        $endpointId = $messageHandlerBuilder->getEndpointId();
+        if ($this->withContinuesPolling()) {
+            $pollingMetadata = $builder->getPollingMetadata($endpointId);
+            $pollingMetadata = $pollingMetadata->setFixedRateInMilliseconds(1);
+            $builder->registerPollingMetadata($pollingMetadata);
+        }
         $requestChannelName = 'internal_inbound_gateway_channel.'.Uuid::uuid4()->toString();
         $connectionChannel = new Definition(DirectChannel::class, [
             $requestChannelName,
@@ -133,7 +142,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         );
         $gatewayBuilder->withEndpointAnnotations(array_merge(
             $this->endpointAnnotations,
-            [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$messageHandlerBuilder->getEndpointId()])]
+            [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$endpointId])]
         ));
         foreach ($this->beforeInterceptors as $beforeInterceptor) {
             $gatewayBuilder->addBeforeInterceptor($beforeInterceptor);
@@ -153,14 +162,12 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         $consumerRunner = new Definition(InterceptedConsumerRunner::class, [
             $gateway,
             $this->compileMessagePoller($builder, $messageHandlerBuilder),
-            new PollingMetadataReference($messageHandlerBuilder->getEndpointId()),
+            new PollingMetadataReference($endpointId),
             new Reference(Clock::class),
             new Reference(LoggerInterface::class),
         ]);
-        $builder->registerPollingEndpoint($messageHandlerBuilder->getEndpointId(), $consumerRunner);
+        $builder->registerPollingEndpoint($endpointId, $consumerRunner);
     }
-
-    abstract protected function compileMessagePoller(ContainerMessagingBuilder $builder,  MessageHandlerBuilder $messageHandlerBuilder): Definition|Reference;
 
     private function getErrorInterceptorReference(ContainerMessagingBuilder $builder): AroundInterceptorReference
     {

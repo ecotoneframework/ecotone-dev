@@ -3,6 +3,7 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
@@ -46,14 +47,12 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
             : NullEntrypointGateway::create();
     }
 
-    protected function compileGateway(ContainerMessagingBuilder $builder): Reference|NullEntrypointGateway
+    protected function compileGateway(ContainerMessagingBuilder $builder): Definition|Reference|DefinedObject
     {
         if ($this->isNullableGateway()) {
             return $this->inboundGateway;
         }
-        $this->inboundGateway->compile($builder);
-        $this->inboundGateway->registerProxy($builder);
-        return Reference::to($this->inboundGateway->getReferenceName());
+        return $this->inboundGateway->compile($builder);
     }
 
     /**

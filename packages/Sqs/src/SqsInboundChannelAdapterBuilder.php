@@ -63,7 +63,6 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
 
         return new Definition(SqsInboundChannelAdapter::class, [
             $connectionFactory,
-            $this->compileGateway($builder),
             $this->declareOnStartup,
             $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,

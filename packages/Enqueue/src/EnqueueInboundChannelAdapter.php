@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagePoller;
@@ -19,7 +18,6 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
 
     public function __construct(
         protected CachedConnectionFactory         $connectionFactory,
-        protected InboundChannelAdapterEntrypoint $entrypointGateway,
         protected bool                            $declareOnStartup,
         protected string                          $queueName,
         protected int                             $receiveTimeoutInMilliseconds,

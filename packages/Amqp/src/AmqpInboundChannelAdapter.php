@@ -31,7 +31,6 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
     public function __construct(
         CachedConnectionFactory         $cachedConnectionFactory,
-        InboundChannelAdapterEntrypoint $inboundAmqpGateway,
         private AmqpAdmin               $amqpAdmin,
         bool                            $declareOnStartup,
         string                          $queueName,
@@ -41,7 +40,6 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
     ) {
         parent::__construct(
             $cachedConnectionFactory,
-            $inboundAmqpGateway,
             $declareOnStartup,
             $queueName,
             $receiveTimeoutInMilliseconds,

@@ -53,7 +53,6 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 
         return new Definition(AmqpInboundChannelAdapter::class, [
             $connectionFactory,
-            $this->compileGateway($builder),
             new Reference(AmqpAdmin::REFERENCE_NAME),
             $this->declareOnStartup,
             $this->messageChannelName,

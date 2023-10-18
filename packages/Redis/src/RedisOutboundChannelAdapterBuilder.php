@@ -73,12 +73,12 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
             []
         ]);
 
-        return $builder->register(Uuid::uuid4()->toString(), new Definition(RedisOutboundChannelAdapter::class, [
+        return new Definition(RedisOutboundChannelAdapter::class, [
             $connectionFactory,
             $this->queueName,
             $this->autoDeclare,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME)
-        ]));
+        ]);
     }
 }

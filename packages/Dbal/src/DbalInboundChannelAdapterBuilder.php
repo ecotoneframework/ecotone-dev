@@ -39,7 +39,6 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 
         return new Definition(DbalInboundChannelAdapter::class, [
             $connectionFactory,
-            $this->compileGateway($builder),
             $this->declareOnStartup,
             $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,

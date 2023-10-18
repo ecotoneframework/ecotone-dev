@@ -8,12 +8,15 @@ use CompiledContainer;
 use DI\ContainerBuilder as PhpDiContainerBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
 use Ecotone\Messaging\Config\Container\ConfigurationVariableReference;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\ConfigurationVariableService;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 
 class EcotoneLiteApplication
@@ -35,6 +38,7 @@ class EcotoneLiteApplication
             $serviceConfiguration->getCacheDirectoryPath(),
             $cacheConfiguration
         );
+        $proxyFactory = new ProxyFactory($serviceCacheConfiguration->getPath());
         $file = $serviceCacheConfiguration->getPath() . '/CompiledContainer.php';
         if ($serviceCacheConfiguration->shouldUseCache() && file_exists($file)) {
             require_once $file;
@@ -45,7 +49,6 @@ class EcotoneLiteApplication
                 $pathToRootCatalog,
                 InMemoryConfigurationVariableService::create($configurationVariables),
                 $serviceConfiguration,
-                $serviceCacheConfiguration,
             );
 
             $builder = new PhpDiContainerBuilder();
@@ -56,16 +59,20 @@ class EcotoneLiteApplication
             $containerBuilder = new ContainerBuilder();
             $containerBuilder->addCompilerPass($messagingConfiguration);
             $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-            $containerBuilder->addCompilerPass(new ResolveDefinedObjectsPass());
             $containerBuilder->addCompilerPass(new PhpDiContainerImplementation($builder));
             $containerBuilder->compile();
 
             $container = $builder->build();
+            if ($serviceCacheConfiguration->shouldUseCache()) {
+                $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
+                $proxyFactory->warmUp($messagingSystem->getGatewayList());
+            }
         }
 
-        foreach ($configurationVariables as $name => $value) {
-            $container->set((new ConfigurationVariableReference($name))->getId(), $value);
-        }
+        $container->set(ProxyFactory::class, $proxyFactory);
+
+        $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
+        $container->set(ConfigurationVariableService::REFERENCE_NAME, $configurationVariableService);
 
         foreach ($objectsToRegister as $referenceName => $object) {
             $container->set($referenceName, $object);
@@ -74,9 +81,9 @@ class EcotoneLiteApplication
             $container->set($referenceName, $object);
         }
 
-        $container->set(ServiceCacheConfiguration::class, $serviceCacheConfiguration);
-
-        return $container->get(ConfiguredMessagingSystem::class);
+        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
+        $messagingSystem->boot();
+        return $messagingSystem;
     }
 
     /**

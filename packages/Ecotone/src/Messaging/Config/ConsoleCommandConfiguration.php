@@ -68,6 +68,6 @@ class ConsoleCommandConfiguration implements DefinedObject
             $this->channelName,
             $this->name,
             $this->parameterNames,
-        ]);
+        ], [self::class, 'create']);
     }
 }

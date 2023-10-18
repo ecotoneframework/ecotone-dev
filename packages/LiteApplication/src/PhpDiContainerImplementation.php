@@ -3,8 +3,10 @@
 namespace Ecotone\Lite;
 
 use DI\ContainerBuilder as PhpDiContainerBuilder;
+use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use ReflectionMethod;
@@ -32,6 +34,12 @@ class PhpDiContainerImplementation implements CompilerPass
 
     private function resolveArgument($argument): mixed
     {
+        if ($argument instanceof ConsoleCommandConfiguration) {
+            $i = 0;
+        }
+        if ($argument instanceof DefinedObject) {
+            $argument = $argument->getDefinition();
+        }
         if ($argument instanceof Definition) {
             return $this->convertDefinition($argument);
         } elseif (is_array($argument)) {
@@ -47,7 +55,7 @@ class PhpDiContainerImplementation implements CompilerPass
         }
     }
 
-    public function convertDefinition(Definition $definition)
+    private function convertDefinition(Definition $definition)
     {
         if ($definition->hasFactory()) {
             return $this->convertFactory($definition);

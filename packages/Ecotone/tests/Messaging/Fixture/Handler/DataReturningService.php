@@ -4,6 +4,7 @@ namespace Test\Ecotone\Messaging\Fixture\Handler;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
@@ -89,15 +90,7 @@ class DataReturningService implements DefinedObject
             $this->data,
             $this->asAMessage,
             $this->headers,
-            $this->exception ? new Definition(Throwable::class, [\serialize($this->exception)], [self::class, 'unserialize']) : null,
+            $this->exception ? DefinitionHelper::buildDefinitionFromInstance($this->exception) : null,
         ]);
-    }
-
-    /**
-     * @internal
-     */
-    public static function unserialize(string $serializedException): Throwable
-    {
-        return unserialize($serializedException);
     }
 }

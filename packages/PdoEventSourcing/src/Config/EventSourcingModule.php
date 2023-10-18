@@ -41,6 +41,7 @@ use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -254,9 +255,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
 
-        $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, new Definition(EventSourcingConfiguration::class, [
-            \serialize($eventSourcingConfiguration)
-        ], [self::class, 'configurationFromSerializedString']));
+        $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
 
         $messagingConfiguration->registerServiceDefinition(LazyProophEventStore::class, new Definition(LazyProophEventStore::class, [
             new Reference(EventSourcingConfiguration::class),
@@ -458,9 +457,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
     {
         $eventSourcingConfiguration = (clone $eventSourcingConfiguration)->withSimpleStreamPersistenceStrategy();
         $eventSourcingConfigurationReference = new Reference(EventSourcingConfiguration::class.'.eventStreamEmitter');
-        $configuration->registerServiceDefinition($eventSourcingConfigurationReference->getId(), new Definition(EventSourcingConfiguration::class, [
-            \serialize($eventSourcingConfiguration)
-        ], [self::class, 'configurationFromSerializedString']));
+        $configuration->registerServiceDefinition($eventSourcingConfigurationReference->getId(), DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
         $eventStoreReference = new Reference(LazyProophEventStore::class.'.eventStreamEmitter');
         $configuration->registerServiceDefinition($eventStoreReference->getId(), new Definition(LazyProophEventStore::class, [
             $eventSourcingConfigurationReference,
@@ -607,13 +604,5 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 }
             }
         }
-    }
-
-    // TODO: remove this method
-    public static function configurationFromSerializedString(string $serialized): EventSourcingConfiguration
-    {
-        $configuration = unserialize($serialized);
-
-        return $configuration;
     }
 }

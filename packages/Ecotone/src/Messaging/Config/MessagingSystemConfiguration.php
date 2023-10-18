@@ -1199,10 +1199,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         foreach ($this->channelAdapters as $channelAdapter) {
-            $consumerRunner = $channelAdapter->compile($messagingBuilder);
-            Assert::isTrue($consumerRunner instanceof Definition, "Channel adapter {$channelAdapter->getEndpointId()} should return definition");
-            $endpointId = $channelAdapter->getEndpointId();
-            $messagingBuilder->registerPollingEndpoint($endpointId, $consumerRunner);
+            $channelAdapter->registerConsumer($messagingBuilder);
         }
 
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {

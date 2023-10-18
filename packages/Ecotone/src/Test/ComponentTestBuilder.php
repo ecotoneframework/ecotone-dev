@@ -19,6 +19,7 @@ use Ecotone\Messaging\Config\Container\ProxyBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
@@ -93,6 +94,13 @@ class ComponentTestBuilder
     public function withRegisteredMessageHandlerConsumer(MessageHandlerConsumerBuilder $messageHandlerConsumerBuilder, MessageHandlerBuilder $messageHandlerBuilder): self
     {
         $messageHandlerConsumerBuilder->registerConsumer($this->messagingBuilder, $messageHandlerBuilder);
+
+        return $this;
+    }
+
+    public function withRegisteredChannelAdapter(ChannelAdapterConsumerBuilder $channelAdapterConsumerBuilder): self
+    {
+        $channelAdapterConsumerBuilder->registerConsumer($this->messagingBuilder);
 
         return $this;
     }

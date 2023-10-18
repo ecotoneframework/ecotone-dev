@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 
@@ -13,7 +14,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
  * @package Ecotone\Messaging\Endpoint
  * @author Dariusz Gafka <dgafka.mail@gmail.com>
  */
-interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder, InterceptedEndpoint, CompilableBuilder
+interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder, InterceptedEndpoint
 {
     /**
      * @return string
@@ -31,4 +32,6 @@ interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder, Interc
      * @return $this
      */
     public function addAfterInterceptor(MethodInterceptor $methodInterceptor): self;
+
+    public function registerConsumer(ContainerMessagingBuilder $builder): void;
 }

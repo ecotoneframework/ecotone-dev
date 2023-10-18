@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\InboundChannelAdapter;
 
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -156,6 +157,16 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         return false;
     }
 
+    protected function compileGateway(ContainerMessagingBuilder $builder): Definition|Reference|DefinedObject
+    {
+        // TODO: this could be dropped after refactoring AroundInterceptorReference with definitions
+        $this->inboundGateway
+            ->addAroundInterceptor(
+                AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry())
+            );
+        return parent::compileGateway($builder);
+    }
+
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         Assert::notNullAndEmpty($this->endpointId, "Endpoint Id for inbound channel adapter can't be empty");
@@ -174,23 +185,10 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
             $objectReference = new Definition(PassThroughService::class, [$objectReference, $methodName]);
             $methodName = 'execute';
         }
-        $gateway = $this->inboundGateway
-            ->addAroundInterceptor(
-                AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry())
-            )
-            ->compile($builder);
 
-        $messagePoller = new Definition(InvocationPollerAdapter::class, [
+        return new Definition(InvocationPollerAdapter::class, [
             $objectReference,
             $methodName,
-        ]);
-
-        return new Definition(InterceptedConsumerRunner::class, [
-            $gateway,
-            $messagePoller,
-            new PollingMetadataReference($this->endpointId),
-            new Reference(Clock::class),
-            new Reference(LoggerInterface::class),
         ]);
     }
 }

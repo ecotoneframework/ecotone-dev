@@ -151,16 +151,6 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
         return false;
     }
 
-    protected function compileGateway(ContainerMessagingBuilder $builder): Definition|Reference|DefinedObject
-    {
-        // TODO: this could be dropped after refactoring AroundInterceptorReference with definitions
-        $this->inboundGateway
-            ->addAroundInterceptor(
-                AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry())
-            );
-        return parent::compileGateway($builder);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         Assert::notNullAndEmpty($this->endpointId, "Endpoint Id for inbound channel adapter can't be empty");

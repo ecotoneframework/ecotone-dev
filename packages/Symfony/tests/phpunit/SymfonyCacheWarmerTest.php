@@ -55,6 +55,7 @@ class SymfonyCacheWarmerTest extends KernelTestCase
         }
         $process = new Process($arguments, self::$projectDir, ['APP_ENV' => self::APP_ENV]);
         $process->run();
+        $process->wait();
         self::assertTrue($process->isSuccessful(), $process->getErrorOutput());
     }
 

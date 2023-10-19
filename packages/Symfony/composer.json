@@ -40,6 +40,7 @@
         "symfony/doctrine-messenger": "^5.4|^6.0",
         "symfony/expression-language": "^6.0",
         "symfony/messenger": "^5.4|^6.0",
+        "symfony/process": "^6.0",
         "wikimedia/composer-merge-plugin": "^2.0"
     },
     "config": {

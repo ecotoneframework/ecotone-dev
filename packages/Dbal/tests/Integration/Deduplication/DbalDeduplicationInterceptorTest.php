@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
@@ -32,7 +33,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            PollingMetadata::create("endpoint1"));
+            new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
@@ -41,7 +42,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            PollingMetadata::create("endpoint2"));
+            new AsynchronousRunningEndpoint('endpoint2'));
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }
@@ -61,7 +62,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            PollingMetadata::create('endpoint1'));
+            new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
@@ -70,7 +71,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            PollingMetadata::create('endpoint1'));
+            new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
     }
@@ -91,7 +92,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            PollingMetadata::create('endpoint1'));
+            new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
@@ -102,7 +103,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            PollingMetadata::create('endpoint1'));
+            new AsynchronousRunningEndpoint('endpoint1'));
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }

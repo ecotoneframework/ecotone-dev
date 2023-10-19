@@ -145,10 +145,10 @@
         "doctrine/doctrine-bundle": "^2.7.2",
         "phpbench/phpbench": "^1.2",
         "enqueue/null": "^0.10.18",
-        "open-telemetry/api": "@dev",
-        "open-telemetry/sdk": "@dev",
-        "open-telemetry/transport-grpc": "@dev",
-        "open-telemetry/exporter-otlp": "@dev"
+        "open-telemetry/api": "^1.0.0",
+        "open-telemetry/sdk": "^1.0.0",
+        "open-telemetry/transport-grpc": "^1.0.0",
+        "open-telemetry/exporter-otlp": "^1.0.0"
     },
     "extra": {
         "laravel": {

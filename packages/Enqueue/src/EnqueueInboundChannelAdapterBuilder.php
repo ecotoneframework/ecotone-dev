@@ -52,7 +52,7 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         if ($this->isNullableGateway()) {
             return $this->inboundGateway;
         }
-        return $this->inboundGateway->compile($builder);
+        return parent::compileGateway($builder);
     }
 
     /**

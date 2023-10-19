@@ -1138,7 +1138,7 @@ final class MessagingSystemConfiguration implements Configuration
     /**
      * @deprecated
      */
-    public function buildMessagingSystemFromConfiguration(ContainerInterface $referenceSearchService): ConfiguredMessagingSystem
+    public function buildMessagingSystemFromConfiguration(?ContainerInterface $referenceSearchService = null): ConfiguredMessagingSystem
     {
         return ContainerConfig::buildMessagingSystemInMemoryContainer($this, $referenceSearchService);
     }

@@ -139,7 +139,7 @@ interface Configuration extends CompilerPass
      */
     public function registerMessageConverter(string $referenceName): Configuration;
 
-    public function buildMessagingSystemFromConfiguration(ContainerInterface $externalReferenceSearchService): ConfiguredMessagingSystem;
+    public function buildMessagingSystemFromConfiguration(?ContainerInterface $externalReferenceSearchService = null): ConfiguredMessagingSystem;
 
     public function registerServiceDefinition(string|Reference $id, Container\Definition $definition): Configuration;
 }

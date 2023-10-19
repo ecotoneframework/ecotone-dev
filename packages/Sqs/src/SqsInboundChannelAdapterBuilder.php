@@ -27,26 +27,6 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
         return new self($queueName, $endpointId, $requestChannelName, $connectionReferenceName);
     }
 
-    public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter
-    {
-        /** @var SqsConnectionFactory $connectionFactory */
-        $connectionFactory = $referenceSearchService->get($this->connectionReferenceName);
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-
-        $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, []);
-
-        return new SqsInboundChannelAdapter(
-            CachedConnectionFactory::createFor(new HttpReconnectableConnectionFactory($connectionFactory)),
-            $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata),
-            $this->declareOnStartup,
-            $this->messageChannelName,
-            $this->receiveTimeoutInMilliseconds,
-            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper, EnqueueHeader::HEADER_ACKNOWLEDGE),
-            $conversionService
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [

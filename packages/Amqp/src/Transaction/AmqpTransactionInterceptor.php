@@ -10,6 +10,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -20,29 +21,28 @@ use Throwable;
  */
 class AmqpTransactionInterceptor
 {
-    /**
-     * @var string[]
-     */
-    private $connectionReferenceNames;
-
     private bool $isRunningTransaction = false;
 
-    public function __construct(array $connectionReferenceNames)
+    /**
+     * @param array<string, AmqpConnectionFactory> $connectionFactories
+     */
+    public function __construct(private array $connectionFactories, private LoggerInterface $logger)
     {
-        $this->connectionReferenceNames = $connectionReferenceNames;
     }
 
     public function transactional(
         MethodInvocation $methodInvocation,
         ?AmqpTransaction $amqpTransaction,
-        ReferenceSearchService $referenceSearchService
     ) {
-        /** @var LoggerInterface $logger */
-        $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
+        if ($amqpTransaction) {
+            $possibleFactories = array_map(fn (string $connectionReferenceName) => $this->connectionFactories[$connectionReferenceName], $amqpTransaction->connectionReferenceNames);
+        } else {
+            $possibleFactories = $this->connectionFactories;
+        }
         /** @var CachedConnectionFactory[] $connectionFactories */
-        $connectionFactories = array_map(function (string $connectionReferenceName) use ($referenceSearchService) {
-            return CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($referenceSearchService->get($connectionReferenceName)));
-        }, $amqpTransaction ? $amqpTransaction->connectionReferenceNames : $this->connectionReferenceNames);
+        $connectionFactories = array_map(function (AmqpConnectionFactory $connectionFactory) {
+            return CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($connectionFactory));
+        }, $possibleFactories);
 
         if ($this->isRunningTransaction) {
             return $methodInvocation->proceed();
@@ -57,8 +57,8 @@ class AmqpTransactionInterceptor
 
                 $retryStrategy->runCallbackWithRetries(function () use ($connectionFactory) {
                     $connectionFactory->createContext()->getExtChannel()->startTransaction();
-                }, AMQPConnectionException::class, $logger, 'Starting AMQP transaction has failed due to network work, retrying in order to self heal.');
-                $logger->info('AMQP transaction started');
+                }, AMQPConnectionException::class, $this->logger, 'Starting AMQP transaction has failed due to network work, retrying in order to self heal.');
+                $this->logger->info('AMQP transaction started');
             }
             try {
                 $result = $methodInvocation->proceed();
@@ -66,7 +66,7 @@ class AmqpTransactionInterceptor
                 foreach ($connectionFactories as $connectionFactory) {
                     $connectionFactory->createContext()->getExtChannel()->commitTransaction();
                 }
-                $logger->info('AMQP transaction was committed');
+                $this->logger->info('AMQP transaction was committed');
             } catch (Throwable $exception) {
                 foreach ($connectionFactories as $connectionFactory) {
                     /** @var AMQPChannel $extChannel */
@@ -78,7 +78,7 @@ class AmqpTransactionInterceptor
                     $extChannel->close(); // Has to be closed in amqp_lib, as if channel is trarnsactional does not allow for sending outside of transaction
                 }
 
-                $logger->info('AMQP transaction was roll backed');
+                $this->logger->info('AMQP transaction was roll backed');
                 throw $exception;
             }
         } catch (Throwable $exception) {

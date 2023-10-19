@@ -10,6 +10,7 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -17,6 +18,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
 class AmqpTransactionModule implements AnnotationModule
@@ -60,12 +62,16 @@ class AmqpTransactionModule implements AnnotationModule
             $connectionFactories = $amqpConfiguration->getDefaultConnectionReferenceNames();
         }
 
+        $messagingConfiguration->registerServiceDefinition(AmqpTransactionInterceptor::class, [
+            \array_map(fn (string $connectionFactory) => Reference::to($connectionFactory), $connectionFactories),
+            Reference::to(LoggerInterface::class)
+        ]);
+
         $messagingConfiguration
             ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                    $interfaceToCallRegistry,
-                    new AmqpTransactionInterceptor($connectionFactories),
-                    'transactional',
+                AroundInterceptorReference::create(
+                    AmqpTransactionInterceptor::class,
+                    $interfaceToCallRegistry->getFor(AmqpTransactionInterceptor::class, 'transactional'),
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE - 1,
                     $pointcut
                 )

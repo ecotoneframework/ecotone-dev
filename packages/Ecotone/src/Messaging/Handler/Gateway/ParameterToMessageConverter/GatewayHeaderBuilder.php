@@ -47,14 +47,6 @@ class GatewayHeaderBuilder implements GatewayParameterConverterBuilder
         return $this->parameterName === $parameter->getName();
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService): GatewayParameterConverter
-    {
-        return GatewayHeaderConverter::create($this->parameterName, $this->headerName);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(GatewayHeaderConverter::class, [

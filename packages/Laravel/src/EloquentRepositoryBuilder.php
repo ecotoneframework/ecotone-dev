@@ -31,14 +31,8 @@ final class EloquentRepositoryBuilder implements RepositoryBuilder
         return false;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository|StandardRepository
-    {
-        return $this->eloquentRepository;
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition|Reference
     {
-        // TODO: Implement compile() method.
-        throw new Exception('Not implemented');
+        return new Definition(EloquentRepository::class);
     }
 }

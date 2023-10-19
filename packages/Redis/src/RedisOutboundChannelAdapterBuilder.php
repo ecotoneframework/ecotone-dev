@@ -32,29 +32,6 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
         );
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        /** @var RedisConnectionFactory $connectionFactory */
-        $connectionFactory = $referenceSearchService->get($this->connectionFactoryReferenceName);
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-
-        return new RedisOutboundChannelAdapter(
-            CachedConnectionFactory::createFor(new HttpReconnectableConnectionFactory($connectionFactory)),
-            $this->queueName,
-            $this->autoDeclare,
-            new OutboundMessageConverter(
-                $this->headerMapper,
-                $this->defaultConversionMediaType,
-                $this->defaultDeliveryDelay,
-                $this->defaultTimeToLive,
-                $this->defaultPriority,
-                []
-            ),
-            $conversionService
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [

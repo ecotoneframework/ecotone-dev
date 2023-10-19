@@ -15,7 +15,5 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  */
 interface GatewayParameterConverterBuilder extends CompilableBuilder
 {
-    public function build(ReferenceSearchService $referenceSearchService): GatewayParameterConverter;
-
     public function isHandling(InterfaceParameter $parameter): bool;
 }

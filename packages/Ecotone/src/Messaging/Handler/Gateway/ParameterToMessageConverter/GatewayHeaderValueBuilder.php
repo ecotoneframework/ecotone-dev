@@ -50,14 +50,6 @@ class GatewayHeaderValueBuilder implements GatewayParameterConverterBuilder
         return false;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService): GatewayParameterConverter
-    {
-        return GatewayHeaderValueConverter::create($this->headerName, $this->headerValue);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(

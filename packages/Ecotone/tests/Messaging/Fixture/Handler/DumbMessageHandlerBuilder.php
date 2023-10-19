@@ -55,14 +55,6 @@ class DumbMessageHandlerBuilder extends InputOutputMessageHandlerBuilder impleme
         return new self(NoReturnMessageHandler::create(), 'inputChannel');
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
-    {
-        return $this->messageHandler;
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new DefinedObjectWrapper($this->messageHandler);

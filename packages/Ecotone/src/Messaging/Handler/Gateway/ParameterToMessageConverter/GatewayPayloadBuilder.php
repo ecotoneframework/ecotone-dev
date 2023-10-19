@@ -43,14 +43,6 @@ class GatewayPayloadBuilder implements GatewayParameterConverterBuilder
         return $this->parameterName === $parameter->getName();
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService): GatewayParameterConverter
-    {
-        return GatewayPayloadConverter::create($this->parameterName);
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(

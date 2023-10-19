@@ -28,22 +28,6 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         return new self($queueName, $connectionFactoryReferenceName);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): SqsOutboundChannelAdapter
-    {
-        /** @var SqsConnectionFactory $connectionFactory */
-        $connectionFactory = $referenceSearchService->get($this->connectionFactoryReferenceName);
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-
-        return new SqsOutboundChannelAdapter(
-            CachedConnectionFactory::createFor(new HttpReconnectableConnectionFactory($connectionFactory)),
-            $this->queueName,
-            $this->autoDeclare,
-            new OutboundMessageConverter($this->headerMapper, $this->defaultConversionMediaType, $this->defaultDeliveryDelay, $this->defaultTimeToLive, $this->defaultPriority, []),
-            $conversionService
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [

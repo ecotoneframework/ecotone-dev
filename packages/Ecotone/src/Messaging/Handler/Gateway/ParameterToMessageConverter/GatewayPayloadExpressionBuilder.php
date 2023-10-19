@@ -50,23 +50,6 @@ class GatewayPayloadExpressionBuilder implements GatewayParameterConverterBuilde
         return $this->parameterName === $parameter->getName();
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ReferenceSearchService $referenceSearchService): GatewayParameterConverter
-    {
-        /** @var ExpressionEvaluationService $expressionService */
-        $expressionService = $referenceSearchService->get(ExpressionEvaluationService::REFERENCE);
-        Assert::isSubclassOf($expressionService, ExpressionEvaluationService::class, "You're using expression converter parameter, so you must define reference service " . ExpressionEvaluationService::REFERENCE . ' in your registry container, which is subclass of ' . ExpressionEvaluationService::class);
-
-        return new GatewayPayloadExpressionConverter(
-            $referenceSearchService,
-            $expressionService,
-            $this->parameterName,
-            $this->expression
-        );
-    }
-
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(

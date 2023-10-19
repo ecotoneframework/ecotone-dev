@@ -14,8 +14,7 @@ class PollToGatewayTaskExecutor implements TaskExecutor
     public function __construct(
         private MessagePoller $messagePoller,
         private NonProxyGateway $gateway,
-    )
-    {
+    ) {
     }
 
     public function execute(PollingMetadata $pollingMetadata): void

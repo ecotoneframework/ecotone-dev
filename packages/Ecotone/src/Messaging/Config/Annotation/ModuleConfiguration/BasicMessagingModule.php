@@ -20,7 +20,6 @@ use Ecotone\Messaging\Conversion\StringToUuid\StringToUuidConverterBuilder;
 use Ecotone\Messaging\Conversion\UuidToString\UuidToStringConverterBuilder;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
-use Ecotone\Messaging\Endpoint\EventDriven\LazyEventDrivenConsumerBuilder;
 use Ecotone\Messaging\Endpoint\InboundGatewayEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -39,8 +38,6 @@ use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\NullableMessageChannel;
-
-use function uniqid;
 
 #[ModuleAnnotation]
 class BasicMessagingModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -91,7 +88,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         $messagingConfiguration
             ->registerMessageHandler(
                 RouterBuilder::create(
-                    new Definition(HeaderRouter::class,[MessagingEntrypoint::ENTRYPOINT]),
+                    new Definition(HeaderRouter::class, [MessagingEntrypoint::ENTRYPOINT]),
                     $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route')
                 )
                 ->withInputChannelName(MessagingEntrypoint::ENTRYPOINT)

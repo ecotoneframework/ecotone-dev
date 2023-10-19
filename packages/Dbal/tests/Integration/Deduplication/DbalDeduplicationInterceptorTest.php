@@ -4,7 +4,6 @@ namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
@@ -24,7 +23,8 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             $this->getConnectionFactory(),
             new EpochBasedClock(),
             1000,
-            new NullLogger());
+            new NullLogger()
+        );
 
         $methodInvocation = StubMethodInvocation::create();
 
@@ -33,7 +33,8 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            new AsynchronousRunningEndpoint('endpoint1'));
+            new AsynchronousRunningEndpoint('endpoint1')
+        );
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
@@ -42,7 +43,8 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            new AsynchronousRunningEndpoint('endpoint2'));
+            new AsynchronousRunningEndpoint('endpoint2')
+        );
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }
@@ -53,7 +55,8 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             $this->getConnectionFactory(),
             new EpochBasedClock(),
             1000,
-            new NullLogger());
+            new NullLogger()
+        );
 
         $methodInvocation = StubMethodInvocation::create();
 
@@ -62,7 +65,8 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            new AsynchronousRunningEndpoint('endpoint1'));
+            new AsynchronousRunningEndpoint('endpoint1')
+        );
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
@@ -71,19 +75,21 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            new AsynchronousRunningEndpoint('endpoint1'));
+            new AsynchronousRunningEndpoint('endpoint1')
+        );
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
     }
 
     public function test_handling_message_with_same_id_when_it_was_removed_by_time_limit()
     {
-        $clock = StubUTCClock::createWithCurrentTime("2017-01-01 00:00:00");
+        $clock = StubUTCClock::createWithCurrentTime('2017-01-01 00:00:00');
         $dbalTransactionInterceptor = new DeduplicationInterceptor(
             $this->getConnectionFactory(),
             $clock,
             1000,
-            new NullLogger());
+            new NullLogger()
+        );
 
         $methodInvocation = StubMethodInvocation::create();
 
@@ -92,7 +98,8 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            new AsynchronousRunningEndpoint('endpoint1'));
+            new AsynchronousRunningEndpoint('endpoint1')
+        );
 
         $this->assertEquals(1, $methodInvocation->getCalledTimes());
 
@@ -103,7 +110,8 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             MessageBuilder::withPayload([])->setMultipleHeaders([MessageHeaders::MESSAGE_ID => 1])->build(),
             null,
             null,
-            new AsynchronousRunningEndpoint('endpoint1'));
+            new AsynchronousRunningEndpoint('endpoint1')
+        );
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }

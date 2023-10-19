@@ -17,7 +17,7 @@ class PollingMetadataConverterBuilder implements ParameterConverterBuilder
 
     public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall): Reference
     {
-        if (!$builder->has(PollingMetadataConverter::class)) {
+        if (! $builder->has(PollingMetadataConverter::class)) {
             $builder->register(PollingMetadataConverter::class, new Definition(PollingMetadataConverter::class));
         }
         return new Reference(PollingMetadataConverter::class);

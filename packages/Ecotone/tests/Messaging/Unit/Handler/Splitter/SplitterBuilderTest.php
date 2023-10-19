@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Splitter;
 
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;

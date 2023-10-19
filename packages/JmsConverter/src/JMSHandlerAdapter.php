@@ -4,8 +4,6 @@ namespace Ecotone\JMSConverter;
 
 use Closure;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use JMS\Serializer\GraphNavigator;
@@ -51,7 +49,7 @@ class JMSHandlerAdapter
 
     public function getSerializerClosure(): Closure
     {
-        return function ($visitor, $data)  {
+        return function ($visitor, $data) {
             return $this->object->{$this->methodName}($data);
         };
     }

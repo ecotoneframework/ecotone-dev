@@ -2,8 +2,6 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use Ecotone\Modelling\RepositoryStorage;
@@ -94,7 +92,7 @@ class RepositoryStorageTest extends TestCase
             false,
             [
                 InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty(),
-                InMemoryStandardRepository::class => $repository
+                InMemoryStandardRepository::class => $repository,
             ]
         );
 

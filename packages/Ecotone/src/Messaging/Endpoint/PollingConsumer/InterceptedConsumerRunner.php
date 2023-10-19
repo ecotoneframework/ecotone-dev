@@ -21,8 +21,8 @@ class InterceptedConsumerRunner implements EndpointRunner
         private MessagePoller $messagePoller,
         private PollingMetadata $defaultPollingMetadata,
         private Clock $clock,
-        private LoggerInterface $logger)
-    {
+        private LoggerInterface $logger
+    ) {
     }
 
     public function runEndpointWithExecutionPollingMetadata(?ExecutionPollingMetadata $executionPollingMetadata = null): void

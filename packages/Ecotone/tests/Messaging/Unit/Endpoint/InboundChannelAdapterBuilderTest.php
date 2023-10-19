@@ -6,20 +6,17 @@ namespace Test\Ecotone\Messaging\Unit\Endpoint;
 
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\PollingConsumer\InterceptedConsumerRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\NullableMessageChannel;
-use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Messaging\Transaction\Null\NullTransaction;
@@ -49,8 +46,8 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
     {
         $this->expectException(InvalidArgumentException::class);
         ComponentTestBuilder::create()
-            ->withReference("someRef", ServiceExpectingOneArgument::create())
-            ->withPollingMetadata(PollingMetadata::create("test"))
+            ->withReference('someRef', ServiceExpectingOneArgument::create())
+            ->withPollingMetadata(PollingMetadata::create('test'))
             ->build(
                 InboundChannelAdapterBuilder::create(
                     'channelName',
@@ -69,8 +66,8 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
     {
         $this->expectException(InvalidArgumentException::class);
         ComponentTestBuilder::create()
-            ->withReference("someRef", ServiceExpectingOneArgument::create())
-            ->withPollingMetadata(PollingMetadata::create("test"))
+            ->withReference('someRef', ServiceExpectingOneArgument::create())
+            ->withPollingMetadata(PollingMetadata::create('test'))
             ->build(
                 InboundChannelAdapterBuilder::create(
                     'channelName',
@@ -87,13 +84,13 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
 
         /** @var MessagePoller $adapter */
         $adapter = ComponentTestBuilder::create()
-            ->withReference("someRef", $service)
-            ->withPollingMetadata(PollingMetadata::create("test")->setHandledMessageLimit(1))
+            ->withReference('someRef', $service)
+            ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
             ->build(InboundChannelAdapterBuilder::create(
-                    $inputChannelName,
-                    'someRef',
-                    InterfaceToCall::create($service::class, 'withoutReturnValue')
-                )
+                $inputChannelName,
+                'someRef',
+                InterfaceToCall::create($service::class, 'withoutReturnValue')
+            )
                 ->withEndpointId('test'));
 
         $adapter->receiveWithTimeout();
@@ -116,12 +113,13 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         /** @var InterceptedConsumerRunner $inboundChannelAdapter */
         $inboundChannelConsumerRunner = ComponentTestBuilder::create()
             ->withChannel($inputChannelName, $inputChannel)
-            ->withReference("someRef", $inboundChannelAdapterStoppingService)
-            ->withPollingMetadata(PollingMetadata::create("test"))
+            ->withReference('someRef', $inboundChannelAdapterStoppingService)
+            ->withPollingMetadata(PollingMetadata::create('test'))
             ->withRegisteredChannelAdapter(InboundChannelAdapterBuilder::create(
                 $inputChannelName,
                 'someRef',
-                InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'execute'))
+                InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'execute')
+            )
                 ->withEndpointId('test'))
             ->getEndpointRunner('test')
         ;
@@ -157,7 +155,8 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
                     'someRef',
                     InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'executeReturn')
                 )
-                ->withEndpointId('test'));
+                ->withEndpointId('test')
+            );
 
         $componentTest->runEndpoint('test');
 
@@ -182,7 +181,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         /** @var EndpointRunner $inboundChannelAdapter */
         $inboundChannelConsumerRunner = ComponentTestBuilder::create()
             ->withChannel($requestChannelName, $requestChannel)
-            ->withReference("someRef", $inboundChannelAdapterStoppingService)
+            ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withReference('transactionFactory2', $transactionFactoryOne)
             ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
             ->withRegisteredChannelAdapter(
@@ -192,7 +191,8 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
                     InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'executeReturnWithInterceptor')
                 )
                 ->withEndpointId('test')
-                ->addAroundInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), new TransactionInterceptor(), 'transactional', 1, '')))
+                ->addAroundInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), new TransactionInterceptor(), 'transactional', 1, ''))
+            )
             ->getEndpointRunner('test');
 
         $inboundChannelConsumerRunner->runEndpointWithExecutionPollingMetadata();
@@ -217,7 +217,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         /** @var EndpointRunner $inboundChannelAdapter */
         $inboundChannelAdapter = ComponentTestBuilder::create()
             ->withChannel($requestChannelName, $requestChannel)
-            ->withReference("someRef", $inboundChannelAdapterStoppingService)
+            ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withReference('transactionFactory1', $transactionFactoryOne)
             ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
             ->withRegisteredChannelAdapter(
@@ -227,7 +227,8 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
                     InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'executeReturn')
                 )
                 ->withEndpointId('test')
-                ->addAroundInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), new TransactionInterceptor(), 'transactional', 1, '')))
+                ->addAroundInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), new TransactionInterceptor(), 'transactional', 1, ''))
+            )
             ->getEndpointRunner('test');
 
         $inboundChannelAdapter->runEndpointWithExecutionPollingMetadata();
@@ -252,7 +253,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         /** @var EndpointRunner $inboundChannelAdapter */
         $inboundChannelAdapter = ComponentTestBuilder::create()
             ->withChannel($requestChannelName, $requestChannel)
-            ->withReference("someRef", $inboundChannelAdapterStoppingService)
+            ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withReference('transactionFactory0', $transactionFactoryOne)
             ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
             ->withRegisteredChannelAdapter(
@@ -263,7 +264,8 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
                 )
                 ->withEndpointId('test')
                 ->addAroundInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), new TransactionInterceptor(), 'transactional', 1, ''))
-                ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory0']])]))
+                ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory0']])])
+            )
             ->getEndpointRunner('test');
 
         $inboundChannelAdapter->runEndpointWithExecutionPollingMetadata();
@@ -285,14 +287,16 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         /** @var EndpointRunner $inboundChannelAdapter */
         $inboundChannelAdapter = ComponentTestBuilder::create()
             ->withChannel($requestChannelName, $requestChannel)
-            ->withReference("someRef", $inboundChannelAdapterStoppingService)
+            ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withPollingMetadata(PollingMetadata::create('test')->setMemoryLimitInMegaBytes(1))
             ->withRegisteredChannelAdapter(
                 InboundChannelAdapterBuilder::create(
                     $requestChannelName,
                     'someRef',
-                    InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'executeReturn'))
-                ->withEndpointId('test'))
+                    InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'executeReturn')
+                )
+                ->withEndpointId('test')
+            )
             ->getEndpointRunner('test');
 
         $inboundChannelAdapter->runEndpointWithExecutionPollingMetadata();
@@ -313,17 +317,20 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         /** @var InterceptedConsumerRunner $inboundChannelAdapter */
         $inboundChannelAdapter = ComponentTestBuilder::create()
             ->withChannel($inputChannelName, $inputChannel)
-            ->withReference("someRef", $inboundChannelAdapterStoppingService)
+            ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withPollingMetadata(
                 PollingMetadata::create('test')
                     ->setFixedRateInMilliseconds(1)
-                    ->setInitialDelayInMilliseconds(0))
+                    ->setInitialDelayInMilliseconds(0)
+            )
             ->withRegisteredChannelAdapter(
                 InboundChannelAdapterBuilder::create(
                     $inputChannelName,
                     'someRef',
-                    InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'execute'))
-                ->withEndpointId('test'))
+                    InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'execute')
+                )
+                ->withEndpointId('test')
+            )
             ->getEndpointRunner('test');
 
         $consumer = $inboundChannelAdapter->createConsumer(null);
@@ -352,19 +359,22 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         /** @var EndpointRunner $inboundChannelAdapter */
         $inboundChannelAdapter = ComponentTestBuilder::create()
             ->withChannel($inputChannelName, $inputChannel)
-            ->withReference("someRef", $inboundChannelAdapterStoppingService)
+            ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withPollingMetadata(
                 PollingMetadata::create('test')
                     ->setFixedRateInMilliseconds(1)
                     ->setInitialDelayInMilliseconds(0)
                     ->setHandledMessageLimit(1)
-                    ->setExecutionAmountLimit(1))
+                    ->setExecutionAmountLimit(1)
+            )
             ->withRegisteredChannelAdapter(
                 InboundChannelAdapterBuilder::create(
                     $inputChannelName,
                     'someRef',
-                    InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'execute'))
-                ->withEndpointId('test'))
+                    InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'execute')
+                )
+                ->withEndpointId('test')
+            )
             ->getEndpointRunner('test');
 
         $inboundChannelAdapter->runEndpointWithExecutionPollingMetadata();
@@ -384,7 +394,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
         $inboundChannelAdapterStoppingService = ConsumerStoppingService::create($payload);
         $componentTest = ComponentTestBuilder::create()
             ->withChannel($inputChannelName, $inputChannel)
-            ->withReference("someRef", $inboundChannelAdapterStoppingService)
+            ->withReference('someRef', $inboundChannelAdapterStoppingService)
             ->withPollingMetadata(PollingMetadata::create('test'));
 
         $this->expectException(InvalidArgumentException::class);
@@ -394,6 +404,7 @@ class InboundChannelAdapterBuilderTest extends MessagingTest
                 $inputChannelName,
                 'someRef',
                 InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'notExistingMethod')
-            ));
+            )
+        );
     }
 }

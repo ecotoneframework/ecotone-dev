@@ -3,8 +3,6 @@
 namespace Ecotone\Messaging\Channel;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
 /**
  * Interface ChannelInterceptorBuilder

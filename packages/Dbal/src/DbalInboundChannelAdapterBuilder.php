@@ -10,9 +10,6 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\Dbal\DbalConnectionFactory;
 
@@ -27,14 +24,14 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(DbalReconnectableConnectionFactory::class, [
-                new Reference($this->connectionReferenceName)
-            ])
+                new Reference($this->connectionReferenceName),
+            ]),
         ], 'createFor');
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,
             DefaultHeaderMapper::createWith($this->headerMapper, []),
-            EnqueueHeader::HEADER_ACKNOWLEDGE
+            EnqueueHeader::HEADER_ACKNOWLEDGE,
         ]);
 
         return new Definition(DbalInboundChannelAdapter::class, [
@@ -43,7 +40,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
             $inboundMessageConverter,
-            new Reference(ConversionService::REFERENCE_NAME)
+            new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }
 }

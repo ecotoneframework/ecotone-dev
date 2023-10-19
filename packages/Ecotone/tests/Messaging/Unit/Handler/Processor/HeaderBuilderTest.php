@@ -8,10 +8,7 @@ use Ecotone\Messaging\Config\Container\BoundParameterConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -21,9 +18,6 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionService;
-use Test\Ecotone\Messaging\Fixture\Service\CallableService;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceWithDefaultArgument;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceWithUuidArgument;
 
 /**
  * Class HeaderBuilderTest
@@ -41,7 +35,8 @@ class HeaderBuilderTest extends TestCase
     {
         $converter = new BoundParameterConverter(
             HeaderBuilder::create('some', 'token'),
-            InterfaceToCall::create(HeadersConversionService::class, 'withNullableString'));
+            InterfaceToCall::create(HeadersConversionService::class, 'withNullableString')
+        );
         $converter = ComponentTestBuilder::create()
             ->build($converter);
 
@@ -58,7 +53,8 @@ class HeaderBuilderTest extends TestCase
         $converter = HeaderBuilder::createOptional('some', 'token');
         $converter = ComponentTestBuilder::create()->build(new BoundParameterConverter(
             $converter,
-            InterfaceToCall::create(HeadersConversionService::class, 'withNullableString')));
+            InterfaceToCall::create(HeadersConversionService::class, 'withNullableString')
+        ));
 
         $this->assertEquals(
             null,
@@ -175,7 +171,8 @@ class HeaderBuilderTest extends TestCase
         $converter = ComponentTestBuilder::create()
             ->build(new BoundParameterConverter(
                 $converter,
-                InterfaceToCall::create(HeadersConversionService::class, 'withDefaultValue')));
+                InterfaceToCall::create(HeadersConversionService::class, 'withDefaultValue')
+            ));
 
         $this->assertEquals(
             '',

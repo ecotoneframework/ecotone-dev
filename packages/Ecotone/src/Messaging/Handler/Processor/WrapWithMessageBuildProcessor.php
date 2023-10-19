@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
+use InvalidArgumentException;
 
 /**
  * Class WrapWithMessageProcessor Constructs reply message with correct content type
@@ -31,7 +32,7 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
     public function __construct(InterfaceToCall $interfaceToCall, ?MessageProcessor $messageProcessor)
     {
         if (is_null($messageProcessor)) {
-            throw new \InvalidArgumentException("Message processor can't be null");
+            throw new InvalidArgumentException("Message processor can't be null");
         }
         $this->interfaceToCall = $interfaceToCall;
         $this->messageProcessor = $messageProcessor;

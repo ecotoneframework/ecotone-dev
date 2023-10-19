@@ -2,13 +2,16 @@
 
 namespace Test\Ecotone\Lite;
 
-use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\InMemoryContainerImplementation;
+use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Psr\Container\ContainerInterface;
 use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
 
+/**
+ * @internal
+ */
 class LiteContainerImplementationTest extends ContainerImplementationTestCase
 {
     protected static function getContainerFrom(ContainerBuilder $builder, ?ContainerInterface $externalContainer = null): ContainerInterface
@@ -23,10 +26,10 @@ class LiteContainerImplementationTest extends ContainerImplementationTestCase
     {
         $logger = LoggerExample::create();
         $externalContainer = InMemoryPSRContainer::createFromAssociativeArray([
-            "logger" => $logger,
+            'logger' => $logger,
         ]);
-        $container = self::buildContainerFromDefinitions(["aReference" => new Reference('logger')], $externalContainer);
+        $container = self::buildContainerFromDefinitions(['aReference' => new Reference('logger')], $externalContainer);
 
-        self::assertSame($logger, $container->get("aReference"));
+        self::assertSame($logger, $container->get('aReference'));
     }
 }

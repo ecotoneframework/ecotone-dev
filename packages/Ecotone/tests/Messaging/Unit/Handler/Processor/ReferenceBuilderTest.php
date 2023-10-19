@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -39,7 +38,8 @@ class ReferenceBuilderTest extends TestCase
             ->build(new BoundParameterConverter(
                 ReferenceBuilder::create($interfaceParameter->getName(), $referenceName),
                 $interfaceToCall,
-                $interfaceParameter));
+                $interfaceParameter
+            ));
 
         $this->assertEquals(
             $value,
@@ -63,7 +63,8 @@ class ReferenceBuilderTest extends TestCase
             ->build(new BoundParameterConverter(
                 ReferenceBuilder::create($interfaceParameter->getName(), stdClass::class),
                 $interfaceToCall,
-                $interfaceParameter));
+                $interfaceParameter
+            ));
 
         $this->assertEquals(
             $value,

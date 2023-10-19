@@ -2,9 +2,6 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-
 class LazyStandardRepository implements StandardRepository
 {
     private RepositoryStorage $repositoryStorage;

@@ -13,7 +13,6 @@ use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
  */
 class SymfonyExpressionEvaluationAdapter implements ExpressionEvaluationService
 {
-
     private ExpressionLanguage $language;
 
     private function __construct(ExpressionLanguage $expressionLanguage, private ReferenceSearchService $referenceSearchService)

@@ -4,7 +4,6 @@ namespace Ecotone\Messaging\Config\Container\Compiler;
 
 use Ecotone\Messaging\Config\Container\AttributeReference;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
-use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;

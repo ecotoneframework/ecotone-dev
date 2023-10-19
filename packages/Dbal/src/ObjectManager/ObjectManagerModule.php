@@ -56,7 +56,7 @@ class ObjectManagerModule implements AnnotationModule
             }
 
             $messagingConfiguration->registerServiceDefinition(ObjectManagerInterceptor::class, [
-                $connectionFactoriesReferences
+                $connectionFactoriesReferences,
             ]);
 
             $messagingConfiguration

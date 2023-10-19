@@ -10,10 +10,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Support\Assert;
 
 /**
  * Class ExpressionBuilder
@@ -52,7 +49,7 @@ class HeaderExpressionBuilder implements ParameterConverterBuilder
             Reference::to(ExpressionEvaluationService::REFERENCE),
             $this->headerName,
             $this->expression,
-            $this->isRequired
+            $this->isRequired,
         ]);
     }
 }

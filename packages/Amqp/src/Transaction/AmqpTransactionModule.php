@@ -2,6 +2,8 @@
 
 namespace Ecotone\Amqp\Transaction;
 
+use function array_map;
+
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -63,8 +65,8 @@ class AmqpTransactionModule implements AnnotationModule
         }
 
         $messagingConfiguration->registerServiceDefinition(AmqpTransactionInterceptor::class, [
-            \array_map(fn (string $connectionFactory) => Reference::to($connectionFactory), $connectionFactories),
-            Reference::to(LoggerInterface::class)
+            array_map(fn (string $connectionFactory) => Reference::to($connectionFactory), $connectionFactories),
+            Reference::to(LoggerInterface::class),
         ]);
 
         $messagingConfiguration

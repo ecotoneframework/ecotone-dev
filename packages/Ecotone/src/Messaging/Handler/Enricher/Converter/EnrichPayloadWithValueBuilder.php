@@ -7,12 +7,9 @@ namespace Ecotone\Messaging\Handler\Enricher\Converter;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\Enricher\PropertyEditor;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorBuilder;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 /**
  * Class StaticPropertySetterBuilder
@@ -58,7 +55,7 @@ class EnrichPayloadWithValueBuilder implements PropertyEditorBuilder
         return new Definition(EnrichPayloadWithValuePropertyEditor::class, [
             new Reference(PropertyEditorAccessor::class),
             new Definition(PropertyPath::class, [$this->propertyPath], 'createWith'),
-            $this->value
+            $this->value,
         ]);
     }
 }

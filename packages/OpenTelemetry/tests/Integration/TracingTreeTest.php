@@ -6,7 +6,6 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use ArrayObject;
 use Bluestone\Tree\Node;
-use Bluestone\Tree\Tree;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -16,6 +15,9 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
 use Ecotone\OpenTelemetry\Support\JaegerTracer;
 use InvalidArgumentException;
+
+use function json_encode;
+
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -31,7 +33,6 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberOne;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberTwo;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
-use Test\Ecotone\OpenTelemetry\Fixture\InMemorySpanExporter;
 
 /**
  * @internal
@@ -149,10 +150,10 @@ final class TracingTreeTest extends TracingTest
                     'children' => [
                         [
                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                            'children' => []
-                        ]
-                    ]
-                ]
+                            'children' => [],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -183,14 +184,14 @@ final class TracingTreeTest extends TracingTest
                                     'children' => [
                                         [
                                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -221,11 +222,11 @@ final class TracingTreeTest extends TracingTest
                                     'children' => [
                                         [
                                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
                         ],
                         [
                             'details' => ['name' => 'Event Handler: ' . MerchantSubscriberTwo::class . '::merchantToUser'],
@@ -235,14 +236,14 @@ final class TracingTreeTest extends TracingTest
                                     'children' => [
                                         [
                                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -279,18 +280,18 @@ final class TracingTreeTest extends TracingTest
                                                     'children' => [
                                                         [
                                                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                                            'children' => []
-                                                        ]
-                                                    ]
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                                            'children' => [],
+                                                        ],
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -326,14 +327,14 @@ final class TracingTreeTest extends TracingTest
                                     'children' => [
                                         [
                                             'details' => ['name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register'],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -392,9 +393,9 @@ final class TracingTreeTest extends TracingTest
                     'parent_id' => $span->getParentContext()->isValid() ? $span->getParentSpanId() : null,
                     'attributes' => $span->getAttributes()->toArray(),
                     'kind' => $span->getKind(),
-                    'links' => $span->getLinks()
+                    'links' => $span->getLinks(),
                 ],
-                'children' => []
+                'children' => [],
             ];
 
             $tree = $this->putInTree($preparedSpan, $tree, true);
@@ -433,7 +434,7 @@ final class TracingTreeTest extends TracingTest
                     $changedStructure,
                     true
                 );
-            }else {
+            } else {
                 // go to children
                 $changedStructure[$nodeId]['children'] = $this->putInTree(
                     $searchedSpan,
@@ -506,6 +507,6 @@ final class TracingTreeTest extends TracingTest
             }
         }
 
-        $this->assertTrue(false, "Could not find node with name {$expectedTreeNode['details']['name']}. Nodes at this level: " . \json_encode($collectedTree));
+        $this->assertTrue(false, "Could not find node with name {$expectedTreeNode['details']['name']}. Nodes at this level: " . json_encode($collectedTree));
     }
 }

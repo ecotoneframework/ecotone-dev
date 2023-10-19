@@ -156,10 +156,12 @@ class EnricherBuilderTest extends MessagingTest
         $enricher = ComponentTestBuilder::create()
             ->withReference(
                 ConversionService::REFERENCE_NAME,
-                AutoCollectionConversionService::createWith($converters))
+                AutoCollectionConversionService::createWith($converters)
+            )
             ->build(
                 EnricherBuilder::create($setterBuilders)
-                    ->withInputChannelName('some'));
+                    ->withInputChannelName('some')
+            );
 
         $enricher->handle($inputMessage);
     }

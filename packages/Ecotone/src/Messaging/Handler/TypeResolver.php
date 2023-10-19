@@ -206,7 +206,7 @@ class TypeResolver
         $attributes = $reflection->getAttributes($attributeReference->getAttributeClass());
         if ($attributes > 1) {
             // Warning ?
-        } else if ($attributes === 0) {
+        } elseif ($attributes === 0) {
             throw new InvalidArgumentException("Invalid attribute reference {$attributeReference}");
         }
         self::registerAttributeDefinition($builder, AttributeDefinition::fromReflection($attributes[0]), $className, $methodName);

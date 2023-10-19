@@ -5,20 +5,15 @@ namespace Ecotone\EventSourcing\Config;
 use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
-use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
-use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageHandler;
 
 class EventStoreBuilder extends InputOutputMessageHandlerBuilder
 {
@@ -45,7 +40,7 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
         $eventStoreProophWrapper = new Definition(EcotoneEventStoreProophWrapper::class, [
             $this->eventStoreReference,
             new Reference(ConversionService::REFERENCE_NAME),
-            new Reference(EventMapper::class)
+            new Reference(EventMapper::class),
         ], 'prepare');
 
         return ServiceActivatorBuilder::createWithDefinition($eventStoreProophWrapper, $this->methodName)

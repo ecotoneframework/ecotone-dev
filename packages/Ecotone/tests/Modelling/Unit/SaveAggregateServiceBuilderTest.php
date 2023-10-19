@@ -3,12 +3,8 @@
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Store\Document\DocumentStore;

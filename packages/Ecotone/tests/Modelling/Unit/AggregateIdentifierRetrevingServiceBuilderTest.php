@@ -3,12 +3,8 @@
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -42,7 +38,7 @@ class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
 
         $orderId                 = 1000;
         $aggregateCommandHandler = ComponentTestBuilder::create()
-            ->withReference("repository", InMemoryStandardRepository::createEmpty())
+            ->withReference('repository', InMemoryStandardRepository::createEmpty())
             ->build($aggregateCallingCommandHandler);
 
         $replyChannel = QueueChannel::create();
@@ -68,7 +64,7 @@ class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
 
         $orderId                 = 1000;
         $aggregateRetrievingService = ComponentTestBuilder::create()
-            ->withReference("repository", InMemoryStandardRepository::createEmpty())
+            ->withReference('repository', InMemoryStandardRepository::createEmpty())
             ->build($aggregateRetrevingServiceHandler);
 
         $replyChannel = QueueChannel::create();
@@ -93,7 +89,7 @@ class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
 
         $orderId                 = 1000;
         $aggregateCommandHandler = ComponentTestBuilder::create()
-            ->withReference("repository", InMemoryStandardRepository::createEmpty())
+            ->withReference('repository', InMemoryStandardRepository::createEmpty())
             ->build($aggregateCallingCommandHandler);
 
         $replyChannel = QueueChannel::create();
@@ -118,7 +114,7 @@ class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
 
         $aggregateIds                 = ['author' => 1000, 'title' => 'Some'];
         $aggregateCommandHandler = ComponentTestBuilder::create()
-            ->withReference("repository", InMemoryStandardRepository::createEmpty())
+            ->withReference('repository', InMemoryStandardRepository::createEmpty())
             ->build($aggregateCallingCommandHandler);
 
         $replyChannel = QueueChannel::create();

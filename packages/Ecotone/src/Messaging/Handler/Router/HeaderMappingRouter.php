@@ -61,7 +61,7 @@ final class HeaderMappingRouter implements DefinedObject
     {
         return new Definition(self::class, [
             $this->headerName,
-            $this->headerValueToChannelMapping
+            $this->headerValueToChannelMapping,
         ], 'create');
     }
 }

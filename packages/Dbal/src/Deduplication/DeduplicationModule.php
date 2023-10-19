@@ -63,7 +63,8 @@ class DeduplicationModule implements AnnotationModule
                     $minimumTimeToRemoveMessageFromDeduplication,
                     new Reference(LoggerInterface::class),
                 ]
-            ));
+            )
+        );
 
         $messagingConfiguration
             ->registerAroundMethodInterceptor(

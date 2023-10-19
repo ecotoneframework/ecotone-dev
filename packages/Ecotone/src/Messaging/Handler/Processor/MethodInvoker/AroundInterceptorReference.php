@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use function array_merge;
+
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
-use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -138,7 +138,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
         $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
         $parameterConvertersFromAttributes = $parameterAnnotationResolver->createParameterConverters($this->interfaceToCall);
 
-        $alreadyResolvedParameterConverters = \array_merge($parameterConvertersFromAttributes, $this->parameterConverters);
+        $alreadyResolvedParameterConverters = array_merge($parameterConvertersFromAttributes, $this->parameterConverters);
 
         /** @var array<Definition|Reference> $converterDefinitions */
         $converterDefinitions = [];

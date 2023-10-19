@@ -9,8 +9,10 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use ReflectionMethod;
+
 use function is_array;
+
+use ReflectionMethod;
 
 class PhpDiContainerImplementation implements CompilerPass
 {

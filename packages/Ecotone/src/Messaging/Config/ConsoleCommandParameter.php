@@ -53,7 +53,7 @@ class ConsoleCommandParameter implements DefinedObject
             $this->messageHeaderName,
             $this->isOption,
             $this->defaultValue,
-            $this->hasDefaultValue
+            $this->hasDefaultValue,
         ]);
     }
 }

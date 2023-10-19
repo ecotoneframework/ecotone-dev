@@ -39,6 +39,6 @@ final class EloquentRepositoryBuilder implements RepositoryBuilder
     public function compile(ContainerMessagingBuilder $builder): Definition|Reference
     {
         // TODO: Implement compile() method.
-        throw new Exception("Not implemented");
+        throw new Exception('Not implemented');
     }
 }

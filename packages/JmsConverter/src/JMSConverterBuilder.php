@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\Converter;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use JMS\Serializer\Handler\HandlerRegistry;
 use JMS\Serializer\Naming\CamelCaseNamingStrategy;
 use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
@@ -73,7 +72,7 @@ class JMSConverterBuilder implements CompilableBuilder
         return new Definition(JMSConverter::class, [
             $configuration,
             Reference::to(ServiceCacheConfiguration::class),
-            $converterHandlers
+            $converterHandlers,
         ], [self::class, 'buildJMSConverter']);
     }
 }

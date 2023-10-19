@@ -37,7 +37,7 @@ class ConfigurationVariableBuilder implements ParameterConverterBuilder
             Reference::to(ConfigurationVariableService::REFERENCE_NAME),
             $this->variableName,
             $this->isRequired,
-            $this->defaultValue
+            $this->defaultValue,
         ], 'fromConfigurationVariableService');
     }
 }

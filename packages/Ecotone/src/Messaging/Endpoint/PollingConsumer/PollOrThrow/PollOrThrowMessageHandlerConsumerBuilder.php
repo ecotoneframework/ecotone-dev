@@ -9,7 +9,6 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Endpoint\CompilationPollingMetadata;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
@@ -46,7 +45,7 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);
         $consumerRunner = new Definition(PollOrThrowExceptionConsumer::class, [
             Reference::toChannel($messageHandlerBuilder->getInputMessageChannelName()),
-            $messageHandlerReference
+            $messageHandlerReference,
         ], 'create');
         $builder->registerPollingEndpoint($messageHandlerBuilder->getEndpointId(), $consumerRunner);
     }

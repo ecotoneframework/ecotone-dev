@@ -43,7 +43,7 @@ class ContainerBuilder
         if (is_array($definition)) {
             // Parameters are passed directly, transform to a definition
             $definition = new Definition((string) $id, $definition);
-        } else if ($definition instanceof DefinedObject) {
+        } elseif ($definition instanceof DefinedObject) {
             $definition = new DefinedObjectWrapper($definition);
         }
         $this->definitions[(string) $id] = $definition;

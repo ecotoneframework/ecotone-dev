@@ -16,7 +16,6 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageHandler;
 use Enqueue\Redis\RedisConnectionFactory;
-use Ramsey\Uuid\Uuid;
 
 final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
@@ -60,8 +59,8 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(HttpReconnectableConnectionFactory::class, [
-                new Reference($this->connectionFactoryReferenceName)
-            ])
+                new Reference($this->connectionFactoryReferenceName),
+            ]),
         ], 'createFor');
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
@@ -70,7 +69,7 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
             $this->defaultDeliveryDelay,
             $this->defaultTimeToLive,
             $this->defaultPriority,
-            []
+            [],
         ]);
 
         return new Definition(RedisOutboundChannelAdapter::class, [
@@ -78,7 +77,7 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
             $this->queueName,
             $this->autoDeclare,
             $outboundMessageConverter,
-            new Reference(ConversionService::REFERENCE_NAME)
+            new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }
 }

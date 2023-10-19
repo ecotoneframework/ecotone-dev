@@ -45,7 +45,7 @@ class PayloadExpressionBuilder implements ParameterConverterBuilder
     {
         return new Definition(PayloadExpressionConverter::class, [
             new Reference(ExpressionEvaluationService::REFERENCE),
-            $this->expression
+            $this->expression,
         ]);
     }
 }

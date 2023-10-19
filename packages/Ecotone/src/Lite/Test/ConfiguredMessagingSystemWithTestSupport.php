@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\NonProxyCombinedGateway;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Gateway\Gateway;

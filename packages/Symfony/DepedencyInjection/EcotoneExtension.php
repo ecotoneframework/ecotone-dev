@@ -4,14 +4,11 @@ namespace Ecotone\SymfonyBundle\DepedencyInjection;
 
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
-use Ecotone\Messaging\Config\Container\Compiler\ResolveDefinedObjectsPass;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\CacheClearer;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\CacheWarmer;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyConfigurationVariableService;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -72,7 +69,7 @@ class EcotoneExtension extends Extension
 
         $container->register(ProxyFactory::class)
             ->setPublic(true)
-            ->setArguments(["%kernel.cache_dir%/ecotone"]);
+            ->setArguments(['%kernel.cache_dir%/ecotone']);
 
         $container->register(CacheWarmer::class)->setAutowired(true)->addTag('kernel.cache_warmer');
 

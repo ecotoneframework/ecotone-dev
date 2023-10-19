@@ -7,7 +7,6 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
-use Ecotone\JMSConverter\JMSHandlerAdapter;
 use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
 use Ecotone\Messaging\Attribute\Converter;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;

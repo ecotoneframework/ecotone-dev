@@ -27,7 +27,8 @@ class ConfigurationVariableBuilderTest extends TestCase
         $interfaceParameter    = InterfaceParameter::createNotNullable('johny', TypeDescriptor::createIntegerType());
         $configurationVariable = new BoundParameterConverter(
             ConfigurationVariableBuilder::createFrom('name', $interfaceParameter),
-            InterfaceToCall::create(CallableService::class, 'wasCalled'));
+            InterfaceToCall::create(CallableService::class, 'wasCalled')
+        );
 
 
         $this->assertEquals(
@@ -35,7 +36,8 @@ class ConfigurationVariableBuilderTest extends TestCase
             ComponentTestBuilder::create()
                 ->withReference(
                     ConfigurationVariableService::REFERENCE_NAME,
-                    InMemoryConfigurationVariableService::create(['name' => 100]))
+                    InMemoryConfigurationVariableService::create(['name' => 100])
+                )
                 ->build($configurationVariable)
                 ->getArgumentFrom(MessageBuilder::withPayload('some')->build())
         );
@@ -46,7 +48,8 @@ class ConfigurationVariableBuilderTest extends TestCase
         $interfaceParameter    = InterfaceParameter::createNotNullable('name', TypeDescriptor::createIntegerType());
         $configurationVariable = new BoundParameterConverter(
             ConfigurationVariableBuilder::createFrom(null, $interfaceParameter),
-            InterfaceToCall::create(CallableService::class, 'wasCalled'));
+            InterfaceToCall::create(CallableService::class, 'wasCalled')
+        );
 
 
         $this->assertEquals(
@@ -54,7 +57,8 @@ class ConfigurationVariableBuilderTest extends TestCase
             ComponentTestBuilder::create()
                 ->withReference(
                     ConfigurationVariableService::REFERENCE_NAME,
-                    InMemoryConfigurationVariableService::create(['name' => 100]))
+                    InMemoryConfigurationVariableService::create(['name' => 100])
+                )
                 ->build($configurationVariable)
                 ->getArgumentFrom(MessageBuilder::withPayload('some')->build())
         );
@@ -66,7 +70,8 @@ class ConfigurationVariableBuilderTest extends TestCase
         $interfaceParameter    = $interfaceToCall->getParameterAtIndex(0);
         $configurationVariable = new BoundParameterConverter(
             ConfigurationVariableBuilder::createFrom('some', $interfaceParameter),
-            $interfaceToCall);
+            $interfaceToCall
+        );
 
 
         $this->assertEquals(
@@ -84,7 +89,8 @@ class ConfigurationVariableBuilderTest extends TestCase
 
         $configurationVariable = new BoundParameterConverter(
             ConfigurationVariableBuilder::createFrom('name', $interfaceParameter),
-            $interfaceToCall);
+            $interfaceToCall
+        );
 
         $this->assertEquals(
             100,

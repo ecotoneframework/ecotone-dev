@@ -10,19 +10,15 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
-use Ramsey\Uuid\Uuid;
 
 class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 {
@@ -151,15 +147,15 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName;
-        if (!$builder->has($deadLetterHandlerReference)) {
+        if (! $builder->has($deadLetterHandlerReference)) {
             $deadLetterHandler = new Definition(DbalDeadLetterHandler::class, [
                 new Definition(CachedConnectionFactory::class, [
                     new Definition(DbalReconnectableConnectionFactory::class, [
-                        new Reference($this->connectionReferenceName)
-                    ])
+                        new Reference($this->connectionReferenceName),
+                    ]),
                 ], 'createFor'),
                 DefaultHeaderMapper::createAllHeadersMapping(),
-                new Reference(ConversionService::REFERENCE_NAME)
+                new Reference(ConversionService::REFERENCE_NAME),
             ]);
 
             $builder->register($deadLetterHandlerReference, $deadLetterHandler);

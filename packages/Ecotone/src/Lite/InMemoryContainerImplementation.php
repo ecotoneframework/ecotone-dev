@@ -2,17 +2,24 @@
 
 namespace Ecotone\Lite;
 
-use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
+
+use function get_class;
+
+use InvalidArgumentException;
+
+use function is_object;
+use function method_exists;
+
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Throwable;
+use ReflectionMethod;
 
 class InMemoryContainerImplementation implements ContainerImplementation
 {
@@ -41,18 +48,18 @@ class InMemoryContainerImplementation implements ContainerImplementation
     private function resolveArgument(mixed $argument, ContainerBuilder $builder): mixed
     {
         if (is_array($argument)) {
-            return array_map(fn($argument) => $this->resolveArgument($argument, $builder), $argument);
-        } else if($argument instanceof Definition) {
+            return array_map(fn ($argument) => $this->resolveArgument($argument, $builder), $argument);
+        } elseif($argument instanceof Definition) {
             $object = $this->instantiateDefinition($argument, $builder);
             foreach ($argument->getMethodCalls() as $methodCall) {
                 $object->{$methodCall->getMethodName()}(...$this->resolveArgument($methodCall->getArguments(), $builder));
             }
             return $object;
-        } else if ($argument instanceof Reference) {
+        } elseif ($argument instanceof Reference) {
             return $this->resolveReference($argument, $builder);
         } else {
-            if (\is_object($argument) && ! ($argument instanceof DefinedObject)) {
-                echo "WARNING: Argument is not a self defined object: " . \get_class($argument) . "\n";
+            if (is_object($argument) && ! ($argument instanceof DefinedObject)) {
+                echo 'WARNING: Argument is not a self defined object: ' . get_class($argument) . "\n";
             }
             return $argument;
         }
@@ -67,7 +74,7 @@ class InMemoryContainerImplementation implements ContainerImplementation
         $arguments = $this->resolveArgument($definition->getConstructorArguments(), $builder);
         if ($definition->hasFactory()) {
             $factory = $definition->getFactory();
-            if (\method_exists($factory[0], $factory[1]) && (new \ReflectionMethod($factory[0], $factory[1]))->isStatic()) {
+            if (method_exists($factory[0], $factory[1]) && (new ReflectionMethod($factory[0], $factory[1]))->isStatic()) {
                 // static call
                 return $factory(...$arguments);
             } else {
@@ -110,7 +117,7 @@ class InMemoryContainerImplementation implements ContainerImplementation
         if ($reference->getInvalidBehavior() === self::NULL_ON_INVALID_REFERENCE) {
             return null;
         }
-        throw new \InvalidArgumentException("Reference {$id} was not found in definitions");
+        throw new InvalidArgumentException("Reference {$id} was not found in definitions");
     }
 
 

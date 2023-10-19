@@ -15,7 +15,6 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Enqueue\Sqs\SqsConnectionFactory;
-use Ramsey\Uuid\Uuid;
 
 final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
@@ -49,8 +48,8 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(HttpReconnectableConnectionFactory::class, [
-                new Reference($this->connectionFactoryReferenceName)
-            ])
+                new Reference($this->connectionFactoryReferenceName),
+            ]),
         ], 'createFor');
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
@@ -59,7 +58,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
             $this->defaultDeliveryDelay,
             $this->defaultTimeToLive,
             $this->defaultPriority,
-            []
+            [],
         ]);
 
         return new Definition(SqsOutboundChannelAdapter::class, [
@@ -67,7 +66,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
             $this->queueName,
             $this->autoDeclare,
             $outboundMessageConverter,
-            new Reference(ConversionService::REFERENCE_NAME)
+            new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }
 }

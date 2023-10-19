@@ -6,7 +6,6 @@ namespace Test\Ecotone\Messaging\Unit\Conversion;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Conversion\ReferenceServiceConverterBuilder;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\ComponentTestBuilder;
@@ -35,11 +34,11 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         $referenceService = ComponentTestBuilder::create()
             ->withReference(ExampleConverterService::class, new ExampleConverterService())
             ->build(ReferenceServiceConverterBuilder::create(
-            ExampleConverterService::class,
-            'convert',
-            $sourceType,
-            $targetType
-        ));
+                ExampleConverterService::class,
+                'convert',
+                $sourceType,
+                $targetType
+            ));
 
         $this->assertEquals(
             [new stdClass()],
@@ -67,7 +66,8 @@ class ReferenceServiceConverterBuilderTest extends TestCase
                 ServiceExpectingTwoArguments::class,
                 'withReturnValue',
                 TypeDescriptor::create('array<string>'),
-                TypeDescriptor::create("array<\stdClass>")));
+                TypeDescriptor::create("array<\stdClass>")
+            ));
     }
 
     public function test_throwing_exception_if_converter_containing_union_source_type()

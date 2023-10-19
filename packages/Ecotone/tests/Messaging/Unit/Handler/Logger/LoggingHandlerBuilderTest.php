@@ -5,10 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Logger;
 
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
-use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
-use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
@@ -17,6 +13,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 use Ecotone\Test\ComponentTestBuilder;
+
 use function json_encode;
 
 use Psr\Log\LoggerInterface;
@@ -46,7 +43,8 @@ class LoggingHandlerBuilderTest extends MessagingTest
                     ->withMethodParameterConverters([
                         MessageConverterBuilder::create('message'),
                         MethodArgumentsFactory::getAnnotationValueConverter($logParameter, InterfaceToCall::create(ServiceActivatorWithLoggerExample::class, 'sendMessage'), []),
-                    ]));
+                    ])
+            );
 
         $message = MessageBuilder::withPayload('some')->build();
         $loggingHandler->handle($message);

@@ -43,7 +43,7 @@ final class HeaderEnricher implements DefinedObject
     public function getDefinition(): Definition
     {
         return new Definition(self::class, [
-            $this->headers
+            $this->headers,
         ], 'create');
     }
 }

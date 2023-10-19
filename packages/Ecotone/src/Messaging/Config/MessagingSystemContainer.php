@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Config;
 
+use function array_keys;
+
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
@@ -40,7 +42,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     public function runConsoleCommand(string $commandName, array $parameters): mixed
     {
         $consoleCommandReference = "console.{$commandName}";
-        if (!$this->container->has($consoleCommandReference)) {
+        if (! $this->container->has($consoleCommandReference)) {
             throw InvalidArgumentException::create("Trying to run not existing console command {$commandName}");
         }
         /** @var ConsoleCommandRunner $commandRunner */
@@ -85,7 +87,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function run(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): void
     {
-        if (!isset($this->pollingEndpoints[$endpointId])) {
+        if (! isset($this->pollingEndpoints[$endpointId])) {
             throw InvalidArgumentException::create("Endpoint with id {$endpointId} was not found");
         }
         /** @var EndpointRunner $endpointRunner */
@@ -95,7 +97,7 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function list(): array
     {
-        return \array_keys($this->pollingEndpoints);
+        return array_keys($this->pollingEndpoints);
     }
 
     public function replaceWith(ConfiguredMessagingSystem $messagingSystem): void

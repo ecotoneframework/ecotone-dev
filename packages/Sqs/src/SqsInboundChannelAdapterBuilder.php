@@ -51,14 +51,14 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(HttpReconnectableConnectionFactory::class, [
-                new Reference($this->connectionReferenceName)
-            ])
+                new Reference($this->connectionReferenceName),
+            ]),
         ], 'createFor');
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,
             DefaultHeaderMapper::createWith($this->headerMapper, []),
-            EnqueueHeader::HEADER_ACKNOWLEDGE
+            EnqueueHeader::HEADER_ACKNOWLEDGE,
         ]);
 
         return new Definition(SqsInboundChannelAdapter::class, [

@@ -106,7 +106,7 @@ final class RetryTemplate implements DefinedObject
             $this->initialDelay,
             $this->multiplier,
             $this->maxDelay,
-            $this->maxAttempts
+            $this->maxAttempts,
         ]);
     }
 }

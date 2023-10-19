@@ -4,11 +4,8 @@ namespace Test\Ecotone\Modelling\Fixture\Renter;
 
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\LazyRepositoryBuilder;
-use Ecotone\Modelling\RepositoryBuilder;
 use Ecotone\Modelling\StandardRepository;
 
 class AppointmentRepositoryBuilder implements LazyRepositoryBuilder

@@ -6,9 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\MessageHeaders;
@@ -162,7 +160,8 @@ class RouterBuilderTest extends MessagingTest
             ->withChannel($defaultResolutionChannel, $targetChannel)
             ->build(
                 RouterBuilder::createPayloadTypeRouter([Order::class => 'channel2'])
-                    ->withDefaultResolutionChannel($defaultResolutionChannel));
+                    ->withDefaultResolutionChannel($defaultResolutionChannel)
+            );
 
         $message = MessageBuilder::withPayload(new stdClass())
             ->build();

@@ -27,14 +27,14 @@ final class RedisInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapt
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(HttpReconnectableConnectionFactory::class, [
-                new Reference($this->connectionReferenceName)
-            ])
+                new Reference($this->connectionReferenceName),
+            ]),
         ], 'createFor');
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,
             DefaultHeaderMapper::createWith($this->headerMapper, []),
-            EnqueueHeader::HEADER_ACKNOWLEDGE
+            EnqueueHeader::HEADER_ACKNOWLEDGE,
         ]);
 
         return new Definition(RedisInboundChannelAdapter::class, [
@@ -43,7 +43,7 @@ final class RedisInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapt
             $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
             $inboundMessageConverter,
-            new Reference(ConversionService::REFERENCE_NAME)
+            new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }
 }

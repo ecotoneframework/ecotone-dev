@@ -9,16 +9,12 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
-use Exception;
 
 final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
 {
@@ -37,18 +33,18 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         $documentStoreReference = DbalDocumentStore::class.'.'.$this->connectionReferenceName;
-        if (!$builder->has($documentStoreReference)) {
+        if (! $builder->has($documentStoreReference)) {
             $documentStore = $this->inMemoryEventStore
                 ? new Definition(InMemoryDocumentStore::class, [], 'createEmpty')
                 : new Definition(DbalDocumentStore::class, [
                     new Definition(CachedConnectionFactory::class, [
                         new Definition(DbalReconnectableConnectionFactory::class, [
-                            new Reference($this->connectionReferenceName)
-                        ])
+                            new Reference($this->connectionReferenceName),
+                        ]),
                     ], 'createFor'),
-                $this->initializeDocumentStore,
-                new Reference(ConversionService::REFERENCE_NAME)
-            ]);
+                    $this->initializeDocumentStore,
+                    new Reference(ConversionService::REFERENCE_NAME),
+                ]);
 
             $builder->register($documentStoreReference, $documentStore);
         }

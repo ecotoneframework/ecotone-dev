@@ -5,9 +5,7 @@ namespace Test\Ecotone\Dbal\Integration;
 use Ecotone\Dbal\DbalInboundChannelAdapterBuilder;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessagePoller;
-use Ecotone\Messaging\Scheduling\TaskExecutor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -34,7 +32,8 @@ class ChannelAdapterTest extends DbalMessagingTestCase
             ->build(DbalInboundChannelAdapterBuilder::createWith(
                 Uuid::uuid4()->toString(),
                 $queueName,
-                $requestChannelName)
+                $requestChannelName
+            )
                 ->withReceiveTimeout($timeoutInMilliseconds));
 
         $outboundChannelAdapter = $componentTestBuilder->build(DbalOutboundChannelAdapterBuilder::create($queueName));

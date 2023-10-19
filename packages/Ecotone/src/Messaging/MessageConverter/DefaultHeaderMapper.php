@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\MessageConverter;
 
-use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -86,7 +85,7 @@ class DefaultHeaderMapper implements HeaderMapper
         return new Definition(self::class, [
             $this->toMessageHeadersMapping,
             $this->fromMessageHeadersMapping,
-            $this->headerNamesToLower
+            $this->headerNamesToLower,
         ]);
     }
 

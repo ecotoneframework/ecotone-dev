@@ -4,24 +4,17 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Logger;
 
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageHandler;
-use LogicException;
-use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
 /**
@@ -107,7 +100,7 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
      */
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        if (!$builder->has(LoggingInterceptor::class)) {
+        if (! $builder->has(LoggingInterceptor::class)) {
             $builder->register(LoggingInterceptor::class, [
                 new Definition(LoggingService::class, [Reference::to(ConversionService::REFERENCE_NAME), Reference::to(self::LOGGER_REFERENCE)]),
             ]);

@@ -14,7 +14,7 @@ class PollingChannelThrowingException extends QueueChannel
         throw $this->exception;
     }
 
-    public function withException(mixed $exception) : self
+    public function withException(mixed $exception): self
     {
         $this->exception = $exception;
 

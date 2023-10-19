@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Transformer;
 
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\CompilableParameterConverterBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -27,11 +25,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-
-use function uniqid;
 
 /**
  * Class TransformerBuilder

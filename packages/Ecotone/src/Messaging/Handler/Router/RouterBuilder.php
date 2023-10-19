@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Router;
 
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -12,17 +11,12 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
-use InvalidArgumentException;
 
-use function uniqid;
+use function get_class;
 
 /**
  * Class RouterBuilder
@@ -137,7 +131,7 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
         if ($this->methodNameOrInterface instanceof InterfaceToCall) {
             $interfaceToCallReference = InterfaceToCallReference::fromInstance($this->methodNameOrInterface);
         } elseif ($this->directObjectToInvoke) {
-            $className = \get_class($this->directObjectToInvoke);
+            $className = get_class($this->directObjectToInvoke);
             $interfaceToCallReference = new InterfaceToCallReference($className, $this->methodNameOrInterface);
         } else {
             $className = $this->objectToInvokeReference instanceof Definition ? $this->objectToInvokeReference->getClassName() : (string) $this->objectToInvokeReference;

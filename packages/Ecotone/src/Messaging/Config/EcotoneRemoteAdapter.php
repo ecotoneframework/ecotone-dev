@@ -6,7 +6,6 @@ namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
-use Psr\Container\ContainerInterface;
 
 class EcotoneRemoteAdapter implements AdapterInterface
 {

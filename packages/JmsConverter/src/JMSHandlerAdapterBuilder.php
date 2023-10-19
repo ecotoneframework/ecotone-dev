@@ -15,8 +15,7 @@ class JMSHandlerAdapterBuilder implements CompilableBuilder
         private TypeDescriptor $toType,
         private Definition|Reference $objectToCallOn,
         private string $methodName,
-    )
-    {
+    ) {
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition|Reference
@@ -25,7 +24,7 @@ class JMSHandlerAdapterBuilder implements CompilableBuilder
             $this->fromType,
             $this->toType,
             $this->objectToCallOn,
-            $this->methodName
+            $this->methodName,
         ]);
     }
 }

@@ -11,10 +11,6 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Ramsey\Uuid\Uuid;
 
 class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
@@ -104,8 +100,8 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
-                new Reference($this->amqpConnectionFactoryReferenceName)
-            ])
+                new Reference($this->amqpConnectionFactoryReferenceName),
+            ]),
         ], 'createFor');
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
@@ -114,7 +110,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->defaultDeliveryDelay,
             $this->defaultTimeToLive,
             $this->defaultPriority,
-            $this->staticHeadersToAdd
+            $this->staticHeadersToAdd,
         ]);
 
         return new Definition(AmqpOutboundChannelAdapter::class, [
@@ -127,7 +123,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->defaultPersistentDelivery,
             $this->autoDeclare,
             $outboundMessageConverter,
-            new Reference(ConversionService::REFERENCE_NAME)
+            new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }
 }

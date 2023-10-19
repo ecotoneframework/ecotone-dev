@@ -4,12 +4,10 @@ namespace Ecotone\Test;
 
 use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
-use Ecotone\Messaging\Config\Container\ConfigurationVariableReference;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
@@ -26,6 +24,9 @@ use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
+
+use function get_class;
+
 use Ramsey\Uuid\Uuid;
 
 class ComponentTestBuilder
@@ -65,7 +66,7 @@ class ComponentTestBuilder
 
     public function withReference(string $referenceName, object $object): self
     {
-        $this->messagingBuilder->register($referenceName, new Definition(\get_class($object)));
+        $this->messagingBuilder->register($referenceName, new Definition(get_class($object)));
         $this->container->set($referenceName, $object);
 
         return $this;

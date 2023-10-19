@@ -47,8 +47,7 @@ final class PollingMetadata implements DefinedObject
         private string $taskExecutorName = '',
         private bool $stopOnError = self::DEFAULT_STOP_ON_ERROR,
         private bool $finishWhenNoMessages = self::DEFAULT_FINISH_WHEN_NO_MESSAGES,
-    )
-    {
+    ) {
         $this->withSignalInterceptors = $withSignalInterceptors ?? extension_loaded('pcntl');
     }
 

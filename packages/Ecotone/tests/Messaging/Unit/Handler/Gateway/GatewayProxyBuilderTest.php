@@ -6,9 +6,6 @@ use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\BeforeSend\BeforeSendGateway;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
-use Ecotone\Messaging\Config\NamedMessageChannel;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverter;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -22,7 +19,6 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlingException;
@@ -162,10 +158,12 @@ class GatewayProxyBuilderTest extends MessagingTest
         $replyMessage = MessageBuilder::withPayload($payload)->build();
         $replyChannelName = 'reply-channel';
         $replyChannel = new class ($replyMessage) extends QueueChannel {
-            public function __construct(private Message $replyMessage){
-                parent::__construct("");
+            public function __construct(private Message $replyMessage)
+            {
+                parent::__construct('');
             }
-            public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message {
+            public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
+            {
                 if ($timeoutInMilliseconds === 1) {
                     return $this->replyMessage;
                 }
@@ -945,7 +943,8 @@ class GatewayProxyBuilderTest extends MessagingTest
             ->withChannel('errorChannel', QueueChannel::create())
             ->build(
                 GatewayProxyBuilder::create('some', ServiceInterfaceReceiveOnly::class, 'sendMail', 'requestChannel')
-                    ->withErrorChannel('errorChannel'));
+                    ->withErrorChannel('errorChannel')
+            );
     }
 
     /**
@@ -1081,7 +1080,9 @@ class GatewayProxyBuilderTest extends MessagingTest
                         TypeDescriptor::createCollection(stdClass::class)->toString(),
                         MediaType::APPLICATION_X_PHP_ARRAY,
                         TypeDescriptor::ARRAY,
-                        [1, 1]))
+                        [1, 1]
+                    )
+            )
             ->buildWithProxy($gatewayBuilder);
 
         $this->assertEquals([1, 1], $gateway->executeNoParameter());

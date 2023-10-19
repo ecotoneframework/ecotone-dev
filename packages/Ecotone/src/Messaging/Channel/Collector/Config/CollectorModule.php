@@ -73,9 +73,10 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
                     CollectorSenderInterceptor::class,
                     [
                         $collectorReference,
-                        $pollableMessageChannel->getMessageChannelName()
+                        $pollableMessageChannel->getMessageChannelName(),
                     ]
-                ));
+                )
+            );
             $collectorSenderInterceptorInterfaceToCall = $interfaceToCallRegistry->getFor(CollectorSenderInterceptor::class, 'send');
             $messagingConfiguration->registerAroundMethodInterceptor(
                 AroundInterceptorReference::create(

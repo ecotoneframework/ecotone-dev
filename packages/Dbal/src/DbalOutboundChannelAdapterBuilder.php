@@ -9,11 +9,7 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Interop\Queue\ConnectionFactory;
-use Ramsey\Uuid\Uuid;
 
 class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
@@ -42,8 +38,8 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(DbalReconnectableConnectionFactory::class, [
-                new Reference($this->connectionFactoryReferenceName)
-            ])
+                new Reference($this->connectionFactoryReferenceName),
+            ]),
         ], 'createFor');
 
         $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
@@ -52,7 +48,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->defaultDeliveryDelay,
             $this->defaultTimeToLive,
             $this->defaultPriority,
-            []
+            [],
         ]);
 
         return new Definition(DbalOutboundChannelAdapter::class, [
@@ -60,7 +56,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->queueName,
             $this->autoDeclare,
             $outboundMessageConverter,
-            new Reference(ConversionService::REFERENCE_NAME)
+            new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }
 }

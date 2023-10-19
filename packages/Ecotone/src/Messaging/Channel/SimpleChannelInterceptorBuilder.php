@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel;
 
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
-use Ecotone\Messaging\Config\Container\DefinedObject;
-use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\DefinedObjectWrapper;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
+
+use function is_string;
 
 /**
  * Class SimpleChannelInterceptorBuilder
@@ -57,6 +54,6 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
 
     public function compile(ContainerMessagingBuilder $builder): Reference
     {
-        return \is_string($this->referenceName) ? Reference::to($this->referenceName) : $this->referenceName;
+        return is_string($this->referenceName) ? Reference::to($this->referenceName) : $this->referenceName;
     }
 }

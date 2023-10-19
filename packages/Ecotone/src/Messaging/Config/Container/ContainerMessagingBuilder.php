@@ -8,6 +8,7 @@ use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use InvalidArgumentException;
 
 class ContainerMessagingBuilder
 {
@@ -44,12 +45,12 @@ class ContainerMessagingBuilder
     public function registerPollingEndpoint(string $endpointId, Definition $definition): void
     {
         if (isset($this->pollingEndpoints[$endpointId])) {
-            throw new \InvalidArgumentException("Endpoint with id {$endpointId} already exists");
+            throw new InvalidArgumentException("Endpoint with id {$endpointId} already exists");
         }
         $runnerReference = new EndpointRunnerReference($endpointId);
         $className = $definition->getClassName();
-        if (!is_a($className, EndpointRunner::class, true)) {
-            throw new \InvalidArgumentException("Endpoint runner {$className} must implement " . EndpointRunner::class);
+        if (! is_a($className, EndpointRunner::class, true)) {
+            throw new InvalidArgumentException("Endpoint runner {$className} must implement " . EndpointRunner::class);
         }
 
         $this->register($runnerReference, $definition);

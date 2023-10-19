@@ -7,7 +7,6 @@ namespace Ecotone\Messaging\Handler;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Support\Assert;
-use InvalidArgumentException;
 
 /**
  * Class InputOutputMessageHandlerBuilder

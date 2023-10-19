@@ -3,12 +3,8 @@
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -21,7 +17,6 @@ use Ecotone\Modelling\SnapshotEvent;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate\AggregateWithoutMessageClassesExample;
-use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\EventSourcingHandlerMethodWithReturnType;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\EventSourcingHandlerMethodWithWrongParameterCountExample;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoFactoryMethodAggregateExample;
@@ -55,7 +50,7 @@ class LoadAggregateServiceBuilderTest extends TestCase
 
         $appointment = Appointment::create(new CreateAppointmentCommand(123, 1000));
         $aggregateCommandHandler = ComponentTestBuilder::create()
-            ->withReference("repository", AppointmentRepositoryBuilder::createWith([
+            ->withReference('repository', AppointmentRepositoryBuilder::createWith([
                 $appointment,
             ]))
             ->build($aggregateCallingCommandHandler);
@@ -87,7 +82,7 @@ class LoadAggregateServiceBuilderTest extends TestCase
 
         $ticketWasStartedEvent = new TicketWasStartedEvent(1);
         $aggregateCommandHandler = ComponentTestBuilder::create()
-            ->withReference("repository", InMemoryEventSourcedRepository::createWithExistingAggregate(['ticketId' => 1], Ticket::class, [$ticketWasStartedEvent]))
+            ->withReference('repository', InMemoryEventSourcedRepository::createWithExistingAggregate(['ticketId' => 1], Ticket::class, [$ticketWasStartedEvent]))
             ->build($aggregateCallingCommandHandler);
 
         $replyChannel = QueueChannel::create();
@@ -126,7 +121,7 @@ class LoadAggregateServiceBuilderTest extends TestCase
         $extraEvent = new WorkerWasAssignedEvent(1, 100);
 
         $aggregateCommandHandler = ComponentTestBuilder::create()
-            ->withReference("repository", InMemoryEventSourcedRepository::createWithExistingAggregate(['ticketId' => 1], Ticket::class, [new SnapshotEvent(clone $ticket), $extraEvent]))
+            ->withReference('repository', InMemoryEventSourcedRepository::createWithExistingAggregate(['ticketId' => 1], Ticket::class, [new SnapshotEvent(clone $ticket), $extraEvent]))
             ->build($aggregateCallingCommandHandler);
 
         $replyChannel = QueueChannel::create();
@@ -161,7 +156,7 @@ class LoadAggregateServiceBuilderTest extends TestCase
 
         $appointment = Appointment::create(new CreateAppointmentCommand(123, 1000));
         $aggregateCommandHandler = ComponentTestBuilder::create()
-            ->withReference("repository", AppointmentRepositoryBuilder::createWith([
+            ->withReference('repository', AppointmentRepositoryBuilder::createWith([
                 $appointment,
             ]))
             ->build($aggregateCallingCommandHandler);
@@ -192,7 +187,7 @@ class LoadAggregateServiceBuilderTest extends TestCase
             ->withAggregateRepositoryFactories(['repository']);
 
         $aggregateCommandHandler = ComponentTestBuilder::create()
-            ->withReference("repository", AppointmentStandardRepository::createEmpty())
+            ->withReference('repository', AppointmentStandardRepository::createEmpty())
             ->build($aggregateCallingCommandHandler);
 
         $this->expectException(AggregateNotFoundException::class);
@@ -219,7 +214,7 @@ class LoadAggregateServiceBuilderTest extends TestCase
             ->withInputChannelName('inputChannel');
 
         ComponentTestBuilder::create()
-            ->withReference("repository", InMemoryEventSourcedRepository::createEmpty())
+            ->withReference('repository', InMemoryEventSourcedRepository::createEmpty())
             ->build($aggregateCallingCommandHandler);
     }
 

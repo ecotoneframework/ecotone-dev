@@ -3,9 +3,7 @@
 namespace Test\Ecotone\Messaging\Unit\Handler\Filter;
 
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Handler\Filter\MessageFilterBuilder;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
@@ -277,7 +275,9 @@ class MessageFilterBuilderTest extends MessagingTest
                         CallWithEndingChainAndReturningInterceptorExample::createWithReturnType(false),
                         'callWithEndingChainAndReturning',
                         1,
-                        MessageSelectorExample::class)));
+                        MessageSelectorExample::class
+                    ))
+            );
 
         $message = MessageBuilder::withPayload('some')->build();
 

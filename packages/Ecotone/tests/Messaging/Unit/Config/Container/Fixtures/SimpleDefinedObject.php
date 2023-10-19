@@ -7,7 +7,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 
 class SimpleDefinedObject implements DefinedObject
 {
-    public function __construct(private int $anInteger = 1, private string $aString = "aString")
+    public function __construct(private int $anInteger = 1, private string $aString = 'aString')
     {
     }
 
@@ -15,7 +15,7 @@ class SimpleDefinedObject implements DefinedObject
     {
         return new Definition(self::class, [
             $this->anInteger,
-            $this->aString
+            $this->aString,
         ]);
     }
 }

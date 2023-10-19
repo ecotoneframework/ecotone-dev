@@ -14,8 +14,8 @@ class JMSConverterConfiguration
 
     public function __construct(
         private string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY,
-        private bool $defaultNullSerialization = false)
-    {
+        private bool $defaultNullSerialization = false
+    ) {
     }
 
     public static function createWithDefaults()

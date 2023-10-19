@@ -2,7 +2,6 @@
 
 namespace Ecotone\EventSourcing\Config\InboundChannelAdapter;
 
-use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
@@ -13,7 +12,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -21,7 +19,6 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageHandler;
 
 class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
 {
@@ -47,12 +44,13 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
                     Reference::to(EventSourcingConfiguration::class),
                     $this->projectSetupConfigurations,
                     Reference::to(ReferenceSearchService::class),
-                    Reference::to(LazyProophEventStore::class)
+                    Reference::to(LazyProophEventStore::class),
                 ]),
                 $this->projectionSetupConfiguration,
                 $this->projectionRunningConfiguration,
-                Reference::to(ConversionService::REFERENCE_NAME)
-            ]);
+                Reference::to(ConversionService::REFERENCE_NAME),
+            ]
+        );
 
         return ServiceActivatorBuilder::createWithDefinition($projectionEventHandler, $this->methodName)
             ->withOutputMessageChannel($this->getOutputMessageChannelName())

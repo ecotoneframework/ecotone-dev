@@ -10,8 +10,6 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
-use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -23,8 +21,6 @@ use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
-
-use function uniqid;
 
 #[ModuleAnnotation]
 class ErrorHandlerModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -59,7 +55,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
             $errorHandler = ServiceActivatorBuilder::createWithDefinition(
                 new Definition(ErrorHandler::class, [
                     $extensionObject->getDelayedRetryTemplate(),
-                    (bool)$extensionObject->getDeadLetterQueueChannel()
+                    (bool)$extensionObject->getDeadLetterQueueChannel(),
                 ]),
                 'handle',
             )
@@ -80,7 +76,8 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                 ->registerMessageHandler(
                     RouterBuilder::create(
                         new Definition(HeaderRouter::class, [MessageHeaders::POLLED_CHANNEL_NAME]),
-                        $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route'))
+                        $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route')
+                    )
                     ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName() . '.router')
                     ->withInputChannelName('ecotone.recoverability.reply')
                 );

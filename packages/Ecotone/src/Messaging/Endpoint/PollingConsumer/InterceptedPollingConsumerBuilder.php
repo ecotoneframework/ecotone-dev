@@ -15,7 +15,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\AcknowledgeConfirmationInterceptor;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
@@ -118,7 +117,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         return true;
     }
 
-    abstract protected function compileMessagePoller(ContainerMessagingBuilder $builder,  MessageHandlerBuilder $messageHandlerBuilder): Definition|Reference;
+    abstract protected function compileMessagePoller(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): Definition|Reference;
 
     public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
     {
@@ -171,14 +170,14 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
 
     private function getErrorInterceptorReference(ContainerMessagingBuilder $builder): AroundInterceptorReference
     {
-        if (!$builder->has(PollingConsumerErrorChannelInterceptor::class)) {
+        if (! $builder->has(PollingConsumerErrorChannelInterceptor::class)) {
             $builder->register(PollingConsumerErrorChannelInterceptor::class, new Definition(PollingConsumerErrorChannelInterceptor::class, [
                 new Reference(ChannelResolver::class),
             ]));
         }
         return AroundInterceptorReference::create(
             PollingConsumerErrorChannelInterceptor::class,
-            $builder->getInterfaceToCall(new InterfaceToCallReference(PollingConsumerErrorChannelInterceptor::class, "handle")),
+            $builder->getInterfaceToCall(new InterfaceToCallReference(PollingConsumerErrorChannelInterceptor::class, 'handle')),
             Precedence::ERROR_CHANNEL_PRECEDENCE,
         );
     }

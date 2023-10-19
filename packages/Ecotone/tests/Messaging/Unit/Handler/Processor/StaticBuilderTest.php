@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -36,7 +35,8 @@ class StaticBuilderTest extends TestCase
         $converter = new BoundParameterConverter(
             new ValueBuilder($interfaceParameter->getName(), $value),
             $interfaceToCall,
-            $interfaceParameter);
+            $interfaceParameter
+        );
         $converter = ComponentTestBuilder::create()->build($converter);
 
         $this->assertEquals(

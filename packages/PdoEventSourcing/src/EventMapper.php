@@ -73,7 +73,7 @@ class EventMapper implements MessageFactory, CompilableBuilder
     {
         return new Definition(self::class, [
             $this->eventToNameMapping,
-            $this->nameToEventMapping
+            $this->nameToEventMapping,
         ], 'createWith');
     }
 }

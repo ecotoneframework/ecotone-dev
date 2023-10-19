@@ -98,7 +98,7 @@ class BusRoutingModuleTest extends MessagingTest
         $extendedConfiguration = $this->prepareModule($annotationRegistrationService);
 
         $propagateHeadersInterfaceToCall = InterfaceToCall::create(MessageHeadersPropagatorInterceptor::class, 'propagateHeaders');
-        $storeHeadersInterfaceToCall= InterfaceToCall::create(MessageHeadersPropagatorInterceptor::class, 'storeHeaders');
+        $storeHeadersInterfaceToCall = InterfaceToCall::create(MessageHeadersPropagatorInterceptor::class, 'storeHeaders');
 
         $this->assertEquals(
             MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())

@@ -8,14 +8,16 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 
+use function is_string;
+
 class MethodInvokerBuilder implements CompilableBuilder
 {
     private function __construct(
         private object|string $reference,
         private InterfaceToCallReference $interfaceToCallReference,
         private array $methodParametersConverterBuilders = [],
-        private array $endpointAnnotations = [])
-    {
+        private array $endpointAnnotations = []
+    ) {
     }
 
     public static function create(object|string $definition, InterfaceToCallReference $interfaceToCallReference, array $methodParametersConverterBuilders = [], array $endpointAnnotations = []): self
@@ -32,7 +34,7 @@ class MethodInvokerBuilder implements CompilableBuilder
         foreach ($methodParameterConverterBuilders as $index => $methodParameterConverterBuilder) {
             $compiledMethodParameterConverters[] = $methodParameterConverterBuilder->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
         }
-        if (\is_string($this->reference)) {
+        if (is_string($this->reference)) {
             $reference = $interfaceToCall->isStaticallyCalled() ? $this->reference : new Reference($this->reference);
         } else {
             $reference = $this->reference;

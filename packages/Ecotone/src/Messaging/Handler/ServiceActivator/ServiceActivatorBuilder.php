@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -21,17 +20,15 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\HandlerReplyProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\Processor\WrapWithMessageBuildProcessor;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
-use InvalidArgumentException;
+
+use function get_class;
+
 use ReflectionException;
 use ReflectionMethod;
-use function uniqid;
 
 /**
  * Class ServiceActivatorFactory
@@ -71,7 +68,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
     public static function createWithDirectReference(object $directObjectReference, string $methodName): self
     {
-        return new self($directObjectReference, new InterfaceToCallReference(\get_class($directObjectReference), $methodName));
+        return new self($directObjectReference, new InterfaceToCallReference(get_class($directObjectReference), $methodName));
     }
 
     /**

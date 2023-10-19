@@ -4,13 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Chain;
 
-use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
-use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\ReferenceServiceConverter;
@@ -18,14 +13,10 @@ use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Enricher\Converter\EnrichHeaderWithExpressionBuilder;
 use Ecotone\Messaging\Handler\Enricher\Converter\EnrichHeaderWithValueBuilder;
 use Ecotone\Messaging\Handler\Enricher\EnricherBuilder;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
@@ -36,7 +27,6 @@ use Exception;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\CalculatingServiceInterceptorExample;
-use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Transformer\TransformerWithMethodParameterExample;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
 use Test\Ecotone\Messaging\Fixture\Handler\CombinedConversion\Order;
 use Test\Ecotone\Messaging\Fixture\Handler\CombinedConversion\OrderConverter;
@@ -244,7 +234,8 @@ class ChainMessageHandlerBuilderTest extends TestCase
         $chainHandler = $componentTest
             ->withChannel($internalOutputChannelName, $internalOutputChannel)
             ->withChannel($externalOutputChannelName, $externalOutputChannel)
-            ->build(ChainMessageHandlerBuilder::create()
+            ->build(
+                ChainMessageHandlerBuilder::create()
                 ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
                 ->chain($chainHandler)
                 ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
@@ -278,7 +269,8 @@ class ChainMessageHandlerBuilderTest extends TestCase
                         ->addAroundInterceptor($aroundAddOneAfterCall)
                 )
                 ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
-                ->addAroundInterceptor($aroundAddOneAfterCall));
+                ->addAroundInterceptor($aroundAddOneAfterCall)
+        );
 
         $replyChannel = QueueChannel::create();
         $chainHandler->handle(
@@ -328,7 +320,9 @@ class ChainMessageHandlerBuilderTest extends TestCase
         $internalOutputChannel = DirectChannel::create();
         $internalOutputChannel->subscribe(
             ComponentTestBuilder::create()->build(
-                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum')));
+                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum')
+            )
+        );
 
         $aroundAddOneAfterCall = AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
             InterfaceToCallRegistry::createEmpty(),
@@ -491,7 +485,8 @@ class ChainMessageHandlerBuilderTest extends TestCase
         $outputChannel = QueueChannel::create();
         $componentTest = ComponentTestBuilder::create()
             ->withChannel($outputChannelName, $outputChannel);
-        $chainBuilder = $componentTest->build(ChainMessageHandlerBuilder::create()
+        $chainBuilder = $componentTest->build(
+            ChainMessageHandlerBuilder::create()
             ->chain(TransformerBuilder::createWithExpression('1 + 1'))
             ->chain(TransformerBuilder::createWithExpression('payload + 1'))
             ->withOutputMessageHandler(RouterBuilder::createRecipientListRouter([$outputChannelName]))

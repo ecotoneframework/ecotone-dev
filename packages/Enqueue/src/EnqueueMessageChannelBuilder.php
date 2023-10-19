@@ -3,18 +3,10 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
-use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\PollableChannel;
-use Exception;
 
 abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {

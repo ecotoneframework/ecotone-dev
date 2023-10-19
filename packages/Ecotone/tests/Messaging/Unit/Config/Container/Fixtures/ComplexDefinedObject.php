@@ -17,7 +17,7 @@ class ComplexDefinedObject implements DefinedObject
         return new Definition(self::class, [
             $this->anInteger,
             $this->anObject,
-            $this->anArray
+            $this->anArray,
         ]);
     }
 }

@@ -2,28 +2,22 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Store\Document\DocumentStore;
-use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\AggregateEvents;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
@@ -115,12 +109,12 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             ? new Definition(LazyEventSourcedRepository::class, [
                 $this->interfaceToCall->getInterfaceName(),
                 $this->isEventSourced,
-                array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
+                array_map(fn ($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create')
             : new Definition(LazyStandardRepository::class, [
                 $this->interfaceToCall->getInterfaceName(),
                 $this->isEventSourced,
-                array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
+                array_map(fn ($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create');
 
 

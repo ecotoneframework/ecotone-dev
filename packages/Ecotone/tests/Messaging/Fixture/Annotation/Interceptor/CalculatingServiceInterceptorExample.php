@@ -6,8 +6,6 @@ namespace Test\Ecotone\Messaging\Fixture\Annotation\Interceptor;
 
 use Ecotone\Messaging\Attribute\ClassReference;
 use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Config\Container\DefinedObject;
-use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 

@@ -3,9 +3,15 @@
 namespace Test;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+
+use function glob;
+
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Process\Process;
 
+/**
+ * @internal
+ */
 class SymfonyCacheWarmerTest extends KernelTestCase
 {
     private const APP_ENV = 'test_proxy_warmup';
@@ -28,7 +34,7 @@ class SymfonyCacheWarmerTest extends KernelTestCase
     {
         self::executeCacheClearInSeparateProcess(self::WITHOUT_WARMUP);
 
-        self::assertCount(0, \glob(self::$cacheDir . '/ecotone/*', GLOB_MARK));
+        self::assertCount(0, glob(self::$cacheDir . '/ecotone/*', GLOB_MARK));
     }
 
     public function test_cache_warmup(): void
@@ -37,7 +43,7 @@ class SymfonyCacheWarmerTest extends KernelTestCase
 
         self::assertDirectoryExists(self::$cacheDir . '/ecotone');
 
-        self::assertCount(self::gatewayCount(), \glob(self::$cacheDir . '/ecotone/*', GLOB_MARK));
+        self::assertCount(self::gatewayCount(), glob(self::$cacheDir . '/ecotone/*', GLOB_MARK));
         self::ensureKernelShutdown();
     }
 

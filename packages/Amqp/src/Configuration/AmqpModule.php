@@ -65,7 +65,9 @@ class AmqpModule implements AnnotationModule
             AmqpAdmin::createWith(
                 $amqpExchanges,
                 $amqpQueues,
-                $amqpBindings)));
+                $amqpBindings
+            )
+        ));
     }
 
     /**

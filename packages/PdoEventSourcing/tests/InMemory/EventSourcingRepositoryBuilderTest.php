@@ -8,7 +8,6 @@ use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\MessageHeaders;
@@ -17,7 +16,6 @@ use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Modelling\SaveAggregateService;
 use Ecotone\Modelling\SnapshotEvent;
 use Ecotone\Test\ComponentTestBuilder;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\AssignedPersonWasChanged;
@@ -48,7 +46,8 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                 ConversionService::REFERENCE_NAME,
                 InMemoryConversionService::createWithoutConversion()
                     ->registerInPHPConversion($ticketWasRegisteredEvent, $ticketWasRegisteredEventAsArray)
-                    ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegisteredEvent))
+                    ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegisteredEvent)
+            )
             ->build($proophRepositoryBuilder);
 
         $repository->save(['ticketId' => $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [
@@ -91,7 +90,8 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                     ->registerInPHPConversion($ticketWasRegistered, $ticketWasRegisteredEventAsArray)
                     ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegistered)
                     ->registerInPHPConversion($workerWasAssigned, $workerWasAssignedAsArray)
-                    ->registerInPHPConversion($workerWasAssignedAsArray, $workerWasAssigned))
+                    ->registerInPHPConversion($workerWasAssignedAsArray, $workerWasAssigned)
+            )
             ->withReference(DocumentStore::class, $documentStore)
             ->build($proophRepositoryBuilder);
 
@@ -135,7 +135,8 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                     ->registerInPHPConversion($ticketWasRegistered, $ticketWasRegisteredEventAsArray)
                     ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegistered)
                     ->registerInPHPConversion($workerWasAssigned, $workerWasAssignedAsArray)
-                    ->registerInPHPConversion($workerWasAssignedAsArray, $workerWasAssigned))
+                    ->registerInPHPConversion($workerWasAssignedAsArray, $workerWasAssigned)
+            )
             ->withReference(DocumentStore::class, $documentStore)
             ->build($proophRepositoryBuilder);
 
@@ -176,7 +177,8 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                     ->registerInPHPConversion($firstTicketWasRegisteredEvent, $firstTicketWasRegisteredEventAsArray)
                     ->registerInPHPConversion($firstTicketWasRegisteredEventAsArray, $firstTicketWasRegisteredEvent)
                     ->registerInPHPConversion($secondTicketWasRegisteredEvent, $secondTicketWasRegisteredEventAsArray)
-                    ->registerInPHPConversion($secondTicketWasRegisteredEventAsArray, $secondTicketWasRegisteredEvent))
+                    ->registerInPHPConversion($secondTicketWasRegisteredEventAsArray, $secondTicketWasRegisteredEvent)
+            )
             ->build($proophRepositoryBuilder);
 
         $repository->save(['ticketId' => $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
@@ -198,7 +200,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
 
     public function test_having_two_streams_for_difference_instances_of_same_aggregate_using_single_stream_strategy()
     {
-        $configuration =EventSourcingConfiguration::createWithDefaults()
+        $configuration = EventSourcingConfiguration::createWithDefaults()
             ->withSingleStreamPersistenceStrategy();
 
         $proophRepositoryBuilder = EventSourcingRepositoryBuilder::create($configuration);
@@ -225,7 +227,8 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                     ->registerInPHPConversion($firstTicketWasRegisteredEvent, $firstTicketWasRegisteredEventAsArray)
                     ->registerInPHPConversion($firstTicketWasRegisteredEventAsArray, $firstTicketWasRegisteredEvent)
                     ->registerInPHPConversion($secondTicketWasRegisteredEvent, $secondTicketWasRegisteredEventAsArray)
-                    ->registerInPHPConversion($secondTicketWasRegisteredEventAsArray, $secondTicketWasRegisteredEvent))
+                    ->registerInPHPConversion($secondTicketWasRegisteredEventAsArray, $secondTicketWasRegisteredEvent)
+            )
             ->build($proophRepositoryBuilder);
 
         $repository->save(['ticketId' => $firstTicketAggregate], Ticket::class, [$firstTicketWasRegisteredEvent], [
@@ -247,7 +250,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
 
     public function test_handling_connection_as_registry()
     {
-        $configuration =EventSourcingConfiguration::createWithDefaults()
+        $configuration = EventSourcingConfiguration::createWithDefaults()
             ->withSingleStreamPersistenceStrategy();
 
         $proophRepositoryBuilder = EventSourcingRepositoryBuilder::create($configuration);
@@ -265,7 +268,8 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
                 ConversionService::REFERENCE_NAME,
                 InMemoryConversionService::createWithoutConversion()
                     ->registerInPHPConversion($ticketWasRegisteredEvent, $ticketWasRegisteredEventAsArray)
-                    ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegisteredEvent))
+                    ->registerInPHPConversion($ticketWasRegisteredEventAsArray, $ticketWasRegisteredEvent)
+            )
             ->build($proophRepositoryBuilder);
 
         $repository->save(['ticketId' => $ticketId], Ticket::class, [$ticketWasRegisteredEvent], [

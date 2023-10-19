@@ -48,7 +48,8 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
             new Definition(TracerInterceptor::class, [
                 new Reference(TracerInterface::class),
                 new Reference(LoggerInterface::class),
-            ]));
+            ])
+        );
         if ($tracingConfiguration->higherThanOrEqualTo(TracingConfiguration::TRACING_LEVEL_FRAMEWORK)) {
             $this->registerTracerFor('trace', '*', $messagingConfiguration, $interfaceToCallRegistry);
         }

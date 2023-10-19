@@ -33,7 +33,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         /** @var PollableChannel $messageChannel */
         $messageChannel = $this->getComponentTestingWithConnection()->build(
             DbalBackedMessageChannelBuilder::create($channelName)
-                ->withReceiveTimeout(1));
+                ->withReceiveTimeout(1)
+        );
 
         $payload = 'some';
         $headerName = 'token';
@@ -59,7 +60,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
             ->withReference('managerRegistry', $this->getConnectionFactory(true))
             ->build(
                 DbalBackedMessageChannelBuilder::create($channelName, 'managerRegistry')
-                    ->withReceiveTimeout(1));
+                    ->withReceiveTimeout(1)
+            );
 
         $payload = 'some';
         $headerName = 'token';
@@ -106,7 +108,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $messageChannel = $this->getComponentTestingWithConnection()
             ->build(
                 DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
-                    ->withReceiveTimeout(1));
+                    ->withReceiveTimeout(1)
+            );
 
         /** @var DbalContext $dbalContext */
         $dbalContext = $connectionFactory->createContext();

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\MessageHandler;
 
 /**
  * Interface MessageHandlerBuilder

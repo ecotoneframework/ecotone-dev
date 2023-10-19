@@ -9,16 +9,20 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
-use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
-use Psr\Container\ContainerInterface;
-use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition as SymfonyDefinition;
-use Symfony\Component\DependencyInjection\Reference as SymfonyReference;
+
 use function is_array;
 use function is_string;
+use function method_exists;
+
+use Psr\Container\ContainerInterface;
+use ReflectionMethod;
+use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition as SymfonyDefinition;
+
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+
+use Symfony\Component\DependencyInjection\Reference as SymfonyReference;
 
 class SymfonyContainerAdapter implements CompilerPass
 {
@@ -67,7 +71,7 @@ class SymfonyContainerAdapter implements CompilerPass
             }
             return $resolvedArguments;
         } elseif ($argument instanceof Reference) {
-            if ($this->keepExternalReferencesForTesting && !isset($this->definitions[$argument->getId()])) {
+            if ($this->keepExternalReferencesForTesting && ! isset($this->definitions[$argument->getId()])) {
                 $this->externalReferences[$argument->getId()] = $argument->getId();
             }
             return new SymfonyReference($argument->getId());
@@ -107,7 +111,7 @@ class SymfonyContainerAdapter implements CompilerPass
 
     private function resolveFactoryArgument(array $factory): array
     {
-        if (\method_exists($factory[0], $factory[1]) && (new \ReflectionMethod($factory[0], $factory[1]))->isStatic()) {
+        if (method_exists($factory[0], $factory[1]) && (new ReflectionMethod($factory[0], $factory[1]))->isStatic()) {
             // static call
             return $factory;
         } else {

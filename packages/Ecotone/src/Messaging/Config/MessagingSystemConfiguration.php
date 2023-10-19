@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use function array_map;
+
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -54,9 +56,11 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
 use Exception;
+
+use function is_a;
+
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
-use function is_a;
 
 /**
  * Class Configuration
@@ -299,7 +303,7 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
-        $endpointAnnotationsInstances = \array_map(
+        $endpointAnnotationsInstances = array_map(
             fn (AttributeDefinition $attributeDefinition) => $attributeDefinition->instance(),
             $endpointAnnotations
         );
@@ -1040,7 +1044,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         // TODO: some service configuration should be handled at runtime. Here they are all cached in the container
-//        $messagingBuilder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
+        //        $messagingBuilder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
 
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {

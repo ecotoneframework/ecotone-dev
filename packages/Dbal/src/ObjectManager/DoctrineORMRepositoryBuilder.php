@@ -8,11 +8,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\RepositoryBuilder;
-use Ecotone\Modelling\StandardRepository;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use ReflectionClass;
 

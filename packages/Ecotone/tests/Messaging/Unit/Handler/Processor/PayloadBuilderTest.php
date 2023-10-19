@@ -5,16 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use ReflectionException;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionService;
-use Test\Ecotone\Messaging\Fixture\Service\CallableService;
 use Test\Ecotone\Messaging\Unit\MessagingTest;
 
 /**
@@ -36,7 +32,8 @@ class PayloadBuilderTest extends MessagingTest
         $converter = ComponentTestBuilder::create()
             ->build(new BoundParameterConverter(
                 $converter,
-                InterfaceToCall::create(HeadersConversionService::class, 'withNullableString')));
+                InterfaceToCall::create(HeadersConversionService::class, 'withNullableString')
+            ));
 
         $payload = 'rabbit';
         $this->assertEquals(

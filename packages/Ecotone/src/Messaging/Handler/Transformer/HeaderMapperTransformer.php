@@ -35,7 +35,7 @@ final class HeaderMapperTransformer implements DefinedObject
     public function getDefinition(): Definition
     {
         return new Definition(self::class, [
-            $this->mappedHeaders
+            $this->mappedHeaders,
         ]);
     }
 }

@@ -4,17 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
-use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
 use Psr\Log\LoggerInterface;
 

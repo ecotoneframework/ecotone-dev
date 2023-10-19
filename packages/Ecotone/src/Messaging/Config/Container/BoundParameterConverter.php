@@ -2,7 +2,6 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
-use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 
 class BoundParameterConverter implements CompilableBuilder
@@ -10,8 +9,7 @@ class BoundParameterConverter implements CompilableBuilder
     public function __construct(
         private CompilableParameterConverterBuilder $parameterConverterBuilder,
         private InterfaceToCall $interfaceToCall,
-    )
-    {
+    ) {
     }
 
     public function compile(ContainerMessagingBuilder $builder): Definition

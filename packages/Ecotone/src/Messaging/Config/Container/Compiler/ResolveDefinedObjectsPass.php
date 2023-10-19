@@ -3,11 +3,12 @@
 namespace Ecotone\Messaging\Config\Container\Compiler;
 
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
+
+use function spl_object_id;
 
 /**
  * This compiler pass will convert DefinedObject to their definitions
@@ -26,7 +27,7 @@ class ResolveDefinedObjectsPass implements CompilerPass
 
     public static function referenceForDefinedObject(DefinedObject $definedObject): Reference
     {
-        return new Reference("defined_object." . \spl_object_id($definedObject));
+        return new Reference('defined_object.' . spl_object_id($definedObject));
     }
 
     public function process(ContainerBuilder $builder): void
@@ -57,7 +58,7 @@ class ResolveDefinedObjectsPass implements CompilerPass
                 $this->countReferenceToSameDefinedObject($value);
             }
         } elseif ($argument instanceof DefinedObject) {
-            $objectId = \spl_object_id($argument);
+            $objectId = spl_object_id($argument);
             $this->resolvedObjectsReferenceCount[$objectId] = ($this->resolvedObjectsReferenceCount[$objectId] ?? 0) + 1;
             $this->countReferenceToSameDefinedObject($argument->getDefinition());
         }
@@ -82,7 +83,7 @@ class ResolveDefinedObjectsPass implements CompilerPass
             }
             return $resolvedArguments;
         } elseif ($argument instanceof DefinedObject) {
-            $objectId = \spl_object_id($argument);
+            $objectId = spl_object_id($argument);
             if ($this->resolvedObjectsReferenceCount[$objectId] === 1) {
                 return $this->convertDefinition($argument->getDefinition());
             } else {

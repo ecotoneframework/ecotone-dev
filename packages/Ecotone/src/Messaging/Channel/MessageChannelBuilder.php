@@ -3,10 +3,6 @@
 namespace Ecotone\Messaging\Channel;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\MessageChannel;
 
 /**
  * Interface MessageChannelBuilder

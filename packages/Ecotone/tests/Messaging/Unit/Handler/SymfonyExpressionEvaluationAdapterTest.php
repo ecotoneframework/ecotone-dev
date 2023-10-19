@@ -3,7 +3,6 @@
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use PHPUnit\Framework\TestCase;
 

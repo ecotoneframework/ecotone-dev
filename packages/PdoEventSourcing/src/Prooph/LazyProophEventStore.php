@@ -8,13 +8,11 @@ use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Iterator;
 use PDO;
 use Prooph\Common\Messaging\MessageConverter;
-use Prooph\Common\Messaging\MessageFactory;
 use Prooph\EventStore\EventStore;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Pdo\MariaDbEventStore;
@@ -64,8 +62,7 @@ class LazyProophEventStore implements EventStore
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private EventMapper $messageFactory,
         private ?DbalConnectionFactory $connectionFactory,
-    )
-    {
+    ) {
         $this->messageConverter = new FromProophMessageToArrayConverter();
         $this->requireInitialization = $eventSourcingConfiguration->isInitializedOnStart();
     }

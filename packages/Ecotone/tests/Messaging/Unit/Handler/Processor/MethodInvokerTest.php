@@ -12,12 +12,9 @@ use Ecotone\Messaging\Conversion\SerializedToObject\DeserializingConverter;
 use Ecotone\Messaging\Conversion\StringToUuid\StringToUuidConverter;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\Processor\WrapWithMessageBuildProcessor;
 use Ecotone\Messaging\Handler\ReferenceNotFoundException;
@@ -36,11 +33,7 @@ use Test\Ecotone\Messaging\Fixture\Behat\Ordering\OrderProcessor;
 use Test\Ecotone\Messaging\Fixture\Converter\StringToUuidClassConverter;
 use Test\Ecotone\Messaging\Fixture\Handler\ExampleService;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallMultipleUnorderedArgumentsInvocationInterceptorExample;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithAnnotationFromMethodInterceptorExample;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithInterceptedObjectInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithPassThroughInterceptorExample;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithReferenceSearchServiceExample;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithStdClassInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\StubCallSavingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingMessageAndReturningMessage;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
@@ -77,7 +70,8 @@ class MethodInvokerTest extends MessagingTest
             ->build(
                 MethodInvokerBuilder::create($serviceExpectingOneArgument, InterfaceToCallReference::fromInstance($interfaceToCall), [
                     PayloadBuilder::create('name'),
-                ]));
+                ])
+            );
 
         $methodInvocation->executeEndpoint(MessageBuilder::withPayload('some')->build());
 
@@ -98,7 +92,8 @@ class MethodInvokerTest extends MessagingTest
             ->build(
                 MethodInvokerBuilder::create($serviceExpectingOneArgument, InterfaceToCallReference::fromInstance($interfaceToCall), [
                     MessageConverterBuilder::create('message'),
-                ]));
+                ])
+            );
 
         $message = MessageBuilder::withPayload('some')->build();
         $this->assertEquals(
@@ -125,7 +120,8 @@ class MethodInvokerTest extends MessagingTest
             ->build(
                 MethodInvokerBuilder::create($serviceExpectingOneArgument, InterfaceToCallReference::fromInstance($interfaceToCall), [
                     HeaderBuilder::create('name', $headerName),
-                ]));
+                ])
+            );
 
         $this->assertEquals(
             $headerValue,

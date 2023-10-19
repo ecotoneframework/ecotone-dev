@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\EcotoneRemoteAdapter;
 use Ecotone\Messaging\Config\GatewayReference;
 use Ecotone\Messaging\Support\Assert;
-use LogicException;
 use ProxyManager\Autoloader\AutoloaderInterface;
 use ProxyManager\Configuration;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
@@ -67,7 +66,7 @@ class ProxyFactory
      */
     public function warmUp(array $gatewayReferences): void
     {
-        $factory = new RemoteObjectFactory(new class implements AdapterInterface {
+        $factory = new RemoteObjectFactory(new class () implements AdapterInterface {
             public function call(string $wrappedClass, string $method, array $params = [])
             {
             }
@@ -105,7 +104,7 @@ class ProxyFactory
 
     public function prepareCacheDirectory(): void
     {
-        if (!$this->cacheDirectory) {
+        if (! $this->cacheDirectory) {
             return;
         }
         if (! is_dir($this->cacheDirectory)) {

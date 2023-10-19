@@ -2,7 +2,6 @@
 
 namespace Ecotone\Lite;
 
-use Ecotone\Messaging\Handler\ReferenceNotFoundException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Psr\Container\ContainerInterface;
 

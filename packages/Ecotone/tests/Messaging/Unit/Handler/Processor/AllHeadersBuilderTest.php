@@ -3,17 +3,13 @@
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionService;
-use Test\Ecotone\Messaging\Fixture\Service\CallableService;
 
 /**
  * Class AllHeadersBuilderTest
@@ -31,10 +27,10 @@ class AllHeadersBuilderTest extends TestCase
                 AllHeadersBuilder::createWith('some'),
                 InterfaceToCall::create(HeadersConversionService::class, 'withNullableString'),
             ))->getArgumentFrom(
-            MessageBuilder::withPayload('some')
+                MessageBuilder::withPayload('some')
                 ->setHeader('someId', 123)
                 ->build(),
-        );
+            );
         unset($result[MessageHeaders::MESSAGE_ID]);
         unset($result[MessageHeaders::MESSAGE_CORRELATION_ID]);
         unset($result[MessageHeaders::TIMESTAMP]);

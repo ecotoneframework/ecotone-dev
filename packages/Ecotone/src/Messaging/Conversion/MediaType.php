@@ -364,7 +364,7 @@ final class MediaType implements DefinedObject
         return new Definition(self::class, [
             $this->type,
             $this->subtype,
-            $this->parameters
+            $this->parameters,
         ], 'createWithParameters');
     }
 }

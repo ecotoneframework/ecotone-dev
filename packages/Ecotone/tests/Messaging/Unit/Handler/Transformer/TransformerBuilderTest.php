@@ -6,15 +6,11 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Transformer;
 
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
-use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -208,7 +204,8 @@ class TransformerBuilderTest extends MessagingTest
                     'token' => $headerValue,
                     'correlation-id' => 1,
                 ])
-                ->withOutputMessageChannel($outputChannelName));
+                ->withOutputMessageChannel($outputChannelName)
+            );
 
         $message = MessageBuilder::withPayload($payload)->build();
         $transformer->handle($message);
@@ -237,7 +234,8 @@ class TransformerBuilderTest extends MessagingTest
                 TransformerBuilder::createHeaderMapper([
                     'token' => 'secret',
                 ])
-                ->withOutputMessageChannel($outputChannelName));
+                ->withOutputMessageChannel($outputChannelName)
+            );
 
         $message = MessageBuilder::withPayload($payload)
             ->setHeader('token', $headerValue)
@@ -321,7 +319,8 @@ class TransformerBuilderTest extends MessagingTest
                     ->withInputChannelName('someName')
                     ->withEndpointId('someEndpoint')
                     ->addAroundInterceptor(AroundInterceptorReference::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 2, '', []))
-                    ->addAroundInterceptor(AroundInterceptorReference::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 1, '', [])));
+                    ->addAroundInterceptor(AroundInterceptorReference::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 1, '', []))
+            );
 
         $serviceActivator->handle(MessageBuilder::withPayload(2)->setReplyChannel($replyChannel)->build());
 

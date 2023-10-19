@@ -20,14 +20,12 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\HandlerReplyProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use LogicException;
+
+use function is_string;
 
 /**
  * Class SplitterBuilder
@@ -49,7 +47,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
 
     public static function createWithDefinition(Definition|string $definition, string $methodName): self
     {
-        if (\is_string($definition)) {
+        if (is_string($definition)) {
             $definition = new Definition($definition);
         }
         return new self($definition, new InterfaceToCallReference($definition->getClassName(), $methodName));

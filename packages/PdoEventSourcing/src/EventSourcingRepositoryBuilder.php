@@ -4,15 +4,11 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
-use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\RepositoryBuilder;
 
 final class EventSourcingRepositoryBuilder implements RepositoryBuilder
@@ -70,7 +66,7 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
             new Definition(EcotoneEventStoreProophWrapper::class, [
                 new Reference(LazyProophEventStore::class),
                 new Reference(ConversionService::REFERENCE_NAME),
-                new Reference(EventMapper::class)
+                new Reference(EventMapper::class),
             ], 'prepare'),
             $this->handledAggregateClassNames,
             $headerMapper,
@@ -78,7 +74,7 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
             new Reference(AggregateStreamMapping::class),
             new Reference(AggregateTypeMapping::class),
             $documentStoreReferences,
-            new Reference(ConversionService::REFERENCE_NAME)
+            new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }
 }

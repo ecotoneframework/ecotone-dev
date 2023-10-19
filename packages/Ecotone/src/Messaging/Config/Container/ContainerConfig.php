@@ -2,8 +2,8 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
-use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\InMemoryContainerImplementation;
+use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;

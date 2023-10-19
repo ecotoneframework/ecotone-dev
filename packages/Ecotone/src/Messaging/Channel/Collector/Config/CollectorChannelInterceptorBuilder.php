@@ -9,7 +9,6 @@ use Ecotone\Messaging\Channel\Collector\MessageCollectorChannelInterceptor;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
 

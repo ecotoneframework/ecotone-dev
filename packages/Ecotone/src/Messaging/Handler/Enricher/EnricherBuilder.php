@@ -5,27 +5,18 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Enricher;
 
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
-use LogicException;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -152,7 +143,7 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
             new Reference(ConversionService::REFERENCE_NAME),
             $propertySetters,
             $this->requestPayloadExpression,
-            $this->requestHeaders
+            $this->requestHeaders,
         ]);
 
         return ServiceActivatorBuilder::createWithDefinition($internalEnrichingService, 'enrich')

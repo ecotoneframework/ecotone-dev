@@ -9,20 +9,14 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use LogicException;
-use Ramsey\Uuid\Uuid;
 
 /**
  * Class MessageFilterBuilder
@@ -134,7 +128,7 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
         $messageFilterReference = new Definition(MessageFilter::class, [
             $methodInvoker,
             $discardChannel,
-            $this->throwExceptionOnDiscard
+            $this->throwExceptionOnDiscard,
         ]);
         $serviceActivatorBuilder = ServiceActivatorBuilder::createWithDefinition(
             $messageFilterReference,

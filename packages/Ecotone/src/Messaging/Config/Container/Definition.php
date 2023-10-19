@@ -2,11 +2,6 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
-use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Handler\UnionTypeDescriptor;
-
-use function get_class;
-
 class Definition
 {
     /**
@@ -57,7 +52,7 @@ class Definition
 
     public function hasFactory(): bool
     {
-        return !empty($this->factory);
+        return ! empty($this->factory);
     }
 
     public function setFactory(string|array $factory): self

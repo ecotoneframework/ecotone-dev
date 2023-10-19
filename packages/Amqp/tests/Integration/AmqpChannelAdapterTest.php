@@ -31,7 +31,6 @@ use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -131,14 +130,16 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             $this->createAmqpInboundAdapter($queueName, $exceptionChannelName, $amqpConnectionReferenceName, 'some-id'),
             PollingMetadata::create('some-id')
                 ->setStopOnError(true)
-                ->setExecutionAmountLimit(1000))
+                ->setExecutionAmountLimit(1000)
+        )
             ->runEndpointWithExecutionPollingMetadata();
 
         $this->buildConsumerRunner(
             $this->createAmqpInboundAdapter($queueName, $successChannelName, $amqpConnectionReferenceName, 'endpoint.2'),
             PollingMetadata::create('')
                 ->setStopOnError(true)
-                ->setExecutionAmountLimit(1000))
+                ->setExecutionAmountLimit(1000)
+        )
             ->runEndpointWithExecutionPollingMetadata();
 
         $this->assertNotNull($successChannel->receiveWithTimeout(1000));
@@ -215,7 +216,8 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $this->componentTest
             ->withReference($amqpConnectionReferenceName, $this->getCachedConnectionFactory())
             ->withReference(AmqpAdmin::REFERENCE_NAME, AmqpAdmin::createWith($amqpExchanges, $amqpQueues, $amqpBindings))
-            ->withReference(ConversionService::REFERENCE_NAME, AutoCollectionConversionService::createWith($converters));;
+            ->withReference(ConversionService::REFERENCE_NAME, AutoCollectionConversionService::createWith($converters));
+        ;
     }
 
     /**
@@ -232,7 +234,8 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $this->componentTest
             ->build(
                 $outboundAmqpGatewayBuilder
-                    ->withAutoDeclareOnSend(true))
+                    ->withAutoDeclareOnSend(true)
+            )
             ->handle($messageToSend);
     }
 

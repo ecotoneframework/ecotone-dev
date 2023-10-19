@@ -6,7 +6,6 @@ namespace Ecotone\Messaging\Scheduling;
 
 use DateTime;
 use DateTimeZone;
-use Psr\Clock\ClockInterface;
 
 /**
  * Class StubClock

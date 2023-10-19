@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadExpressionBuilder;
-use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
@@ -42,7 +39,8 @@ class PayloadExpressionBuilderTest extends TestCase
             ->build(new BoundParameterConverter(
                 $converter,
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', ''))));
+                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', ''))
+            ));
 
         $this->assertEquals(
             '1001',
@@ -62,11 +60,12 @@ class PayloadExpressionBuilderTest extends TestCase
         $converter = PayloadExpressionBuilder::create('x', "reference('calculatingService').sum(value)");
 
         $converter = ComponentTestBuilder::create()
-            ->withReference("calculatingService", CalculatingService::create(1))
+            ->withReference('calculatingService', CalculatingService::create(1))
             ->build(new BoundParameterConverter(
                 $converter,
                 InterfaceToCall::create(CallableService::class, 'wasCalled'),
-                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', ''))));
+                InterfaceParameter::createNullable('x', TypeDescriptor::createWithDocBlock('string', ''))
+            ));
 
 
         $this->assertEquals(

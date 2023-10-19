@@ -7,7 +7,6 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
@@ -15,10 +14,8 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\TargetAggregateVersion;
@@ -64,12 +61,12 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             ? new Definition(LazyEventSourcedRepository::class, [
                 $this->aggregateClassName,
                 $this->isEventSourced,
-                array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
+                array_map(fn ($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create')
             : new Definition(LazyStandardRepository::class, [
                 $this->aggregateClassName,
                 $this->isEventSourced,
-                array_map(fn($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
+                array_map(fn ($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
             ], 'create');
 
         if (! $builder->has(PropertyEditorAccessor::class)) {

@@ -4,6 +4,7 @@ namespace Ecotone\Messaging\Config\Container\Compiler;
 
 use Ecotone\Messaging\Config\Container\AttributeReference;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
@@ -25,6 +26,9 @@ class RegisterInterfaceToCallReferences implements CompilerPass
 
     private function registerAllReferences($argument, ContainerBuilder $containerBuilder): void
     {
+        if ($argument instanceof DefinedObject) {
+            $argument = $argument->getDefinition();
+        }
         if (is_array($argument)) {
             foreach ($argument as $value) {
                 $this->registerAllReferences($value, $containerBuilder);

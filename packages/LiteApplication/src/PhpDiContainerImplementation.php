@@ -10,6 +10,8 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use function is_array;
 
 use ReflectionMethod;
@@ -31,14 +33,20 @@ class PhpDiContainerImplementation implements CompilerPass
             $phpDiDefinitions[$id] = $this->resolveArgument($definition);
         }
 
+        if (isset($phpDiDefinitions['logger']) && !isset($phpDiDefinitions[LoggerInterface::class])) {
+            $phpDiDefinitions[LoggerInterface::class] = \DI\get('logger');
+        } else if (!isset($phpDiDefinitions['logger']) && isset($phpDiDefinitions[LoggerInterface::class])) {
+            $phpDiDefinitions['logger'] = \DI\get(LoggerInterface::class);
+        } else if (!isset($phpDiDefinitions['logger']) && !isset($phpDiDefinitions[LoggerInterface::class])) {
+            $phpDiDefinitions['logger'] = \DI\create(NullLogger::class);
+            $phpDiDefinitions[LoggerInterface::class] = \DI\get('logger');
+        }
+
         $this->containerBuilder->addDefinitions($phpDiDefinitions);
     }
 
     private function resolveArgument($argument): mixed
     {
-        if ($argument instanceof ConsoleCommandConfiguration) {
-            $i = 0;
-        }
         if ($argument instanceof DefinedObject) {
             $argument = $argument->getDefinition();
         }

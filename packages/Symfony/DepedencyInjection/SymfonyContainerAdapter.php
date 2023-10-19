@@ -19,9 +19,6 @@ use Psr\Container\ContainerInterface;
 use ReflectionMethod;
 use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition as SymfonyDefinition;
-
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
-
 use Symfony\Component\DependencyInjection\Reference as SymfonyReference;
 
 class SymfonyContainerAdapter implements CompilerPass

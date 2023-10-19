@@ -10,7 +10,7 @@ class LoadAggregateMode
 
     private int $type;
 
-    public function __construct(string $type)
+    public function __construct(int $type)
     {
         $this->type = $type;
     }

@@ -20,7 +20,7 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
     {
     }
 
-    public static function create(string $channelName, $referenceName): self
+    public static function create(string $channelName, string $referenceName): self
     {
         return new self(0, $channelName, $referenceName);
     }

@@ -17,13 +17,15 @@ use Throwable;
 
 final class TracingChannelInterceptor implements ChannelInterceptor
 {
+    const TRACING_CARRIER_HEADER = 'ecotoneTracingCarrier';
+
     public function __construct(private string $channelName, private TracerInterface $tracer)
     {
     }
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-        $span = EcotoneSpanBuilder::create($message, 'Asynchronous Channel: ' . $this->channelName, $this->tracer, SpanKind::KIND_PRODUCER)
+        $span = EcotoneSpanBuilder::create($message, 'Sending to Channel: ' . $this->channelName, $this->tracer, SpanKind::KIND_PRODUCER)
             ->startSpan();
         $span->activate();
 
@@ -31,7 +33,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         TraceContextPropagator::getInstance()->inject($carrier);
 
         return MessageBuilder::fromMessage($message)
-                ->setMultipleHeaders($carrier)
+                ->setHeader(self::TRACING_CARRIER_HEADER, \json_encode($carrier))
                 ->build();
     }
 
@@ -57,18 +59,23 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function afterReceiveCompletion(?Message $message, MessageChannel $messageChannel, ?Throwable $exception): void
     {
+        if ($exception !== null) {
+            // @TODO test
+            $carrier = $message->getHeaders()->containsKey(self::TRACING_CARRIER_HEADER) ? \json_decode($message->getHeaders()->get(self::TRACING_CARRIER_HEADER), true) : [];
+            $context = TraceContextPropagator::getInstance()->extract($carrier);
+
+            $span = EcotoneSpanBuilder::create($message, 'Asynchronous Channel: ' . $this->channelName, $this->tracer, SpanKind::KIND_CONSUMER)
+                ->setParent($context)
+                ->startSpan();
+
+            $span->setStatus(StatusCode::STATUS_ERROR);
+            $span->activate();
+            $span->end();
+        }
     }
 
     public function postReceive(Message $message, MessageChannel $messageChannel): ?Message
     {
-        if ($message instanceof Message) {
-            $carrier = $message->getHeaders()->headers();
-
-            /** 4. Here we consume Message from Message Broker, yet this is not span, it's a single moment in time  */
-
-            //            $context = TraceContextPropagator::getInstance()->extract($carrier);
-        }
-
         return $message;
     }
 }

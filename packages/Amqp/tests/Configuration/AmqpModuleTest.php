@@ -99,7 +99,7 @@ class AmqpModuleTest extends AmqpMessagingTest
     {
         $messagingSystem = $this->prepareConfiguration($extensions);
 
-        return $messagingSystem->getGatewayByName(AmqpAdmin::REFERENCE_NAME);
+        return $messagingSystem->getServiceFromContainer(AmqpAdmin::REFERENCE_NAME);
     }
 
     /**

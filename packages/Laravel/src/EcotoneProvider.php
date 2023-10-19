@@ -2,6 +2,10 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Lite\InMemoryContainerImplementation;
+use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
@@ -120,16 +124,20 @@ class EcotoneProvider extends ServiceProvider
             fn () => $serviceCacheConfiguration
         );
 
+        $this->app->singleton(ProxyFactory::class, function (Application $app) {
+            $cacheConfiguration = $app->get(ServiceCacheConfiguration::REFERENCE_NAME);
+            return new ProxyFactory($cacheConfiguration->shouldUseCache() ? $cacheConfiguration->getPath() : null);
+        });
+
         foreach ($configuration->getRegisteredGateways() as $registeredGateway) {
             $this->app->singleton(
                 $registeredGateway->getReferenceName(),
-                function ($app) use ($registeredGateway) {
-                    return ProxyFactory::createFor(
-                        $registeredGateway->getReferenceName(),
-                        $this->app,
-                        $registeredGateway->getInterfaceName(),
-                        $this->app->get(ServiceCacheConfiguration::REFERENCE_NAME)
-                    );
+                function (Application $app) use ($registeredGateway) {
+                    return $app->make(ProxyFactory::class)
+                        ->createFor(
+                            $registeredGateway->getReferenceName(),
+                            $app->make(ConfiguredMessagingSystem::class),
+                            $registeredGateway->getInterfaceName());
                 }
             );
         }
@@ -171,15 +179,20 @@ class EcotoneProvider extends ServiceProvider
             }
         }
 
+        $ecotoneContainer = InMemoryPSRContainer::createEmpty();
         $this->app->singleton(
             ConfiguredMessagingSystem::class,
-            function () use ($configuration) {
-                $referenceSearchService = new PsrContainerReferenceSearchService($this->app);
-                $messagingSystem = $configuration->buildMessagingSystemFromConfiguration($referenceSearchService);
-                $referenceSearchService->setConfiguredMessagingSystem($messagingSystem);
-                return $messagingSystem;
+            function () use ($ecotoneContainer) {
+                return $ecotoneContainer->get(ConfiguredMessagingSystem::class);
             }
         );
+        $ecotoneBuilder = new ContainerBuilder();
+        $ecotoneBuilder->addCompilerPass($configuration);
+        $ecotoneBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
+        $ecotoneBuilder->addCompilerPass(new InMemoryContainerImplementation($ecotoneContainer, $this->app));
+        $ecotoneBuilder->compile();
+
+
     }
 
     /**

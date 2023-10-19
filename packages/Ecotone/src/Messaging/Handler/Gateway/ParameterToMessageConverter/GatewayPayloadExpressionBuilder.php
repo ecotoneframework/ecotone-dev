@@ -8,11 +8,8 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverter;
 use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverterBuilder;
 use Ecotone\Messaging\Handler\InterfaceParameter;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Support\Assert;
 
 /**
  * Class GatewayExpressionBuilder

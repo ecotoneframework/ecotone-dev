@@ -5,12 +5,7 @@ namespace Ecotone\Laravel;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\RepositoryBuilder;
-use Ecotone\Modelling\StandardRepository;
-use Exception;
 
 final class EloquentRepositoryBuilder implements RepositoryBuilder
 {

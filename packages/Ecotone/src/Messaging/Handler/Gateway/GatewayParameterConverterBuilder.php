@@ -6,7 +6,6 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Handler\InterfaceParameter;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 /**
  * Interface MessageFromParameterConverterBuilder

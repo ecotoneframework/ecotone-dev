@@ -12,9 +12,6 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\MessageHandler;
 use Enqueue\Redis\RedisConnectionFactory;
 
 final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder

@@ -39,6 +39,7 @@ class EcotoneLiteApplication
         $file = $serviceCacheConfiguration->getPath() . '/CompiledContainer.php';
         if ($serviceCacheConfiguration->shouldUseCache() && file_exists($file)) {
             require_once $file;
+            /** @phpstan-ignore-next-line */
             $container = new CompiledContainer();
         } else {
             /** @var MessagingSystemConfiguration $messagingConfiguration */

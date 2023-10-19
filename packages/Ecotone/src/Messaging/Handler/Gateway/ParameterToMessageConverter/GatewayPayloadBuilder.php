@@ -6,10 +6,8 @@ namespace Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter;
 
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverter;
 use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverterBuilder;
 use Ecotone\Messaging\Handler\InterfaceParameter;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 /**
  * Class PayloadToMessageConverterBuilder

@@ -6,6 +6,10 @@ use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Support\Assert;
+use ReflectionMethod;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Lite\PsrContainerReferenceSearchService;
@@ -101,11 +105,25 @@ class EcotoneProvider extends ServiceProvider
         $applicationConfiguration = $applicationConfiguration->withExtensionObjects([new EloquentRepositoryBuilder()]);
 
         $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, $useCache);
-        $configuration = MessagingSystemConfiguration::prepare(
-            $rootCatalog,
-            new LaravelConfigurationVariableService(),
-            $applicationConfiguration,
-        );
+
+        if ($serviceCacheConfiguration->shouldUseCache()) {
+            $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging_system';
+            if (file_exists($messagingSystemCachePath)) {
+                $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
+            } else {
+                $definitionHolder = $this->buildDefinitionHolder($rootCatalog, $applicationConfiguration);
+                $this->prepareCacheDirectory($serviceCacheConfiguration);
+                file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
+            }
+        } else {
+            $definitionHolder = $this->buildDefinitionHolder($rootCatalog, $applicationConfiguration);
+        }
+
+        foreach ($definitionHolder->getDefinitions() as $id => $definition) {
+            $this->app->singleton($id, function () use ($definition) {
+                return $this->resolveArgument($definition);
+            });
+        }
 
         $this->app->singleton(
             ConfigurationVariableService::REFERENCE_NAME,
@@ -129,21 +147,8 @@ class EcotoneProvider extends ServiceProvider
             return new ProxyFactory($cacheConfiguration->shouldUseCache() ? $cacheConfiguration->getPath() : null);
         });
 
-        foreach ($configuration->getRegisteredGateways() as $registeredGateway) {
-            $this->app->singleton(
-                $registeredGateway->getReferenceName(),
-                function (Application $app) use ($registeredGateway) {
-                    return $app->make(ProxyFactory::class)
-                        ->createFor(
-                            $registeredGateway->getReferenceName(),
-                            $app->make(ConfiguredMessagingSystem::class),
-                            $registeredGateway->getInterfaceName());
-                }
-            );
-        }
-
         if ($this->app->runningInConsole()) {
-            foreach ($configuration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
+            foreach ($definitionHolder->getRegisteredCommands() as $oneTimeCommandConfiguration) {
                 $commandName = $oneTimeCommandConfiguration->getName();
 
                 foreach ($oneTimeCommandConfiguration->getParameters() as $parameter) {
@@ -178,21 +183,6 @@ class EcotoneProvider extends ServiceProvider
                 );
             }
         }
-
-        $ecotoneContainer = InMemoryPSRContainer::createEmpty();
-        $this->app->singleton(
-            ConfiguredMessagingSystem::class,
-            function () use ($ecotoneContainer) {
-                return $ecotoneContainer->get(ConfiguredMessagingSystem::class);
-            }
-        );
-        $ecotoneBuilder = new ContainerBuilder();
-        $ecotoneBuilder->addCompilerPass($configuration);
-        $ecotoneBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-        $ecotoneBuilder->addCompilerPass(new InMemoryContainerImplementation($ecotoneContainer, $this->app));
-        $ecotoneBuilder->compile();
-
-
     }
 
     /**
@@ -223,8 +213,76 @@ class EcotoneProvider extends ServiceProvider
         }
     }
 
+    private function buildDefinitionHolder(string $rootCatalog, ServiceConfiguration $applicationConfiguration): LaravelConfigurationHolder
+    {
+        $configuration = MessagingSystemConfiguration::prepare(
+            $rootCatalog,
+            new LaravelConfigurationVariableService(),
+            $applicationConfiguration,
+        );
+        $definitionHolder = new LaravelConfigurationHolder();
+        $ecotoneBuilder = new ContainerBuilder();
+        $ecotoneBuilder->addCompilerPass($configuration);
+        $ecotoneBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
+        $ecotoneBuilder->addCompilerPass($definitionHolder);
+        $ecotoneBuilder->compile();
+        return $definitionHolder;
+    }
+
+    private static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
+    {
+        if (! $serviceCacheConfiguration->shouldUseCache()) {
+            return;
+        }
+
+        $cacheDirectoryPath = $serviceCacheConfiguration->getPath();
+        if (! is_dir($cacheDirectoryPath)) {
+            $mkdirResult = @mkdir($cacheDirectoryPath, 0775, true);
+            Assert::isTrue(
+                $mkdirResult,
+                "Not enough permissions to create cache directory {$cacheDirectoryPath}"
+            );
+        }
+    }
+
     private function getCacheDirectoryPath(): string
     {
-        return App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'ecotone';
+        return App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data';
+    }
+
+    private function instantiateDefinition(mixed $definition): object
+    {
+        $arguments = $this->resolveArgument($definition->getConstructorArguments());
+        if ($definition->hasFactory()) {
+            $factory = $definition->getFactory();
+            if (method_exists($factory[0], $factory[1]) && (new ReflectionMethod($factory[0], $factory[1]))->isStatic()) {
+                // static call
+                return $factory(...$arguments);
+            } else {
+                // method call from a service instance
+                $service = $this->app->make($factory[0]);
+                return $service->{$factory[1]}(...$arguments);
+            }
+        } else {
+            $class = $definition->getClassName();
+            return new $class(...$arguments);
+        }
+    }
+
+    private function resolveArgument(mixed $argument): mixed
+    {
+        if (is_array($argument)) {
+            return array_map(fn ($argument) => $this->resolveArgument($argument), $argument);
+        } elseif($argument instanceof Definition) {
+            $object = $this->instantiateDefinition($argument);
+            foreach ($argument->getMethodCalls() as $methodCall) {
+                $object->{$methodCall->getMethodName()}(...$this->resolveArgument($methodCall->getArguments()));
+            }
+            return $object;
+        } elseif ($argument instanceof Reference) {
+            return $this->app->make($argument->getId());
+        } else {
+            return $argument;
+        }
     }
 }

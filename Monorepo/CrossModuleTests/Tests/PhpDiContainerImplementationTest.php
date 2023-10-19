@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\Lite\Unit;
+namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Lite\PhpDiContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;

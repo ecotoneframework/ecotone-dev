@@ -1,6 +1,6 @@
 <?php
 
-namespace Test;
+namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\SymfonyBundle\DepedencyInjection\SymfonyContainerAdapter;

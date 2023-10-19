@@ -33,7 +33,7 @@ final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
         return new Definition(TracingChannelInterceptor::class, [
-            new Reference($this->channelName),
+            $this->channelName,
             new Reference(TracerInterface::class)
         ]);
     }

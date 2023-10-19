@@ -100,4 +100,14 @@ class LazyConfiguredMessagingSystem implements ConfiguredMessagingSystem
         }
         return $this->configuredMessagingSystem;
     }
+
+    public function boot(): void
+    {
+        $this->getConfiguredSystem()->boot();
+    }
+
+    public function terminate(): void
+    {
+        $this->getConfiguredSystem()->terminate();
+    }
 }

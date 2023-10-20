@@ -7,12 +7,15 @@ use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServic
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\CacheWarmer;
 use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyConfigurationVariableService;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Reference;
 
 class EcotoneExtension extends Extension
 {
@@ -85,5 +88,17 @@ class EcotoneExtension extends Extension
         $containerBuilder->addCompilerPass(new RegisterSingletonMessagingServices());
         $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
         $containerBuilder->compile();
+
+        foreach ($messagingConfiguration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
+            $definition = new Definition();
+            $definition->setClass(MessagingEntrypointCommand::class);
+            $definition->addArgument($oneTimeCommandConfiguration->getName());
+            $definition->addArgument(serialize($oneTimeCommandConfiguration->getParameters()));
+            $definition->addArgument(new Reference(ConsoleCommandRunner::class));
+            $definition->addTag('console.command', ['command' => $oneTimeCommandConfiguration->getName()]);
+
+            $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
+        }
+
     }
 }

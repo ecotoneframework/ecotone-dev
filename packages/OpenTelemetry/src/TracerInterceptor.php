@@ -9,6 +9,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
+use OpenTelemetry\API\LoggerHolder;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -16,7 +17,6 @@ use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Context\ContextInterface;
 use OpenTelemetry\Context\ScopeInterface;
-use OpenTelemetry\SDK\Common\Log\LoggerHolder;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -36,7 +36,8 @@ final class TracerInterceptor
             $methodInvocation,
             $message,
             $referenceSearchService,
-            parentContext: $parentContext
+            parentContext: $parentContext,
+            spanKind: SpanKind::KIND_CONSUMER
         );
     }
 
@@ -93,7 +94,7 @@ final class TracerInterceptor
     public function traceQueryBus(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
     {
         return $this->trace(
-            'Event Bus',
+            'Query Bus',
             $methodInvocation,
             $message,
             $referenceSearchService
@@ -106,7 +107,8 @@ final class TracerInterceptor
         Message $message,
         ReferenceSearchService $referenceSearchService,
         array $attributes = [],
-        ?ContextInterface $parentContext = null
+        ?ContextInterface $parentContext = null,
+        int $spanKind = SpanKind::KIND_SERVER
     )
     {
         /** @TODO this should be moved somewhere else */

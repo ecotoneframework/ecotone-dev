@@ -85,7 +85,7 @@ jobs:
         id: baseline
         continue-on-error: true
         run: |
-          vendor/bin/phpbench run --retry-threshold=5 --tag=main --report=github-report
+          vendor/bin/phpbench run --retry-threshold=5 --tag=main --report=github-report --profile=opcache_enabled
 
       - uses: actions/checkout@v3
         with:
@@ -106,7 +106,7 @@ jobs:
           PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main' || '' }}"
         run: |
           echo "Baseline: $PHPBENCH_REF_OPTION"
-          vendor/bin/phpbench run --retry-threshold=5 --report=github-report $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > benchmark.md
+          vendor/bin/phpbench run --retry-threshold=5 --report=github-report --profile=opcache_enabled $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > benchmark.md
           cat benchmark.md
           echo '## Benchmark' >> "$GITHUB_STEP_SUMMARY"
           cat benchmark.md >> "$GITHUB_STEP_SUMMARY"

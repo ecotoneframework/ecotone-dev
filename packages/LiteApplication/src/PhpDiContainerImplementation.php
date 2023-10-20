@@ -18,7 +18,8 @@ use ReflectionMethod;
 
 class PhpDiContainerImplementation implements CompilerPass
 {
-    public function __construct(private PhpDiContainerBuilder $containerBuilder)
+    public const EXTERNAL_PREFIX = "external:";
+    public function __construct(private PhpDiContainerBuilder $containerBuilder, private array $classesToRegister)
     {
     }
 
@@ -29,8 +30,14 @@ class PhpDiContainerImplementation implements CompilerPass
     {
         $phpDiDefinitions = [];
 
-        foreach ($builder->getDefinitions() as $id => $definition) {
+        $definitions = $builder->getDefinitions();
+        foreach ($definitions as $id => $definition) {
             $phpDiDefinitions[$id] = $this->resolveArgument($definition);
+        }
+        foreach ($this->classesToRegister as $id => $class) {
+            if (!isset($phpDiDefinitions[$id])) {
+                $phpDiDefinitions[$id] = \DI\get(self::EXTERNAL_PREFIX . $id);
+            }
         }
 
         if (isset($phpDiDefinitions['logger']) && !isset($phpDiDefinitions[LoggerInterface::class])) {

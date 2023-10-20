@@ -50,6 +50,8 @@ class EcotoneLiteApplication
             );
 
             $builder = new PhpDiContainerBuilder();
+            $builder->useAttributes(false);
+            $builder->useAutowiring(true);
             if ($serviceCacheConfiguration->shouldUseCache()) {
                 $builder->enableCompilation($serviceCacheConfiguration->getPath());
             }
@@ -57,7 +59,7 @@ class EcotoneLiteApplication
             $containerBuilder = new ContainerBuilder();
             $containerBuilder->addCompilerPass($messagingConfiguration);
             $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-            $containerBuilder->addCompilerPass(new PhpDiContainerImplementation($builder));
+            $containerBuilder->addCompilerPass(new PhpDiContainerImplementation($builder, $classesToRegister));
             $containerBuilder->compile();
 
             $container = $builder->build();
@@ -76,7 +78,7 @@ class EcotoneLiteApplication
             $container->set($referenceName, $object);
         }
         foreach ($classesToRegister as $referenceName => $object) {
-            $container->set($referenceName, $object);
+            $container->set(PhpDiContainerImplementation::EXTERNAL_PREFIX.$referenceName, $object);
         }
 
         $messagingSystem = $container->get(ConfiguredMessagingSystem::class);

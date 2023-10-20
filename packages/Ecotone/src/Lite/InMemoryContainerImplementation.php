@@ -33,9 +33,6 @@ class InMemoryContainerImplementation implements ContainerImplementation
      */
     public function process(ContainerBuilder $builder): void
     {
-        // We don't need to combine containers as required references are resolved
-        // directly from this compiler pass
-        // $containerInstance = $this->externalContainer ? new CombinedContainer($this->container, $this->externalContainer) : $this->container;
         $this->container->set(ContainerInterface::class, $this->container);
         foreach ($builder->getDefinitions() as $id => $definition) {
             if (! $this->container->has($id)) {

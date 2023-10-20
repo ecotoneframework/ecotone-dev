@@ -2,8 +2,7 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
-use Ecotone\Lite\InMemoryContainerImplementation;
-use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Lite\LazyInMemoryContainer;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
@@ -16,15 +15,13 @@ class ContainerConfig
 {
     public static function buildMessagingSystemInMemoryContainer(Configuration $configuration, ?ContainerInterface $externalContainer = null, ?ConfigurationVariableService $configurationVariableService = null, ?ProxyFactory $proxyFactory = null): ConfiguredMessagingSystem
     {
-        $container = InMemoryPSRContainer::createFromAssociativeArray([
-            ConfigurationVariableService::REFERENCE_NAME => $configurationVariableService ?? InMemoryConfigurationVariableService::createEmpty(),
-            ProxyFactory::class => $proxyFactory ?? new ProxyFactory(''),
-        ]);
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass($configuration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-        $containerBuilder->addCompilerPass(new InMemoryContainerImplementation($container, $externalContainer));
         $containerBuilder->compile();
+        $container = new LazyInMemoryContainer($containerBuilder->getDefinitions(), $externalContainer);
+        $container->set(ConfigurationVariableService::REFERENCE_NAME, $configurationVariableService ?? InMemoryConfigurationVariableService::createEmpty());
+        $container->set(ProxyFactory::class, $proxyFactory ?? new ProxyFactory(''));
         return $container->get(ConfiguredMessagingSystem::class);
     }
 }

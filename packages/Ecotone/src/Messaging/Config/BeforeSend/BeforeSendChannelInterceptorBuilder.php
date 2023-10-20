@@ -50,11 +50,11 @@ class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
      */
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        $messageHandlerReference = $this->methodInterceptor->getInterceptingObject()->compile($builder);
-        $builder->register(new ChannelReference($this->internalRequestChannelName), new Definition(DirectChannel::class, [$this->internalRequestChannelName, $messageHandlerReference]));
-        $gatewayReference        = $this->gateway->compile($builder);
+        $messageHandler = $this->methodInterceptor->getInterceptingObject()->compile($builder);
+        $builder->register(new ChannelReference($this->internalRequestChannelName), new Definition(DirectChannel::class, [$this->internalRequestChannelName, $messageHandler]));
+        $gateway = $this->gateway->compile($builder);
 
-        return new Definition(BeforeSendChannelInterceptor::class, [$gatewayReference]);
+        return new Definition(BeforeSendChannelInterceptor::class, [$gateway]);
     }
 
     public function __toString()

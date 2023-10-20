@@ -99,6 +99,5 @@ class EcotoneExtension extends Extension
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
         }
-
     }
 }

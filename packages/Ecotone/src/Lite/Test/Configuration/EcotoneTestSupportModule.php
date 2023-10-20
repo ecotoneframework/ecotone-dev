@@ -59,8 +59,6 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         $testConfiguration = ExtensionObjectResolver::resolveUnique(TestConfiguration::class, $extensionObjects, TestConfiguration::createWithDefaults());
 
         $messagingConfiguration->registerServiceDefinition(MessageCollectorHandler::class, new Definition(MessageCollectorHandler::class));
-        $messagingConfiguration->registerServiceDefinition(AllowMissingDestination::class, new Definition(AllowMissingDestination::class));
-
         $this->registerMessageCollector($messagingConfiguration, $interfaceToCallRegistry);
         $this->registerMessageReleasingHandler($messagingConfiguration);
 

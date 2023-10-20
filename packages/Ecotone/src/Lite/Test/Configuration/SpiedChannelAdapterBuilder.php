@@ -29,9 +29,6 @@ final class SpiedChannelAdapterBuilder implements ChannelInterceptorBuilder
 
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        if (! $builder->has(MessageCollectorHandler::class)) {
-            throw new InvalidArgumentException("Can't spy channel {$this->relatedChannel} without MessageCollectorHandler registered in container");
-        }
         return new Definition(
             SpiecChannelAdapter::class,
             [

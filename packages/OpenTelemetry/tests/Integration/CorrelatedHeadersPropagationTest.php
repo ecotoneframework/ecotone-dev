@@ -6,8 +6,10 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use ArrayObject;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use InvalidArgumentException;
 use OpenTelemetry\API\Trace\StatusCode;
@@ -25,7 +27,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
 /**
  * @internal
  */
-final class TracingHeadersPropagationTest extends TracingTest
+final class CorrelatedHeadersPropagationTest extends TracingTest
 {
     public function test_tracing_with_single_levels_of_nesting()
     {
@@ -121,6 +123,63 @@ final class TracingHeadersPropagationTest extends TracingTest
 
         $this->assertSpanWith('Command Handler: ' . Merchant::class . '::create', $spans[4], $messageId, $correlationId, $timestamp);
         $this->assertSpanWith('Command Bus', $spans[5], $messageId, $correlationId, $timestamp);
+    }
+
+    public function test_tracing_same_message_for_asynchronous_scenario()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        $messageId = Uuid::uuid4()->toString();
+        $correlationId = Uuid::uuid4()->toString();
+        $timestamp = 1680436648;
+
+        EcotoneLite::bootstrapFlowTesting(
+            [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
+            [TracerInterface::class => $this->prepareTracer($exporter)],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ])
+        )
+            ->sendCommand(new RegisterUser('1'), [
+                MessageHeaders::MESSAGE_ID => $messageId,
+                MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
+                MessageHeaders::TIMESTAMP => $timestamp,
+            ])
+            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $node = $this->getNodeAtTargetedSpan(
+            [
+                'details' => ['name' => 'Command Bus'],
+                'child' =>
+                    [
+                        'details' => ['name' => 'Sending to Channel: async_channel'],
+                        'child' =>
+                            [
+                                'details' => ['name' => 'Receiving from channel: async_channel']
+                            ]
+                    ]
+            ],
+            $this->buildTree($exporter)
+        );
+
+        $this->assertSame(
+            $correlationId,
+            $node['details']['attributes'][MessageHeaders::MESSAGE_CORRELATION_ID]
+        );
+        $this->assertSame(
+            $correlationId,
+            $node['children'][array_key_first($node['children'])]['details']['attributes'][MessageHeaders::MESSAGE_CORRELATION_ID]
+        );
+        $this->assertSame(
+            $messageId,
+            $node['details']['attributes'][MessageHeaders::MESSAGE_ID]
+        );
+        $this->assertSame(
+            $messageId,
+            $node['children'][array_key_first($node['children'])]['details']['attributes'][MessageHeaders::MESSAGE_ID]
+        );
     }
 
     public function test_tracing_with_exception()

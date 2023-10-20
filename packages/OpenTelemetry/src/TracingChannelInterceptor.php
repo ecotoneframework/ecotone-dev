@@ -59,7 +59,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function afterReceiveCompletion(?Message $message, MessageChannel $messageChannel, ?Throwable $exception): void
     {
-        if ($exception !== null) {
+        if ($exception !== null && $message !== null) {
             // @TODO test
             $carrier = $message->getHeaders()->containsKey(self::TRACING_CARRIER_HEADER) ? \json_decode($message->getHeaders()->get(self::TRACING_CARRIER_HEADER), true) : [];
             $context = TraceContextPropagator::getInstance()->extract($carrier);

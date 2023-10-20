@@ -339,173 +339,104 @@ final class TracingTreeTest extends TracingTest
         );
     }
 
-    private function compareTreesByDetails(
-        array $expectedTree,
-        array $collectedTree
-    ) {
-        foreach ($expectedTree as $expectedNode) {
-            $this->findAndCompareNode($expectedNode, $collectedTree);
-        }
-    }
-
-    public function TODO_test_tracing_with_exception()
+    public function test_passing_user_specific_headers()
     {
-        $exporter = new InMemoryExporter(new ArrayObject());
+        $exporter = new InMemoryExporter();
 
-        $messageId = Uuid::uuid4()->toString();
-        $correlationId = Uuid::uuid4()->toString();
-        $timestamp = 1680436648;
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
+            [TracerInterface::class => $this->prepareTracer($exporter)],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ])
+        )
+            ->sendCommand(
+                new RegisterUser('1'),
+                [
+                    'user_id' => '123'
+                ]
+            );
 
-        try {
-            EcotoneLite::bootstrapFlowTesting(
-                [\Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class],
-                [TracerInterface::class => $this->prepareTracer($exporter)],
-                ServiceConfiguration::createWithDefaults()
-                    ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
-            )
-                ->sendCommand(new RegisterUser('1'), metadata: [
-                    MessageHeaders::MESSAGE_ID => $messageId,
-                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
-                    MessageHeaders::TIMESTAMP => $timestamp,
-                ]);
-        } catch (InvalidArgumentException) {
-        }
+        $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $this->assertSame(
+        $this->compareTreesByDetails(
             [
-                'Command Bus' => [
-                    'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class . '::register' => [],
-                ],
+                [
+                    'details' => [
+                        'name' => 'Command Bus',
+                        'attributes' => ['user_id' => '123']
+                    ],
+                    'children' => [
+                        [
+                            'details' => [
+                                'name' => 'Sending to Channel: async_channel',
+                                'attributes' => ['user_id' => '123']
+                            ],
+                            'children' => [
+                                [
+                                    'details' => [
+                                        'name' => 'Receiving from channel: async_channel',
+                                        'attributes' => ['user_id' => '123']
+                                    ],
+                                    'children' => [
+                                        [
+                                            'details' => [
+                                                'name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register',
+                                                'attributes' => ['user_id' => '123']
+                                            ],
+                                            'children' => []
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
             ],
             $this->buildTree($exporter)
         );
     }
 
-    public function buildTree(InMemoryExporter $exporter): array
+    public function test_user_land_metadata_should_be_skipped_in_case_is_not_scalar(): void
     {
-        $tree = [];
-        foreach ($exporter->getSpans() as $span) {
-            $preparedSpan = [
-                'details' => [
-                    'name' => $span->getName(),
-                    'span_id' => $span->getSpanId(),
-                    'parent_id' => $span->getParentContext()->isValid() ? $span->getParentSpanId() : null,
-                    'attributes' => $span->getAttributes()->toArray(),
-                    'kind' => $span->getKind(),
-                    'links' => $span->getLinks()
-                ],
-                'children' => []
-            ];
+        $exporter = new InMemoryExporter(new ArrayObject());
 
-            $tree = $this->putInTree($preparedSpan, $tree, true);
-        }
+        EcotoneLite::bootstrapFlowTesting(
+            [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
+            [TracerInterface::class => $this->prepareTracer($exporter)],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ])
+        )
+            ->sendCommand(new RegisterUser('1'), [
+                'tokens' => ['123'],
+                'user' => new \stdClass()
+            ])
+            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        return $tree;
+        $node = $this->getNodeAtTargetedSpan(
+            [
+                'details' => ['name' => 'Command Bus']
+            ],
+            $this->buildTree($exporter)
+        );
+
+        $this->assertArrayNotHasKey(
+            'user',
+            $node['details']['attributes']
+        );
+        $this->assertArrayNotHasKey(
+            'tokens',
+            $node['details']['attributes']
+        );
     }
 
-    private function putInTree(array $searchedSpan, array $tree, bool $isRoot): array
+    public function test_passing_span_context_when_using_distributed_bus(): void
     {
-        $searchedSpanId = $searchedSpan['details']['span_id'];
-        $searchedParentId = $searchedSpan['details']['parent_id'];
-
-        foreach ($tree as $nodeId => $node) {
-            /** Connect all non parent node */
-            if ($node['details']['parent_id'] === $searchedSpanId) {
-                unset($tree[$nodeId]);
-                $searchedSpan['children'][$nodeId] = $node;
-            }
-        }
-        $changedStructure = $tree;
-
-        foreach ($tree as $nodeId => $node) {
-            if ($nodeId === $searchedParentId) {
-                if (in_array($searchedSpanId, array_keys($node['children']))) {
-                    continue;
-                }
-
-                $changedStructure[$nodeId]['children'][$searchedSpanId] = $searchedSpan;
-            } elseif ($node['details']['parent_id'] === $searchedSpanId) {
-                unset($changedStructure[$nodeId]);
-                $searchedSpan['children'][$nodeId] = $node;
-
-                $changedStructure = $this->putInTree(
-                    $searchedSpan,
-                    $changedStructure,
-                    true
-                );
-            }else {
-                // go to children
-                $changedStructure[$nodeId]['children'] = $this->putInTree(
-                    $searchedSpan,
-                    $node['children'],
-                    false
-                );
-            }
-        }
-
-        if ($isRoot && $changedStructure == $tree) {
-            $changedStructure[$searchedSpanId] = $searchedSpan;
-        }
-
-        return $changedStructure;
-    }
-
-    private function getSpanParentTree(string $spanIdToFind, ArrayObject $treeOnGivenLevel): ?ArrayObject
-    {
-        foreach ($treeOnGivenLevel as $spanId => $children) {
-            if ($spanIdToFind === $spanId) {
-                return $children;
-            } else {
-                $innerTree = $this->getSpanParentTree($spanIdToFind, $children);
-
-                if ($innerTree !== null) {
-                    return $innerTree;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private function rebuildTreeWithNames(ArrayObject $tree, array $spanIdNameMapping): array
-    {
-        $treeWithNames = [];
-
-        foreach ($tree as $spanId => $children) {
-            $treeWithNames[$spanIdNameMapping[$spanId]] = $this->rebuildTreeWithNames($children, $spanIdNameMapping);
-        }
-
-        return $treeWithNames;
-    }
-
-    /** @var string[] */
-    private array $parentReferences = [];
-
-    public function followParents(ImmutableSpan $span, array $parentReferences): array
-    {
-        $spanName = $span->getName();
-
-        if (! $span->getParentContext()->isValid()) {
-            return [$spanName => []];
-        }
-
-
-    }
-
-    private function findAndCompareNode(array $expectedTreeNode, array $collectedTree): void
-    {
-        foreach ($collectedTree as $collectedNode) {
-            if ($expectedTreeNode['details']['name'] === $collectedNode['details']['name']) {
-                foreach ($expectedTreeNode['details'] as $expectedKey => $expectedValue) {
-                    $this->assertArrayHasKey($expectedKey, $collectedNode['details'], "Expected key {$expectedKey} is not present in node {$collectedNode['details']['name']}");
-                    $this->assertSame($expectedValue, $collectedNode['details'][$expectedKey], "Expected value for key {$expectedKey} is {$expectedValue}, but got {$collectedNode['details'][$expectedKey]} in node {$collectedNode['details']['name']}");
-                }
-                $this->compareTreesByDetails($expectedTreeNode['children'], $collectedNode['children']);
-
-                return;
-            }
-        }
-
-        $this->assertTrue(false, "Could not find node with name {$expectedTreeNode['details']['name']}. Nodes at this level: " . \json_encode($collectedTree));
+        
     }
 }

@@ -19,7 +19,7 @@ use ReflectionMethod;
 class PhpDiContainerImplementation implements CompilerPass
 {
     public const EXTERNAL_PREFIX = "external:";
-    public function __construct(private PhpDiContainerBuilder $containerBuilder, private array $classesToRegister)
+    public function __construct(private PhpDiContainerBuilder $containerBuilder, private array $classesToRegister = [])
     {
     }
 

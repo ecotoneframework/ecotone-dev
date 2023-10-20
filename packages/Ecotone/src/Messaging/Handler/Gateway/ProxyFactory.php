@@ -66,6 +66,9 @@ class ProxyFactory
      */
     public function warmUp(array $gatewayReferences): void
     {
+        if (! $this->cacheDirectory) {
+            return;
+        }
         $factory = new RemoteObjectFactory(new class () implements AdapterInterface {
             public function call(string $wrappedClass, string $method, array $params = [])
             {

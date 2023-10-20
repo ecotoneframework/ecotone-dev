@@ -121,7 +121,8 @@
         "symfony/console": "^5.4|^6.0",
         "symfony/framework-bundle": "^5.4|^6.0",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "php-di/php-di": "^7.0.1"
+        "php-di/php-di": "^7.0.1",
+        "open-telemetry/api": "^1.0.0"
     },
     "require-dev": {
         "behat/behat": "^3.10",
@@ -145,7 +146,6 @@
         "doctrine/doctrine-bundle": "^2.7.2",
         "phpbench/phpbench": "^1.2",
         "enqueue/null": "^0.10.18",
-        "open-telemetry/api": "^1.0.0",
         "open-telemetry/sdk": "^1.0.0",
         "open-telemetry/transport-grpc": "^1.0.0",
         "open-telemetry/exporter-otlp": "^1.0.0"

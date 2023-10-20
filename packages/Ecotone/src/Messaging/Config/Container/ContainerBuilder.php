@@ -27,36 +27,36 @@ class ContainerBuilder
     {
     }
 
-    public function register(string|Reference $id, object|array|string $definition = []): Reference
+    public function register(string $id, DefinedObject|Definition|Reference|array $definition = []): Reference
     {
-        if (isset($this->definitions[(string) $id])) {
+        if (isset($this->definitions[$id])) {
             throw new InvalidArgumentException("Definition with id {$id} already exists");
         }
         return $this->replace($id, $definition);
     }
 
-    public function replace(string|Reference $id, object|array|string $definition = []): Reference
+    public function replace(string $id, DefinedObject|Definition|Reference|array $definition = []): Reference
     {
-        if (isset($this->externalReferences[(string) $id])) {
-            unset($this->externalReferences[(string) $id]);
+        if (isset($this->externalReferences[$id])) {
+            unset($this->externalReferences[$id]);
         }
         if (is_array($definition)) {
             // Parameters are passed directly, transform to a definition
-            $definition = new Definition((string) $id, $definition);
+            $definition = new Definition($id, $definition);
         } elseif ($definition instanceof DefinedObject) {
             $definition = new DefinedObjectWrapper($definition);
         }
-        $this->definitions[(string) $id] = $definition;
-        return $id instanceof Reference ? $id : new Reference($id);
+        $this->definitions[$id] = $definition;
+        return new Reference($id);
     }
 
-    public function getDefinition(string|Reference $id): object
+    public function getDefinition(string $id): Definition|Reference
     {
-        return $this->definitions[(string) $id];
+        return $this->definitions[$id];
     }
 
     /**
-     * @return array<string, object>
+     * @return array<string, Definition|Reference>
      */
     public function getDefinitions(): array
     {
@@ -78,9 +78,9 @@ class ContainerBuilder
         }
     }
 
-    public function has(string|Reference $id): bool
+    public function has(string $id): bool
     {
-        return isset($this->definitions[(string) $id]);
+        return isset($this->definitions[$id]);
     }
 
     public function addCompilerPass(CompilerPass $compilerPass)

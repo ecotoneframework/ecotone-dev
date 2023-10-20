@@ -28,7 +28,7 @@ class LazyInMemoryContainer implements ContainerInterface
 
     public function has(string $id): bool
     {
-        return isset($this->definitions[$id]) || ($this->externalContainer?->has($id) ?? false);
+        return isset($this->definitions[$id]) || isset($this->resolvedObjects[$id]) || ($this->externalContainer?->has($id) ?? false);
     }
 
     public function set(string $id, mixed $object): void

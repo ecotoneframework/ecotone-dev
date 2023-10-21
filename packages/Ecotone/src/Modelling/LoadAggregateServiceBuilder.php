@@ -5,7 +5,6 @@ namespace Ecotone\Modelling;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -20,8 +19,6 @@ use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\TargetAggregateVersion;
 
-use function uniqid;
-
 class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
 {
     private string $aggregateClassName;
@@ -29,7 +26,6 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     private ?string $messageVersionPropertyName;
     private ?string $aggregateVersionPropertyName = null;
     private array $aggregateRepositoryReferenceNames;
-    private ?string $handledMessageClassName;
     private EventSourcingHandlerExecutor $eventSourcingHandlerExecutor;
     private LoadAggregateMode $loadAggregateMode;
     private bool $isEventSourced;
@@ -39,7 +35,6 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     {
         $this->aggregateClassName      = $aggregateClassName;
         $this->methodName              = $methodName;
-        $this->handledMessageClassName = $handledMessageClass;
         $this->loadAggregateMode = $loadAggregateMode;
 
         $this->initialize($aggregateClassName, $handledMessageClass, $interfaceToCallRegistry);
@@ -89,10 +84,8 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             new Definition(LoadAggregateMode::class, [$this->loadAggregateMode->getType()]),
         ]);
 
-        $reference = $builder->register(uniqid(LoadAggregateService::class), $loadAggregateService);
 
-        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(LoadAggregateService::class, 'load'));
-        return ServiceActivatorBuilder::create($reference, $interfaceToCall)
+        return ServiceActivatorBuilder::createWithDefinition($loadAggregateService, 'load')
             ->withOutputMessageChannel($this->getOutputMessageChannelName())
             ->compile($builder);
     }

@@ -1,9 +1,11 @@
 <?php
 
+use Ecotone\Laravel\EcotoneProvider;
 use Illuminate\Foundation\Providers\ArtisanServiceProvider;
 use Illuminate\Foundation\Providers\ComposerServiceProvider;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
+use Monorepo\ExampleApp\Laravel\app\Providers\RouteServiceProvider;
 
 return [
 
@@ -163,17 +165,21 @@ return [
          */
 //        Illuminate\Bus\BusServiceProvider::class,
         Illuminate\Cache\CacheServiceProvider::class,
+        Illuminate\View\ViewServiceProvider::class,
+        Illuminate\Translation\TranslationServiceProvider::class,
 //        Illuminate\Foundation\Providers\FoundationServiceProvider::class,
 //        Illuminate\Hashing\HashServiceProvider::class,
 //        Illuminate\Notifications\NotificationServiceProvider::class,
 //        Illuminate\Pagination\PaginationServiceProvider::class,
 //        Illuminate\Pipeline\PipelineServiceProvider::class,
 //        Illuminate\Queue\QueueServiceProvider::class,
+        ArtisanServiceProvider::class,
 
         /*
          * Package Service Providers...
          */
-        \Ecotone\Laravel\EcotoneProvider::class,
+        EcotoneProvider::class,
+        RouteServiceProvider::class,
 
         /*
          * Application Service Providers...

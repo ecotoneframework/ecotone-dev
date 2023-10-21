@@ -7,4 +7,5 @@ return [
         'Monorepo\ExampleApp\Common',
     ],
     'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]),
+    'cacheConfiguration' => \getenv('APP_ENV') === 'prod',
 ];

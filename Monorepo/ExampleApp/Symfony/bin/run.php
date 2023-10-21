@@ -18,6 +18,7 @@ $configuration = $kernel->getContainer()->get(Configuration::class);
 $response = $kernel->handle(
     Request::create(
         '/place-order',
+        'POST',
         content: json_encode([
             'orderId' => Uuid::uuid4()->toString(),
             'address' => [

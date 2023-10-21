@@ -28,7 +28,6 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        Route::get('/place-order', [OrderController::class, 'placeOrder']);
-        Route::get('/place-order-without-messaging', [OrderControllerWithoutMessaging::class, 'placeOrder']);
+        Route::post('/place-order', [OrderController::class, 'placeOrder']);
     }
 }

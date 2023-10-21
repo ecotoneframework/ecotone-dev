@@ -173,6 +173,7 @@ return [
 //        Illuminate\Pagination\PaginationServiceProvider::class,
 //        Illuminate\Pipeline\PipelineServiceProvider::class,
 //        Illuminate\Queue\QueueServiceProvider::class,
+        ArtisanServiceProvider::class,
 
         /*
          * Package Service Providers...

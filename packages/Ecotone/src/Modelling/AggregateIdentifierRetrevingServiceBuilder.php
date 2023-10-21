@@ -5,7 +5,6 @@ namespace Ecotone\Modelling;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -20,8 +19,6 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
-
-use function uniqid;
 
 /**
  * Class AggregateMessageConversionServiceBuilder
@@ -55,8 +52,7 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
      */
     public function compile(ContainerMessagingBuilder $builder): Definition
     {
-        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(AggregateIdentifierRetrevingService::class, 'convert'));
-        $serviceReference = $builder->register(uniqid(AggregateIdentifierRetrevingService::class), new Definition(
+        $aggregateIdentifierRetrevingService = new Definition(
             AggregateIdentifierRetrevingService::class,
             [
                 $this->aggregateClassName->getClassType()->toString(),
@@ -66,8 +62,8 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
                 $this->metadataIdentifierMapping,
                 $this->payloadIdentifierMapping,
             ]
-        ));
-        $serviceActivatorBuilder = ServiceActivatorBuilder::create($serviceReference, $interfaceToCall)
+        );
+        $serviceActivatorBuilder = ServiceActivatorBuilder::createWithDefinition($aggregateIdentifierRetrevingService, 'convert')
             ->withOutputMessageChannel($this->getOutputMessageChannelName());
         return $serviceActivatorBuilder->compile($builder);
     }

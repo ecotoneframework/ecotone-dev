@@ -85,7 +85,6 @@ class EcotoneExtension extends Extension
         $containerBuilder = new \Ecotone\Messaging\Config\Container\ContainerBuilder();
         $containerBuilder->addCompilerPass($messagingConfiguration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-        $containerBuilder->addCompilerPass(new RegisterSingletonMessagingServices());
         $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
         $containerBuilder->compile();
 

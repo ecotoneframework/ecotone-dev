@@ -220,7 +220,7 @@ class EcotoneProvider extends ServiceProvider
             new LaravelConfigurationVariableService(),
             $applicationConfiguration,
         );
-        $definitionHolder = new LaravelConfigurationHolder();
+        $definitionHolder = new LaravelConfigurationHolder($configuration->getRegisteredConsoleCommands());
         $ecotoneBuilder = new ContainerBuilder();
         $ecotoneBuilder->addCompilerPass($configuration);
         $ecotoneBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());

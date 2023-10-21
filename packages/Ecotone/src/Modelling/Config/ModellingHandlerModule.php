@@ -377,7 +377,7 @@ class ModellingHandlerModule implements AnnotationModule
 
                 $this->registerSaveAggregate($aggregateClassDefinition, $messagingConfiguration, $chainMessageHandlerBuilder, $interfaceToCallRegistry, $baseEventSourcingConfiguration, $inputChannelName);
             } else {
-                Assert::isTrue($interface->hasFirstParameter(), 'Fetchting repository should have at least one parameter for identifiers: ' . $repositoryGateway);
+                Assert::isTrue($interface->hasFirstParameter(), 'Fetching repository should have at least one parameter for identifiers: ' . $repositoryGateway);
                 $this->registerLoadAggregate(
                     $interfaceToCallRegistry->getClassDefinitionFor($interface->getReturnType()),
                     $interface->canItReturnNull(),

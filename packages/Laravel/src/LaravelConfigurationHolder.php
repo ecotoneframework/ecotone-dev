@@ -2,13 +2,20 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 
 class LaravelConfigurationHolder implements ContainerImplementation
 {
     private array $definitions = [];
-    private array $registeredCommands = [];
+
+    /**
+     * @param ConsoleCommandConfiguration[] $registeredCommands
+     */
+    public function __construct(private array $registeredCommands) {
+
+    }
 
     public function process(ContainerBuilder $builder): void
     {
@@ -20,13 +27,11 @@ class LaravelConfigurationHolder implements ContainerImplementation
         return $this->definitions;
     }
 
+    /**
+     * @return ConsoleCommandConfiguration[]
+     */
     public function getRegisteredCommands(): array
     {
         return $this->registeredCommands;
-    }
-
-    public function setRegisteredCommands(array $registeredCommands): void
-    {
-        $this->registeredCommands = $registeredCommands;
     }
 }

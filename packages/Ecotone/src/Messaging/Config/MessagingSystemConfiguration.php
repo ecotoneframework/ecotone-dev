@@ -1048,11 +1048,7 @@ final class MessagingSystemConfiguration implements Configuration
 
         $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {
-            if ($converterBuilder instanceof CompilableBuilder) {
-                $converters[] = $converterBuilder->compile($messagingBuilder);
-            } else {
-                throw ConfigurationException::create("Converter can't be compiled");
-            }
+            $converters[] = $converterBuilder->compile($messagingBuilder);
         }
         $messagingBuilder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters], 'createWith'));
 

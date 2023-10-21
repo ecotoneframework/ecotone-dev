@@ -10,9 +10,6 @@ use Psr\Container\ContainerInterface;
 
 abstract class FullAppBenchmarkCase
 {
-    private static $wasBootstrappedForLaravelProd = false;
-    private static $wasBootstrappedForLaravelDev = false;
-
     public function bench_symfony_prod()
     {
         $this->productionEnvironments();

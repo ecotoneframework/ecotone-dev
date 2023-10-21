@@ -2,6 +2,7 @@
 
 namespace Monorepo\Benchmark;
 
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleApp\Symfony\Kernel;
 use PhpBench\Attributes\Iterations;
@@ -25,5 +26,10 @@ class KernelBootBenchmark extends FullAppBenchmarkCase
     public function executeForLiteApplication(ContainerInterface $container): void
     {
         // do nothing
+    }
+
+    public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
+    {
+        // TODO: Implement executeForLite() method.
     }
 }

@@ -16,16 +16,21 @@ class MessagingBootBenchmark extends FullAppBenchmarkCase
 {
     public function executeForSymfony(ContainerInterface $container, Kernel $kernel): void
     {
-        $container->get(ConfiguredMessagingSystem::class);
+        $container->get(ConfiguredMessagingSystem::class)->list();
     }
 
     public function executeForLaravel(ContainerInterface $container, LaravelKernel $kernel): void
     {
-        $container->get(ConfiguredMessagingSystem::class);
+        $container->get(ConfiguredMessagingSystem::class)->list();
     }
 
     public function executeForLiteApplication(ContainerInterface $container): void
     {
-        $container->get(ConfiguredMessagingSystem::class);
+        $container->get(ConfiguredMessagingSystem::class)->list();
+    }
+
+    public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
+    {
+        $messagingSystem->list();
     }
 }

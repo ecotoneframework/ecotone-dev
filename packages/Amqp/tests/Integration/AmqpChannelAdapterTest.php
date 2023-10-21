@@ -18,7 +18,6 @@ use Ecotone\Enqueue\EnqueueMessageChannel;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
@@ -186,7 +185,6 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      * @param string $requestChannelName
      * @param MessageChannel $inboundRequestChannel
      *
-     * @return InMemoryChannelResolver
      * @throws MessagingException
      */
     private function createChannelResolver(string $requestChannelName, MessageChannel $inboundRequestChannel): void

@@ -29,11 +29,8 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
      * @param InterfaceToCall $interfaceToCall
      * @param MessageProcessor $messageProcessor
      */
-    public function __construct(InterfaceToCall $interfaceToCall, ?MessageProcessor $messageProcessor)
+    public function __construct(InterfaceToCall $interfaceToCall, MessageProcessor $messageProcessor)
     {
-        if (is_null($messageProcessor)) {
-            throw new InvalidArgumentException("Message processor can't be null");
-        }
         $this->interfaceToCall = $interfaceToCall;
         $this->messageProcessor = $messageProcessor;
     }

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Infrastructure\InMemory;
 
+use Ecotone\Modelling\Attribute\Repository;
 use Monorepo\ExampleApp\Common\Domain\Product\Product;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
 use Ramsey\Uuid\UuidInterface;
 
+#[Repository]
 final class InMemoryProductRepository implements ProductRepository
 {
     /** @var Product[] */
@@ -16,7 +18,7 @@ final class InMemoryProductRepository implements ProductRepository
     /**
      * @param Product[] $products
      */
-    public function __construct(array $products)
+    public function __construct(array $products = [])
     {
         foreach ($products as $product) {
             $this->save( $product);

@@ -22,7 +22,7 @@ class KernelBootBenchmark extends FullAppBenchmarkCase
         // do nothing
     }
 
-    public function executeForLite(ContainerInterface $container): void
+    public function executeForLiteApplication(ContainerInterface $container): void
     {
         // do nothing
     }

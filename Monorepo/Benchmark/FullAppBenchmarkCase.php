@@ -2,6 +2,7 @@
 
 namespace Monorepo\Benchmark;
 
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;
@@ -69,20 +70,36 @@ abstract class FullAppBenchmarkCase
         Artisan::call('config:clear');
     }
 
+    public function bench_lite_application_prod()
+    {
+        $this->productionEnvironments();
+        $bootstrap = require __DIR__ . "/../ExampleApp/LiteApplication/app.php";
+        $messagingSystem =  $bootstrap(true);
+        $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
+    }
+
+    public function bench_lite_application_dev()
+    {
+        $this->developmentEnvironments();
+        $bootstrap = require __DIR__ . "/../ExampleApp/LiteApplication/app.php";
+        $messagingSystem =  $bootstrap(false);
+        $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
+    }
+
     public function bench_lite_prod()
     {
         $this->productionEnvironments();
-        $bootstrap = require __DIR__ . "/../ExampleApp/Lite/app.php";
-        $messagingSystem =  $bootstrap(true);
-        $this->executeForLite(new LiteContainerAccessor($messagingSystem));
+        $bootstrap = require __DIR__ . '/../ExampleApp/Lite/app.php';
+        $messagingSystem = $bootstrap(true);
+        $this->executeForLite($messagingSystem);
     }
 
     public function bench_lite_dev()
     {
         $this->developmentEnvironments();
-        $bootstrap = require __DIR__ . "/../ExampleApp/Lite/app.php";
-        $messagingSystem =  $bootstrap(false);
-        $this->executeForLite(new LiteContainerAccessor($messagingSystem));
+        $bootstrap = require __DIR__ . '/../ExampleApp/Lite/app.php';
+        $messagingSystem = $bootstrap(false);
+        $this->executeForLite($messagingSystem);
     }
 
     private function createLaravelApplication(): Application
@@ -104,8 +121,12 @@ abstract class FullAppBenchmarkCase
         LaravelKernel $kernel
     ): void;
 
-    public abstract function executeForLite(
+    public abstract function executeForLiteApplication(
         ContainerInterface $container
+    ): void;
+
+    public abstract function executeForLite(
+        ConfiguredMessagingSystem $messagingSystem
     ): void;
 
     private function productionEnvironments(): void

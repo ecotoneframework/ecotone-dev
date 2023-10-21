@@ -2,6 +2,7 @@
 
 namespace Monorepo\CrossModuleTests\Tests;
 
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;
@@ -32,14 +33,12 @@ abstract class FullAppTestCase extends TestCase
         $this->executeForSymfony($container, $kernel);
     }
 
-    /**
-     * @BeforeMethods("dumpLaravelCache")
-     * @AfterMethods("clearLaravelCache")
-     */
     public function test_laravel_prod(): void
     {
         $this->productionEnvironments();
         $app = $this->createLaravelApplication();
+        Artisan::call('route:cache');
+        Artisan::call('config:cache');
 
         $this->executeForLaravel($app, $app->get(LaravelKernel::class));
     }
@@ -48,43 +47,41 @@ abstract class FullAppTestCase extends TestCase
     {
         $this->developmentEnvironments();
         $app = $this->createLaravelApplication();
+        Artisan::call('config:clear');
 
         $this->executeForLaravel($app, $app->get(LaravelKernel::class));
     }
 
-    /**
-     * Calling config:cache always dumps the cache,
-     * this means we need to do it before the benchmark
-     */
-    public function dumpLaravelCache(): void
+    public function test_lite_application_prod()
     {
         $this->productionEnvironments();
-        $this->createLaravelApplication();
-        Artisan::call('route:cache');
-        Artisan::call('config:cache');
-    }
-
-    public function clearLaravelCache(): void
-    {
-        $this->productionEnvironments();
-        $this->createLaravelApplication();
-        Artisan::call('config:clear');
-    }
-
-    public function bench_lite_prod()
-    {
-        $this->productionEnvironments();
-        $bootstrap = require __DIR__ . "/../../ExampleApp/Lite/app.php";
+        $bootstrap = require __DIR__ . "/../../ExampleApp/LiteApplication/app.php";
         $messagingSystem =  $bootstrap(true);
-        $this->executeForLite(new LiteContainerAccessor($messagingSystem));
+        $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
     }
 
-    public function bench_lite_dev()
+    public function test_lite_application_dev()
     {
         $this->developmentEnvironments();
-        $bootstrap = require __DIR__ . "/../../ExampleApp/Lite/app.php";
+        $bootstrap = require __DIR__ . "/../../ExampleApp/LiteApplication/app.php";
         $messagingSystem =  $bootstrap(false);
-        $this->executeForLite(new LiteContainerAccessor($messagingSystem));
+        $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
+    }
+
+    public function test_lite_prod()
+    {
+        $this->productionEnvironments();
+        $bootstrap = require __DIR__ . '/../../ExampleApp/Lite/app.php';
+        $messagingSystem = $bootstrap(true);
+        $this->executeForLite($messagingSystem);
+    }
+
+    public function test_lite_dev()
+    {
+        $this->developmentEnvironments();
+        $bootstrap = require __DIR__ . '/../../ExampleApp/Lite/app.php';
+        $messagingSystem = $bootstrap(false);
+        $this->executeForLite($messagingSystem);
     }
 
     private function createLaravelApplication(): Application
@@ -106,8 +103,12 @@ abstract class FullAppTestCase extends TestCase
         LaravelKernel $kernel
     ): void;
 
-    public abstract function executeForLite(
+    public abstract function executeForLiteApplication(
         ContainerInterface $container
+    ): void;
+
+    public abstract function executeForLite(
+        ConfiguredMessagingSystem $messagingSystem
     ): void;
 
     private function productionEnvironments(): void

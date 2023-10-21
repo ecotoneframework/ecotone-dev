@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Monorepo\ExampleApp\Common\UI\OrderController;
-use Monorepo\ExampleApp\Common\UI\OrderControllerWithoutMessaging;
 
 class RouteServiceProvider extends ServiceProvider
 {

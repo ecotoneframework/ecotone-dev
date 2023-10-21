@@ -24,7 +24,7 @@ class MessagingBootBenchmark extends FullAppBenchmarkCase
         $container->get(ConfiguredMessagingSystem::class);
     }
 
-    public function executeForLite(ContainerInterface $container): void
+    public function executeForLiteApplication(ContainerInterface $container): void
     {
         $container->get(ConfiguredMessagingSystem::class);
     }

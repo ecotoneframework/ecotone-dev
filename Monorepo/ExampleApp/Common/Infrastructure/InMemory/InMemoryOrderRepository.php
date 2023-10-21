@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Infrastructure\InMemory;
 
+use Ecotone\Modelling\Attribute\Repository;
 use Ecotone\Modelling\StandardRepository;
 use Monorepo\ExampleApp\Common\Domain\Order\Order;
 use Ramsey\Uuid\UuidInterface;
 
+#[Repository]
 final class InMemoryOrderRepository implements StandardRepository
 {
     /** @var Order[] */

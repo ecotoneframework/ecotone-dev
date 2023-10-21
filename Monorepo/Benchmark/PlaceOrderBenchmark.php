@@ -2,8 +2,11 @@
 
 namespace Monorepo\Benchmark;
 
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Http\Request as LaravelRequest;
+use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
+use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\UI\OrderController;
 use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
@@ -63,7 +66,7 @@ class PlaceOrderBenchmark extends FullAppBenchmarkCase
         Assert::assertSame(200, $response->getStatusCode(), $response->getContent());
     }
 
-    public function executeForLite(ContainerInterface $container): void
+    public function executeForLiteApplication(ContainerInterface $container): void
     {
         $orderController = $container->get(OrderController::class);
         $configuration = $container->get(Configuration::class);
@@ -78,5 +81,24 @@ class PlaceOrderBenchmark extends FullAppBenchmarkCase
             ],
             'productId' => $configuration->productId(),
         ])));
+    }
+
+    public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
+    {
+        $configuration = $messagingSystem->getServiceFromContainer(Configuration::class);
+
+        $messagingSystem->getCommandBus()->send(
+            new PlaceOrder(
+                Uuid::uuid4(),
+                $configuration->userId(),
+                new ShippingAddress(
+                    'Washington',
+                    '15',
+                    '81-221',
+                    'Netherlands'
+                ),
+                $configuration->productId()
+            )
+        );
     }
 }

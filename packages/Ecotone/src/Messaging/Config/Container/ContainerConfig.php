@@ -6,6 +6,7 @@ use Ecotone\Lite\LazyInMemoryContainer;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
@@ -26,7 +27,7 @@ class ContainerConfig
         $containerBuilder->compile();
         $container = new LazyInMemoryContainer($containerBuilder->getDefinitions(), $externalContainer);
         $container->set(ConfigurationVariableService::REFERENCE_NAME, $configurationVariableService ?? InMemoryConfigurationVariableService::createEmpty());
-        $container->set(ProxyFactory::class, $proxyFactory ?? new ProxyFactory(''));
+        $container->set(ProxyFactory::class, $proxyFactory ?? new ProxyFactory(ServiceCacheConfiguration::noCache()));
         return $container->get(ConfiguredMessagingSystem::class);
     }
 }

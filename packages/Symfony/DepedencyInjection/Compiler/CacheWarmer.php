@@ -21,7 +21,14 @@ class CacheWarmer implements CacheWarmerInterface
 
     public function warmUp(string $cacheDir)
     {
-        $this->proxyFactory->warmUp($this->configuredMessagingSystem->getGatewayList());
+        foreach ($this->configuredMessagingSystem->getGatewayList() as $gatewayReference) {
+            $this->proxyFactory->createWithCurrentConfiguration(
+                $gatewayReference->getReferenceName(),
+                $this->configuredMessagingSystem->getExternalContainer(),
+                $gatewayReference->getInterfaceName()
+            );
+        }
+
         return [];
     }
 }

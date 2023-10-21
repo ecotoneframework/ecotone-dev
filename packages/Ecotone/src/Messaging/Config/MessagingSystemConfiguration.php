@@ -1139,6 +1139,22 @@ final class MessagingSystemConfiguration implements Configuration
         return ContainerConfig::buildMessagingSystemInMemoryContainer($this, $referenceSearchService);
     }
 
+    public static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
+    {
+        if (! $serviceCacheConfiguration->shouldUseCache()) {
+            return;
+        }
+
+        $cacheDirectoryPath = $serviceCacheConfiguration->getPath();
+        if (! is_dir($cacheDirectoryPath)) {
+            $mkdirResult = @mkdir($cacheDirectoryPath, 0775, true);
+            Assert::isTrue(
+                $mkdirResult,
+                "Not enough permissions to create cache directory {$cacheDirectoryPath}"
+            );
+        }
+    }
+
     public function getRegisteredConsoleCommands(): array
     {
         return $this->consoleCommands;

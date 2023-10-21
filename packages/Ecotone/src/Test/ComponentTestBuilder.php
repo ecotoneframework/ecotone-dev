@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Config\Container\ProxyBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
@@ -41,7 +42,7 @@ class ComponentTestBuilder
     public static function create(): self
     {
         $container = InMemoryPSRContainer::createFromAssociativeArray([
-            ProxyFactory::class => new ProxyFactory(null),
+            ProxyFactory::class => new ProxyFactory(ServiceCacheConfiguration::noCache()),
         ]);
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass(new RegisterSingletonMessagingServices());

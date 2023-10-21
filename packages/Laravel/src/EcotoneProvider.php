@@ -147,7 +147,7 @@ class EcotoneProvider extends ServiceProvider
 
         $this->app->singleton(ProxyFactory::class, function (Application $app) {
             $cacheConfiguration = $app->get(ServiceCacheConfiguration::REFERENCE_NAME);
-            return new ProxyFactory($cacheConfiguration->shouldUseCache() ? $cacheConfiguration->getPath() : null);
+            return new ProxyFactory($cacheConfiguration);
         });
 
         if ($this->app->runningInConsole()) {

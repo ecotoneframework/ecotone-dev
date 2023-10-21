@@ -123,8 +123,6 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function terminate(): void
     {
-        /** @var ProxyFactory $proxyFactory */
-        $proxyFactory = $this->container->get(ProxyFactory::class);
-        $proxyFactory->unRegisterProxyAutoloader();
+        /** @TODO before-merge remove, let's not be to eager with changes :)  */
     }
 }

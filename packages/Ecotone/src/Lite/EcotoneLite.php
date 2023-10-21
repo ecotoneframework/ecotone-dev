@@ -173,7 +173,7 @@ final class EcotoneLite
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
         $messagingConfiguration = null;
 
-        $proxyFactory = new ProxyFactory($useCachedVersion ? $serviceCacheConfiguration->getPath() : '');
+        $proxyFactory = new ProxyFactory($serviceCacheConfiguration);
         $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging_system';
         if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
             /** It may fail on deserialization, then return `false` and we can build new one */
@@ -198,7 +198,6 @@ final class EcotoneLite
 
         $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($messagingConfiguration, $externalContainer, $configurationVariableService, $proxyFactory);
 
-        $proxyFactory->warmUp($messagingSystem->getGatewayList());
         if ($allowGatewaysToBeRegisteredInContainer) {
             Assert::isTrue(method_exists($externalContainer, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
             $externalContainer->set(ConfiguredMessagingSystem::class, $messagingSystem);

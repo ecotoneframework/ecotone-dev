@@ -35,7 +35,7 @@ class EcotoneLiteApplication
             $serviceConfiguration->getCacheDirectoryPath(),
             $cacheConfiguration
         );
-        $proxyFactory = new ProxyFactory($serviceCacheConfiguration->getPath());
+        $proxyFactory = new ProxyFactory($serviceCacheConfiguration);
         $file = $serviceCacheConfiguration->getPath() . '/CompiledContainer.php';
         if ($serviceCacheConfiguration->shouldUseCache() && file_exists($file)) {
             require_once $file;
@@ -63,10 +63,6 @@ class EcotoneLiteApplication
             $containerBuilder->compile();
 
             $container = $builder->build();
-            if ($serviceCacheConfiguration->shouldUseCache()) {
-                $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
-                $proxyFactory->warmUp($messagingSystem->getGatewayList());
-            }
         }
 
         $container->set(ProxyFactory::class, $proxyFactory);

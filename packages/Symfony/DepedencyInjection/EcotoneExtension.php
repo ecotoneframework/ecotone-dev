@@ -6,6 +6,7 @@ use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReference
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
@@ -72,7 +73,7 @@ class EcotoneExtension extends Extension
 
         $container->register(ProxyFactory::class)
             ->setPublic(true)
-            ->setArguments(['%kernel.cache_dir%/ecotone']);
+            ->setArguments([new Reference(ServiceCacheConfiguration::REFERENCE_NAME)]);
 
         $container->register(CacheWarmer::class)->setAutowired(true)->addTag('kernel.cache_warmer');
 

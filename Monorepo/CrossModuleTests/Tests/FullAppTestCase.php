@@ -2,74 +2,123 @@
 
 namespace Monorepo\CrossModuleTests\Tests;
 
-use Monorepo\ExampleApp\Symfony\Kernel;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Http\Kernel as LaravelKernel;
+use Illuminate\Support\Facades\Artisan;
+use Monorepo\Benchmark\LiteContainerAccessor;
+use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
+use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
-abstract class FullAppTestCase
+abstract class FullAppTestCase extends TestCase
 {
-    public abstract function getSkippedModules(): array;
-
     public function test_symfony_prod()
     {
-        \putenv('APP_ENV=prod');
-        $kernel = new Kernel('prod', false);
-        $kernel->
+        $this->productionEnvironments();
+        $kernel = new SymfonyKernel('prod', false);
         $kernel->boot();
         $container = $kernel->getContainer();
 
-        $this->execute($container);
-
-        $kernel->shutdown();
+        $this->executeForSymfony($container, $kernel);
     }
 
     public function test_symfony_dev()
     {
-        \putenv('APP_ENV=dev');
-        $kernel = new Kernel('dev', true);
+        $this->developmentEnvironments();
+        $kernel = new SymfonyKernel('dev', true);
         $kernel->boot();
         $container = $kernel->getContainer();
 
-        $this->execute($container);
-
-        $kernel->shutdown();
+        $this->executeForSymfony($container, $kernel);
     }
 
+    /**
+     * @BeforeMethods("dumpLaravelCache")
+     * @AfterMethods("clearLaravelCache")
+     */
     public function test_laravel_prod(): void
     {
-        \putenv('APP_ENV=production');
+        $this->productionEnvironments();
         $app = $this->createLaravelApplication();
-        $this->execute($app);
+
+        $this->executeForLaravel($app, $app->get(LaravelKernel::class));
     }
 
     public function test_laravel_dev(): void
     {
-        \putenv('APP_ENV=development');
+        $this->developmentEnvironments();
         $app = $this->createLaravelApplication();
-        $this->execute($app);
+
+        $this->executeForLaravel($app, $app->get(LaravelKernel::class));
     }
 
-    public function test_lite_prod()
+    /**
+     * Calling config:cache always dumps the cache,
+     * this means we need to do it before the benchmark
+     */
+    public function dumpLaravelCache(): void
     {
-        $bootstrap = require __DIR__ . "/../ExampleApp/Lite/app.php";
+        $this->productionEnvironments();
+        $this->createLaravelApplication();
+        Artisan::call('route:cache');
+        Artisan::call('config:cache');
+    }
+
+    public function clearLaravelCache(): void
+    {
+        $this->productionEnvironments();
+        $this->createLaravelApplication();
+        Artisan::call('config:clear');
+    }
+
+    public function bench_lite_prod()
+    {
+        $this->productionEnvironments();
+        $bootstrap = require __DIR__ . "/../../ExampleApp/Lite/app.php";
         $messagingSystem =  $bootstrap(true);
-        $this->execute(new LiteContainerAccessor($messagingSystem));
+        $this->executeForLite(new LiteContainerAccessor($messagingSystem));
     }
 
-    public function test_lite_dev()
+    public function bench_lite_dev()
     {
-        $bootstrap = require __DIR__ . "/../ExampleApp/Lite/app.php";
+        $this->developmentEnvironments();
+        $bootstrap = require __DIR__ . "/../../ExampleApp/Lite/app.php";
         $messagingSystem =  $bootstrap(false);
-        $this->execute(new LiteContainerAccessor($messagingSystem));
+        $this->executeForLite(new LiteContainerAccessor($messagingSystem));
     }
 
-    private function createLaravelApplication()
+    private function createLaravelApplication(): Application
     {
-        $app = require __DIR__ . '/../ExampleApp/Laravel/bootstrap/app.php';
+        $app = require __DIR__ . '/../../ExampleApp/Laravel/bootstrap/app.php';
 
-        $app->make(\Illuminate\Foundation\Http\Kernel::class)->bootstrap();
+        $app->make(LaravelKernel::class)->bootstrap();
 
         return $app;
     }
 
-    protected abstract function execute(ContainerInterface $container): void;
+    public abstract function executeForSymfony(
+        ContainerInterface $container,
+        SymfonyKernel $kernel
+    ): void;
+
+    public abstract function executeForLaravel(
+        ContainerInterface $container,
+        LaravelKernel $kernel
+    ): void;
+
+    public abstract function executeForLite(
+        ContainerInterface $container
+    ): void;
+
+    private function productionEnvironments(): void
+    {
+        \putenv('APP_ENV=prod');
+        \putenv('APP_DEBUG=false');
+    }
+
+    private function developmentEnvironments(): void
+    {
+        \putenv('APP_ENV=dev');
+        \putenv('APP_DEBUG=true');
+    }
 }

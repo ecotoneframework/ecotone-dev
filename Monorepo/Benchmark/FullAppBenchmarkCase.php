@@ -18,8 +18,6 @@ abstract class FullAppBenchmarkCase
         $container = $kernel->getContainer();
 
         $this->executeForSymfony($container, $kernel);
-
-        $kernel->shutdown();
     }
 
     public function bench_symfony_dev()
@@ -30,8 +28,6 @@ abstract class FullAppBenchmarkCase
         $container = $kernel->getContainer();
 
         $this->executeForSymfony($container, $kernel);
-
-        $kernel->shutdown();
     }
 
     /**
@@ -44,8 +40,6 @@ abstract class FullAppBenchmarkCase
         $app = $this->createLaravelApplication();
 
         $this->executeForLaravel($app, $app->get(LaravelKernel::class));
-
-        $app->terminate();
     }
 
     public function bench_laravel_dev(): void
@@ -54,8 +48,6 @@ abstract class FullAppBenchmarkCase
         $app = $this->createLaravelApplication();
 
         $this->executeForLaravel($app, $app->get(LaravelKernel::class));
-
-        $app->terminate();
     }
 
     /**
@@ -64,6 +56,7 @@ abstract class FullAppBenchmarkCase
      */
     public function dumpLaravelCache(): void
     {
+        $this->productionEnvironments();
         $this->createLaravelApplication();
         Artisan::call('route:cache');
         Artisan::call('config:cache');
@@ -71,6 +64,7 @@ abstract class FullAppBenchmarkCase
 
     public function clearLaravelCache(): void
     {
+        $this->productionEnvironments();
         $this->createLaravelApplication();
         Artisan::call('config:clear');
     }

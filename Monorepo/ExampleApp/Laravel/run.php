@@ -12,13 +12,12 @@ use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;
 
 require dirname(__DIR__, 3).'/vendor/autoload.php';
-
+//\putenv('APP_ENV=prod');
+//\putenv('APP_DEBUG=false');
 /** @var Application $app */
 $app = require_once __DIR__.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 // test with cache
-//\putenv('APP_ENV=prod');
-//\putenv('APP_DEBUG=false');
 //Artisan::call('route:cache');
 //Artisan::call('config:cache');
 $configuration = $app->get(Configuration::class);

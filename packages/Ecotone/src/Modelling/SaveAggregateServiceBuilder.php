@@ -25,8 +25,6 @@ use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 
-use function uniqid;
-
 /**
  * Class AggregateCallingCommandHandlerBuilder
  * @package Ecotone\Modelling
@@ -136,13 +134,9 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             $this->useSnapshot ? new Reference($this->documentStoreReference) : null,
         ]);
 
-        $reference = $builder->register(uniqid(SaveAggregateService::class), $saveAggregateService);
-        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(SaveAggregateService::class, 'save'));
-
-        $serviceActivatorReference = ServiceActivatorBuilder::create($reference, $interfaceToCall)
+        return ServiceActivatorBuilder::createWithDefinition($saveAggregateService, 'save')
             ->withOutputMessageChannel($this->outputMessageChannelName)
             ->compile($builder);
-        return $serviceActivatorReference;
     }
 
     /**
@@ -212,10 +206,5 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         $this->aggregateMethodWithEvents  = $aggregateMethodWithEvents;
         $this->aggregateIdentifierMapping = $aggregateIdentifiers;
         $this->aggregateIdentifierGetMethods = $aggregateIdentifierGetMethods;
-    }
-
-    private function getPropertyReaderAccessor(): PropertyReaderAccessor
-    {
-        return new PropertyReaderAccessor();
     }
 }

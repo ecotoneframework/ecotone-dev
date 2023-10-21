@@ -117,7 +117,7 @@ class EcotoneProvider extends ServiceProvider
             $definitionHolder = $this->buildDefinitionHolder($rootCatalog, $applicationConfiguration);
 
             if ($serviceCacheConfiguration->shouldUseCache()) {
-                $this->prepareCacheDirectory($serviceCacheConfiguration);
+                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
                 file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
             }
         }
@@ -230,22 +230,6 @@ class EcotoneProvider extends ServiceProvider
         $ecotoneBuilder->addCompilerPass($definitionHolder);
         $ecotoneBuilder->compile();
         return $definitionHolder;
-    }
-
-    private static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
-    {
-        if (! $serviceCacheConfiguration->shouldUseCache()) {
-            return;
-        }
-
-        $cacheDirectoryPath = $serviceCacheConfiguration->getPath();
-        if (! is_dir($cacheDirectoryPath)) {
-            $mkdirResult = @mkdir($cacheDirectoryPath, 0775, true);
-            Assert::isTrue(
-                $mkdirResult,
-                "Not enough permissions to create cache directory {$cacheDirectoryPath}"
-            );
-        }
     }
 
     private function getCacheDirectoryPath(): string

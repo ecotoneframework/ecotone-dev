@@ -188,8 +188,7 @@ final class EcotoneLite
             );
 
             if ($serviceCacheConfiguration->shouldUseCache()) {
-                /** @TODO before-merge This is the same configuration as in EcotoneProvider (Laravel) */
-                self::prepareCacheDirectory($serviceCacheConfiguration);
+                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
                 file_put_contents($messagingSystemCachePath, serialize($messagingConfiguration));
             }
         }
@@ -215,22 +214,6 @@ final class EcotoneLite
         }
 
         return $messagingSystem;
-    }
-
-    private static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
-    {
-        if (! $serviceCacheConfiguration->shouldUseCache()) {
-            return;
-        }
-
-        $cacheDirectoryPath = $serviceCacheConfiguration->getPath();
-        if (! is_dir($cacheDirectoryPath)) {
-            $mkdirResult = @mkdir($cacheDirectoryPath, 0775, true);
-            Assert::isTrue(
-                $mkdirResult,
-                "Not enough permissions to create cache directory {$cacheDirectoryPath}"
-            );
-        }
     }
 
     private static function getExtensionObjectsWithoutTestConfiguration(ServiceConfiguration $configuration): array

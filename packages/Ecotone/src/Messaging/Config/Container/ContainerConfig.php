@@ -13,7 +13,12 @@ use Psr\Container\ContainerInterface;
 
 class ContainerConfig
 {
-    public static function buildMessagingSystemInMemoryContainer(Configuration $configuration, ?ContainerInterface $externalContainer = null, ?ConfigurationVariableService $configurationVariableService = null, ?ProxyFactory $proxyFactory = null): ConfiguredMessagingSystem
+    public static function buildMessagingSystemInMemoryContainer(
+        Configuration $configuration,
+        ?ContainerInterface $externalContainer = null,
+        ?ConfigurationVariableService $configurationVariableService = null,
+        ?ProxyFactory $proxyFactory = null,
+    ): ConfiguredMessagingSystem
     {
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass($configuration);

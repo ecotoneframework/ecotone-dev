@@ -106,17 +106,20 @@ class EcotoneProvider extends ServiceProvider
 
         $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, $useCache);
 
-        if ($serviceCacheConfiguration->shouldUseCache()) {
-            $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging_system';
-            if (file_exists($messagingSystemCachePath)) {
-                $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
-            } else {
-                $definitionHolder = $this->buildDefinitionHolder($rootCatalog, $applicationConfiguration);
+        $definitionHolder = null;
+        $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging_system';
+        if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
+            /** It may fail on deserialization, then return `false` and we can build new one */
+            $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
+        }
+
+        if (!$definitionHolder) {
+            $definitionHolder = $this->buildDefinitionHolder($rootCatalog, $applicationConfiguration);
+
+            if ($serviceCacheConfiguration->shouldUseCache()) {
                 $this->prepareCacheDirectory($serviceCacheConfiguration);
                 file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
             }
-        } else {
-            $definitionHolder = $this->buildDefinitionHolder($rootCatalog, $applicationConfiguration);
         }
 
         foreach ($definitionHolder->getDefinitions() as $id => $definition) {

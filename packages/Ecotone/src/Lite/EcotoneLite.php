@@ -171,15 +171,31 @@ final class EcotoneLite
             $useCachedVersion
         );
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
-        $messagingConfiguration = MessagingSystemConfiguration::prepare(
-            $pathToRootCatalog,
-            $configurationVariableService,
-            $serviceConfiguration,
-            $classesToResolve,
-            $enableTesting
-        );
+        $messagingConfiguration = null;
 
         $proxyFactory = new ProxyFactory($useCachedVersion ? $serviceCacheConfiguration->getPath() : '');
+        $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging_system';
+        if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
+            /** It may fail on deserialization, then return `false` and we can build new one */
+            $messagingConfiguration = unserialize(file_get_contents($messagingSystemCachePath));
+        }
+
+        if (!$messagingConfiguration) {
+            $messagingConfiguration = MessagingSystemConfiguration::prepare(
+                $pathToRootCatalog,
+                $configurationVariableService,
+                $serviceConfiguration,
+                $classesToResolve,
+                $enableTesting
+            );
+
+            if ($serviceCacheConfiguration->shouldUseCache()) {
+                /** @TODO before-merge This is the same configuration as in EcotoneProvider (Laravel) */
+                self::prepareCacheDirectory($serviceCacheConfiguration);
+                file_put_contents($messagingSystemCachePath, serialize($messagingConfiguration));
+            }
+        }
+
         $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($messagingConfiguration, $externalContainer, $configurationVariableService, $proxyFactory);
 
         $proxyFactory->warmUp($messagingSystem->getGatewayList());
@@ -200,6 +216,7 @@ final class EcotoneLite
         $messagingSystem->boot();
 
         if ($enableTesting) {
+            /** @TODO before-merge I am not sure what this do, but we should avoid static as it may create hard to debug problems :) */
             if (self::$messagingSystemToTerminate) {
                 self::$messagingSystemToTerminate->terminate();
             }
@@ -208,6 +225,22 @@ final class EcotoneLite
         }
 
         return $messagingSystem;
+    }
+
+    private static function prepareCacheDirectory(ServiceCacheConfiguration $serviceCacheConfiguration): void
+    {
+        if (! $serviceCacheConfiguration->shouldUseCache()) {
+            return;
+        }
+
+        $cacheDirectoryPath = $serviceCacheConfiguration->getPath();
+        if (! is_dir($cacheDirectoryPath)) {
+            $mkdirResult = @mkdir($cacheDirectoryPath, 0775, true);
+            Assert::isTrue(
+                $mkdirResult,
+                "Not enough permissions to create cache directory {$cacheDirectoryPath}"
+            );
+        }
     }
 
     private static function getExtensionObjectsWithoutTestConfiguration(ServiceConfiguration $configuration): array

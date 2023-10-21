@@ -76,6 +76,11 @@ class ProxyFactory
         );
     }
 
+    public function createWithCurrentConfiguration(string $referenceName, ConfiguredMessagingSystem $messagingSystem, string $interface): object
+    {
+        return self::createFor($referenceName, $messagingSystem, $interface, $this->serviceCacheConfiguration);
+    }
+
     public function registerProxyAutoloader(): void
     {
         if (! $this->serviceCacheConfiguration->shouldUseCache()) {

@@ -77,9 +77,7 @@ class EcotoneLiteApplication
             $container->set(PhpDiContainerImplementation::EXTERNAL_PREFIX.$referenceName, $object);
         }
 
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
-        $messagingSystem->boot();
-        return $messagingSystem;
+        return $container->get(ConfiguredMessagingSystem::class);
     }
 
     /**

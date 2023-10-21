@@ -18,18 +18,4 @@ class EcotoneSymfonyBundle extends Bundle
     {
         return new EcotoneExtension();
     }
-
-    public function boot()
-    {
-        /** @var ConfiguredMessagingSystem $proxyFactory */
-        $proxyFactory = $this->container->get(ConfiguredMessagingSystem::class);
-        $proxyFactory->boot();
-    }
-
-    public function shutdown()
-    {
-        /** @var ConfiguredMessagingSystem $proxyFactory */
-        $proxyFactory = $this->container->get(ConfiguredMessagingSystem::class);
-        $proxyFactory->terminate();
-    }
 }

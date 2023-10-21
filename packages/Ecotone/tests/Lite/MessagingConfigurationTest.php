@@ -40,7 +40,5 @@ class MessagingConfigurationTest extends TestCase
             CoinGateway::class,
             $container->get(CoinGateway::class)
         );
-
-        $ecotone->terminate();
     }
 }

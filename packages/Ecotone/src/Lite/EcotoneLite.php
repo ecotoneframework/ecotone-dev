@@ -31,8 +31,6 @@ use Psr\Container\ContainerInterface;
 
 final class EcotoneLite
 {
-    private static ?ConfiguredMessagingSystem $messagingSystemToTerminate = null;
-
     /**
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
@@ -212,14 +210,7 @@ final class EcotoneLite
             $alreadyConfiguredMessaging->replaceWith($messagingSystem);
         }
 
-        $messagingSystem->boot();
-
         if ($enableTesting) {
-            /** @TODO before-merge I am not sure what this do, but we should avoid static as it may create hard to debug problems :) */
-            if (self::$messagingSystemToTerminate) {
-                self::$messagingSystemToTerminate->terminate();
-            }
-            self::$messagingSystemToTerminate = $messagingSystem;
             $messagingSystem = new ConfiguredMessagingSystemWithTestSupport($messagingSystem);
         }
 

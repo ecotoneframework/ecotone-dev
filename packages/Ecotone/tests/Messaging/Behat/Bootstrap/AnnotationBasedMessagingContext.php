@@ -366,10 +366,6 @@ class AnnotationBasedMessagingContext extends TestCase implements Context
             pathToRootCatalog: __DIR__ . '/../../../../'
         );
 
-        if (self::$messagingSystem) {
-            self::$messagingSystem->terminate();
-        }
-
         self::$messagingSystem = $ecotoneLite;
     }
 

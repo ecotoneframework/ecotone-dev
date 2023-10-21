@@ -104,7 +104,6 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     {
         Assert::isTrue($messagingSystem instanceof MessagingSystemContainer, 'Can only replace with ' . self::class);
 
-        $this->terminate();
         $this->container = $messagingSystem->container;
         $this->pollingEndpoints = $messagingSystem->pollingEndpoints;
     }
@@ -112,17 +111,5 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
     public function getGatewayList(): array
     {
         return $this->gatewayList;
-    }
-
-    public function boot(): void
-    {
-        /** @var ProxyFactory $proxyFactory */
-        $proxyFactory = $this->container->get(ProxyFactory::class);
-        $proxyFactory->registerProxyAutoloader();
-    }
-
-    public function terminate(): void
-    {
-        /** @TODO before-merge remove, let's not be to eager with changes :)  */
     }
 }

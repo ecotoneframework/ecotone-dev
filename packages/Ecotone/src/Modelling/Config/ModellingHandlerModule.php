@@ -557,7 +557,6 @@ class ModellingHandlerModule implements AnnotationModule
                 ->chainInterceptedHandler(
                     CallAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), true, $interfaceToCallRegistry)
                         ->withMethodParameterConverters($parameterConverters)
-                        ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
                         ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
                 );
 
@@ -611,7 +610,6 @@ class ModellingHandlerModule implements AnnotationModule
                 ->chainInterceptedHandler(
                     CallAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), false, $interfaceToCallRegistry)
                         ->withEndpointId($annotationForMethod->getEndpointId())
-                        ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
                         ->withMethodParameterConverters($parameterConverters)
                         ->withRequiredInterceptorNames($annotationForMethod->getRequiredInterceptorNames())
                 )

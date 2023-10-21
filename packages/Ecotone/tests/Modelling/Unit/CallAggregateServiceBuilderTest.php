@@ -39,8 +39,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             'doSomething',
             true,
             InterfaceToCallRegistry::createEmpty()
-        )
-            ->withAggregateRepositoryFactories(['repository']);
+        );
 
         $aggregateCommandHandler = ComponentTestBuilder::create()
             ->withReference('repository', InMemoryStandardRepository::createEmpty())
@@ -66,8 +65,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             'getAmountWithQuery',
             true,
             InterfaceToCallRegistry::createEmpty()
-        )
-            ->withAggregateRepositoryFactories(['orderRepository']);
+        );
 
         $aggregateQueryHandler = ComponentTestBuilder::create()
             ->withReference('orderRepository', InMemoryStandardRepository::createEmpty())
@@ -97,8 +95,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             'getSmallBoxes',
             false,
             InterfaceToCallRegistry::createEmpty()
-        )
-            ->withAggregateRepositoryFactories([InMemoryStandardRepository::class]);
+        );
 
         $aggregateQueryHandler = ComponentTestBuilder::create()
             ->withReference(InMemoryStandardRepository::class, InMemoryStandardRepository::createEmpty())
@@ -128,8 +125,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             'getBigBoxes',
             false,
             InterfaceToCallRegistry::createEmpty()
-        )
-            ->withAggregateRepositoryFactories([InMemoryStandardRepository::class]);
+        );
 
         $aggregateQueryHandler = ComponentTestBuilder::create()
             ->withReference(InMemoryStandardRepository::class, InMemoryStandardRepository::createEmpty())
@@ -160,8 +156,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             'getCustomerId',
             false,
             InterfaceToCallRegistry::createEmpty()
-        )
-            ->withAggregateRepositoryFactories(['orderRepository']);
+        );
 
         $aggregateQueryHandler = ComponentTestBuilder::create()
             ->withReference('orderRepository', InMemoryStandardRepository::createEmpty())
@@ -186,8 +181,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             'querySomething',
             false,
             InterfaceToCallRegistry::createEmpty()
-        )
-            ->withAggregateRepositoryFactories(['repository']);
+        );
 
         $aggregateQueryHandler = ComponentTestBuilder::create()
             ->withReference('repository', InMemoryStandardRepository::createWith([$aggregate]))
@@ -217,7 +211,6 @@ class CallAggregateServiceBuilderTest extends TestCase
             true,
             InterfaceToCallRegistry::createEmpty()
         )
-            ->withAggregateRepositoryFactories(['repository'])
             ->withInputChannelName('inputChannel');
 
         $replyChannel = QueueChannel::create();
@@ -246,7 +239,6 @@ class CallAggregateServiceBuilderTest extends TestCase
             true,
             InterfaceToCallRegistry::createEmpty()
         )
-            ->withAggregateRepositoryFactories(['repository'])
             ->withInputChannelName('inputChannel');
 
         $queueChannel = QueueChannel::create();

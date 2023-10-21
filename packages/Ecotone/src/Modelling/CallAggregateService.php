@@ -3,8 +3,6 @@
 namespace Ecotone\Modelling;
 
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -12,7 +10,6 @@ use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvocation;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
@@ -29,8 +26,6 @@ class CallAggregateService
      * @var ParameterConverter[]
      */
     private array $parameterConverters;
-    private ChannelResolver $channelResolver;
-    private ReferenceSearchService $referenceSearchService;
     /**
      * @var AroundMethodInterceptor[]
      */
@@ -39,26 +34,16 @@ class CallAggregateService
     private bool $isEventSourced;
     private bool $isFactoryMethod;
     private InterfaceToCall $aggregateInterface;
-    /**
-     * @var PropertyReaderAccessor
-     */
     private PropertyReaderAccessor $propertyReaderAccessor;
-    /**
-     * @var PropertyEditorAccessor
-     */
-    private PropertyEditorAccessor $propertyEditorAccessor;
     private ?string $aggregateVersionProperty;
-    private bool $isAggregateVersionAutomaticallyIncreased;
     private ?string $aggregateMethodWithEvents;
 
-    public function __construct(InterfaceToCall $interfaceToCall, bool $isEventSourced, ChannelResolver $channelResolver, array $parameterConverterBuilders, array $aroundMethodInterceptors, ReferenceSearchService $referenceSearchService, PropertyReaderAccessor $propertyReaderAccessor, PropertyEditorAccessor $propertyEditorAccessor, bool $isCommand, bool $isFactoryMethod, private EventSourcingHandlerExecutor $eventSourcingHandlerExecutor, ?string $aggregateVersionProperty, bool $isAggregateVersionAutomaticallyIncreased, ?string $aggregateMethodWithEvents)
+    public function __construct(InterfaceToCall $interfaceToCall, bool $isEventSourced, array $parameterConverters, array $aroundMethodInterceptors, PropertyReaderAccessor $propertyReaderAccessor, bool $isCommand, bool $isFactoryMethod, private EventSourcingHandlerExecutor $eventSourcingHandlerExecutor, ?string $aggregateVersionProperty, ?string $aggregateMethodWithEvents)
     {
-        Assert::allInstanceOfType($parameterConverterBuilders, ParameterConverter::class);
+        Assert::allInstanceOfType($parameterConverters, ParameterConverter::class);
         Assert::allInstanceOfType($aroundMethodInterceptors, AroundMethodInterceptor::class);
 
-        $this->parameterConverters = $parameterConverterBuilders;
-        $this->channelResolver = $channelResolver;
-        $this->referenceSearchService = $referenceSearchService;
+        $this->parameterConverters = $parameterConverters;
         $this->aroundMethodInterceptors = $aroundMethodInterceptors;
         $this->isCommandHandler = $isCommand;
         $this->isEventSourced = $isEventSourced;
@@ -66,8 +51,6 @@ class CallAggregateService
         $this->aggregateInterface = $interfaceToCall;
         $this->aggregateVersionProperty = $aggregateVersionProperty;
         $this->propertyReaderAccessor = $propertyReaderAccessor;
-        $this->propertyEditorAccessor = $propertyEditorAccessor;
-        $this->isAggregateVersionAutomaticallyIncreased = $isAggregateVersionAutomaticallyIncreased;
         $this->aggregateMethodWithEvents = $aggregateMethodWithEvents;
     }
 

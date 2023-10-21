@@ -6,9 +6,7 @@ use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -18,7 +16,6 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
@@ -26,8 +23,6 @@ use Ecotone\Modelling\Attribute\AggregateEvents;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
-
-use function uniqid;
 
 class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
 {
@@ -40,15 +35,9 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
      * @var bool
      */
     private bool $isCommandHandler;
-    /**
-     * @var string[]
-     */
-    private array $aggregateRepositoryReferenceNames = [];
-    private bool $isVoidMethod;
     private EventSourcingHandlerExecutor $eventSourcingHandlerExecutor;
     private ?string $aggregateMethodWithEvents;
     private ?string $aggregateVersionProperty;
-    private bool $isAggregateVersionAutomaticallyIncreased = true;
     private bool $isEventSourced = false;
 
     private function __construct(ClassDefinition $aggregateClassDefinition, string $methodName, bool $isCommandHandler, InterfaceToCallRegistry $interfaceToCallRegistry)
@@ -61,7 +50,6 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     private function initialize(ClassDefinition $aggregateClassDefinition, string $methodName, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $interfaceToCall = $interfaceToCallRegistry->getFor($aggregateClassDefinition->getClassType()->toString(), $methodName);
-        $this->isVoidMethod = $interfaceToCall->getReturnType()->isVoid();
 
         $aggregateMethodWithEvents    = null;
         $aggregateEventsAnnotation = TypeDescriptor::create(AggregateEvents::class);
@@ -86,9 +74,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         foreach ($aggregateClassDefinition->getProperties() as $property) {
             if ($property->hasAnnotation($versionAnnotation)) {
                 $aggregateVersionPropertyName = $property->getName();
-                /** @var AggregateVersion $annotation */
-                $annotation = $property->getAnnotation($versionAnnotation);
-                $this->isAggregateVersionAutomaticallyIncreased = $annotation->isAutoIncreased();
+                // TODO: should throw exception if more than one version property
             }
         }
         $this->aggregateVersionProperty             = $aggregateVersionPropertyName;
@@ -148,37 +134,19 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         $callAggregateService = new Definition(CallAggregateService::class, [
             InterfaceToCallReference::fromInstance($this->interfaceToCall),
             $this->isEventSourced,
-            new Reference(ChannelResolver::class),
             $compiledMethodParameterConverters,
             $interceptors,
-            new Reference(ReferenceSearchService::class),
             new Reference(PropertyReaderAccessor::class),
-            new Reference(PropertyEditorAccessor::class),
             $this->isCommandHandler,
             $this->interfaceToCall->isStaticallyCalled(),
             $this->eventSourcingHandlerExecutor,
             $this->aggregateVersionProperty,
-            $this->isAggregateVersionAutomaticallyIncreased,
             $this->aggregateMethodWithEvents,
         ]);
 
-        $reference = $builder->register(uniqid(CallAggregateService::class), $callAggregateService);
-        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(CallAggregateService::class, 'call'));
-
-        return ServiceActivatorBuilder::create($reference, $interfaceToCall)
+        return ServiceActivatorBuilder::createWithDefinition($callAggregateService, 'call')
             ->withOutputMessageChannel($this->outputMessageChannelName)
             ->compile($builder);
-    }
-
-    /**
-     * @param string[] $aggregateRepositoryReferenceNames
-     */
-    public function withAggregateRepositoryFactories(array $aggregateRepositoryReferenceNames): self
-    {
-        // TODO: this should not be strings but `Reference`
-        $this->aggregateRepositoryReferenceNames = $aggregateRepositoryReferenceNames;
-
-        return $this;
     }
 
     /**

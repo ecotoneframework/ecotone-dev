@@ -1,17 +1,19 @@
 <?php
 
-namespace Monorepo\Benchmark;
+namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;
+use Monorepo\Benchmark\LiteContainerAccessor;
 use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
+use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
-abstract class FullAppBenchmarkCase
+abstract class FullAppTestCase extends TestCase
 {
-    public function bench_symfony_prod()
+    public function test_symfony_prod()
     {
         $this->productionEnvironments();
         $kernel = new SymfonyKernel('prod', false);
@@ -21,7 +23,7 @@ abstract class FullAppBenchmarkCase
         $this->executeForSymfony($container, $kernel);
     }
 
-    public function bench_symfony_dev()
+    public function test_symfony_dev()
     {
         $this->developmentEnvironments();
         $kernel = new SymfonyKernel('dev', true);
@@ -31,80 +33,60 @@ abstract class FullAppBenchmarkCase
         $this->executeForSymfony($container, $kernel);
     }
 
-    /**
-     * @BeforeMethods("dumpLaravelCache")
-     * @AfterMethods("clearLaravelCache")
-     */
-    public function bench_laravel_prod(): void
+    public function test_laravel_prod(): void
     {
         $this->productionEnvironments();
         $app = $this->createLaravelApplication();
+        Artisan::call('route:cache');
+        Artisan::call('config:cache');
 
         $this->executeForLaravel($app, $app->get(LaravelKernel::class));
     }
 
-    public function bench_laravel_dev(): void
+    public function test_laravel_dev(): void
     {
         $this->developmentEnvironments();
         $app = $this->createLaravelApplication();
+        Artisan::call('config:clear');
 
         $this->executeForLaravel($app, $app->get(LaravelKernel::class));
     }
 
-    /**
-     * Calling config:cache always dumps the cache,
-     * this means we need to do it before the benchmark
-     */
-    public function dumpLaravelCache(): void
+    public function test_lite_application_prod()
     {
         $this->productionEnvironments();
-        $this->createLaravelApplication();
-        Artisan::call('route:cache');
-        Artisan::call('config:cache');
-    }
-
-    public function clearLaravelCache(): void
-    {
-        $this->productionEnvironments();
-        $this->createLaravelApplication();
-        Artisan::call('config:clear');
-    }
-
-    public function bench_lite_application_prod()
-    {
-        $this->productionEnvironments();
-        $bootstrap = require __DIR__ . "/../ExampleApp/LiteApplication/app.php";
+        $bootstrap = require __DIR__ . "/../../ExampleApp/LiteApplication/app.php";
         $messagingSystem =  $bootstrap(true);
         $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
     }
 
-    public function bench_lite_application_dev()
+    public function test_lite_application_dev()
     {
         $this->developmentEnvironments();
-        $bootstrap = require __DIR__ . "/../ExampleApp/LiteApplication/app.php";
+        $bootstrap = require __DIR__ . "/../../ExampleApp/LiteApplication/app.php";
         $messagingSystem =  $bootstrap(false);
         $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
     }
 
-    public function bench_lite_prod()
+    public function test_lite_prod()
     {
         $this->productionEnvironments();
-        $bootstrap = require __DIR__ . '/../ExampleApp/Lite/app.php';
+        $bootstrap = require __DIR__ . '/../../ExampleApp/Lite/app.php';
         $messagingSystem = $bootstrap(true);
         $this->executeForLite($messagingSystem);
     }
 
-    public function bench_lite_dev()
+    public function test_lite_dev()
     {
         $this->developmentEnvironments();
-        $bootstrap = require __DIR__ . '/../ExampleApp/Lite/app.php';
+        $bootstrap = require __DIR__ . '/../../ExampleApp/Lite/app.php';
         $messagingSystem = $bootstrap(false);
         $this->executeForLite($messagingSystem);
     }
 
     private function createLaravelApplication(): Application
     {
-        $app = require __DIR__ . '/../ExampleApp/Laravel/bootstrap/app.php';
+        $app = require __DIR__ . '/../../ExampleApp/Laravel/bootstrap/app.php';
 
         $app->make(LaravelKernel::class)->bootstrap();
 

@@ -1,6 +1,8 @@
 <?php
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
+use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\UI\OrderController;
 use Ramsey\Uuid\Uuid;
@@ -10,17 +12,21 @@ require dirname(__DIR__, 3).'/vendor/autoload.php';
 
 $bootstrap = require __DIR__.'/app.php';
 
+/** @var ConfiguredMessagingSystem $messagingSystem */
 $messagingSystem =  $bootstrap();
-$orderController = $messagingSystem->getServiceFromContainer(OrderController::class);
+/** @var Configuration $configuration */
 $configuration = $messagingSystem->getServiceFromContainer(Configuration::class);
 
-$orderController->placeOrder(new Request(content: json_encode([
-    'orderId' => Uuid::uuid4()->toString(),
-    'address' => [
-        'street' => 'Washington',
-        'houseNumber' => '15',
-        'postCode' => '81-221',
-        'country' => 'Netherlands'
-    ],
-    'productId' => $configuration->productId(),
-])));
+$messagingSystem->getCommandBus()->send(
+    new PlaceOrder(
+        Uuid::uuid4(),
+        $configuration->userId(),
+        new ShippingAddress(
+            'Washington',
+            '15',
+            '81-221',
+            'Netherlands'
+        ),
+        $configuration->productId()
+    )
+);

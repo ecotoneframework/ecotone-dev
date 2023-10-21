@@ -53,14 +53,6 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
         return $routerBuilder;
     }
 
-    public static function createRouterFromObject(object $customRouterObject, string $methodName): self
-    {
-        $routerBuilder = new self('', $methodName);
-        $routerBuilder->setObjectToInvoke($customRouterObject);
-
-        return $routerBuilder;
-    }
-
     public static function createPayloadTypeRouterByClassName(): self
     {
         $routerBuilder = new self(new Definition(PayloadTypeRouter::class, factory: 'createWithRoutingByClass'), 'route');

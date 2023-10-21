@@ -678,9 +678,6 @@ class ModellingHandlerModule implements AnnotationModule
         /** @TODO do not require method name in save service */
         $methodName = $aggregateClassDefinition->getPublicMethodNames() ? $aggregateClassDefinition->getPublicMethodNames()[0] : '__construct';
 
-        $fetchAggregateInterfaceToCall = $interfaceToCallRegistry->getFor(FetchAggregate::class, 'fetch');
-        $configuration->registerServiceDefinition(FetchAggregate::class, new Definition(FetchAggregate::class));
-
         $configuration->registerMessageHandler(
             $chainMessageHandlerBuilder
                 ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], null, $interfaceToCallRegistry))
@@ -689,7 +686,7 @@ class ModellingHandlerModule implements AnnotationModule
                         ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
                 )
                 ->chain(
-                    ServiceActivatorBuilder::create(FetchAggregate::class, $fetchAggregateInterfaceToCall)
+                    ServiceActivatorBuilder::createWithDefinition(new Definition(FetchAggregate::class), 'fetch')
                         ->withMethodParameterConverters([
                             HeaderBuilder::createOptional('aggregate', AggregateMessage::AGGREGATE_OBJECT),
                         ])

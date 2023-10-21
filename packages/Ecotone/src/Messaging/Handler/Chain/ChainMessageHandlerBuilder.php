@@ -8,7 +8,6 @@ use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -19,7 +18,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
 
-use function uniqid;
 
 /**
  * Class ChainMessageHandlerBuilder
@@ -132,17 +130,12 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
             ]));
         }
 
-        $chainForwardPublisherReference = $builder->register(
-            uniqid('chainforwardpublisher-'),
-            new Definition(ChainForwardPublisher::class, [
-                new ChannelReference($this->inputMessageChannelName . '_chain.' . $baseKey . '0'),
-                (bool)$this->outputMessageChannelName,
-            ])
-        );
+        $chainForwardPublisherReference = new Definition(ChainForwardPublisher::class, [
+            new ChannelReference($this->inputMessageChannelName . '_chain.' . $baseKey . '0'),
+            (bool)$this->outputMessageChannelName,
+        ]);
 
-        $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference(ChainForwardPublisher::class, 'forward'));
-
-        $serviceActivator = ServiceActivatorBuilder::create($chainForwardPublisherReference->getId(), $interfaceToCall)
+        $serviceActivator = ServiceActivatorBuilder::createWithDefinition($chainForwardPublisherReference, 'forward')
             ->withOutputMessageChannel($this->outputMessageChannelName);
 
         if (is_null($this->interceptedHandlerOffset)) {

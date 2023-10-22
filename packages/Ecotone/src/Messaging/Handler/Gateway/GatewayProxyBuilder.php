@@ -391,6 +391,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
 
         $aroundInterceptors = $this->aroundInterceptors;
         if ($this->errorChannelName) {
+            /** @TODO before-merge Do not use hard coded strings */
             $interceptorReference = $builder->register(
                 'error_channel_interceptor.'.$this->errorChannelName,
                 new Definition(ErrorChannelInterceptor::class, [

@@ -12,7 +12,7 @@ use Ecotone\Modelling\Attribute\EventHandler;
 
 final class ShippingSubscriber
 {
-    public function __construct(public readonly ShippingService $shippingService)
+    public function __construct(public ShippingService $shippingService)
     {
     }
 

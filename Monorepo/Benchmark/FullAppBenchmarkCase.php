@@ -5,6 +5,7 @@ namespace Monorepo\Benchmark;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;
@@ -213,5 +214,31 @@ abstract class FullAppBenchmarkCase extends TestCase
         );
 
         Assert::assertSame(0, $result);
+    }
+
+    public static function runConsumerForSymfony(string $consumerName, SymfonyKernel $kernel, bool $stopOnFailure = true): void
+    {
+        self::executeSymfonyConsoleCommand(
+            $kernel,
+            'ecotone:run',
+            ['consumerName' => $consumerName, '--stopOnFailure' => $stopOnFailure, '--executionTimeLimit' => 2000, '--finishWhenNoMessages' => true]
+        );
+    }
+
+    public static function runConsumerForLaravel(string $consumerName, bool $stopOnFailure = true): void
+    {
+        Artisan::call(
+            'ecotone:run',
+            ['consumerName' => $consumerName, '--stopOnFailure' => $stopOnFailure, '--executionTimeLimit' => 2000, '--finishWhenNoMessages' => true]
+        );
+    }
+
+    public static function runConsumerForMessaging(string $consumerName, ConfiguredMessagingSystem $messagingSystem, bool $stopOnFailure = true): void
+    {
+        $messagingSystem->run(
+            $consumerName,
+            ExecutionPollingMetadata::createWithFinishWhenNoMessages($stopOnFailure)
+                ->withExecutionTimeLimitInMilliseconds(2000)
+        );
     }
 }

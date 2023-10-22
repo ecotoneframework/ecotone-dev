@@ -15,6 +15,7 @@ use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\Infrastructure\Converter\UuidConverter;
+use Monorepo\ExampleApp\Common\Infrastructure\ErrorChannelService;
 use Monorepo\ExampleApp\Common\Infrastructure\InMemory\InMemoryOrderRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Output;
 use Monorepo\ExampleApp\Common\Infrastructure\StubNotificationSender;
@@ -49,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(NotificationSender::class, StubNotificationSender::class);
         $this->app->singleton(ShippingSubscriber::class);
         $this->app->singleton(ShippingService::class, StubShippingService::class);
+        $this->app->singleton(ErrorChannelService::class, ErrorChannelService::class);
 
         $this->app->singleton(UserRepository::class, function (Application $app) {
             $configuration = $app->make(Configuration::class);

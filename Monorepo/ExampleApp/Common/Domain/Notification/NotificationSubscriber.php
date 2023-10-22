@@ -16,7 +16,7 @@ final class NotificationSubscriber
     public function __construct(private NotificationSender $notificationSender)
     {}
 
-    #[Asynchronous('async_channel')]
+    #[Asynchronous('notifications')]
     #[EventHandler(endpointId: "notifyWhenOrderWasPlaced")]
     public function whenOrderWasPlaced(
         OrderWasPlaced $event,

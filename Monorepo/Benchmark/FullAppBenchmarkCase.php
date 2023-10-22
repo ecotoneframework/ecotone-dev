@@ -3,8 +3,6 @@
 namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
@@ -18,7 +16,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
 
 /**
- * @BeforeClassMethods("setUpBeforeClass")
+ * @BeforeClassMethods("clearAllCaches")
  */
 abstract class FullAppBenchmarkCase extends TestCase
 {
@@ -91,7 +89,7 @@ abstract class FullAppBenchmarkCase extends TestCase
         $this->executeForLite($messagingSystem);
     }
 
-    public static function setUpBeforeClass(): void
+    public static function clearAllCaches(): void
     {
         self::clearLaravelCache();
         self::clearSymfonyCache();

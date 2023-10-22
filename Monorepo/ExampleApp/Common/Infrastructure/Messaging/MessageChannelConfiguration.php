@@ -10,6 +10,7 @@ use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -21,10 +22,12 @@ final class MessageChannelConfiguration
     #[ServiceContext]
     public function repositories()
     {
-        /**
-         * This is dbal asynchronous channel (ecotone/dbal), which provides us with Outbox Pattern.
-         * https://docs.ecotone.tech/modelling/asynchronous-handling
-         */
-        return InMemoryRepositoryBuilder::createForSetOfStateStoredAggregates([Order::class]);
+        return [
+            InMemoryRepositoryBuilder::createForSetOfStateStoredAggregates([Order::class]),
+            SimpleMessageChannelBuilder::createQueueChannel(
+                'async_channel',
+                conversionMediaType: MediaType::createApplicationXPHP()
+            ),
+        ];
     }
 }

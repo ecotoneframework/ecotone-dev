@@ -9,7 +9,7 @@ use Monorepo\ExampleApp\Common\Domain\Money;
 final class ProductDetails
 {
     public function __construct(
-        public readonly string $productName,
-        public readonly Money $productPrice
+        public string $productName,
+        public Money $productPrice
     ) {}
 }

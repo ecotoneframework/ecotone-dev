@@ -12,7 +12,7 @@ use PhpBench\Attributes\Warmup;
 use Psr\Container\ContainerInterface;
 
 #[Warmup(1), Revs(10), Iterations(5)]
-class MessagingBootBenchmark extends FullAppBenchmarkCase
+class BootingEcotoneBenchmark extends FullAppBenchmarkCase
 {
     public function executeForSymfony(ContainerInterface $container, Kernel $kernel): void
     {

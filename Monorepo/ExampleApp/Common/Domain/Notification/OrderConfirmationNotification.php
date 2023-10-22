@@ -11,9 +11,9 @@ use Ramsey\Uuid\UuidInterface;
 final class OrderConfirmationNotification
 {
     public function __construct(
-        public readonly string $userFullName,
-        public readonly UuidInterface $orderId,
-        public readonly ProductDetails $productDetails,
-        public readonly Money $totalAmount
+        public string $userFullName,
+        public UuidInterface $orderId,
+        public ProductDetails $productDetails,
+        public Money $totalAmount
     ) {}
 }

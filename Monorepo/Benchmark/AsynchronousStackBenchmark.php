@@ -28,29 +28,13 @@ final class AsynchronousStackBenchmark extends FullAppTestCase
         $queryBus = $container->get(QueryBus::class);
         $commandBus = $container->get(CommandBus::class);
 
-        $commandBus->send(
-            new PlaceOrder(
-                Uuid::uuid4(),
-                $configuration->userId(),
-                new ShippingAddress(
-                    'Washington',
-                    '15',
-                    '81-221',
-                    'Netherlands'
-                ),
-                $configuration->productId()
-            )
-        );
+        $this->placeOrder($commandBus, $configuration);
 
         $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
 
-        self::executeSymfonyConsoleCommand(
-            $kernel,
-            'ecotone:run',
-            ['consumerName' => 'async_channel', '--stopOnFailure' => true, '--executionTimeLimit' => 2000, '--finishWhenNoMessages' => true]
-        );
+        self::runConsumerForSymfony('notifications', $kernel);
 
-        $this->assertCount(2, $queryBus->sendWithRouting('getMessages'));
+        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
     }
 
     public function executeForLaravel(ContainerInterface $container, LaravelKernel $kernel): void
@@ -60,28 +44,13 @@ final class AsynchronousStackBenchmark extends FullAppTestCase
         $queryBus = $container->get(QueryBus::class);
         $commandBus = $container->get(CommandBus::class);
 
-        $commandBus->send(
-            new PlaceOrder(
-                Uuid::uuid4(),
-                $configuration->userId(),
-                new ShippingAddress(
-                    'Washington',
-                    '15',
-                    '81-221',
-                    'Netherlands'
-                ),
-                $configuration->productId()
-            )
-        );
+        $this->placeOrder($commandBus, $configuration);
 
         $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
 
-        Artisan::call(
-            'ecotone:run',
-            ['consumerName' => 'async_channel', '--stopOnFailure' => true, '--executionTimeLimit' => 2000, '--finishWhenNoMessages' => true]
-        );
+        self::runConsumerForLaravel('notifications');
 
-        $this->assertCount(2, $queryBus->sendWithRouting('getMessages'));
+        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
     }
 
     public function executeForLiteApplication(ContainerInterface $container): void
@@ -92,29 +61,13 @@ final class AsynchronousStackBenchmark extends FullAppTestCase
         /** @var ConfiguredMessagingSystem $messagingSystem */
         $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
 
-        $messagingSystem->getCommandBus()->send(
-            new PlaceOrder(
-                Uuid::uuid4(),
-                $configuration->userId(),
-                new ShippingAddress(
-                    'Washington',
-                    '15',
-                    '81-221',
-                    'Netherlands'
-                ),
-                $configuration->productId()
-            )
-        );
+        $this->placeOrder($messagingSystem->getCommandBus(), $configuration);
 
         $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
 
-        $messagingSystem->run(
-            'async_channel',
-            ExecutionPollingMetadata::createWithFinishWhenNoMessages()
-                ->withExecutionTimeLimitInMilliseconds(2000)
-        );
+        self::runConsumerForMessaging('notifications', $messagingSystem);
 
-        $this->assertCount(2, $queryBus->sendWithRouting('getMessages'));
+        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
     }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
@@ -123,7 +76,18 @@ final class AsynchronousStackBenchmark extends FullAppTestCase
         /** @var QueryBus $queryBus */
         $queryBus = $messagingSystem->getServiceFromContainer(QueryBus::class);
 
-        $messagingSystem->getCommandBus()->send(
+        $this->placeOrder($messagingSystem->getCommandBus(), $configuration);
+
+        $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
+
+        self::runConsumerForMessaging('notifications', $messagingSystem);
+
+        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
+    }
+
+    private function placeOrder(mixed $commandBus, mixed $configuration): void
+    {
+        $commandBus->send(
             new PlaceOrder(
                 Uuid::uuid4(),
                 $configuration->userId(),
@@ -136,15 +100,5 @@ final class AsynchronousStackBenchmark extends FullAppTestCase
                 $configuration->productId()
             )
         );
-
-        $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
-
-        $messagingSystem->run(
-            'async_channel',
-            ExecutionPollingMetadata::createWithFinishWhenNoMessages()
-                ->withExecutionTimeLimitInMilliseconds(2000)
-        );
-
-        $this->assertCount(2, $queryBus->sendWithRouting('getMessages'));
     }
 }

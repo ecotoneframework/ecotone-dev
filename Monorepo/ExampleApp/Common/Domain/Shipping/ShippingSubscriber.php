@@ -16,7 +16,7 @@ final class ShippingSubscriber
     {
     }
 
-    #[Asynchronous('async_channel')]
+    #[Asynchronous('delivery')]
     #[EventHandler(endpointId: "shipWhenOrderWasPlaced")]
     public function when(OrderWasPlaced $event, OrderRepository $orderRepository): void
     {

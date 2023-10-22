@@ -6,5 +6,5 @@ namespace Monorepo\ExampleApp\Common\Domain\Notification;
 
 interface NotificationSender
 {
-    public function send(object $notification): void;
+    public function send(OrderConfirmationNotification $notification): void;
 }

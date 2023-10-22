@@ -16,6 +16,8 @@ use Ramsey\Uuid\UuidInterface;
 
 class Configuration
 {
+    private UuidInterface $failToNotifyOrder;
+
     private UuidInterface $userId;
 
     private UuidInterface $productId;
@@ -28,6 +30,7 @@ class Configuration
         $this->userId = Uuid::uuid4();
         $this->productId = Uuid::uuid4();
         $this->registeredUser = [new User($this->userId, 'John Travolta')];
+        $this->failToNotifyOrder = Uuid::uuid4();
     }
 
     public function users(): array
@@ -58,5 +61,10 @@ class Configuration
     public function productId(): UuidInterface
     {
         return $this->productId;
+    }
+
+    public function failToNotifyOrder(): UuidInterface
+    {
+        return $this->failToNotifyOrder;
     }
 }

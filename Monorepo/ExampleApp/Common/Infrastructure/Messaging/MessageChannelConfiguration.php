@@ -20,14 +20,28 @@ use Monorepo\ExampleApp\Common\Domain\Order\Order;
 final class MessageChannelConfiguration
 {
     #[ServiceContext]
-    public function repositories()
+    public function configuration()
     {
         return [
             InMemoryRepositoryBuilder::createForSetOfStateStoredAggregates([Order::class]),
             SimpleMessageChannelBuilder::createQueueChannel(
-                'async_channel',
+                'notifications',
                 conversionMediaType: MediaType::createApplicationXPHP()
             ),
+            // 3 retries for notifications
+            ErrorHandlerConfiguration::createWithDeadLetterChannel(
+                'errorChannel',
+                RetryTemplateBuilder::exponentialBackoff(1000, 10)
+                    ->maxRetryAttempts(3),
+                'default_dead_letter'
+            ),
+            SimpleMessageChannelBuilder::createQueueChannel(
+                'delivery',
+                conversionMediaType: MediaType::createApplicationXPHP()
+            ),
+            // No retries push directly
+            PollingMetadata::create('delivery')
+                ->setErrorChannelName('custom_dead_letter'),
         ];
     }
 }

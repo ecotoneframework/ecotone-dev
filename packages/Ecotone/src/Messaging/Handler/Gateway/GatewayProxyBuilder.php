@@ -38,6 +38,7 @@ use Ecotone\Messaging\SubscribableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
+use Ramsey\Uuid\Uuid;
 use function is_a;
 use function uniqid;
 
@@ -381,21 +382,17 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     {
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
-        $gatewayInternalHandlerReference = $builder->register(
-            uniqid('gateway_internal_handler.'.$this->interfaceName.'::'.$this->methodName),
-            new Definition(GatewayInternalHandler::class, [
-                $interfaceToCallReference,
-                new ChannelReference($this->requestChannelName),
-                $this->replyChannelName ? new ChannelReference($this->replyChannelName) : null,
-                $this->replyMilliSecondsTimeout,
-            ])
-        );
+        $gatewayInternalHandlerReference = new Definition(GatewayInternalHandler::class, [
+            $interfaceToCallReference,
+            new ChannelReference($this->requestChannelName),
+            $this->replyChannelName ? new ChannelReference($this->replyChannelName) : null,
+            $this->replyMilliSecondsTimeout,
+        ]);
 
         $aroundInterceptors = $this->aroundInterceptors;
         if ($this->errorChannelName) {
-            /** @TODO before-merge Do not use hard coded strings */
             $interceptorReference = $builder->register(
-                'error_channel_interceptor.'.$this->errorChannelName,
+                Uuid::uuid4()->toString(),
                 new Definition(ErrorChannelInterceptor::class, [
                     new ChannelReference($this->errorChannelName),
                 ])
@@ -413,7 +410,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             $chainHandler = $chainHandler->chain($beforeInterceptor);
         }
         $chainHandler = $chainHandler->chainInterceptedHandler(
-            ServiceActivatorBuilder::create($gatewayInternalHandlerReference->getId(), $builder->getInterfaceToCall(new InterfaceToCallReference(GatewayInternalHandler::class, 'handle')))
+            ServiceActivatorBuilder::createWithDefinition($gatewayInternalHandlerReference, 'handle')
                 ->withWrappingResultInMessage(false)
                 ->withEndpointAnnotations($this->endpointAnnotations)
                 ->withAnnotatedInterface($this->annotatedInterfaceToCall ?? $interfaceToCall)
@@ -430,7 +427,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     }
 
     /**
-     * @return AroundInterceptorReference[]
+     * @return AroundInterceptorBuilder[]
      */
     private function getSortedAroundInterceptors(array $aroundInterceptors): array
     {

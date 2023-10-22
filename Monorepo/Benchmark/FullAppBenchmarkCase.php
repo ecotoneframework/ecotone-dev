@@ -9,6 +9,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;
 use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
+use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application as SymfonyConsoleApplication;
@@ -91,8 +92,8 @@ abstract class FullAppBenchmarkCase extends TestCase
 
     public static function setUpBeforeClass(): void
     {
-        self::clearSymfonyCache();
         self::clearLaravelCache();
+        self::clearSymfonyCache();
         self::clearLiteApplicationCache();
         self::clearLiteCache();
     }
@@ -102,7 +103,7 @@ abstract class FullAppBenchmarkCase extends TestCase
         self::productionEnvironments();
         MessagingSystemConfiguration::cleanCache(
             new ServiceCacheConfiguration(
-                __DIR__ . '/../ExampleApp/var/cache',
+                __DIR__ . '/../ExampleApp/Lite/var/cache',
                 true
             )
         );
@@ -134,29 +135,27 @@ abstract class FullAppBenchmarkCase extends TestCase
     public static function clearLaravelCache(): void
     {
         self::productionEnvironments();
-        self::createLaravelApplication();
-        Artisan::call('config:clear');
+        MessagingSystemConfiguration::cleanCache(
+            new ServiceCacheConfiguration(
+                __DIR__ . '/../ExampleApp/Laravel/storage/framework/cache/data',
+                true
+            )
+        );
     }
 
     public static function clearSymfonyCache(): void
     {
         self::productionEnvironments();
         $kernel = self::bootSymfonyKernel(environment: 'prod', debug: false);
+        $input = [];
+        $commandName = 'cache:clear';
 
-        $application = new SymfonyConsoleApplication($kernel);
-        $application->find('cache:clear')->run(
-            new ArrayInput([]),
-            new NullOutput()
-        );
+        self::executeSymfonyConsoleCommand($kernel, $commandName, $input);
 
         self::developmentEnvironments();
         $kernel = self::bootSymfonyKernel(environment: 'dev', debug: true);
 
-        $application = new SymfonyConsoleApplication($kernel);
-        $application->find('cache:clear')->run(
-            new ArrayInput([]),
-            new NullOutput()
-        );
+        self::executeSymfonyConsoleCommand($kernel, $commandName, $input);
     }
 
     public abstract function executeForSymfony(
@@ -203,5 +202,16 @@ abstract class FullAppBenchmarkCase extends TestCase
         $kernel = new SymfonyKernel($environment, $debug);
         $kernel->boot();
         return $kernel;
+    }
+
+    public static function executeSymfonyConsoleCommand(SymfonyKernel $kernel, string $commandName, array $input): void
+    {
+        $application = new SymfonyConsoleApplication($kernel);
+        $result = $application->find($commandName)->run(
+            new ArrayInput($input),
+            new NullOutput()
+        );
+
+        Assert::assertSame(0, $result);
     }
 }

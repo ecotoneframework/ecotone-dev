@@ -13,7 +13,7 @@ abstract class FullAppTestCase extends FullAppBenchmarkCase
 
     public function test_symfony_dev()
     {
-        $this->bench_laravel_dev();
+        $this->bench_symfony_dev();
     }
 
     public function test_laravel_prod(): void

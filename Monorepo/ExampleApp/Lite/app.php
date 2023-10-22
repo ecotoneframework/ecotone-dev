@@ -19,6 +19,7 @@ use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\Infrastructure\Converter\UuidConverter;
+use Monorepo\ExampleApp\Common\Infrastructure\ErrorChannelService;
 use Monorepo\ExampleApp\Common\Infrastructure\InMemory\InMemoryOrderRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\InMemory\InMemoryProductRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\InMemory\InMemoryUserRepository;
@@ -32,12 +33,14 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $output = new Output();
 
     $configuration = new Configuration();
-
     $inMemoryOrderRepository = new InMemoryOrderRepository();
+    $stubShippingService = new StubShippingService($output, $configuration);
+    $stubNotificationSender = new StubNotificationSender($output, $configuration);
+
     $classesToRegister = [
         Configuration::class => $configuration,
-        NotificationSender::class => new StubNotificationSender($output),
-        ShippingService::class => new StubShippingService($output),
+        NotificationSender::class => $stubNotificationSender,
+        ShippingService::class => $stubShippingService,
         Clock::class => new SystemClock(),
         OrderRepository::class => $inMemoryOrderRepository,
         InMemoryOrderRepository::class => $inMemoryOrderRepository,
@@ -47,9 +50,10 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
         ProductRepository::class => $configuration->productRepository(),
         InMemoryProductRepository::class => $configuration->productRepository(),
         UuidConverter::class => new UuidConverter(),
-        ShippingSubscriber::class => new ShippingSubscriber(new StubShippingService($output)),
-        NotificationSubscriber::class => new NotificationSubscriber(new StubNotificationSender($output)),
-        Output::class => $output
+        ShippingSubscriber::class => new ShippingSubscriber($stubShippingService),
+        NotificationSubscriber::class => new NotificationSubscriber($stubNotificationSender),
+        Output::class => $output,
+        ErrorChannelService::class => new ErrorChannelService()
     ];
 
     return EcotoneLite::bootstrap(
@@ -64,6 +68,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
             ->doNotLoadCatalog()
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withFailFast(false)
+            ->withDefaultErrorChannel('errorChannel')
             ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE])),
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__.'/../Common',

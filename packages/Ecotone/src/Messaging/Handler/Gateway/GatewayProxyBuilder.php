@@ -25,7 +25,7 @@ use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
@@ -220,7 +220,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
      * @param AroundInterceptorReference $aroundInterceptorReference
      * @return $this
      */
-    public function addAroundInterceptor(AroundInterceptorReference $aroundInterceptorReference): self
+    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): self
     {
         $this->aroundInterceptors[] = $aroundInterceptorReference;
         return $this;
@@ -398,7 +398,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
                 ])
             );
             $channelInterceptorInterface = $builder->getInterfaceToCall(new InterfaceToCallReference(ErrorChannelInterceptor::class, 'handle'));
-            $aroundInterceptors[] = AroundInterceptorReference::create(
+            $aroundInterceptors[] = AroundInterceptorBuilder::create(
                 $interceptorReference->getId(),
                 $channelInterceptorInterface,
                 Precedence::ERROR_CHANNEL_PRECEDENCE,
@@ -433,7 +433,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     {
         usort(
             $aroundInterceptors,
-            function (AroundInterceptorReference $a, AroundInterceptorReference $b) {
+            function (AroundInterceptorBuilder $a, AroundInterceptorBuilder $b) {
                 return $a->getPrecedence() <=> $b->getPrecedence();
             }
         );

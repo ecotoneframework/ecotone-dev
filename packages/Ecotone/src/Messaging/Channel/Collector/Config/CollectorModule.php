@@ -22,7 +22,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 
@@ -79,7 +79,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
             );
             $collectorSenderInterceptorInterfaceToCall = $interfaceToCallRegistry->getFor(CollectorSenderInterceptor::class, 'send');
             $messagingConfiguration->registerAroundMethodInterceptor(
-                AroundInterceptorReference::create(
+                AroundInterceptorBuilder::create(
                     $collectorSenderInterceptorReference,
                     $collectorSenderInterceptorInterfaceToCall,
                     Precedence::COLLECTOR_SENDER_PRECEDENCE,

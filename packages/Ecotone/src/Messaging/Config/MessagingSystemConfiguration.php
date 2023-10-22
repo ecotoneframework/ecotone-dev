@@ -42,7 +42,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -112,7 +112,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $beforeCallMethodInterceptors = [];
     /**
-     * @var AroundInterceptorReference[]
+     * @var AroundInterceptorBuilder[]
      */
     private array $aroundMethodInterceptors = [];
     /**
@@ -289,7 +289,7 @@ final class MessagingSystemConfiguration implements Configuration
      * @param AttributeDefinition[] $endpointAnnotations
      * @param string[] $requiredInterceptorNames
      *
-     * @return InterceptorWithPointCut[]|AroundInterceptorReference[]|MessageHandlerBuilderWithOutputChannel[]
+     * @return InterceptorWithPointCut[]|AroundInterceptorBuilder[]|MessageHandlerBuilderWithOutputChannel[]
      * @throws MessagingException
      */
     private function getRelatedInterceptors(array $interceptors, InterfaceToCall $interceptedInterface, iterable $endpointAnnotations, iterable $requiredInterceptorNames, InterfaceToCallRegistry $interfaceToCallRegistry): iterable
@@ -835,11 +835,11 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     /**
-     * @param AroundInterceptorReference $aroundInterceptorReference
+     * @param AroundInterceptorBuilder $aroundInterceptorReference
      *
      * @return Configuration
      */
-    public function registerAroundMethodInterceptor(AroundInterceptorReference $aroundInterceptorReference): Configuration
+    public function registerAroundMethodInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): Configuration
     {
         $this->aroundMethodInterceptors[] = $aroundInterceptorReference;
 

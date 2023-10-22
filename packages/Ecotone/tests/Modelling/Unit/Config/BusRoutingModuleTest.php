@@ -15,7 +15,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
@@ -116,7 +116,7 @@ class BusRoutingModuleTest extends MessagingTest
                     )
                 )
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::create(
+                    AroundInterceptorBuilder::create(
                         MessageHeadersPropagatorInterceptor::class,
                         $storeHeadersInterfaceToCall,
                         Precedence::ENDPOINT_HEADERS_PRECEDENCE - 1,

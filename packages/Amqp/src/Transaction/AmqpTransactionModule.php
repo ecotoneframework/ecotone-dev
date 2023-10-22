@@ -16,7 +16,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
@@ -71,7 +71,7 @@ class AmqpTransactionModule implements AnnotationModule
 
         $messagingConfiguration
             ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::create(
+                AroundInterceptorBuilder::create(
                     AmqpTransactionInterceptor::class,
                     $interfaceToCallRegistry->getFor(AmqpTransactionInterceptor::class, 'transactional'),
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE - 1,

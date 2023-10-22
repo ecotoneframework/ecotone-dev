@@ -21,7 +21,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
@@ -41,7 +41,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
      *
      * @param MethodInterceptor[]          $beforeSendInterceptors
      * @param MethodInterceptor[]          $preCallInterceptors
-     * @param AroundInterceptorReference[] $aroundInterceptors
+     * @param AroundInterceptorBuilder[] $aroundInterceptors
      * @param MethodInterceptor[]          $postCallInterceptors
      */
     private function __construct(array $beforeSendInterceptors, array $preCallInterceptors, array $aroundInterceptors, array $postCallInterceptors)
@@ -81,7 +81,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
             if ($interceptorInterface->hasMethodAnnotation($aroundAnnotation)) {
                 /** @var Around $aroundInterceptor */
                 $aroundInterceptor    = $interceptorInterface->getMethodAnnotation($aroundAnnotation);
-                $aroundInterceptors[] = AroundInterceptorReference::create(
+                $aroundInterceptors[] = AroundInterceptorBuilder::create(
                     AnnotatedDefinitionReference::getReferenceFor($methodInterceptor),
                     $interceptorInterface,
                     $aroundInterceptor->precedence,

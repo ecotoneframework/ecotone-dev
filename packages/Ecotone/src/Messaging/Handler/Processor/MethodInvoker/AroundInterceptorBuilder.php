@@ -33,7 +33,7 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Precedence;
 use InvalidArgumentException;
 
-final class AroundInterceptorReference implements InterceptorWithPointCut
+final class AroundInterceptorBuilder implements InterceptorWithPointCut
 {
     private int $precedence;
     private string $interceptorName;
@@ -105,7 +105,7 @@ final class AroundInterceptorReference implements InterceptorWithPointCut
     {
         usort(
             $interceptorsReferences,
-            function (AroundInterceptorReference $element, AroundInterceptorReference $elementToCompare) {
+            function (AroundInterceptorBuilder $element, AroundInterceptorBuilder $elementToCompare) {
                 if ($element->getPrecedence() == $elementToCompare->getPrecedence()) {
                     return 0;
                 }

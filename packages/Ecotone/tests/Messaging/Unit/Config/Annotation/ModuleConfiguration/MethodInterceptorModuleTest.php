@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\Me
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
@@ -33,7 +33,7 @@ class MethodInterceptorModuleTest extends AnnotationConfigurationTest
     {
         $expectedConfiguration = $this->createMessagingSystemConfiguration()
             ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::create(AroundInterceptorWithCustomParameterConverters::class, InterfaceToCall::create(AroundInterceptorWithCustomParameterConverters::class, 'handle'), 1, AroundInterceptorWithCustomParameterConverters::class, [
+                AroundInterceptorBuilder::create(AroundInterceptorWithCustomParameterConverters::class, InterfaceToCall::create(AroundInterceptorWithCustomParameterConverters::class, 'handle'), 1, AroundInterceptorWithCustomParameterConverters::class, [
                     HeaderBuilder::create('token', 'token'),
                     PayloadBuilder::create('payload'),
                     AllHeadersBuilder::createWith('headers'),

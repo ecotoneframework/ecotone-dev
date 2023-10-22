@@ -11,7 +11,7 @@ use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 
 abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
@@ -58,7 +58,7 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     /**
      * @inheritDoc
      */
-    public function addAroundInterceptor(AroundInterceptorReference $aroundInterceptorReference)
+    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference)
     {
         if ($this->isNullableGateway()) {
             return $this;

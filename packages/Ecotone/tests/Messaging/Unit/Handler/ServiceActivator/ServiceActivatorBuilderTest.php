@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\ServiceActivator;
 
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
@@ -151,9 +151,9 @@ class ServiceActivatorBuilderTest extends MessagingTest
     {
         $objectToInvoke = CalculatingService::create(0);
 
-        $firstInterceptor = AroundInterceptorReference::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 1, '', []);
-        $secondInterceptor = AroundInterceptorReference::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 2, '', []);
-        $thirdInterceptor = AroundInterceptorReference::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 3, '', []);
+        $firstInterceptor = AroundInterceptorBuilder::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 1, '', []);
+        $secondInterceptor = AroundInterceptorBuilder::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 2, '', []);
+        $thirdInterceptor = AroundInterceptorBuilder::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 3, '', []);
         $replyChannel = QueueChannel::create();
 
         $serviceActivator = ComponentTestBuilder::create()

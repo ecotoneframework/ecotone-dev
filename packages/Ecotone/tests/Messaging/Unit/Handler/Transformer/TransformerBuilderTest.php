@@ -8,7 +8,7 @@ use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
@@ -318,8 +318,8 @@ class TransformerBuilderTest extends MessagingTest
                 TransformerBuilder::createWithDirectObject($objectToInvoke, 'result')
                     ->withInputChannelName('someName')
                     ->withEndpointId('someEndpoint')
-                    ->addAroundInterceptor(AroundInterceptorReference::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 2, '', []))
-                    ->addAroundInterceptor(AroundInterceptorReference::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 1, '', []))
+                    ->addAroundInterceptor(AroundInterceptorBuilder::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 2, '', []))
+                    ->addAroundInterceptor(AroundInterceptorBuilder::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 1, '', []))
             );
 
         $serviceActivator->handle(MessageBuilder::withPayload(2)->setReplyChannel($replyChannel)->build());

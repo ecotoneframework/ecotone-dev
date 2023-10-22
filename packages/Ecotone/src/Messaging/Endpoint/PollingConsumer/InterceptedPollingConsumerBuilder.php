@@ -19,7 +19,7 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\Clock;
@@ -36,7 +36,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
     /**
      * @inheritDoc
      */
-    public function addAroundInterceptor(AroundInterceptorReference $aroundInterceptorReference): self
+    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): self
     {
         $this->aroundInterceptorReferences[] = $aroundInterceptorReference;
 
@@ -168,14 +168,14 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         $builder->registerPollingEndpoint($endpointId, $consumerRunner);
     }
 
-    private function getErrorInterceptorReference(ContainerMessagingBuilder $builder): AroundInterceptorReference
+    private function getErrorInterceptorReference(ContainerMessagingBuilder $builder): AroundInterceptorBuilder
     {
         if (! $builder->has(PollingConsumerErrorChannelInterceptor::class)) {
             $builder->register(PollingConsumerErrorChannelInterceptor::class, new Definition(PollingConsumerErrorChannelInterceptor::class, [
                 new Reference(ChannelResolver::class),
             ]));
         }
-        return AroundInterceptorReference::create(
+        return AroundInterceptorBuilder::create(
             PollingConsumerErrorChannelInterceptor::class,
             $builder->getInterfaceToCall(new InterfaceToCallReference(PollingConsumerErrorChannelInterceptor::class, 'handle')),
             Precedence::ERROR_CHANNEL_PRECEDENCE,

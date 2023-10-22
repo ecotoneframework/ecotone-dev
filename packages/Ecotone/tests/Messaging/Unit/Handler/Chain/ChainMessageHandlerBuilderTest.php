@@ -14,7 +14,7 @@ use Ecotone\Messaging\Handler\Enricher\Converter\EnrichHeaderWithExpressionBuild
 use Ecotone\Messaging\Handler\Enricher\Converter\EnrichHeaderWithValueBuilder;
 use Ecotone\Messaging\Handler\Enricher\EnricherBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
@@ -250,7 +250,7 @@ class ChainMessageHandlerBuilderTest extends TestCase
 
     public function test_having_chain_in_chain_with_default_around_interceptors_before_calling_any_chained_handler()
     {
-        $aroundAddOneAfterCall = AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+        $aroundAddOneAfterCall = AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
             InterfaceToCallRegistry::createEmpty(),
             CalculatingServiceInterceptorExample::create(1),
             'resultAfterCalling',
@@ -284,7 +284,7 @@ class ChainMessageHandlerBuilderTest extends TestCase
 
     public function test_having_chain_in_chain_with_around_interceptors()
     {
-        $aroundAddOneAfterCall = AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+        $aroundAddOneAfterCall = AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
             InterfaceToCallRegistry::createEmpty(),
             CalculatingServiceInterceptorExample::create(1),
             'sumAfterCalling',
@@ -324,7 +324,7 @@ class ChainMessageHandlerBuilderTest extends TestCase
             )
         );
 
-        $aroundAddOneAfterCall = AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+        $aroundAddOneAfterCall = AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
             InterfaceToCallRegistry::createEmpty(),
             CalculatingServiceInterceptorExample::create(10),
             'sumAfterCalling',

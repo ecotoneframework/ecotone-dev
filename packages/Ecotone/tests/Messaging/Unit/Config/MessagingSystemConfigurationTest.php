@@ -33,7 +33,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Message;
@@ -1305,7 +1305,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
             )
             /** will not contribute to calculations, as will add after final service was called */
             ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
                     InterfaceToCallRegistry::createEmpty(),
                     CalculatingServiceInterceptorExample::create(1),
                     'sumAfterCalling',
@@ -1369,7 +1369,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 )
             )
             ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
                     InterfaceToCallRegistry::createEmpty(),
                     $interceptingHandler,
                     'handle',
@@ -1417,7 +1417,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     )
                 )
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
                         InterfaceToCallRegistry::createEmpty(),
                         CalculatingServiceInterceptorExample::create(2),
                         'sum',
@@ -1546,7 +1546,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     )
                 )
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::create(
+                    AroundInterceptorBuilder::create(
                         $calculatorWithOne,
                         InterfaceToCall::create(CalculatingService::class, 'sum'),
                         1,
@@ -1555,7 +1555,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     )
                 )
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::create(
+                    AroundInterceptorBuilder::create(
                         $calculatorWithTwoAround,
                         InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'),
                         1,
@@ -1900,7 +1900,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                         ->withInputChannelName($requestChannelName)
                 )
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
                         InterfaceToCallRegistry::createEmpty(),
                         $aroundInterceptor,
                         'handle',
@@ -1946,7 +1946,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     )
                 )
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
                         InterfaceToCallRegistry::createEmpty(),
                         $aroundInterceptor,
                         'handle',
@@ -2001,7 +2001,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     )
                 )
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
                         InterfaceToCallRegistry::createEmpty(),
                         $aroundInterceptor,
                         'handle',
@@ -2074,7 +2074,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
                     )
                 )
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
                         InterfaceToCallRegistry::createEmpty(),
                         $aroundInterceptor,
                         'handle',

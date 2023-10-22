@@ -14,7 +14,7 @@ use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Type;
 use Psr\Container\ContainerInterface;
@@ -77,10 +77,10 @@ interface Configuration extends CompilerPass
     public function registerBeforeMethodInterceptor(MethodInterceptor $methodInterceptor): Configuration;
 
     /**
-     * @param \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference $aroundInterceptorReference
+     * @param \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder $aroundInterceptorReference
      * @return Configuration
      */
-    public function registerAroundMethodInterceptor(AroundInterceptorReference $aroundInterceptorReference): Configuration;
+    public function registerAroundMethodInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): Configuration;
 
     /**
      * @param MethodInterceptor $methodInterceptor

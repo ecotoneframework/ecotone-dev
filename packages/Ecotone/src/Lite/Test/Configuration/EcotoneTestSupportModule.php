@@ -21,7 +21,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
@@ -66,7 +66,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         $allowMissingDestinationInterfaceToCall = $interfaceToCallRegistry->getFor(AllowMissingDestination::class, 'invoke');
         if (! $testConfiguration->isFailingOnCommandHandlerNotFound()) {
             $messagingConfiguration
-                ->registerAroundMethodInterceptor(AroundInterceptorReference::create(
+                ->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
                     AllowMissingDestination::class,
                     $allowMissingDestinationInterfaceToCall,
                     Precedence::DEFAULT_PRECEDENCE,
@@ -75,7 +75,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         }
         if (! $testConfiguration->isFailingOnQueryHandlerNotFound()) {
             $messagingConfiguration
-                ->registerAroundMethodInterceptor(AroundInterceptorReference::create(
+                ->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
                     AllowMissingDestination::class,
                     $allowMissingDestinationInterfaceToCall,
                     Precedence::DEFAULT_PRECEDENCE,

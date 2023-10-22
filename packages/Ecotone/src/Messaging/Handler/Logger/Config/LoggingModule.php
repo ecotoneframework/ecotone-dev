@@ -22,7 +22,7 @@ use Ecotone\Messaging\Handler\Logger\Annotation\LogError;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Precedence;
 use Psr\Log\LoggerInterface;
@@ -66,7 +66,7 @@ class LoggingModule extends NoExternalConfigurationModule implements AnnotationM
             )
         );
         $messagingConfiguration->registerAroundMethodInterceptor(
-            AroundInterceptorReference::create(
+            AroundInterceptorBuilder::create(
                 LoggingInterceptor::class,
                 $interfaceToCallRegistry->getFor(LoggingInterceptor::class, 'logException'),
                 Precedence::EXCEPTION_LOGGING_PRECEDENCE,

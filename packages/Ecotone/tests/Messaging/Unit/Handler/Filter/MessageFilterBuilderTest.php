@@ -6,7 +6,7 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\Filter\MessageFilterBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\MessageHeaderDoesNotExistsException;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -270,7 +270,7 @@ class MessageFilterBuilderTest extends MessagingTest
             ->build(
                 MessageFilterBuilder::createWithReferenceName(MessageSelectorExample::class, InterfaceToCall::create(MessageSelectorExample::class, 'refuse'))
                     ->withOutputMessageChannel($outputChannelName)
-                    ->addAroundInterceptor(AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
+                    ->addAroundInterceptor(AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(
                         InterfaceToCallRegistry::createEmpty(),
                         CallWithEndingChainAndReturningInterceptorExample::createWithReturnType(false),
                         'callWithEndingChainAndReturning',

@@ -58,7 +58,7 @@ class LazyInMemoryContainer implements ContainerInterface
             return $definition->instance();
         }
 
-        $arguments = $this->resolveArgument($definition->getConstructorArguments());
+        $arguments = $this->resolveArgument($definition->getArguments());
         if ($definition->hasFactory()) {
             $factory = $definition->getFactory();
             if (method_exists($factory[0], $factory[1]) && (new ReflectionMethod($factory[0], $factory[1]))->isStatic()) {

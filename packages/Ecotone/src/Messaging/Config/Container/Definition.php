@@ -10,9 +10,9 @@ class Definition
     private array $methodCalls = [];
 
     /**
-     * @param array<string|int, mixed> $constructorArguments
+     * @param array<string|int, mixed> $arguments
      */
-    public function __construct(protected string $className, protected array $constructorArguments = [], protected string|array $factory = '')
+    public function __construct(protected string $className, protected array $arguments = [], protected string|array $factory = '')
     {
     }
 
@@ -21,20 +21,9 @@ class Definition
         return $this->className;
     }
 
-    public function getConstructorArguments(): array
+    public function getArguments(): array
     {
-        return $this->constructorArguments;
-    }
-
-    public function getArgument(int $index): mixed
-    {
-        return $this->constructorArguments[$index];
-    }
-
-    public function setArgument(int $index, mixed $argument): self
-    {
-        $this->constructorArguments[$index] = $argument;
-        return $this;
+        return $this->arguments;
     }
 
     public function getFactory(): array
@@ -48,12 +37,6 @@ class Definition
     public function hasFactory(): bool
     {
         return ! empty($this->factory);
-    }
-
-    public function setFactory(string|array $factory): self
-    {
-        $this->factory = $factory;
-        return $this;
     }
 
     public function addMethodCall(string $string, array $array): self

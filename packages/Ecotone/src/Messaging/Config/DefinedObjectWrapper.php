@@ -14,7 +14,7 @@ class DefinedObjectWrapper extends Definition
     public function __construct(private DefinedObject $instance)
     {
         $definition = $instance->getDefinition();
-        parent::__construct($definition->className, $definition->constructorArguments, $definition->factory);
+        parent::__construct($definition->className, $definition->arguments, $definition->factory);
     }
     public function instance(): DefinedObject
     {

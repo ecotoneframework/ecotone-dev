@@ -78,7 +78,7 @@ class PhpDiContainerImplementation implements CompilerPass
             return $this->convertFactory($definition);
         }
         $phpdi = \DI\create($definition->getClassName())
-            ->constructor(...$this->resolveArgument($definition->getConstructorArguments()));
+            ->constructor(...$this->resolveArgument($definition->getArguments()));
         foreach ($definition->getMethodCalls() as $methodCall) {
             $phpdi->method($methodCall->getMethodName(), ...$this->resolveArgument($methodCall->getArguments()));
         }
@@ -92,7 +92,7 @@ class PhpDiContainerImplementation implements CompilerPass
         // Transform indexed factory to named factory
         $reflector = new ReflectionMethod($class, $method);
         $parameters = $reflector->getParameters();
-        foreach ($definition->getConstructorArguments() as $index => $argument) {
+        foreach ($definition->getArguments() as $index => $argument) {
             $p = $parameters[$index] ?? null;
             $factory->parameter($p ? $p->name : $index, $this->resolveArgument($argument));
         }

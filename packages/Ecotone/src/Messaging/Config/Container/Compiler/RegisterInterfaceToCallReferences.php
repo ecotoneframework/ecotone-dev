@@ -34,7 +34,7 @@ class RegisterInterfaceToCallReferences implements CompilerPass
                 $this->registerAllReferences($value, $containerBuilder);
             }
         } elseif ($argument instanceof Definition) {
-            $this->registerAllReferences($argument->getConstructorArguments(), $containerBuilder);
+            $this->registerAllReferences($argument->getArguments(), $containerBuilder);
             foreach ($argument->getMethodCalls() as $methodCall) {
                 $this->registerAllReferences($methodCall->getArguments(), $containerBuilder);
             }

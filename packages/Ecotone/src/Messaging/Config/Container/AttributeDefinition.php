@@ -16,6 +16,6 @@ class AttributeDefinition extends Definition
 
     public function instance(): object
     {
-        return new $this->className(...$this->constructorArguments);
+        return new $this->className(...$this->arguments);
     }
 }

@@ -25,7 +25,7 @@ use Throwable;
  */
 class AcknowledgeConfirmationInterceptor implements DefinedObject
 {
-    public static function createAroundInterceptor(InterfaceToCallRegistry $interfaceToCallRegistry): AroundInterceptorBuilder
+    public static function createAroundInterceptorBuilder(InterfaceToCallRegistry $interfaceToCallRegistry): AroundInterceptorBuilder
     {
         return AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters($interfaceToCallRegistry, new self(), 'ack', Precedence::MESSAGE_ACKNOWLEDGE_PRECEDENCE, '');
     }

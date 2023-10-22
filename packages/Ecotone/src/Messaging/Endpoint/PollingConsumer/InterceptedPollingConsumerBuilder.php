@@ -151,7 +151,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         }
         $gatewayBuilder
             ->addAroundInterceptor($this->getErrorInterceptorReference($builder))
-            ->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry()));
+            ->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptorBuilder($builder->getInterfaceToCallRegistry()));
         foreach ($this->afterInterceptors as $afterInterceptor) {
             $gatewayBuilder->addAfterInterceptor($afterInterceptor);
         }

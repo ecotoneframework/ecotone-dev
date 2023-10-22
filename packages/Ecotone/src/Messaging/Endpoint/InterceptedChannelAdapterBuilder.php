@@ -40,7 +40,7 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
     {
         $gatewayBuilder = (clone $this->inboundGateway)
             ->addAroundInterceptor($this->getErrorInterceptorReference($builder))
-            ->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptor($builder->getInterfaceToCallRegistry()));
+            ->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptorBuilder($builder->getInterfaceToCallRegistry()));
         return $gatewayBuilder
             ->compile($builder);
     }

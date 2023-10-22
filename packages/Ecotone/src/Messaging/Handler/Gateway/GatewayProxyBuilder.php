@@ -8,6 +8,8 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
+use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
@@ -459,6 +461,14 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         return array_map(function (MethodInterceptor $methodInterceptor) {
             return $methodInterceptor->getMessageHandler();
         }, $methodInterceptors);
+    }
+
+    public function getProxyMethodReference(): GatewayProxyMethodReference
+    {
+        return new GatewayProxyMethodReference(
+            new GatewayProxyReference($this->referenceName, $this->interfaceName),
+            $this->methodName
+        );
     }
 
     public function __toString()

@@ -6,7 +6,7 @@ use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 
 class Reference
 {
-    public function __construct(private string $id, private int $invalidBehavior = ContainerImplementation::EXCEPTION_ON_INVALID_REFERENCE)
+    public function __construct(protected string $id, protected int $invalidBehavior = ContainerImplementation::EXCEPTION_ON_INVALID_REFERENCE)
     {
     }
 

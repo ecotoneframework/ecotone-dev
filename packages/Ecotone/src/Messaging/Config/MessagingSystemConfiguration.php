@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
-use function array_map;
-
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -23,8 +21,9 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerConfig;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\GatewayProxyReference;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\ConfigurationVariableService;
@@ -56,11 +55,10 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
 use Exception;
-
-use function is_a;
-
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
+use function array_map;
+use function is_a;
 
 /**
  * Class Configuration
@@ -1117,7 +1115,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
         $gatewayListReferences = [];
         foreach ($gatewayList as $referenceName => $interfaceName) {
-            $gatewayListReferences[] = new Definition(GatewayReference::class, [$referenceName, $interfaceName]);
+            $gatewayListReferences[] = new Definition(GatewayProxyReference::class, [$referenceName, $interfaceName]);
         }
 
         foreach ($this->consoleCommands as $consoleCommandConfiguration) {

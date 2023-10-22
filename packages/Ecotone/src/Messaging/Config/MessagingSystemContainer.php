@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\Config\Container\ConsoleCommandReference;
+use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use function array_keys;
 
 use Ecotone\Messaging\Config\Container\ChannelReference;
@@ -9,7 +11,6 @@ use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
@@ -34,16 +35,14 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
         return $this->container->get($gatewayReferenceName);
     }
 
-    public function getNonProxyGatewayByName(string $gatewayReferenceName): Gateway
+    public function getNonProxyGatewayByName(GatewayProxyMethodReference $gatewayProxyMethodReference): Gateway
     {
-        /** @TODO before-merge remove hard coded strings */
-        return $this->container->get('gateway.'.$gatewayReferenceName);
+        return $this->container->get($gatewayProxyMethodReference);
     }
 
     public function runConsoleCommand(string $commandName, array $parameters): mixed
     {
-        /** @TODO before-merge remove hard coded strings */
-        $consoleCommandReference = "console.{$commandName}";
+        $consoleCommandReference = new ConsoleCommandReference($commandName);
         if (! $this->container->has($consoleCommandReference)) {
             throw InvalidArgumentException::create("Trying to run not existing console command {$commandName}");
         }

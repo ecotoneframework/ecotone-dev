@@ -15,7 +15,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
-use Ecotone\Messaging\Config\GatewayReference;
+use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -1637,9 +1637,9 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
         $buyGateway = $messagingSystem
-            ->getNonProxyGatewayByName('combinedGateway::buy');
+            ->getNonProxyGatewayByName($buyGatewayBuilder->getProxyMethodReference());
         $sellGateway = $messagingSystem
-            ->getNonProxyGatewayByName('combinedGateway::sell');
+            ->getNonProxyGatewayByName($sellGatewayBuilder->getProxyMethodReference());
 
         $buyGateway->execute([]);
         $this->assertNotNull($messagingSystem->getMessageChannelByName('buy')->receive());
@@ -1664,9 +1664,9 @@ class MessagingSystemConfigurationTest extends MessagingTest
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('sell'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
 
-        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName('combinedGateway::buy'));
-        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName('combinedGateway::sell'));
-        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName('gateway::buy'));
+        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName($buyGateway->getProxyMethodReference()));
+        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName($sellGateway->getProxyMethodReference()));
+        $this->assertNotNull($messagingSystem->getNonProxyGatewayByName($buyGateway2->getProxyMethodReference()));
     }
 
     public function test_building_non_proxy_gateway_for_single_method()
@@ -1684,12 +1684,12 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messagingSystem->getMessageChannelByName('replyChannel')->send(MessageBuilder::withPayload('some')->build());
 
         $combinedGateway = $messagingSystem
-            ->getNonProxyGatewayByName('combinedGateway::buy');
+            ->getNonProxyGatewayByName($buyGateway->getProxyMethodReference());
 
         $this->assertEquals('some', $combinedGateway->execute([]));
         $this->assertNotNull($messagingSystem->getMessageChannelByName('buy')->receive());
         $this->assertEquals(
-            [new GatewayReference('combinedGateway', SingleMethodGatewayExample::class)],
+            [new GatewayProxyReference('combinedGateway', SingleMethodGatewayExample::class)],
             $messagingSystem->getGatewayList()
         );
     }

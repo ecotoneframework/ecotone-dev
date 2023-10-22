@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\EcotoneRemoteAdapter;
-use Ecotone\Messaging\Config\GatewayReference;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Support\Assert;
 use ProxyManager\Autoloader\AutoloaderInterface;
 use ProxyManager\Configuration;
 use ProxyManager\Factory\RemoteObject\AdapterInterface;
@@ -20,7 +19,6 @@ use ProxyManager\Proxy\RemoteObjectInterface;
 use ProxyManager\Signature\ClassSignatureGenerator;
 use ProxyManager\Signature\SignatureGenerator;
 
-use Psr\Container\ContainerInterface;
 use function spl_autoload_register;
 use function spl_autoload_unregister;
 
@@ -72,7 +70,7 @@ class ProxyFactory
 
         return $proxyFactory->createProxyClassWithAdapter(
             $interface,
-            new EcotoneRemoteAdapter($messagingSystem, $referenceName)
+            new EcotoneRemoteAdapter($messagingSystem, new GatewayProxyReference($referenceName, $interface))
         );
     }
 

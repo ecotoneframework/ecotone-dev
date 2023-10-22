@@ -420,14 +420,6 @@ class BusRoutingModule implements AnnotationModule
         return [];
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
-    {
-        return [];
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

@@ -190,16 +190,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
             $extensionObject instanceof PollingMetadata;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
-    {
-        return [
-            RequiredReference::create(InterfaceToCallRegistry::REFERENCE_NAME),
-        ];
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

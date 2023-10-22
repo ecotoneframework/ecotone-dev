@@ -91,14 +91,6 @@ class ObjectManagerModule implements AnnotationModule
         return $repositories;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
-    {
-        return [];
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::DBAL_PACKAGE;

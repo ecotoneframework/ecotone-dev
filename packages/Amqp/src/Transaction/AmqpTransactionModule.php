@@ -93,14 +93,6 @@ class AmqpTransactionModule implements AnnotationModule
         return $extensionObject instanceof AmqpConfiguration;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
-    {
-        return [];
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::AMQP_PACKAGE;

@@ -297,14 +297,6 @@ class ModellingHandlerModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function getRelatedReferences(): array
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function canHandle($extensionObject): bool
     {
         return

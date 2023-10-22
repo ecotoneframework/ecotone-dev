@@ -73,14 +73,6 @@ class DbalDeadLetterModule implements AnnotationModule
         return $extensionObject instanceof DbalConfiguration || $extensionObject instanceof CustomDeadLetterGateway;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
-    {
-        return [];
-    }
-
     public function getModuleExtensions(array $serviceExtensions): array
     {
         return [];

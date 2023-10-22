@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceParameter;
@@ -15,7 +15,7 @@ class PollingMetadataConverterBuilder implements ParameterConverterBuilder
     {
     }
 
-    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall): Reference
+    public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Reference
     {
         if (! $builder->has(PollingMetadataConverter::class)) {
             $builder->register(PollingMetadataConverter::class, new Definition(PollingMetadataConverter::class));

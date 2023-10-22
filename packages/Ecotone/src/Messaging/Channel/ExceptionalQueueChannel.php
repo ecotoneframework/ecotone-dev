@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -94,7 +94,7 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
         return true;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return $this->getDefinition();
     }

@@ -4,7 +4,7 @@ namespace Ecotone\Dbal\Recoverability;
 
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -144,7 +144,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, $this->methodName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName;
         if (! $builder->has($deadLetterHandlerReference)) {

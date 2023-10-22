@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Gateway\Converter;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -44,7 +44,7 @@ class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implemen
         return $interfaceToCallRegistry->getFor(Serializer::class, $this->methodName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         if (! $builder->has(SerializerHandler::class)) {
             $builder->register(SerializerHandler::class, new Definition(SerializerHandler::class, [

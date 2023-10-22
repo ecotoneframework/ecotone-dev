@@ -8,7 +8,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\InboundMessageConverter;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -28,7 +28,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         return new self($queueName, $endpointId, $requestChannelName, $amqpConnectionReferenceName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         // There was this code:
         // if ($pollingMetadata->getExecutionTimeLimitInMilliseconds()) {

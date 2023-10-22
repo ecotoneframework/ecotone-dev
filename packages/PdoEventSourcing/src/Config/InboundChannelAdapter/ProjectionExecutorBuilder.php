@@ -7,7 +7,7 @@ use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -35,7 +35,7 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
         return $interfaceToCallRegistry->getFor(ProjectionEventHandler::class, $this->methodName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         $projectionEventHandler =  new Definition(
             ProjectionEventHandler::class,

@@ -3,7 +3,7 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -25,7 +25,7 @@ class MethodInvokerBuilder implements CompilableBuilder
         return new self($definition, $interfaceToCallReference, $methodParametersConverterBuilders, $endpointAnnotations);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition|Reference
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
         $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $this->methodParametersConverterBuilders, $this->endpointAnnotations, null, false);

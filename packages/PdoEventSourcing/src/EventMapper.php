@@ -4,7 +4,7 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\EventSourcing\Prooph\ProophMessage;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Event;
@@ -69,7 +69,7 @@ class EventMapper implements MessageFactory, CompilableBuilder
         return $type;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(self::class, [
             $this->eventToNameMapping,

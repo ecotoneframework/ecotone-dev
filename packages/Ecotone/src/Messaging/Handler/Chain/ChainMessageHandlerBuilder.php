@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Handler\Chain;
 
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -85,7 +85,7 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
         return $this;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         if ($this->outputMessageHandler && $this->outputMessageChannelName) {
             throw InvalidArgumentException::create("Can't configure output message handler and output message channel for chain handler");

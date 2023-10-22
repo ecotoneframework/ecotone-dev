@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Enricher;
 
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -119,7 +119,7 @@ class EnricherBuilder extends InputOutputMessageHandlerBuilder implements Messag
         return $interfaceToCallRegistry->getFor(InternalEnrichingService::class, 'enrich');
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         if (empty($this->propertyEditors)) {
             throw ConfigurationException::create("Can't configure enricher with no property setters");

@@ -3,7 +3,7 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
@@ -96,7 +96,7 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return $this->getOutboundChannelAdapter()->getHeaderMapper();
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         $serviceConfiguration = $builder->getServiceConfiguration();
         if (! $this->getConversionMediaType() && $serviceConfiguration->getDefaultSerializationMediaType()) {

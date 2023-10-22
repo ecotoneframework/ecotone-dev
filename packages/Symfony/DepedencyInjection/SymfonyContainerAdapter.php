@@ -83,9 +83,6 @@ class SymfonyContainerAdapter implements CompilerPass
             $ecotoneDefinition->getClassName(),
             $this->normalizeNamedArgument($this->resolveArgument($ecotoneDefinition->getConstructorArguments()))
         );
-        if ($ecotoneDefinition->hasFactory()) {
-            $sfDefinition->setFactory($this->resolveFactoryArgument($ecotoneDefinition->getFactory()));
-        }
         foreach ($ecotoneDefinition->getMethodCalls() as $methodCall) {
             $sfDefinition->addMethodCall(
                 $methodCall->getMethodName(),

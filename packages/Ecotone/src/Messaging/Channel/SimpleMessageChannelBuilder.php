@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -87,7 +87,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return DefaultHeaderMapper::createAllHeadersMapping();
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new DefinedObjectWrapper($this->messageChannel);
     }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\MessagePoller\PollableChannelPollerAdapter;
@@ -27,7 +27,7 @@ class PollingConsumerBuilder extends InterceptedPollingConsumerBuilder
         return $interfaceToCallRegistry->getFor(InboundChannelAdapterEntrypoint::class, 'executeEntrypoint');
     }
 
-    protected function compileMessagePoller(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): Definition
+    protected function compileMessagePoller(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): Definition
     {
         return new Definition(PollableChannelPollerAdapter::class, [
             $messageHandlerBuilder->getInputMessageChannelName(),

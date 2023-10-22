@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 
 use function is_string;
@@ -52,7 +52,7 @@ class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
         return $this->precedence;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference
+    public function compile(MessagingContainerBuilder $builder): Reference
     {
         return is_string($this->referenceName) ? Reference::to($this->referenceName) : $this->referenceName;
     }

@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Bridge;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -139,7 +139,7 @@ class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel
         return $this->bridgeBuilder->getInterceptedInterface($interfaceToCallRegistry);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition|Reference
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         return $this->bridgeBuilder->compile($builder);
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -53,7 +53,7 @@ class ReferenceMessageHandlerBuilderExample extends InputOutputMessageHandlerBui
         return $this->module;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition|Reference
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         // TODO: this seems useless
         return new Definition(ReplyViaHeadersMessageHandler::class, ['some'], 'create');

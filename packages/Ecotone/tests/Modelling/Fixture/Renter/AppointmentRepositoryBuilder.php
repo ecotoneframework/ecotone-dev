@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Renter;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\LazyRepositoryBuilder;
@@ -48,7 +48,7 @@ class AppointmentRepositoryBuilder implements LazyRepositoryBuilder
         return AppointmentStandardRepository::createWith($this->appointments);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(AppointmentStandardRepository::class, [$this->appointments], 'createWith');
     }

@@ -10,7 +10,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use InvalidArgumentException;
 
-class ContainerMessagingBuilder
+class MessagingContainerBuilder
 {
     private InterfaceToCallRegistry $interfaceToCallRegistry;
 

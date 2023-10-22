@@ -8,7 +8,7 @@ use function array_merge;
 
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -133,7 +133,7 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
     /**
      * @param AttributeDefinition[] $endpointAnnotations
      */
-    public function compile(ContainerMessagingBuilder $builder, array $endpointAnnotations, InterfaceToCall $interceptedInterface): Definition|null
+    public function compile(MessagingContainerBuilder $builder, array $endpointAnnotations, InterfaceToCall $interceptedInterface): Definition|null
     {
         $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
         $parameterConvertersFromAttributes = $parameterAnnotationResolver->createParameterConverters($this->interfaceToCall);

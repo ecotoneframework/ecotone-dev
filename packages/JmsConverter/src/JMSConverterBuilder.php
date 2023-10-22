@@ -3,7 +3,7 @@
 namespace Ecotone\JMSConverter;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -59,7 +59,7 @@ class JMSConverterBuilder implements CompilableBuilder
         return new JMSConverter($builder->build(), $jmsConverterConfiguration);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         $configuration = new Definition(JMSConverterConfiguration::class, [
             $this->jmsConverterConfiguration->getNamingStrategy(),

@@ -4,5 +4,5 @@ namespace Ecotone\Messaging\Config\Container;
 
 interface CompilableBuilder
 {
-    public function compile(ContainerMessagingBuilder $builder): Definition|Reference;
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference;
 }

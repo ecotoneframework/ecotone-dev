@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -47,7 +47,7 @@ class HeaderBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    public function compile(ContainerMessagingBuilder $builder, InterfaceToCall $interfaceToCall): Definition
+    public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Definition
     {
         return new Definition(HeaderConverter::class, [
             InterfaceParameterReference::fromInstance($interfaceToCall, $this->parameterName),

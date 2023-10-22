@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -53,7 +53,7 @@ class DumbMessageHandlerBuilder extends InputOutputMessageHandlerBuilder impleme
         return new self(NoReturnMessageHandler::create(), 'inputChannel');
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new DefinedObjectWrapper($this->messageHandler);
     }

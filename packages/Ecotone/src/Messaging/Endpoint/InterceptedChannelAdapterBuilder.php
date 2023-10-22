@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
@@ -36,7 +36,7 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
         return true;
     }
 
-    protected function compileGateway(ContainerMessagingBuilder $builder): Definition|Reference|DefinedObject
+    protected function compileGateway(MessagingContainerBuilder $builder): Definition|Reference|DefinedObject
     {
         $gatewayBuilder = (clone $this->inboundGateway)
             ->addAroundInterceptor($this->getErrorInterceptorReference($builder))
@@ -45,7 +45,7 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
             ->compile($builder);
     }
 
-    public function registerConsumer(ContainerMessagingBuilder $builder): void
+    public function registerConsumer(MessagingContainerBuilder $builder): void
     {
         $messagePoller = $this->compile($builder);
         $gateway = $this->compileGateway($builder);
@@ -59,7 +59,7 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
         $builder->registerPollingEndpoint($this->endpointId, $consumerRunner);
     }
 
-    private function getErrorInterceptorReference(ContainerMessagingBuilder $builder): AroundInterceptorBuilder
+    private function getErrorInterceptorReference(MessagingContainerBuilder $builder): AroundInterceptorBuilder
     {
         if (! $builder->has(PollingConsumerErrorChannelInterceptor::class)) {
             $builder->register(PollingConsumerErrorChannelInterceptor::class, new Definition(PollingConsumerErrorChannelInterceptor::class, [

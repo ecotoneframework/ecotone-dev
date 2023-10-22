@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
@@ -32,11 +32,11 @@ use Ramsey\Uuid\Uuid;
 
 class ComponentTestBuilder
 {
-    private ContainerMessagingBuilder $messagingBuilder;
+    private MessagingContainerBuilder $messagingBuilder;
 
     private function __construct(private InMemoryPSRContainer $container, private ContainerBuilder $builder)
     {
-        $this->messagingBuilder = new ContainerMessagingBuilder($builder);
+        $this->messagingBuilder = new MessagingContainerBuilder($builder);
     }
 
     public static function create(): self
@@ -134,7 +134,7 @@ class ComponentTestBuilder
         return $this->container->get($name);
     }
 
-    public function getBuilder(): ContainerMessagingBuilder
+    public function getBuilder(): MessagingContainerBuilder
     {
         return $this->messagingBuilder;
     }

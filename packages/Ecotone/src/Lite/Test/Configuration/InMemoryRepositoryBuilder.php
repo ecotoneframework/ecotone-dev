@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test\Configuration;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use Ecotone\Modelling\InMemoryStandardRepository;
@@ -46,7 +46,7 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder
         return $this->isEventSourced;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return match ($this->isEventSourced) {
             true => new Definition(

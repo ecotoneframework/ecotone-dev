@@ -37,11 +37,6 @@ class Definition
         return $this;
     }
 
-    public function replaceArguments(array $arguments): void
-    {
-        $this->constructorArguments = $arguments;
-    }
-
     public function getFactory(): array
     {
         if (is_string($this->factory)) {

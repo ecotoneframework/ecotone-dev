@@ -8,7 +8,7 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\ProxyBuilder;
@@ -296,7 +296,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         return $this->endpointAnnotations;
     }
 
-    public function registerProxy(ContainerMessagingBuilder $builder): Reference
+    public function registerProxy(MessagingContainerBuilder $builder): Reference
     {
         $gateway = $this->compile($builder);
         $builder->register('gateway.'.$this->getReferenceName().'::'.$this->getRelatedMethodName(), $gateway);
@@ -312,7 +312,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         return new Reference($this->getReferenceName());
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
@@ -375,7 +375,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         ]);
     }
 
-    private function compileGatewayInternalHandler(ContainerMessagingBuilder $builder): Definition
+    private function compileGatewayInternalHandler(MessagingContainerBuilder $builder): Definition
     {
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);

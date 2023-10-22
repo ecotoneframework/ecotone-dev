@@ -6,7 +6,7 @@ namespace Ecotone\SymfonyBundle\Messenger;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -57,7 +57,7 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
         return $this;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(
             SymfonyMessengerMessageChannel::class,

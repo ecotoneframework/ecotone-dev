@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
@@ -40,7 +40,7 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
         return true;
     }
 
-    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
+    public function registerConsumer(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
     {
         $messageHandlerReference = $messageHandlerBuilder->compile($builder);
         $consumerRunner = new Definition(PollOrThrowExceptionConsumer::class, [

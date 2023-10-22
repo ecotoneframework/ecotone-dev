@@ -2,7 +2,7 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\RepositoryBuilder;
@@ -26,7 +26,7 @@ final class EloquentRepositoryBuilder implements RepositoryBuilder
         return false;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition|Reference
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         return new Definition(EloquentRepository::class);
     }

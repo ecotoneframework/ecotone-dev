@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
@@ -32,7 +32,7 @@ final class RetriesChannelInterceptorBuilder implements ChannelInterceptorBuilde
         return PrecedenceChannelInterceptor::DEFAULT_PRECEDENCE;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(SendRetryChannelInterceptor::class, [
             $this->relatedChannel,

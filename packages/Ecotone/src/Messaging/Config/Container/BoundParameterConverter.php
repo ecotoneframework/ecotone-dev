@@ -12,7 +12,7 @@ class BoundParameterConverter implements CompilableBuilder
     ) {
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return $this->parameterConverterBuilder->compile($builder, $this->interfaceToCall);
     }

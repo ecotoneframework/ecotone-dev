@@ -7,7 +7,7 @@ use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\PollingMetadataReference;
@@ -117,9 +117,9 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         return true;
     }
 
-    abstract protected function compileMessagePoller(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): Definition|Reference;
+    abstract protected function compileMessagePoller(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): Definition|Reference;
 
-    public function registerConsumer(ContainerMessagingBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
+    public function registerConsumer(MessagingContainerBuilder $builder, MessageHandlerBuilder $messageHandlerBuilder): void
     {
         $endpointId = $messageHandlerBuilder->getEndpointId();
         if ($this->withContinuesPolling()) {
@@ -168,7 +168,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         $builder->registerPollingEndpoint($endpointId, $consumerRunner);
     }
 
-    private function getErrorInterceptorReference(ContainerMessagingBuilder $builder): AroundInterceptorBuilder
+    private function getErrorInterceptorReference(MessagingContainerBuilder $builder): AroundInterceptorBuilder
     {
         if (! $builder->has(PollingConsumerErrorChannelInterceptor::class)) {
             $builder->register(PollingConsumerErrorChannelInterceptor::class, new Definition(PollingConsumerErrorChannelInterceptor::class, [

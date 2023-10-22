@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Conversion\ArrayToJson;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -15,7 +15,7 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 class ArrayToJsonConverterBuilder implements CompilableBuilder
 {
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(ArrayToJsonConverter::class);
     }

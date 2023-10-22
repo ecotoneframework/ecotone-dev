@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Conversion;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 
 /**
@@ -28,7 +28,7 @@ class ConverterReferenceBuilder implements CompilableBuilder
         return new self($referenceName);
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Reference
+    public function compile(MessagingContainerBuilder $builder): Reference
     {
         return new Reference($this->referenceName);
     }

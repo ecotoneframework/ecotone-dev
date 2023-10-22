@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Channel\Collector\Config;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\Collector\MessageCollectorChannelInterceptor;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
@@ -28,7 +28,7 @@ final class CollectorChannelInterceptorBuilder implements ChannelInterceptorBuil
         return PrecedenceChannelInterceptor::COLLECTOR_PRECEDENCE;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(
             MessageCollectorChannelInterceptor::class,

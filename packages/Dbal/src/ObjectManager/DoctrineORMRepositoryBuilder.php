@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\RepositoryBuilder;
@@ -32,7 +32,7 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         return false;
     }
 
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(ManagerRegistryRepository::class, [
             new Reference($this->connectionReferenceName),

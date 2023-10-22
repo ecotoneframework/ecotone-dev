@@ -23,7 +23,7 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerConfig;
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -1037,7 +1037,7 @@ final class MessagingSystemConfiguration implements Configuration
     {
         $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
 
-        $messagingBuilder = new ContainerMessagingBuilder($builder, $this->interfaceToCallRegistry, $this->applicationConfiguration);
+        $messagingBuilder = new MessagingContainerBuilder($builder, $this->interfaceToCallRegistry, $this->applicationConfiguration);
 
         foreach ($this->serviceDefinitions as $id => $definition) {
             $messagingBuilder->register($id, $definition);

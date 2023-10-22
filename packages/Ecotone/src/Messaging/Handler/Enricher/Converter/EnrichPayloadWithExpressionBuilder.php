@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Enricher\Converter;
 
-use Ecotone\Messaging\Config\Container\ContainerMessagingBuilder;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -76,7 +76,7 @@ class EnrichPayloadWithExpressionBuilder implements PropertyEditorBuilder
     /**
      * @inheritDoc
      */
-    public function compile(ContainerMessagingBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(EnrichPayloadWithExpressionPropertyEditor::class, [
             new Reference(ExpressionEvaluationService::REFERENCE),

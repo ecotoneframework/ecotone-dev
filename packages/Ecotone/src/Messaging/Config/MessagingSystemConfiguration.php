@@ -1155,6 +1155,36 @@ final class MessagingSystemConfiguration implements Configuration
         }
     }
 
+    public static function cleanCache(ServiceCacheConfiguration $serviceCacheConfiguration): void
+    {
+        self::deleteFiles($serviceCacheConfiguration->getPath(), false);
+    }
+
+    private static function deleteFiles(string $target, bool $deleteDirectory): void
+    {
+        if (is_dir($target)) {
+            Assert::isTrue(
+                is_writable($target),
+                "Not enough permissions to delete from cache directory {$target}"
+            );
+            $files = glob($target . '*', GLOB_MARK);
+
+            foreach ($files as $file) {
+                self::deleteFiles($file, true);
+            }
+
+            if ($deleteDirectory) {
+                rmdir($target);
+            }
+        } elseif (is_file($target)) {
+            Assert::isTrue(
+                is_writable($target),
+                "Not enough permissions to delete cache file {$target}"
+            );
+            unlink($target);
+        }
+    }
+
     public function getRegisteredConsoleCommands(): array
     {
         return $this->consoleCommands;

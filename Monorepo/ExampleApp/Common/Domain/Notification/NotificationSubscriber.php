@@ -13,7 +13,7 @@ use Ecotone\Modelling\Attribute\EventHandler;
 
 final class NotificationSubscriber
 {
-    public function __construct(private readonly NotificationSender $notificationSender)
+    public function __construct(private NotificationSender $notificationSender)
     {}
 
     #[Asynchronous('async_channel')]

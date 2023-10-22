@@ -164,7 +164,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             new Reference(ChannelResolver::class),
             $this->isReplyRequired,
             $this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid(),
-            1,
+            RequestReplyProducer::REQUEST_REPLY_METHOD,
         ]);
         if ($this->orderedAroundInterceptors) {
             $interceptors = [];

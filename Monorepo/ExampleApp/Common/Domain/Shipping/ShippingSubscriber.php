@@ -12,14 +12,15 @@ use Ecotone\Modelling\Attribute\EventHandler;
 
 final class ShippingSubscriber
 {
-    public function __construct(private readonly OrderRepository $orderRepository, public readonly ShippingService $shippingService)
+    public function __construct(public ShippingService $shippingService)
     {
     }
 
+    #[Asynchronous('async_channel')]
     #[EventHandler(endpointId: "shipWhenOrderWasPlaced")]
-    public function when(OrderWasPlaced $event): void
+    public function when(OrderWasPlaced $event, OrderRepository $orderRepository): void
     {
-        $order = $this->orderRepository->getBy($event->orderId);
+        $order = $orderRepository->getBy($event->orderId);
 
         $this->shippingService->shipOrderFor(
             $order->getUserId(), $order->getOrderId(),

@@ -1,23 +1,25 @@
 <?php
 
-declare(strict_types=1);
-
-namespace Monorepo\CrossModuleTests\Tests;
+namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
+use Illuminate\Http\Request as LaravelRequest;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\UI\OrderController;
 use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
+use PhpBench\Attributes\Iterations;
+use PhpBench\Attributes\Revs;
+use PhpBench\Attributes\Warmup;
 use PHPUnit\Framework\Assert;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
-use Illuminate\Http\Request as LaravelRequest;
 
-final class ExecutionEcotoneApplication extends FullAppTestCase
+#[Warmup(1), Revs(10), Iterations(5)]
+class HttpStackBenchmark extends FullAppBenchmarkCase
 {
     public function executeForSymfony(ContainerInterface $container, SymfonyKernel $kernel): void
     {
@@ -79,8 +81,6 @@ final class ExecutionEcotoneApplication extends FullAppTestCase
             ],
             'productId' => $configuration->productId(),
         ])));
-
-        $this->assertTrue(true);
     }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
@@ -100,7 +100,5 @@ final class ExecutionEcotoneApplication extends FullAppTestCase
                 $configuration->productId()
             )
         );
-
-        $this->assertTrue(true);
     }
 }

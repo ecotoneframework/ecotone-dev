@@ -30,6 +30,6 @@ class KernelBootBenchmark extends FullAppBenchmarkCase
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {
-        // TODO: Implement executeForLite() method.
+        // do nothing
     }
 }

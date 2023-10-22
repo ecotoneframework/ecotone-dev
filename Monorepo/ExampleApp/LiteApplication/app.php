@@ -6,9 +6,11 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Monorepo\ExampleApp\Common\Domain\Clock;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSender;
+use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSubscriber;
 use Monorepo\ExampleApp\Common\Domain\Order\OrderRepository;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
 use Monorepo\ExampleApp\Common\Domain\Shipping\ShippingService;
+use Monorepo\ExampleApp\Common\Domain\Shipping\ShippingSubscriber;
 use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
@@ -32,6 +34,9 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
         AuthenticationService::class => $configuration->authentication(),
         UserRepository::class => $configuration->userRepository(),
         ProductRepository::class => $configuration->productRepository(),
+        ShippingSubscriber::class => new ShippingSubscriber(new StubShippingService($output)),
+        NotificationSubscriber::class => new NotificationSubscriber(new StubNotificationSender($output)),
+        Output::class => $output
     ];
 
     return EcotoneLiteApplication::bootstrap(

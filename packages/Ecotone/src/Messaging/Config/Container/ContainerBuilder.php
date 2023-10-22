@@ -27,6 +27,9 @@ class ContainerBuilder
     {
     }
 
+    /**
+     * @TODO before-merge make it explicit what kind of types can be found in array $definition
+     */
     public function register(string $id, DefinedObject|Definition|Reference|array $definition = []): Reference
     {
         if (isset($this->definitions[$id])) {
@@ -35,6 +38,9 @@ class ContainerBuilder
         return $this->replace($id, $definition);
     }
 
+    /**
+     * @TODO before-merge make it explicit what kind of types can be found in array $definition
+     */
     public function replace(string $id, DefinedObject|Definition|Reference|array $definition = []): Reference
     {
         if (isset($this->externalReferences[$id])) {

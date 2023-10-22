@@ -36,11 +36,13 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
     public function getNonProxyGatewayByName(string $gatewayReferenceName): Gateway
     {
+        /** @TODO before-merge remove hard coded strings */
         return $this->container->get('gateway.'.$gatewayReferenceName);
     }
 
     public function runConsoleCommand(string $commandName, array $parameters): mixed
     {
+        /** @TODO before-merge remove hard coded strings */
         $consoleCommandReference = "console.{$commandName}";
         if (! $this->container->has($consoleCommandReference)) {
             throw InvalidArgumentException::create("Trying to run not existing console command {$commandName}");

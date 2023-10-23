@@ -51,6 +51,7 @@ jobs:
   get_packages:
     name: Package splitting
     needs: prepare-code-for-release
+    if: always() && (prepare-code-for-release == 'success' || prepare-code-for-release == 'skipped')
     runs-on: ubuntu-latest
 
     steps:

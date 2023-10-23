@@ -10,48 +10,8 @@ env:
   GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
 
 jobs:
-  prepare-code-for-release:
-    name: "Auto fix PHP CS and set up required package versions"
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    permissions:
-      # Give the default GITHUB_TOKEN write permission to commit and push the
-      # added or changed files to the repository.
-      contents: write
-
-    steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.1
-          coverage: none
-
-      -
-#        In order to not be in detached state due to tag checkout
-        uses: actions/checkout@v2
-        with:
-          ref: "main"
-
-      - name: Install PHP-CS-Fixer
-        run: |
-          composer global require friendsofphp/php-cs-fixer
-          export PATH="$PATH:$HOME/.composer/vendor/bin"
-
-      - name: Run PHP CS Fixer
-        run: php-cs-fixer fix --config=.php-cs-fixer.dist.php --allow-risky=yes
-
-      - name: Run Update Required Packages
-        run: php bin/update-required-packages.php ${{ github.ref_name }}
-
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: Release ${{ github.ref_name }}
-
   get_packages:
     name: Package splitting
-    needs: prepare-code-for-release
-    if: always() && (needs.prepare-code-for-release == 'success' || needs.prepare-code-for-release == 'skipped')
     runs-on: ubuntu-latest
 
     steps:

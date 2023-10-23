@@ -9,10 +9,11 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -39,11 +40,6 @@ class ObjectManagerModule implements AnnotationModule
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
-        $connectionFactories = [DbalConnectionFactory::class];
-        if ($dbalConfiguration->getDefaultConnectionReferenceNames()) {
-            $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames();
-        }
-
         $pointcut = [];
         if ($dbalConfiguration->isClearObjectManagerOnAsynchronousEndpoints()) {
             $pointcut[] = AsynchronousRunningEndpoint::class;
@@ -53,13 +49,21 @@ class ObjectManagerModule implements AnnotationModule
         }
 
         if ($pointcut !== []) {
+            $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionFactory::class];
+            $connectionFactoriesReferences = [];
+            foreach ($connectionFactories as $connectionFactory) {
+                $connectionFactoriesReferences[$connectionFactory] = new Reference($connectionFactory);
+            }
+
+            $messagingConfiguration->registerServiceDefinition(ObjectManagerInterceptor::class, [
+                $connectionFactoriesReferences,
+            ]);
+
             $messagingConfiguration
-                ->requireReferences($connectionFactories)
                 ->registerAroundMethodInterceptor(
-                    AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                        $interfaceToCallRegistry,
-                        new ObjectManagerInterceptor($connectionFactories),
-                        'transactional',
+                    AroundInterceptorBuilder::create(
+                        ObjectManagerInterceptor::class,
+                        $interfaceToCallRegistry->getFor(ObjectManagerInterceptor::class, 'transactional'),
                         Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
                         implode('||', $pointcut)
                     )
@@ -85,14 +89,6 @@ class ObjectManagerModule implements AnnotationModule
         }
 
         return $repositories;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
-    {
-        return [];
     }
 
     public function getModulePackageName(): string

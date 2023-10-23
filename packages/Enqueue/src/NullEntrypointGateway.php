@@ -2,9 +2,11 @@
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 
-class NullEntrypointGateway implements InboundChannelAdapterEntrypoint
+class NullEntrypointGateway implements InboundChannelAdapterEntrypoint, DefinedObject
 {
     private function __construct()
     {
@@ -17,5 +19,10 @@ class NullEntrypointGateway implements InboundChannelAdapterEntrypoint
 
     public function executeEntrypoint($data): void
     {
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class);
     }
 }

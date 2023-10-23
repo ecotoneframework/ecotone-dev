@@ -22,7 +22,11 @@ use Throwable;
 
 final class TracerInterceptor
 {
-    public function traceAsynchronousEndpoint(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
+    public function __construct(private TracerInterface $tracer, private LoggerInterface $logger)
+    {
+    }
+
+    public function traceAsynchronousEndpoint(MethodInvocation $methodInvocation, Message $message)
     {
         /**
          * @TODO tag polledChannelName, routingSlip
@@ -35,69 +39,62 @@ final class TracerInterceptor
             'Receiving from channel: ' . $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME),
             $methodInvocation,
             $message,
-            $referenceSearchService,
             parentContext: $parentContext,
             spanKind: SpanKind::KIND_CONSUMER
         );
     }
 
-    public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
+    public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
             'Command Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
             $methodInvocation,
             $message,
-            $referenceSearchService
         );
     }
 
-    public function traceQueryHandler(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
+    public function traceQueryHandler(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
             'Query Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
             $methodInvocation,
             $message,
-            $referenceSearchService
         );
     }
 
-    public function traceEventHandler(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
+    public function traceEventHandler(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
             'Event Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
             $methodInvocation,
             $message,
-            $referenceSearchService
         );
     }
 
-    public function traceCommandBus(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
+    public function traceCommandBus(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
             'Command Bus',
             $methodInvocation,
             $message,
-            $referenceSearchService
         );
     }
 
-    public function traceEventBus(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
+    public function traceEventBus(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
             'Event Bus',
             $methodInvocation,
             $message,
-            $referenceSearchService
         );
     }
 
-    public function traceQueryBus(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService)
+    public function traceQueryBus(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
             'Query Bus',
             $methodInvocation,
             $message,
-            $referenceSearchService
         );
     }
 
@@ -105,7 +102,6 @@ final class TracerInterceptor
         string $type,
         MethodInvocation $methodInvocation,
         Message $message,
-        ReferenceSearchService $referenceSearchService,
         array $attributes = [],
         ?ContextInterface $parentContext = null,
         int $spanKind = SpanKind::KIND_SERVER
@@ -113,17 +109,13 @@ final class TracerInterceptor
     {
         /** @TODO this should be moved somewhere else */
         if (! LoggerHolder::isSet()) {
-            /** @var LoggerInterface $logger */
-            $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
-            LoggerHolder::set($logger);
+            LoggerHolder::set($this->logger);
         }
 
-        /** @var TracerInterface $tracer */
-        $tracer = $referenceSearchService->get(TracerInterface::class);
         $span = EcotoneSpanBuilder::create(
             $message,
             $type,
-            $tracer
+            $this->tracer
         )
             ->setParent($parentContext)
             ->startSpan();

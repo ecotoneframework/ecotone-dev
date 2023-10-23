@@ -12,6 +12,7 @@ use Ecotone\Amqp\Configuration\AmqpModule;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -96,44 +97,22 @@ class AmqpModuleTest extends AmqpMessagingTest
 
     private function prepareConfigurationAndRetrieveAmqpAdmin(array $extensions): AmqpAdmin
     {
-        $moduleReferenceSearchService = $this->prepareConfiguration($extensions);
+        $messagingSystem = $this->prepareConfiguration($extensions);
 
-        return $moduleReferenceSearchService->retrieveRequired(AmqpAdmin::REFERENCE_NAME);
+        return $messagingSystem->getServiceFromContainer(AmqpAdmin::REFERENCE_NAME);
     }
 
     /**
      * @param array $extensions
      *
-     * @return ModuleReferenceSearchService
      * @throws MessagingException
      */
-    private function prepareConfiguration(array $extensions): ModuleReferenceSearchService
+    private function prepareConfiguration(array $extensions): ConfiguredMessagingSystem
     {
         $cqrsMessagingModule = AmqpModule::create(InMemoryAnnotationFinder::createEmpty(), InterfaceToCallRegistry::createEmpty());
 
-        $extendedConfiguration        = $this->createMessagingSystemConfiguration();
-        $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();
+        $extendedConfiguration        = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createWith([$cqrsMessagingModule], $extensions));
 
-        $cqrsMessagingModule->prepare(
-            $extendedConfiguration,
-            $extensions,
-            $moduleReferenceSearchService,
-            InterfaceToCallRegistry::createEmpty()
-        );
-
-        return $moduleReferenceSearchService;
-    }
-
-    /**
-     * @return MessagingSystemConfiguration
-     * @throws MessagingException
-     * @throws AnnotationException
-     * @throws ConfigurationException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
-     */
-    private function createMessagingSystemConfiguration(): Configuration
-    {
-        return MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty());
+        return $extendedConfiguration->buildMessagingSystemFromConfiguration();
     }
 }

@@ -9,11 +9,11 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ComponentTestBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Ramsey\Uuid\Uuid;
@@ -31,9 +31,10 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $channelName = Uuid::uuid4()->toString();
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = DbalBackedMessageChannelBuilder::create($channelName)
-                            ->withReceiveTimeout(1)
-                            ->build($this->getReferenceSearchServiceWithConnection());
+        $messageChannel = $this->getComponentTestingWithConnection()->build(
+            DbalBackedMessageChannelBuilder::create($channelName)
+                ->withReceiveTimeout(1)
+        );
 
         $payload = 'some';
         $headerName = 'token';
@@ -55,11 +56,12 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $channelName = Uuid::uuid4()->toString();
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = DbalBackedMessageChannelBuilder::create($channelName, 'managerRegistry')
-            ->withReceiveTimeout(1)
-            ->build(InMemoryReferenceSearchService::createWith([
-                'managerRegistry' => $this->getConnectionFactory(true),
-            ]));
+        $messageChannel = ComponentTestBuilder::create()
+            ->withReference('managerRegistry', $this->getConnectionFactory(true))
+            ->build(
+                DbalBackedMessageChannelBuilder::create($channelName, 'managerRegistry')
+                    ->withReceiveTimeout(1)
+            );
 
         $payload = 'some';
         $headerName = 'token';
@@ -81,11 +83,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $channelName = Uuid::uuid4()->toString();
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = DbalBackedMessageChannelBuilder::create($channelName)
-            ->withReceiveTimeout(1)
-            ->build(InMemoryReferenceSearchService::createWith([
-                DbalConnectionFactory::class => $this->getConnectionFactory(true),
-            ]));
+        $messageChannel = $this->getComponentTestingWithConnection(true)
+            ->build(DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1));
 
         $payload = 'some';
         $headerName = 'token';
@@ -106,11 +105,11 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
         /** @var PollableChannel $messageChannel */
-        $messageChannel = DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
-            ->withReceiveTimeout(1)
-            ->build(InMemoryReferenceSearchService::createWith([
-                DbalConnectionFactory::class => $connectionFactory,
-            ]));
+        $messageChannel = $this->getComponentTestingWithConnection()
+            ->build(
+                DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
+                    ->withReceiveTimeout(1)
+            );
 
         /** @var DbalContext $dbalContext */
         $dbalContext = $connectionFactory->createContext();
@@ -126,11 +125,9 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory(true);
         /** @var PollableChannel $messageChannel */
-        $messageChannel = DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
-            ->withReceiveTimeout(1)
-            ->build(InMemoryReferenceSearchService::createWith([
-                DbalConnectionFactory::class => $connectionFactory,
-            ]));
+        $messageChannel = $this->getComponentTestingWithConnection()
+            ->build(DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
+                ->withReceiveTimeout(1));
 
         /** @var DbalContext $dbalContext */
         $dbalContext = $connectionFactory->createContext();
@@ -144,11 +141,10 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_delaying_the_message()
     {
-        $messageChannel = DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
-            ->withReceiveTimeout(1)
-            ->build(InMemoryReferenceSearchService::createWith([
-                DbalConnectionFactory::class => $this->getConnectionFactory(true),
-            ]));
+        /** @var PollableChannel $messageChannel */
+        $messageChannel = $this->getComponentTestingWithConnection(true)
+            ->build(DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
+            ->withReceiveTimeout(1));
 
         $messageChannel->send(
             MessageBuilder::withPayload('some')
@@ -242,7 +238,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 'async',
                 ExecutionPollingMetadata::createWithDefaults()
                     ->withHandledMessageLimit(1)
-                    ->withExecutionTimeLimitInMilliseconds(100)
+                    ->withExecutionTimeLimitInMilliseconds(0)
                     ->withStopOnError(false)
             );
         } catch (\Doctrine\DBAL\Exception\ConnectionException) {

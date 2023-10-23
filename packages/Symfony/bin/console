@@ -14,7 +14,14 @@ set_time_limit(0);
 
 require dirname(__DIR__).'/vendor/autoload.php';
 
+$debug = (bool) ($_SERVER['APP_DEBUG'] ?? true);
+$appEnv = $_SERVER['APP_ENV'] ?? 'dev';
+if ($debug) {
+    umask(0000);
+    Debug::enable();
+}
+
 $input = new ArgvInput();
-$kernel = new Ecotone\SymfonyBundle\App\Kernel("dev", true);
+$kernel = new Ecotone\SymfonyBundle\App\Kernel($appEnv, $debug);
 $application = new Application($kernel);
 $application->run($input);

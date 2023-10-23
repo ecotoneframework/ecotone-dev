@@ -437,6 +437,6 @@ final class TracingTreeTest extends TracingTest
 
     public function test_passing_span_context_when_using_distributed_bus(): void
     {
-        
+
     }
 }

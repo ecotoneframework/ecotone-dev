@@ -18,7 +18,6 @@ use Ecotone\Enqueue\EnqueueMessageChannel;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
@@ -27,10 +26,10 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -38,6 +37,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ComponentTestBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Exception;
 use Ramsey\Uuid\Uuid;
@@ -56,6 +56,14 @@ use Test\Ecotone\Amqp\Fixture\Handler\ExceptionalMessageHandler;
  */
 class AmqpChannelAdapterTest extends AmqpMessagingTest
 {
+    private ComponentTestBuilder $componentTest;
+
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->componentTest = ComponentTestBuilder::create();
+    }
+
     /**
      * @throws MessagingException
      */
@@ -72,15 +80,15 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpConnectionReferenceName = 'connection';
         $messageToSend = MessageBuilder::withPayload('some')->build();
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
             ->withDefaultRoutingKey($queueName);
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
+        $this->send($outboundAmqpGatewayBuilder, $messageToSend);
 
         $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName);
-        $message = $this->receiveOnce($inboundAmqpAdapter, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService);
+        $message = $this->receiveOnce($inboundAmqpAdapter, $inboundRequestChannel);
 
         $this->assertNotNull($message, 'Message was not received from rabbit');
 
@@ -98,40 +106,40 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         ];
         $amqpExchanges = [];
         $amqpBindings = [];
-        $requestChannel = 'exceptionChannel';
+        $exceptionChannelName = 'exceptionChannel';
+        $successChannelName = 'successChannel';
         $channelWithException = DirectChannel::create();
         $channelWithException->subscribe(ExceptionalMessageHandler::create());
         $successChannel = QueueChannel::create();
         $amqpConnectionReferenceName = 'connection';
         $messageToSend = MessageBuilder::withPayload('some')->build();
         $converters = [];
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->componentTest
+            ->withChannel($exceptionChannelName, $channelWithException)
+            ->withChannel('successChannel', $successChannel);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
             ->withDefaultRoutingKey($queueName);
-        $this->send($outboundAmqpGatewayBuilder, InMemoryChannelResolver::createEmpty(), $referenceSearchService, $messageToSend);
+        $this->send($outboundAmqpGatewayBuilder, $messageToSend);
 
         $this->expectException(RuntimeException::class);
 
-        $this->createAmqpInboundAdapter($queueName, $requestChannel, $amqpConnectionReferenceName)
-            ->build(
-                InMemoryChannelResolver::createFromAssociativeArray([$requestChannel => $channelWithException]),
-                $referenceSearchService,
-                PollingMetadata::create('')
-                    ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1000)
-            )
-            ->run();
+        $this->buildConsumerRunner(
+            $this->createAmqpInboundAdapter($queueName, $exceptionChannelName, $amqpConnectionReferenceName, 'some-id'),
+            PollingMetadata::create('some-id')
+                ->setStopOnError(true)
+                ->setExecutionAmountLimit(1000)
+        )
+            ->runEndpointWithExecutionPollingMetadata();
 
-        $this->createAmqpInboundAdapter($queueName, $requestChannel, $amqpConnectionReferenceName)
-            ->build(
-                InMemoryChannelResolver::createFromAssociativeArray([$requestChannel => $successChannel]),
-                $referenceSearchService,
-                PollingMetadata::create('')
-                    ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1000)
-            )
-            ->run();
+        $this->buildConsumerRunner(
+            $this->createAmqpInboundAdapter($queueName, $successChannelName, $amqpConnectionReferenceName, 'endpoint.2'),
+            PollingMetadata::create('')
+                ->setStopOnError(true)
+                ->setExecutionAmountLimit(1000)
+        )
+            ->runEndpointWithExecutionPollingMetadata();
 
         $this->assertNotNull($successChannel->receiveWithTimeout(1000));
     }
@@ -151,32 +159,24 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $messageToSend = MessageBuilder::withPayload('some')->build();
         $converters = [];
         $errorChannel = QueueChannel::create();
-        $inMemoryChannelResolver = InMemoryChannelResolver::createFromAssociativeArray(
-            [
-                $requestChannelName => $inboundRequestChannel,
-                'errorChannel' => $errorChannel,
-            ]
-        );
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createChannelResolver('errorChannel', $errorChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
             ->withDefaultRoutingKey($queueName);
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
+        $this->send($outboundAmqpGatewayBuilder, $messageToSend);
 
         $this->expectException(RuntimeException::class);
 
-        $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName);
-        $inboundAmqpGateway = $inboundAmqpAdapter
-            ->build(
-                $inMemoryChannelResolver,
-                $referenceSearchService,
-                PollingMetadata::create('')
-                    ->setErrorChannelName('errorChannel')
-                    ->setStopOnError(true)
-                    ->setExecutionAmountLimit(1000)
-            );
+        $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName, 'some-id');
+        $inboundAmqpGateway = $this->buildConsumerRunner($inboundAmqpAdapter, PollingMetadata::create('some-id')
+            ->setErrorChannelName('errorChannel')
+            ->setStopOnError(true)
+            ->setExecutionAmountLimit(1000));
 
-        $inboundAmqpGateway->run();
+        $inboundAmqpGateway->runEndpointWithExecutionPollingMetadata();
 
         $this->assertNull($errorChannel->receive());
     }
@@ -185,18 +185,11 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      * @param string $requestChannelName
      * @param MessageChannel $inboundRequestChannel
      *
-     * @return InMemoryChannelResolver
      * @throws MessagingException
      */
-    private function createChannelResolver(string $requestChannelName, MessageChannel $inboundRequestChannel): InMemoryChannelResolver
+    private function createChannelResolver(string $requestChannelName, MessageChannel $inboundRequestChannel): void
     {
-        $channelResolver = InMemoryChannelResolver::createFromAssociativeArray(
-            [
-                $requestChannelName => $inboundRequestChannel,
-            ]
-        );
-
-        return $channelResolver;
+        $this->componentTest->withChannel($requestChannelName, $inboundRequestChannel);
     }
 
     /**
@@ -206,20 +199,15 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      * @param array $amqpBindings
      * @param array $converters
      *
-     * @return InMemoryReferenceSearchService
      * @throws MessagingException
      */
-    private function createReferenceSearchService(string $amqpConnectionReferenceName, array $amqpExchanges, array $amqpQueues, array $amqpBindings, array $converters): InMemoryReferenceSearchService
+    private function createReferenceSearchService(string $amqpConnectionReferenceName, array $amqpExchanges, array $amqpQueues, array $amqpBindings, array $converters): void
     {
-        $referenceSearchService = InMemoryReferenceSearchService::createWith(
-            [
-                $amqpConnectionReferenceName => $this->getCachedConnectionFactory(),
-                AmqpAdmin::REFERENCE_NAME => AmqpAdmin::createWith($amqpExchanges, $amqpQueues, $amqpBindings),
-                ConversionService::REFERENCE_NAME => AutoCollectionConversionService::createWith($converters),
-            ]
-        );
-
-        return $referenceSearchService;
+        $this->componentTest
+            ->withReference($amqpConnectionReferenceName, $this->getCachedConnectionFactory())
+            ->withReference(AmqpAdmin::REFERENCE_NAME, AmqpAdmin::createWith($amqpExchanges, $amqpQueues, $amqpBindings))
+            ->withReference(ConversionService::REFERENCE_NAME, AutoCollectionConversionService::createWith($converters));
+        ;
     }
 
     /**
@@ -231,11 +219,14 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      * @return void
      * @throws Exception
      */
-    private function send(AmqpOutboundChannelAdapterBuilder $outboundAmqpGatewayBuilder, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, Message $messageToSend)
+    private function send(AmqpOutboundChannelAdapterBuilder $outboundAmqpGatewayBuilder, Message $messageToSend)
     {
-        $outboundAmqpGatewayBuilder
-            ->withAutoDeclareOnSend(true)
-            ->build($channelResolver, $referenceSearchService)->handle($messageToSend);
+        $this->componentTest
+            ->build(
+                $outboundAmqpGatewayBuilder
+                    ->withAutoDeclareOnSend(true)
+            )
+            ->handle($messageToSend);
     }
 
     /**
@@ -246,10 +237,10 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      * @return AmqpInboundChannelAdapterBuilder
      * @throws Exception
      */
-    private function createAmqpInboundAdapter(string $queueName, string $requestChannelName, string $amqpConnectionReferenceName): AmqpInboundChannelAdapterBuilder
+    private function createAmqpInboundAdapter(string $queueName, string $requestChannelName, string $amqpConnectionReferenceName, string $endpointId = 'some-id'): AmqpInboundChannelAdapterBuilder
     {
         return AmqpInboundChannelAdapterBuilder::createWith(
-            Uuid::uuid4()->toString(),
+            $endpointId,
             $queueName,
             $requestChannelName,
             $amqpConnectionReferenceName
@@ -265,9 +256,9 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      *
      * @return Message|null
      */
-    private function receiveOnce(AmqpInboundChannelAdapterBuilder $inboundAmqpGatewayBuilder, QueueChannel $inboundRequestChannel, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): ?Message
+    private function receiveOnce(AmqpInboundChannelAdapterBuilder $inboundAmqpGatewayBuilder, QueueChannel $inboundRequestChannel): ?Message
     {
-        return $this->receiveWithPollingMetadata($inboundAmqpGatewayBuilder, $inboundRequestChannel, $channelResolver, $referenceSearchService, PollingMetadata::create('someId')->setExecutionAmountLimit(100)->setExecutionTimeLimitInMilliseconds(100));
+        return $this->receiveWithPollingMetadata($inboundAmqpGatewayBuilder, $inboundRequestChannel, PollingMetadata::create($inboundAmqpGatewayBuilder->getEndpointId())->setExecutionAmountLimit(100)->setExecutionTimeLimitInMilliseconds(100));
     }
 
     /**
@@ -279,13 +270,20 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
      * @param PollingMetadata $pollingMetadata
      * @return Message|null
      */
-    private function receiveWithPollingMetadata(AmqpInboundChannelAdapterBuilder $inboundAmqpGatewayBuilder, MessageChannel $inboundRequestChannel, ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): ?Message
+    private function receiveWithPollingMetadata(AmqpInboundChannelAdapterBuilder $inboundAmqpGatewayBuilder, MessageChannel $inboundRequestChannel, PollingMetadata $pollingMetadata): ?Message
     {
-        $inboundAmqpGateway = $inboundAmqpGatewayBuilder
-            ->build($channelResolver, $referenceSearchService, $pollingMetadata);
-        $inboundAmqpGateway->run();
+        $consumerRunner = $this->buildConsumerRunner($inboundAmqpGatewayBuilder, $pollingMetadata);
+        $consumerRunner->runEndpointWithExecutionPollingMetadata();
 
         return $inboundRequestChannel->receive();
+    }
+
+    private function buildConsumerRunner(AmqpInboundChannelAdapterBuilder $inboundAmqpGatewayBuilder, PollingMetadata $pollingMetadata): EndpointRunner
+    {
+        return $this->componentTest
+            ->withPollingMetadata($pollingMetadata)
+            ->withRegisteredChannelAdapter($inboundAmqpGatewayBuilder)
+            ->getEndpointRunner($inboundAmqpGatewayBuilder->getEndpointId());
     }
 
     /**
@@ -302,14 +300,14 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpConnectionReferenceName = 'connection';
         $messageToSend = MessageBuilder::withPayload(new stdClass())->build();
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName);
 
         $this->expectException(ConversionException::class);
 
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
+        $this->send($outboundAmqpGatewayBuilder, $messageToSend);
     }
 
     /**
@@ -328,14 +326,14 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             ->setContentType(MediaType::createApplicationXPHP())
             ->build();
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName);
 
         $this->expectException(ConversionException::class);
 
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
+        $this->send($outboundAmqpGatewayBuilder, $messageToSend);
     }
 
     /**
@@ -356,17 +354,17 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             ->setContentType(MediaType::createApplicationXPHP())
             ->build();
         $converters = [new SerializingConverter()];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
             ->withDefaultRoutingKey($queueName);
 
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
+        $this->send($outboundAmqpGatewayBuilder, $messageToSend);
 
 
         $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName);
-        $message = $this->receiveOnce($inboundAmqpAdapter, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService);
+        $message = $this->receiveOnce($inboundAmqpAdapter, $inboundRequestChannel);
 
         $this->assertNotNull($message, 'Message was not received from rabbit');
         $this->assertEquals(
@@ -390,12 +388,12 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundRequestChannel = QueueChannel::create();
         $amqpConnectionReferenceName = 'connection';
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $inboundAmqpGatewayBuilder = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName);
 
-        $this->assertNull($this->receiveOnce($inboundAmqpGatewayBuilder, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
+        $this->assertNull($this->receiveOnce($inboundAmqpGatewayBuilder, $inboundRequestChannel));
     }
 
     /**
@@ -421,19 +419,19 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundRequestChannel = QueueChannel::create();
         $amqpConnectionReferenceName = 'connection';
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
 
-        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName);
-        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName);
+        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-id');
+        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-other-id');
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create($exchangeName, $amqpConnectionReferenceName)
             ->withDefaultRoutingKey('white');
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, MessageBuilder::withPayload('some')->build());
+        $this->send($outboundAmqpGatewayBuilder, MessageBuilder::withPayload('some')->build());
 
-        $this->assertNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
-        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
+        $this->assertNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel));
+        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel));
     }
 
     /**
@@ -449,8 +447,8 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundRequestChannel = QueueChannel::create();
         $amqpConnectionReferenceName = 'connection';
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, [], $amqpQueues, [], $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, [], $amqpQueues, [], $converters);
 
 
         $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName);
@@ -459,14 +457,12 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             ->withRoutingKeyFromHeader('routingKey');
         $this->send(
             $outboundAmqpGatewayBuilder,
-            $inMemoryChannelResolver,
-            $referenceSearchService,
             MessageBuilder::withPayload('some')
                 ->setHeader('routingKey', $blackQueueName)
                 ->build()
         );
 
-        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
+        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel));
     }
 
     /**
@@ -489,8 +485,8 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundRequestChannel = QueueChannel::create();
         $amqpConnectionReferenceName = 'connection';
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName);
 
@@ -498,14 +494,12 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             ->withExchangeFromHeader('exchangeKey');
         $this->send(
             $outboundAmqpGatewayBuilder,
-            $inMemoryChannelResolver,
-            $referenceSearchService,
             MessageBuilder::withPayload('some')
                 ->setHeader('exchangeKey', $exchangeName)
                 ->build()
         );
 
-        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
+        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel));
     }
 
     /**
@@ -531,19 +525,19 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundRequestChannel = QueueChannel::create();
         $amqpConnectionReferenceName = 'connection';
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
 
-        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName);
-        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName);
+        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-id');
+        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-other-id');
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create($exchangeName, $amqpConnectionReferenceName)
             ->withDefaultRoutingKey('color.white');
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, MessageBuilder::withPayload('some')->build());
+        $this->send($outboundAmqpGatewayBuilder, MessageBuilder::withPayload('some')->build());
 
-        $this->assertNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
-        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
+        $this->assertNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel));
+        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel));
     }
 
     /**
@@ -561,8 +555,8 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundRequestChannel = QueueChannel::create();
         $amqpConnectionReferenceName = 'connection';
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $messageToSend = MessageBuilder::withPayload('some')
             ->setHeader('token', '123')
@@ -573,11 +567,11 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
             ->withHeaderMapper('token,user*')
             ->withDefaultRoutingKey($queueName);
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
+        $this->send($outboundAmqpGatewayBuilder, $messageToSend);
 
         $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName)
             ->withHeaderMapper('token, userName');
-        $message = $this->receiveOnce($inboundAmqpAdapter, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService);
+        $message = $this->receiveOnce($inboundAmqpAdapter, $inboundRequestChannel);
 
         $this->assertNotNull($message, 'Message was not received from rabbit');
 
@@ -599,25 +593,31 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpConnectionReferenceName = 'connection';
         $messageToSend = MessageBuilder::withPayload('some')->build();
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
             ->withDefaultRoutingKey($queueName);
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
+        $this->send($outboundAmqpGatewayBuilder, $messageToSend);
 
         $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName);
 
         $inboundQueueChannel = QueueChannel::create();
         $inboundRequestChannel->subscribe(ForwardMessageHandler::create($inboundQueueChannel));
 
-        $inboundAmqpGateway = $inboundAmqpAdapter
-            ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setHandledMessageLimit(1));
-        $inboundAmqpGateway->run();
+        $inboundAmqpGateway = $this->buildConsumerRunner($inboundAmqpAdapter, PollingMetadata::create('some-id')
+            ->setHandledMessageLimit(1)
+            ->setExecutionAmountLimit(100)
+            ->setExecutionTimeLimitInMilliseconds(100));
+        $inboundAmqpGateway->runEndpointWithExecutionPollingMetadata();
 
-        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapter, $inboundQueueChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was not requeued correctly');
+        $inboundAmqpGateway->runEndpointWithExecutionPollingMetadata();
 
-        $this->assertNull($this->receiveOnce($inboundAmqpAdapter, $inboundQueueChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was not acked correctly');
+        $this->assertNotNull($inboundQueueChannel->receive(), 'Message was not requeued correctly');
+
+        $inboundAmqpGateway->runEndpointWithExecutionPollingMetadata();
+
+        $this->assertNull($inboundQueueChannel->receive(), 'Message was not acked correctly');
     }
 
     public function test_sending_with_time_to_live()
@@ -631,25 +631,24 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $amqpConnectionReferenceName = 'connection';
         $messageToSend = MessageBuilder::withPayload('some')->build();
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
             ->withDefaultTimeToLive(1)
             ->withDefaultRoutingKey($queueName);
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, $messageToSend);
+        $this->send($outboundAmqpGatewayBuilder, $messageToSend);
 
         $inboundAmqpAdapter = $this->createAmqpInboundAdapter($queueName, $requestChannelName, $amqpConnectionReferenceName);
         $inboundQueueChannel = QueueChannel::create();
         $inboundRequestChannel->subscribe(ForwardMessageHandler::create($inboundQueueChannel));
 
-        $inboundAmqpGateway = $inboundAmqpAdapter
-            ->build($inMemoryChannelResolver, $referenceSearchService, PollingMetadata::create('')->setExecutionTimeLimitInMilliseconds(1000));
+        $inboundAmqpGateway = $this->buildConsumerRunner($inboundAmqpAdapter, PollingMetadata::create('some-id')->setExecutionTimeLimitInMilliseconds(1000));
 
         usleep(1500);
-        $inboundAmqpGateway->run();
+        $inboundAmqpGateway->runEndpointWithExecutionPollingMetadata();
 
-        $this->assertNull($this->receiveOnce($inboundAmqpAdapter, $inboundQueueChannel, $inMemoryChannelResolver, $referenceSearchService), 'Message was did no expire');
+        $this->assertNull($inboundQueueChannel->receive(), 'Message was did no expire');
     }
 
     public function test_delaying_the_message()
@@ -683,7 +682,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     public function test_receiving_from_dead_letter_queue()
     {
         $normalQueueEndpointId = 'normal_queue';
-        $deadLettterQueueEndpointId = 'asynchronous_endpoint';
+        $deadLetterQueueEndpointId = 'asynchronous_endpoint';
         $queueName = Uuid::uuid4()->toString();
         $deadLetterQueueName = Uuid::uuid4()->toString();
         $deadLetterQueue = AmqpQueue::createWith($deadLetterQueueName);
@@ -698,7 +697,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($normalQueueEndpointId, $queueName),
-                    AmqpMessageConsumerConfiguration::create($deadLettterQueueEndpointId, $deadLetterQueueName),
+                    AmqpMessageConsumerConfiguration::create($deadLetterQueueEndpointId, $deadLetterQueueName),
                     AmqpQueue::createWith($queueName)
                         ->withDeadLetterForDefaultExchange($deadLetterQueue),
                     $deadLetterQueue,
@@ -714,7 +713,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $ecotoneLite->run($normalQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(200));
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
 
-        $ecotoneLite->run($deadLettterQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        $ecotoneLite->run($deadLetterQueueEndpointId, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
         $this->assertEquals([$payload], $ecotoneLite->getQueryBus()->sendWithRouting('consumer.getMessagePayloads'));
     }
 
@@ -816,18 +815,18 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
         $inboundRequestChannel = QueueChannel::create();
         $amqpConnectionReferenceName = 'connection';
         $converters = [];
-        $inMemoryChannelResolver = $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
-        $referenceSearchService = $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
+        $this->createChannelResolver($requestChannelName, $inboundRequestChannel);
+        $this->createReferenceSearchService($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters);
 
 
-        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName);
-        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName);
+        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-id');
+        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-other-id');
 
         $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create($exchangeName, $amqpConnectionReferenceName);
-        $this->send($outboundAmqpGatewayBuilder, $inMemoryChannelResolver, $referenceSearchService, MessageBuilder::withPayload('some')->build());
+        $this->send($outboundAmqpGatewayBuilder, MessageBuilder::withPayload('some')->build());
 
-        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
-        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel, $inMemoryChannelResolver, $referenceSearchService));
+        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForBlack, $inboundRequestChannel));
+        $this->assertNotNull($this->receiveOnce($inboundAmqpAdapterForWhite, $inboundRequestChannel));
     }
 
     /**
@@ -838,7 +837,7 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
     private function createDirectAmqpBackendMessageChannel(string $queueName): PollableChannel
     {
         $amqpConnectionReferenceName = 'amqpConnectionName';
-        $referenceSearchService = $this->createReferenceSearchService(
+        $this->createReferenceSearchService(
             $amqpConnectionReferenceName,
             [],
             [AmqpQueue::createWith($queueName)],
@@ -846,9 +845,8 @@ class AmqpChannelAdapterTest extends AmqpMessagingTest
             []
         );
 
-        return AmqpBackedMessageChannelBuilder::create($queueName, $amqpConnectionReferenceName)
-            ->withReceiveTimeout(1)
-            ->build($referenceSearchService);
+        return $this->componentTest->build(AmqpBackedMessageChannelBuilder::create($queueName, $amqpConnectionReferenceName)
+            ->withReceiveTimeout(1));
     }
 
     private function acceptMessage(Message $message): void

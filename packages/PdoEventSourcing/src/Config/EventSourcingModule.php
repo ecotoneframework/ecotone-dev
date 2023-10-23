@@ -26,6 +26,7 @@ use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
+use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -37,6 +38,11 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurat
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\DefinitionHelper;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -49,7 +55,6 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
@@ -83,10 +88,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
     private EventMapper $eventMapper;
     private AggregateStreamMapping $aggregateToStreamMapping;
     private AggregateTypeMapping $aggregateTypeMapping;
-    /** @var InterfaceToCall[] */
-    private array $relatedInterfaces = [];
-    /** @var string[] */
-    private array $requiredReferences = [];
 
     /**
      * @var ProjectionSetupConfiguration[]
@@ -94,15 +95,13 @@ class EventSourcingModule extends NoExternalConfigurationModule
      * @var ServiceActivatorBuilder[]
      * @var GatewayProxyBuilder[]
      */
-    private function __construct(array $projectionConfigurations, private array $projectionEventHandlers, private AsynchronousModule $asynchronousModule, array $projectionLifeCycleServiceActivators, EventMapper $eventMapper, AggregateStreamMapping $aggregateToStreamMapping, AggregateTypeMapping $aggregateTypeMapping, array $relatedInterfaces, array $requiredReferences, private array $projectionStateGateways)
+    private function __construct(array $projectionConfigurations, private array $projectionEventHandlers, private AsynchronousModule $asynchronousModule, array $projectionLifeCycleServiceActivators, EventMapper $eventMapper, AggregateStreamMapping $aggregateToStreamMapping, AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways)
     {
         $this->projectionSetupConfigurations = $projectionConfigurations;
         $this->projectionLifeCycleServiceActivators = $projectionLifeCycleServiceActivators;
         $this->eventMapper = $eventMapper;
         $this->aggregateToStreamMapping = $aggregateToStreamMapping;
         $this->aggregateTypeMapping = $aggregateTypeMapping;
-        $this->relatedInterfaces = $relatedInterfaces;
-        $this->requiredReferences = $requiredReferences;
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
@@ -160,11 +159,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $projectionSetupConfigurations = [];
         $projectionLifeCyclesServiceActivators = [];
 
-        $relatedInterfaces = [];
-        $requiredReferences = [];
         foreach ($projectionClassNames as $projectionClassName) {
             $referenceName = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $projectionClassName);
-            $requiredReferences[] = $referenceName;
 
             $projectionLifeCycle = ProjectionLifeCycleConfiguration::create();
 
@@ -173,7 +169,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionDelete = TypeDescriptor::create(ProjectionDelete::class);
             $projectionReset = TypeDescriptor::create(ProjectionReset::class);
             foreach ($classDefinition->getPublicMethodNames() as $publicMethodName) {
-                $relatedInterfaces[] = $interfaceToCallRegistry->getFor($projectionClassName, $publicMethodName);
                 foreach ($annotationRegistrationService->getAnnotationsForMethod($projectionClassName, $publicMethodName) as $attribute) {
                     $attributeType = TypeDescriptor::createFromVariable($attribute);
                     if ($attributeType->equals($projectionInitialization)) {
@@ -250,13 +245,21 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration;
         }
 
-        return new self($projectionSetupConfigurations, $projectionEventHandlers, AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry), $projectionLifeCyclesServiceActivators, EventMapper::createWith($fromClassToNameMapping, $fromNameToClassMapping), AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $relatedInterfaces, array_unique($requiredReferences), $projectionStateGateways);
+        return new self($projectionSetupConfigurations, $projectionEventHandlers, AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry), $projectionLifeCyclesServiceActivators, EventMapper::createWith($fromClassToNameMapping, $fromNameToClassMapping), AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $projectionStateGateways);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
+
+        $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
+
+        $messagingConfiguration->registerServiceDefinition(LazyProophEventStore::class, new Definition(LazyProophEventStore::class, [
+            new Reference(EventSourcingConfiguration::class),
+            new Reference(EventMapper::class),
+            new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
+        ]));
 
         $this->registerProjections($serviceConfiguration, $interfaceToCallRegistry, $moduleReferenceSearchService, $messagingConfiguration, $extensionObjects, $eventSourcingConfiguration);
         foreach ($this->projectionLifeCycleServiceActivators as $serviceActivator) {
@@ -439,7 +442,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     private function registerEventStoreAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration): void
     {
-        $messageHandlerBuilder = EventStoreBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration);
+        $messageHandlerBuilder = EventStoreBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration, Reference::to(LazyProophEventStore::class));
         $configuration->registerMessageHandler($messageHandlerBuilder);
 
         $configuration->registerGatewayBuilder(
@@ -451,8 +454,16 @@ class EventSourcingModule extends NoExternalConfigurationModule
     private function registerEventStreamEmitter(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
     {
         $eventSourcingConfiguration = (clone $eventSourcingConfiguration)->withSimpleStreamPersistenceStrategy();
+        $eventSourcingConfigurationReference = new Reference(EventSourcingConfiguration::class.'.eventStreamEmitter');
+        $configuration->registerServiceDefinition($eventSourcingConfigurationReference->getId(), DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
+        $eventStoreReference = new Reference(LazyProophEventStore::class.'.eventStreamEmitter');
+        $configuration->registerServiceDefinition($eventStoreReference->getId(), new Definition(LazyProophEventStore::class, [
+            $eventSourcingConfigurationReference,
+            new Reference(EventMapper::class),
+            new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
+        ]));
 
-        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration)
+        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration, $eventStoreReference)
             ->withInputChannelName(Uuid::uuid4()->toString())
         ;
         $configuration->registerMessageHandler($eventStoreHandler);
@@ -477,7 +488,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $configuration->registerGatewayBuilder(
             GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'linkTo', $linkingRouterHandler->getInputMessageChannelName())
-                ->withEndpointAnnotations([new PropagateHeaders()])
+                ->withEndpointAnnotations([new AttributeDefinition(PropagateHeaders::class)])
                 ->withParameterConverters([GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents')], )
         );
 
@@ -495,7 +506,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $configuration->registerGatewayBuilder(
             GatewayProxyBuilder::create(EventStreamEmitter::class, EventStreamEmitter::class, 'emit', $emittingRouterHandler->getInputMessageChannelName())
-                ->withEndpointAnnotations([new PropagateHeaders()])
+                ->withEndpointAnnotations([new AttributeDefinition(PropagateHeaders::class)])
                 ->withParameterConverters([GatewayPayloadBuilder::create('streamEvents')])
         );
     }
@@ -540,8 +551,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $moduleReferenceSearchService->store(EventMapper::class, $this->eventMapper);
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
-        $messagingConfiguration->registerRelatedInterfaces($this->relatedInterfaces);
-        $messagingConfiguration->requireReferences($this->requiredReferences);
 
         foreach ($this->projectionSetupConfigurations as $index => $projectionSetupConfiguration) {
             $projectionRunningConfiguration = ProjectionRunningConfiguration::createEventDriven($projectionSetupConfiguration->getProjectionName());
@@ -559,7 +568,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
             /** Our main entrypoint for projection execution */
             $messagingConfiguration->registerMessageHandler(
-                (new ProjectionExecutorBuilder($eventSourcingConfiguration, $projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'execute'))
+                (new ProjectionExecutorBuilder($projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'execute'))
                     ->withEndpointId($projectionSetupConfiguration->getProjectionEndpointId())
                     ->withInputChannelName($projectionSetupConfiguration->getProjectionInputChannel())
             );

@@ -3,7 +3,7 @@
 namespace Ecotone\JMSConverter;
 
 use Closure;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use JMS\Serializer\GraphNavigator;
@@ -19,13 +19,13 @@ class JMSHandlerAdapter
      */
     private $toType;
 
-    private string|object $referenceNameOrObject;
+    private string|object $object;
     /**
      * @var string
      */
     private $methodName;
 
-    public function __construct(TypeDescriptor $fromType, TypeDescriptor $toType, string|object $referenceNameOrObject, string $methodName)
+    public function __construct(TypeDescriptor $fromType, TypeDescriptor $toType, object $object, string $methodName)
     {
         Assert::isTrue($fromType->isClassOrInterface() || $toType->isClassOrInterface(), 'Atleast one side of converter must be class');
         Assert::isFalse($fromType->isClassOrInterface() && $toType->isClassOrInterface(), 'Both sides of converter cannot to be classes');
@@ -33,7 +33,7 @@ class JMSHandlerAdapter
         $this->fromType = $fromType;
         $this->toType = $toType;
 
-        $this->referenceNameOrObject = $referenceNameOrObject;
+        $this->object = $object;
         $this->methodName = $methodName;
     }
 
@@ -42,17 +42,15 @@ class JMSHandlerAdapter
         return new self($fromType, $toType, $referenceName, $methodName);
     }
 
-    public static function createWithDirectObject(TypeDescriptor $fromType, TypeDescriptor $toType, object $referenceObject, string $methodName): self
+    public static function createWithDefinition(TypeDescriptor $fromType, TypeDescriptor $toType, Definition $definition, string $methodName): self
     {
-        return new self($fromType, $toType, $referenceObject, $methodName);
+        return new self($fromType, $toType, $definition, $methodName);
     }
 
-    public function getSerializerClosure(ReferenceSearchService $referenceSearchService): Closure
+    public function getSerializerClosure(): Closure
     {
-        $object = is_string($this->referenceNameOrObject) ? $referenceSearchService->get($this->referenceNameOrObject) : $this->referenceNameOrObject;
-
-        return function ($visitor, $data) use ($object) {
-            return call_user_func([$object, $this->methodName], $data);
+        return function ($visitor, $data) {
+            return $this->object->{$this->methodName}($data);
         };
     }
 

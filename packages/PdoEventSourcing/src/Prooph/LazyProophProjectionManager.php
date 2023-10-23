@@ -2,6 +2,7 @@
 
 namespace Ecotone\EventSourcing\Prooph;
 
+use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionExecutor;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
@@ -33,7 +34,8 @@ class LazyProophProjectionManager implements ProjectionManager
     public function __construct(
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private array                      $projectionSetupConfigurations,
-        private ReferenceSearchService     $referenceSearchService
+        private ReferenceSearchService     $referenceSearchService,
+        private LazyProophEventStore       $lazyProophEventStore,
     ) {
     }
 
@@ -204,7 +206,8 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function getLazyProophEventStore(): LazyProophEventStore
     {
-        return new LazyProophEventStore($this->eventSourcingConfiguration, $this->referenceSearchService);
+        // REVIEW: is this change ok ?
+        return $this->lazyProophEventStore;
     }
 
     private function triggerActionOnProjection(string $name): void

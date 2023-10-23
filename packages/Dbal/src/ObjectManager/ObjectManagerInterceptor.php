@@ -4,38 +4,32 @@ namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
 class ObjectManagerInterceptor
 {
-    /**
-     * @var string[]
-     */
-    private $connectionReferenceNames;
-
     private int $depthCount = 0;
 
-    public function __construct(array $connectionReferenceNames)
+    /**
+     * @param ManagerRegistryConnectionFactory[] $managerRegistryConnectionFactories
+     */
+    public function __construct(private array $managerRegistryConnectionFactories)
     {
-        $this->connectionReferenceNames = $connectionReferenceNames;
     }
 
-    public function transactional(MethodInvocation $methodInvocation, ReferenceSearchService $referenceSearchService)
+    public function transactional(MethodInvocation $methodInvocation, #[Reference] LoggerInterface $logger)
     {
-        /** @var LoggerInterface $logger */
-        $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
         /** @var ManagerRegistry[] $objectManagers */
         $objectManagers = [];
 
-        foreach ($this->connectionReferenceNames as $connectionReferenceName) {
-            $dbalConnectionFactory = $referenceSearchService->get($connectionReferenceName);
-            if ($dbalConnectionFactory instanceof ManagerRegistryConnectionFactory) {
-                $objectManagers[] =  DbalReconnectableConnectionFactory::getManagerRegistryAndConnectionName($dbalConnectionFactory)[0];
+        foreach ($this->managerRegistryConnectionFactories as $managerRegistryConnectionFactory) {
+            // TODO: this is always false
+            if ($managerRegistryConnectionFactory instanceof ManagerRegistryConnectionFactory) {
+                $objectManagers[] = DbalReconnectableConnectionFactory::getManagerRegistryAndConnectionName($managerRegistryConnectionFactory)[0];
             }
         }
 

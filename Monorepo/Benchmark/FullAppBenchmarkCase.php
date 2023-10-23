@@ -3,8 +3,6 @@
 namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
@@ -18,7 +16,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
 
 /**
- * @BeforeClassMethods("setUpBeforeClass")
+ * @BeforeClassMethods("clearAllCaches")
  */
 abstract class FullAppBenchmarkCase extends TestCase
 {
@@ -91,7 +89,7 @@ abstract class FullAppBenchmarkCase extends TestCase
         $this->executeForLite($messagingSystem);
     }
 
-    public static function setUpBeforeClass(): void
+    public static function clearAllCaches(): void
     {
         self::clearLaravelCache();
         self::clearSymfonyCache();
@@ -101,23 +99,17 @@ abstract class FullAppBenchmarkCase extends TestCase
 
     public static function clearLiteCache(): void
     {
-        self::productionEnvironments();
-        MessagingSystemConfiguration::cleanCache(
-            new ServiceCacheConfiguration(
-                __DIR__ . '/../ExampleApp/Lite/var/cache',
-                true
-            )
+        self::deleteFiles(
+            __DIR__ . '/../ExampleApp/Lite/var/cache',
+            false
         );
     }
 
     public static function clearLiteApplicationCache(): void
     {
-        self::productionEnvironments();
-        MessagingSystemConfiguration::cleanCache(
-            new ServiceCacheConfiguration(
-                __DIR__ . '/../ExampleApp/LiteApplication/var/cache',
-                true
-            )
+        self::deleteFiles(
+            __DIR__ . '/../ExampleApp/LiteApplication/var/cache',
+            false
         );
     }
 
@@ -135,28 +127,43 @@ abstract class FullAppBenchmarkCase extends TestCase
 
     public static function clearLaravelCache(): void
     {
-        self::productionEnvironments();
-        MessagingSystemConfiguration::cleanCache(
-            new ServiceCacheConfiguration(
-                __DIR__ . '/../ExampleApp/Laravel/storage/framework/cache/data',
-                true
-            )
+        self::deleteFiles(
+            __DIR__ . '/../ExampleApp/Laravel/storage/framework/cache/data',
+            false
         );
     }
 
     public static function clearSymfonyCache(): void
     {
-        self::productionEnvironments();
-        $kernel = self::bootSymfonyKernel(environment: 'prod', debug: false);
-        $input = [];
-        $commandName = 'cache:clear';
+        self::deleteFiles(
+            __DIR__ . '/../ExampleApp/Symfony/var/cache',
+            false
+        );
+    }
 
-        self::executeSymfonyConsoleCommand($kernel, $commandName, $input);
+    private static function deleteFiles(string $target, bool $deleteDirectory): void
+    {
+        if (is_dir($target)) {
+            \Ecotone\Messaging\Support\Assert::isTrue(
+                is_writable($target),
+                "Not enough permissions to delete from cache directory {$target}"
+            );
+            $files = glob($target . '*', GLOB_MARK);
 
-        self::developmentEnvironments();
-        $kernel = self::bootSymfonyKernel(environment: 'dev', debug: true);
+            foreach ($files as $file) {
+                self::deleteFiles($file, true);
+            }
 
-        self::executeSymfonyConsoleCommand($kernel, $commandName, $input);
+            if ($deleteDirectory) {
+                rmdir($target);
+            }
+        } elseif (is_file($target)) {
+            Assert::isTrue(
+                is_writable($target),
+                "Not enough permissions to delete cache file {$target}"
+            );
+            unlink($target);
+        }
     }
 
     public abstract function executeForSymfony(

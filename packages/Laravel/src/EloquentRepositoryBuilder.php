@@ -2,11 +2,10 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Modelling\EventSourcedRepository;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\RepositoryBuilder;
-use Ecotone\Modelling\StandardRepository;
 
 final class EloquentRepositoryBuilder implements RepositoryBuilder
 {
@@ -27,8 +26,8 @@ final class EloquentRepositoryBuilder implements RepositoryBuilder
         return false;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository|StandardRepository
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
-        return $this->eloquentRepository;
+        return new Definition(EloquentRepository::class);
     }
 }

@@ -2,9 +2,12 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Config\Container\ContainerConfig;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
+use ReflectionMethod;
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
@@ -97,12 +100,33 @@ class EcotoneProvider extends ServiceProvider
         $applicationConfiguration = $applicationConfiguration->withExtensionObjects([new EloquentRepositoryBuilder()]);
 
         $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, $useCache);
-        $configuration = MessagingSystemConfiguration::prepare(
-            $rootCatalog,
-            new LaravelConfigurationVariableService(),
-            $applicationConfiguration,
-            $serviceCacheConfiguration
-        );
+
+        $definitionHolder = null;
+        $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging_system';
+        if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
+            /** It may fail on deserialization, then return `false` and we can build new one */
+            $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
+        }
+
+        if (!$definitionHolder) {
+            $configuration = MessagingSystemConfiguration::prepare(
+                $rootCatalog,
+                new LaravelConfigurationVariableService(),
+                $applicationConfiguration,
+            );
+            $definitionHolder = ContainerConfig::buildDefinitionHolder($configuration);
+
+            if ($serviceCacheConfiguration->shouldUseCache()) {
+                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
+                file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
+            }
+        }
+
+        foreach ($definitionHolder->getDefinitions() as $id => $definition) {
+            $this->app->singleton($id, function () use ($definition) {
+                return $this->resolveArgument($definition);
+            });
+        }
 
         $this->app->singleton(
             ConfigurationVariableService::REFERENCE_NAME,
@@ -121,22 +145,13 @@ class EcotoneProvider extends ServiceProvider
             fn () => $serviceCacheConfiguration
         );
 
-        foreach ($configuration->getRegisteredGateways() as $registeredGateway) {
-            $this->app->singleton(
-                $registeredGateway->getReferenceName(),
-                function ($app) use ($registeredGateway) {
-                    return ProxyFactory::createFor(
-                        $registeredGateway->getReferenceName(),
-                        $this->app,
-                        $registeredGateway->getInterfaceName(),
-                        $this->app->get(ServiceCacheConfiguration::REFERENCE_NAME)
-                    );
-                }
-            );
-        }
+        $this->app->singleton(ProxyFactory::class, function (Application $app) {
+            $cacheConfiguration = $app->get(ServiceCacheConfiguration::REFERENCE_NAME);
+            return new ProxyFactory($cacheConfiguration);
+        });
 
         if ($this->app->runningInConsole()) {
-            foreach ($configuration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
+            foreach ($definitionHolder->getRegisteredCommands() as $oneTimeCommandConfiguration) {
                 $commandName = $oneTimeCommandConfiguration->getName();
 
                 foreach ($oneTimeCommandConfiguration->getParameters() as $parameter) {
@@ -171,16 +186,6 @@ class EcotoneProvider extends ServiceProvider
                 );
             }
         }
-
-        $this->app->singleton(
-            ConfiguredMessagingSystem::class,
-            function () use ($configuration) {
-                $referenceSearchService = new PsrContainerReferenceSearchService($this->app);
-                $messagingSystem = $configuration->buildMessagingSystemFromConfiguration($referenceSearchService);
-                $referenceSearchService->setConfiguredMessagingSystem($messagingSystem);
-                return $messagingSystem;
-            }
-        );
     }
 
     /**
@@ -213,6 +218,42 @@ class EcotoneProvider extends ServiceProvider
 
     private function getCacheDirectoryPath(): string
     {
-        return App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'ecotone';
+        return App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data';
+    }
+
+    private function instantiateDefinition(Definition $definition): object
+    {
+        $arguments = $this->resolveArgument($definition->getArguments());
+        if ($definition->hasFactory()) {
+            $factory = $definition->getFactory();
+            if (method_exists($factory[0], $factory[1]) && (new ReflectionMethod($factory[0], $factory[1]))->isStatic()) {
+                // static call
+                return $factory(...$arguments);
+            } else {
+                // method call from a service instance
+                $service = $this->app->make($factory[0]);
+                return $service->{$factory[1]}(...$arguments);
+            }
+        } else {
+            $class = $definition->getClassName();
+            return new $class(...$arguments);
+        }
+    }
+
+    private function resolveArgument(mixed $argument): mixed
+    {
+        if (is_array($argument)) {
+            return array_map(fn ($argument) => $this->resolveArgument($argument), $argument);
+        } elseif($argument instanceof Definition) {
+            $object = $this->instantiateDefinition($argument);
+            foreach ($argument->getMethodCalls() as $methodCall) {
+                $object->{$methodCall->getMethodName()}(...$this->resolveArgument($methodCall->getArguments()));
+            }
+            return $object;
+        } elseif ($argument instanceof Reference) {
+            return $this->app->make($argument->getId());
+        } else {
+            return $argument;
+        }
     }
 }

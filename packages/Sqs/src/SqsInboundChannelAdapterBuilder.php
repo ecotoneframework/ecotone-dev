@@ -10,6 +10,9 @@ use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
 use Ecotone\Enqueue\InboundMessageConverter;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -24,23 +27,27 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
         return new self($queueName, $endpointId, $requestChannelName, $connectionReferenceName);
     }
 
-    public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        /** @var SqsConnectionFactory $connectionFactory */
-        $connectionFactory = $referenceSearchService->get($this->connectionReferenceName);
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
+        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+            new Definition(HttpReconnectableConnectionFactory::class, [
+                new Reference($this->connectionReferenceName),
+            ]),
+        ], 'createFor');
+        $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
+            $this->endpointId,
+            $this->acknowledgeMode,
+            DefaultHeaderMapper::createWith($this->headerMapper, []),
+            EnqueueHeader::HEADER_ACKNOWLEDGE,
+        ]);
 
-        $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, []);
-
-        return new SqsInboundChannelAdapter(
-            CachedConnectionFactory::createFor(new HttpReconnectableConnectionFactory($connectionFactory)),
-            $this->buildGatewayFor($referenceSearchService, $channelResolver, $pollingMetadata),
+        return new Definition(SqsInboundChannelAdapter::class, [
+            $connectionFactory,
             $this->declareOnStartup,
             $this->messageChannelName,
             $this->receiveTimeoutInMilliseconds,
-            new InboundMessageConverter($this->getEndpointId(), $this->acknowledgeMode, $headerMapper, EnqueueHeader::HEADER_ACKNOWLEDGE),
-            $conversionService
-        );
+            $inboundMessageConverter,
+            new Reference(ConversionService::REFERENCE_NAME),
+        ]);
     }
 }

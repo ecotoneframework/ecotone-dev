@@ -7,14 +7,15 @@ use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
-use Ecotone\JMSConverter\JMSHandlerAdapter;
+use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
 use stdClass;
 use Test\Ecotone\JMSConverter\Fixture\Configuration\ArrayConversion\ClassToArrayConverter;
 use Test\Ecotone\JMSConverter\Fixture\Configuration\Status\Person;
@@ -84,16 +85,16 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"data":{"name":"Franco","age":13,"passport":{"id":123,"valid":"2022-01-01"}}}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            JMSHandlerAdapter::createWithDirectObject(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::create(ArrayObject::class),
                 TypeDescriptor::createArrayType(),
-                new ArrayObjectConverter(),
+                new Definition(ArrayObjectConverter::class),
                 'from'
             ),
-            JMSHandlerAdapter::createWithDirectObject(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::createArrayType(),
                 TypeDescriptor::create(ArrayObject::class),
-                new ArrayObjectConverter(),
+                new Definition(ArrayObjectConverter::class),
                 'to'
             ),
         ]);
@@ -178,7 +179,7 @@ class JMSConverterTest extends TestCase
     public function test_serializing_with_metadata_cache()
     {
         $toSerialize = new PropertyWithTypeAndMetadataType(5);
-        $converter = (new JMSConverterBuilder([], JMSConverterConfiguration::createWithDefaults(), '/tmp/' . Uuid::uuid4()->toString()))->build(InMemoryReferenceSearchService::createWith([]));
+        $converter = $this->getJMSConverter([]);
 
         $serialized = $converter->convert($toSerialize, TypeDescriptor::createFromVariable($toSerialize), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationJson());
 
@@ -194,16 +195,16 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"status":"active"}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            JMSHandlerAdapter::create(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::create(Status::class),
                 TypeDescriptor::createStringType(),
-                StatusConverter::class,
+                Reference::to(StatusConverter::class),
                 'convertFrom'
             ),
-            JMSHandlerAdapter::create(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::createStringType(),
                 TypeDescriptor::create(Status::class),
-                StatusConverter::class,
+                Reference::to(StatusConverter::class),
                 'convertTo'
             ),
         ]);
@@ -216,16 +217,16 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"data":"someInformation"}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            JMSHandlerAdapter::create(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::createArrayType(),
                 TypeDescriptor::create(stdClass::class),
-                ClassToArrayConverter::class,
+                Reference::to(ClassToArrayConverter::class),
                 'convertFrom'
             ),
-            JMSHandlerAdapter::create(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::create(stdClass::class),
                 TypeDescriptor::createArrayType(),
-                ClassToArrayConverter::class,
+                Reference::to(ClassToArrayConverter::class),
                 'convertTo'
             ),
         ]);
@@ -237,16 +238,16 @@ class JMSConverterTest extends TestCase
         $expectedSerialized = ['active', 'archived'];
 
         $jmsHandlerAdapters = [
-            JMSHandlerAdapter::create(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::create(Status::class),
                 TypeDescriptor::createStringType(),
-                StatusConverter::class,
+                Reference::to(StatusConverter::class),
                 'convertFrom'
             ),
-            JMSHandlerAdapter::create(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::createStringType(),
                 TypeDescriptor::create(Status::class),
-                StatusConverter::class,
+                Reference::to(StatusConverter::class),
                 'convertTo'
             ),
         ];
@@ -260,16 +261,16 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '["active","archived"]';
 
         $jmsHandlerAdapters = [
-            JMSHandlerAdapter::create(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::create(Status::class),
                 TypeDescriptor::createStringType(),
-                StatusConverter::class,
+                Reference::to(StatusConverter::class),
                 'convertFrom'
             ),
-            JMSHandlerAdapter::create(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::createStringType(),
                 TypeDescriptor::create(Status::class),
-                StatusConverter::class,
+                Reference::to(StatusConverter::class),
                 'convertTo'
             ),
         ];
@@ -469,9 +470,9 @@ class JMSConverterTest extends TestCase
 
     private function getJMSConverter(array $jmsHandlerAdapters, ?JMSConverterConfiguration $configuration = null): Converter
     {
-        return (new JMSConverterBuilder($jmsHandlerAdapters, $configuration ? $configuration : JMSConverterConfiguration::createWithDefaults(), null))->build(InMemoryReferenceSearchService::createWith([
-            StatusConverter::class => new StatusConverter(),
-            ClassToArrayConverter::class => new ClassToArrayConverter(),
-        ]));
+        return ComponentTestBuilder::create()
+            ->withReference(StatusConverter::class, new StatusConverter())
+            ->withReference(ClassToArrayConverter::class, new ClassToArrayConverter())
+            ->build(new JMSConverterBuilder($jmsHandlerAdapters, $configuration ?: JMSConverterConfiguration::createWithDefaults()));
     }
 }

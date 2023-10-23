@@ -3,13 +3,9 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
@@ -49,20 +45,6 @@ abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBui
      * @var int|null
      */
     protected $defaultPriority = self::DEFAULT_PRIORITY;
-    /**
-     * @var string[]
-     */
-    protected $requiredReferenceNames = [];
-
-    abstract public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler;
-
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
-    }
 
     public function withDefaultTimeToLive(?int $timeInMilliseconds): self
     {
@@ -170,14 +152,6 @@ abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBui
         return $this;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferenceNames(): array
-    {
-        return $this->requiredReferenceNames;
-    }
-
     public function __toString()
     {
         return 'Outbound Adapter for channel ' . $this->inputChannelName;
@@ -185,7 +159,6 @@ abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBui
 
     protected function initialize(string $connectionReferenceName): void
     {
-        $this->requiredReferenceNames[] = $connectionReferenceName;
         $this->headerMapper = DefaultHeaderMapper::createNoMapping();
     }
 }

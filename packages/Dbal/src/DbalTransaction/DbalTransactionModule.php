@@ -10,10 +10,11 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -38,7 +39,6 @@ class DbalTransactionModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $connectionFactories = [DbalConnectionFactory::class];
         $pointcut            = '(' . DbalTransaction::class . ')';
 
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
@@ -52,17 +52,18 @@ class DbalTransactionModule implements AnnotationModule
         if ($dbalConfiguration->isTransactionOnConsoleCommands()) {
             $pointcut .= '||(' . ConsoleCommand::class . ')';
         }
-        if ($dbalConfiguration->getDefaultConnectionReferenceNames()) {
-            $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames();
-        }
+        $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionFactory::class];
+
+        $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
+            array_map(fn (string $id) => new Reference($id), $connectionFactories),
+            $dbalConfiguration->getDisabledTransactionsOnAsynchronousEndpointNames(),
+        ]);
 
         $messagingConfiguration
-            ->requireReferences($connectionFactories)
             ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                    $interfaceToCallRegistry,
-                    new DbalTransactionInterceptor($connectionFactories, $dbalConfiguration->getDisabledTransactionsOnAsynchronousEndpointNames()),
-                    'transactional',
+                AroundInterceptorBuilder::create(
+                    DbalTransactionInterceptor::class,
+                    $interfaceToCallRegistry->getFor(DbalTransactionInterceptor::class, 'transactional'),
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE,
                     $pointcut
                 )
@@ -78,14 +79,6 @@ class DbalTransactionModule implements AnnotationModule
     }
 
     public function getModuleExtensions(array $serviceExtensions): array
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
     {
         return [];
     }

@@ -18,6 +18,7 @@ use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -169,16 +170,16 @@ final class EcotoneLite
             $useCachedVersion
         );
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
-        $messagingConfiguration = null;
+        $definitionHolder = null;
 
         $proxyFactory = new ProxyFactory($serviceCacheConfiguration);
         $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging_system';
         if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
             /** It may fail on deserialization, then return `false` and we can build new one */
-            $messagingConfiguration = unserialize(file_get_contents($messagingSystemCachePath));
+            $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
         }
 
-        if (!$messagingConfiguration) {
+        if (!$definitionHolder) {
             $messagingConfiguration = MessagingSystemConfiguration::prepare(
                 $pathToRootCatalog,
                 $configurationVariableService,
@@ -186,14 +187,19 @@ final class EcotoneLite
                 $classesToResolve,
                 $enableTesting
             );
+            $definitionHolder = ContainerConfig::buildDefinitionHolder($messagingConfiguration);
 
             if ($serviceCacheConfiguration->shouldUseCache()) {
                 MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-                file_put_contents($messagingSystemCachePath, serialize($messagingConfiguration));
+                file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
             }
         }
 
-        $messagingSystem = ContainerConfig::buildMessagingSystemInMemoryContainer($messagingConfiguration, $externalContainer, $configurationVariableService, $proxyFactory);
+        $container = new LazyInMemoryContainer($definitionHolder->getDefinitions(), $externalContainer);
+        $container->set(ProxyFactory::class, $proxyFactory);
+        $container->set(ConfigurationVariableService::REFERENCE_NAME, $configurationVariableService);
+
+        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
 
         if ($allowGatewaysToBeRegisteredInContainer) {
             Assert::isTrue(method_exists($externalContainer, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');

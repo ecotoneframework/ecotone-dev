@@ -1,12 +1,11 @@
 <?php
 
-namespace Ecotone\Laravel;
+namespace Ecotone\Messaging\Config\Container\Compiler;
 
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
-use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 
-class LaravelConfigurationHolder implements ContainerImplementation
+class ContainerDefinitionsHolder implements ContainerImplementation
 {
     private array $definitions = [];
 

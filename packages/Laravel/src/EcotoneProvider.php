@@ -2,17 +2,12 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Lite\InMemoryContainerImplementation;
-use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
-use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Support\Assert;
 use ReflectionMethod;
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\Lite\PsrContainerReferenceSearchService;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
@@ -114,7 +109,12 @@ class EcotoneProvider extends ServiceProvider
         }
 
         if (!$definitionHolder) {
-            $definitionHolder = $this->buildDefinitionHolder($rootCatalog, $applicationConfiguration);
+            $configuration = MessagingSystemConfiguration::prepare(
+                $rootCatalog,
+                new LaravelConfigurationVariableService(),
+                $applicationConfiguration,
+            );
+            $definitionHolder = ContainerConfig::buildDefinitionHolder($configuration);
 
             if ($serviceCacheConfiguration->shouldUseCache()) {
                 MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
@@ -214,22 +214,6 @@ class EcotoneProvider extends ServiceProvider
                 }
             );
         }
-    }
-
-    private function buildDefinitionHolder(string $rootCatalog, ServiceConfiguration $applicationConfiguration): LaravelConfigurationHolder
-    {
-        $configuration = MessagingSystemConfiguration::prepare(
-            $rootCatalog,
-            new LaravelConfigurationVariableService(),
-            $applicationConfiguration,
-        );
-        $definitionHolder = new LaravelConfigurationHolder($configuration->getRegisteredConsoleCommands());
-        $ecotoneBuilder = new ContainerBuilder();
-        $ecotoneBuilder->addCompilerPass($configuration);
-        $ecotoneBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-        $ecotoneBuilder->addCompilerPass($definitionHolder);
-        $ecotoneBuilder->compile();
-        return $definitionHolder;
     }
 
     private function getCacheDirectoryPath(): string

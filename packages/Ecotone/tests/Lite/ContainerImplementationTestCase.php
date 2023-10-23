@@ -57,6 +57,9 @@ abstract class ContainerImplementationTestCase extends TestCase
         self::assertEquals($aDefinedObject, $container->get('aDefinition'));
     }
 
+    /**
+     * @requires PHP >= 8.1
+     */
     public function test_it_can_resolve_complex_attributes(): void
     {
         $aValueConverterWithComplexAttribute = new Definition(ValueConverter::class, [

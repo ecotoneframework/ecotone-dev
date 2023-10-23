@@ -12,6 +12,7 @@ env:
 jobs:
   prepare-code-for-release:
     name: "Auto fix PHP CS and set up required package versions"
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       # Give the default GITHUB_TOKEN write permission to commit and push the

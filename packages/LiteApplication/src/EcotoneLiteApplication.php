@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
-use CompiledContainer;
 use DI\ContainerBuilder as PhpDiContainerBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
@@ -15,6 +14,9 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
+
+use function file_put_contents;
+
 use Ramsey\Uuid\Uuid;
 
 class EcotoneLiteApplication
@@ -55,11 +57,11 @@ class EcotoneLiteApplication
             if ($serviceCacheConfiguration->shouldUseCache()) {
                 $builder->enableCompilation($serviceCacheConfiguration->getPath(), $containerClass);
                 MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-                \file_put_contents($file, <<<EOL
-<?php
-require_once __DIR__.'/$containerClass.php';
-return new $containerClass();
-EOL);
+                file_put_contents($file, <<<EOL
+                    <?php
+                    require_once __DIR__.'/$containerClass.php';
+                    return new $containerClass();
+                    EOL);
             }
 
             $containerBuilder = new ContainerBuilder();

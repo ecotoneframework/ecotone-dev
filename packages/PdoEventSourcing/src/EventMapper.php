@@ -4,8 +4,8 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\EventSourcing\Prooph\ProophMessage;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Event;
 use Prooph\Common\Messaging\Message;

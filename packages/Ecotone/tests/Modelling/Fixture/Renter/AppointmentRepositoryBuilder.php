@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Renter;
 
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\LazyRepositoryBuilder;
 use Ecotone\Modelling\StandardRepository;

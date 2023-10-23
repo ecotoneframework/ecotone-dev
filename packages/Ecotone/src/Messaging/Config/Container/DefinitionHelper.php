@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Config\Container;
 
 use function get_class;
+use function is_object;
 use function serialize;
 
 /**
@@ -42,7 +43,7 @@ class DefinitionHelper
                     return true;
                 }
             }
-        } else if (\is_object($attributeArguments)) {
+        } elseif (is_object($attributeArguments)) {
             return true;
         }
         return false;

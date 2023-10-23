@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
+use function json_encode;
+
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanExporterInterface;
@@ -35,9 +37,9 @@ abstract class TracingTest extends TestCase
                     'parent_id' => $span->getParentContext()->isValid() ? $span->getParentSpanId() : null,
                     'attributes' => $span->getAttributes()->toArray(),
                     'kind' => $span->getKind(),
-                    'links' => $span->getLinks()
+                    'links' => $span->getLinks(),
                 ],
-                'children' => []
+                'children' => [],
             ];
 
             $tree = $this->putInTree($preparedSpan, $tree, true);
@@ -85,7 +87,7 @@ abstract class TracingTest extends TestCase
                     $changedStructure,
                     true
                 );
-            }else {
+            } else {
                 // go to children
                 $changedStructure[$nodeId]['children'] = $this->putInTree(
                     $searchedSpan,
@@ -113,7 +115,7 @@ abstract class TracingTest extends TestCase
                             $this->assertArrayHasKey($expectedAttributeKey, $collectedNode['details'][$expectedKey], "Expected key {$expectedAttributeKey} is not present in node {$collectedNode['details']['name']}");
                             $this->assertSame($expectedAttributeValue, $collectedNode['details'][$expectedKey][$expectedAttributeKey], "Expected value for key {$expectedAttributeKey} is {$expectedAttributeValue}, but got {$collectedNode['details'][$expectedKey][$expectedAttributeKey]} in node {$collectedNode['details']['name']}");
                         }
-                    }else {
+                    } else {
                         $this->assertSame(
                             $expectedValue,
                             $collectedNode['details'][$expectedKey],
@@ -127,7 +129,7 @@ abstract class TracingTest extends TestCase
             }
         }
 
-        $this->assertTrue(false, "Could not find node with name {$expectedTreeNode['details']['name']}. Nodes at this level: " . \json_encode($collectedTree));
+        $this->assertTrue(false, "Could not find node with name {$expectedTreeNode['details']['name']}. Nodes at this level: " . json_encode($collectedTree));
     }
 
     public function getNodeAtTargetedSpan(array $expectedTreeNode, array $collectedTree): array
@@ -139,7 +141,7 @@ abstract class TracingTest extends TestCase
                     $this->assertSame($expectedValue, $collectedNode['details'][$expectedKey], "Expected value for key {$expectedKey} is {$expectedValue}, but got {$collectedNode['details'][$expectedKey]} in node {$collectedNode['details']['name']}");
                 }
 
-                if (!array_key_exists('child', $expectedTreeNode)) {
+                if (! array_key_exists('child', $expectedTreeNode)) {
                     return $collectedNode;
                 }
 
@@ -147,6 +149,6 @@ abstract class TracingTest extends TestCase
             }
         }
 
-        $this->assertTrue(false, "Could not find node with name {$expectedTreeNode['details']['name']}. Nodes at this level: " . \json_encode($collectedTree));
+        $this->assertTrue(false, "Could not find node with name {$expectedTreeNode['details']['name']}. Nodes at this level: " . json_encode($collectedTree));
     }
 }

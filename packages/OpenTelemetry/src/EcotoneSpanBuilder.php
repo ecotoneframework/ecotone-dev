@@ -18,7 +18,7 @@ final class EcotoneSpanBuilder
         $userHeaders = MessageHeaders::unsetAllFrameworkHeaders($context->getHeaders()->headers());
 
         foreach ($userHeaders as $key => $value) {
-            if (!TypeDescriptor::createFromVariable($value)->isScalar()) {
+            if (! TypeDescriptor::createFromVariable($value)->isScalar()) {
                 unset($userHeaders[$key]);
             }
         }

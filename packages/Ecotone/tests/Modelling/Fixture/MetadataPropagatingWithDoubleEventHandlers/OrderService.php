@@ -3,7 +3,6 @@
 namespace Test\Ecotone\Modelling\Fixture\MetadataPropagatingWithDoubleEventHandlers;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Modelling\Attribute\CommandHandler;

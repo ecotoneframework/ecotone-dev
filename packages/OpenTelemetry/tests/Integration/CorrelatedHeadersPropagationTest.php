@@ -152,14 +152,12 @@ final class CorrelatedHeadersPropagationTest extends TracingTest
         $node = $this->getNodeAtTargetedSpan(
             [
                 'details' => ['name' => 'Command Bus'],
-                'child' =>
-                    [
-                        'details' => ['name' => 'Sending to Channel: async_channel'],
-                        'child' =>
-                            [
-                                'details' => ['name' => 'Receiving from channel: async_channel']
-                            ]
-                    ]
+                'child' => [
+                    'details' => ['name' => 'Sending to Channel: async_channel'],
+                    'child' => [
+                        'details' => ['name' => 'Receiving from channel: async_channel'],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );

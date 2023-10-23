@@ -3,8 +3,8 @@
 namespace Ecotone\EventSourcing;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 
 class AggregateStreamMapping implements CompilableBuilder
 {

@@ -2,25 +2,25 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Messaging\Config\Container\ContainerConfig;
-use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
-use ReflectionMethod;
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+use Ecotone\Messaging\Config\Container\ContainerConfig;
+use Ecotone\Messaging\Config\Container\Definition;
+
+use Ecotone\Messaging\Config\Container\Reference;
 
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-
 use Ecotone\Messaging\Config\ServiceConfiguration;
 
 use Ecotone\Messaging\ConfigurationVariableService;
 
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
+use ReflectionMethod;
 
 class EcotoneProvider extends ServiceProvider
 {
@@ -108,7 +109,7 @@ class EcotoneProvider extends ServiceProvider
             $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
         }
 
-        if (!$definitionHolder) {
+        if (! $definitionHolder) {
             $configuration = MessagingSystemConfiguration::prepare(
                 $rootCatalog,
                 new LaravelConfigurationVariableService(),

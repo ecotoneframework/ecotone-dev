@@ -179,7 +179,7 @@ final class EcotoneLite
             $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
         }
 
-        if (!$definitionHolder) {
+        if (! $definitionHolder) {
             $messagingConfiguration = MessagingSystemConfiguration::prepare(
                 $pathToRootCatalog,
                 $configurationVariableService,

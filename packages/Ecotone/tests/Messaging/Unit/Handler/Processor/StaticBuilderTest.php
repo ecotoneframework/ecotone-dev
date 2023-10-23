@@ -12,7 +12,6 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
-use stdClass;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**

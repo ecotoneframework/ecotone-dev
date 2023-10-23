@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\PollableChannel\InMemory;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\PrecedenceChannelInterceptor;
 
 final class InMemoryQueueAcknowledgeInterceptorBuilder implements ChannelInterceptorBuilder

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\OpenTelemetry;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Precedence;
 use OpenTelemetry\API\Trace\TracerInterface;

@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
-use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
+
+use function json_decode;
+
 use OpenTelemetry\API\LoggerHolder;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\SpanInterface;
@@ -32,7 +33,7 @@ final class TracerInterceptor
          * @TODO tag polledChannelName, routingSlip
          */
         /** @TODO provides same parent to all child spans */
-        $carrier = $message->getHeaders()->containsKey(TracingChannelInterceptor::TRACING_CARRIER_HEADER) ? \json_decode($message->getHeaders()->get(TracingChannelInterceptor::TRACING_CARRIER_HEADER), true) : [];
+        $carrier = $message->getHeaders()->containsKey(TracingChannelInterceptor::TRACING_CARRIER_HEADER) ? json_decode($message->getHeaders()->get(TracingChannelInterceptor::TRACING_CARRIER_HEADER), true) : [];
         $parentContext = TraceContextPropagator::getInstance()->extract($carrier);
 
         return $this->trace(
@@ -105,8 +106,7 @@ final class TracerInterceptor
         array $attributes = [],
         ?ContextInterface $parentContext = null,
         int $spanKind = SpanKind::KIND_SERVER
-    )
-    {
+    ) {
         /** @TODO this should be moved somewhere else */
         if (! LoggerHolder::isSet()) {
             LoggerHolder::set($this->logger);

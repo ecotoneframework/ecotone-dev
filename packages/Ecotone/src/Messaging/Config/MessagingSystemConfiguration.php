@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use function array_map;
+
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -55,10 +57,11 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
 use Exception;
+
+use function is_a;
+
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
-use function array_map;
-use function is_a;
 
 /**
  * Class Configuration

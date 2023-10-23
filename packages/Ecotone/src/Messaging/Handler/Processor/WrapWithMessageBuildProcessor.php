@@ -12,7 +12,6 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
-use InvalidArgumentException;
 
 /**
  * Class WrapWithMessageProcessor Constructs reply message with correct content type

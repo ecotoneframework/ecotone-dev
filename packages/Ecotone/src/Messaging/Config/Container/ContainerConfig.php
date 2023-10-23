@@ -20,8 +20,7 @@ class ContainerConfig
         ?ContainerInterface $externalContainer = null,
         ?ConfigurationVariableService $configurationVariableService = null,
         ?ProxyFactory $proxyFactory = null,
-    ): ConfiguredMessagingSystem
-    {
+    ): ConfiguredMessagingSystem {
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass($configuration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
@@ -34,8 +33,7 @@ class ContainerConfig
 
     public static function buildDefinitionHolder(
         Configuration $configuration,
-    ): ContainerDefinitionsHolder
-    {
+    ): ContainerDefinitionsHolder {
         $definitionHolder = new ContainerDefinitionsHolder($configuration->getRegisteredConsoleCommands());
         $ecotoneBuilder = new ContainerBuilder();
         $ecotoneBuilder->addCompilerPass($configuration);

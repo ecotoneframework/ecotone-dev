@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test\Configuration;
 
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use Ecotone\Modelling\InMemoryStandardRepository;
 use Ecotone\Modelling\RepositoryBuilder;

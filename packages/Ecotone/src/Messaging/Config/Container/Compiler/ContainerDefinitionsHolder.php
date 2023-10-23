@@ -12,7 +12,8 @@ class ContainerDefinitionsHolder implements ContainerImplementation
     /**
      * @param ConsoleCommandConfiguration[] $registeredCommands
      */
-    public function __construct(private array $registeredCommands) {
+    public function __construct(private array $registeredCommands)
+    {
 
     }
 

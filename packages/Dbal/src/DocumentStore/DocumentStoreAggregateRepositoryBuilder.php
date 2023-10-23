@@ -2,8 +2,8 @@
 
 namespace Ecotone\Dbal\DocumentStore;
 
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\RepositoryBuilder;
 

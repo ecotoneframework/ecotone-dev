@@ -63,7 +63,7 @@ abstract class ContainerImplementationTestCase extends TestCase
     public function test_it_can_resolve_complex_attributes(): void
     {
         $aValueConverterWithComplexAttribute = new Definition(ValueConverter::class, [
-            new AttributeReference(AroundCalculation::class, AnInterfaceWithComplexAttribute::class, 'calculate')
+            new AttributeReference(AroundCalculation::class, AnInterfaceWithComplexAttribute::class, 'calculate'),
         ]);
         $container = self::buildContainerFromDefinitions([
             'aValueConverterWithComplexAttribute' => $aValueConverterWithComplexAttribute,
@@ -71,7 +71,8 @@ abstract class ContainerImplementationTestCase extends TestCase
 
         self::assertEquals(
             ValueConverter::createWith(new AroundCalculation(new Sum(3))),
-            $container->get('aValueConverterWithComplexAttribute'));
+            $container->get('aValueConverterWithComplexAttribute')
+        );
 
     }
 

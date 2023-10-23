@@ -6,8 +6,8 @@ namespace Ecotone\Messaging\Handler\Chain;
 
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -17,7 +17,6 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
-
 
 /**
  * Class ChainMessageHandlerBuilder

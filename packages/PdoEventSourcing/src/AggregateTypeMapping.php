@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 
 final class AggregateTypeMapping implements CompilableBuilder
 {

@@ -13,7 +13,6 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\RequiredReference;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverterBuilder;
 use Ecotone\Messaging\Conversion\SerializedToObject\DeserializingConverterBuilder;
 use Ecotone\Messaging\Conversion\StringToUuid\StringToUuidConverterBuilder;

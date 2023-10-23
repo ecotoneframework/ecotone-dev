@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
 use Ecotone\Messaging\Config\Container\ChannelReference;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\AroundInterceptorHandler;
 use Ecotone\Messaging\Handler\ChannelResolver;

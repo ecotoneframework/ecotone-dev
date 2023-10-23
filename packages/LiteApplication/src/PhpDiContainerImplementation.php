@@ -3,7 +3,6 @@
 namespace Ecotone\Lite;
 
 use DI\ContainerBuilder as PhpDiContainerBuilder;
-use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
@@ -12,15 +11,16 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 
+use function is_array;
+
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use function is_array;
 
 use ReflectionMethod;
 
 class PhpDiContainerImplementation implements CompilerPass
 {
-    public const EXTERNAL_PREFIX = "external:";
+    public const EXTERNAL_PREFIX = 'external:';
     public function __construct(private PhpDiContainerBuilder $containerBuilder, private array $classesToRegister = [])
     {
     }
@@ -37,16 +37,16 @@ class PhpDiContainerImplementation implements CompilerPass
             $phpDiDefinitions[$id] = $this->resolveArgument($definition);
         }
         foreach ($this->classesToRegister as $id => $class) {
-            if (!isset($phpDiDefinitions[$id])) {
+            if (! isset($phpDiDefinitions[$id])) {
                 $phpDiDefinitions[$id] = \DI\get(self::EXTERNAL_PREFIX . $id);
             }
         }
 
-        if (isset($phpDiDefinitions['logger']) && !isset($phpDiDefinitions[LoggerInterface::class])) {
+        if (isset($phpDiDefinitions['logger']) && ! isset($phpDiDefinitions[LoggerInterface::class])) {
             $phpDiDefinitions[LoggerInterface::class] = \DI\get('logger');
-        } else if (!isset($phpDiDefinitions['logger']) && isset($phpDiDefinitions[LoggerInterface::class])) {
+        } elseif (! isset($phpDiDefinitions['logger']) && isset($phpDiDefinitions[LoggerInterface::class])) {
             $phpDiDefinitions['logger'] = \DI\get(LoggerInterface::class);
-        } else if (!isset($phpDiDefinitions['logger']) && !isset($phpDiDefinitions[LoggerInterface::class])) {
+        } elseif (! isset($phpDiDefinitions['logger']) && ! isset($phpDiDefinitions[LoggerInterface::class])) {
             $phpDiDefinitions['logger'] = \DI\create(NullLogger::class);
             $phpDiDefinitions[LoggerInterface::class] = \DI\get('logger');
         }

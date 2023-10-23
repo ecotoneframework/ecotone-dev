@@ -2,7 +2,6 @@
 
 namespace Ecotone\EventSourcing\Prooph;
 
-use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionExecutor;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;

@@ -25,7 +25,7 @@ final class BoolHeaderBasedFilter implements DefinedObject
     {
         return new Definition(self::class, [
             $this->headerName,
-            $this->defaultResultWhenHeaderIsMissing
+            $this->defaultResultWhenHeaderIsMissing,
         ]);
     }
 }

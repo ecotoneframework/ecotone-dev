@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Conversion;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;

@@ -5,25 +5,20 @@ declare(strict_types=1);
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use ArrayObject;
-use Bluestone\Tree\Node;
-use Bluestone\Tree\Tree;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
 use Ecotone\OpenTelemetry\Support\JaegerTracer;
-use InvalidArgumentException;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
-use OpenTelemetry\SDK\Trace\ImmutableSpan;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
-use Ramsey\Uuid\Uuid;
+use stdClass;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantCreated;
@@ -31,7 +26,6 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberOne;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberTwo;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
-use Test\Ecotone\OpenTelemetry\Fixture\InMemorySpanExporter;
 
 /**
  * @internal
@@ -149,10 +143,10 @@ final class TracingTreeTest extends TracingTest
                     'children' => [
                         [
                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                            'children' => []
-                        ]
-                    ]
-                ]
+                            'children' => [],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -183,14 +177,14 @@ final class TracingTreeTest extends TracingTest
                                     'children' => [
                                         [
                                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -221,11 +215,11 @@ final class TracingTreeTest extends TracingTest
                                     'children' => [
                                         [
                                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
                         ],
                         [
                             'details' => ['name' => 'Event Handler: ' . MerchantSubscriberTwo::class . '::merchantToUser'],
@@ -235,14 +229,14 @@ final class TracingTreeTest extends TracingTest
                                     'children' => [
                                         [
                                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -279,18 +273,18 @@ final class TracingTreeTest extends TracingTest
                                                     'children' => [
                                                         [
                                                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                                            'children' => []
-                                                        ]
-                                                    ]
-                                                ]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                                            'children' => [],
+                                                        ],
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -326,14 +320,14 @@ final class TracingTreeTest extends TracingTest
                                     'children' => [
                                         [
                                             'details' => ['name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register'],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -355,7 +349,7 @@ final class TracingTreeTest extends TracingTest
             ->sendCommand(
                 new RegisterUser('1'),
                 [
-                    'user_id' => '123'
+                    'user_id' => '123',
                 ]
             );
 
@@ -366,34 +360,34 @@ final class TracingTreeTest extends TracingTest
                 [
                     'details' => [
                         'name' => 'Command Bus',
-                        'attributes' => ['user_id' => '123']
+                        'attributes' => ['user_id' => '123'],
                     ],
                     'children' => [
                         [
                             'details' => [
                                 'name' => 'Sending to Channel: async_channel',
-                                'attributes' => ['user_id' => '123']
+                                'attributes' => ['user_id' => '123'],
                             ],
                             'children' => [
                                 [
                                     'details' => [
                                         'name' => 'Receiving from channel: async_channel',
-                                        'attributes' => ['user_id' => '123']
+                                        'attributes' => ['user_id' => '123'],
                                     ],
                                     'children' => [
                                         [
                                             'details' => [
                                                 'name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register',
-                                                'attributes' => ['user_id' => '123']
+                                                'attributes' => ['user_id' => '123'],
                                             ],
-                                            'children' => []
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
             ],
             $this->buildTree($exporter)
         );
@@ -414,13 +408,13 @@ final class TracingTreeTest extends TracingTest
         )
             ->sendCommand(new RegisterUser('1'), [
                 'tokens' => ['123'],
-                'user' => new \stdClass()
+                'user' => new stdClass(),
             ])
             ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
         $node = $this->getNodeAtTargetedSpan(
             [
-                'details' => ['name' => 'Command Bus']
+                'details' => ['name' => 'Command Bus'],
             ],
             $this->buildTree($exporter)
         );

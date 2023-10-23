@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
+use Ramsey\Uuid\Uuid;
 
 class EcotoneLiteApplication
 {
@@ -38,9 +39,7 @@ class EcotoneLiteApplication
         $proxyFactory = new ProxyFactory($serviceCacheConfiguration);
         $file = $serviceCacheConfiguration->getPath() . '/CompiledContainer.php';
         if ($serviceCacheConfiguration->shouldUseCache() && file_exists($file)) {
-            require_once $file;
-            /** @phpstan-ignore-next-line */
-            $container = new CompiledContainer();
+            $container = require $file;
         } else {
             /** @var MessagingSystemConfiguration $messagingConfiguration */
             $messagingConfiguration = MessagingSystemConfiguration::prepare(
@@ -49,11 +48,18 @@ class EcotoneLiteApplication
                 $serviceConfiguration,
             );
 
+            $containerClass = 'CompiledContainer_'.self::hash(Uuid::uuid4()->toString());
             $builder = new PhpDiContainerBuilder();
             $builder->useAttributes(false);
             $builder->useAutowiring(true);
             if ($serviceCacheConfiguration->shouldUseCache()) {
-                $builder->enableCompilation($serviceCacheConfiguration->getPath());
+                $builder->enableCompilation($serviceCacheConfiguration->getPath(), $containerClass);
+                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
+                \file_put_contents($file, <<<EOL
+<?php
+require_once __DIR__.'/$containerClass.php';
+return new $containerClass();
+EOL);
             }
 
             $containerBuilder = new ContainerBuilder();
@@ -88,5 +94,12 @@ class EcotoneLiteApplication
     public static function boostrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null): ConfiguredMessagingSystem
     {
         return self::bootstrap($objectsToRegister, $configurationVariables, $serviceConfiguration, $cacheConfiguration, $pathToRootCatalog);
+    }
+
+    public static function hash($value)
+    {
+        $hash = substr(base64_encode(hash('sha256', serialize($value), true)), 0, 7);
+
+        return str_replace(['/', '+'], ['_', '_'], $hash);
     }
 }

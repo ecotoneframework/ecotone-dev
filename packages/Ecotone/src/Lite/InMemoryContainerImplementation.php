@@ -56,7 +56,10 @@ class InMemoryContainerImplementation implements ContainerImplementation
             return $this->resolveReference($argument, $builder);
         } else {
             if (is_object($argument) && ! ($argument instanceof DefinedObject)) {
-                echo 'WARNING: Argument is not a self defined object: ' . get_class($argument) . "\n";
+                if (! \str_starts_with(get_class($argument), 'Test\\')) {
+                    // We accept only not-dumpable instances from the 'Test\' namespace
+                    throw new InvalidArgumentException("Argument is not a self defined object: " . get_class($argument));
+                }
             }
             return $argument;
         }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Config\Container\BoundParameterConverter;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -31,11 +32,10 @@ class StaticBuilderTest extends TestCase
     {
         $interfaceToCall = InterfaceToCall::create(ServiceExpectingOneArgument::class, 'withoutReturnValue');
         $interfaceParameter = $interfaceToCall->getInterfaceParameters()[0];
-        $value = new stdClass();
+        $value = PollingMetadata::create('some-id');
         $converter = new BoundParameterConverter(
             new ValueBuilder($interfaceParameter->getName(), $value),
             $interfaceToCall,
-            $interfaceParameter
         );
         $converter = ComponentTestBuilder::create()->build($converter);
 

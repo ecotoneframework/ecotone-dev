@@ -2,12 +2,18 @@
 
 namespace Test\Ecotone\Lite;
 
+use Ecotone\Messaging\Config\Container\AttributeReference;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Test\Ecotone\Lite\Fixtures\AnInterfaceWithComplexAttribute;
+use Test\Ecotone\Lite\Fixtures\AroundCalculation;
+use Test\Ecotone\Lite\Fixtures\Sum;
 
 abstract class ContainerImplementationTestCase extends TestCase
 {
@@ -51,12 +57,28 @@ abstract class ContainerImplementationTestCase extends TestCase
         self::assertEquals($aDefinedObject, $container->get('aDefinition'));
     }
 
+    public function test_it_can_resolve_complex_attributes(): void
+    {
+        $aValueConverterWithComplexAttribute = new Definition(ValueConverter::class, [
+            new AttributeReference(AroundCalculation::class, AnInterfaceWithComplexAttribute::class, 'calculate')
+        ]);
+        $container = self::buildContainerFromDefinitions([
+            'aValueConverterWithComplexAttribute' => $aValueConverterWithComplexAttribute,
+        ]);
+
+        self::assertEquals(
+            ValueConverter::createWith(new AroundCalculation(new Sum(3))),
+            $container->get('aValueConverterWithComplexAttribute'));
+
+    }
+
     protected static function buildContainerFromDefinitions(array $definitions, ?ContainerInterface $externalContainer = null): ContainerInterface
     {
         $builder = new ContainerBuilder();
         foreach ($definitions as $id => $definition) {
             $builder->replace($id, $definition);
         }
+        $builder->addCompilerPass(new RegisterInterfaceToCallReferences());
         return static::getContainerFrom($builder, $externalContainer);
     }
 

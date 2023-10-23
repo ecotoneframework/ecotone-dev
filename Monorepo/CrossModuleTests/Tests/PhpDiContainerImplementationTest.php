@@ -5,6 +5,7 @@ namespace Monorepo\CrossModuleTests\Tests;
 use Ecotone\Lite\PhpDiContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Psr\Container\ContainerInterface;
+use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Lite\ContainerImplementationTestCase;
 
 /**
@@ -16,7 +17,7 @@ class PhpDiContainerImplementationTest extends ContainerImplementationTestCase
     {
         $container = new \DI\ContainerBuilder();
         $containerClass = 'EcotonePhpDi_'.uniqid();
-        $cacheDirectory = sys_get_temp_dir();
+        $cacheDirectory = __DIR__ . '/cache/php_di_'.Uuid::uuid4()->toString();
         $container->enableCompilation($cacheDirectory, $containerClass);
         $builder->addCompilerPass(new PhpDiContainerImplementation($container));
         $builder->compile();

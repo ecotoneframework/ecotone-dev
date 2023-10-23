@@ -3,7 +3,6 @@
 namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
-use Ecotone\SymfonyBundle\DepedencyInjection\SymfonyContainerAdapter;
 use Psr\Container\ContainerInterface;
 use Test\Ecotone\Lite\ContainerImplementationTestCase;
 
@@ -12,12 +11,21 @@ use Test\Ecotone\Lite\ContainerImplementationTestCase;
  */
 class SymfonyContainerAdapterTest extends ContainerImplementationTestCase
 {
+    protected static ?SimpleSymfonyKernel $bootedKernel = null;
+
+    protected function setUp(): void
+    {
+        if (self::$bootedKernel) {
+            self::$bootedKernel->shutdown();
+            self::$bootedKernel = null;
+        }
+    }
+
     protected static function getContainerFrom(ContainerBuilder $builder, ?ContainerInterface $externalContainer = null): ContainerInterface
     {
-        $container = new \Symfony\Component\DependencyInjection\ContainerBuilder();
-        $builder->addCompilerPass(new SymfonyContainerAdapter($container));
-        $builder->compile();
+        self::$bootedKernel = new SimpleSymfonyKernel($builder);
+        self::$bootedKernel->boot();
 
-        return $container;
+        return self::$bootedKernel->getContainer();
     }
 }

@@ -6,7 +6,7 @@ return [
     'namespaces' => [
         'Monorepo\ExampleApp\Common',
     ],
-    'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]),
+    'skippedModulePackageNames' => \json_decode(\getenv('APP_SKIPPED_PACKAGES'), true),
     'cacheConfiguration' => \getenv('APP_ENV') === 'prod',
     'defaultErrorChannel' => 'errorChannel',
 ];

@@ -16,7 +16,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         'namespaces' => ['Monorepo\\ExampleApp\\Common'],
         'defaultErrorChannel' => 'errorChannel',
         'failFast' => false,
-        'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]),
+        'skippedModulePackageNames' => \json_decode(\getenv('APP_SKIPPED_PACKAGES'), true),
     ]);
 
     $services = $containerConfigurator->services();

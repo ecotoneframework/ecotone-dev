@@ -3,6 +3,7 @@
 namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
@@ -188,12 +189,19 @@ abstract class FullAppBenchmarkCase extends TestCase
     {
         \putenv('APP_ENV=prod');
         \putenv('APP_DEBUG=false');
+        \putenv(sprintf('APP_SKIPPED_PACKAGES=%s', \json_encode(self::skippedPackages(), JSON_THROW_ON_ERROR)));
     }
 
     private static function developmentEnvironments(): void
     {
         \putenv('APP_ENV=dev');
         \putenv('APP_DEBUG=true');
+        \putenv(sprintf("APP_SKIPPED_PACKAGES=%s", \json_encode(self::skippedPackages(), JSON_THROW_ON_ERROR)));
+    }
+
+    public static function skippedPackages(): array
+    {
+        return ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]);
     }
 
     private static function createLaravelApplication(): Application

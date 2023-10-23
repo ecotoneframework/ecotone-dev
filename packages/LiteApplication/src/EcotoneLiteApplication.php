@@ -96,7 +96,7 @@ EOL);
         return self::bootstrap($objectsToRegister, $configurationVariables, $serviceConfiguration, $cacheConfiguration, $pathToRootCatalog);
     }
 
-    public static function hash($value)
+    private static function hash($value)
     {
         $hash = substr(base64_encode(hash('sha256', serialize($value), true)), 0, 7);
 

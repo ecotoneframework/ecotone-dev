@@ -190,6 +190,7 @@ abstract class FullAppBenchmarkCase extends TestCase
         \putenv('APP_ENV=prod');
         \putenv('APP_DEBUG=false');
         \putenv(sprintf('APP_SKIPPED_PACKAGES=%s', \json_encode(self::skippedPackages(), JSON_THROW_ON_ERROR)));
+        \putenv(sprintf('APP_NAMESPACES_TO_LOAD=%s', \json_encode(self::namespacesToLoad(), JSON_THROW_ON_ERROR)));
     }
 
     private static function developmentEnvironments(): void
@@ -197,11 +198,17 @@ abstract class FullAppBenchmarkCase extends TestCase
         \putenv('APP_ENV=dev');
         \putenv('APP_DEBUG=true');
         \putenv(sprintf("APP_SKIPPED_PACKAGES=%s", \json_encode(self::skippedPackages(), JSON_THROW_ON_ERROR)));
+        \putenv(sprintf("APP_NAMESPACES_TO_LOAD=%s", \json_encode(self::namespacesToLoad(), JSON_THROW_ON_ERROR)));
     }
 
     public static function skippedPackages(): array
     {
         return ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]);
+    }
+
+    public static function namespacesToLoad(): array
+    {
+        return ['Monorepo\\ExampleApp\\Common'];
     }
 
     private static function createLaravelApplication(): Application

@@ -69,6 +69,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withFailFast(false)
             ->withDefaultErrorChannel('errorChannel')
+            ->withNamespaces(\json_decode(\getenv('APP_NAMESPACES_TO_LOAD'), true))
             ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true)),
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__.'/../Common',

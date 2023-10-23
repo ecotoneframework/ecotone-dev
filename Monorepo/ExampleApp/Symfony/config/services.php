@@ -13,7 +13,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
         'defaultSerializationMediaType' => 'application/json',
         'loadSrcNamespaces' => false,
-        'namespaces' => ['Monorepo\\ExampleApp\\Common'],
+        'namespaces' => \json_decode(\getenv('APP_NAMESPACES_TO_LOAD'), true),
         'defaultErrorChannel' => 'errorChannel',
         'failFast' => false,
         'skippedModulePackageNames' => \json_decode(\getenv('APP_SKIPPED_PACKAGES'), true),

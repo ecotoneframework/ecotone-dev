@@ -23,4 +23,28 @@ class DefinitionHelper
     {
         return unserialize($serializedObject);
     }
+
+    public static function resolvePotentialComplexAttribute(AttributeDefinition $attributeDefinition): Definition
+    {
+        $attributeArguments = $attributeDefinition->getArguments();
+        if (self::isComplexArgument($attributeArguments)) {
+            return DefinitionHelper::buildDefinitionFromInstance($attributeDefinition->instance());
+        } else {
+            return $attributeDefinition;
+        }
+    }
+
+    private static function isComplexArgument(mixed $attributeArguments): bool
+    {
+        if (is_array($attributeArguments)) {
+            foreach ($attributeArguments as $argument) {
+                if (self::isComplexArgument($argument)) {
+                    return true;
+                }
+            }
+        } else if (\is_object($attributeArguments)) {
+            return true;
+        }
+        return false;
+    }
 }

@@ -4,10 +4,12 @@ namespace Ecotone\Lite;
 
 use DI\ContainerBuilder as PhpDiContainerBuilder;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 
 use Psr\Log\LoggerInterface;
@@ -56,6 +58,9 @@ class PhpDiContainerImplementation implements CompilerPass
     {
         if ($argument instanceof DefinedObject) {
             $argument = $argument->getDefinition();
+        }
+        if ($argument instanceof AttributeDefinition) {
+            $argument = DefinitionHelper::resolvePotentialComplexAttribute($argument);
         }
         if ($argument instanceof Definition) {
             return $this->convertDefinition($argument);

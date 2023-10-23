@@ -28,6 +28,7 @@ use Monorepo\ExampleApp\Common\Infrastructure\Output;
 use Monorepo\ExampleApp\Common\Infrastructure\StubNotificationSender;
 use Monorepo\ExampleApp\Common\Infrastructure\StubShippingService;
 use Monorepo\ExampleApp\Common\Infrastructure\SystemClock;
+use Monorepo\ExampleApp\CommonEventSourcing\PriceChangeOverTimeProjection;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $output = new Output();
@@ -36,40 +37,51 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $inMemoryOrderRepository = new InMemoryOrderRepository();
     $stubShippingService = new StubShippingService($output, $configuration);
     $stubNotificationSender = new StubNotificationSender($output, $configuration);
+    $namespaces = \json_decode(\getenv('APP_NAMESPACES_TO_LOAD'), true);
 
-    $classesToRegister = [
-        Configuration::class => $configuration,
-        NotificationSender::class => $stubNotificationSender,
-        ShippingService::class => $stubShippingService,
-        Clock::class => new SystemClock(),
-        OrderRepository::class => $inMemoryOrderRepository,
-        InMemoryOrderRepository::class => $inMemoryOrderRepository,
-        AuthenticationService::class => $configuration->authentication(),
-        UserRepository::class => $configuration->userRepository(),
-        InMemoryUserRepository::class => $configuration->userRepository(),
-        ProductRepository::class => $configuration->productRepository(),
-        InMemoryProductRepository::class => $configuration->productRepository(),
-        UuidConverter::class => new UuidConverter(),
-        ShippingSubscriber::class => new ShippingSubscriber($stubShippingService),
-        NotificationSubscriber::class => new NotificationSubscriber($stubNotificationSender),
-        Output::class => $output,
-        ErrorChannelService::class => new ErrorChannelService()
-    ];
+    $classesToRegister = [];
+    $services = [];
+    if (in_array('Monorepo\ExampleApp\Common', $namespaces)) {
+        $services = array_merge([
+            Configuration::class => $configuration,
+            NotificationSender::class => $stubNotificationSender,
+            ShippingService::class => $stubShippingService,
+            Clock::class => new SystemClock(),
+            OrderRepository::class => new InMemoryOrderRepository(),
+            AuthenticationService::class => $configuration->authentication(),
+            UserRepository::class => $configuration->userRepository(),
+            ProductRepository::class => $configuration->productRepository(),
+            ShippingSubscriber::class => new ShippingSubscriber($stubShippingService),
+            NotificationSubscriber::class => new NotificationSubscriber($stubNotificationSender),
+            Output::class => $output,
+            ErrorChannelService::class => new ErrorChannelService()
+        ], $services);
+        $classesToRegister = array_merge(
+            [
+                MessageChannelConfiguration::class,
+                Order::class,
+                Product::class,
+                User::class,
+            ],
+            $classesToRegister
+        );
+    }
+    if (in_array('Monorepo\ExampleApp\CommonEventSourcing', $namespaces)) {
+        $services = [
+            PriceChangeOverTimeProjection::class => new PriceChangeOverTimeProjection()
+        ];
+        $classesToRegister[] = \Monorepo\ExampleApp\CommonEventSourcing\Product::class;
+    }
 
     return EcotoneLite::bootstrap(
-        array_merge(array_keys($classesToRegister), [
-            MessageChannelConfiguration::class,
-            Order::class,
-            Product::class,
-            User::class,
-        ]),
-        containerOrAvailableServices: $classesToRegister,
+        array_merge(array_keys($services), $classesToRegister),
+        containerOrAvailableServices: $services,
         configuration: ServiceConfiguration::createWithDefaults()
             ->doNotLoadCatalog()
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withFailFast(false)
             ->withDefaultErrorChannel('errorChannel')
-            ->withNamespaces(\json_decode(\getenv('APP_NAMESPACES_TO_LOAD'), true))
+            ->withNamespaces($namespaces)
             ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true)),
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__.'/../Common',

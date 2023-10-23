@@ -2,14 +2,28 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Messaging\Config\Container\Definition;
+
 final class ProjectionStreamSource
 {
     /**
      * @param string[] $streams
      * @param string[] $categories
      */
-    private function __construct(private bool $forAllStreams, private array $streams, private array $categories)
+    public function __construct(private bool $forAllStreams, private array $streams, private array $categories)
     {
+    }
+
+    public function compile(): Definition
+    {
+        return new Definition(
+            ProjectionStreamSource::class,
+            [
+                $this->forAllStreams,
+                $this->streams,
+                $this->categories
+            ]
+        );
     }
 
     /**

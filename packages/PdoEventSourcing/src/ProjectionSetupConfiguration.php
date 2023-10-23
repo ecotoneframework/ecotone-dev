@@ -2,6 +2,7 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\Assert;
 use Prooph\EventStore\Pdo\Projection\GapDetection;
@@ -17,7 +18,7 @@ final class ProjectionSetupConfiguration
     private string $projectionInputChannel;
     private string $projectionEndpointId;
 
-    private function __construct(
+    public function __construct(
         private string $projectionName,
         private ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration,
         private string $eventStoreReferenceName,
@@ -35,6 +36,21 @@ final class ProjectionSetupConfiguration
     public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource, ?string $asynchronousChannelName): static
     {
         return new static($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource, $asynchronousChannelName);
+    }
+
+    public function compile(): Definition
+    {
+        return new Definition(
+            ProjectionSetupConfiguration::class,
+            [
+                $this->projectionName,
+                $this->projectionLifeCycleConfiguration->compile(),
+                $this->eventStoreReferenceName,
+                $this->projectionStreamSource->compile(),
+                $this->asynchronousChannelName,
+                $this->isPolling
+            ]
+        );
     }
 
     public function withKeepingStateBetweenEvents(bool $keepState): static

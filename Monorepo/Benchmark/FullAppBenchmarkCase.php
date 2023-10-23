@@ -189,8 +189,8 @@ abstract class FullAppBenchmarkCase extends TestCase
     {
         \putenv('APP_ENV=prod');
         \putenv('APP_DEBUG=false');
-        \putenv(sprintf('APP_SKIPPED_PACKAGES=%s', \json_encode(self::skippedPackages(), JSON_THROW_ON_ERROR)));
-        \putenv(sprintf('APP_NAMESPACES_TO_LOAD=%s', \json_encode(self::namespacesToLoad(), JSON_THROW_ON_ERROR)));
+        \putenv(sprintf('APP_SKIPPED_PACKAGES=%s', \json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
+        \putenv(sprintf('APP_NAMESPACES_TO_LOAD=%s', \json_encode(static::namespacesToLoad(), JSON_THROW_ON_ERROR)));
     }
 
     private static function developmentEnvironments(): void

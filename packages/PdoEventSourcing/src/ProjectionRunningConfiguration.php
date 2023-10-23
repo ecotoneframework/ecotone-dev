@@ -2,6 +2,7 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Messaging\Config\Container\Definition;
 use InvalidArgumentException;
 
 class ProjectionRunningConfiguration
@@ -36,7 +37,7 @@ class ProjectionRunningConfiguration
     private array $options;
     private bool $isTestingSetup = false;
 
-    private function __construct(
+    public function __construct(
         private string $projectionName,
         private string $runningType,
     ) {
@@ -50,6 +51,17 @@ class ProjectionRunningConfiguration
             self::OPTION_IS_TESTING_SETUP => self::DEFAULT_IS_TESTING_SETUP,
             self::OPTION_LOAD_COUNT => self::DEFAULT_LOAD_COUNT,
         ];
+    }
+
+    public function compile(): Definition
+    {
+        return new Definition(
+            ProjectionRunningConfiguration::class,
+            [
+                $this->projectionName,
+                $this->runningType,
+            ]
+        );
     }
 
     public static function createEventDriven(string $projectionName): static

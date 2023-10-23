@@ -101,9 +101,9 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         if (! $builder->has(LoggingInterceptor::class)) {
-            $builder->register(LoggingInterceptor::class, [
+            $builder->register(LoggingInterceptor::class, new Definition(LoggingInterceptor::class, [
                 new Definition(LoggingService::class, [Reference::to(ConversionService::REFERENCE_NAME), Reference::to(self::LOGGER_REFERENCE)]),
-            ]);
+            ]));
         }
         return ServiceActivatorBuilder::create(
             LoggingInterceptor::class,

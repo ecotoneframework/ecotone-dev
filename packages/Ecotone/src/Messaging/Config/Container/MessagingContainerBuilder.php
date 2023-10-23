@@ -62,12 +62,12 @@ class MessagingContainerBuilder
         return $this->pollingEndpoints;
     }
 
-    public function register(string|Reference $id, object|array|string $definition = []): Reference
+    public function register(string|Reference $id, DefinedObject|Definition|Reference $definition): Reference
     {
         return $this->builder->register($id, $definition);
     }
 
-    public function replace(string|Reference $id, object|array|string $definition = []): Reference
+    public function replace(string|Reference $id, DefinedObject|Definition|Reference $definition): Reference
     {
         return $this->builder->replace($id, $definition);
     }

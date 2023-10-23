@@ -27,10 +27,7 @@ class ContainerBuilder
     {
     }
 
-    /**
-     * @TODO before-merge make it explicit what kind of types can be found in array $definition
-     */
-    public function register(string $id, DefinedObject|Definition|Reference|array $definition = []): Reference
+    public function register(string $id, DefinedObject|Definition|Reference $definition): Reference
     {
         if (isset($this->definitions[$id])) {
             throw new InvalidArgumentException("Definition with id {$id} already exists");
@@ -38,18 +35,12 @@ class ContainerBuilder
         return $this->replace($id, $definition);
     }
 
-    /**
-     * @TODO before-merge make it explicit what kind of types can be found in array $definition
-     */
-    public function replace(string $id, DefinedObject|Definition|Reference|array $definition = []): Reference
+    public function replace(string $id, DefinedObject|Definition|Reference $definition): Reference
     {
         if (isset($this->externalReferences[$id])) {
             unset($this->externalReferences[$id]);
         }
-        if (is_array($definition)) {
-            // Parameters are passed directly, transform to a definition
-            $definition = new Definition($id, $definition);
-        } elseif ($definition instanceof DefinedObject) {
+        if ($definition instanceof DefinedObject) {
             $definition = new DefinedObjectWrapper($definition);
         }
         $this->definitions[$id] = $definition;

@@ -27,7 +27,9 @@ final class EventSourcingStackTest extends FullAppTestCase
     {
         return ModulePackageList::allPackagesExcept([
             ModulePackageList::EVENT_SOURCING_PACKAGE,
-            ModulePackageList::DBAL_PACKAGE,
+// @TODO uncomment to fail on dbal configuration
+//       @dgafka: it is required to register "Enqueue\Dbal\DbalConnectionFactory" when using dbal, or you will get a compile time error
+//            ModulePackageList::DBAL_PACKAGE,
             ModulePackageList::JMS_CONVERTER_PACKAGE
         ]);
     }

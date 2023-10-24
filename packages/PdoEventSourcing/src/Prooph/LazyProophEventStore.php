@@ -10,6 +10,7 @@ use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStream
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Iterator;
 use PDO;
 use Prooph\Common\Messaging\MessageConverter;
@@ -61,7 +62,7 @@ class LazyProophEventStore implements EventStore
     public function __construct(
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private EventMapper $messageFactory,
-        private ?DbalConnectionFactory $connectionFactory,
+        private DbalConnectionFactory|ManagerRegistryConnectionFactory|null $connectionFactory,
     ) {
         $this->messageConverter = new FromProophMessageToArrayConverter();
         $this->requireInitialization = $eventSourcingConfiguration->isInitializedOnStart();

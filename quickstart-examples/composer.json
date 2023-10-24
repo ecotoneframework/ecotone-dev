@@ -44,7 +44,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.200.1-dev"
+            "dev-main": "1.200.2-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"

@@ -70,10 +70,6 @@ class EcotoneExtension extends Extension
 
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
 
-        $container->register(ProxyFactory::class)
-            ->setPublic(true)
-            ->setArguments([new Reference(ServiceCacheConfiguration::REFERENCE_NAME)]);
-
         $container->register(CacheWarmer::class)->setAutowired(true)->addTag('kernel.cache_warmer');
 
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
@@ -87,6 +83,16 @@ class EcotoneExtension extends Extension
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
         $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
         $containerBuilder->compile();
+
+        $container->register(ServiceCacheConfiguration::REFERENCE_NAME, ServiceCacheConfiguration::class)
+            ->setArguments([
+                '%kernel.cache_dir%',
+                true
+            ]);
+
+        $container->register(ProxyFactory::class)
+            ->setPublic(true)
+            ->setArguments([new Reference(ServiceCacheConfiguration::REFERENCE_NAME)]);
 
         foreach ($messagingConfiguration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
             $definition = new Definition();

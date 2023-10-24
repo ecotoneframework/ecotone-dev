@@ -9,6 +9,7 @@ use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\UI\OrderController;
+use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
@@ -21,7 +22,8 @@ use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 #[Warmup(1), Revs(10), Iterations(5)]
 class HttpStackBenchmark extends FullAppBenchmarkCase
 {
-    public function executeForSymfony(ContainerInterface $container, SymfonyKernel $kernel): void
+    use ExampleAppCaseTrait;
+    public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {
         $configuration = $container->get(Configuration::class);
         $response = $kernel->handle(

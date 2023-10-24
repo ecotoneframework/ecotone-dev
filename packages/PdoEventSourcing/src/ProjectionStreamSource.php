@@ -2,9 +2,10 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
-final class ProjectionStreamSource
+final class ProjectionStreamSource implements DefinedObject
 {
     /**
      * @param string[] $streams
@@ -14,7 +15,7 @@ final class ProjectionStreamSource
     {
     }
 
-    public function compile(): Definition
+    public function getDefinition(): Definition
     {
         return new Definition(
             ProjectionStreamSource::class,

@@ -3,12 +3,9 @@
 namespace Ecotone\EventSourcing\Config\InboundChannelAdapter;
 
 use Ecotone\EventSourcing\ChannelProjectionExecutor;
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStatus;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
-use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Prooph\EventStore\StreamName;
@@ -25,23 +22,9 @@ class ProjectionEventHandler
     public function __construct(
         private LazyProophProjectionManager $lazyProophProjectionManager,
         private ProjectionSetupConfiguration $projectionSetupConfiguration,
-        private ProjectionRunningConfiguration $projectionRunningConfiguration,
         private ConversionService $conversionService
     )
     {
-    }
-
-    public function compile(): Definition
-    {
-        return new Definition(
-              ProjectionEventHandler::class,
-            [
-                Reference::to(LazyProophProjectionManager::class),
-                $this->projectionSetupConfiguration->compile(),
-                $this->projectionRunningConfiguration->compile(),
-                Reference::to(ConversionService::REFERENCE_NAME)
-            ]
-        );
     }
 
     public function execute(MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): void

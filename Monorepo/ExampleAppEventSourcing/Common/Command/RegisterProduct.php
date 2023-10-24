@@ -1,8 +1,8 @@
 <?php declare(strict_types=1);
 
-namespace Monorepo\ExampleApp\CommonEventSourcing\Event;
+namespace Monorepo\ExampleAppEventSourcing\Common\Command;
 
-class PriceWasChanged
+class RegisterProduct
 {
     public function __construct(private string $productId, private float $price) {}
 

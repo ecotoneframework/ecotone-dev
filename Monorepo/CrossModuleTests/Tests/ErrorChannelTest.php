@@ -5,20 +5,21 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
-use Illuminate\Support\Facades\Artisan;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
-use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
+use Monorepo\ExampleApp\ExampleAppCaseTrait;
+use Monorepo\ExampleApp\Symfony\Kernel;
 use Psr\Container\ContainerInterface;
 
 final class ErrorChannelTest extends FullAppTestCase
 {
-    public function executeForSymfony(ContainerInterface $container, SymfonyKernel $kernel): void
+    use ExampleAppCaseTrait;
+
+    public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {
         $configuration = $container->get(Configuration::class);
         /** @var QueryBus $queryBus */
@@ -124,6 +125,4 @@ final class ErrorChannelTest extends FullAppTestCase
             )
         );
     }
-
-
 }

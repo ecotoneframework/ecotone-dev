@@ -9,16 +9,20 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
-use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
-use Monorepo\ExampleApp\CommonEventSourcing\Command\RegisterProduct;
-use Monorepo\ExampleApp\CommonEventSourcing\PriceChange;
-use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
+use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
+use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
+use Monorepo\ExampleAppEventSourcing\Common\PriceChange;
+use Monorepo\ExampleAppEventSourcing\ExampleAppEventSourcingCaseTrait;
+use Monorepo\ExampleAppEventSourcing\Symfony\Kernel;
+use Monorepo\ExampleAppEventSourcing\Symfony\Kernel as SymfonyKernel;
 use PHPUnit\Framework\Assert;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 
 final class EventSourcingStackTest extends FullAppTestCase
 {
+    use ExampleAppEventSourcingCaseTrait;
+
     public static function skippedPackages(): array
     {
         return ModulePackageList::allPackagesExcept([
@@ -34,7 +38,7 @@ final class EventSourcingStackTest extends FullAppTestCase
         return ['Monorepo\ExampleApp\CommonEventSourcing'];
     }
 
-    public function executeForSymfony(ContainerInterface $container, SymfonyKernel $kernel): void
+    public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {
         $this->executeTestScenario(
             $container->get(CommandBus::class),
@@ -47,9 +51,9 @@ final class EventSourcingStackTest extends FullAppTestCase
         $productId = Uuid::uuid4()->toString();
         $commandBus->send(new RegisterProduct($productId, 100));
 
-        Assert::assertEquals([new PriceChange(100, 0)], $commandBus->sendWithRouting('product.getPriceChange', $productId), 'Price change should equal to 0 after registration');
+        Assert::assertEquals([new PriceChange(100, 0)], $queryBus->sendWithRouting('product.getPriceChange', $productId), 'Price change should equal to 0 after registration');
 
-        $commandBus->getCommandBus()->send(new ChangePrice($productId, 120));
+        $commandBus->send(new ChangePrice($productId, 120));
 
         Assert::assertEquals([new PriceChange(100, 0), new PriceChange(120, 20)], $queryBus->sendWithRouting('product.getPriceChange', $productId), 'Price change should equal to 0 after registration');
     }

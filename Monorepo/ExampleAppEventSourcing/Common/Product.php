@@ -1,11 +1,11 @@
 <?php declare(strict_types=1);
 
-namespace Monorepo\ExampleApp\CommonEventSourcing;
+namespace Monorepo\ExampleAppEventSourcing\Common;
 
-use Monorepo\ExampleApp\CommonEventSourcing\Command\ChangePrice;
-use Monorepo\ExampleApp\CommonEventSourcing\Command\RegisterProduct;
-use Monorepo\ExampleApp\CommonEventSourcing\Event\PriceWasChanged;
-use Monorepo\ExampleApp\CommonEventSourcing\Event\ProductWasRegistered;
+use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
+use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
+use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
+use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;

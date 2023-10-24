@@ -2,9 +2,10 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
-class ProjectionLifeCycleConfiguration
+class ProjectionLifeCycleConfiguration implements DefinedObject
 {
     private function __construct(
         private ?string $initializationRequestChannel,
@@ -27,7 +28,7 @@ class ProjectionLifeCycleConfiguration
         );
     }
 
-    public function compile(): Definition
+    public function getDefinition(): Definition
     {
         return new Definition(
             ProjectionLifeCycleConfiguration::class,

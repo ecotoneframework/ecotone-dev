@@ -19,6 +19,8 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Sqs\SqsConnectionFactory;
+use Monorepo\ExampleApp\ExampleAppCaseTrait;
+use Monorepo\ExampleApp\Symfony\Kernel;
 use PHPUnit\Framework\TestCase;
 use Monorepo\CrossModuleTests\Fixture\FailureHandler\ExampleFailureCommandHandler;
 use Test\Ecotone\Amqp\AmqpMessagingTest;
@@ -27,6 +29,8 @@ use Test\Ecotone\Sqs\AbstractConnectionTest;
 
 final class MessageChannelConfigurationTest extends TestCase
 {
+    use ExampleAppCaseTrait;
+
     const CHANNEL_NAME = "async";
     const ERROR_CHANNEL = 'customErrorChannel';
 

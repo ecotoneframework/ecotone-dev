@@ -13,7 +13,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
         'defaultSerializationMediaType' => 'application/json',
         'loadSrcNamespaces' => false,
-        'namespaces' => \json_decode(\getenv('APP_NAMESPACES_TO_LOAD'), true),
+        'namespaces' => ['Monorepo\\ExampleApp\\Common\\'],
         'defaultErrorChannel' => 'errorChannel',
         'failFast' => false,
         'skippedModulePackageNames' => \json_decode(\getenv('APP_SKIPPED_PACKAGES'), true),
@@ -21,11 +21,9 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $services = $containerConfigurator->services();
 
-    $services->defaults()
+    $services->load('Monorepo\\ExampleApp\\Common\\', '%kernel.project_dir%/../Common/')
         ->autowire()
         ->autoconfigure();
-
-    $services->load('Monorepo\\ExampleApp\\Common\\', '%kernel.project_dir%/../Common/');
 
     $services->set(Configuration::class)->public();
     $services->get(OrderController::class)->public();

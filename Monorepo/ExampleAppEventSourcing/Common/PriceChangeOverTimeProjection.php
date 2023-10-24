@@ -1,9 +1,9 @@
 <?php declare(strict_types=1);
 
-namespace Monorepo\ExampleApp\CommonEventSourcing;
+namespace Monorepo\ExampleAppEventSourcing\Common;
 
-use Monorepo\ExampleApp\CommonEventSourcing\Event\PriceWasChanged;
-use Monorepo\ExampleApp\CommonEventSourcing\Event\ProductWasRegistered;
+use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
+use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
 use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Modelling\Attribute\EventHandler;

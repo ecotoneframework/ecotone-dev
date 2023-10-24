@@ -5,23 +5,22 @@ declare(strict_types=1);
 namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
-use Illuminate\Support\Facades\Artisan;
-use Monorepo\CrossModuleTests\Tests\FullAppTestCase;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
-use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
+use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 
 #[Warmup(1), Revs(10), Iterations(5)]
-final class AsynchronousStackBenchmark extends FullAppTestCase
+final class AsynchronousStackBenchmark extends FullAppBenchmarkCase
 {
-    public function executeForSymfony(ContainerInterface $container, SymfonyKernel $kernel): void
+    use ExampleAppCaseTrait;
+
+    public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {
         $configuration = $container->get(Configuration::class);
         /** @var QueryBus $queryBus */

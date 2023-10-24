@@ -2,10 +2,11 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use InvalidArgumentException;
 
-class ProjectionRunningConfiguration
+class ProjectionRunningConfiguration implements DefinedObject
 {
     private const EVENT_DRIVEN = 'event-driven';
     private const POLLING = 'polling';
@@ -53,10 +54,10 @@ class ProjectionRunningConfiguration
         ];
     }
 
-    public function compile(): Definition
+    public function getDefinition(): Definition
     {
         return new Definition(
-            ProjectionRunningConfiguration::class,
+            self::class,
             [
                 $this->projectionName,
                 $this->runningType,

@@ -36,7 +36,6 @@ class EcotoneExtension extends Extension
             ->withLoadCatalog($config['loadSrcNamespaces'] ? 'src' : '')
             ->withNamespaces($config['namespaces'])
             ->withSkippedModulePackageNames($skippedModules)
-            ->withCacheDirectoryPath($container->getParameter('kernel.cache_dir'))
         ;
 
         if (isset($config['serviceName'])) {
@@ -70,6 +69,12 @@ class EcotoneExtension extends Extension
 
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
 
+        $container->register(ServiceCacheConfiguration::REFERENCE_NAME, ServiceCacheConfiguration::class)
+            ->setArguments([
+                '%kernel.cache_dir%',
+                true
+            ]);
+
         $container->register(CacheWarmer::class)->setAutowired(true)->addTag('kernel.cache_warmer');
 
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
@@ -83,16 +88,6 @@ class EcotoneExtension extends Extension
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
         $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
         $containerBuilder->compile();
-
-        $container->register(ServiceCacheConfiguration::REFERENCE_NAME, ServiceCacheConfiguration::class)
-            ->setArguments([
-                '%kernel.cache_dir%',
-                true
-            ]);
-
-        $container->register(ProxyFactory::class)
-            ->setPublic(true)
-            ->setArguments([new Reference(ServiceCacheConfiguration::REFERENCE_NAME)]);
 
         foreach ($messagingConfiguration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
             $definition = new Definition();

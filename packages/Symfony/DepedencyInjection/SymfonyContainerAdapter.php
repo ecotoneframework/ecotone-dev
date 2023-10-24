@@ -6,6 +6,7 @@ use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -25,13 +26,17 @@ use Symfony\Component\DependencyInjection\Reference as SymfonyReference;
 
 class SymfonyContainerAdapter implements CompilerPass
 {
+    private static array $invalidBehaviorMap = [
+        ContainerImplementation::EXCEPTION_ON_INVALID_REFERENCE => \Symfony\Component\DependencyInjection\ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE,
+        ContainerImplementation::NULL_ON_INVALID_REFERENCE => \Symfony\Component\DependencyInjection\ContainerInterface::NULL_ON_INVALID_REFERENCE,
+    ];
     /**
      * @var  Definition[]|Reference[] $definitions
      */
     private array $definitions;
 
     private array $externalReferences = [];
-    public function __construct(private SymfonyContainerBuilder $symfonyBuilder, private bool $keepExternalReferencesForTesting = true)
+    public function __construct(private SymfonyContainerBuilder $symfonyBuilder)
     {
     }
 
@@ -49,11 +54,12 @@ class SymfonyContainerAdapter implements CompilerPass
                 $this->symfonyBuilder->setDefinition($id, $symfonyDefinition);
             }
         }
-        if ($this->keepExternalReferencesForTesting) {
-            foreach ($this->externalReferences as $id) {
-                $this->symfonyBuilder->setAlias(InMemoryContainerImplementation::ALIAS_PREFIX.$id, $id)->setPublic(true);
-            }
-        }
+        $this->symfonyBuilder->setParameter('ecotone.external_references', $this->externalReferences);
+    }
+
+    public function getExternalReferences(): array
+    {
+        return $this->externalReferences;
     }
 
     private function resolveArgument($argument): mixed
@@ -73,10 +79,10 @@ class SymfonyContainerAdapter implements CompilerPass
             }
             return $resolvedArguments;
         } elseif ($argument instanceof Reference) {
-            if ($this->keepExternalReferencesForTesting && ! isset($this->definitions[$argument->getId()])) {
+            if (! isset($this->definitions[$argument->getId()])) {
                 $this->externalReferences[$argument->getId()] = $argument->getId();
             }
-            return new SymfonyReference($argument->getId());
+            return new SymfonyReference($argument->getId(), self::$invalidBehaviorMap[$argument->getInvalidBehavior()]);
         } else {
             return $argument;
         }

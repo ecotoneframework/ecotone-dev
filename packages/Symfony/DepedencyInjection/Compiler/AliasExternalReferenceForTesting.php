@@ -3,7 +3,6 @@
 namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
 
 use Ecotone\Lite\InMemoryContainerImplementation;
-use Ecotone\Messaging\Config\Container\Reference;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 

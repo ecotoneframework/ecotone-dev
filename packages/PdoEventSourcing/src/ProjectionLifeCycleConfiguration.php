@@ -11,16 +11,14 @@ class ProjectionLifeCycleConfiguration implements DefinedObject
         private ?string $initializationRequestChannel,
         private ?string $resetRequestChannel,
         private ?string $deleteRequestChannel
-    )
-    {
+    ) {
     }
 
     public static function create(
         ?string $initializationRequestChannel = null,
         ?string $resetRequestChannel = null,
         ?string $deleteRequestChannel = null
-    ): static
-    {
+    ): static {
         return new self(
             $initializationRequestChannel,
             $resetRequestChannel,
@@ -35,7 +33,7 @@ class ProjectionLifeCycleConfiguration implements DefinedObject
             [
                 $this->initializationRequestChannel,
                 $this->resetRequestChannel,
-                $this->deleteRequestChannel
+                $this->deleteRequestChannel,
             ],
             'create'
         );

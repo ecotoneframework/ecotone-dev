@@ -8,6 +8,8 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use InvalidArgumentException;
 
+use function str_starts_with;
+
 class ValidityCheckPass implements CompilerPass
 {
     /**
@@ -20,7 +22,7 @@ class ValidityCheckPass implements CompilerPass
      */
     public function process(ContainerBuilder $builder): void
     {
-        $this->definitions= $builder->getDefinitions();
+        $this->definitions = $builder->getDefinitions();
         try {
             $this->resolveArgument($this->definitions);
         } finally {
@@ -42,9 +44,9 @@ class ValidityCheckPass implements CompilerPass
         } elseif ($argument instanceof Reference || $argument instanceof DefinedObject) {
             return;
         } elseif (is_object($argument)) {
-            if (! \str_starts_with(get_class($argument), 'Test\\')) {
+            if (! str_starts_with(get_class($argument), 'Test\\')) {
                 // We accept only not-dumpable instances from the 'Test\' namespace
-                throw new InvalidArgumentException("Argument is not a self defined object: " . get_class($argument));
+                throw new InvalidArgumentException('Argument is not a self defined object: ' . get_class($argument));
             }
         }
     }

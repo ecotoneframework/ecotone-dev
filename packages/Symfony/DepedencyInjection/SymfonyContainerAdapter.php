@@ -2,7 +2,6 @@
 
 namespace Ecotone\SymfonyBundle\DepedencyInjection;
 
-use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;

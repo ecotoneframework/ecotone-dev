@@ -23,8 +23,7 @@ class ProjectionEventHandler
         private LazyProophProjectionManager $lazyProophProjectionManager,
         private ProjectionSetupConfiguration $projectionSetupConfiguration,
         private ConversionService $conversionService
-    )
-    {
+    ) {
     }
 
     public function execute(MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): void

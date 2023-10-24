@@ -22,7 +22,7 @@ final class ProjectionStreamSource implements DefinedObject
             [
                 $this->forAllStreams,
                 $this->streams,
-                $this->categories
+                $this->categories,
             ]
         );
     }

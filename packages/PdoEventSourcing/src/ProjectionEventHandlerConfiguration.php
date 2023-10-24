@@ -37,7 +37,7 @@ class ProjectionEventHandlerConfiguration implements DefinedObject
             $this->className,
             $this->methodName,
             $this->eventBusRoutingKey,
-            $this->eventHandlerSynchronousInputChannel
+            $this->eventHandlerSynchronousInputChannel,
         ]);
     }
 }

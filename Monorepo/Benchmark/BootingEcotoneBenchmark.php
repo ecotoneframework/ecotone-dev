@@ -5,6 +5,7 @@ namespace Monorepo\Benchmark;
 use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
+use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use Monorepo\ExampleApp\Symfony\Kernel;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
@@ -14,7 +15,9 @@ use Psr\Container\ContainerInterface;
 #[Warmup(1), Revs(10), Iterations(5)]
 class BootingEcotoneBenchmark extends FullAppBenchmarkCase
 {
-    public function executeForSymfony(ContainerInterface $container, Kernel $kernel): void
+    use ExampleAppCaseTrait;
+
+    public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {
         $container->get(ConfiguredMessagingSystem::class)->list();
     }

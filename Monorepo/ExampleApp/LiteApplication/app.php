@@ -2,7 +2,6 @@
 
 use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Monorepo\ExampleApp\Common\Domain\Clock;
 use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSender;
@@ -28,12 +27,11 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $stubNotificationSender = new StubNotificationSender($output, $configuration);
     $stubShippingService = new StubShippingService($output, $configuration);
 
-    $classesToRegister = [
+    $services = [
         Configuration::class => $configuration,
         NotificationSender::class => $stubNotificationSender,
         ShippingService::class => $stubShippingService,
         Clock::class => new SystemClock(),
-        OrderRepository::class => new InMemoryOrderRepository(),
         AuthenticationService::class => $configuration->authentication(),
         UserRepository::class => $configuration->userRepository(),
         ProductRepository::class => $configuration->productRepository(),
@@ -44,15 +42,14 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     ];
 
     return EcotoneLiteApplication::bootstrap(
+        $services,
         serviceConfiguration: ServiceConfiguration::createWithDefaults()
-            ->doNotLoadCatalog()
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withFailFast(false)
             ->withDefaultErrorChannel('errorChannel')
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-            ->withNamespaces(['Monorepo\\ExampleApp\\Common\\']),
+            ->withNamespaces(['Monorepo\\ExampleApp\\Common\\'])
+            ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true)),
         cacheConfiguration: $useCachedVersion,
         pathToRootCatalog: __DIR__.'/../Common',
-        classesToRegister: $classesToRegister,
     );
 };

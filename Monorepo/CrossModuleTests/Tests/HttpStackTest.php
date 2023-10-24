@@ -10,6 +10,8 @@ use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\UI\OrderController;
+use Monorepo\ExampleApp\ExampleAppCaseTrait;
+use Monorepo\ExampleApp\Symfony\Kernel;
 use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
 use PHPUnit\Framework\Assert;
 use Psr\Container\ContainerInterface;
@@ -19,7 +21,9 @@ use Illuminate\Http\Request as LaravelRequest;
 
 final class HttpStackTest extends FullAppTestCase
 {
-    public function executeForSymfony(ContainerInterface $container, SymfonyKernel $kernel): void
+    use ExampleAppCaseTrait;
+
+    public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {
         $configuration = $container->get(Configuration::class);
         $response = $kernel->handle(

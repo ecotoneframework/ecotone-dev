@@ -568,7 +568,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
             /** Our main entrypoint for projection execution */
             $messagingConfiguration->registerMessageHandler(
-                (new ProjectionExecutorBuilder($projectionSetupConfiguration, $this->projectionSetupConfigurations, $projectionRunningConfiguration, 'execute'))
+                (new ProjectionExecutorBuilder($projectionSetupConfiguration, $this->projectionSetupConfigurations, 'execute'))
                     ->withEndpointId($projectionSetupConfiguration->getProjectionEndpointId())
                     ->withInputChannelName($projectionSetupConfiguration->getProjectionInputChannel())
             );

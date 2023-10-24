@@ -3,17 +3,18 @@
 namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;
-use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application as SymfonyConsoleApplication;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\HttpKernel\Kernel as SymfonyKernel;
 
 /**
  * @BeforeClassMethods("clearAllCaches")
@@ -60,7 +61,7 @@ abstract class FullAppBenchmarkCase extends TestCase
     public function bench_lite_application_prod()
     {
         self::productionEnvironments();
-        $bootstrap = require __DIR__ . "/../ExampleApp/LiteApplication/app.php";
+        $bootstrap = require static::getProjectDir() . '/LiteApplication/app.php';
         $messagingSystem =  $bootstrap(true);
         $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
     }
@@ -68,7 +69,7 @@ abstract class FullAppBenchmarkCase extends TestCase
     public function bench_lite_application_dev()
     {
         self::developmentEnvironments();
-        $bootstrap = require __DIR__ . "/../ExampleApp/LiteApplication/app.php";
+        $bootstrap = require static::getProjectDir() . '/LiteApplication/app.php';
         $messagingSystem =  $bootstrap(false);
         $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
     }
@@ -76,7 +77,7 @@ abstract class FullAppBenchmarkCase extends TestCase
     public function bench_lite_prod()
     {
         self::productionEnvironments();
-        $bootstrap = require __DIR__ . '/../ExampleApp/Lite/app.php';
+        $bootstrap = require static::getProjectDir() . '/Lite/app.php';
         $messagingSystem = $bootstrap(true);
         $this->executeForLite($messagingSystem);
     }
@@ -84,7 +85,7 @@ abstract class FullAppBenchmarkCase extends TestCase
     public function bench_lite_dev()
     {
         self::developmentEnvironments();
-        $bootstrap = require __DIR__ . '/../ExampleApp/Lite/app.php';
+        $bootstrap = require static::getProjectDir() . '/Lite/app.php';
         $messagingSystem = $bootstrap(false);
         $this->executeForLite($messagingSystem);
     }
@@ -100,7 +101,7 @@ abstract class FullAppBenchmarkCase extends TestCase
     public static function clearLiteCache(): void
     {
         self::deleteFiles(
-            __DIR__ . '/../ExampleApp/Lite/var/cache',
+            static::getProjectDir() . '/Lite/var/cache',
             false
         );
     }
@@ -108,7 +109,7 @@ abstract class FullAppBenchmarkCase extends TestCase
     public static function clearLiteApplicationCache(): void
     {
         self::deleteFiles(
-            __DIR__ . '/../ExampleApp/LiteApplication/var/cache',
+            static::getProjectDir() . '/LiteApplication/var/cache',
             false
         );
     }
@@ -128,7 +129,7 @@ abstract class FullAppBenchmarkCase extends TestCase
     public static function clearLaravelCache(): void
     {
         self::deleteFiles(
-            __DIR__ . '/../ExampleApp/Laravel/storage/framework/cache/data',
+            static::getProjectDir() . '/Laravel/storage/framework/cache/data',
             false
         );
     }
@@ -136,7 +137,7 @@ abstract class FullAppBenchmarkCase extends TestCase
     public static function clearSymfonyCache(): void
     {
         self::deleteFiles(
-            __DIR__ . '/../ExampleApp/Symfony/var/cache',
+            static::getProjectDir() . '/Symfony/var/cache',
             false
         );
     }
@@ -184,21 +185,31 @@ abstract class FullAppBenchmarkCase extends TestCase
         ConfiguredMessagingSystem $messagingSystem
     ): void;
 
+    protected abstract static function getSymfonyKernelClass(): string;
+    protected abstract static function getProjectDir(): string;
+
     private static function productionEnvironments(): void
     {
         \putenv('APP_ENV=prod');
         \putenv('APP_DEBUG=false');
+        \putenv(sprintf('APP_SKIPPED_PACKAGES=%s', \json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
     }
 
     private static function developmentEnvironments(): void
     {
         \putenv('APP_ENV=dev');
         \putenv('APP_DEBUG=true');
+        \putenv(sprintf("APP_SKIPPED_PACKAGES=%s", \json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
+    }
+
+    public static function skippedPackages(): array
+    {
+        return ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]);
     }
 
     private static function createLaravelApplication(): Application
     {
-        $app = require __DIR__ . '/../ExampleApp/Laravel/bootstrap/app.php';
+        $app = require static::getProjectDir() . '/Laravel/bootstrap/app.php';
 
         $app->make(LaravelKernel::class)->bootstrap();
 
@@ -207,7 +218,8 @@ abstract class FullAppBenchmarkCase extends TestCase
 
     private static function bootSymfonyKernel(string $environment, bool $debug): SymfonyKernel
     {
-        $kernel = new SymfonyKernel($environment, $debug);
+        $kernelClass = static::getSymfonyKernelClass();
+        $kernel = new $kernelClass($environment, $debug);
         $kernel->boot();
         return $kernel;
     }

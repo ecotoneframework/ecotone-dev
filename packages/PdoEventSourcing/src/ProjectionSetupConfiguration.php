@@ -2,39 +2,61 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\Assert;
 use Prooph\EventStore\Pdo\Projection\GapDetection;
 use Prooph\EventStore\Pdo\Projection\PdoEventStoreReadModelProjector;
 
-final class ProjectionSetupConfiguration
+final class ProjectionSetupConfiguration implements DefinedObject
 {
-    /** @var ProjectionEventHandlerConfiguration[] */
-    private array $projectionEventHandlerConfigurations = [];
-    /** @var array http://docs.getprooph.org/event-store/projections.html#Options https://github.com/prooph/pdo-event-store/pull/221/files */
-    private array $projectionOptions;
-    private bool $keepStateBetweenEvents = true;
-    private string $projectionInputChannel;
-    private string $projectionEndpointId;
-
-    private function __construct(
+    /**
+     * @param ProjectionEventHandlerConfiguration[] $projectionEventHandlerConfigurations
+     * @param array $projectionOptions http://docs.getprooph.org/event-store/projections.html#Options https://github.com/prooph/pdo-event-store/pull/221/files
+     */
+    public function __construct(
         private string $projectionName,
         private ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration,
         private string $eventStoreReferenceName,
         private ProjectionStreamSource $projectionStreamSource,
         private ?string $asynchronousChannelName,
-        private bool $isPolling = false
+        private bool $isPolling = false,
+        private array $projectionEventHandlerConfigurations = [],
+        private bool $keepStateBetweenEvents = true,
+        private array $projectionOptions = [],
     ) {
-        $this->projectionOptions = [
-            PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(),
-        ];
-        $this->projectionInputChannel = 'projection_handler_' . $this->projectionName;
-        $this->projectionEndpointId = $this->projectionInputChannel . '_endpoint';
     }
 
     public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource, ?string $asynchronousChannelName): static
     {
-        return new static($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource, $asynchronousChannelName);
+        return new self($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource, $asynchronousChannelName, projectionOptions: [PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection()]);
+    }
+
+    public function getDefinition(): Definition
+    {
+        $projectionOptions = [];
+        foreach ($this->projectionOptions as $key => $value) {
+            if ($value instanceof GapDetection) {
+                $projectionOptions[$key] = new Definition(GapDetection::class);
+            } else {
+                $projectionOptions[$key] = $value;
+            }
+        }
+        return new Definition(
+            ProjectionSetupConfiguration::class,
+            [
+                $this->projectionName,
+                $this->projectionLifeCycleConfiguration->getDefinition(),
+                $this->eventStoreReferenceName,
+                $this->projectionStreamSource->getDefinition(),
+                $this->asynchronousChannelName,
+                $this->isPolling,
+                $this->projectionEventHandlerConfigurations,
+                $this->keepStateBetweenEvents,
+                $projectionOptions,
+            ]
+        );
     }
 
     public function withKeepingStateBetweenEvents(bool $keepState): static
@@ -117,12 +139,12 @@ final class ProjectionSetupConfiguration
 
     public function getProjectionInputChannel(): string
     {
-        return $this->projectionInputChannel;
+        return 'projection_handler_' . $this->projectionName;
     }
 
     public function getProjectionEndpointId(): string
     {
-        return $this->projectionEndpointId;
+        return $this->getProjectionInputChannel() . '_endpoint';
     }
 
     /**

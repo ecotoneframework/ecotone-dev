@@ -23,13 +23,18 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.1
-          coverage: none
 
-      -
-#        In order to not be in detached state due to tag checkout
-        uses: actions/checkout@v2
+      - name: We need to fetch all related branches to perform next action
+        uses: actions/checkout@v4
         with:
-          ref: "main"
+          fetch-depth: '0'
+
+      - name: Checkout branch related to tag
+        run: |
+          raw=$(git branch -r --contains ${{ github.ref }})
+          branch=${raw##*/}
+          echo "checking out branch $branch for tag ${GITHUB_REF#refs/tags/}"
+          git checkout $branch
 
       - name: Install PHP-CS-Fixer
         run: |
@@ -82,29 +87,22 @@ jobs:
         package: ${{ fromJson(needs.get_packages.outputs.matrix) }}
 
     steps:
-      -
-        if: "startsWith(github.ref, 'refs/tags/')"
-        uses: actions/checkout@v2
+      # We need to check out what we've committed in prepare-code-for-release
+      - name: We need to fetch all related branches to perform next action
+        uses: actions/checkout@v4
         with:
-#          this is because we need to commit to main branch changes with composer.json required versions
-          ref: "main"
           fetch-depth: '0'
+
+      - name: Checkout branch related to tag
+        run: |
+          raw=$(git branch -r --contains ${{ github.ref }})
+          branch=${raw##*/}
+          echo "checking out branch $branch for tag ${GITHUB_REF#refs/tags/}"
+          git checkout $branch
+
       -
         uses: "danharrin/monorepo-split-github-action@v2.3.0"
-        with:
-          # ↓ split "packages/easy-coding-standard" directory
-          package_directory: '${{ matrix.package.directory }}'
-
-          # ↓ into https://github.com/symplify/easy-coding-standard repository
-          repository_organization: '${{ matrix.package.organisation }}'
-          repository_name: '${{ matrix.package.repository }}'
-
-          # ↓ the user signed under the split commit
-          user_name: "Dariusz Gafka"
-          user_email: "dgafka.mail@gmail.com"
-      -
-        uses: "danharrin/monorepo-split-github-action@v2.3.0"
-        if: '${{ matrix.package.publish-version }} == true'
+        if: "startsWith(github.ref, 'refs/tags/')"
         with:
           tag: ${GITHUB_REF#refs/tags/}
 
@@ -118,16 +116,3 @@ jobs:
           # ↓ the user signed under the split commit
           user_name: "Dariusz Gafka"
           user_email: "dgafka.mail@gmail.com"
-  tweet:
-    runs-on: ubuntu-latest
-    needs: split_packages
-    steps:
-      - uses: Eomm/why-don-t-you-tweet@v1
-        with:
-          tweet-message: New Ecotone version was released ${{ github.ref_name }}. Check the changelog on https://github.com/ecotoneframework/ecotone-dev/releases/tag/${{ github.ref_name }}
-        env:
-          # Get your tokens from https://developer.twitter.com/apps
-          TWITTER_CONSUMER_API_KEY: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
-          TWITTER_CONSUMER_API_SECRET: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
-          TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-          TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}

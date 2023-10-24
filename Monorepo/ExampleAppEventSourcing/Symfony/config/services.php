@@ -1,6 +1,7 @@
 <?php
 
 use Ecotone\Messaging\Config\ModulePackageList;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
 use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
@@ -24,4 +25,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->load('Monorepo\\ExampleAppEventSourcing\\Common\\', '%kernel.project_dir%/../Common/')
         ->autowire()
         ->autoconfigure();
+
+    $services->set(DbalConnectionFactory::class)->args([
+        env('DATABASE_DSN', 'pgsql://ecotone:secret@localhost:5432/ecotone')
+    ]);
 };

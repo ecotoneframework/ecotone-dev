@@ -39,9 +39,6 @@ abstract class FullAppBenchmarkCase extends TestCase
         $this->executeForSymfony($container, $kernel);
     }
 
-    /**
-     * @BeforeMethods("dumpLaravelCache")
-     */
     public function bench_laravel_prod(): void
     {
         self::productionEnvironments();

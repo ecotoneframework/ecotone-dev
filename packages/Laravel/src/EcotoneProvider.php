@@ -21,7 +21,6 @@ use Ecotone\Messaging\ConfigurationVariableService;
 
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;

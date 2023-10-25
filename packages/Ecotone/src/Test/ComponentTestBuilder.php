@@ -27,6 +27,7 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
+
 use function get_class;
 
 use Ramsey\Uuid\Uuid;

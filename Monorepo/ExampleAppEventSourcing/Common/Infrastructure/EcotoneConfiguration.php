@@ -9,15 +9,8 @@ use Ecotone\Messaging\Attribute\ServiceContext;
 class EcotoneConfiguration
 {
     #[ServiceContext]
-    public function getEventSourcingConfiguration(): EventSourcingConfiguration
-    {
-        return EventSourcingConfiguration::createInMemory();
-    }
-
-    #[ServiceContext]
     public function turnOffTransactions(): DbalConfiguration
     {
-        return DbalConfiguration::createWithDefaults()
-                ->withTransactionOnCommandBus(false);
+        return DbalConfiguration::createWithDefaults();
     }
 }

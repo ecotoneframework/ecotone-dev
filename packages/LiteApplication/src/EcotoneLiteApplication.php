@@ -38,7 +38,6 @@ class EcotoneLiteApplication
             $serviceConfiguration->getCacheDirectoryPath(),
             $cacheConfiguration
         );
-        $proxyFactory = new ProxyFactory($serviceCacheConfiguration);
         $file = $serviceCacheConfiguration->getPath() . '/CompiledContainer.php';
         if ($serviceCacheConfiguration->shouldUseCache() && file_exists($file)) {
             $container = require $file;
@@ -73,7 +72,7 @@ class EcotoneLiteApplication
             $container = $builder->build();
         }
 
-        $container->set(ProxyFactory::class, $proxyFactory);
+        $container->set(ServiceCacheConfiguration::class, $serviceCacheConfiguration);
 
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
         $container->set(ConfigurationVariableService::REFERENCE_NAME, $configurationVariableService);

@@ -3,12 +3,13 @@
 use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChangeOverTimeProjection;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     return EcotoneLiteApplication::bootstrap(
         [
-//            PriceChangeOverTimeProjection::class => new PriceChangeOverTimeProjection()
+            DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
         ],
         serviceConfiguration: ServiceConfiguration::createWithDefaults()
             ->doNotLoadCatalog()

@@ -18,7 +18,7 @@ class ProjectionRunningConfiguration implements DefinedObject
     public const DEFAULT_AMOUNT_OF_CACHED_STREAM_NAMES = 1000;
 
     public const OPTION_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 'sleep';
-    public const DEFAULT_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 10000;
+    public const DEFAULT_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 0;
 
     public const OPTION_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 'persist_block_size';
     public const DEFAULT_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 1;

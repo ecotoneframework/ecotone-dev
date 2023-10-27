@@ -10,6 +10,7 @@ use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -19,12 +20,28 @@ use Monorepo\ExampleApp\Common\Domain\Order\Order;
 final class MessageChannelConfiguration
 {
     #[ServiceContext]
-    public function repositories()
+    public function configuration()
     {
-        /**
-         * This is dbal asynchronous channel (ecotone/dbal), which provides us with Outbox Pattern.
-         * https://docs.ecotone.tech/modelling/asynchronous-handling
-         */
-        return InMemoryRepositoryBuilder::createForSetOfStateStoredAggregates([Order::class]);
+        return [
+            InMemoryRepositoryBuilder::createForSetOfStateStoredAggregates([Order::class]),
+            SimpleMessageChannelBuilder::createQueueChannel(
+                'notifications',
+                conversionMediaType: MediaType::createApplicationXPHP()
+            ),
+            // 3 retries for notifications
+            ErrorHandlerConfiguration::createWithDeadLetterChannel(
+                'errorChannel',
+                RetryTemplateBuilder::exponentialBackoff(1000, 10)
+                    ->maxRetryAttempts(3),
+                'default_dead_letter'
+            ),
+            SimpleMessageChannelBuilder::createQueueChannel(
+                'delivery',
+                conversionMediaType: MediaType::createApplicationXPHP()
+            ),
+            // No retries push directly
+            PollingMetadata::create('delivery')
+                ->setErrorChannelName('custom_dead_letter'),
+        ];
     }
 }

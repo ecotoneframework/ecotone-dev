@@ -24,6 +24,7 @@
   </coverage>
   <php>
     <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
+    <server name="APP_SECRET" value="test" />
   </php>
   <testsuites>
     <testsuite name="Core tests">

@@ -4,15 +4,16 @@ namespace Ecotone\Dbal\DocumentStore;
 
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 
 final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
@@ -29,33 +30,33 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(DbalDocumentStore::class, $this->method);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $documentStore = $this->inMemoryEventStore
-            ? $this->inMemoryDocumentStore
-            : new DbalDocumentStore(
-                CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName))),
-                $this->initializeDocumentStore,
-                $referenceSearchService->get(ConversionService::REFERENCE_NAME)
-            );
+        $documentStoreReference = DbalDocumentStore::class.'.'.$this->connectionReferenceName;
+        if (! $builder->has($documentStoreReference)) {
+            $documentStore = $this->inMemoryEventStore
+                ? new Definition(InMemoryDocumentStore::class, [], 'createEmpty')
+                : new Definition(DbalDocumentStore::class, [
+                    new Definition(CachedConnectionFactory::class, [
+                        new Definition(DbalReconnectableConnectionFactory::class, [
+                            new Reference($this->connectionReferenceName),
+                        ]),
+                    ], 'createFor'),
+                    $this->initializeDocumentStore,
+                    new Reference(ConversionService::REFERENCE_NAME),
+                ]);
 
-        return ServiceActivatorBuilder::createWithDirectReference(
-            $documentStore,
-            $this->method
+            $builder->register($documentStoreReference, $documentStore);
+        }
+
+
+        return ServiceActivatorBuilder::create(
+            $documentStoreReference,
+            new InterfaceToCallReference(DbalDocumentStore::class, $this->method),
         )
             ->withInputChannelName($this->getInputMessageChannelName())
             ->withOutputMessageChannel($this->getOutputMessageChannelName())
             ->withMethodParameterConverters($this->methodParameterConverterBuilders)
-            ->build($channelResolver, $referenceSearchService);
-    }
-
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$interfaceToCallRegistry->getFor(DbalDocumentStore::class, $this->method)];
-    }
-
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
+            ->compile($builder);
     }
 }

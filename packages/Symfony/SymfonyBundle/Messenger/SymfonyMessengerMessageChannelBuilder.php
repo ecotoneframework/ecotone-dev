@@ -6,13 +6,12 @@ namespace Ecotone\SymfonyBundle\Messenger;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Symfony\Component\Messenger\Transport\TransportInterface;
 
 /**
  * Symfony Channel does not implements MessageChannelWithSerializationBuilder to avoid
@@ -58,33 +57,19 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
         return $this;
     }
 
-    public function build(ReferenceSearchService $referenceSearchService): MessageChannel
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        /** @var TransportInterface $transport */
-        $transport = $referenceSearchService->get($this->getTransportServiceName());
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-
-        return new SymfonyMessengerMessageChannel(
-            $transport,
-            new SymfonyMessageConverter(
-                $this->headerMapper,
-                $this->acknowledgeMode,
-                $conversionService
-            )
+        return new Definition(
+            SymfonyMessengerMessageChannel::class,
+            [
+                new Reference($this->getTransportServiceName()),
+                new Definition(SymfonyMessageConverter::class, [
+                    $this->headerMapper,
+                    $this->acknowledgeMode,
+                    new Reference(ConversionService::REFERENCE_NAME),
+                ]),
+            ]
         );
-    }
-
-    public function getRequiredReferenceNames(): array
-    {
-        return [
-            $this->getTransportServiceName(),
-        ];
-    }
-
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [];
     }
 
     private function getTransportServiceName(): string

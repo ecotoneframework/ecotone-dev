@@ -10,12 +10,15 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
-use Ecotone\Messaging\Scheduling\EpochBasedClock;
+use Ecotone\Messaging\Scheduling\Clock;
+use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
 class DeduplicationModule implements AnnotationModule
@@ -50,16 +53,24 @@ class DeduplicationModule implements AnnotationModule
             $pointcut .= '||' . AsynchronousRunningEndpoint::class;
         }
 
+        $messagingConfiguration->registerServiceDefinition(
+            DeduplicationInterceptor::class,
+            new Definition(
+                DeduplicationInterceptor::class,
+                [
+                    new Reference($connectionFactory),
+                    new Reference(Clock::class),
+                    $minimumTimeToRemoveMessageFromDeduplication,
+                    new Reference(LoggerInterface::class),
+                ]
+            )
+        );
+
         $messagingConfiguration
             ->registerAroundMethodInterceptor(
-                AroundInterceptorReference::createWithDirectObjectAndResolveConverters(
-                    $interfaceToCallRegistry,
-                    new DeduplicationInterceptor(
-                        $connectionFactory,
-                        new EpochBasedClock(),
-                        $minimumTimeToRemoveMessageFromDeduplication
-                    ),
-                    'deduplicate',
+                AroundInterceptorBuilder::create(
+                    DeduplicationInterceptor::class,
+                    $interfaceToCallRegistry->getFor(DeduplicationInterceptor::class, 'deduplicate'),
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE + 100,
                     $pointcut
                 )
@@ -75,14 +86,6 @@ class DeduplicationModule implements AnnotationModule
     }
 
     public function getModuleExtensions(array $serviceExtensions): array
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
     {
         return [];
     }

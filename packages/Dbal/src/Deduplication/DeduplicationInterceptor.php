@@ -10,13 +10,13 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
-use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\Clock;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
+use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 use Psr\Log\LoggerInterface;
@@ -31,25 +31,17 @@ class DeduplicationInterceptor
 {
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
     private bool $isInitialized = false;
-    private Clock $clock;
-    private int $minimumTimeToRemoveMessageInMilliseconds;
-    private string $connectionReferenceName;
 
-    public function __construct(string $connectionReferenceName, Clock $clock, int $minimumTimeToRemoveMessageInMilliseconds)
+    public function __construct(private DbalConnectionFactory|ManagerRegistryConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private LoggerInterface $logger)
     {
-        $this->clock = $clock;
-        $this->minimumTimeToRemoveMessageInMilliseconds = $minimumTimeToRemoveMessageInMilliseconds;
-        $this->connectionReferenceName = $connectionReferenceName;
     }
 
-    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ReferenceSearchService $referenceSearchService, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint)
+    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint)
     {
-        $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName)));
-        /** @var LoggerInterface $logger */
-        $logger = $referenceSearchService->get(LoggingHandlerBuilder::LOGGER_REFERENCE);
+        $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connection));
 
         if (! $this->isInitialized) {
-            $this->createDataBaseTable($connectionFactory, $logger);
+            $this->createDataBaseTable($connectionFactory);
             $this->isInitialized = true;
         }
         $this->removeExpiredMessages($connectionFactory);
@@ -75,7 +67,7 @@ class DeduplicationInterceptor
             ->fetch();
 
         if ($select) {
-            $logger->info('Message with was already handled. Skipping.', [
+            $this->logger->info('Message with was already handled. Skipping.', [
                 'message_id' => $messageId,
                 'consumer_endpoint_id' => $consumerEndpointId,
                 'routing_slip' => $routingSlip,
@@ -86,7 +78,7 @@ class DeduplicationInterceptor
         try {
             $result = $methodInvocation->proceed();
             $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
-            $logger->info('Message was stored in deduplication table.', [
+            $this->logger->info('Message was stored in deduplication table.', [
                 'message_id' => $messageId,
                 'consumer_endpoint_id' => $consumerEndpointId,
                 'routing_slip' => $routingSlip,
@@ -136,7 +128,7 @@ class DeduplicationInterceptor
         return self::DEFAULT_DEDUPLICATION_TABLE;
     }
 
-    private function createDataBaseTable(ConnectionFactory $connectionFactory, LoggerInterface $logger): void
+    private function createDataBaseTable(ConnectionFactory $connectionFactory): void
     {
         $sm = $this->getConnection($connectionFactory)->getSchemaManager();
 
@@ -155,7 +147,7 @@ class DeduplicationInterceptor
         $table->addIndex(['handled_at']);
 
         $sm->createTable($table);
-        $logger->info('Deduplication table was created');
+        $this->logger->info('Deduplication table was created');
     }
 
     private function getConnection(ConnectionFactory $connectionFactory): Connection

@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\Amqp\Configuration;
 
-use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\Amqp\AmqpAdmin;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\AmqpBinding;
@@ -10,11 +9,9 @@ use Ecotone\Amqp\AmqpExchange;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Configuration\AmqpModule;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
-use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverterBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -22,10 +19,8 @@ use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use ReflectionException;
 use Test\Ecotone\Amqp\AmqpMessagingTest;
 
 /**
@@ -96,44 +91,22 @@ class AmqpModuleTest extends AmqpMessagingTest
 
     private function prepareConfigurationAndRetrieveAmqpAdmin(array $extensions): AmqpAdmin
     {
-        $moduleReferenceSearchService = $this->prepareConfiguration($extensions);
+        $messagingSystem = $this->prepareConfiguration($extensions);
 
-        return $moduleReferenceSearchService->retrieveRequired(AmqpAdmin::REFERENCE_NAME);
+        return $messagingSystem->getServiceFromContainer(AmqpAdmin::REFERENCE_NAME);
     }
 
     /**
      * @param array $extensions
      *
-     * @return ModuleReferenceSearchService
      * @throws MessagingException
      */
-    private function prepareConfiguration(array $extensions): ModuleReferenceSearchService
+    private function prepareConfiguration(array $extensions): ConfiguredMessagingSystem
     {
         $cqrsMessagingModule = AmqpModule::create(InMemoryAnnotationFinder::createEmpty(), InterfaceToCallRegistry::createEmpty());
 
-        $extendedConfiguration        = $this->createMessagingSystemConfiguration();
-        $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();
+        $extendedConfiguration        = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createWith([$cqrsMessagingModule], $extensions));
 
-        $cqrsMessagingModule->prepare(
-            $extendedConfiguration,
-            $extensions,
-            $moduleReferenceSearchService,
-            InterfaceToCallRegistry::createEmpty()
-        );
-
-        return $moduleReferenceSearchService;
-    }
-
-    /**
-     * @return MessagingSystemConfiguration
-     * @throws MessagingException
-     * @throws AnnotationException
-     * @throws ConfigurationException
-     * @throws InvalidArgumentException
-     * @throws ReflectionException
-     */
-    private function createMessagingSystemConfiguration(): Configuration
-    {
-        return MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty());
+        return $extendedConfiguration->buildMessagingSystemFromConfiguration();
     }
 }

@@ -9,6 +9,6 @@ use Ramsey\Uuid\UuidInterface;
 final class OrderWasPlaced
 {
     public function __construct(
-        public readonly UuidInterface $orderId
+        public UuidInterface $orderId
     ) {}
 }

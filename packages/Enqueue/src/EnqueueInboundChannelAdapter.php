@@ -5,37 +5,25 @@ declare(strict_types=1);
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Scheduling\TaskExecutor;
+use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use Interop\Queue\Message as EnqueueMessage;
 
-abstract class EnqueueInboundChannelAdapter implements TaskExecutor
+abstract class EnqueueInboundChannelAdapter implements MessagePoller
 {
     private bool $initialized = false;
 
     public function __construct(
         protected CachedConnectionFactory         $connectionFactory,
-        protected InboundChannelAdapterEntrypoint $entrypointGateway,
         protected bool                            $declareOnStartup,
         protected string                          $queueName,
         protected int                             $receiveTimeoutInMilliseconds,
         protected InboundMessageConverter         $inboundMessageConverter,
         protected ConversionService $conversionService
     ) {
-    }
-
-    public function execute(PollingMetadata $pollingMetadata): void
-    {
-        $message = $this->receiveMessage($pollingMetadata->getExecutionTimeLimitInMilliseconds());
-
-        if ($message) {
-            $this->entrypointGateway->executeEntrypoint($message);
-        }
     }
 
     abstract public function initialize(): void;
@@ -45,7 +33,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
         return $targetMessage;
     }
 
-    public function receiveMessage(int $timeout = 0): ?Message
+    public function receiveWithTimeout(int $timeoutInMilliseconds = 0): ?Message
     {
         try {
             if ($this->declareOnStartup && $this->initialized === false) {
@@ -59,7 +47,7 @@ abstract class EnqueueInboundChannelAdapter implements TaskExecutor
             );
 
             /** @var EnqueueMessage $message */
-            $message = $consumer->receive($timeout ?: $this->receiveTimeoutInMilliseconds);
+            $message = $consumer->receive($timeoutInMilliseconds ?: $this->receiveTimeoutInMilliseconds);
 
             if (! $message) {
                 return null;

@@ -3,14 +3,10 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
-use Ecotone\Messaging\Config\InMemoryChannelResolver;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\PollableChannel;
 
 abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
@@ -89,11 +85,6 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return $this->getOutboundChannelAdapter()->getDefaultConversionMediaType();
     }
 
-    public function getRequiredReferenceNames(): array
-    {
-        return array_merge($this->getInboundChannelAdapter()->getRequiredReferences(), $this->getOutboundChannelAdapter()->getRequiredReferenceNames());
-    }
-
     public function getMessageChannelName(): string
     {
         return $this->getInboundChannelAdapter()->getMessageChannelName();
@@ -105,42 +96,15 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return $this->getOutboundChannelAdapter()->getHeaderMapper();
     }
 
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return array_merge(
-            $this->getInboundChannelAdapter()->resolveRelatedInterfaces($interfaceToCallRegistry),
-            $this->getOutboundChannelAdapter()->resolveRelatedInterfaces($interfaceToCallRegistry)
-        );
-    }
-
-    public function build(ReferenceSearchService $referenceSearchService): PollableChannel
-    {
-        $pollingMetadata = PollingMetadata::create('');
-
-        /** @var ServiceConfiguration|null $serviceConfiguration */
-        $serviceConfiguration = $referenceSearchService->has(ServiceConfiguration::class) ? $referenceSearchService->get(ServiceConfiguration::class) : null;
-        if (! $this->getConversionMediaType() && $serviceConfiguration && $serviceConfiguration->getDefaultSerializationMediaType()) {
+        $serviceConfiguration = $builder->getServiceConfiguration();
+        if (! $this->getConversionMediaType() && $serviceConfiguration->getDefaultSerializationMediaType()) {
             $this->withDefaultConversionMediaType($serviceConfiguration->getDefaultSerializationMediaType());
         }
-
-        if ($serviceConfiguration && $serviceConfiguration->getDefaultErrorChannel()) {
-            $pollingMetadata = $pollingMetadata
-                ->setErrorChannelName($serviceConfiguration->getDefaultErrorChannel());
-        }
-        if ($serviceConfiguration && $serviceConfiguration->getDefaultMemoryLimitInMegabytes()) {
-            $pollingMetadata = $pollingMetadata
-                ->setMemoryLimitInMegaBytes($serviceConfiguration->getDefaultMemoryLimitInMegabytes());
-        }
-        if ($serviceConfiguration && $serviceConfiguration->getConnectionRetryTemplate()) {
-            $pollingMetadata = $pollingMetadata
-                ->setConnectionRetryTemplate($serviceConfiguration->getConnectionRetryTemplate());
-        }
-
-        $inMemoryChannelResolver = InMemoryChannelResolver::createEmpty();
-
-        return new EnqueueMessageChannel(
-            $this->inboundChannelAdapter->createInboundChannelAdapter($inMemoryChannelResolver, $referenceSearchService, $pollingMetadata),
-            $this->outboundChannelAdapter->build($inMemoryChannelResolver, $referenceSearchService)
-        );
+        return new Definition(EnqueueMessageChannel::class, [
+            $this->inboundChannelAdapter->compile($builder),
+            $this->outboundChannelAdapter->compile($builder),
+        ]);
     }
 }

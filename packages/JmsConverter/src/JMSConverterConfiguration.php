@@ -12,11 +12,10 @@ class JMSConverterConfiguration
     public const IDENTICAL_PROPERTY_NAMING_STRATEGY = 'identicalPropertyNamingStrategy';
     public const CAMEL_CASE_PROPERTY_NAMING_STRATEGY = 'camelCasePropertyNamingStrategy';
 
-    private string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY;
-    private bool $defaultNullSerialization = false;
-
-    private function __construct()
-    {
+    public function __construct(
+        private string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY,
+        private bool $defaultNullSerialization = false
+    ) {
     }
 
     public static function createWithDefaults()

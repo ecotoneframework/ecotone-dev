@@ -4,11 +4,11 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\RepositoryBuilder;
 
 final class EventSourcingRepositoryBuilder implements RepositoryBuilder
@@ -51,33 +51,30 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
         return true;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
-        $headerMapper = DefaultHeaderMapper::createAllHeadersMapping();
-        if ($this->headerMapper) {
-            $headerMapper = DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper);
-        }
+        $headerMapper = $this->headerMapper
+            ? DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper)
+            : DefaultHeaderMapper::createAllHeadersMapping();
 
         $documentStoreReferences = [];
         foreach ($this->eventSourcingConfiguration->getSnapshotsConfig() as $aggregateClass => $config) {
-            $documentStoreReferences[$aggregateClass] = $referenceSearchService->get($config['documentStore']);
+            $documentStoreReferences[$aggregateClass] = new Reference($config['documentStore']);
         }
 
-        return new EventSourcingRepository(
-            EcotoneEventStoreProophWrapper::prepare(
-                new LazyProophEventStore($this->eventSourcingConfiguration, $referenceSearchService),
-                $conversionService,
-                $referenceSearchService->get(EventMapper::class)
-            ),
+        return new Definition(EventSourcingRepository::class, [
+            new Definition(EcotoneEventStoreProophWrapper::class, [
+                new Reference(LazyProophEventStore::class),
+                new Reference(ConversionService::REFERENCE_NAME),
+                new Reference(EventMapper::class),
+            ], 'prepare'),
             $this->handledAggregateClassNames,
             $headerMapper,
-            $this->eventSourcingConfiguration,
-            $referenceSearchService->get(AggregateStreamMapping::class),
-            $referenceSearchService->get(AggregateTypeMapping::class),
+            new Reference(EventSourcingConfiguration::class),
+            new Reference(AggregateStreamMapping::class),
+            new Reference(AggregateTypeMapping::class),
             $documentStoreReferences,
-            $conversionService
-        );
+            new Reference(ConversionService::REFERENCE_NAME),
+        ]);
     }
 }

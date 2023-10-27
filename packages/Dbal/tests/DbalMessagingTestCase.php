@@ -10,7 +10,7 @@ use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
+use Ecotone\Test\ComponentTestBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
@@ -47,11 +47,9 @@ abstract class DbalMessagingTestCase extends TestCase
         return $this->getConnectionFactory()->createContext()->getDbalConnection();
     }
 
-    protected function getReferenceSearchServiceWithConnection()
+    protected function getComponentTestingWithConnection(bool $isRegistry = false): ComponentTestBuilder
     {
-        return InMemoryReferenceSearchService::createWith([
-            DbalConnectionFactory::class => $this->getConnectionFactory(),
-        ]);
+        return ComponentTestBuilder::create()->withReference(DbalConnectionFactory::class, $this->getConnectionFactory($isRegistry));
     }
 
     public function setUp(): void

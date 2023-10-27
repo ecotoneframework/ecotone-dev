@@ -6,13 +6,14 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
+use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Exception;
 use PDOException;
 use Psr\Log\LoggerInterface;
@@ -26,28 +27,34 @@ use Throwable;
 class DbalTransactionInterceptor
 {
     /**
-     * @param string[] $connectionReferenceNames
+     * @param array<string, DbalConnectionFactory|ManagerRegistryConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      */
-    public function __construct(private array $connectionReferenceNames, private array $disableTransactionOnAsynchronousEndpoints)
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints)
     {
     }
 
-    public function transactional(MethodInvocation $methodInvocation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint, ?DbalTransaction $DbalTransaction, #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)] LoggerInterface $logger, ReferenceSearchService $referenceSearchService)
+    public function transactional(MethodInvocation $methodInvocation, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata, #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)] LoggerInterface $logger)
     {
-        $endpointId = $asynchronousRunningEndpoint?->getEndpointId();
+        $endpointId = $pollingMetadata?->getEndpointId();
 
         $connections = [];
         if (! in_array($endpointId, $this->disableTransactionOnAsynchronousEndpoints)) {
+            if ($DbalTransaction) {
+                $possibleFactories = array_map(fn (string $connectionReferenceName) => $this->connectionFactories[$connectionReferenceName], $DbalTransaction->connectionReferenceNames);
+            } else {
+                $possibleFactories = $this->connectionFactories;
+            }
+
             /** @var Connection[] $connections */
-            $possibleConnections = array_map(function (string $connectionReferenceName) use ($referenceSearchService) {
-                $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($connectionReferenceName)));
+            $possibleConnections = array_map(function (DbalConnectionFactory|ManagerRegistryConnectionFactory $connection) {
+                $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connection));
 
                 /** @var DbalContext $context */
                 $context = $connectionFactory->createContext();
 
                 return  $context->getDbalConnection();
-            }, $DbalTransaction ? $DbalTransaction->connectionReferenceNames : $this->connectionReferenceNames);
+            }, $possibleFactories);
 
             foreach ($possibleConnections as $connection) {
                 if ($connection->isTransactionActive()) {

@@ -8,10 +8,10 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\MessageHandler;
 use Enqueue\Redis\RedisConnectionFactory;
 
 final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
@@ -29,26 +29,29 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
         );
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        /** @var RedisConnectionFactory $connectionFactory */
-        $connectionFactory = $referenceSearchService->get($this->connectionFactoryReferenceName);
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
+        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+            new Definition(HttpReconnectableConnectionFactory::class, [
+                new Reference($this->connectionFactoryReferenceName),
+            ]),
+        ], 'createFor');
 
-        return new RedisOutboundChannelAdapter(
-            CachedConnectionFactory::createFor(new HttpReconnectableConnectionFactory($connectionFactory)),
+        $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
+            $this->headerMapper,
+            $this->defaultConversionMediaType,
+            $this->defaultDeliveryDelay,
+            $this->defaultTimeToLive,
+            $this->defaultPriority,
+            [],
+        ]);
+
+        return new Definition(RedisOutboundChannelAdapter::class, [
+            $connectionFactory,
             $this->queueName,
             $this->autoDeclare,
-            new OutboundMessageConverter(
-                $this->headerMapper,
-                $this->defaultConversionMediaType,
-                $this->defaultDeliveryDelay,
-                $this->defaultTimeToLive,
-                $this->defaultPriority,
-                []
-            ),
-            $conversionService
-        );
+            $outboundMessageConverter,
+            new Reference(ConversionService::REFERENCE_NAME),
+        ]);
     }
 }

@@ -14,6 +14,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -60,10 +61,12 @@ class AmqpModule implements AnnotationModule
         }
 
         $this->amqpDistributionModule->prepare($messagingConfiguration, $extensionObjects);
-        $moduleReferenceSearchService->store(AmqpAdmin::REFERENCE_NAME, AmqpAdmin::createWith(
-            $amqpExchanges,
-            $amqpQueues,
-            $amqpBindings
+        $messagingConfiguration->registerServiceDefinition(AmqpAdmin::REFERENCE_NAME, DefinitionHelper::buildDefinitionFromInstance(
+            AmqpAdmin::createWith(
+                $amqpExchanges,
+                $amqpQueues,
+                $amqpBindings
+            )
         ));
     }
 
@@ -81,14 +84,6 @@ class AmqpModule implements AnnotationModule
     }
 
     public function getModuleExtensions(array $serviceExtensions): array
-    {
-        return [];
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
     {
         return [];
     }

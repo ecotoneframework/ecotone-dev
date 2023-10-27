@@ -7,10 +7,10 @@ namespace Ecotone\Amqp;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
@@ -96,27 +96,34 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         return $this;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): AmqpOutboundChannelAdapter
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        /** @var AmqpConnectionFactory $amqpConnectionFactory */
-        $amqpConnectionFactory = $referenceSearchService->get($this->amqpConnectionFactoryReferenceName);
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
+        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+            new Definition(AmqpReconnectableConnectionFactory::class, [
+                new Reference($this->amqpConnectionFactoryReferenceName),
+            ]),
+        ], 'createFor');
 
-        return new AmqpOutboundChannelAdapter(
-            CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($amqpConnectionFactory)),
-            $this->autoDeclare ? $referenceSearchService->get(AmqpAdmin::REFERENCE_NAME) : AmqpAdmin::createEmpty(),
+        $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
+            $this->headerMapper,
+            $this->defaultConversionMediaType,
+            $this->defaultDeliveryDelay,
+            $this->defaultTimeToLive,
+            $this->defaultPriority,
+            $this->staticHeadersToAdd,
+        ]);
+
+        return new Definition(AmqpOutboundChannelAdapter::class, [
+            $connectionFactory,
+            $this->autoDeclare ? new Reference(AmqpAdmin::REFERENCE_NAME) : new Definition(AmqpAdmin::class, factory: 'createEmpty'),
             $this->exchangeName,
             $this->defaultRoutingKey,
             $this->routingKeyFromHeader,
             $this->exchangeFromHeader,
             $this->defaultPersistentDelivery,
             $this->autoDeclare,
-            new OutboundMessageConverter($this->headerMapper, $this->defaultConversionMediaType, $this->defaultDeliveryDelay, $this->defaultTimeToLive, $this->defaultPriority, $this->staticHeadersToAdd),
-            $conversionService
-        );
+            $outboundMessageConverter,
+            new Reference(ConversionService::REFERENCE_NAME),
+        ]);
     }
 }

@@ -5,11 +5,11 @@ namespace Ecotone\Dbal;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Interop\Queue\ConnectionFactory;
 
 class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
@@ -34,22 +34,29 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         return new self($queueName, $connectionFactoryReferenceName);
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): DbalOutboundChannelAdapter
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        /** @var ConnectionFactory $dbalConnectionFactory */
-        $dbalConnectionFactory = $referenceSearchService->get($this->connectionFactoryReferenceName);
-        /** @var ConversionService $conversionService */
-        $conversionService = $referenceSearchService->get(ConversionService::REFERENCE_NAME);
+        $connectionFactory = new Definition(CachedConnectionFactory::class, [
+            new Definition(DbalReconnectableConnectionFactory::class, [
+                new Reference($this->connectionFactoryReferenceName),
+            ]),
+        ], 'createFor');
 
-        return new DbalOutboundChannelAdapter(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($dbalConnectionFactory)),
+        $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
+            $this->headerMapper,
+            $this->defaultConversionMediaType,
+            $this->defaultDeliveryDelay,
+            $this->defaultTimeToLive,
+            $this->defaultPriority,
+            [],
+        ]);
+
+        return new Definition(DbalOutboundChannelAdapter::class, [
+            $connectionFactory,
             $this->queueName,
             $this->autoDeclare,
-            new OutboundMessageConverter($this->headerMapper, $this->defaultConversionMediaType, $this->defaultDeliveryDelay, $this->defaultTimeToLive, $this->defaultPriority, []),
-            $conversionService
-        );
+            $outboundMessageConverter,
+            new Reference(ConversionService::REFERENCE_NAME),
+        ]);
     }
 }

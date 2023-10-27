@@ -2,16 +2,17 @@
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorReference;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 
 abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 {
@@ -29,40 +30,35 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
      */
     protected $acknowledgeMode = EnqueueAcknowledgementCallback::AUTO_ACK;
 
-    protected array $requiredReferenceNames = [];
-
     protected bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
     protected string $messageChannelName;
 
     protected string $connectionReferenceName;
 
+
     public function __construct(string $messageChannelName, string $endpointId, ?string $requestChannelName, string $connectionReferenceName)
     {
         $this->messageChannelName = $messageChannelName;
         $this->connectionReferenceName = $connectionReferenceName;
-        $this->requiredReferenceNames[] = $connectionReferenceName;
         $this->endpointId = $endpointId;
         $this->inboundGateway = $requestChannelName
             ? GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName)
             : NullEntrypointGateway::create();
     }
 
-    protected function buildGatewayFor(ReferenceSearchService $referenceSearchService, ChannelResolver $channelResolver, PollingMetadata $pollingMetadata): InboundChannelAdapterEntrypoint
+    protected function compileGateway(MessagingContainerBuilder $builder): Definition|Reference|DefinedObject
     {
-        if (! $this->isNullableGateway()) {
-            return $this->inboundGateway
-                ->withErrorChannel($pollingMetadata->getErrorChannelName())
-                ->build($referenceSearchService, $channelResolver);
+        if ($this->isNullableGateway()) {
+            return $this->inboundGateway;
         }
-
-        return $this->inboundGateway;
+        return parent::compileGateway($builder);
     }
 
     /**
      * @inheritDoc
      */
-    public function addAroundInterceptor(AroundInterceptorReference $aroundInterceptorReference)
+    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference)
     {
         if ($this->isNullableGateway()) {
             return $this;
@@ -71,17 +67,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         $this->inboundGateway->addAroundInterceptor($aroundInterceptorReference);
 
         return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        $resolvedInterfaces = $this->isNullableGateway() ? [] : $this->inboundGateway->resolveRelatedInterfaces($interfaceToCallRegistry);
-        $resolvedInterfaces[] = $interfaceToCallRegistry->getFor(InboundChannelAdapterEntrypoint::class, 'executeEntrypoint');
-
-        return $resolvedInterfaces;
     }
 
     /**
@@ -119,14 +104,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         $this->receiveTimeoutInMilliseconds = $timeoutInMilliseconds;
 
         return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getRequiredReferences(): array
-    {
-        return array_merge($this->requiredReferenceNames, $this->isNullableGateway() ? [] : $this->inboundGateway->getRequiredReferences());
     }
 
     /**
@@ -220,6 +197,4 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     {
         return $this->inboundGateway instanceof NullEntrypointGateway;
     }
-
-    abstract public function createInboundChannelAdapter(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService, PollingMetadata $pollingMetadata): EnqueueInboundChannelAdapter;
 }

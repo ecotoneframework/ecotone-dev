@@ -11,7 +11,6 @@ use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -31,7 +30,6 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
     public function __construct(
         CachedConnectionFactory         $cachedConnectionFactory,
-        InboundChannelAdapterEntrypoint $inboundAmqpGateway,
         private AmqpAdmin               $amqpAdmin,
         bool                            $declareOnStartup,
         string                          $queueName,
@@ -41,7 +39,6 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
     ) {
         parent::__construct(
             $cachedConnectionFactory,
-            $inboundAmqpGateway,
             $declareOnStartup,
             $queueName,
             $receiveTimeoutInMilliseconds,

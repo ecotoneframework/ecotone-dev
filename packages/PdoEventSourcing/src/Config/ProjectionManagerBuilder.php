@@ -4,15 +4,17 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
+use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
-use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\MessageHandler;
 
 class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
 {
@@ -51,25 +53,22 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(LazyProophProjectionManager::class, $this->methodName);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return ServiceActivatorBuilder::createWithDirectReference(
-            new LazyProophProjectionManager($this->eventSourcingConfiguration, $this->projectionSetupConfigurations, $referenceSearchService),
-            $this->methodName
-        )
+        $lazyProophProjectionManager = new Definition(
+            LazyProophProjectionManager::class,
+            [
+                new Reference(EventSourcingConfiguration::class),
+                $this->projectionSetupConfigurations,
+                new Reference(ReferenceSearchService::class),
+                new Reference(LazyProophEventStore::class),
+            ]
+        );
+
+        return ServiceActivatorBuilder::createWithDefinition($lazyProophProjectionManager, $this->methodName)
             ->withMethodParameterConverters($this->parameterConverters)
             ->withInputChannelName($this->getInputMessageChannelName())
-            ->build($channelResolver, $referenceSearchService);
-    }
-
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [$interfaceToCallRegistry->getFor(LazyProophProjectionManager::class, $this->methodName)];
-    }
-
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
+            ->compile($builder);
     }
 
     public static function getProjectionManagerActionChannel(string $projectionManagerReference, string $methodName): string

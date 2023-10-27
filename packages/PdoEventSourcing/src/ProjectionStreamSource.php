@@ -2,14 +2,29 @@
 
 namespace Ecotone\EventSourcing;
 
-final class ProjectionStreamSource
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
+
+final class ProjectionStreamSource implements DefinedObject
 {
     /**
      * @param string[] $streams
      * @param string[] $categories
      */
-    private function __construct(private bool $forAllStreams, private array $streams, private array $categories)
+    public function __construct(private bool $forAllStreams, private array $streams, private array $categories)
     {
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(
+            ProjectionStreamSource::class,
+            [
+                $this->forAllStreams,
+                $this->streams,
+                $this->categories,
+            ]
+        );
     }
 
     /**

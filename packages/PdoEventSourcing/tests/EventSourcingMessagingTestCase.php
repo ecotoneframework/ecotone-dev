@@ -23,7 +23,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
         self::clearDataTables($this->getConnection());
     }
 
-    public function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
+    public static function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
         $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
         if (! $dsn) {

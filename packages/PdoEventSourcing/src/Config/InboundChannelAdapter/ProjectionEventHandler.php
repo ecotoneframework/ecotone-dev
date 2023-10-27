@@ -3,7 +3,6 @@
 namespace Ecotone\EventSourcing\Config\InboundChannelAdapter;
 
 use Ecotone\EventSourcing\ChannelProjectionExecutor;
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStatus;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
@@ -20,8 +19,11 @@ class ProjectionEventHandler
 
     private bool $wasInitialized = false;
 
-    public function __construct(private LazyProophProjectionManager $lazyProophProjectionManager, private ProjectionSetupConfiguration $projectionSetupConfiguration, private ProjectionRunningConfiguration $projectionRunningConfiguration, private ConversionService $conversionService)
-    {
+    public function __construct(
+        private LazyProophProjectionManager $lazyProophProjectionManager,
+        private ProjectionSetupConfiguration $projectionSetupConfiguration,
+        private ConversionService $conversionService
+    ) {
     }
 
     public function execute(MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): void

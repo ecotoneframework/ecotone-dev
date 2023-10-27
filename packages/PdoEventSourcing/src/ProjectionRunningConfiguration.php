@@ -2,9 +2,11 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
 use InvalidArgumentException;
 
-class ProjectionRunningConfiguration
+class ProjectionRunningConfiguration implements DefinedObject
 {
     private const EVENT_DRIVEN = 'event-driven';
     private const POLLING = 'polling';
@@ -16,7 +18,7 @@ class ProjectionRunningConfiguration
     public const DEFAULT_AMOUNT_OF_CACHED_STREAM_NAMES = 1000;
 
     public const OPTION_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 'sleep';
-    public const DEFAULT_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 10000;
+    public const DEFAULT_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 0;
 
     public const OPTION_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 'persist_block_size';
     public const DEFAULT_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 1;
@@ -36,7 +38,7 @@ class ProjectionRunningConfiguration
     private array $options;
     private bool $isTestingSetup = false;
 
-    private function __construct(
+    public function __construct(
         private string $projectionName,
         private string $runningType,
     ) {
@@ -50,6 +52,17 @@ class ProjectionRunningConfiguration
             self::OPTION_IS_TESTING_SETUP => self::DEFAULT_IS_TESTING_SETUP,
             self::OPTION_LOAD_COUNT => self::DEFAULT_LOAD_COUNT,
         ];
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(
+            self::class,
+            [
+                $this->projectionName,
+                $this->runningType,
+            ]
+        );
     }
 
     public static function createEventDriven(string $projectionName): static

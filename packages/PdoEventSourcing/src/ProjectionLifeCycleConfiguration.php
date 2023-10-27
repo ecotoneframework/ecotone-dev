@@ -2,19 +2,41 @@
 
 namespace Ecotone\EventSourcing;
 
-class ProjectionLifeCycleConfiguration
-{
-    private ?string $initializationRequestChannel = null;
-    private ?string $resetRequestChannel = null;
-    private ?string $deleteRequestChannel = null;
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
 
-    private function __construct()
-    {
+class ProjectionLifeCycleConfiguration implements DefinedObject
+{
+    private function __construct(
+        private ?string $initializationRequestChannel,
+        private ?string $resetRequestChannel,
+        private ?string $deleteRequestChannel
+    ) {
     }
 
-    public static function create(): static
+    public static function create(
+        ?string $initializationRequestChannel = null,
+        ?string $resetRequestChannel = null,
+        ?string $deleteRequestChannel = null
+    ): static {
+        return new self(
+            $initializationRequestChannel,
+            $resetRequestChannel,
+            $deleteRequestChannel
+        );
+    }
+
+    public function getDefinition(): Definition
     {
-        return new self();
+        return new Definition(
+            ProjectionLifeCycleConfiguration::class,
+            [
+                $this->initializationRequestChannel,
+                $this->resetRequestChannel,
+                $this->deleteRequestChannel,
+            ],
+            'create'
+        );
     }
 
     public function withInitializationRequestChannel(string $initializationRequestChannel): static

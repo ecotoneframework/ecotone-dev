@@ -2,7 +2,11 @@
 
 namespace Ecotone\EventSourcing;
 
-class AggregateStreamMapping
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+
+class AggregateStreamMapping implements CompilableBuilder
 {
     private array $aggregateToStreamMapping = [];
 
@@ -24,5 +28,12 @@ class AggregateStreamMapping
     public function getAggregateToStreamMapping(): array
     {
         return $this->aggregateToStreamMapping;
+    }
+
+    public function compile(MessagingContainerBuilder $builder): Definition
+    {
+        return new Definition(self::class, [
+            $this->aggregateToStreamMapping,
+        ], 'createWith');
     }
 }

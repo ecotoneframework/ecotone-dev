@@ -10,6 +10,9 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -48,6 +51,7 @@ class DbalDeadLetterModule implements AnnotationModule
             return;
         }
 
+        $messagingConfiguration->registerServiceDefinition(DbalDeadLetterConsoleCommand::class, new Definition(DbalDeadLetterConsoleCommand::class));
         $this->registerOneTimeCommand('list', self::LIST_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerOneTimeCommand('show', self::SHOW_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerOneTimeCommand('reply', self::REPLAY_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
@@ -69,14 +73,6 @@ class DbalDeadLetterModule implements AnnotationModule
         return $extensionObject instanceof DbalConfiguration || $extensionObject instanceof CustomDeadLetterGateway;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getRelatedReferences(): array
-    {
-        return [];
-    }
-
     public function getModuleExtensions(array $serviceExtensions): array
     {
         return [];
@@ -84,9 +80,9 @@ class DbalDeadLetterModule implements AnnotationModule
 
     private function registerOneTimeCommand(string $methodName, string $commandName, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        [$messageHandlerBuilder, $oneTimeCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForDirectObject(
-            new DbalDeadLetterConsoleCommand(),
-            $methodName,
+        [$messageHandlerBuilder, $oneTimeCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(
+            new Reference(DbalDeadLetterConsoleCommand::class),
+            new InterfaceToCallReference(DbalDeadLetterConsoleCommand::class, $methodName),
             $commandName,
             true,
             $interfaceToCallRegistry

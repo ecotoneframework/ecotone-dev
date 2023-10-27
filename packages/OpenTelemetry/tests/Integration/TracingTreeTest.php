@@ -10,18 +10,15 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
 use Ecotone\OpenTelemetry\Support\JaegerTracer;
-use InvalidArgumentException;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
-use OpenTelemetry\SDK\Trace\ImmutableSpan;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
-use Ramsey\Uuid\Uuid;
+use stdClass;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantCreated;
@@ -139,13 +136,19 @@ final class TracingTreeTest extends TracingTest
         )
             ->sendCommand(new RegisterUser('1'));
 
-        $this->assertSame(
+        $this->compareTreesByDetails(
             [
-                'Command Bus' => [
-                    'Command Handler: ' . User::class . '::register' => [],
+                [
+                    'details' => ['name' => 'Command Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                            'children' => [],
+                        ],
+                    ],
                 ],
             ],
-            $this->buildTree($exporter->getSpans())
+            $this->buildTree($exporter)
         );
     }
 
@@ -161,17 +164,29 @@ final class TracingTreeTest extends TracingTest
         )
             ->publishEvent(new MerchantCreated('1'));
 
-        $this->assertSame(
+        $this->compareTreesByDetails(
             [
-                'Event Bus' => [
-                    'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser' => [
-                        'Command Bus' => [
-                            'Command Handler: ' . User::class . '::register' => [],
+                [
+                    'details' => ['name' => 'Event Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
+                            'children' => [
+                                [
+                                    'details' => ['name' => 'Command Bus'],
+                                    'children' => [
+                                        [
+                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
                         ],
                     ],
                 ],
             ],
-            $this->buildTree($exporter->getSpans())
+            $this->buildTree($exporter)
         );
     }
 
@@ -187,22 +202,43 @@ final class TracingTreeTest extends TracingTest
         )
             ->publishEvent(new MerchantCreated('1'));
 
-        $this->assertSame(
+        $this->compareTreesByDetails(
             [
-                'Event Bus' => [
-                    'Event Handler: ' . MerchantSubscriberTwo::class . '::merchantToUser' => [
-                        'Command Bus' => [
-                            'Command Handler: ' . User::class . '::register' => [],
+                [
+                    'details' => ['name' => 'Event Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
+                            'children' => [
+                                [
+                                    'details' => ['name' => 'Command Bus'],
+                                    'children' => [
+                                        [
+                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
                         ],
-                    ],
-                    'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser' => [
-                        'Command Bus' => [
-                            'Command Handler: ' . User::class . '::register' => [],
+                        [
+                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberTwo::class . '::merchantToUser'],
+                            'children' => [
+                                [
+                                    'details' => ['name' => 'Command Bus'],
+                                    'children' => [
+                                        [
+                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
                         ],
                     ],
                 ],
             ],
-            $this->buildTree($exporter->getSpans())
+            $this->buildTree($exporter)
         );
     }
 
@@ -218,28 +254,45 @@ final class TracingTreeTest extends TracingTest
         )
             ->sendCommand(new CreateMerchant('1'));
 
-        $this->assertSame(
+        $this->compareTreesByDetails(
             [
-                'Command Bus' => [
-                    'Command Handler: ' . Merchant::class . '::create' => [
-                        'Event Bus' => [
-                            'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser' => [
-                                'Command Bus' => [
-                                    'Command Handler: ' . User::class . '::register' => [],
+                [
+                    'details' => ['name' => 'Command Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Command Handler: ' . Merchant::class . '::create'],
+                            'children' => [
+                                [
+                                    'details' => ['name' => 'Event Bus'],
+                                    'children' => [
+                                        [
+                                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
+                                            'children' => [
+                                                [
+                                                    'details' => ['name' => 'Command Bus'],
+                                                    'children' => [
+                                                        [
+                                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                                                            'children' => [],
+                                                        ],
+                                                    ],
+                                                ],
+                                            ],
+                                        ],
+                                    ],
                                 ],
                             ],
                         ],
                     ],
                 ],
             ],
-            $this->buildTree($exporter->getSpans())
+            $this->buildTree($exporter)
         );
     }
 
-    public function TODO_test_tracing_with_asynchronous_handler()
+    public function test_tracing_with_asynchronous_handler()
     {
-        $storage = new ArrayObject();
-        $exporter = new InMemoryExporter($storage);
+        $exporter = new InMemoryExporter();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
@@ -252,132 +305,132 @@ final class TracingTreeTest extends TracingTest
         )
             ->sendCommand(new RegisterUser('1'));
 
-        $this->assertSame(
+        $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->compareTreesByDetails(
             [
-                'Command Bus' => [
-                    'Asynchronous Channel: async_channel' => [],
+                [
+                    'details' => ['name' => 'Command Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Sending to Channel: async_channel'],
+                            'children' => [
+                                [
+                                    'details' => ['name' => 'Receiving from channel: async_channel'],
+                                    'children' => [
+                                        [
+                                            'details' => ['name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register'],
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
                 ],
             ],
-            $this->buildTree($exporter->getSpans())
+            $this->buildTree($exporter)
         );
+    }
 
-        foreach ($storage as $key => $value) {
-            unset($storage[$key]);
-        }
-        /** @TODO close the tracer before starting async consumer */
+    public function test_passing_user_specific_headers()
+    {
+        $exporter = new InMemoryExporter();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
+            [TracerInterface::class => $this->prepareTracer($exporter)],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ])
+        )
+            ->sendCommand(
+                new RegisterUser('1'),
+                [
+                    'user_id' => '123',
+                ]
+            );
 
         $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-
-        $this->assertSame(
+        $this->compareTreesByDetails(
             [
-                'Command Bus' => [
-                    'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register' => [],
+                [
+                    'details' => [
+                        'name' => 'Command Bus',
+                        'attributes' => ['user_id' => '123'],
+                    ],
+                    'children' => [
+                        [
+                            'details' => [
+                                'name' => 'Sending to Channel: async_channel',
+                                'attributes' => ['user_id' => '123'],
+                            ],
+                            'children' => [
+                                [
+                                    'details' => [
+                                        'name' => 'Receiving from channel: async_channel',
+                                        'attributes' => ['user_id' => '123'],
+                                    ],
+                                    'children' => [
+                                        [
+                                            'details' => [
+                                                'name' => 'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class . '::register',
+                                                'attributes' => ['user_id' => '123'],
+                                            ],
+                                            'children' => [],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
                 ],
             ],
-            $this->buildTree($exporter->getSpans())
+            $this->buildTree($exporter)
         );
     }
 
-    public function TODO_test_tracing_with_exception()
+    public function test_user_land_metadata_should_be_skipped_in_case_is_not_scalar(): void
     {
         $exporter = new InMemoryExporter(new ArrayObject());
 
-        $messageId = Uuid::uuid4()->toString();
-        $correlationId = Uuid::uuid4()->toString();
-        $timestamp = 1680436648;
+        EcotoneLite::bootstrapFlowTesting(
+            [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
+            [TracerInterface::class => $this->prepareTracer($exporter)],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ])
+        )
+            ->sendCommand(new RegisterUser('1'), [
+                'tokens' => ['123'],
+                'user' => new stdClass(),
+            ])
+            ->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup());
 
-        try {
-            EcotoneLite::bootstrapFlowTesting(
-                [\Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class],
-                [TracerInterface::class => $this->prepareTracer($exporter)],
-                ServiceConfiguration::createWithDefaults()
-                    ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
-            )
-                ->sendCommand(new RegisterUser('1'), metadata: [
-                    MessageHeaders::MESSAGE_ID => $messageId,
-                    MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
-                    MessageHeaders::TIMESTAMP => $timestamp,
-                ]);
-        } catch (InvalidArgumentException) {
-        }
-
-        $this->assertSame(
+        $node = $this->getNodeAtTargetedSpan(
             [
-                'Command Bus' => [
-                    'Command Handler: ' . \Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class . '::register' => [],
-                ],
+                'details' => ['name' => 'Command Bus'],
             ],
-            $this->buildTree($exporter->getSpans())
+            $this->buildTree($exporter)
+        );
+
+        $this->assertArrayNotHasKey(
+            'user',
+            $node['details']['attributes']
+        );
+        $this->assertArrayNotHasKey(
+            'tokens',
+            $node['details']['attributes']
         );
     }
 
-    /**
-     * @param ImmutableSpan[] $spans
-     */
-    public function buildTree(array $spans): array
+    public function test_passing_span_context_when_using_distributed_bus(): void
     {
-        $tree = new ArrayObject();
-        $spanIdNameMapping = [];
-
-        foreach (array_reverse($spans) as $span) {
-            $spanId = $span->getSpanId();
-            $spanName = $span->getName();
-            $spanParent = $span->getParentSpanId();
-            $spanIdNameMapping[$spanId] = $spanName;
-
-            if (! $span->getParentContext()->isValid()) {
-                $tree[$spanId] = new ArrayObject();
-            } else {
-                $parentTree = $this->getSpanParentTree($spanParent, $tree);
-                $this->assertNotNull($parentTree, "Parent tree not found for span: $spanId");
-
-                $parentTree[$spanId] = new ArrayObject();
-            }
-        }
-
-        return $this->rebuildTreeWithNames($tree, $spanIdNameMapping);
-    }
-
-    private function getSpanParentTree(string $spanIdToFind, ArrayObject $treeOnGivenLevel): ?ArrayObject
-    {
-        foreach ($treeOnGivenLevel as $spanId => $children) {
-            if ($spanIdToFind === $spanId) {
-                return $children;
-            } else {
-                $innerTree = $this->getSpanParentTree($spanIdToFind, $children);
-
-                if ($innerTree !== null) {
-                    return $innerTree;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private function rebuildTreeWithNames(ArrayObject $tree, array $spanIdNameMapping): array
-    {
-        $treeWithNames = [];
-
-        foreach ($tree as $spanId => $children) {
-            $treeWithNames[$spanIdNameMapping[$spanId]] = $this->rebuildTreeWithNames($children, $spanIdNameMapping);
-        }
-
-        return $treeWithNames;
-    }
-
-    /** @var string[] */
-    private array $parentReferences = [];
-
-    public function followParents(ImmutableSpan $span, array $parentReferences): array
-    {
-        $spanName = $span->getName();
-
-        if (! $span->getParentContext()->isValid()) {
-            return [$spanName => []];
-        }
-
 
     }
 }

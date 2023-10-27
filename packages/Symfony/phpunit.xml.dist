@@ -6,6 +6,7 @@
 >
     <php>
         <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
+        <server name="APP_SECRET" value="test" />
     </php>
     <coverage processUncoveredFiles="true">
         <include>

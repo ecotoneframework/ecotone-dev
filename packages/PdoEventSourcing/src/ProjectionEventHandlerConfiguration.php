@@ -2,7 +2,10 @@
 
 namespace Ecotone\EventSourcing;
 
-class ProjectionEventHandlerConfiguration
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
+
+class ProjectionEventHandlerConfiguration implements DefinedObject
 {
     public function __construct(private string $className, private string $methodName, private string $eventBusRoutingKey, private string $eventHandlerSynchronousInputChannel)
     {
@@ -26,5 +29,15 @@ class ProjectionEventHandlerConfiguration
     public function getEventBusRoutingKey(): string
     {
         return $this->eventBusRoutingKey;
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class, [
+            $this->className,
+            $this->methodName,
+            $this->eventBusRoutingKey,
+            $this->eventHandlerSynchronousInputChannel,
+        ]);
     }
 }

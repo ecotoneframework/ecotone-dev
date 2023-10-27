@@ -8,7 +8,9 @@ use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
-use Ecotone\JMSConverter\JMSHandlerAdapter;
+use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -48,33 +50,32 @@ class JMSConverterConfigurationTest extends TestCase
                 ->registerConverter(
                     new JMSConverterBuilder(
                         [
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::create(Status::class),
                                 TypeDescriptor::createStringType(),
-                                StatusConverter::class,
+                                Reference::to(StatusConverter::class),
                                 'convertFrom'
                             ),
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::createStringType(),
                                 TypeDescriptor::create(Status::class),
-                                StatusConverter::class,
+                                Reference::to(StatusConverter::class),
                                 'convertTo'
                             ),
-                            JMSHandlerAdapter::createWithDirectObject(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::create(ArrayObject::class),
                                 TypeDescriptor::createArrayType(),
-                                new ArrayObjectConverter(),
+                                new Definition(ArrayObjectConverter::class),
                                 'from'
                             ),
-                            JMSHandlerAdapter::createWithDirectObject(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::createArrayType(),
                                 TypeDescriptor::create(ArrayObject::class),
-                                new ArrayObjectConverter(),
+                                new Definition(ArrayObjectConverter::class),
                                 'to'
                             ),
                         ],
                         JMSConverterConfiguration::createWithDefaults(),
-                        null
                     )
                 ),
             $configuration,
@@ -96,57 +97,56 @@ class JMSConverterConfigurationTest extends TestCase
                 ->registerConverter(
                     new JMSConverterBuilder(
                         [
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::create(AppointmentType::class),
                                 TypeDescriptor::createStringType(),
-                                AppointmentTypeConverter::class,
+                                Reference::to(AppointmentTypeConverter::class),
                                 'convertFrom'
                             ),
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::create(StandardAppointmentType::class),
                                 TypeDescriptor::createStringType(),
-                                AppointmentTypeConverter::class,
+                                Reference::to(AppointmentTypeConverter::class),
                                 'convertFrom'
                             ),
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::create(TrialAppointmentType::class),
                                 TypeDescriptor::createStringType(),
-                                AppointmentTypeConverter::class,
+                                Reference::to(AppointmentTypeConverter::class),
                                 'convertFrom'
                             ),
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::createStringType(),
                                 TypeDescriptor::create(AppointmentType::class),
-                                AppointmentTypeConverter::class,
+                                Reference::to(AppointmentTypeConverter::class),
                                 'convertTo'
                             ),
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::createStringType(),
                                 TypeDescriptor::create(StandardAppointmentType::class),
-                                AppointmentTypeConverter::class,
+                                Reference::to(AppointmentTypeConverter::class),
                                 'convertTo'
                             ),
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::createStringType(),
                                 TypeDescriptor::create(TrialAppointmentType::class),
-                                AppointmentTypeConverter::class,
+                                Reference::to(AppointmentTypeConverter::class),
                                 'convertTo'
                             ),
-                            JMSHandlerAdapter::createWithDirectObject(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::create(ArrayObject::class),
                                 TypeDescriptor::createArrayType(),
-                                new ArrayObjectConverter(),
+                                new Definition(ArrayObjectConverter::class),
                                 'from'
                             ),
-                            JMSHandlerAdapter::createWithDirectObject(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::createArrayType(),
                                 TypeDescriptor::create(ArrayObject::class),
-                                new ArrayObjectConverter(),
+                                new Definition(ArrayObjectConverter::class),
                                 'to'
                             ),
                         ],
                         JMSConverterConfiguration::createWithDefaults(),
-                        null
                     )
                 ),
             $configuration,
@@ -186,16 +186,16 @@ class JMSConverterConfigurationTest extends TestCase
         $this->assertEquals(
             MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
                 ->registerConverter(new JMSConverterBuilder([
-                    JMSHandlerAdapter::createWithDirectObject(
+                    new JMSHandlerAdapterBuilder(
                         TypeDescriptor::create(ArrayObject::class),
                         TypeDescriptor::createArrayType(),
-                        new ArrayObjectConverter(),
+                        new Definition(ArrayObjectConverter::class),
                         'from'
                     ),
-                    JMSHandlerAdapter::createWithDirectObject(
+                    new JMSHandlerAdapterBuilder(
                         TypeDescriptor::createArrayType(),
                         TypeDescriptor::create(ArrayObject::class),
-                        new ArrayObjectConverter(),
+                        new Definition(ArrayObjectConverter::class),
                         'to'
                     ),
                 ], JMSConverterConfiguration::createWithDefaults(), '/tmp')),
@@ -252,33 +252,32 @@ class JMSConverterConfigurationTest extends TestCase
                 ->registerConverter(
                     new JMSConverterBuilder(
                         [
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::createArrayType(),
                                 TypeDescriptor::create(stdClass::class),
-                                ClassToArrayConverter::class,
+                                Reference::to(ClassToArrayConverter::class),
                                 'convertFrom'
                             ),
-                            JMSHandlerAdapter::create(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::create(stdClass::class),
                                 TypeDescriptor::createArrayType(),
-                                ClassToArrayConverter::class,
+                                Reference::to(ClassToArrayConverter::class),
                                 'convertTo'
                             ),
-                            JMSHandlerAdapter::createWithDirectObject(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::create(ArrayObject::class),
                                 TypeDescriptor::createArrayType(),
-                                new ArrayObjectConverter(),
+                                new Definition(ArrayObjectConverter::class),
                                 'from'
                             ),
-                            JMSHandlerAdapter::createWithDirectObject(
+                            new JMSHandlerAdapterBuilder(
                                 TypeDescriptor::createArrayType(),
                                 TypeDescriptor::create(ArrayObject::class),
-                                new ArrayObjectConverter(),
+                                new Definition(ArrayObjectConverter::class),
                                 'to'
                             ),
                         ],
                         JMSConverterConfiguration::createWithDefaults(),
-                        null
                     )
                 ),
             $configuration,
@@ -304,16 +303,16 @@ class JMSConverterConfigurationTest extends TestCase
     private function buildDefaultJmsConverterBuilder(): JMSConverterBuilder
     {
         return new JMSConverterBuilder([
-            JMSHandlerAdapter::createWithDirectObject(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::create(ArrayObject::class),
                 TypeDescriptor::createArrayType(),
-                new ArrayObjectConverter(),
+                new Definition(ArrayObjectConverter::class),
                 'from'
             ),
-            JMSHandlerAdapter::createWithDirectObject(
+            new JMSHandlerAdapterBuilder(
                 TypeDescriptor::createArrayType(),
                 TypeDescriptor::create(ArrayObject::class),
-                new ArrayObjectConverter(),
+                new Definition(ArrayObjectConverter::class),
                 'to'
             ),
         ], JMSConverterConfiguration::createWithDefaults(), null);

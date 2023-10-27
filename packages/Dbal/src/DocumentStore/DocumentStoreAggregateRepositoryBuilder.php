@@ -2,11 +2,10 @@
 
 namespace Ecotone\Dbal\DocumentStore;
 
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Modelling\EventSourcedRepository;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\RepositoryBuilder;
-use Ecotone\Modelling\StandardRepository;
 
 final class DocumentStoreAggregateRepositoryBuilder implements RepositoryBuilder
 {
@@ -24,8 +23,10 @@ final class DocumentStoreAggregateRepositoryBuilder implements RepositoryBuilder
         return false;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository|StandardRepository
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new DocumentStoreAggregateRepository($referenceSearchService->get($this->documentStoreReferenceName));
+        return new Definition(DocumentStoreAggregateRepository::class, [
+            new Reference($this->documentStoreReferenceName),
+        ]);
     }
 }

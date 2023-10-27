@@ -7,13 +7,15 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
-use Ecotone\JMSConverter\JMSHandlerAdapter;
+use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
 use Ecotone\Messaging\Attribute\Converter;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -24,17 +26,10 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 class JMSConverterConfigurationModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
-     * @var JMSHandlerAdapter[]
+     * @param JMSHandlerAdapterBuilder[] $jmsHandlerAdapters
      */
-    private $jmsHandlerAdapters;
-
-    /**
-     * JMSConverterConfiguration constructor.
-     * @param JMSHandlerAdapter[] $jmsHandlerAdapters
-     */
-    public function __construct(array $jmsHandlerAdapters)
+    public function __construct(private array $jmsHandlerAdapters)
     {
-        $this->jmsHandlerAdapters = $jmsHandlerAdapters;
     }
 
 
@@ -62,26 +57,26 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
                         continue;
                     }
 
-                    $converters[] = JMSHandlerAdapter::create(
+                    $converters[] = new JMSHandlerAdapterBuilder(
                         $fromType,
                         $toType,
-                        $reference,
+                        Reference::to($reference),
                         $registration->getMethodName(),
                     );
                 }
             }
         }
 
-        $converters[] = JMSHandlerAdapter::createWithDirectObject(
+        $converters[] = new JMSHandlerAdapterBuilder(
             TypeDescriptor::create(ArrayObject::class),
             TypeDescriptor::createArrayType(),
-            new ArrayObjectConverter(),
+            new Definition(ArrayObjectConverter::class),
             'from'
         );
-        $converters[] = JMSHandlerAdapter::createWithDirectObject(
+        $converters[] = new JMSHandlerAdapterBuilder(
             TypeDescriptor::createArrayType(),
             TypeDescriptor::create(ArrayObject::class),
-            new ArrayObjectConverter(),
+            new Definition(ArrayObjectConverter::class),
             'to'
         );
 

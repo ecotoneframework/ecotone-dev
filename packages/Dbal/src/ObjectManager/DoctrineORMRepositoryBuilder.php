@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Modelling\EventSourcedRepository;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\RepositoryBuilder;
-use Ecotone\Modelling\StandardRepository;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use ReflectionClass;
 
@@ -33,17 +32,23 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         return false;
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): EventSourcedRepository|StandardRepository
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        /** @var ManagerRegistryConnectionFactory $connectionFactory */
-        $connectionFactory = $referenceSearchService->get($this->connectionReferenceName);
+        return new Definition(ManagerRegistryRepository::class, [
+            new Reference($this->connectionReferenceName),
+            $this->relatedClasses,
+        ], [self::class, 'createFromManagerRegistryConnectionFactory']);
+    }
 
+    public static function createFromManagerRegistryConnectionFactory(ManagerRegistryConnectionFactory $connectionFactory, ?array $relatedClasses)
+    {
+        // TODO: this seems really wrong to use reflection here
         $registry = new ReflectionClass($connectionFactory);
         $property = $registry->getProperty('registry');
         $property->setAccessible(true);
         /** @var ManagerRegistry $registry */
         $registry = $property->getValue($connectionFactory);
 
-        return new ManagerRegistryRepository($registry, $this->relatedClasses);
+        return new ManagerRegistryRepository($registry, $relatedClasses);
     }
 }

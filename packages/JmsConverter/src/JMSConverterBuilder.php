@@ -2,67 +2,77 @@
 
 namespace Ecotone\JMSConverter;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\Converter;
-use Ecotone\Messaging\Conversion\ConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use JMS\Serializer\Handler\HandlerRegistry;
 use JMS\Serializer\Naming\CamelCaseNamingStrategy;
 use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
 use JMS\Serializer\SerializerBuilder;
 
-class JMSConverterBuilder implements ConverterBuilder
+class JMSConverterBuilder implements CompilableBuilder
 {
     /**
-     * @var JMSHandlerAdapter[]
+     * @param JMSHandlerAdapterBuilder[] $converterHandlerBuilders
      */
-    private array $converterHandlers;
-    private JMSConverterConfiguration $jmsConverterConfiguration;
-
-    public function __construct(array $converterHandlers, JMSConverterConfiguration $JMSConverterConfiguration)
+    public function __construct(private array $converterHandlerBuilders, private JMSConverterConfiguration $jmsConverterConfiguration)
     {
-        $this->converterHandlers = $converterHandlers;
-        $this->jmsConverterConfiguration = $JMSConverterConfiguration;
     }
 
-    public function build(ReferenceSearchService $referenceSearchService): Converter
+    /**
+     * @param JMSHandlerAdapter[] $convertersHandlers
+     */
+    public static function buildJMSConverter(JMSConverterConfiguration $jmsConverterConfiguration, ServiceCacheConfiguration $serviceCacheConfiguration, array $convertersHandlers): Converter
     {
         $builder = SerializerBuilder::create()
             ->setPropertyNamingStrategy(
-                $this->jmsConverterConfiguration->getNamingStrategy() === $this->jmsConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY
+                $jmsConverterConfiguration->getNamingStrategy() === JMSConverterConfiguration::IDENTICAL_PROPERTY_NAMING_STRATEGY
                     ? new IdenticalPropertyNamingStrategy()
                     : new CamelCaseNamingStrategy()
             )
-            ->configureHandlers(function (HandlerRegistry $registry) use ($referenceSearchService) {
-                foreach ($this->converterHandlers as $converterHandler) {
+            ->configureHandlers(function (HandlerRegistry $registry) use ($convertersHandlers) {
+                foreach ($convertersHandlers as $converterHandler) {
                     $registry->registerHandler(
                         $converterHandler->getDirection(),
                         $converterHandler->getRelatedClass(),
                         'json',
-                        $converterHandler->getSerializerClosure($referenceSearchService)
+                        $converterHandler->getSerializerClosure()
                     );
                     $registry->registerHandler(
                         $converterHandler->getDirection(),
                         $converterHandler->getRelatedClass(),
                         'xml',
-                        $converterHandler->getSerializerClosure($referenceSearchService)
+                        $converterHandler->getSerializerClosure()
                     );
                 }
             });
 
-        /** @var ServiceCacheConfiguration $serviceCacheConfiguration */
-        $serviceCacheConfiguration = $referenceSearchService->get(ServiceCacheConfiguration::REFERENCE_NAME);
         if ($serviceCacheConfiguration->shouldUseCache()) {
             $builder->setCacheDir($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'jms');
         }
 
         $builder->setDocBlockTypeResolver(true);
 
-        return new JMSConverter($builder->build(), $this->jmsConverterConfiguration);
+        return new JMSConverter($builder->build(), $jmsConverterConfiguration);
     }
 
-    public function getRequiredReferences(): array
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return [];
+        $configuration = new Definition(JMSConverterConfiguration::class, [
+            $this->jmsConverterConfiguration->getNamingStrategy(),
+            $this->jmsConverterConfiguration->getDefaultNullSerialization(),
+        ]);
+        $converterHandlers = [];
+        foreach ($this->converterHandlerBuilders as $converterHandlerBuilder) {
+            $converterHandlers[] = $converterHandlerBuilder->compile($builder);
+        }
+        return new Definition(JMSConverter::class, [
+            $configuration,
+            Reference::to(ServiceCacheConfiguration::class),
+            $converterHandlers,
+        ], [self::class, 'buildJMSConverter']);
     }
 }

@@ -4,19 +4,20 @@ namespace Ecotone\Dbal\Recoverability;
 
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
 
 class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
@@ -143,15 +144,26 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         return $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, $this->methodName);
     }
 
-    public function build(ChannelResolver $channelResolver, ReferenceSearchService $referenceSearchService): MessageHandler
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $messageHandler = ServiceActivatorBuilder::createWithDirectReference(
-            new DbalDeadLetterHandler(
-                CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($referenceSearchService->get($this->connectionReferenceName))),
+        $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName;
+        if (! $builder->has($deadLetterHandlerReference)) {
+            $deadLetterHandler = new Definition(DbalDeadLetterHandler::class, [
+                new Definition(CachedConnectionFactory::class, [
+                    new Definition(DbalReconnectableConnectionFactory::class, [
+                        new Reference($this->connectionReferenceName),
+                    ]),
+                ], 'createFor'),
                 DefaultHeaderMapper::createAllHeadersMapping(),
-                $referenceSearchService->get(ConversionService::REFERENCE_NAME)
-            ),
-            $this->methodName
+                new Reference(ConversionService::REFERENCE_NAME),
+            ]);
+
+            $builder->register($deadLetterHandlerReference, $deadLetterHandler);
+        }
+
+        $messageHandler = ServiceActivatorBuilder::create(
+            $deadLetterHandlerReference,
+            new InterfaceToCallReference(DbalDeadLetterHandler::class, $this->methodName),
         );
 
         foreach ($this->orderedAroundInterceptors as $orderedAroundInterceptor) {
@@ -163,19 +175,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             ->withEndpointId($this->getEndpointId())
             ->withInputChannelName($this->getInputMessageChannelName())
             ->withOutputMessageChannel($this->getOutputMessageChannelName())
-            ->build($channelResolver, $referenceSearchService);
-    }
-
-    public function resolveRelatedInterfaces(InterfaceToCallRegistry $interfaceToCallRegistry): iterable
-    {
-        return [
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'list'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'show'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'reply'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'replyAll'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'delete'),
-            $interfaceToCallRegistry->getFor(DbalDeadLetterHandler::class, 'store'),
-        ];
+            ->compile($builder);
     }
 
     public function getEndpointId(): ?string
@@ -186,10 +186,5 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public function withEndpointId(string $endpointId): self
     {
         return $this;
-    }
-
-    public function getRequiredReferenceNames(): array
-    {
-        return [];
     }
 }

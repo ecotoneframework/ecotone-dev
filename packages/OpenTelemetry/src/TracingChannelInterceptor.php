@@ -9,6 +9,8 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\Context\Context;
 use function json_decode;
 use function json_encode;
 
@@ -23,13 +25,13 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 {
     public const TRACING_CARRIER_HEADER = 'ecotoneTracingCarrier';
 
-    public function __construct(private string $channelName, private TracerInterface $tracer)
+    public function __construct(private string $channelName, private TracerProviderInterface $tracerProvider)
     {
     }
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-        $span = EcotoneSpanBuilder::create($message, 'Sending to Channel: ' . $this->channelName, $this->tracer, SpanKind::KIND_PRODUCER)
+        $span = EcotoneSpanBuilder::create($message, 'Sending to Channel: ' . $this->channelName, $this->tracerProvider, SpanKind::KIND_PRODUCER)
             ->startSpan();
         $span->activate();
 
@@ -68,7 +70,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
             $carrier = $message->getHeaders()->containsKey(self::TRACING_CARRIER_HEADER) ? json_decode($message->getHeaders()->get(self::TRACING_CARRIER_HEADER), true) : [];
             $context = TraceContextPropagator::getInstance()->extract($carrier);
 
-            $span = EcotoneSpanBuilder::create($message, 'Asynchronous Channel: ' . $this->channelName, $this->tracer, SpanKind::KIND_CONSUMER)
+            $span = EcotoneSpanBuilder::create($message, 'Asynchronous Channel: ' . $this->channelName, $this->tracerProvider, SpanKind::KIND_CONSUMER)
                 ->setParent($context)
                 ->startSpan();
 

@@ -16,6 +16,7 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use stdClass;
@@ -130,7 +131,7 @@ final class TracingTreeTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [User::class],
-            [TracerInterface::class => TracingTest::prepareTracer($exporter)],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -158,7 +159,7 @@ final class TracingTreeTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [User::class],
-            [TracerInterface::class => TracingTest::prepareTracer($exporter)],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -196,7 +197,7 @@ final class TracingTreeTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [User::class, MerchantSubscriberOne::class],
-            [TracerInterface::class => TracingTest::prepareTracer($exporter), new MerchantSubscriberOne()],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -234,7 +235,7 @@ final class TracingTreeTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [User::class, MerchantSubscriberOne::class, MerchantSubscriberTwo::class],
-            [TracerInterface::class => TracingTest::prepareTracer($exporter), new MerchantSubscriberOne(), new MerchantSubscriberTwo()],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), new MerchantSubscriberOne(), new MerchantSubscriberTwo()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -286,7 +287,7 @@ final class TracingTreeTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [Merchant::class, User::class, MerchantSubscriberOne::class],
-            [TracerInterface::class => TracingTest::prepareTracer($exporter), new MerchantSubscriberOne()],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -334,7 +335,7 @@ final class TracingTreeTest extends TracingTest
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
-            [TracerInterface::class => TracingTest::prepareTracer($exporter)],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -377,7 +378,7 @@ final class TracingTreeTest extends TracingTest
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
-            [TracerInterface::class => TracingTest::prepareTracer($exporter)],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -441,7 +442,7 @@ final class TracingTreeTest extends TracingTest
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
-            [TracerInterface::class => TracingTest::prepareTracer($exporter)],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -501,7 +502,7 @@ final class TracingTreeTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
-            [TracerInterface::class => TracingTest::prepareTracer($exporter)],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([

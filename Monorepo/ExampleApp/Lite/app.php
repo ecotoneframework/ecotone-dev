@@ -22,6 +22,7 @@ use Monorepo\ExampleApp\Common\Infrastructure\StubNotificationSender;
 use Monorepo\ExampleApp\Common\Infrastructure\StubShippingService;
 use Monorepo\ExampleApp\Common\Infrastructure\SystemClock;
 use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use Test\Ecotone\OpenTelemetry\Integration\TracingTest;
 
@@ -50,7 +51,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
         InMemoryProductRepository::class => $configuration->productRepository(),
         InMemoryUserRepository::class => $configuration->userRepository(),
         InMemoryExporter::class => $exporter,
-        TracerInterface::class => TracingTest::prepareTracer($exporter)
+        TracerProviderInterface::class => TracingTest::prepareTracer($exporter)
     ];
     return EcotoneLite::bootstrap(
         containerOrAvailableServices: $services,

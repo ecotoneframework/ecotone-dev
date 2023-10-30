@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use function json_encode;
 
 use OpenTelemetry\API\Trace\TracerInterface;
@@ -15,15 +16,13 @@ use PHPUnit\Framework\TestCase;
 
 abstract class TracingTest extends TestCase
 {
-    public static function prepareTracer(SpanExporterInterface $exporter): TracerInterface
+    public static function prepareTracer(SpanExporterInterface $exporter): TracerProviderInterface
     {
-        $tracerProvider = new TracerProvider(
+        return new TracerProvider(
             new SimpleSpanProcessor(
                 $exporter
             )
         );
-
-        return $tracerProvider->getTracer('io.opentelemetry.contrib.php');
     }
 
     public static function buildTree(InMemoryExporter $exporter): array

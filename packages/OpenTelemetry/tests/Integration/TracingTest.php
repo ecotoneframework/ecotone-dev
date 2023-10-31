@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
-use OpenTelemetry\API\Trace\TracerProviderInterface;
 use function json_encode;
 
-use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanExporterInterface;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
@@ -109,7 +109,7 @@ abstract class TracingTest extends TestCase
             if ($expectedTreeNode['details']['name'] === $collectedNode['details']['name']) {
                 /** Check if this is the flow that we are looking for */
                 if (isset($expectedTreeNode['details']['attributes']['flowId'])) {
-                    if (!isset($collectedNode['details']['attributes']['flowId'])) {
+                    if (! isset($collectedNode['details']['attributes']['flowId'])) {
                         continue;
                     }
 

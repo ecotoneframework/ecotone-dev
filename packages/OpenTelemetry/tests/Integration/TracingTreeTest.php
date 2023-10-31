@@ -385,8 +385,8 @@ final class TracingTreeTest extends TracingTest
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
         )
-            ->sendCommand(new RegisterUser('1'), ["flowId" => "1"])
-            ->sendCommand(new RegisterUser('2'), ["flowId" => "2"]);
+            ->sendCommand(new RegisterUser('1'), ['flowId' => '1'])
+            ->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
 
         $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
 

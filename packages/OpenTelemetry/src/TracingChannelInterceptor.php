@@ -7,10 +7,14 @@ namespace Ecotone\OpenTelemetry;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
+use OpenTelemetry\API\Trace\SpanContext;
+use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
+use OpenTelemetry\Context\ScopeInterface;
 use function json_decode;
 use function json_encode;
 
@@ -33,13 +37,17 @@ final class TracingChannelInterceptor implements ChannelInterceptor
     {
         $span = EcotoneSpanBuilder::create($message, 'Sending to Channel: ' . $this->channelName, $this->tracerProvider, SpanKind::KIND_PRODUCER)
             ->startSpan();
-        $span->activate();
+        $spanScope = $span->activate();
 
         $carrier = [];
         TraceContextPropagator::getInstance()->inject($carrier);
 
         return MessageBuilder::fromMessage($message)
                 ->setHeader(self::TRACING_CARRIER_HEADER, json_encode($carrier))
+                /** Find a better way to propagate that */
+                ->setHeader(MessageHeaders::NON_PROPAGATED_CONTEXT, [
+                    $span, $spanScope
+                ])
                 ->build();
     }
 
@@ -50,10 +58,14 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
     {
-        $span = Span::getCurrent();
+        /** @var ScopeInterface $spanScope */
+        /** @var SpanInterface $span */
+        list($span, $spanScope) = $message->getHeaders()->get(MessageHeaders::NON_PROPAGATED_CONTEXT);
+        $spanScope->detach();
 
         $span->setStatus($exception ? StatusCode::STATUS_ERROR : StatusCode::STATUS_OK);
         $span->end();
+        $spanScope->detach();
 
         return false;
     }
@@ -75,7 +87,6 @@ final class TracingChannelInterceptor implements ChannelInterceptor
                 ->startSpan();
 
             $span->setStatus(StatusCode::STATUS_ERROR);
-            $span->activate();
             $span->end();
         }
     }

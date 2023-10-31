@@ -6,7 +6,10 @@ use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\UI\OrderController;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Test\Ecotone\OpenTelemetry\Integration\TracingTest;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
@@ -31,4 +34,11 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set(UserRepository::class)->factory([service(Configuration::class), 'userRepository']);
     $services->set(ProductRepository::class)->factory([service(Configuration::class), 'productRepository']);
     $services->get(AuthenticationService::class)->factory([service(Configuration::class), 'authentication']);
+
+    $services->set(InMemoryExporter::class, InMemoryExporter::class)
+            ->public();
+    $services->set(TracerProviderInterface::class)
+        ->factory([TracingTest::class, 'prepareTracer'])
+        ->args([service(InMemoryExporter::class)])
+        ->public();
 };

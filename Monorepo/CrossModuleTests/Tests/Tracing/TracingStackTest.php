@@ -10,15 +10,15 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\CrossModuleTests\Tests\FullAppTestCase;
+use Monorepo\ExampleApp\Common\Domain\Notification\NotificationSubscriber;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
+use Monorepo\ExampleApp\Common\Domain\Order\Order;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
+use Monorepo\ExampleApp\Common\Infrastructure\Output;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use Psr\Container\ContainerInterface;
-use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberOne;
-use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberTwo;
-use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
 use Test\Ecotone\OpenTelemetry\Integration\TracingTest;
 
 final class TracingStackTest extends FullAppTestCase
@@ -39,14 +39,14 @@ final class TracingStackTest extends FullAppTestCase
         /** @var QueryBus $queryBus */
         $queryBus = $container->get(QueryBus::class);
         $commandBus = $container->get(CommandBus::class);
+        /** @var InMemoryExporter $exporter */
+        $exporter = $container->get(InMemoryExporter::class);
 
         $this->placeOrder($commandBus, $configuration);
-
-        $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
-
         self::runConsumerForSymfony('notifications', $kernel);
-
         $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
+
+        $this->assertTracing($exporter);
     }
 
     public function executeForLaravel(ContainerInterface $container, LaravelKernel $kernel): void
@@ -55,14 +55,14 @@ final class TracingStackTest extends FullAppTestCase
         /** @var QueryBus $queryBus */
         $queryBus = $container->get(QueryBus::class);
         $commandBus = $container->get(CommandBus::class);
+        /** @var InMemoryExporter $exporter */
+        $exporter = $container->get(InMemoryExporter::class);
 
         $this->placeOrder($commandBus, $configuration);
-
-        $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
-
         self::runConsumerForLaravel('notifications');
-
         $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
+
+        $this->assertTracing($exporter);
     }
 
     public function executeForLiteApplication(ContainerInterface $container): void
@@ -72,18 +72,19 @@ final class TracingStackTest extends FullAppTestCase
         $queryBus = $container->get(QueryBus::class);
         /** @var ConfiguredMessagingSystem $messagingSystem */
         $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
+        /** @var InMemoryExporter $exporter */
+        $exporter = $messagingSystem->getServiceFromContainer(InMemoryExporter::class);
 
         $this->placeOrder($messagingSystem->getCommandBus(), $configuration);
-
-        $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
-
         self::runConsumerForMessaging('notifications', $messagingSystem);
-
         $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
+
+        $this->assertTracing($exporter);
     }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {
+        /** @var Configuration $configuration */
         $configuration = $messagingSystem->getServiceFromContainer(Configuration::class);
         /** @var QueryBus $queryBus */
         $queryBus = $messagingSystem->getServiceFromContainer(QueryBus::class);
@@ -91,52 +92,10 @@ final class TracingStackTest extends FullAppTestCase
         $exporter = $messagingSystem->getServiceFromContainer(InMemoryExporter::class);
 
         $this->placeOrder($messagingSystem->getCommandBus(), $configuration);
+        self::runConsumerForMessaging('notifications', $messagingSystem);
+        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
 
-//        $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
-
-//        self::runConsumerForMessaging('notifications', $messagingSystem);
-
-
-        $collectedTree = TracingTest::buildTree($exporter);
-        dd(\json_encode($collectedTree));
-        TracingTest::compareTreesByDetails(
-            [
-                [
-                    'details' => ['name' => 'Event Bus'],
-                    'children' => [
-                        [
-                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberOne::class . '::merchantToUser'],
-                            'children' => [
-                                [
-                                    'details' => ['name' => 'Command Bus'],
-                                    'children' => [
-                                        [
-                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => [],
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                        [
-                            'details' => ['name' => 'Event Handler: ' . MerchantSubscriberTwo::class . '::merchantToUser'],
-                            'children' => [
-                                [
-                                    'details' => ['name' => 'Command Bus'],
-                                    'children' => [
-                                        [
-                                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
-                                            'children' => [],
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            $collectedTree
-        );
+        $this->assertTracing($exporter);
     }
 
     private function placeOrder(mixed $commandBus, Configuration $configuration): void
@@ -153,6 +112,55 @@ final class TracingStackTest extends FullAppTestCase
                 ),
                 $configuration->productId()
             )
+        );
+    }
+
+    private function assertTracing(InMemoryExporter $exporter): void
+    {
+        TracingTest::compareTreesByDetails(
+            [
+                [
+                    'details' => ['name' => 'Command Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Command Handler: ' . Order::class . '::create'],
+                            'children' => []
+                        ],
+                        [
+                            'details' => ['name' => 'Event Bus'],
+                            'children' => []
+                        ],
+                        [
+                            'details' => ['name' => 'Sending to Channel: delivery'],
+                            'children' => []
+                        ],
+                        [
+                            'details' => ['name' => 'Sending to Channel: notifications'],
+                            'children' => [
+                                [
+                                    'details' => ['name' => 'Receiving from channel: notifications'],
+                                    'children' => [
+                                        [
+                                            'details' => ['name' => 'Event Handler: ' . NotificationSubscriber::class . '::whenOrderWasPlaced'],
+                                            'children' => []
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    'details' => ['name' => 'Query Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Query Handler: ' . Output::class . '::getMessages'],
+                            'children' => []
+                        ]
+                    ]
+                ]
+            ],
+            TracingTest::buildTree($exporter)
         );
     }
 }

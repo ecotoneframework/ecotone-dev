@@ -28,6 +28,7 @@ use Ecotone\Modelling\QueryBus;
 use Ecotone\OpenTelemetry\TracerInterceptor;
 use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
 use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
@@ -46,7 +47,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $messagingConfiguration->registerServiceDefinition(
             TracerInterceptor::class,
             new Definition(TracerInterceptor::class, [
-                new Reference(TracerInterface::class),
+                new Reference(TracerProviderInterface::class),
                 new Reference(LoggerInterface::class),
             ])
         );

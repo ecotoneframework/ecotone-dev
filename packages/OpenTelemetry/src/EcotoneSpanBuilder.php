@@ -10,10 +10,18 @@ use Ecotone\Messaging\MessageHeaders;
 use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 
 final class EcotoneSpanBuilder
 {
-    public static function create(Message $context, string $traceName, TracerInterface $tracer, int $type = SpanKind::KIND_SERVER): SpanBuilderInterface
+    const ECOTONE_TRACER_NAME = 'io.opentelemetry.contrib.php';
+
+    public static function create(
+        Message                 $context,
+        string                  $traceName,
+        TracerProviderInterface $tracerProvider,
+        int                     $type = SpanKind::KIND_SERVER
+    ): SpanBuilderInterface
     {
         $userHeaders = MessageHeaders::unsetAllFrameworkHeaders($context->getHeaders()->headers());
 
@@ -23,7 +31,8 @@ final class EcotoneSpanBuilder
             }
         }
 
-        return $tracer
+        return $tracerProvider
+            ->getTracer(self::ECOTONE_TRACER_NAME)
             ->spanBuilder($traceName)
             ->setSpanKind($type)
             ->setAttribute(MessageHeaders::MESSAGE_ID, $context->getHeaders()->getMessageId())

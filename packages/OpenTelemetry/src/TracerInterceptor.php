@@ -8,6 +8,9 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 
+use OpenTelemetry\API\Trace\SpanContext;
+use OpenTelemetry\Context\Context;
+use OpenTelemetry\SDK\Trace\Span;
 use function json_decode;
 
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;

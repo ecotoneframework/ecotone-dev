@@ -20,6 +20,7 @@ use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use stdClass;
+use Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\UserNotifier;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantCreated;
@@ -33,7 +34,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
  */
 final class TracingTreeTest extends TracingTest
 {
-    public function MANUAL_test_command_event_command_flow()
+    public function test_command_event_command_flow()
     {
         //        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
 
@@ -69,58 +70,28 @@ final class TracingTreeTest extends TracingTest
         $tracer = $tracerProvider->getTracer('io.opentelemetry.contrib.php');
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, User::class, MerchantSubscriberOne::class],
             [
-                new MerchantSubscriberOne(),
-                TracerInterface::class => $tracer,
+                \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
+                UserNotifier::class
+            ],
+            [
+                new UserNotifier(),
+                TracerProviderInterface::class => $tracerProvider,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::TRACING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE
+                ]))
                 ->withExtensionObjects([
                     TracingConfiguration::createWithDefaults(),
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel')
                 ]),
             allowGatewaysToBeRegisteredInContainer: true
         );
 
-        $root = $tracer->spanBuilder('root_span')
-            ->setSpanKind(SpanKind::KIND_SERVER)
-            ->startSpan();
-        $scope = $root->activate();
-
-        $rootInner = $tracer->spanBuilder('root_span_inner')
-            ->setSpanKind(SpanKind::KIND_SERVER)
-            ->startSpan();
-        $scopeInner = $rootInner->activate();
-        //        $tracer->spanBuilder('inner')->startSpan()->end();
-
-        $merchantId = '123';
-        //        try {
-        //            $ecotoneTestSupport
-        //                ->sendCommand(new CreateMerchant($merchantId));
-        //        }catch (\Exception) {
-        //
-        //        }
-        $this->assertTrue(
-            $ecotoneTestSupport
-                ->sendCommand(new CreateMerchant($merchantId))
-                ->sendQueryWithRouting('user.get', metadata: ['aggregate.id' => $merchantId])
-        );
-
-        $rootInner->end();
-        $scopeInner->detach();
-        //        $tracerProvider->forceFlush();
-
-        $root->end();
-        $scope->detach();
-
-        //        foreach ($storage as $span) {
-        //            echo PHP_EOL . sprintf(
-        //                    'TRACE: "%s", SPAN: "%s", PARENT: "%s"',
-        //                    $span->getTraceId(),
-        //                    $span->getSpanId(),
-        //                    $span->getParentSpanId()
-        //                );
-        //        }
+        $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
+        $ecotoneTestSupport->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
 
         $tracerProvider->shutdown();
     }

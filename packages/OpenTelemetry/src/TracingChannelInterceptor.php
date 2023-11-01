@@ -36,6 +36,7 @@ final class TracingChannelInterceptor implements ChannelInterceptor
             ->startSpan();
         $spanScope = $span->activate();
 
+        /** @link https://github.com/open-telemetry/opentelemetry-php/blob/main/examples/traces/demo/src/index.php#L44 */
         $carrier = [];
         TraceContextPropagator::getInstance()->inject($carrier);
 

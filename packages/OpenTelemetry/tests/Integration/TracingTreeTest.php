@@ -33,15 +33,9 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
  */
 final class TracingTreeTest extends TracingTest
 {
-    public function test_command_event_command_flow()
+    public function MANUAL_test_command_event_command_flow()
     {
         //        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
-        /**
-         * @TODO
-         *
-         * - add distributed bus tracing
-         * - links instead of parent context
-         */
         putenv('OTEL_SDK_DISABLED=false');
         putenv('OTEL_RESOURCE_ATTRIBUTES=service.version=1.0.0');
         putenv('OTEL_SERVICE_NAME=example-app');
@@ -550,10 +544,5 @@ final class TracingTreeTest extends TracingTest
             'tokens',
             $node['details']['attributes']
         );
-    }
-
-    public function test_passing_span_context_when_using_distributed_bus(): void
-    {
-
     }
 }

@@ -6,7 +6,6 @@ namespace Ecotone\Messaging\Channel\Collector;
 
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
-use Psr\Log\LoggerInterface;
 
 /**
  * This is responsible for collecting message in order to send them later.

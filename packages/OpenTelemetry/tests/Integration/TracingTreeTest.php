@@ -14,8 +14,6 @@ use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
 use Ecotone\OpenTelemetry\Support\JaegerTracer;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
-use OpenTelemetry\API\Trace\SpanKind;
-use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
 use OpenTelemetry\SDK\Trace\Event;
@@ -73,7 +71,7 @@ final class TracingTreeTest extends TracingTest
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [
                 \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
-                UserNotifier::class
+                UserNotifier::class,
             ],
             [
                 new UserNotifier(),
@@ -82,11 +80,11 @@ final class TracingTreeTest extends TracingTest
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
                     ModulePackageList::TRACING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
                 ]))
                 ->withExtensionObjects([
                     TracingConfiguration::createWithDefaults(),
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel')
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ]),
             allowGatewaysToBeRegisteredInContainer: true
         );
@@ -351,7 +349,7 @@ final class TracingTreeTest extends TracingTest
         EcotoneLite::bootstrapFlowTesting(
             [
                 \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
-                UserNotifier::class
+                UserNotifier::class,
             ],
             [
                 new UserNotifier(),
@@ -374,8 +372,8 @@ final class TracingTreeTest extends TracingTest
                     'child' => [
                         'details' => ['name' => 'Receiving from channel: async_channel'],
                         'child' => [
-                            'details' => ['name' => 'Event Bus']
-                        ]
+                            'details' => ['name' => 'Event Bus'],
+                        ],
                     ],
                 ],
             ],

@@ -48,7 +48,7 @@ class ComponentTestBuilder
         $container = InMemoryPSRContainer::createFromAssociativeArray([
             ServiceCacheConfiguration::class => ServiceCacheConfiguration::noCache(),
             ConfigurationVariableService::REFERENCE_NAME => InMemoryConfigurationVariableService::createEmpty(),
-            LoggingGateway::class => StubLoggingGateway::create()
+            LoggingGateway::class => StubLoggingGateway::create(),
         ]);
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass(new RegisterSingletonMessagingServices());

@@ -16,7 +16,6 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Precedence;
-use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**

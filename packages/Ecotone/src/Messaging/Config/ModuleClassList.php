@@ -82,7 +82,7 @@ class ModuleClassList
 
         /** Attribute based configurations */
         LoggingGateway::class,
-        LoggingService::class
+        LoggingService::class,
     ];
 
     public const ASYNCHRONOUS_MODULE = [

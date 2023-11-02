@@ -9,9 +9,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 
-use OpenTelemetry\API\Trace\SpanContext;
-use OpenTelemetry\Context\Context;
-use OpenTelemetry\SDK\Trace\Span;
+use Exception;
+
 use function json_decode;
 
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
@@ -21,6 +20,7 @@ use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\ScopeInterface;
+use OpenTelemetry\SDK\Trace\Span;
 use Throwable;
 
 final class TracerInterceptor
@@ -118,7 +118,7 @@ final class TracerInterceptor
         ];
 
         if ($message->getHeaders()->containsKey(LoggingService::CONTEXT_EXCEPTION_HEADER)) {
-            /** @var \Exception $exception */
+            /** @var Exception $exception */
             $exception = $message->getHeaders()->get(LoggingService::CONTEXT_EXCEPTION_HEADER);
             $attributes['exceptionMessage'] = $exception->getMessage();
             $attributes['exceptionClass'] = $exception::class;

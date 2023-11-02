@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
-use OpenTelemetry\API\Trace\SpanContext;
-use OpenTelemetry\API\Trace\SpanContextInterface;
-use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use function json_encode;
 
 use OpenTelemetry\API\Trace\TracerProviderInterface;
+
+use OpenTelemetry\SDK\Trace\SpanDataInterface;
 
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanExporterInterface;

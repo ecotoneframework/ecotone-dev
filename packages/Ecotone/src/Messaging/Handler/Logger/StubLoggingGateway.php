@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Logger;
 
 use Ecotone\Messaging\Message;
+use Exception;
 
 final class StubLoggingGateway implements LoggingGateway
 {
@@ -16,12 +17,12 @@ final class StubLoggingGateway implements LoggingGateway
         return new self();
     }
 
-    public function info(string $text, Message $message, ?\Exception $exception = null): void
+    public function info(string $text, Message $message, ?Exception $exception = null): void
     {
         $this->info[] = $text;
     }
 
-    public function error(string $text, Message $message, ?\Exception $exception = null): void
+    public function error(string $text, Message $message, ?Exception $exception = null): void
     {
         $this->critical[] = $text;
     }

@@ -9,7 +9,6 @@ use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
-use Psr\Log\LoggerInterface;
 
 final class MessageCollectorChannelInterceptor extends AbstractChannelInterceptor implements ChannelInterceptor
 {

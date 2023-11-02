@@ -14,6 +14,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Exception;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -47,9 +48,8 @@ class LoggingService
     public function info(
         #[Payload] string $text,
         #[Header(self::CONTEXT_MESSAGE_HEADER)] Message $message,
-        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?\Exception $exception,
-    ): void
-    {
+        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?Exception $exception,
+    ): void {
         $this->logger->info(
             $text,
             [
@@ -57,7 +57,7 @@ class LoggingService
                 'correlation_id' => $message->getHeaders()->getCorrelationId(),
                 'parent_id' => $message->getHeaders()->getParentId(),
                 'headers' => (string)$message->getHeaders(),
-                'exception' => $exception
+                'exception' => $exception,
             ]
         );
     }
@@ -66,9 +66,8 @@ class LoggingService
     public function error(
         #[Payload] string $text,
         #[Header(self::CONTEXT_MESSAGE_HEADER)] Message $message,
-        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?\Exception $exception,
-    ): void
-    {
+        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?Exception $exception,
+    ): void {
         $this->logger->critical(
             $text,
             [
@@ -76,7 +75,7 @@ class LoggingService
                 'correlation_id' => $message->getHeaders()->getCorrelationId(),
                 'parent_id' => $message->getHeaders()->getParentId(),
                 'headers' => (string)$message->getHeaders(),
-                'exception' => $exception
+                'exception' => $exception,
             ]
         );
     }

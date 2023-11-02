@@ -179,7 +179,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
                 LoggingService::class,
                 [
                     Reference::to(ConversionService::REFERENCE_NAME),
-                    Reference::to(LoggingHandlerBuilder::LOGGER_REFERENCE)
+                    Reference::to(LoggingHandlerBuilder::LOGGER_REFERENCE),
                 ]
             )
         );

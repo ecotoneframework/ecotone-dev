@@ -8,6 +8,7 @@ use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Message;
+use Exception;
 
 interface LoggingGateway
 {
@@ -15,13 +16,13 @@ interface LoggingGateway
     public function info(
         #[Payload] string $text,
         #[Header(LoggingService::CONTEXT_MESSAGE_HEADER)] Message $message,
-        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?\Exception $exception = null
+        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?Exception $exception = null
     ): void;
 
     #[MessageGateway(LoggingService::ERROR_LOGGING_CHANNEL)]
     public function error(
         #[Payload] string $text,
         #[Header(LoggingService::CONTEXT_MESSAGE_HEADER)] Message $message,
-        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?\Exception $exception = null
+        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?Exception $exception = null
     ): void;
 }

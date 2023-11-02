@@ -8,9 +8,8 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Exception;
-use Psr\Log\LoggerInterface;
 use Ecotone\Messaging\Message;
+use Exception;
 
 class InstantRetryInterceptor implements DefinedObject
 {

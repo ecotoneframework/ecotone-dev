@@ -8,5 +8,6 @@ final class UserRegistered
 {
     public function __construct(
         public string $userId
-    ) {}
+    ) {
+    }
 }

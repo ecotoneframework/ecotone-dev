@@ -8,9 +8,8 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\MessageChannel;
-use Psr\Log\LoggerInterface;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageChannel;
 
 final class CollectorSenderInterceptor
 {
@@ -23,8 +22,7 @@ final class CollectorSenderInterceptor
         Message $message,
         #[Reference] ConfiguredMessagingSystem $configuredMessagingSystem,
         #[Reference] LoggingGateway $logger
-    ): mixed
-    {
+    ): mixed {
         /** For example Command Bus inside Command Bus */
         if ($this->collectorStorage->isEnabled()) {
             return $methodInvocation->proceed();

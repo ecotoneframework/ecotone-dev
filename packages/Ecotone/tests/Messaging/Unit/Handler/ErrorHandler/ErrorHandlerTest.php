@@ -16,7 +16,6 @@ use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
 use Throwable;
 
 /**

@@ -33,14 +33,13 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
  */
 final class TracingTreeTest extends TracingTest
 {
-    public function MANUAL_test_command_event_command_flow()
+    public function test_command_event_command_flow()
     {
         //        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
         /**
          * @TODO
          *
          * - trace before transactions to include it in the trace
-         * - change the way we pass context accoringly ot the docs
          * - add distributed bus tracing
          * - links instead of parent context
          * - https://github.com/ecotoneframework/ecotone-dev/pull/257#discussion_r1379750322

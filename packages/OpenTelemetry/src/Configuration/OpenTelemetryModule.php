@@ -88,7 +88,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
                 AroundInterceptorBuilder::create(
                     TracerInterceptor::class,
                     $interfaceToCallRegistry->getFor(TracerInterceptor::class, $tracingMethodToInvoke),
-                    Precedence::DATABASE_TRANSACTION_PRECEDENCE - 100,
+                    Precedence::TRACING_PRECEDENCE,
                     $pointcut
                 )
             );

@@ -41,8 +41,6 @@ final class TracingTreeTest extends TracingTest
          *
          * - add distributed bus tracing
          * - links instead of parent context
-         * - https://github.com/ecotoneframework/ecotone-dev/pull/257#discussion_r1379750322
-         * - log stack trace of exception only on error log
          */
         putenv('OTEL_SDK_DISABLED=false');
         putenv('OTEL_RESOURCE_ATTRIBUTES=service.version=1.0.0');

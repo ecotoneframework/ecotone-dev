@@ -87,6 +87,8 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function postReceive(Message $message, MessageChannel $messageChannel): ?Message
     {
-        return $message;
+        return MessageBuilder::fromMessage($message)
+                ->removeHeader(self::TRACING_CARRIER_HEADER)
+                ->build();
     }
 }

@@ -39,7 +39,6 @@ final class TracingTreeTest extends TracingTest
         /**
          * @TODO
          *
-         * - trace before transactions to include it in the trace
          * - add distributed bus tracing
          * - links instead of parent context
          * - https://github.com/ecotoneframework/ecotone-dev/pull/257#discussion_r1379750322

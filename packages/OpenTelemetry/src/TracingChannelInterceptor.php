@@ -7,21 +7,19 @@ namespace Ecotone\OpenTelemetry;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
-use OpenTelemetry\Context\Context;
-use OpenTelemetry\SDK\Trace\Span;
 use function json_decode;
 use function json_encode;
 
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
-use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
-use OpenTelemetry\Context\ScopeInterface;
+
+use OpenTelemetry\Context\Context;
+use OpenTelemetry\SDK\Trace\Span;
 use Throwable;
 
 final class TracingChannelInterceptor implements ChannelInterceptor

@@ -55,11 +55,8 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
     {
-        $spanScope = Context::storage()->scope();
-        $span = Span::fromContext($spanScope->context());
-
-        $spanScope->detach();
-        $span->end();
+        Span::getCurrent()->end();
+        Context::storage()->scope()->detach();
 
         return false;
     }

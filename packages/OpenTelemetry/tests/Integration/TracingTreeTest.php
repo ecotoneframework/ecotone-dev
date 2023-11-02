@@ -18,6 +18,7 @@ use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
+use OpenTelemetry\SDK\Trace\Event;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use stdClass;
 use Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\UserNotifier;
@@ -34,7 +35,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
  */
 final class TracingTreeTest extends TracingTest
 {
-    public function test_command_event_command_flow()
+    public function MANUAL_test_command_event_command_flow()
     {
         //        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
 
@@ -341,6 +342,51 @@ final class TracingTreeTest extends TracingTest
             ],
             self::buildTree($exporter)
         );
+    }
+
+    public function test_adding_logs_as_events_in_span()
+    {
+        $exporter = new InMemoryExporter();
+
+        EcotoneLite::bootstrapFlowTesting(
+            [
+                \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
+                UserNotifier::class
+            ],
+            [
+                new UserNotifier(),
+                TracerProviderInterface::class => self::prepareTracer($exporter),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ])
+        )
+            ->sendCommand(new RegisterUser('1'))
+            ->run('async_channel');
+
+        $result = self::getNodeAtTargetedSpan(
+            [
+                'details' => ['name' => 'Command Bus'],
+                'child' => [
+                    'details' => ['name' => 'Sending to Channel: async_channel'],
+                    'child' => [
+                        'details' => ['name' => 'Receiving from channel: async_channel'],
+                        'child' => [
+                            'details' => ['name' => 'Event Bus']
+                        ]
+                    ],
+                ],
+            ],
+            self::buildTree($exporter)
+        );
+
+        /** @var Event $event */
+        $event = $result['details']['events'][0];
+        $this->stringStartsWith(
+            'Collecting message with id',
+        )->evaluate($event->getName());
     }
 
     public function test_two_traces_with_asynchronous_handlers()

@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Recoverability;
 
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -33,8 +34,7 @@ class ErrorHandler
     public function handle(
         ErrorMessage $errorMessage,
         ChannelResolver $channelResolver,
-        #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)]
-        LoggerInterface $logger
+        #[Reference] LoggingGateway $logger
     ): ?Message {
         /** @var MessagingException $messagingException */
         $messagingException = $errorMessage->getPayload();
@@ -61,27 +61,29 @@ class ErrorHandler
 
         if ($this->shouldBeSendToDeadLetter($retryNumber)) {
             if (! $this->hasDeadLetterOutput) {
-                $logger->critical(
+                $logger->error(
                     sprintf(
                         'Discarding message %s as no dead letter channel was defined. Retried maximum number of `%s` times. Due to: %s',
                         $failedMessage->getHeaders()->getMessageId(),
                         $retryNumber,
                         $cause->getMessage()
                     ),
-                    ['exception' => $cause]
+                    $failedMessage,
+                    $cause
                 );
 
                 return null;
             }
 
-            $logger->critical(
+            $logger->error(
                 sprintf(
                     'Sending message `%s` to dead letter channel, as retried maximum number of `%s` times. Due to: %s',
                     $failedMessage->getHeaders()->getMessageId(),
                     $retryNumber,
                     $cause->getMessage()
                 ),
-                ['exception' => $cause]
+                $failedMessage,
+                $cause
             );
             $messageBuilder->removeHeader(self::ECOTONE_RETRY_HEADER);
 
@@ -97,14 +99,16 @@ class ErrorHandler
         $delayMs = $this->delayedRetryTemplate->calculateNextDelay($retryNumber);
         $logger->info(
             sprintf(
-                'Retrying message with id `%s` with delay of `%d` ms. %s',
+                'Retrying message with id `%s` with delay of `%d` ms. %s. Due to %s',
                 $failedMessage->getHeaders()->getMessageId(),
                 $delayMs,
                 $this->delayedRetryTemplate->getMaxAttempts()
                     ? sprintf('Try %d out of %s', $retryNumber, $this->delayedRetryTemplate->getMaxAttempts())
-                    : ''
+                    : '',
+                $cause->getMessage()
             ),
-            ['exception' => $cause]
+            $failedMessage,
+            $cause
         );
         $messageChannel->send(
             $messageBuilder

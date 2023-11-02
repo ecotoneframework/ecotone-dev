@@ -17,6 +17,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -67,6 +68,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $this->registerTracerFor('traceQueryBus', QueryBus::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceEventBus', EventBus::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceAsynchronousEndpoint', AsynchronousRunningEndpoint::class, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerTracerFor('traceLogs', LoggingGateway::class, $messagingConfiguration, $interfaceToCallRegistry);
     }
 
     public function canHandle($extensionObject): bool

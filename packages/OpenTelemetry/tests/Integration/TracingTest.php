@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
+use OpenTelemetry\API\Trace\SpanContext;
+use OpenTelemetry\API\Trace\SpanContextInterface;
+use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use function json_encode;
 
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -28,6 +31,7 @@ abstract class TracingTest extends TestCase
     public static function buildTree(InMemoryExporter $exporter): array
     {
         $tree = [];
+        /** @var SpanDataInterface $span */
         foreach ($exporter->getSpans() as $span) {
             $preparedSpan = [
                 'details' => [
@@ -37,6 +41,7 @@ abstract class TracingTest extends TestCase
                     'attributes' => $span->getAttributes()->toArray(),
                     'kind' => $span->getKind(),
                     'links' => $span->getLinks(),
+                    'events' => $span->getEvents(),
                 ],
                 'children' => [],
             ];

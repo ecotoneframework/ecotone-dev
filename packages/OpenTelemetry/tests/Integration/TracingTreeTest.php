@@ -18,8 +18,10 @@ use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
+use OpenTelemetry\SDK\Trace\Event;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use stdClass;
+use Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\UserNotifier;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantCreated;
@@ -69,58 +71,28 @@ final class TracingTreeTest extends TracingTest
         $tracer = $tracerProvider->getTracer('io.opentelemetry.contrib.php');
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Merchant::class, User::class, MerchantSubscriberOne::class],
             [
-                new MerchantSubscriberOne(),
-                TracerInterface::class => $tracer,
+                \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
+                UserNotifier::class
+            ],
+            [
+                new UserNotifier(),
+                TracerProviderInterface::class => $tracerProvider,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::TRACING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE
+                ]))
                 ->withExtensionObjects([
                     TracingConfiguration::createWithDefaults(),
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel')
                 ]),
             allowGatewaysToBeRegisteredInContainer: true
         );
 
-        $root = $tracer->spanBuilder('root_span')
-            ->setSpanKind(SpanKind::KIND_SERVER)
-            ->startSpan();
-        $scope = $root->activate();
-
-        $rootInner = $tracer->spanBuilder('root_span_inner')
-            ->setSpanKind(SpanKind::KIND_SERVER)
-            ->startSpan();
-        $scopeInner = $rootInner->activate();
-        //        $tracer->spanBuilder('inner')->startSpan()->end();
-
-        $merchantId = '123';
-        //        try {
-        //            $ecotoneTestSupport
-        //                ->sendCommand(new CreateMerchant($merchantId));
-        //        }catch (\Exception) {
-        //
-        //        }
-        $this->assertTrue(
-            $ecotoneTestSupport
-                ->sendCommand(new CreateMerchant($merchantId))
-                ->sendQueryWithRouting('user.get', metadata: ['aggregate.id' => $merchantId])
-        );
-
-        $rootInner->end();
-        $scopeInner->detach();
-        //        $tracerProvider->forceFlush();
-
-        $root->end();
-        $scope->detach();
-
-        //        foreach ($storage as $span) {
-        //            echo PHP_EOL . sprintf(
-        //                    'TRACE: "%s", SPAN: "%s", PARENT: "%s"',
-        //                    $span->getTraceId(),
-        //                    $span->getSpanId(),
-        //                    $span->getParentSpanId()
-        //                );
-        //        }
+        $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
+        $ecotoneTestSupport->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
 
         $tracerProvider->shutdown();
     }
@@ -370,6 +342,51 @@ final class TracingTreeTest extends TracingTest
             ],
             self::buildTree($exporter)
         );
+    }
+
+    public function test_adding_logs_as_events_in_span()
+    {
+        $exporter = new InMemoryExporter();
+
+        EcotoneLite::bootstrapFlowTesting(
+            [
+                \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
+                UserNotifier::class
+            ],
+            [
+                new UserNotifier(),
+                TracerProviderInterface::class => self::prepareTracer($exporter),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ])
+        )
+            ->sendCommand(new RegisterUser('1'))
+            ->run('async_channel');
+
+        $result = self::getNodeAtTargetedSpan(
+            [
+                'details' => ['name' => 'Command Bus'],
+                'child' => [
+                    'details' => ['name' => 'Sending to Channel: async_channel'],
+                    'child' => [
+                        'details' => ['name' => 'Receiving from channel: async_channel'],
+                        'child' => [
+                            'details' => ['name' => 'Event Bus']
+                        ]
+                    ],
+                ],
+            ],
+            self::buildTree($exporter)
+        );
+
+        /** @var Event $event */
+        $event = $result['details']['events'][0];
+        $this->stringStartsWith(
+            'Collecting message with id',
+        )->evaluate($event->getName());
     }
 
     public function test_two_traces_with_asynchronous_handlers()

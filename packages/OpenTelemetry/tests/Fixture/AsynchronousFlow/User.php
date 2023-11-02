@@ -9,11 +9,14 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\WithEvents;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 
 #[Aggregate]
 final class User
 {
+    use WithEvents;
+
     #[AggregateIdentifier]
     private string $userId;
 
@@ -23,6 +26,8 @@ final class User
     {
         $user = new self();
         $user->userId = $command->userId;
+
+        $user->recordThat(new UserRegistered($command->userId));
 
         return $user;
     }

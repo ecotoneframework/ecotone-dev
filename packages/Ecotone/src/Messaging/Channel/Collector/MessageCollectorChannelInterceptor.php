@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Channel\Collector;
 
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Psr\Log\LoggerInterface;
@@ -14,7 +15,7 @@ final class MessageCollectorChannelInterceptor extends AbstractChannelIntercepto
 {
     public function __construct(
         private CollectorStorage $collectorStorage,
-        private LoggerInterface $logger
+        private LoggingGateway $logger
     ) {
     }
 

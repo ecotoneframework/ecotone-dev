@@ -39,8 +39,9 @@ final class TracingChannelInterceptor implements ChannelInterceptor
         $span->activate();
 
         /** @link https://github.com/open-telemetry/opentelemetry-php/blob/main/examples/traces/demo/src/index.php#L44 */
+        $ctx = $span->storeInContext(Context::getCurrent());
         $carrier = [];
-        TraceContextPropagator::getInstance()->inject($carrier);
+        TraceContextPropagator::getInstance()->inject($carrier, null, $ctx);
 
         return MessageBuilder::fromMessage($message)
                 ->setHeader(self::TRACING_CARRIER_HEADER, json_encode($carrier))
@@ -55,9 +56,9 @@ final class TracingChannelInterceptor implements ChannelInterceptor
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
     {
         $spanScope = Context::storage()->scope();
-        $spanScope->detach();
-
         $span = Span::fromContext($spanScope->context());
+
+        $spanScope->detach();
         $span->end();
 
         return false;

@@ -10,6 +10,8 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
+use OpenTelemetry\Context\Context;
+use OpenTelemetry\SDK\Trace\Span;
 use function json_decode;
 use function json_encode;
 
@@ -34,18 +36,14 @@ final class TracingChannelInterceptor implements ChannelInterceptor
     {
         $span = EcotoneSpanBuilder::create($message, 'Sending to Channel: ' . $this->channelName, $this->tracerProvider, SpanKind::KIND_PRODUCER)
             ->startSpan();
-        $spanScope = $span->activate();
+        $span->activate();
 
-        /** @link https://github.com/open-telemetry/opentelemetry-php/blob/main/examples/traces/demo/src/index.php#L44 */
+        $ctx = $span->storeInContext(Context::getCurrent());
         $carrier = [];
-        TraceContextPropagator::getInstance()->inject($carrier);
+        TraceContextPropagator::getInstance()->inject($carrier, null, $ctx);
 
         return MessageBuilder::fromMessage($message)
                 ->setHeader(self::TRACING_CARRIER_HEADER, json_encode($carrier))
-                /** Find a better way to propagate that */
-                ->setHeader(MessageHeaders::NON_PROPAGATED_CONTEXT, [
-                    $span, $spanScope,
-                ])
                 ->build();
     }
 
@@ -56,14 +54,8 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
     {
-        /** @var ScopeInterface $spanScope */
-        /** @var SpanInterface $span */
-        [$span, $spanScope] = $message->getHeaders()->get(MessageHeaders::NON_PROPAGATED_CONTEXT);
-        $spanScope->detach();
-
-        $span->setStatus($exception ? StatusCode::STATUS_ERROR : StatusCode::STATUS_OK);
-        $span->end();
-        $spanScope->detach();
+        Span::getCurrent()->end();
+        Context::storage()->scope()->detach();
 
         return false;
     }

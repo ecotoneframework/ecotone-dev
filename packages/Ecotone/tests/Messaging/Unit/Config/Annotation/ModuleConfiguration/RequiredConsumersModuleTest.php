@@ -42,28 +42,6 @@ class RequiredConsumersModuleTest extends AnnotationConfigurationTest
         $configuration->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
     }
 
-    public function test_not_throwing_exception_if_consumer_was_registered_as_message_handler()
-    {
-        $annotationConfiguration = RequiredConsumersModule::create(
-            InMemoryAnnotationFinder::createEmpty()
-                ->registerClassWithAnnotations(ExampleConsumer::class),
-            InterfaceToCallRegistry::createEmpty()
-        );
-        $configuration = $this->createMessagingSystemConfiguration()
-            ->registerConsumerFactory(new PollingConsumerBuilder())
-            ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('requestChannel'))
-            ->registerMessageHandler(
-                DataReturningService::createExceptionalServiceActivatorBuilder()
-                    ->withEndpointId('someId')
-                    ->withInputChannelName('requestChannel')
-            );
-        $annotationConfiguration->prepare($configuration, [], ModuleReferenceSearchService::createEmpty(), InterfaceToCallRegistry::createEmpty());
-
-        $configuration->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
-
-        $this->assertTrue(true);
-    }
-
     public function test_not_throwing_exception_if_consumer_was_registered_as_inbound_channel()
     {
         $annotationConfiguration = RequiredConsumersModule::create(

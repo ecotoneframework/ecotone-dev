@@ -20,7 +20,6 @@ use OpenTelemetry\SDK\Common\Time\ClockFactory;
 use OpenTelemetry\SDK\Trace\Event;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor;
-use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use stdClass;
 use Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\UserNotifier;
@@ -69,7 +68,7 @@ final class TracingTreeTest extends TracingTest
         //        $exporter = new InMemoryExporter($storage);
 
         /** Using Collector */
-//        $tracerProvider = JaegerTracer::create('http://collector:4317');
+        //        $tracerProvider = JaegerTracer::create('http://collector:4317');
         /** Using Collector from Jaeger */
         $tracerProvider = JaegerTracer::create('http://jaeger:4317');
 
@@ -97,7 +96,7 @@ final class TracingTreeTest extends TracingTest
         $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
         $ecotoneTestSupport->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
 
-//        $tracerProvider->shutdown();
+        //        $tracerProvider->shutdown();
     }
 
     public function test_tracing_tree_with_single_levels_of_nesting()

@@ -48,9 +48,12 @@ final class TracerInterceptor
                 $message,
                 spanKind: SpanKind::KIND_CONSUMER,
             );
-        } finally {
+        } catch (\Throwable $exception) {
             $scope->detach();
+
+            throw $exception;
         }
+        $scope->detach();
 
         return $trace;
     }
@@ -192,8 +195,11 @@ final class TracerInterceptor
 
     private function closeSpan(SpanInterface $span, ScopeInterface $spanScope, string $statusCode, ?string $descriptionStatusCode): void
     {
+        $currentSpan = Span::getCurrent();
+        $currentContext = Context::getCurrent();
+
         $span->setStatus($statusCode, $descriptionStatusCode);
-        $span->end();
         $spanScope->detach();
+        $span->end();
     }
 }

@@ -7,8 +7,11 @@ namespace Ecotone\OpenTelemetry;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
+use OpenTelemetry\Context\ScopeInterface;
+use Ramsey\Uuid\Uuid;
 use function json_decode;
 use function json_encode;
 
@@ -34,27 +37,30 @@ final class TracingChannelInterceptor implements ChannelInterceptor
     {
         $span = EcotoneSpanBuilder::create($message, 'Sending to Channel: ' . $this->channelName, $this->tracerProvider, SpanKind::KIND_PRODUCER)
             ->startSpan();
-        $span->activate();
 
+        $scope = $span->activate();
         $ctx = $span->storeInContext(Context::getCurrent());
         $carrier = [];
         TraceContextPropagator::getInstance()->inject($carrier, null, $ctx);
 
         return MessageBuilder::fromMessage($message)
                 ->setHeader(self::TRACING_CARRIER_HEADER, json_encode($carrier))
+                ->setHeader(MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER, $scope)
                 ->build();
     }
 
     public function postSend(Message $message, MessageChannel $messageChannel): void
     {
-
+// @TODO Remove header from message after notice are stopped from OpenTelemetry (https://github.com/open-telemetry/opentelemetry-php/issues/1138)
+        $currentContext = $message->getHeaders()->get(MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER);
+//        $currentContext = Context::storage()->scope();
+        $currentRelatedSpan = Span::getCurrent();
+        $currentContext->detach();
+        $currentRelatedSpan->end();
     }
 
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool
     {
-        Span::getCurrent()->end();
-        Context::storage()->scope()->detach();
-
         return false;
     }
 

@@ -29,6 +29,7 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
 use Ecotone\OpenTelemetry\TracerInterceptor;
 use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -88,6 +89,32 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
                 DistributedBus::class
             )
         );
+
+        $pointcut = '';
+        if ($tracingConfiguration->isFlushForcedOnBusExecution()) {
+            $pointcut = CommandBus::class . '||' . QueryBus::class . '||' . DistributedBus::class;
+        }
+        if ($tracingConfiguration->isForceFlushOnAsynchronousMessageHandled()) {
+            $pointcut .= '||' . AsynchronousRunningEndpoint::class;
+        }
+
+        if ($pointcut !== '') {
+            $messagingConfiguration->registerServiceDefinition(
+                EcotoneForcedTraceFlush::class,
+                new Definition(EcotoneForcedTraceFlush::class, [
+                    new Reference(TracerProviderInterface::class),
+                ])
+            );
+
+            $messagingConfiguration->registerAroundMethodInterceptor(
+                AroundInterceptorBuilder::create(
+                    EcotoneForcedTraceFlush::class,
+                    $interfaceToCallRegistry->getFor(EcotoneForcedTraceFlush::class, 'flush'),
+                    Precedence::TRACING_PRECEDENCE - 1,
+                    $pointcut
+                )
+            );
+        }
     }
 
     public function canHandle($extensionObject): bool

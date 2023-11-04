@@ -35,29 +35,13 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-//        Context::getCurrent()->attach($span->storeInContext(Context::getCurrent()));
-//        $span->activate();
-
-        $span1 = Span::getCurrent();
-        $context1 = Context::getCurrent();
-
         $span = EcotoneSpanBuilder::create($message, 'Sending to Channel: ' . $this->channelName, $this->tracerProvider, SpanKind::KIND_PRODUCER)
             ->startSpan();
-//        $span2 = Span::getCurrent();
+
         $scope = $span->activate();
-//        $span2 = Span::getCurrent();
-//        $context2 = Context::getCurrent();
         $ctx = $span->storeInContext(Context::getCurrent());
         $carrier = [];
         TraceContextPropagator::getInstance()->inject($carrier, null, $ctx);
-//        $context->detach();
-//
-//        $span3 = Span::getCurrent();
-//        $context3 = Context::getCurrent();
-//        $span->end();
-//
-//        $span4 = Span::getCurrent();
-//        $context4 = Context::getCurrent();
 
         return MessageBuilder::fromMessage($message)
                 ->setHeader(self::TRACING_CARRIER_HEADER, json_encode($carrier))

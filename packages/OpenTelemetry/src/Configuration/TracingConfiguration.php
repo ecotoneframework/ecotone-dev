@@ -13,7 +13,7 @@ final class TracingConfiguration
 
     private int $tracingLevel = self::TRACING_LEVEL_SERVICE;
 
-    private bool $forceFlushOnCommandBusClosed = true;
+    private bool $forceFlushOnBusExecution = true;
 
     private bool $forceFlushOnAsynchronousMessageHandled = true;
 
@@ -31,10 +31,10 @@ final class TracingConfiguration
         return $this->tracingLevel >= $tracingLevel;
     }
 
-    public function withForceFlushOnCommandBusClosed(bool $forceFlushOnCommandBusClosed): self
+    public function withForceFlushOnBusExecution(bool $forceFlush): self
     {
         $self = clone $this;
-        $self->forceFlushOnCommandBusClosed = $forceFlushOnCommandBusClosed;
+        $self->forceFlushOnBusExecution = $forceFlush;
 
         return $self;
     }
@@ -47,9 +47,9 @@ final class TracingConfiguration
         return $self;
     }
 
-    public function isForceFlushOnCommandBusClosed(): bool
+    public function isFlushForcedOnBusExecution(): bool
     {
-        return $this->forceFlushOnCommandBusClosed;
+        return $this->forceFlushOnBusExecution;
     }
 
     public function isForceFlushOnAsynchronousMessageHandled(): bool

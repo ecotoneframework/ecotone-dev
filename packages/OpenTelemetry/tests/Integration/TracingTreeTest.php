@@ -16,8 +16,11 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Common\Log\LoggerHolder;
+use OpenTelemetry\SDK\Common\Time\ClockFactory;
 use OpenTelemetry\SDK\Trace\Event;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
+use OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor;
+use OpenTelemetry\SDK\Trace\TracerProvider;
 use stdClass;
 use Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\UserNotifier;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\CreateMerchant;
@@ -33,7 +36,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
  */
 final class TracingTreeTest extends TracingTest
 {
-    public function MANUAL_test_command_event_command_flow()
+    public function MANUAL_test_jaeger_command_event_command_flow()
     {
         //        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
         putenv('OTEL_SDK_DISABLED=false');
@@ -64,8 +67,10 @@ final class TracingTreeTest extends TracingTest
         //        $storage = new \ArrayObject();
         //        $exporter = new InMemoryExporter($storage);
 
-        $tracerProvider = JaegerTracer::create('http://collector:4317');
-        $tracer = $tracerProvider->getTracer('io.opentelemetry.contrib.php');
+        /** Using Collector */
+        //        $tracerProvider = JaegerTracer::create('http://collector:4317');
+        /** Using Collector from Jaeger */
+        $tracerProvider = JaegerTracer::create('http://jaeger:4317');
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [
@@ -91,7 +96,7 @@ final class TracingTreeTest extends TracingTest
         $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
         $ecotoneTestSupport->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
 
-        $tracerProvider->shutdown();
+        //        $tracerProvider->shutdown();
     }
 
     public function test_tracing_tree_with_single_levels_of_nesting()
@@ -103,6 +108,76 @@ final class TracingTreeTest extends TracingTest
             [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+        )
+            ->sendCommand(new RegisterUser('1'));
+
+        self::compareTreesByDetails(
+            [
+                [
+                    'details' => ['name' => 'Command Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                            'children' => [],
+                        ],
+                    ],
+                ],
+            ],
+            self::buildTree($exporter)
+        );
+    }
+
+    public function test_disabling_force_flushing_traces()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [User::class],
+            [TracerProviderInterface::class => new TracerProvider(
+                new BatchSpanProcessor(
+                    $exporter,
+                    ClockFactory::getDefault()
+                )
+            )],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withExtensionObjects(
+                    [
+                        TracingConfiguration::createWithDefaults()
+                            ->withForceFlushOnBusExecution(false)
+                            ->withForceFlushOnAsynchronousMessageHandled(false),
+                    ]
+                )
+        )
+            ->sendCommand(new RegisterUser('1'));
+
+        $this->assertEquals(
+            [],
+            self::buildTree($exporter)
+        );
+    }
+
+    public function test_force_flushing_traces()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [User::class],
+            [TracerProviderInterface::class => new TracerProvider(
+                new BatchSpanProcessor(
+                    $exporter,
+                    ClockFactory::getDefault()
+                )
+            )],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withExtensionObjects(
+                    [
+                        TracingConfiguration::createWithDefaults()
+                            ->withForceFlushOnBusExecution(true)
+                            ->withForceFlushOnAsynchronousMessageHandled(true),
+                    ]
+                )
         )
             ->sendCommand(new RegisterUser('1'));
 

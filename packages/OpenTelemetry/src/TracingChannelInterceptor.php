@@ -10,8 +10,6 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
-use OpenTelemetry\Context\ScopeInterface;
-use Ramsey\Uuid\Uuid;
 use function json_decode;
 use function json_encode;
 
@@ -51,9 +49,9 @@ final class TracingChannelInterceptor implements ChannelInterceptor
 
     public function postSend(Message $message, MessageChannel $messageChannel): void
     {
-// @TODO Remove header from message after notice are stopped from OpenTelemetry (https://github.com/open-telemetry/opentelemetry-php/issues/1138)
+        // @TODO Remove header from message after notice are stopped from OpenTelemetry (https://github.com/open-telemetry/opentelemetry-php/issues/1138)
         $currentContext = $message->getHeaders()->get(MessageHeaders::TEMPORARY_SPAN_CONTEXT_HEADER);
-//        $currentContext = Context::storage()->scope();
+        //        $currentContext = Context::storage()->scope();
         $currentRelatedSpan = Span::getCurrent();
         $currentContext->detach();
         $currentRelatedSpan->end();

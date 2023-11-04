@@ -4,7 +4,6 @@ namespace Test\Ecotone\Messaging\Fixture\Handler;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Message;
@@ -12,7 +11,6 @@ use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use InvalidArgumentException;
-use Throwable;
 
 class DataReturningService implements DefinedObject
 {
@@ -95,7 +93,7 @@ class DataReturningService implements DefinedObject
             $this->asAMessage,
             $this->headers,
             $this->exception,
-            $this->rejectException
+            $this->rejectException,
         ]);
     }
 }

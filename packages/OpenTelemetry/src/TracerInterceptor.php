@@ -48,7 +48,7 @@ final class TracerInterceptor
                 $message,
                 spanKind: SpanKind::KIND_CONSUMER,
             );
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             $scope->detach();
 
             throw $exception;

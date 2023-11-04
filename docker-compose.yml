@@ -134,6 +134,8 @@ services:
       - 9411:9411
   jaeger:
     image: jaegertracing/all-in-one:latest
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
     networks:
       - default
     ports:

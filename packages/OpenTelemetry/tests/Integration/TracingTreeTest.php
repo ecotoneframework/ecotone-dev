@@ -33,7 +33,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
  */
 final class TracingTreeTest extends TracingTest
 {
-    public function MANUAL_test_command_event_command_flow()
+    public function test_command_event_command_flow()
     {
         //        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
         putenv('OTEL_SDK_DISABLED=false');
@@ -64,8 +64,10 @@ final class TracingTreeTest extends TracingTest
         //        $storage = new \ArrayObject();
         //        $exporter = new InMemoryExporter($storage);
 
-        $tracerProvider = JaegerTracer::create('http://collector:4317');
-        $tracer = $tracerProvider->getTracer('io.opentelemetry.contrib.php');
+        /** Using Collector */
+//        $tracerProvider = JaegerTracer::create('http://collector:4317');
+        /** Using Collector from Jaeger */
+        $tracerProvider = JaegerTracer::create('http://jaeger:4317');
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [
@@ -91,7 +93,7 @@ final class TracingTreeTest extends TracingTest
         $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
         $ecotoneTestSupport->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
 
-        $tracerProvider->shutdown();
+//        $tracerProvider->shutdown();
     }
 
     public function test_tracing_tree_with_single_levels_of_nesting()

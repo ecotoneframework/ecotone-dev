@@ -7,10 +7,9 @@ use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
-use Psr\Log\LoggerInterface;
-use Throwable;
 use Ecotone\Messaging\Message;
+use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Throwable;
 
 class ObjectManagerInterceptor
 {

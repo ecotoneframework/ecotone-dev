@@ -2,10 +2,10 @@
 
 namespace Ecotone\Amqp\Transaction;
 
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use function array_map;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
+
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ConsoleCommand;
@@ -17,11 +17,11 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
 class AmqpTransactionModule implements AnnotationModule

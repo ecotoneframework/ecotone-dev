@@ -9,10 +9,9 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Psr\Log\LoggerInterface;
-use Throwable;
 use Ecotone\Messaging\Message;
+use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Throwable;
 
 /**
  * https://www.rabbitmq.com/blog/2011/02/10/introducing-publisher-confirms/

@@ -8,10 +8,9 @@ use Closure;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Support\Assert;
-use Psr\Log\LoggerInterface;
-use Throwable;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\Support\Assert;
+use Throwable;
 
 /**
  * @internal

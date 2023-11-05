@@ -2,6 +2,7 @@
 
 namespace Ecotone\Amqp\Transaction;
 
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use function array_map;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
@@ -66,7 +67,7 @@ class AmqpTransactionModule implements AnnotationModule
 
         $messagingConfiguration->registerServiceDefinition(AmqpTransactionInterceptor::class, [
             array_map(fn (string $connectionFactory) => Reference::to($connectionFactory), $connectionFactories),
-            Reference::to(LoggerInterface::class),
+            Reference::to(LoggingGateway::class),
         ]);
 
         $messagingConfiguration

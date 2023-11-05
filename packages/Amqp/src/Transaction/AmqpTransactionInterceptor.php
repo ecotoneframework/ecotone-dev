@@ -6,11 +6,13 @@ use AMQPChannel;
 use AMQPConnectionException;
 use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Psr\Log\LoggerInterface;
 use Throwable;
+use Ecotone\Messaging\Message;
 
 /**
  * https://www.rabbitmq.com/blog/2011/02/10/introducing-publisher-confirms/
@@ -24,12 +26,13 @@ class AmqpTransactionInterceptor
     /**
      * @param array<string, AmqpConnectionFactory> $connectionFactories
      */
-    public function __construct(private array $connectionFactories, private LoggerInterface $logger)
+    public function __construct(private array $connectionFactories, private LoggingGateway $logger)
     {
     }
 
     public function transactional(
         MethodInvocation $methodInvocation,
+        Message $message,
         ?AmqpTransaction $amqpTransaction,
     ) {
         if ($amqpTransaction) {
@@ -55,8 +58,11 @@ class AmqpTransactionInterceptor
 
                 $retryStrategy->runCallbackWithRetries(function () use ($connectionFactory) {
                     $connectionFactory->createContext()->getExtChannel()->startTransaction();
-                }, AMQPConnectionException::class, $this->logger, 'Starting AMQP transaction has failed due to network work, retrying in order to self heal.');
-                $this->logger->info('AMQP transaction started');
+                }, $message, AMQPConnectionException::class, $this->logger, 'Starting AMQP transaction has failed due to network work, retrying in order to self heal.');
+                $this->logger->info(
+                    'AMQP transaction started',
+                    $message
+                );
             }
             try {
                 $result = $methodInvocation->proceed();
@@ -64,7 +70,10 @@ class AmqpTransactionInterceptor
                 foreach ($connectionFactories as $connectionFactory) {
                     $connectionFactory->createContext()->getExtChannel()->commitTransaction();
                 }
-                $this->logger->info('AMQP transaction was committed');
+                $this->logger->info(
+                    'AMQP transaction was committed',
+                    $message
+                );
             } catch (Throwable $exception) {
                 foreach ($connectionFactories as $connectionFactory) {
                     /** @var AMQPChannel $extChannel */
@@ -76,7 +85,12 @@ class AmqpTransactionInterceptor
                     $extChannel->close(); // Has to be closed in amqp_lib, as if channel is trarnsactional does not allow for sending outside of transaction
                 }
 
-                $this->logger->info('AMQP transaction was roll backed');
+                $this->logger->info(
+                    'AMQP transaction was roll backed',
+                    $message,
+                    $exception
+                );
+
                 throw $exception;
             }
         } catch (Throwable $exception) {

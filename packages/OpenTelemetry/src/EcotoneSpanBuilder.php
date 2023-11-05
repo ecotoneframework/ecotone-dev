@@ -13,7 +13,7 @@ use OpenTelemetry\API\Trace\TracerProviderInterface;
 
 final class EcotoneSpanBuilder
 {
-    public const ECOTONE_TRACER_NAME = 'io.opentelemetry.contrib.php';
+    public const ECOTONE_TRACER_NAME = 'io.opentelemetry.contrib.php.ecotone';
 
     public static function create(
         Message                 $context,

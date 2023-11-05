@@ -32,14 +32,13 @@
     },
     "require": {
         "ecotone/ecotone": "~1.203.7",
-        "open-telemetry/api": "^1.0.0|^1.0.0beta13"
+        "open-telemetry/sdk": "^1.0.0|^1.0.0beta17"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "open-telemetry/sdk": "*",
         "open-telemetry/transport-grpc": "*",
         "open-telemetry/exporter-otlp": "*",
         "symfony/http-client": "^6.2",

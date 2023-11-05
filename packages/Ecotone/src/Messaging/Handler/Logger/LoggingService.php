@@ -48,7 +48,7 @@ class LoggingService
     public function info(
         #[Payload] string $text,
         #[Header(self::CONTEXT_MESSAGE_HEADER)] Message $message,
-        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?Exception $exception,
+        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?\Throwable $exception,
     ): void {
         $this->logger->info(
             $text,
@@ -66,7 +66,7 @@ class LoggingService
     public function error(
         #[Payload] string $text,
         #[Header(self::CONTEXT_MESSAGE_HEADER)] Message $message,
-        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?Exception $exception,
+        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?\Throwable $exception,
     ): void {
         $this->logger->critical(
             $text,

@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
-use Ecotone\OpenTelemetry\Support\JaegerTracer;
+use Ecotone\OpenTelemetry\Support\OTelTracer;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -70,7 +70,7 @@ final class TracingTreeTest extends TracingTest
         /** Using Collector */
         //        $tracerProvider = JaegerTracer::create('http://collector:4317');
         /** Using Collector from Jaeger */
-        $tracerProvider = JaegerTracer::create('http://jaeger:4317');
+        $tracerProvider = OTelTracer::create('http://jaeger:4317');
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [

@@ -13,7 +13,7 @@ use OpenTelemetry\SDK\Common\Time\ClockFactory;
 use OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 
-final class JaegerTracer
+final class OTelTracer
 {
     public static function create(string $endpoint = 'http://localhost:4317'): TracerProviderInterface
     {

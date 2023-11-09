@@ -23,8 +23,7 @@ final class ManagerRegistryEmulator implements ManagerRegistry
         private Connection $connection,
         private array $pathsToMapping = [],
         private ?EntityManager $entityManager = null
-    )
-    {
+    ) {
     }
 
     public static function fromConnectionFactory(DbalConnectionFactory $dbalConnectionFactory): EcotoneManagerRegistryConnectionFactory

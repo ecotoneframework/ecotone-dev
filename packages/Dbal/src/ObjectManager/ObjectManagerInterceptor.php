@@ -4,7 +4,6 @@ namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -40,7 +39,7 @@ class ObjectManagerInterceptor
             foreach ($managerRegistries as $managerRegistry) {
                 /** @var EntityManagerInterface $objectManager */
                 foreach ($managerRegistry->getManagers() as $name => $objectManager) {
-                    if (!$objectManager->isOpen()) {
+                    if (! $objectManager->isOpen()) {
                         $managerRegistry->resetManager($name);
                     }
                     if ($this->depthCount === 1) {

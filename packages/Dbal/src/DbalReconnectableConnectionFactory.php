@@ -3,12 +3,10 @@
 namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\Context;
 use ReflectionClass;
 

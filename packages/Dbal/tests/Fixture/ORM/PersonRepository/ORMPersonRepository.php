@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ORM\PersonRepository;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Messaging\Support\Assert;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;

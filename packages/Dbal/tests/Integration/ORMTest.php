@@ -11,7 +11,6 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Symfony\Bridge\Doctrine\ManagerRegistry;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;

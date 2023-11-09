@@ -16,9 +16,9 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
 {
     public const CONNECTION_PROPERTIES = ['connection', '_conn'];
 
-    private DbalConnectionFactory|ManagerRegistryConnectionFactory $connectionFactory;
+    private DbalConnectionFactory|EcotoneManagerRegistryConnectionFactory $connectionFactory;
 
-    public function __construct(DbalConnectionFactory|ManagerRegistryConnectionFactory $dbalConnectionFactory)
+    public function __construct(DbalConnectionFactory|EcotoneManagerRegistryConnectionFactory $dbalConnectionFactory)
     {
         $this->connectionFactory = $dbalConnectionFactory;
     }
@@ -64,14 +64,12 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     }
 
     /**
-     * @param ManagerRegistryConnectionFactory|Connection $connection
+     * @param EcotoneManagerRegistryConnectionFactory|Connection $connection
      */
     public static function getWrappedConnection(object $connection): Connection
     {
-        if ($connection instanceof ManagerRegistryConnectionFactory) {
-            [$registry, $connectionName] = self::getManagerRegistryAndConnectionName($connection);
-            /** @var Connection $connection */
-            return $registry->getConnection($connectionName);
+        if ($connection instanceof EcotoneManagerRegistryConnectionFactory) {
+            return $connection->getRegistry()->getConnection();
         } else {
             $reflectionClass   = new ReflectionClass($connection);
             $method = $reflectionClass->getMethod('establishConnection');
@@ -91,21 +89,5 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
             throw InvalidArgumentException::create('Did not found connection property in ' . $reflectionClass->getName());
         }
-    }
-
-    public static function getManagerRegistryAndConnectionName(ManagerRegistryConnectionFactory $connectionFactory): array
-    {
-        $reflectionClass   = new ReflectionClass($connectionFactory);
-
-        $registry = $reflectionClass->getProperty('registry');
-        $registry->setAccessible(true);
-        $config = $reflectionClass->getProperty('config');
-        $config->setAccessible(true);
-
-        $connectionName = $config->getValue($connectionFactory)['connection_name'];
-        /** @var ManagerRegistry $registry */
-        $registry = $registry->getValue($connectionFactory);
-
-        return [$registry, $connectionName];
     }
 }

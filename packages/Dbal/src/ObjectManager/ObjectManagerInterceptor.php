@@ -2,8 +2,10 @@
 
 namespace Ecotone\Dbal\ObjectManager;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -24,42 +26,53 @@ class ObjectManagerInterceptor
 
     public function transactional(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger)
     {
-        /** @var ManagerRegistry[] $objectManagers */
-        $objectManagers = [];
+        /** @var ManagerRegistry[] $managerRegistries */
+        $managerRegistries = [];
 
         foreach ($this->managerRegistryConnectionFactories as $managerRegistryConnectionFactory) {
-            // TODO: this is always false
-            if ($managerRegistryConnectionFactory instanceof ManagerRegistryConnectionFactory) {
-                $objectManagers[] = DbalReconnectableConnectionFactory::getManagerRegistryAndConnectionName($managerRegistryConnectionFactory)[0];
+            if ($managerRegistryConnectionFactory instanceof EcotoneManagerRegistryConnectionFactory) {
+                $managerRegistries[] = $managerRegistryConnectionFactory->getRegistry();
             }
         }
 
         $this->depthCount++;
         try {
-            $result = $methodInvocation->proceed();
-
-            foreach ($objectManagers as $objectManager) {
-                foreach ($objectManager->getManagers() as $manager) {
-                    $manager->flush();
+            foreach ($managerRegistries as $managerRegistry) {
+                /** @var EntityManagerInterface $objectManager */
+                foreach ($managerRegistry->getManagers() as $name => $objectManager) {
+                    if (!$objectManager->isOpen()) {
+                        $managerRegistry->resetManager($name);
+                    }
                     if ($this->depthCount === 1) {
-                        $manager->clear();
+                        $objectManager->clear();
                     }
                 }
             }
 
-            if (count($objectManagers) > 0) {
+            $result = $methodInvocation->proceed();
+
+            foreach ($managerRegistries as $managerRegistry) {
+                foreach ($managerRegistry->getManagers() as $objectManager) {
+                    $objectManager->flush();
+                    if ($this->depthCount === 1) {
+                        $objectManager->clear();
+                    }
+                }
+            }
+
+            if (count($managerRegistries) > 0) {
                 $logger->info(
                     'Flushed and cleared doctrine object managers',
                     $message
                 );
             }
         } catch (Throwable $exception) {
-            foreach ($objectManagers as $objectManager) {
-                foreach ($objectManager->getManagers() as $manager) {
-                    $manager->clear();
+            foreach ($managerRegistries as $managerRegistry) {
+                foreach ($managerRegistry->getManagers() as $objectManager) {
+                    $objectManager->clear();
                 }
             }
-            if (count($objectManagers) > 0) {
+            if (count($managerRegistries) > 0) {
                 $logger->info(
                     'Cleared doctrine object managers',
                     $message

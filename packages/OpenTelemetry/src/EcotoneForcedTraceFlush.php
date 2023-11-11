@@ -20,8 +20,11 @@ final class EcotoneForcedTraceFlush
 
     public function flush(MethodInvocation $methodInvocation): mixed
     {
-        $result = $methodInvocation->proceed();
-        $this->tracerProvider->forceFlush();
+        try {
+            $result = $methodInvocation->proceed();
+        } finally{
+            $this->tracerProvider->forceFlush();
+        }
 
         return $result;
     }

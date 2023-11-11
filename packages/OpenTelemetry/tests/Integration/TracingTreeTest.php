@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
 use Ecotone\OpenTelemetry\Support\OTelTracer;
+use InvalidArgumentException;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -165,7 +166,7 @@ final class TracingTreeTest extends TracingTest
                     'throwException' => true,
                 ]
             );
-        }catch (\InvalidArgumentException) {
+        } catch (InvalidArgumentException) {
             $exceptionThrown = true;
         }
         $this->assertTrue($exceptionThrown);
@@ -174,8 +175,8 @@ final class TracingTreeTest extends TracingTest
             [
                 'details' => ['name' => 'Command Bus'],
                 'child' => [
-                    'details' => ['name' => 'Command Handler: ' . User::class . '::register']
-                ]
+                    'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                ],
             ],
             self::buildTree($exporter)
         );

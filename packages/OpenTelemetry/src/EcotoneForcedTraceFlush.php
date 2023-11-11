@@ -22,7 +22,7 @@ final class EcotoneForcedTraceFlush
     {
         try {
             $result = $methodInvocation->proceed();
-        } finally{
+        } finally {
             $this->tracerProvider->forceFlush();
         }
 

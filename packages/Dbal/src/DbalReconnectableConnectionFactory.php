@@ -67,7 +67,7 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     public static function getWrappedConnection(object $connection): Connection
     {
         if ($connection instanceof EcotoneManagerRegistryConnectionFactory) {
-            return $connection->getRegistry()->getConnection();
+            return $connection->getConnection();
         } else {
             $reflectionClass   = new ReflectionClass($connection);
             $method = $reflectionClass->getMethod('establishConnection');

@@ -36,69 +36,6 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
  */
 final class TracingTreeTest extends TracingTest
 {
-    public function MANUAL_test_jaeger_command_event_command_flow()
-    {
-        //        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
-        putenv('OTEL_SDK_DISABLED=false');
-        putenv('OTEL_RESOURCE_ATTRIBUTES=service.version=1.0.0');
-        putenv('OTEL_SERVICE_NAME=example-app');
-        putenv('OTEL_LOG_LEVEL=warning');
-        //        allow for set up based on environment variables and using CachedInstrumentation
-        //        putenv('OTEL_PHP_AUTOLOAD_ENABLED=true');
-        //        putenv('OTEL_TRACES_SAMPLER=always_on');
-        //        putenv('OTEL_TRACES_SAMPLER=traceidratio');
-        //        putenv('OTEL_TRACES_SAMPLER_ARG=1.00');
-        //        putenv('OTEL_TRACES_EXPORTER=otlp');
-        //        putenv('OTEL_EXPORTER_OTLP_ENDPOINT=http://collector:4317');
-        //        require installing grpc: https://github.com/open-telemetry/opentelemetry-php#1-install-php-ext-grpc
-        //        and protobuf https://github.com/open-telemetry/opentelemetry-php#5-install-php-ext-protobuf
-        //        putenv('OTEL_EXPORTER_OTLP_PROTOCOL=grpc');
-        //        putenv('OTEL_EXPORTER_OTLP_PROTOCOL=grpc');
-        //        putenv('OTEL_PHP_TRACES_PROCESSOR=simple');
-        //        for setting batch sending
-        //        putenv('OTEL_BSP_SCHEDULE_DELAY=10000');
-
-        // static
-        //        $instrumentation = new \OpenTelemetry\API\Common\Instrumentation\CachedInstrumentation('io.opentelemetry.contrib.php');
-        //        $tracer = $instrumentation->tracer();
-
-        // in memory
-        //        Create an ArrayObject as the storage for the spans
-        //        $storage = new \ArrayObject();
-        //        $exporter = new InMemoryExporter($storage);
-
-        /** Using Collector */
-        //        $tracerProvider = JaegerTracer::create('http://collector:4317');
-        /** Using Collector from Jaeger */
-        $tracerProvider = OTelTracer::create('http://jaeger:4317');
-
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [
-                \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
-                UserNotifier::class,
-            ],
-            [
-                new UserNotifier(),
-                TracerProviderInterface::class => $tracerProvider,
-            ],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::TRACING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ]))
-                ->withExtensionObjects([
-                    TracingConfiguration::createWithDefaults(),
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ]),
-            allowGatewaysToBeRegisteredInContainer: true
-        );
-
-        $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
-        $ecotoneTestSupport->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
-
-        //        $tracerProvider->shutdown();
-    }
-
     public function test_tracing_tree_with_single_levels_of_nesting()
     {
         $exporter = new InMemoryExporter(new ArrayObject());
@@ -194,6 +131,58 @@ final class TracingTreeTest extends TracingTest
                 ],
             ],
             self::buildTree($exporter)
+        );
+    }
+
+    public function test_traces_are_force_flushed_when_synchronous_exception_happens()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [User::class],
+            [TracerProviderInterface::class => new TracerProvider(
+                new BatchSpanProcessor(
+                    $exporter,
+                    ClockFactory::getDefault()
+                )
+            )],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withExtensionObjects(
+                    [
+                        TracingConfiguration::createWithDefaults()
+                            ->withForceFlushOnBusExecution(true)
+                            ->withForceFlushOnAsynchronousMessageHandled(true),
+                    ]
+                )
+        );
+
+        $exceptionThrown = false;
+        try {
+            $ecotoneLite->sendCommand(
+                new RegisterUser('1'),
+                [
+                    'throwException' => true,
+                ]
+            );
+        }catch (\InvalidArgumentException) {
+            $exceptionThrown = true;
+        }
+        $this->assertTrue($exceptionThrown);
+
+        $node = $this->getNodeAtTargetedSpan(
+            [
+                'details' => ['name' => 'Command Bus'],
+                'child' => [
+                    'details' => ['name' => 'Command Handler: ' . User::class . '::register']
+                ]
+            ],
+            self::buildTree($exporter)
+        );
+
+        $this->assertSame(
+            'exception',
+            $node['details']['events'][0]->getName()
         );
     }
 
@@ -619,5 +608,68 @@ final class TracingTreeTest extends TracingTest
             'tokens',
             $node['details']['attributes']
         );
+    }
+
+    public function MANUAL_test_jaeger_command_event_command_flow()
+    {
+        //        LoggerHolder::set(new Logger('otlp-example', [new StreamHandler('php://stderr')]));
+        putenv('OTEL_SDK_DISABLED=false');
+        putenv('OTEL_RESOURCE_ATTRIBUTES=service.version=1.0.0');
+        putenv('OTEL_SERVICE_NAME=example-app');
+        putenv('OTEL_LOG_LEVEL=warning');
+        //        allow for set up based on environment variables and using CachedInstrumentation
+        //        putenv('OTEL_PHP_AUTOLOAD_ENABLED=true');
+        //        putenv('OTEL_TRACES_SAMPLER=always_on');
+        //        putenv('OTEL_TRACES_SAMPLER=traceidratio');
+        //        putenv('OTEL_TRACES_SAMPLER_ARG=1.00');
+        //        putenv('OTEL_TRACES_EXPORTER=otlp');
+        //        putenv('OTEL_EXPORTER_OTLP_ENDPOINT=http://collector:4317');
+        //        require installing grpc: https://github.com/open-telemetry/opentelemetry-php#1-install-php-ext-grpc
+        //        and protobuf https://github.com/open-telemetry/opentelemetry-php#5-install-php-ext-protobuf
+        //        putenv('OTEL_EXPORTER_OTLP_PROTOCOL=grpc');
+        //        putenv('OTEL_EXPORTER_OTLP_PROTOCOL=grpc');
+        //        putenv('OTEL_PHP_TRACES_PROCESSOR=simple');
+        //        for setting batch sending
+        //        putenv('OTEL_BSP_SCHEDULE_DELAY=10000');
+
+        // static
+        //        $instrumentation = new \OpenTelemetry\API\Common\Instrumentation\CachedInstrumentation('io.opentelemetry.contrib.php');
+        //        $tracer = $instrumentation->tracer();
+
+        // in memory
+        //        Create an ArrayObject as the storage for the spans
+        //        $storage = new \ArrayObject();
+        //        $exporter = new InMemoryExporter($storage);
+
+        /** Using Collector */
+        //        $tracerProvider = JaegerTracer::create('http://collector:4317');
+        /** Using Collector from Jaeger */
+        $tracerProvider = OTelTracer::create('http://jaeger:4317');
+
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [
+                \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
+                UserNotifier::class,
+            ],
+            [
+                new UserNotifier(),
+                TracerProviderInterface::class => $tracerProvider,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::TRACING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                ]))
+                ->withExtensionObjects([
+                    TracingConfiguration::createWithDefaults(),
+                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
+                ]),
+            allowGatewaysToBeRegisteredInContainer: true
+        );
+
+        $ecotoneTestSupport->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
+        $ecotoneTestSupport->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(2));
+
+        //        $tracerProvider->shutdown();
     }
 }

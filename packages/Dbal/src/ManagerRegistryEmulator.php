@@ -155,11 +155,18 @@ final class ManagerRegistryEmulator implements ManagerRegistry
 
     private function setupEntityManager(): void
     {
-        $config = Setup::createAttributeMetadataConfiguration(
-            $this->pathsToMapping,
-            true
-        );
+        if($this->isORMBased()) {
+            $config = Setup::createAttributeMetadataConfiguration(
+                $this->pathsToMapping,
+                true
+            );
 
-        $this->entityManager = EntityManager::create($this->getConnection(), $config);
+            $this->entityManager = EntityManager::create($this->getConnection(), $config);
+        }
+    }
+
+    public function isORMBased(): bool
+    {
+        return class_exists(Doctrine\ORM\EntityManagerInterface::class);
     }
 }

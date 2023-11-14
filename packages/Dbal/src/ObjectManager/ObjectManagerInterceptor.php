@@ -30,7 +30,11 @@ class ObjectManagerInterceptor
 
         foreach ($this->managerRegistryConnectionFactories as $managerRegistryConnectionFactory) {
             if ($managerRegistryConnectionFactory instanceof EcotoneManagerRegistryConnectionFactory) {
-                $managerRegistries[] = $managerRegistryConnectionFactory->getRegistry();
+                $registry = $managerRegistryConnectionFactory->getRegistry();
+
+                if($registry->isORMBased()) {
+                    $managerRegistries[] = $managerRegistryConnectionFactory->getRegistry();
+                }
             }
         }
 

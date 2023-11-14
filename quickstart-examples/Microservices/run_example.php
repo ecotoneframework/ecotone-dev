@@ -4,6 +4,7 @@ use App\Microservices\Receiver\MessagingConfiguration;
 use App\Microservices\Receiver\OrderServiceReceiver;
 use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\QueryBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
@@ -46,7 +47,10 @@ echo "Before running consumer and handling command, there should be no ordered p
 Assert::assertEquals([], $queryBus->sendWithRouting(OrderServiceReceiver::GET_ALL_ORDERED_PRODUCTS));
 
 echo "Running Receiver:\n";
-$receiver->run(MessagingConfiguration::SERVICE_NAME);
+$receiver->run(MessagingConfiguration::SERVICE_NAME, ExecutionPollingMetadata::createWithTestingSetup(
+    100,
+    1000
+));
 Assert::assertEquals([123 => ["milk", "bread"]], $queryBus->sendWithRouting(OrderServiceReceiver::GET_ALL_ORDERED_PRODUCTS));
 echo "All good milk and bread ordered\n\n";
 
@@ -58,6 +62,9 @@ $distributedBus->publishEvent(
 );
 
 echo "After user wa banned, there should be no orders:\n";
-$receiver->run(MessagingConfiguration::SERVICE_NAME);
+$receiver->run(MessagingConfiguration::SERVICE_NAME, ExecutionPollingMetadata::createWithTestingSetup(
+    100,
+    1000
+));
 Assert::assertEquals([], $queryBus->sendWithRouting(OrderServiceReceiver::GET_ALL_ORDERED_PRODUCTS));
 echo "No orders left, all good\n";

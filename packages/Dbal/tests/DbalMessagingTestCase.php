@@ -3,12 +3,11 @@
 namespace Test\Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManager;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Tools\Setup;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
+use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
+use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Test\ComponentTestBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -33,13 +32,14 @@ abstract class DbalMessagingTestCase extends TestCase
         return new DbalConnectionFactory($dsn);
     }
 
-    public function getORMConnectionFactory(array|EntityManagerInterface $pathsOrEntityManager): ConnectionFactory
+    /**
+     * @param string[] $pathsToMapping
+     */
+    public function getORMConnectionFactory(array $pathsToMapping): EcotoneManagerRegistryConnectionFactory
     {
-        if (is_array($pathsOrEntityManager)) {
-            $pathsOrEntityManager = $this->setupEntityManagerFor($pathsOrEntityManager);
-        }
-
-        return DbalConnection::createEntityManager($pathsOrEntityManager);
+        return new EcotoneManagerRegistryConnectionFactory(
+            new ManagerRegistryEmulator($this->getConnection(), $pathsToMapping)
+        );
     }
 
     protected function getConnection(): Connection
@@ -90,15 +90,5 @@ abstract class DbalMessagingTestCase extends TestCase
                     )
                 SQL);
         }
-    }
-
-    /**
-     * @param string[] $paths
-     */
-    protected function setupEntityManagerFor(array $paths): EntityManager
-    {
-        $config = Setup::createAttributeMetadataConfiguration($paths, true);
-
-        return EntityManager::create($this->getConnection(), $config);
     }
 }

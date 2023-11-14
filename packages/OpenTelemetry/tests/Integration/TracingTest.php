@@ -6,7 +6,10 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use function json_encode;
 
-use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+
+use OpenTelemetry\SDK\Trace\SpanDataInterface;
+
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanExporterInterface;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
@@ -15,20 +18,19 @@ use PHPUnit\Framework\TestCase;
 
 abstract class TracingTest extends TestCase
 {
-    protected function prepareTracer(SpanExporterInterface $exporter): TracerInterface
+    public static function prepareTracer(SpanExporterInterface $exporter): TracerProviderInterface
     {
-        $tracerProvider = new TracerProvider(
+        return new TracerProvider(
             new SimpleSpanProcessor(
                 $exporter
             )
         );
-
-        return $tracerProvider->getTracer('io.opentelemetry.contrib.php');
     }
 
-    public function buildTree(InMemoryExporter $exporter): array
+    public static function buildTree(InMemoryExporter $exporter): array
     {
         $tree = [];
+        /** @var SpanDataInterface $span */
         foreach ($exporter->getSpans() as $span) {
             $preparedSpan = [
                 'details' => [
@@ -38,26 +40,27 @@ abstract class TracingTest extends TestCase
                     'attributes' => $span->getAttributes()->toArray(),
                     'kind' => $span->getKind(),
                     'links' => $span->getLinks(),
+                    'events' => $span->getEvents(),
                 ],
                 'children' => [],
             ];
 
-            $tree = $this->putInTree($preparedSpan, $tree, true);
+            $tree = self::putInTree($preparedSpan, $tree, true);
         }
 
         return $tree;
     }
 
-    public function compareTreesByDetails(
+    public static function compareTreesByDetails(
         array $expectedTree,
         array $collectedTree
     ) {
         foreach ($expectedTree as $expectedNode) {
-            $this->findAndCompareNode($expectedNode, $collectedTree);
+            self::findAndCompareNode($expectedNode, $collectedTree);
         }
     }
 
-    private function putInTree(array $searchedSpan, array $tree, bool $isRoot): array
+    private static function putInTree(array $searchedSpan, array $tree, bool $isRoot): array
     {
         $searchedSpanId = $searchedSpan['details']['span_id'];
         $searchedParentId = $searchedSpan['details']['parent_id'];
@@ -82,14 +85,14 @@ abstract class TracingTest extends TestCase
                 unset($changedStructure[$nodeId]);
                 $searchedSpan['children'][$nodeId] = $node;
 
-                $changedStructure = $this->putInTree(
+                $changedStructure = self::putInTree(
                     $searchedSpan,
                     $changedStructure,
                     true
                 );
             } else {
                 // go to children
-                $changedStructure[$nodeId]['children'] = $this->putInTree(
+                $changedStructure[$nodeId]['children'] = self::putInTree(
                     $searchedSpan,
                     $node['children'],
                     false
@@ -104,32 +107,43 @@ abstract class TracingTest extends TestCase
         return $changedStructure;
     }
 
-    private function findAndCompareNode(array $expectedTreeNode, array $collectedTree): void
+    private static function findAndCompareNode(array $expectedTreeNode, array $collectedTree): void
     {
         foreach ($collectedTree as $collectedNode) {
             if ($expectedTreeNode['details']['name'] === $collectedNode['details']['name']) {
+                /** Check if this is the flow that we are looking for */
+                if (isset($expectedTreeNode['details']['attributes']['flowId'])) {
+                    if (! isset($collectedNode['details']['attributes']['flowId'])) {
+                        continue;
+                    }
+
+                    if ($expectedTreeNode['details']['attributes']['flowId'] != $collectedNode['details']['attributes']['flowId']) {
+                        continue;
+                    }
+                }
+
                 foreach ($expectedTreeNode['details'] as $expectedKey => $expectedValue) {
-                    $this->assertArrayHasKey($expectedKey, $collectedNode['details'], "Expected key {$expectedKey} is not present in node {$collectedNode['details']['name']}");
+                    self::assertArrayHasKey($expectedKey, $collectedNode['details'], "Expected key {$expectedKey} is not present in node {$collectedNode['details']['name']}");
                     if ($expectedKey === 'attributes') {
                         foreach ($expectedValue as $expectedAttributeKey => $expectedAttributeValue) {
-                            $this->assertArrayHasKey($expectedAttributeKey, $collectedNode['details'][$expectedKey], "Expected key {$expectedAttributeKey} is not present in node {$collectedNode['details']['name']}");
-                            $this->assertSame($expectedAttributeValue, $collectedNode['details'][$expectedKey][$expectedAttributeKey], "Expected value for key {$expectedAttributeKey} is {$expectedAttributeValue}, but got {$collectedNode['details'][$expectedKey][$expectedAttributeKey]} in node {$collectedNode['details']['name']}");
+                            self::assertArrayHasKey($expectedAttributeKey, $collectedNode['details'][$expectedKey], "Expected key {$expectedAttributeKey} is not present in node {$collectedNode['details']['name']}");
+                            self::assertSame($expectedAttributeValue, $collectedNode['details'][$expectedKey][$expectedAttributeKey], "Expected value for key {$expectedAttributeKey} is {$expectedAttributeValue}, but got {$collectedNode['details'][$expectedKey][$expectedAttributeKey]} in node {$collectedNode['details']['name']}");
                         }
                     } else {
-                        $this->assertSame(
+                        self::assertSame(
                             $expectedValue,
                             $collectedNode['details'][$expectedKey],
                             "Expected value for key {$expectedKey} in node {$collectedNode['details']['name']}"
                         );
                     }
                 }
-                $this->compareTreesByDetails($expectedTreeNode['children'], $collectedNode['children']);
+                self::compareTreesByDetails($expectedTreeNode['children'], $collectedNode['children']);
 
                 return;
             }
         }
 
-        $this->assertTrue(false, "Could not find node with name {$expectedTreeNode['details']['name']}. Nodes at this level: " . json_encode($collectedTree));
+        self::assertTrue(false, "Could not find node with name {$expectedTreeNode['details']['name']}. Nodes at this level: " . json_encode($collectedTree));
     }
 
     public function getNodeAtTargetedSpan(array $expectedTreeNode, array $collectedTree): array

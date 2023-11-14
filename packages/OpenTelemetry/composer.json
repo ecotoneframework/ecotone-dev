@@ -31,17 +31,16 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.202.2",
-        "open-telemetry/api": "^1.0.0"
+        "ecotone/ecotone": "~1.204.2",
+        "open-telemetry/sdk": "^1.0.0|^1.0.0beta17"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "open-telemetry/sdk": "^1.0.0",
-        "open-telemetry/transport-grpc": "^1.0.0",
-        "open-telemetry/exporter-otlp": "^1.0.0",
+        "open-telemetry/transport-grpc": "*",
+        "open-telemetry/exporter-otlp": "*",
         "symfony/http-client": "^6.2",
         "guzzlehttp/promises": "^1.5",
         "php-http/message-factory": "^1.0",
@@ -62,11 +61,10 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.202.2-dev"
+            "dev-main": "1.204.2-dev"
         },
         "ecotone": {
-            "repository": "open-telemetry",
-            "publish-version": false
+            "repository": "open-telemetry"
         },
         "merge-plugin": {
             "include": [

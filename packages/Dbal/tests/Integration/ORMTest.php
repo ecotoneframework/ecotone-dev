@@ -38,12 +38,12 @@ final class ORMTest extends DbalMessagingTestCase
     public function test_flushing_object_manager_on_command_bus()
     {
         $this->setupUserTable();
-        $entityManager = $this->setupEntityManagerFor([__DIR__.'/../Fixture/ORM/Person']);
-        $ORMPersonRepository = new ORMPersonRepository($entityManager);
+        $connectionFactory = $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person']);
+        $ORMPersonRepository = new ORMPersonRepository($connectionFactory->getRegistry());
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
-                DbalConnectionFactory::class => $this->getORMConnectionFactory($entityManager),
+                DbalConnectionFactory::class => $connectionFactory,
                 ORMPersonRepository::class => $ORMPersonRepository,
                 RegisterPersonService::class => new RegisterPersonService(),
                 SaveMultipleEntitiesHandler::class => new SaveMultipleEntitiesHandler(),
@@ -74,12 +74,13 @@ final class ORMTest extends DbalMessagingTestCase
     public function test_disabling_flushing_object_manager_on_command_bus()
     {
         $this->setupUserTable();
-        $entityManager = $this->setupEntityManagerFor([__DIR__.'/../Fixture/ORM/Person']);
-        $ORMPersonRepository = new ORMPersonRepository($entityManager);
+        $connectionFactory = $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person']);
+        $entityManager = $connectionFactory->getRegistry()->getManager();
+        $ORMPersonRepository = new ORMPersonRepository($connectionFactory->getRegistry());
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
-                DbalConnectionFactory::class => $this->getORMConnectionFactory($entityManager),
+                DbalConnectionFactory::class => $connectionFactory,
                 ORMPersonRepository::class => $ORMPersonRepository,
                 RegisterPersonService::class => new RegisterPersonService(),
             ],
@@ -102,6 +103,36 @@ final class ORMTest extends DbalMessagingTestCase
         $this->expectException(InvalidArgumentException::class);
 
         $ORMPersonRepository->get(100);
+    }
+
+    public function test_object_manager_reconnects_on_command_bus()
+    {
+        $this->setupUserTable();
+        $connectionFactory = $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person']);
+        $entityManager = $connectionFactory->getRegistry()->getManager();
+        $ORMPersonRepository = new ORMPersonRepository($connectionFactory->getRegistry());
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $connectionFactory,
+                ORMPersonRepository::class => $ORMPersonRepository,
+                RegisterPersonService::class => new RegisterPersonService(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\Dbal\Fixture\ORM\PersonRepository',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            addInMemoryStateStoredRepository: false
+        );
+
+        $entityManager->close();
+        $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
+
+        $this->assertNotNull(
+            $ORMPersonRepository->get(100)
+        );
     }
 
     private function bootstrapEcotone(): FlowTestSupport

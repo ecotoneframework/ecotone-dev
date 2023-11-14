@@ -22,7 +22,10 @@ use Monorepo\ExampleApp\Common\Infrastructure\StubNotificationSender;
 use Monorepo\ExampleApp\Common\Infrastructure\StubShippingService;
 use Monorepo\ExampleApp\Common\Infrastructure\SystemClock;
 use Monorepo\ExampleApp\Common\UI\OrderController;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use Psr\Log\LoggerInterface;
+use Test\Ecotone\OpenTelemetry\Integration\TracingTest;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -60,6 +63,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ProductRepository::class, function (Application $app) {
             $configuration = $app->make(Configuration::class);
             return $configuration->productRepository();
+        });
+
+        $this->app->singleton(InMemoryExporter::class, fn() => new InMemoryExporter());
+        $this->app->singleton(TracerProviderInterface::class, function (Application $app) {
+            $exporter = $app->make(InMemoryExporter::class);
+            return TracingTest::prepareTracer($exporter);
         });
     }
 

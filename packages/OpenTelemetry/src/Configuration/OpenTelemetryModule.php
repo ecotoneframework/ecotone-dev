@@ -17,17 +17,22 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
 use Ecotone\OpenTelemetry\TracerInterceptor;
 use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
-use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
@@ -46,7 +51,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $messagingConfiguration->registerServiceDefinition(
             TracerInterceptor::class,
             new Definition(TracerInterceptor::class, [
-                new Reference(TracerInterface::class),
+                new Reference(TracerProviderInterface::class),
                 new Reference(LoggerInterface::class),
             ])
         );
@@ -67,6 +72,49 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $this->registerTracerFor('traceQueryBus', QueryBus::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceEventBus', EventBus::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceAsynchronousEndpoint', AsynchronousRunningEndpoint::class, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerTracerFor('traceLogs', LoggingGateway::class, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerTracerFor('traceDistributedBus', DistributedBus::class, $messagingConfiguration, $interfaceToCallRegistry);
+
+        $messagingConfiguration->registerBeforeMethodInterceptor(
+            MethodInterceptor::create(
+                'provideContextForDistributedBus',
+                $interfaceToCallRegistry->getFor(TracerInterceptor::class, 'provideContextForDistributedBus'),
+                ServiceActivatorBuilder::createWithDefinition(
+                    new Definition(TracerInterceptor::class, [
+                        Reference::to(TracerProviderInterface::class),
+                    ]),
+                    'provideContextForDistributedBus'
+                ),
+                0,
+                DistributedBus::class
+            )
+        );
+
+        $pointcut = '';
+        if ($tracingConfiguration->isFlushForcedOnBusExecution()) {
+            $pointcut = CommandBus::class . '||' . QueryBus::class . '||' . DistributedBus::class;
+        }
+        if ($tracingConfiguration->isForceFlushOnAsynchronousMessageHandled()) {
+            $pointcut .= '||' . AsynchronousRunningEndpoint::class;
+        }
+
+        if ($pointcut !== '') {
+            $messagingConfiguration->registerServiceDefinition(
+                EcotoneForcedTraceFlush::class,
+                new Definition(EcotoneForcedTraceFlush::class, [
+                    new Reference(TracerProviderInterface::class),
+                ])
+            );
+
+            $messagingConfiguration->registerAroundMethodInterceptor(
+                AroundInterceptorBuilder::create(
+                    EcotoneForcedTraceFlush::class,
+                    $interfaceToCallRegistry->getFor(EcotoneForcedTraceFlush::class, 'flush'),
+                    Precedence::TRACING_PRECEDENCE - 1,
+                    $pointcut
+                )
+            );
+        }
     }
 
     public function canHandle($extensionObject): bool
@@ -86,7 +134,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
                 AroundInterceptorBuilder::create(
                     TracerInterceptor::class,
                     $interfaceToCallRegistry->getFor(TracerInterceptor::class, $tracingMethodToInvoke),
-                    Precedence::DATABASE_TRANSACTION_PRECEDENCE - 100,
+                    Precedence::TRACING_PRECEDENCE,
                     $pointcut
                 )
             );

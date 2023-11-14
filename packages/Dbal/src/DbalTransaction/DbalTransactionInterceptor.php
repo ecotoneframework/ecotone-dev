@@ -8,15 +8,15 @@ use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Message;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Exception;
 use PDOException;
-use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -34,7 +34,7 @@ class DbalTransactionInterceptor
     {
     }
 
-    public function transactional(MethodInvocation $methodInvocation, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata, #[Reference(LoggingHandlerBuilder::LOGGER_REFERENCE)] LoggerInterface $logger)
+    public function transactional(MethodInvocation $methodInvocation, Message $message, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata, #[Reference(LoggingGateway::class)] LoggingGateway $logger)
     {
         $endpointId = $pollingMetadata?->getEndpointId();
 
@@ -72,8 +72,8 @@ class DbalTransactionInterceptor
 
             $retryStrategy->runCallbackWithRetries(function () use ($connection) {
                 $connection->beginTransaction();
-            }, ConnectionException::class, $logger, 'Starting Database transaction has failed due to network work, retrying in order to self heal.');
-            $logger->info('Database Transaction started');
+            }, $message, ConnectionException::class, $logger, 'Starting Database transaction has failed due to network work, retrying in order to self heal.');
+            $logger->info('Database Transaction started', $message);
         }
         try {
             $result = $methodInvocation->proceed();
@@ -81,24 +81,23 @@ class DbalTransactionInterceptor
             foreach ($connections as $connection) {
                 try {
                     $connection->commit();
-                    $logger->info('Database Transaction committed');
+                    $logger->info('Database Transaction committed', $message);
                 } catch (PDOException $exception) {
                     /** Handles the case where Mysql did implicit commit, when new creating tables */
                     if (! str_contains($exception->getMessage(), 'There is no active transaction')) {
                         $logger->info(
                             'Failure on committing transaction.',
-                            [
-                                'exception' => $exception,
-                            ]
+                            $message,
+                            $exception
                         );
+
                         throw $exception;
                     }
 
                     $logger->info(
                         'Implicit Commit was detected, skipping manual one.',
-                        [
-                            'exception' => $exception,
-                        ]
+                        $message,
+                        $exception
                     );
                     /** Doctrine hold the state, so it needs to be cleaned */
                     try {
@@ -112,17 +111,15 @@ class DbalTransactionInterceptor
                 try {
                     $logger->info(
                         'Exception has been thrown, rolling back transaction.',
-                        [
-                            'exception' => $exception,
-                        ]
+                        $message,
+                        $exception
                     );
                     $connection->rollBack();
                 } catch (Throwable $rollBackException) {
                     $logger->info(
                         'Exception has been thrown, however could not rollback the transaction.',
-                        [
-                            'exception' => $rollBackException,
-                        ]
+                        $message,
+                        $exception
                     );
                 }
             }

@@ -4,26 +4,31 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
+use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 
+use Ecotone\Messaging\Support\MessageBuilder;
+use Exception;
+
 use function json_decode;
 
-use OpenTelemetry\API\LoggerHolder;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
+
 use OpenTelemetry\API\Trace\SpanInterface;
+
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
-use OpenTelemetry\API\Trace\TracerInterface;
-use OpenTelemetry\Context\ContextInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ScopeInterface;
-use Psr\Log\LoggerInterface;
+use OpenTelemetry\SDK\Trace\Span;
 use Throwable;
 
 final class TracerInterceptor
 {
-    public function __construct(private TracerInterface $tracer, private LoggerInterface $logger)
+    public function __construct(private TracerProviderInterface $tracerProvider)
     {
     }
 
@@ -32,17 +37,49 @@ final class TracerInterceptor
         /**
          * @TODO tag polledChannelName, routingSlip
          */
-        /** @TODO provides same parent to all child spans */
         $carrier = $message->getHeaders()->containsKey(TracingChannelInterceptor::TRACING_CARRIER_HEADER) ? json_decode($message->getHeaders()->get(TracingChannelInterceptor::TRACING_CARRIER_HEADER), true) : [];
         $parentContext = TraceContextPropagator::getInstance()->extract($carrier);
 
-        return $this->trace(
-            'Receiving from channel: ' . $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME),
-            $methodInvocation,
-            $message,
-            parentContext: $parentContext,
-            spanKind: SpanKind::KIND_CONSUMER
-        );
+        $scope = $parentContext->activate();
+        try {
+            $trace = $this->trace(
+                'Receiving from channel: ' . $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME),
+                $methodInvocation,
+                $message,
+                spanKind: SpanKind::KIND_CONSUMER,
+            );
+        } catch (Throwable $exception) {
+            $scope->detach();
+
+            throw $exception;
+        }
+        $scope->detach();
+
+        return $trace;
+    }
+
+    public function provideContextForDistributedBus(Message $message): Message
+    {
+        $ctx = Span::getCurrent()->storeInContext(Context::getCurrent());
+        $carrier = [];
+        TraceContextPropagator::getInstance()->inject($carrier, null, $ctx);
+
+        return MessageBuilder::fromMessage($message)
+            ->setHeader(TracingChannelInterceptor::TRACING_CARRIER_HEADER, json_encode($carrier))
+            ->build();
+    }
+
+    public function traceDistributedBus(MethodInvocation $methodInvocation, Message $message): mixed
+    {
+        $span = EcotoneSpanBuilder::create($message, 'Distributed Bus', $this->tracerProvider, SpanKind::KIND_PRODUCER)
+            ->startSpan();
+        $spanScope = $span->activate();
+
+        $result = $methodInvocation->proceed();
+
+        $this->closeSpan($span, $spanScope, StatusCode::STATUS_OK, null);
+
+        return $result;
     }
 
     public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message)
@@ -99,25 +136,46 @@ final class TracerInterceptor
         );
     }
 
+    public function traceLogs(MethodInvocation $methodInvocation, Message $message)
+    {
+        $logMessage = $message->getPayload();
+        /** @var Message $contextMessage */
+        $contextMessage = $message->getHeaders()->get(LoggingService::CONTEXT_MESSAGE_HEADER);
+        $attributes = [
+            MessageHeaders::MESSAGE_ID => $contextMessage->getHeaders()->getMessageId(),
+            MessageHeaders::MESSAGE_CORRELATION_ID => $contextMessage->getHeaders()->getCorrelationId(),
+            MessageHeaders::PARENT_MESSAGE_ID => $contextMessage->getHeaders()->getParentId(),
+        ];
+
+        if ($message->getHeaders()->containsKey(LoggingService::CONTEXT_EXCEPTION_HEADER)) {
+            /** @var Exception $exception */
+            $exception = $message->getHeaders()->get(LoggingService::CONTEXT_EXCEPTION_HEADER);
+            $attributes['exceptionMessage'] = $exception->getMessage();
+            $attributes['exceptionClass'] = $exception::class;
+            $attributes['exceptionTrace'] = $exception->getTraceAsString();
+        }
+
+        Span::getCurrent()->addEvent(
+            $logMessage,
+            $attributes
+        );
+
+        return $methodInvocation->proceed();
+    }
+
     public function trace(
         string $type,
         MethodInvocation $methodInvocation,
         Message $message,
         array $attributes = [],
-        ?ContextInterface $parentContext = null,
-        int $spanKind = SpanKind::KIND_SERVER
+        int $spanKind = SpanKind::KIND_SERVER,
     ) {
-        /** @TODO this should be moved somewhere else */
-        if (! LoggerHolder::isSet()) {
-            LoggerHolder::set($this->logger);
-        }
-
         $span = EcotoneSpanBuilder::create(
             $message,
             $type,
-            $this->tracer
+            $this->tracerProvider,
+            $spanKind
         )
-            ->setParent($parentContext)
             ->startSpan();
         $spanScope = $span->activate();
 
@@ -137,6 +195,9 @@ final class TracerInterceptor
 
     private function closeSpan(SpanInterface $span, ScopeInterface $spanScope, string $statusCode, ?string $descriptionStatusCode): void
     {
+        $currentSpan = Span::getCurrent();
+        $currentContext = Context::getCurrent();
+
         $span->setStatus($statusCode, $descriptionStatusCode);
         $spanScope->detach();
         $span->end();

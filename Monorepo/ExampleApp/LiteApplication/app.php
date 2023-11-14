@@ -19,6 +19,9 @@ use Monorepo\ExampleApp\Common\Infrastructure\Output;
 use Monorepo\ExampleApp\Common\Infrastructure\StubNotificationSender;
 use Monorepo\ExampleApp\Common\Infrastructure\StubShippingService;
 use Monorepo\ExampleApp\Common\Infrastructure\SystemClock;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
+use Test\Ecotone\OpenTelemetry\Integration\TracingTest;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $output = new Output();
@@ -26,6 +29,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     $configuration = new Configuration();
     $stubNotificationSender = new StubNotificationSender($output, $configuration);
     $stubShippingService = new StubShippingService($output, $configuration);
+    $exporter = new InMemoryExporter(new ArrayObject());
 
     $services = [
         Configuration::class => $configuration,
@@ -38,7 +42,9 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
         ShippingSubscriber::class => new ShippingSubscriber($stubShippingService),
         NotificationSubscriber::class => new NotificationSubscriber($stubNotificationSender),
         Output::class => $output,
-        ErrorChannelService::class => new ErrorChannelService()
+        ErrorChannelService::class => new ErrorChannelService(),
+        InMemoryExporter::class => $exporter,
+        TracerProviderInterface::class => TracingTest::prepareTracer($exporter)
     ];
 
     return EcotoneLiteApplication::bootstrap(

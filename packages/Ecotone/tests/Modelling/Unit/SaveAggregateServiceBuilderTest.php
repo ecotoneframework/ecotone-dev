@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -10,12 +11,14 @@ use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceBuilder;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveEventSourcingAggregateService;
 use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
-use Ecotone\Modelling\SaveAggregateService;
-use Ecotone\Modelling\SaveAggregateServiceBuilder;
+use Ecotone\Modelling\PublishAggregateEventsService;
 use Ecotone\Modelling\StandardRepository;
 use Ecotone\Modelling\StorageEventBus;
 use Ecotone\Test\ComponentTestBuilder;
@@ -25,7 +28,6 @@ use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
-use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Notification;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Order;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\OrderWithManualVersioning;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\NoIdDefinedAfterRecordingEvents;
@@ -51,9 +53,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(Order::class)),
             'changeShippingAddress',
             InterfaceToCallRegistry::createEmpty(),
-            false,
-            SaveAggregateService::NO_SNAPSHOT_THRESHOLD,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())
         )
             ->withAggregateRepositoryFactories(['orderRepository']);
 
@@ -67,41 +67,12 @@ class SaveAggregateServiceBuilderTest extends TestCase
 
         $aggregateCommandHandler->handle(
             MessageBuilder::withPayload(CreateOrderCommand::createWith(1, 1, 'Some'))
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, $order)
+                ->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $order)
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, $order)
                 ->build()
         );
 
         $this->assertEquals($order, $inMemoryStandardRepository->findBy(Order::class, ['orderId' => 1]));
-    }
-
-    public function test_recorded_event_being_published_with_revision()
-    {
-        $order = Order::createWith(CreateOrderCommand::createWith(1, 1, 'Poland'));
-
-        $aggregateCallingCommandHandler = SaveAggregateServiceBuilder::create(
-            ClassDefinition::createFor(TypeDescriptor::create(Order::class)),
-            'changeShippingAddress',
-            InterfaceToCallRegistry::createEmpty(),
-            false,
-            SaveAggregateService::NO_SNAPSHOT_THRESHOLD,
-            DocumentStore::class
-        )
-            ->withAggregateRepositoryFactories(['orderRepository']);
-
-        $eventBus = StorageEventBus::create();
-        $aggregateCommandHandler    = ComponentTestBuilder::create()
-            ->withReference('orderRepository', InMemoryStandardRepository::createEmpty())
-            ->withReference(EventBus::class, $eventBus)
-            ->build($aggregateCallingCommandHandler);
-
-        $aggregateCommandHandler->handle(
-            MessageBuilder::withPayload(CreateOrderCommand::createWith(1, 1, 'Some'))
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, $order)
-                ->build()
-        );
-
-        $this->assertEquals(new Notification(), $eventBus->getCalls()[0][0]);
-        $this->assertEquals(1, $eventBus->getCalls()[0][1]['revision']);
     }
 
     public function test_snapshoting_aggregate_after_single_event()
@@ -110,9 +81,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(Ticket::class)),
             'start',
             InterfaceToCallRegistry::createEmpty(),
-            true,
-            1,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 1)
         )
             ->withAggregateRepositoryFactories(['repository']);
 
@@ -129,14 +98,15 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $aggregateCommandHandler->handle(
             MessageBuilder::withPayload([$event])
                 ->setHeader(AggregateMessage::AGGREGATE_ID, ['ticketId' => 1])
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, $ticket)
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, $ticket)
                 ->setHeader(AggregateMessage::TARGET_VERSION, 0)
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_EVENTS, [$event])
                 ->build()
         );
 
         $this->assertEquals(
             $ticket,
-            $inMemoryDocumentStore->getDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), 1)
+            $inMemoryDocumentStore->getDocument(SaveEventSourcingAggregateService::getSnapshotCollectionName(Ticket::class), 1)
         );
     }
 
@@ -146,9 +116,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(Ticket::class)),
             'start',
             InterfaceToCallRegistry::createEmpty(),
-            false,
-            1,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())
         )
             ->withAggregateRepositoryFactories(['repository']);
 
@@ -165,12 +133,13 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $aggregateCommandHandler->handle(
             MessageBuilder::withPayload([$event])
                 ->setHeader(AggregateMessage::AGGREGATE_ID, ['ticketId' => 1])
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, $ticket)
+                ->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $ticket)
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, $ticket)
                 ->setHeader(AggregateMessage::TARGET_VERSION, 0)
                 ->build()
         );
 
-        $this->assertEquals(0, $inMemoryDocumentStore->countDocuments(SaveAggregateService::getSnapshotCollectionName(Ticket::class)));
+        $this->assertEquals(0, $inMemoryDocumentStore->countDocuments(SaveEventSourcingAggregateService::getSnapshotCollectionName(Ticket::class)));
     }
 
     public function test_skipping_snapshot_if_not_desired_version_yet()
@@ -179,9 +148,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(Ticket::class)),
             'start',
             InterfaceToCallRegistry::createEmpty(),
-            true,
-            2,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 2)
         )
             ->withAggregateRepositoryFactories(['repository']);
 
@@ -198,12 +165,13 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $aggregateCommandHandler->handle(
             MessageBuilder::withPayload([$event])
                 ->setHeader(AggregateMessage::AGGREGATE_ID, ['ticketId' => 1])
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, $ticket)
+                ->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $ticket)
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, $ticket)
                 ->setHeader(AggregateMessage::TARGET_VERSION, 0)
                 ->build()
         );
 
-        $this->assertEquals(0, $inMemoryDocumentStore->countDocuments(SaveAggregateService::getSnapshotCollectionName(Ticket::class)));
+        $this->assertEquals(0, $inMemoryDocumentStore->countDocuments(SaveEventSourcingAggregateService::getSnapshotCollectionName(Ticket::class)));
     }
 
     public function test_returning_all_identifiers_assigned_during_aggregate_creation()
@@ -214,9 +182,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(Article::class)),
             'createWith',
             InterfaceToCallRegistry::createEmpty(),
-            false,
-            SaveAggregateService::NO_SNAPSHOT_THRESHOLD,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())
         )
             ->withAggregateRepositoryFactories(['repository']);
 
@@ -229,7 +195,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $replyChannel = QueueChannel::create();
         $aggregateCommandHandler->handle(
             MessageBuilder::withPayload($publishArticle)
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, Article::createWith($publishArticle))
+                ->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, Article::createWith($publishArticle))
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, Article::createWith($publishArticle))
                 ->setReplyChannel($replyChannel)
                 ->build()
         );
@@ -253,7 +220,6 @@ class SaveAggregateServiceBuilderTest extends TestCase
 
         $newVersionOrder = clone $order;
         $newVersionOrder->increaseAggregateVersion();
-        $newVersionOrder->getRecordedEvents();
 
         $orderRepository->expects($this->once())
             ->method('save')
@@ -272,9 +238,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(Order::class)),
             'multiplyOrder',
             InterfaceToCallRegistry::createEmpty(),
-            false,
-            SaveAggregateService::NO_SNAPSHOT_THRESHOLD,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())
         )
             ->withAggregateRepositoryFactories(['orderRepository'])
             ->withInputChannelName('inputChannel');
@@ -286,7 +250,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
 
         $aggregateCommandHandler->handle(
             MessageBuilder::withPayload($commandToRun)
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, $order)
+                ->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $order)
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, $order)
                 ->setHeader(AggregateMessage::TARGET_VERSION, 1)
                 ->setReplyChannel(NullableMessageChannel::create())
                 ->build()
@@ -308,7 +273,6 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ->willReturn($order);
 
         $newVersionOrder = clone $order;
-        $newVersionOrder->getRecordedEvents();
 
         $orderRepository->expects($this->once())
             ->method('save')
@@ -327,9 +291,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(OrderWithManualVersioning::class)),
             'multiplyOrder',
             InterfaceToCallRegistry::createEmpty(),
-            false,
-            SaveAggregateService::NO_SNAPSHOT_THRESHOLD,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())
         )
             ->withAggregateRepositoryFactories(['orderRepository'])
             ->withInputChannelName('inputChannel');
@@ -341,7 +303,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
 
         $aggregateCommandHandler->handle(
             MessageBuilder::withPayload($commandToRun)
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, $order)
+                ->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $order)
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, $order)
                 ->setHeader(AggregateMessage::TARGET_VERSION, 1)
                 ->setReplyChannel(NullableMessageChannel::create())
                 ->build()
@@ -354,9 +317,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(NoIdDefinedAfterRecordingEvents::class)),
             'create',
             InterfaceToCallRegistry::createEmpty(),
-            false,
-            SaveAggregateService::NO_SNAPSHOT_THRESHOLD,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())
         )
             ->withAggregateRepositoryFactories(['repository'])
             ->withInputChannelName('inputChannel');
@@ -370,7 +331,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
 
         $aggregateCommandHandler->handle(
             MessageBuilder::withPayload([])
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, new NoIdDefinedAfterRecordingEvents())
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, new NoIdDefinedAfterRecordingEvents())
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_EVENTS, [new stdClass()])
                 ->setReplyChannel(NullableMessageChannel::create())
                 ->build()
         );
@@ -382,9 +344,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(PublicIdentifierGetMethodForEventSourcedAggregate::class)),
             'create',
             InterfaceToCallRegistry::createEmpty(),
-            false,
-            SaveAggregateService::NO_SNAPSHOT_THRESHOLD,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())
         )
             ->withAggregateRepositoryFactories(['repository'])
             ->withInputChannelName('inputChannel');
@@ -399,7 +359,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $aggregateId = ['id' => 123];
         $aggregateCommandHandler->handle(
             MessageBuilder::withPayload([new stdClass()])
-                ->setHeader(AggregateMessage::AGGREGATE_OBJECT, new PublicIdentifierGetMethodForEventSourcedAggregate())
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, new PublicIdentifierGetMethodForEventSourcedAggregate())
+                ->setHeader(AggregateMessage::RESULT_AGGREGATE_EVENTS, [new stdClass()])
                 ->setHeader(AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER, 123)
                 ->setHeader(AggregateMessage::AGGREGATE_ID, $aggregateId)
                 ->setHeader(AggregateMessage::TARGET_VERSION, 0)
@@ -421,9 +382,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ClassDefinition::createFor(TypeDescriptor::create(PublicIdentifierGetMethodWithParameters::class)),
             'create',
             InterfaceToCallRegistry::createEmpty(),
-            false,
-            SaveAggregateService::NO_SNAPSHOT_THRESHOLD,
-            DocumentStore::class
+            (new BaseEventSourcingConfiguration())
         )
             ->withAggregateRepositoryFactories(['repository'])
             ->withInputChannelName('inputChannel');

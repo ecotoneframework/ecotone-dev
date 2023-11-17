@@ -12,11 +12,11 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveEventSourcingAggregateService;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
-use Ecotone\Modelling\SaveAggregateService;
 use Ecotone\Modelling\SnapshotEvent;
 use Prooph\EventStore\Exception\StreamNotFound;
 use Prooph\EventStore\Metadata\MetadataMatcher;
@@ -54,7 +54,7 @@ class EventSourcingRepository implements EventSourcedRepository
         $snapshotEvent = [];
 
         if (array_key_exists($aggregateClassName, $this->documentStoreReferences)) {
-            $aggregate = $this->documentStoreReferences[$aggregateClassName]->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
+            $aggregate = $this->documentStoreReferences[$aggregateClassName]->findDocument(SaveEventSourcingAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
 
             if (! is_null($aggregate)) {
                 $aggregateVersion = $this->getAggregateVersion($aggregate);

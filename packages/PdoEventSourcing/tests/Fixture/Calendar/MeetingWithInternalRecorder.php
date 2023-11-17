@@ -14,7 +14,8 @@ final class MeetingWithInternalRecorder
     use WithEvents;
 
     public function __construct(
-        #[Identifier] public string $meetingId, public string $calendarId
+        #[Identifier] public string $meetingId,
+        public string $calendarId
     ) {
         $this->recordThat(new MeetingCreated($this->meetingId, $this->calendarId));
     }

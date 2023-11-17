@@ -27,7 +27,7 @@ final class ResolveAggregateServiceBuilder extends InputOutputMessageHandlerBuil
     private ?bool $isFactoryMethod = false;
     private $isResultAggregateEventSourced = false;
 
-    private function __construct( ClassDefinition $aggregateClassDefinition, string $methodName, InterfaceToCallRegistry $interfaceToCallRegistry)
+    private function __construct(ClassDefinition $aggregateClassDefinition, string $methodName, InterfaceToCallRegistry $interfaceToCallRegistry)
     {
         $this->initialize($aggregateClassDefinition, $methodName, $interfaceToCallRegistry);
     }
@@ -100,7 +100,7 @@ final class ResolveAggregateServiceBuilder extends InputOutputMessageHandlerBuil
 
         return new Definition(ResolveMultipleAggregatesService::class, [
             $resolveCalledAggregateEventsService,
-            $resolveResultAggregateEventsService
+            $resolveResultAggregateEventsService,
         ]);
     }
 
@@ -108,7 +108,7 @@ final class ResolveAggregateServiceBuilder extends InputOutputMessageHandlerBuil
     {
         return new Definition(ResolveEventSourcingAggregateService::class, [
             $isFactoryMethod,
-            EventSourcingHandlerExecutor::createFor($classDefinition, true, $this->interfaceToCallRegistry)
+            EventSourcingHandlerExecutor::createFor($classDefinition, true, $this->interfaceToCallRegistry),
         ]);
     }
 

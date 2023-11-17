@@ -45,9 +45,9 @@ final class LoadStateBasedAggregateService implements LoadAggregateService
             }
         }
 
-        if (!is_null($this->messageVersionPropertyName)) {
+        if (! is_null($this->messageVersionPropertyName)) {
             $expectedVersion = null;
-            if ($this->propertyReaderAccessor->hasPropertyValue(PropertyPath::createWith($this->messageVersionPropertyName), $message->getPayload())){
+            if ($this->propertyReaderAccessor->hasPropertyValue(PropertyPath::createWith($this->messageVersionPropertyName), $message->getPayload())) {
                 $expectedVersion = $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($this->messageVersionPropertyName), $message->getPayload());
             }
 
@@ -57,11 +57,11 @@ final class LoadStateBasedAggregateService implements LoadAggregateService
         $aggregate = $this->repository->findBy($this->aggregateClassName, $aggregateIdentifiers);
         $aggregateVersion = null;
 
-        if (!$aggregate && $this->loadAggregateMode->isDroppingMessageOnNotFound()) {
+        if (! $aggregate && $this->loadAggregateMode->isDroppingMessageOnNotFound()) {
             return null;
         }
 
-        if (!$aggregate && $this->loadAggregateMode->isThrowingOnNotFound()) {
+        if (! $aggregate && $this->loadAggregateMode->isThrowingOnNotFound()) {
             if ($aggregateIdentifiers === []) {
                 throw AggregateNotFoundException::create("Aggregate {$this->aggregateClassName} for calling {$this->aggregateMethod} was not as no identifiers were provided. Have you forgot to add use #[TargetIdentifier] in your Command or `aggregate.id` in metadata or provide #[Identifier] to MessageGateway?");
             }
@@ -70,7 +70,7 @@ final class LoadStateBasedAggregateService implements LoadAggregateService
         }
 
         if ($aggregate) {
-            if (!is_null($aggregateVersion) && $this->isAggregateVersionAutomaticallyIncreased) {
+            if (! is_null($aggregateVersion) && $this->isAggregateVersionAutomaticallyIncreased) {
                 $this->propertyEditorAccessor->enrichDataWith(PropertyPath::createWith($this->aggregateVersionPropertyName), $aggregate, $aggregateVersion, $message, null);
             }
             $resultMessage = $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $aggregate);

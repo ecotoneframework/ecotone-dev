@@ -2,14 +2,6 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
-use Ecotone\Messaging\Support\Assert;
-use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ramsey\Uuid\Uuid;
-
 /**
  * Interface CQRS
  * @package Ecotone\Modelling

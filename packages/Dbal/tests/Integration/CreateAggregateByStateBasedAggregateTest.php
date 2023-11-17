@@ -20,6 +20,9 @@ use Test\Ecotone\Dbal\Fixture\Calendar\ScheduleMeetingWithInternalRecorder;
 use Test\Ecotone\Dbal\Fixture\StateBasedCalendar\Calendar;
 use Test\Ecotone\Dbal\Fixture\StateBasedCalendarWithInternalRecorder\CalendarWithInternalRecorder;
 
+/**
+ * @internal
+ */
 final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCase
 {
     public function test_state_based_aggregate_can_create_another_state_based_aggregate(): void

@@ -11,6 +11,9 @@ use Test\Ecotone\Modelling\Fixture\AnnotatedConstructor\ConstructorAsCommandHand
 use Test\Ecotone\Modelling\Fixture\AnnotatedConstructor\ConstructorAsEventHandler;
 use Test\Ecotone\Modelling\Fixture\AnnotatedConstructor\ConstructorAsQueryHandler;
 
+/**
+ * @internal
+ */
 final class AnnotationAggregateConstructorTest extends TestCase
 {
     public function test_aggregate_cannot_have_constructor_being_annotated_as_command_handler(): void

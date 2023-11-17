@@ -79,7 +79,7 @@ final class CallEventSourcingAggregateService implements CallAggregateService
             $resultType = $this->interfaceToCall->getReturnType();
         }
 
-        if (!is_null($result)) {
+        if (! is_null($result)) {
             if ($this->isCommandHandler) {
                 $resultMessage = $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $calledAggregate);
             }
@@ -90,7 +90,7 @@ final class CallEventSourcingAggregateService implements CallAggregateService
             ;
         }
 
-        if ($this->isCommandHandler || !is_null($result)) {
+        if ($this->isCommandHandler || ! is_null($result)) {
             return $resultMessage->build();
         }
 

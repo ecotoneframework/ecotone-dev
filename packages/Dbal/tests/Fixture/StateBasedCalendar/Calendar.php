@@ -10,7 +10,6 @@ use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Test\Ecotone\Dbal\Fixture\Calendar\CreateCalendar;
 use Test\Ecotone\Dbal\Fixture\Calendar\Meeting;
-use Test\Ecotone\Dbal\Fixture\Calendar\MeetingScheduled;
 use Test\Ecotone\Dbal\Fixture\Calendar\MeetingWithEventSourcing;
 use Test\Ecotone\Dbal\Fixture\Calendar\MeetingWithInternalRecorder;
 use Test\Ecotone\Dbal\Fixture\Calendar\ScheduleMeeting;

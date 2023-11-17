@@ -45,7 +45,7 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
         private int $snapshotTriggerThreshold,
         private ?DocumentStore $documentStore,
     ) {
-        $this->documentStore = $this->documentStore ?? InMemoryDocumentStore::createEmpty();
+        $this->documentStore ??= InMemoryDocumentStore::createEmpty();
     }
 
     public function save(Message $message, array $metadata): Message

@@ -15,7 +15,6 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
@@ -258,7 +257,7 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             $isAggregateVersionAutomaticallyIncreased,
             $useSnapshot,
             $this->eventSourcingConfiguration->getSnapshotTriggerThresholdFor($aggregateClassName),
-            $useSnapshot ? new Reference($this->eventSourcingConfiguration->getDocumentStoreReferenceFor($aggregateClassName)) : null
+            $useSnapshot ? new Reference($this->eventSourcingConfiguration->getDocumentStoreReferenceFor($aggregateClassName)) : null,
         ]);
     }
 
@@ -279,7 +278,7 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
             $aggregateIdentifierMapping,
             $aggregateIdentifierGetMethods,
             $aggregateVersionProperty,
-            $isAggregateVersionAutomaticallyIncreased
+            $isAggregateVersionAutomaticallyIncreased,
         ]);
     }
 
@@ -292,7 +291,7 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         foreach ($aggregateClassDefinition->getPublicMethodNames() as $method) {
             $methodToCheck = $interfaceToCallRegistry->getFor($aggregateClassDefinition->getClassType()->toString(), $method);
             if ($methodToCheck->hasMethodAnnotation($aggregateIdentifierGetMethodAttribute)) {
-                if (!$methodToCheck->hasNoParameters()) {
+                if (! $methodToCheck->hasNoParameters()) {
                     throw NoCorrectIdentifierDefinedException::create($methodToCheck . ' should not have any parameters.');
                 }
 

@@ -157,7 +157,8 @@ class CallAggregateServiceBuilderTest extends TestCase
             new UnionTypeDescriptor([
                 TypeDescriptor::createCollection(Box::class),
                 TypeDescriptor::createCollection(BigBox::class),
-            ]), $replyChannel->receive()->getHeaders()->getContentType()->getTypeParameter()
+            ]),
+            $replyChannel->receive()->getHeaders()->getContentType()->getTypeParameter()
         );
     }
 

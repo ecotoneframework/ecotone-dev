@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -18,7 +17,6 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
-use Ecotone\Modelling\PublishAggregateEventsService;
 use Ecotone\Modelling\StandardRepository;
 use Ecotone\Modelling\StorageEventBus;
 use Ecotone\Test\ComponentTestBuilder;

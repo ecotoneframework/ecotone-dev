@@ -111,10 +111,10 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     private function loadEventSourcingAggregateService(): Definition
     {
         $repository = new Definition(LazyEventSourcedRepository::class, [
-                $this->aggregateClassName,
-                $this->isEventSourced,
-                array_map(fn ($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
-            ], 'create')
+            $this->aggregateClassName,
+            $this->isEventSourced,
+            array_map(fn ($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
+        ], 'create')
         ;
 
         return new Definition(LoadEventSourcingAggregateService::class, [
@@ -134,10 +134,10 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     private function loadStateBasedAggregateService(): Definition
     {
         $repository = new Definition(LazyStandardRepository::class, [
-                $this->aggregateClassName,
-                $this->isEventSourced,
-                array_map(fn ($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
-            ], 'create')
+            $this->aggregateClassName,
+            $this->isEventSourced,
+            array_map(fn ($id) => new Reference($id), $this->aggregateRepositoryReferenceNames),
+        ], 'create')
         ;
 
         return new Definition(LoadStateBasedAggregateService::class, [

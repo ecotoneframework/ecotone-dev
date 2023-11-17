@@ -26,7 +26,7 @@ final class ResolveAggregateEventsServiceBuilder extends InputOutputMessageHandl
     private ?string $aggregateMethodWithEvents = null;
     private bool $isResultAggregateEventSourced = false;
 
-    private function __construct( ClassDefinition $aggregateClassDefinition, string $methodName, private InterfaceToCallRegistry $interfaceToCallRegistry)
+    private function __construct(ClassDefinition $aggregateClassDefinition, string $methodName, private InterfaceToCallRegistry $interfaceToCallRegistry)
     {
         $this->initialize($aggregateClassDefinition, $methodName);
     }

@@ -47,9 +47,9 @@ final class LoadEventSourcingAggregateService implements LoadAggregateService
             }
         }
 
-        if (!is_null($this->messageVersionPropertyName)) {
+        if (! is_null($this->messageVersionPropertyName)) {
             $expectedVersion = null;
-            if ($this->propertyReaderAccessor->hasPropertyValue(PropertyPath::createWith($this->messageVersionPropertyName), $message->getPayload())){
+            if ($this->propertyReaderAccessor->hasPropertyValue(PropertyPath::createWith($this->messageVersionPropertyName), $message->getPayload())) {
                 $expectedVersion = $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($this->messageVersionPropertyName), $message->getPayload());
             }
 
@@ -66,11 +66,11 @@ final class LoadEventSourcingAggregateService implements LoadAggregateService
             $eventStream = $this->eventSourcingHandlerExecutor->fill($eventStream->getEvents(), null);
         }
 
-        if (!$eventStream && $this->loadAggregateMode->isDroppingMessageOnNotFound()) {
+        if (! $eventStream && $this->loadAggregateMode->isDroppingMessageOnNotFound()) {
             return null;
         }
 
-        if (!$eventStream && $this->loadAggregateMode->isThrowingOnNotFound()) {
+        if (! $eventStream && $this->loadAggregateMode->isThrowingOnNotFound()) {
             if ($aggregateIdentifiers === []) {
                 throw AggregateNotFoundException::create("Aggregate {$this->aggregateClassName} for calling {$this->aggregateMethod} was not as no identifiers were provided. Have you forgot to add use #[TargetIdentifier] in your Command or `aggregate.id` in metadata or provide #[Identifier] to MessageGateway?");
             }

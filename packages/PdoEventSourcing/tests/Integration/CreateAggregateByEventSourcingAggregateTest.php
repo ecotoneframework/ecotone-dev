@@ -7,20 +7,23 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
-use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingCreated;
-use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingWithEventSourcing;
-use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingWithInternalRecorder;
-use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeetingWithEventSourcing;
-use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeetingWithInternalRecorder;
-use Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendar\Calendar;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CreateCalendar;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\EventsConverter;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\Meeting;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingCreated;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingScheduled;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingWithEventSourcing;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingWithInternalRecorder;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeeting;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeetingWithEventSourcing;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeetingWithInternalRecorder;
+use Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendar\Calendar;
 use Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendarWithInternalRecorder\CalendarWithInternalRecorder;
 
+/**
+ * @internal
+ */
 final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMessagingTestCase
 {
     public function test_pure_event_sourcing_aggregate_can_create_state_based_aggregate(): void

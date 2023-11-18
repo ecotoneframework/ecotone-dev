@@ -32,7 +32,7 @@ class DeduplicationInterceptor
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
     private bool $isInitialized = false;
 
-    public function __construct(private DbalConnectionFactory|ManagerRegistryConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private LoggerInterface $logger)
+    public function __construct(private ConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private LoggerInterface $logger)
     {
     }
 

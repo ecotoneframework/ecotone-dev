@@ -15,8 +15,8 @@ final class AlreadyConnectedDbalConnectionFactory implements ConnectionFactory
      * @param string[] $config
      */
     public function __construct(
-        private readonly Connection $connection,
-        private readonly array $config = []
+        private Connection $connection,
+        private array $config = []
     ) {
 
     }

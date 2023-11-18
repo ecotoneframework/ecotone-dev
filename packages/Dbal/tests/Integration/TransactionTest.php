@@ -13,7 +13,6 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 use Throwable;
-use function DI\create;
 
 /**
  * @internal
@@ -49,7 +48,7 @@ final class TransactionTest extends DbalMessagingTestCase
                 new OrderService(),
                 DbalConnectionFactory::class => DbalConnection::create(
                     $connection
-                )
+                ),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')

@@ -16,8 +16,7 @@ class DbalConnection
     public static function create(
         Connection $connection,
         array $config = []
-    ): AlreadyConnectedDbalConnectionFactory
-    {
+    ): AlreadyConnectedDbalConnectionFactory {
         return new AlreadyConnectedDbalConnectionFactory(
             $connection,
             $config

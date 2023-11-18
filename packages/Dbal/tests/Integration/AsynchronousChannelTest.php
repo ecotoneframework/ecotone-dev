@@ -113,7 +113,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
                     [
                         DbalConnectionFactory::class => DbalConnection::create(
                             $connection
-                        )
+                        ),
                     ]
                 ),
             configuration: ServiceConfiguration::createWithDefaults()

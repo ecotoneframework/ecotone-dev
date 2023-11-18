@@ -13,9 +13,15 @@ class DbalConnection
         return new EcotoneManagerRegistryConnectionFactory(new ManagerRegistryEmulator(($dbalConnectionFactory->createContext()->getDbalConnection())));
     }
 
-    public static function create(Connection $connection): EcotoneManagerRegistryConnectionFactory
+    public static function create(
+        Connection $connection,
+        array $config = []
+    ): AlreadyConnectedDbalConnectionFactory
     {
-        return new EcotoneManagerRegistryConnectionFactory(new ManagerRegistryEmulator($connection));
+        return new AlreadyConnectedDbalConnectionFactory(
+            $connection,
+            $config
+        );
     }
 
     public static function createForManagerRegistry(ManagerRegistry $managerRegistry, string $connectionName): EcotoneManagerRegistryConnectionFactory

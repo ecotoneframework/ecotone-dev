@@ -148,7 +148,8 @@
         "phpbench/phpbench": "^1.2",
         "enqueue/null": "^0.10.18",
         "open-telemetry/transport-grpc": "*",
-        "open-telemetry/exporter-otlp": "*"
+        "open-telemetry/exporter-otlp": "*",
+        "nesbot/carbon": "^2.71"
     },
     "extra": {
         "laravel": {

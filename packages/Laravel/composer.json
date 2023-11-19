@@ -43,7 +43,8 @@
         "phpstan/phpstan": "^1.8",
         "orchestra/testbench": "^7.6",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "symfony/expression-language": "^6.0"
+        "symfony/expression-language": "^6.0",
+        "nesbot/carbon": "^2.71"
     },
     "extra": {
         "laravel": {

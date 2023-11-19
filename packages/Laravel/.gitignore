@@ -6,3 +6,4 @@ tests/coverage
 .phpunit.result.cache
 composer.lock
 phpunit.xml
+tests/Application/storage/logs/laravel.log

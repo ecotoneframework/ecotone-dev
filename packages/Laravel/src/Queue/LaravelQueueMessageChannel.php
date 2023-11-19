@@ -11,8 +11,11 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use \Illuminate\Contracts\Queue\Factory;
+use Illuminate\Contracts\Queue\Factory;
 use Illuminate\Contracts\Queue\Queue;
+
+use function json_decode;
+use function json_encode;
 
 final class LaravelQueueMessageChannel implements PollableChannel
 {
@@ -63,12 +66,12 @@ final class LaravelQueueMessageChannel implements PollableChannel
 
         $job = $connection->pop($this->queueName);
 
-        if (!$job) {
+        if (! $job) {
             return null;
         }
 
-        $message = \json_decode($job->getRawBody(), true, 512, JSON_THROW_ON_ERROR);
-        $message = \json_decode($message['data'], true, 512, JSON_THROW_ON_ERROR);
+        $message = json_decode($job->getRawBody(), true, 512, JSON_THROW_ON_ERROR);
+        $message = json_decode($message['data'], true, 512, JSON_THROW_ON_ERROR);
         $messageBuilder = MessageBuilder::withPayload($message[self::PAYLOAD])
             ->setMultipleHeaders($message[self::HEADERS]);
 
@@ -86,7 +89,7 @@ final class LaravelQueueMessageChannel implements PollableChannel
                     self::ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER,
                     LaravelQueueAcknowledgementCallback::createWithManualAck($job)
                 );
-        }elseif ($this->acknowledgeMode === LaravelQueueAcknowledgementCallback::AUTO_ACK) {
+        } elseif ($this->acknowledgeMode === LaravelQueueAcknowledgementCallback::AUTO_ACK) {
             $messageBuilder = $messageBuilder
                 ->setHeader(
                     self::ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER,
@@ -110,7 +113,7 @@ final class LaravelQueueMessageChannel implements PollableChannel
 
     private function prepareJobPayload(OutboundMessage $outboundMessage): string|false
     {
-        return \json_encode([
+        return json_encode([
             self::PAYLOAD => $outboundMessage->getPayload(),
             self::HEADERS => array_merge(
                 $outboundMessage->getHeaders(),

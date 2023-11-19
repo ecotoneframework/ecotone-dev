@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-
 namespace Test\Ecotone\Laravel\Application\Execution;
 
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
@@ -22,6 +21,9 @@ use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\AsyncEventHandler;
 use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\ExampleCommand;
 use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\ExampleEvent;
 
+/**
+ * @internal
+ */
 final class LaravelQueueIntegrationTest extends TestCase
 {
     public function setUp(): void

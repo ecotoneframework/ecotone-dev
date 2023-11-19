@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Laravel\Queue;
 
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -14,9 +13,6 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\SymfonyBundle\Messenger\SymfonyMessageConverter;
-use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 
 final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
@@ -28,16 +24,14 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
         private string $queueName,
         private string $acknowledgeMode = LaravelQueueAcknowledgementCallback::AUTO_ACK,
         private ?MediaType $defaultOutboundConversionMediaType = null
-    )
-    {
+    ) {
         $this->withHeaderMapping('*');
     }
 
     public static function create(
         string $queueName,
         ?string $connectionName = null,
-    ): self
-    {
+    ): self {
         return new self(
             $connectionName ?? Config::get('queue.default'),
             $queueName
@@ -94,9 +88,9 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
                 $this->acknowledgeMode,
                 new Definition(OutboundMessageConverter::class, [
                     $this->headerMapper->getDefinition(),
-                    $this->defaultOutboundConversionMediaType?->getDefinition()
+                    $this->defaultOutboundConversionMediaType?->getDefinition(),
                 ]),
-                new Reference(ConversionService::REFERENCE_NAME)
+                new Reference(ConversionService::REFERENCE_NAME),
             ]
         );
     }

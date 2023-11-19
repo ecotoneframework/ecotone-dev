@@ -173,6 +173,7 @@ return [
          */
         \Test\Ecotone\Laravel\Fixture\User\LaravelProvider::class,
         \Test\Ecotone\Laravel\Fixture\ExpressionLanguage\LaravelProvider::class,
+        \Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\LaravelProvider::class,
         \Ecotone\Laravel\EcotoneProvider::class,
     ],
 

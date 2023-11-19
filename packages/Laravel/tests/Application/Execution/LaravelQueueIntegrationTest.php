@@ -99,6 +99,44 @@ final class LaravelQueueIntegrationTest extends TestCase
         $this->assertEquals(MediaType::createApplicationXPHPSerialized(), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
     }
 
+    public function test_sending_with_explicit_connection()
+    {
+        $channelName = 'async_channel';
+        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [AsyncCommandHandler::class],
+            $this->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    LaravelQueueMessageChannelBuilder::create(
+                        $channelName,
+                        'redis'
+                    ),
+                ])
+        );
+        $metadata = [
+            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
+            MessageHeaders::TIMESTAMP => 123333,
+        ];
+
+        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: $metadata);
+        /** Consumer not yet run */
+        $this->assertEquals(
+            [],
+            $messaging->sendQueryWithRouting('consumer.getMessages')
+        );
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $receivedMessage = $messaging->sendQueryWithRouting('consumer.getMessages');
+        $this->assertEquals($messagePayload, $receivedMessage[0]['payload']);
+        $this->assertEquals($metadata[MessageHeaders::MESSAGE_ID], $receivedMessage[0]['headers'][MessageHeaders::MESSAGE_ID]);
+        $this->assertEquals($metadata[MessageHeaders::TIMESTAMP], $receivedMessage[0]['headers'][MessageHeaders::TIMESTAMP]);
+        $this->assertEquals($channelName, $receivedMessage[0]['headers'][MessageHeaders::POLLED_CHANNEL_NAME]);
+        $this->assertEquals(MediaType::createApplicationXPHPSerialized(), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
+    }
+
     public function test_acking_messages()
     {
         $channelName = 'async_channel';

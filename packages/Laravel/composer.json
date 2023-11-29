@@ -45,7 +45,7 @@
         "wikimedia/composer-merge-plugin": "^2.0",
         "symfony/expression-language": "^6.0",
         "nesbot/carbon": "^2.71",
-        "moneyphp/money": "^3.0"
+        "moneyphp/money": "^4.1.0"
     },
     "extra": {
         "laravel": {

@@ -34,7 +34,7 @@
     },
     "require": {
         "ecotone/ecotone": "~1.206.0",
-        "laravel/framework": "^9.0|^10.0"
+        "laravel/framework": "^9.5.2|^10.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
@@ -44,7 +44,8 @@
         "orchestra/testbench": "^7.6",
         "wikimedia/composer-merge-plugin": "^2.0",
         "symfony/expression-language": "^6.0",
-        "nesbot/carbon": "^2.71"
+        "nesbot/carbon": "^2.71",
+        "moneyphp/money": "^4.1.0"
     },
     "extra": {
         "laravel": {

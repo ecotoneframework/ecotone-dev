@@ -112,7 +112,7 @@
         "friendsofphp/proxy-manager-lts": "^1.0.12",
         "jms/serializer": "^3.17",
         "laminas/laminas-zendframework-bridge": "^1.0.0",
-        "laravel/framework": "^9.0|^10.0",
+        "laravel/framework": "^9.5.2|^10.0",
         "prooph/pdo-event-store": "^1.15.1",
         "psr/log": "^2.0|^3.0",
         "queue-interop/queue-interop": "^0.8",
@@ -142,14 +142,15 @@
         "symplify/monorepo-builder": "11.1.21",
         "aws/aws-sdk-php": "<=3.269.5",
         "symfony/messenger": "^5.4|^6.0",
-        "symfony/amqp-messenger": "^5.4|^6.0",
+        "symfony/amqp-messenger": "^5.4.31|^6.0",
         "symfony/doctrine-messenger": "^5.4|^6.0",
         "doctrine/doctrine-bundle": "^2.7.2",
         "phpbench/phpbench": "^1.2",
         "enqueue/null": "^0.10.18",
         "open-telemetry/transport-grpc": "*",
         "open-telemetry/exporter-otlp": "*",
-        "nesbot/carbon": "^2.71"
+        "nesbot/carbon": "^2.71",
+        "moneyphp/money": "^4.1.0"
     },
     "extra": {
         "laravel": {

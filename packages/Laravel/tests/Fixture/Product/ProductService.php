@@ -6,7 +6,7 @@ namespace Test\Ecotone\Laravel\Fixture\Product;
 
 use Ecotone\Modelling\Attribute\CommandHandler;
 
-final readonly class ProductService
+final class ProductService
 {
 
     #[CommandHandler]

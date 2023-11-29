@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Fixture\Order;
 
-final readonly class PlaceOrder
+final class PlaceOrder
 {
     /**
      * @param int[] $productIds

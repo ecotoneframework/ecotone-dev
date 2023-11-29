@@ -6,7 +6,7 @@ namespace Test\Ecotone\Laravel\Fixture\Product;
 
 use Money\Money;
 
-final readonly class OrderPriceCalculator
+final class OrderPriceCalculator
 {
     public function calculateFor(array $productIds): Money
     {

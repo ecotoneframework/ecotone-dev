@@ -6,7 +6,7 @@ namespace Test\Ecotone\Laravel\Fixture\Product;
 
 use Money\Money;
 
-final readonly class RegisterProduct
+final class RegisterProduct
 {
     public function __construct(
         public string $id,

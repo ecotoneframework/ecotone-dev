@@ -7,7 +7,7 @@ namespace Fixture\Order;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 
-final readonly class MessagingConfig
+final class MessagingConfig
 {
     #[ServiceContext]
     public function asynchronousQueue()

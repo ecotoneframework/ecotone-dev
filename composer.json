@@ -149,7 +149,8 @@
         "enqueue/null": "^0.10.18",
         "open-telemetry/transport-grpc": "*",
         "open-telemetry/exporter-otlp": "*",
-        "nesbot/carbon": "^2.71"
+        "nesbot/carbon": "^2.71",
+        "moneyphp/money": "^3.0"
     },
     "extra": {
         "laravel": {

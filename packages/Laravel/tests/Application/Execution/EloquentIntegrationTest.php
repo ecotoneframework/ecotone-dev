@@ -42,7 +42,7 @@ final class EloquentIntegrationTest extends TestCase
             Schema::drop('orders');
         }
         Schema::create('orders', function (Blueprint $table) {
-            $table->uuid('id');
+            $table->bigIncrements('id');
             $table->string('user_id');
             $table->json('product_ids');
             $table->string('total_price_amount');
@@ -67,7 +67,7 @@ final class EloquentIntegrationTest extends TestCase
             [123, 1323]
         ));
 
-        $this->assertIsString($orderId);
+        $this->assertIsInt($orderId);
         $this->assertNotNull(
             Order::find($orderId),
         );

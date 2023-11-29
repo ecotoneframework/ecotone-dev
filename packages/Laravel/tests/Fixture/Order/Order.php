@@ -10,14 +10,14 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Ramsey\Uuid\Rfc4122\UuidV4;
 use Test\Ecotone\Laravel\Fixture\Product\OrderPriceCalculator;
+use Ramsey\Uuid\Uuid;
 
 #[Aggregate]
 final class Order extends Model
 {
-    use HasUuids;
     // This provides us with possibility to record Events
     use WithEvents;
 
@@ -48,7 +48,7 @@ final class Order extends Model
     }
 
     #[AggregateIdentifierMethod('id')]
-    public function getId(): string
+    public function getId(): int
     {
         return $this->id;
     }

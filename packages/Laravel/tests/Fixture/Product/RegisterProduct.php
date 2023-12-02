@@ -12,5 +12,6 @@ final class RegisterProduct
         public string $id,
         public string $name,
         public Money  $price
-    ) {}
+    ) {
+    }
 }

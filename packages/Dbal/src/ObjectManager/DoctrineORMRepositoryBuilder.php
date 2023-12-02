@@ -44,7 +44,7 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
 
     public static function createFromManagerRegistryConnectionFactory(ConnectionFactory $connectionFactory, ?array $relatedClasses)
     {
-        Assert::isTrue($connectionFactory instanceof ManagerRegistryConnectionFactory, "To use Doctrine ORM you need to change Connection Factory. Read DBAL Module configuration page.");
+        Assert::isTrue($connectionFactory instanceof ManagerRegistryConnectionFactory, 'To use Doctrine ORM you need to change Connection Factory. Read DBAL Module configuration page.');
 
         // TODO: this seems really wrong to use reflection here
         $registry = new ReflectionClass($connectionFactory);

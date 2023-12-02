@@ -9,5 +9,6 @@ final class OrderWasPlaced
     public function __construct(
         public int $orderId,
         public string $userId,
-    ) {}
+    ) {
+    }
 }

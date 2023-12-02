@@ -8,15 +8,14 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 
 final class ProductService
 {
-
     #[CommandHandler]
-    public function registerProduct(RegisterProduct $registerProduct) : void
+    public function registerProduct(RegisterProduct $registerProduct): void
     {
         $product = Product::create([
             'id' => $registerProduct->id,
             'name' => $registerProduct->name,
             'price_amount' => $registerProduct->price->getAmount(),
-            'price_currency' => $registerProduct->price->getCurrency()->getCode()
+            'price_currency' => $registerProduct->price->getCurrency()->getCode(),
         ]);
 
         $product->save();

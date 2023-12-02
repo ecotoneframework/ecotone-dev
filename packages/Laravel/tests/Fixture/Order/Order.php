@@ -7,13 +7,13 @@ namespace Test\Ecotone\Laravel\Fixture\Order;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
 use Illuminate\Database\Eloquent\Model;
-use Ramsey\Uuid\Rfc4122\UuidV4;
+
+use function json_encode;
+
 use Test\Ecotone\Laravel\Fixture\Product\OrderPriceCalculator;
-use Ramsey\Uuid\Uuid;
 
 #[Aggregate]
 final class Order extends Model
@@ -23,7 +23,8 @@ final class Order extends Model
 
     public $fillable = ['user_id', 'id', 'product_ids', 'total_price_amount', 'total_price_currency', 'is_cancelled'];
 
-    protected function __construct() {
+    protected function __construct()
+    {
         parent::__construct();
     }
 
@@ -34,11 +35,11 @@ final class Order extends Model
 
         $order = self::create([
             'user_id' => $command->userId,
-            'product_ids' => \json_encode($command->productIds),
+            'product_ids' => json_encode($command->productIds),
             'total_price_amount' => $price->getAmount(),
             'total_price_currency' => $price->getCurrency()->getCode(),
             'is_cancelled' => false,
-            'created_at' => time()
+            'created_at' => time(),
         ]);
         // this will ensure assigning id to the model
         $order->save();

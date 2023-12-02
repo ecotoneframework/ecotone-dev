@@ -16,7 +16,6 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
  * @internal
@@ -80,7 +79,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true,enableDocumentStoreAggregateRepository: true),
+                        ->withDocumentStore(true, enableDocumentStoreAggregateRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),

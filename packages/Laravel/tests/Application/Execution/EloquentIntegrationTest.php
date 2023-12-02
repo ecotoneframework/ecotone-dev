@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Application\Execution;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
@@ -13,13 +11,13 @@ use Illuminate\Support\Facades\Schema;
 use Money\Currency;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\AsyncCommandHandler;
 use Test\Ecotone\Laravel\Fixture\Order\Order;
-use Test\Ecotone\Laravel\Fixture\Order\OrderService;
 use Test\Ecotone\Laravel\Fixture\Order\PlaceOrder;
 use Test\Ecotone\Laravel\Fixture\Product\RegisterProduct;
-use Test\Ecotone\Laravel\Fixture\User\User;
 
+/**
+ * @internal
+ */
 final class EloquentIntegrationTest extends TestCase
 {
     public function setUp(): void
@@ -59,7 +57,9 @@ final class EloquentIntegrationTest extends TestCase
         $messaging = $this->createApplication()->make(ConfiguredMessagingSystem::class);
 
         $messaging->getCommandBus()->send(new RegisterProduct(
-            '1', 'Milk', new Money(100, new Currency('USD'))
+            '1',
+            'Milk',
+            new Money(100, new Currency('USD'))
         ));
 
         $orderId = $messaging->getCommandBus()->send(new PlaceOrder(
@@ -87,7 +87,7 @@ final class EloquentIntegrationTest extends TestCase
         );
 
         $messaging->getCommandBus()->sendWithRouting('cancel_order', metadata: [
-            'aggregate.id' => $orderId
+            'aggregate.id' => $orderId,
         ]);
 
         $this->assertTrue(

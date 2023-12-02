@@ -13,6 +13,6 @@ final class PlaceOrder
         public string $userId,
         public array $productIds
     ) {
-        
+
     }
 }

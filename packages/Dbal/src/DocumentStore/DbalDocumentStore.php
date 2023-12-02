@@ -204,7 +204,6 @@ final class DbalDocumentStore implements DocumentStore
         $table->setPrimaryKey(['collection', 'document_id']);
 
         $sm->createTable($table);
-        $this->initialize = false;
     }
 
     private function getConnection(): Connection

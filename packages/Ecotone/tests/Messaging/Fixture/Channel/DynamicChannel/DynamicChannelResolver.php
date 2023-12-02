@@ -20,8 +20,12 @@ final class DynamicChannelResolver
     ) {}
 
     #[ServiceActivator('dynamicChannel.receive')]
-    public function toReceive(): string
+    public function toReceive(#[Header('throwException')] bool $throwException = false): string
     {
+        if ($throwException) {
+            throw new \InvalidArgumentException("Exception on sending");
+        }
+
         $channel = array_shift($this->receivingChannelsInOrder);
 
         return $channel === null ? NullableMessageChannel::CHANNEL_NAME : $channel;

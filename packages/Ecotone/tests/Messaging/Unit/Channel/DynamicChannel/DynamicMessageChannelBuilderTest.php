@@ -32,7 +32,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->setExecutionAmountLimit(1)
                 ]),
             enableAsynchronousProcessing: [
-                DynamicMessageChannelBuilder::create('async_channel', 'dynamicChannel.receive', 'dynamicChannel.send'),
+                DynamicMessageChannelBuilder::create('async_channel', 'dynamicChannel.send', 'dynamicChannel.receive'),
                 SimpleMessageChannelBuilder::createQueueChannel('channel_one')
             ]
         );

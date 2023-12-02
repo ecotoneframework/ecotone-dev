@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Dbal\Integration;
+namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;
@@ -25,20 +25,20 @@ final class TransactionTest extends DbalMessagingTestCase
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.prepare');
-        } catch (Throwable) {
+        } catch (\Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (Throwable) {
+        } catch (\Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
     }
 
-    public function test_transactions_from_existing_transaction(): void
+    public function test_transactions_from_existing_connection(): void
     {
         $connection = $this->getConnection();
         $connection->close();
@@ -61,14 +61,14 @@ final class TransactionTest extends DbalMessagingTestCase
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.prepare');
-        } catch (Throwable) {
+        } catch (\Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (Throwable) {
+        } catch (\Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
@@ -80,14 +80,14 @@ final class TransactionTest extends DbalMessagingTestCase
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.prepareWithFailure');
-        } catch (Throwable) {
+        } catch (\Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (Throwable) {
+        } catch (\Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));

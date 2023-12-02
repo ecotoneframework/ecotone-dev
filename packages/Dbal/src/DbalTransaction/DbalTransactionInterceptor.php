@@ -16,6 +16,7 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Exception;
+use Interop\Queue\ConnectionFactory;
 use PDOException;
 use Throwable;
 
@@ -47,7 +48,7 @@ class DbalTransactionInterceptor
             }
 
             /** @var Connection[] $connections */
-            $possibleConnections = array_map(function (DbalConnectionFactory|ManagerRegistryConnectionFactory $connection) {
+            $possibleConnections = array_map(function (ConnectionFactory $connection) {
                 $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connection));
 
                 /** @var DbalContext $context */

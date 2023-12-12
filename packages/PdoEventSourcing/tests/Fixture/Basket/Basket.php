@@ -9,8 +9,8 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateEvents;
 use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Modelling\WithEvents;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
@@ -21,7 +21,7 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Event\ProductWasAddedToBasket;
 #[AggregateType(self::AGGREGATE_TYPE)]
 class Basket
 {
-    use WithAggregateEvents;
+    use WithEvents;
     use WithAggregateVersioning;
     public const BASKET_STREAM = 'basket_stream';
     public const AGGREGATE_TYPE = 'basket';

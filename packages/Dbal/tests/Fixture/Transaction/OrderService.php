@@ -6,7 +6,7 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 
 class OrderService
@@ -14,7 +14,7 @@ class OrderService
     public const ORDER_TABLE = 'orders';
 
     #[CommandHandler('order.prepare')]
-    public function prepare(#[Reference(DbalConnectionFactory::class)] ManagerRegistryConnectionFactory $connectionFactory)
+    public function prepare(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory)
     {
         $connection = $connectionFactory->createContext()->getDbalConnection();
 
@@ -27,7 +27,7 @@ class OrderService
     }
 
     #[CommandHandler('order.prepareWithFailure')]
-    public function prepareWithFailure(#[Reference(DbalConnectionFactory::class)] ManagerRegistryConnectionFactory $connectionFactory)
+    public function prepareWithFailure(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory)
     {
         $connection = $connectionFactory->createContext()->getDbalConnection();
 
@@ -44,7 +44,7 @@ class OrderService
     }
 
     #[CommandHandler('order.register')]
-    public function register(string $order, #[Reference(DbalConnectionFactory::class)] ManagerRegistryConnectionFactory $connectionFactory): void
+    public function register(string $order, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
     {
         $connection = $connectionFactory->createContext()->getDbalConnection();
 
@@ -56,7 +56,7 @@ class OrderService
     }
 
     #[QueryHandler('order.getRegistered')]
-    public function hasOrder(#[Reference(DbalConnectionFactory::class)] ManagerRegistryConnectionFactory $connectionFactory): array
+    public function hasOrder(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
     {
         $connection = $connectionFactory->createContext()->getDbalConnection();
 

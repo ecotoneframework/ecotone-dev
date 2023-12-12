@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\ORMPersonRepository;
@@ -154,5 +158,26 @@ final class ORMTest extends DbalMessagingTestCase
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryStateStoredRepository: false
         );
+    }
+
+    public function test_throwing_exception_when_setting_up_doctrine_orm_using_non_orm_registry_based_connection()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Person::class, MultipleInternalCommandsService::class],
+            [new MultipleInternalCommandsService(), DbalConnectionFactory::class => DbalConnection::create($this->getConnection())],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withDoctrineORMRepositories(true),
+                    DbalBackedMessageChannelBuilder::create('async'),
+                ])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
+            addInMemoryStateStoredRepository: false
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, failAtError: true));
     }
 }

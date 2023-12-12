@@ -14,9 +14,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\Clock;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 use Psr\Log\LoggerInterface;
@@ -32,7 +30,7 @@ class DeduplicationInterceptor
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
     private bool $isInitialized = false;
 
-    public function __construct(private DbalConnectionFactory|ManagerRegistryConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private LoggerInterface $logger)
+    public function __construct(private ConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private LoggerInterface $logger)
     {
     }
 

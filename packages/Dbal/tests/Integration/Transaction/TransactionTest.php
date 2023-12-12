@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Dbal\Integration;
+namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;
@@ -10,9 +10,9 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
-use Throwable;
 
 /**
  * @internal
@@ -25,14 +25,50 @@ final class TransactionTest extends DbalMessagingTestCase
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.prepare');
-        } catch (Throwable) {
+        } catch (Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (Throwable) {
+        } catch (Exception) {
+        }
+
+        self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
+    }
+
+    public function test_transactions_from_existing_connection(): void
+    {
+        $connection = $this->getConnection();
+        $connection->close();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                new OrderService(),
+                DbalConnectionFactory::class => DbalConnection::create(
+                    $connection
+                ),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\Dbal\Fixture\Transaction',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+        );
+
+        try {
+            $ecotone->sendCommandWithRoutingKey('order.prepare');
+        } catch (Exception) {
+        }
+
+        self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
+
+        try {
+            $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+        } catch (Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
@@ -44,14 +80,14 @@ final class TransactionTest extends DbalMessagingTestCase
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.prepareWithFailure');
-        } catch (Throwable) {
+        } catch (Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        } catch (Throwable) {
+        } catch (Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));

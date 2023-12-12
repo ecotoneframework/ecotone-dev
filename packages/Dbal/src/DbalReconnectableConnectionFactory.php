@@ -5,8 +5,8 @@ namespace Ecotone\Dbal;
 use Doctrine\DBAL\Connection;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
+use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use ReflectionClass;
 
@@ -14,9 +14,9 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
 {
     public const CONNECTION_PROPERTIES = ['connection', '_conn'];
 
-    private DbalConnectionFactory|EcotoneManagerRegistryConnectionFactory $connectionFactory;
+    private ConnectionFactory $connectionFactory;
 
-    public function __construct(DbalConnectionFactory|EcotoneManagerRegistryConnectionFactory $dbalConnectionFactory)
+    public function __construct(ConnectionFactory $dbalConnectionFactory)
     {
         $this->connectionFactory = $dbalConnectionFactory;
     }
@@ -66,7 +66,10 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
      */
     public static function getWrappedConnection(object $connection): Connection
     {
-        if ($connection instanceof EcotoneManagerRegistryConnectionFactory) {
+        if (
+            $connection instanceof EcotoneManagerRegistryConnectionFactory
+            || $connection instanceof AlreadyConnectedDbalConnectionFactory
+        ) {
             return $connection->getConnection();
         } else {
             $reflectionClass   = new ReflectionClass($connection);

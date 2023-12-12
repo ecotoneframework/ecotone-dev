@@ -13,7 +13,7 @@ use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
-use Ecotone\Modelling\SaveAggregateService;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveEventSourcingAggregateService;
 use Ecotone\Modelling\SnapshotEvent;
 use Ecotone\Test\ComponentTestBuilder;
 use Ramsey\Uuid\Uuid;
@@ -81,7 +81,7 @@ class EventSourcingRepositoryBuilderTest extends EventSourcingMessagingTestCase
         ];
 
         $ticket->applyTicketWasRegistered($ticketWasRegistered);
-        $documentStore->addDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), $ticketId, $ticket);
+        $documentStore->addDocument(SaveEventSourcingAggregateService::getSnapshotCollectionName(Ticket::class), $ticketId, $ticket);
 
         $repository = self::componentTesting($configuration)
             ->withReference(

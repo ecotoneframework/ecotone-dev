@@ -8,8 +8,10 @@ use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\RepositoryBuilder;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Interop\Queue\ConnectionFactory;
 use ReflectionClass;
 
 class DoctrineORMRepositoryBuilder implements RepositoryBuilder
@@ -40,8 +42,10 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         ], [self::class, 'createFromManagerRegistryConnectionFactory']);
     }
 
-    public static function createFromManagerRegistryConnectionFactory(ManagerRegistryConnectionFactory $connectionFactory, ?array $relatedClasses)
+    public static function createFromManagerRegistryConnectionFactory(ConnectionFactory $connectionFactory, ?array $relatedClasses)
     {
+        Assert::isTrue($connectionFactory instanceof ManagerRegistryConnectionFactory, 'To use Doctrine ORM you need to change Connection Factory. Read DBAL Module configuration page.');
+
         // TODO: this seems really wrong to use reflection here
         $registry = new ReflectionClass($connectionFactory);
         $property = $registry->getProperty('registry');

@@ -24,6 +24,10 @@ final class Order
     #[Identifier]
     public string $orderId;
 
+    public function __construct()
+    {
+    }
+
     #[EventSourcingHandler]
     public function applyOrderCreated(OrderCreated $event): void
     {

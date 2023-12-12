@@ -33,8 +33,8 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.204.2",
-        "laravel/framework": "^9.0|^10.0"
+        "ecotone/ecotone": "~1.206.1",
+        "laravel/framework": "^9.5.2|^10.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
@@ -43,7 +43,9 @@
         "phpstan/phpstan": "^1.8",
         "orchestra/testbench": "^7.6",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "symfony/expression-language": "^6.0"
+        "symfony/expression-language": "^6.0",
+        "nesbot/carbon": "^2.71",
+        "moneyphp/money": "^4.1.0"
     },
     "extra": {
         "laravel": {
@@ -52,7 +54,7 @@
             ]
         },
         "branch-alias": {
-            "dev-main": "1.204.2-dev"
+            "dev-main": "1.206.1-dev"
         },
         "ecotone": {
             "repository": "laravel"

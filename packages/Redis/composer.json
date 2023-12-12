@@ -35,7 +35,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~1.206.1",
+        "ecotone/enqueue": "~1.207.0",
         "enqueue/redis": "^0.10.9"
     },
     "require-dev": {
@@ -57,7 +57,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.206.1-dev"
+            "dev-main": "1.207.0-dev"
         },
         "ecotone": {
             "repository": "redis"

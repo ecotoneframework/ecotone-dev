@@ -14,6 +14,9 @@ use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\Calendar\Calendar;
 use Test\Ecotone\Amqp\Fixture\Calendar\ScheduleMeeting;
 
+/**
+ * @internal
+ */
 final class CallAggregateAsynchronousEndpointTest extends AmqpMessagingTest
 {
     public function test_sending_command_to_aggregate(): void
@@ -26,7 +29,7 @@ final class CallAggregateAsynchronousEndpointTest extends AmqpMessagingTest
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    AmqpBackedMessageChannelBuilder::create('calendar')
+                    AmqpBackedMessageChannelBuilder::create('calendar'),
                 ])
         );
 

@@ -31,7 +31,7 @@ class MessagingEntrypointCommand extends Command
         parent::__construct();
     }
 
-    protected function configure()
+    protected function configure(): void
     {
         foreach ($this->parameters as $parameter) {
             if ($parameter->isOption()) {
@@ -45,20 +45,19 @@ class MessagingEntrypointCommand extends Command
             }
         }
 
-        $this
-            ->setName($this->name);
+        $this->setName($this->name);
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         /** @var ConsoleCommandResultSet $result */
         $result = $this->consoleCommandRunner->execute($this->name, array_merge($input->getArguments(), $input->getOptions()));
 
         if ($result) {
             $table = new Table($output);
-            $table
-                ->setHeaders($result->getColumnHeaders())
-                ->setRows($result->getRows());
+            $table->setHeaders($result->getColumnHeaders())
+                ->setRows($result->getRows())
+            ;
 
             $table->render();
         }

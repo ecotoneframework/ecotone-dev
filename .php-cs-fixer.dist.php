@@ -2,13 +2,13 @@
 
 $finder = PhpCsFixer\Finder::create()
     ->in([
-        __DIR__ . '/packages'
+        __DIR__ . '/packages',
     ])
     ->name('*.php');
 
 $config = new PhpCsFixer\Config();
 
-return $config->setRules([
+return $config->setRiskyAllowed(true)->setRules([
     '@PHP80Migration' => true,
     '@PSR12' => true,
     '@PSR12:risky' => true,
@@ -25,7 +25,7 @@ return $config->setRules([
     'ordered_imports' => true,
     'php_unit_internal_class' => true,
     'php_unit_method_casing' => [
-        'case' => 'snake_case'
+        'case' => 'snake_case',
     ],
     'not_operator_with_successor_space' => true,
     'no_multiline_whitespace_around_double_arrow' => true,

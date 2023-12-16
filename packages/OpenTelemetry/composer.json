@@ -41,12 +41,12 @@
         "wikimedia/composer-merge-plugin": "^2.0",
         "open-telemetry/transport-grpc": "*",
         "open-telemetry/exporter-otlp": "*",
-        "symfony/http-client": "^6.2",
+        "symfony/http-client": "^5.4|^6.2|7.0",
         "guzzlehttp/promises": "^1.5",
         "php-http/message-factory": "^1.0",
         "nyholm/psr7": "^1.5",
         "psr/http-client": "^1.0.1",
-        "monolog/monolog": "^3.3.1",
+        "monolog/monolog": "^2.9|^3.3.1",
         "php-http/httplug": "^2.4"
     },
     "scripts": {

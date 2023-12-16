@@ -14,7 +14,7 @@
     },
     "require": {
         "ecotone/lite-dbal-starter": "^1.0.1",
-        "symfony/http-foundation": "^6.0",
+        "symfony/http-foundation": "^6.0|^7.0",
         "moneyphp/money": "^4.1.0"
     },
     "require-dev": {

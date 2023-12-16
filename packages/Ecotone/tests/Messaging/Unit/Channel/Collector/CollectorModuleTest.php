@@ -9,7 +9,6 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\Collector\CollectedMessage;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
-use Ecotone\Messaging\Channel\DynamicChannel\RoundRobinChannelBuilder;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
@@ -63,7 +62,7 @@ final class CollectorModuleTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             [
-                RoundRobinChannelBuilder::create('orders', ['orders_priority']),
+                DynamicMessageChannelBuilder::createDefault('orders', ['orders_priority']),
                 SimpleMessageChannelBuilder::createQueueChannel('orders_priority', conversionMediaType: MediaType::createApplicationXPHP()),
             ],
             [
@@ -91,7 +90,9 @@ final class CollectorModuleTest extends TestCase
             [OrderService::class, DynamicChannelResolver::class],
             [new OrderService(), $dynamicChannelResolver],
             [
-                DynamicMessageChannelBuilder::create('orders', 'dynamicChannel.receive', 'dynamicChannel.send'),
+                DynamicMessageChannelBuilder::createDefault('orders')
+                    ->withCustomSendingStrategy('dynamicChannel.send')
+                    ->withCustomReceivingStrategy('dynamicChannel.receive'),
                 SimpleMessageChannelBuilder::createQueueChannel('orders_priority', conversionMediaType: MediaType::createApplicationXPHP()),
             ],
             [

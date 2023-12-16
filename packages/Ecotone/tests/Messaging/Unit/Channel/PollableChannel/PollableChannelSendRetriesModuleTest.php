@@ -101,7 +101,9 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [OrderService::class, DynamicChannelResolver::class],
             [new OrderService(), 'logger' => $loggerExample, $dynamicChannelResolver],
             [
-                DynamicMessageChannelBuilder::create('orders', 'dynamicChannel.send', 'dynamicChannel.receive'),
+                DynamicMessageChannelBuilder::createDefault('orders')
+                    ->withCustomSendingStrategy('dynamicChannel.send')
+                    ->withCustomReceivingStrategy('dynamicChannel.receive'),
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders_priority', 3),
             ],
             [
@@ -131,7 +133,9 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [OrderService::class, DynamicChannelResolver::class],
             [new OrderService(), 'logger' => $loggerExample, $dynamicChannelResolver],
             [
-                DynamicMessageChannelBuilder::create('orders', 'dynamicChannel.send', 'dynamicChannel.receive'),
+                DynamicMessageChannelBuilder::createDefault('orders')
+                    ->withCustomSendingStrategy('dynamicChannel.send')
+                    ->withCustomReceivingStrategy('dynamicChannel.receive'),
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders_priority', 2),
             ],
             [
@@ -144,7 +148,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
         $message = $ecotoneLite->getMessageChannel('orders')->receive();
 
         $this->assertNotNull($message);
-        $this->assertCount(2, $loggerExample->getInfo());
+        $this->assertCount(4, $loggerExample->getInfo());
     }
 
     public function test_with_custom_retry_strategy()

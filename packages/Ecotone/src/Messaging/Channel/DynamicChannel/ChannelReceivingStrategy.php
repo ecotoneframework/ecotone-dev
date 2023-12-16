@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\DynamicChannel;
 
-interface ChannelSender
+interface ChannelReceivingStrategy
 {
-
+    public function decide(): string;
 }

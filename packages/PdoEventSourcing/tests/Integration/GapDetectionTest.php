@@ -55,7 +55,7 @@ final class GapDetectionTest extends EventSourcingMessagingTestCase
 
         /** Taking another sequence_number. In the Event Stream we will have sequence_number 1 and sequence_number 3 */
         $ecotoneLiteTwo->sendCommand(new RegisterTicket('124', 'Johnny', 'alert'));
-        $ecotoneLiteTwo->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(10, 1000, true));
+        $ecotoneLiteTwo->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         self::assertEquals([
             ['ticket_id' => '123', 'ticket_type' => 'alert'],
         ], $ecotoneLiteOne->sendQueryWithRouting('getInProgressTickets'));

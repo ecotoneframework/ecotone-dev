@@ -42,7 +42,9 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
 
     public function test_single_command(): void
     {
-        $this->markTestSkipped('TypeError: Symfony\Component\Messenger\Bridge\Amqp\Transport\Connection::nack(): Return value must be of type bool, null returned');
+        if (version_compare(PHP_VERSION, '8.1', '<')) {
+            $this->markTestSkipped('TypeError: Symfony\Component\Messenger\Bridge\Amqp\Transport\Connection::nack(): Return value must be of type bool, null returned');
+        }
 
         $this->messaging->sendCommandWithRoutingKey('amqp.test.example_command', new AmqpExampleCommand('single_1'));
         $this->assertCount(0, $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands'));
@@ -55,7 +57,9 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
 
     public function test_multiple_commands(): void
     {
-        $this->markTestSkipped('TypeError: Symfony\Component\Messenger\Bridge\Amqp\Transport\Connection::nack(): Return value must be of type bool, null returned');
+        if (version_compare(PHP_VERSION, '8.1', '<')) {
+            $this->markTestSkipped('TypeError: Symfony\Component\Messenger\Bridge\Amqp\Transport\Connection::nack(): Return value must be of type bool, null returned');
+        }
 
         $this->messaging->sendCommandWithRoutingKey('amqp.test.example_command', new AmqpExampleCommand('multi_1'));
         $this->messaging->sendCommandWithRoutingKey('amqp.test.example_command', new AmqpExampleCommand('multi_2'));

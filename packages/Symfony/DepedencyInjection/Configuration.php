@@ -10,12 +10,11 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  */
 class Configuration implements ConfigurationInterface
 {
-    public function getConfigTreeBuilder()
+    public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder('ecotone');
 
-
-        return $treeBuilder
+        $treeBuilder
             ->getRootNode()
                 ->children()
                     ->scalarNode('serviceName')
@@ -23,27 +22,27 @@ class Configuration implements ConfigurationInterface
                     ->end()
 
                     ->booleanNode('cacheConfiguration')
-                    ->defaultFalse()
+                        ->defaultFalse()
                     ->end()
 
                     ->booleanNode('failFast')
-                    ->defaultFalse()
+                        ->defaultFalse()
                     ->end()
 
                     ->booleanNode('test')
-                    ->defaultFalse()
+                        ->defaultFalse()
                     ->end()
 
                     ->booleanNode('loadSrcNamespaces')
-                    ->defaultTrue()
+                        ->defaultTrue()
                     ->end()
 
                     ->scalarNode('defaultSerializationMediaType')
-                    ->defaultNull()
+                        ->defaultNull()
                     ->end()
 
                     ->scalarNode('defaultErrorChannel')
-                    ->defaultNull()
+                        ->defaultNull()
                     ->end()
 
 
@@ -53,31 +52,31 @@ class Configuration implements ConfigurationInterface
                     ->end()
 
                     ->integerNode('defaultMemoryLimit')
-                    ->defaultNull()
+                        ->defaultNull()
                     ->end()
 
                     ->arrayNode('defaultConnectionExceptionRetry')
                         ->children()
                             ->integerNode('initialDelay')
-                            ->isRequired()
+                                ->isRequired()
                             ->end()
 
                             ->integerNode('maxAttempts')
-                            ->isRequired()
+                                ->isRequired()
                             ->end()
 
                             ->integerNode('multiplier')
-                            ->isRequired()
+                                ->isRequired()
                             ->end()
-                            ->end()
+                        ->end()
                     ->end()
 
                     ->arrayNode('skippedModulePackageNames')
                         ->scalarPrototype()
-                        ->end()
                     ->end()
-
                 ->end()
-            ->end();
+        ;
+
+        return $treeBuilder;
     }
 }

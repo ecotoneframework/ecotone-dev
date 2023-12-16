@@ -33,6 +33,8 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     }
 
     /**
+     * Creates with default round robin strateg for sending and receiving
+     *
      * @param string[] $receivingChannelNames
      * @param string[] $sendingChannelNames
      * @param MessageChannelBuilder[] $internalMessageChannels
@@ -51,10 +53,12 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     }
 
     /**
+     * Creates with default round robin strateg for sending and receiving
+     *
      * @param string[] $channelNames
      * @param MessageChannelBuilder[] $internalMessageChannels
      */
-    public static function createDefault(
+    public static function createRoundRobin(
         string $thisMessageChannelName,
         array $channelNames = [],
     ): self
@@ -69,7 +73,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     /**
      * @param MessageChannelBuilder[] $internalMessageChannels
      */
-    public function withInternalChannelNames(array $internalMessageChannels): self
+    public function withInternalChannels(array $internalMessageChannels): self
     {
         Assert::allInstanceOfType($internalMessageChannels, MessageChannelBuilder::class);
 

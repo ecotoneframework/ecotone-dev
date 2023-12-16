@@ -62,7 +62,7 @@ final class CollectorModuleTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             [
-                DynamicMessageChannelBuilder::createDefault('orders', ['orders_priority']),
+                DynamicMessageChannelBuilder::createRoundRobin('orders', ['orders_priority']),
                 SimpleMessageChannelBuilder::createQueueChannel('orders_priority', conversionMediaType: MediaType::createApplicationXPHP()),
             ],
             [
@@ -90,7 +90,7 @@ final class CollectorModuleTest extends TestCase
             [OrderService::class, DynamicChannelResolver::class],
             [new OrderService(), $dynamicChannelResolver],
             [
-                DynamicMessageChannelBuilder::createDefault('orders')
+                DynamicMessageChannelBuilder::createRoundRobin('orders')
                     ->withCustomSendingStrategy('dynamicChannel.send')
                     ->withCustomReceivingStrategy('dynamicChannel.receive'),
                 SimpleMessageChannelBuilder::createQueueChannel('orders_priority', conversionMediaType: MediaType::createApplicationXPHP()),

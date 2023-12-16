@@ -29,7 +29,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->setExecutionAmountLimit(1)
                 ]),
             enableAsynchronousProcessing: [
-                DynamicMessageChannelBuilder::createDefault('async_channel', ['channel_one']),
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']),
                 SimpleMessageChannelBuilder::createQueueChannel('channel_one')
             ]
         );
@@ -92,7 +92,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     sendingChannelNames: ['channel_one'],
                     receivingChannelNames: ['channel_two', 'channel_one'],
                 )
-                    ->withInternalChannelNames([
+                    ->withInternalChannels([
                         SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         SimpleMessageChannelBuilder::createQueueChannel('channel_two')
                     ]),
@@ -128,7 +128,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     sendingChannelNames: ['x'],
                     receivingChannelNames: ['x', 'y'],
                 )
-                    ->withInternalChannelNames([
+                    ->withInternalChannels([
                         'x' => SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         'y' => SimpleMessageChannelBuilder::createQueueChannel('channel_two')
                     ]),
@@ -169,7 +169,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->setExecutionAmountLimit(1)
                 ]),
             enableAsynchronousProcessing: [
-                DynamicMessageChannelBuilder::createDefault('async_channel')
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel')
                     ->withCustomSendingStrategy('dynamicChannel.send')
                     ->withCustomReceivingStrategy('dynamicChannel.receive'),
                 SimpleMessageChannelBuilder::createQueueChannel('channel_one')
@@ -205,7 +205,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->setExecutionAmountLimit(1)
                 ]),
             enableAsynchronousProcessing: [
-                DynamicMessageChannelBuilder::createDefault('async_channel')
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel')
                     ->withCustomSendingStrategy('dynamicChannel.send')
                     ->withCustomReceivingStrategy('dynamicChannel.receive'),
                 SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
@@ -248,7 +248,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->setExecutionAmountLimit(1)
                 ]),
             enableAsynchronousProcessing: [
-                DynamicMessageChannelBuilder::createDefault('async_channel', ['channel_one', 'channel_two', 'channel_three'])
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one', 'channel_two', 'channel_three'])
                     ->withHeaderSendingStrategy(
                         'tenant',
                         [
@@ -257,7 +257,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                             'tenant_c' => 'channel_three',
                         ]
                     )
-                    ->withInternalChannelNames([
+                    ->withInternalChannels([
                         SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
                         SimpleMessageChannelBuilder::createQueueChannel('channel_three'),
@@ -297,11 +297,11 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->setExecutionAmountLimit(1)
                 ]),
             enableAsynchronousProcessing: [
-                DynamicMessageChannelBuilder::createDefault('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
                     ->withHeaderSendingStrategy(
                         'tenant',
                     )
-                    ->withInternalChannelNames([
+                    ->withInternalChannels([
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_b'),
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_c'),
@@ -341,7 +341,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->setExecutionAmountLimit(1)
                 ]),
             enableAsynchronousProcessing: [
-                DynamicMessageChannelBuilder::createDefault('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
                     ->withHeaderSendingStrategy(
                         'tenant',
                     )
@@ -364,12 +364,12 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         ->setExecutionAmountLimit(1)
                 ]),
             enableAsynchronousProcessing: [
-                DynamicMessageChannelBuilder::createDefault('async_channel', ['tenant_a', 'tenant_shared'])
+                DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['tenant_a', 'tenant_shared'])
                     ->withHeaderSendingStrategy(
                         'tenant',
                         defaultChannelName: 'tenant_shared'
                     )
-                    ->withInternalChannelNames([
+                    ->withInternalChannels([
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_shared'),
                     ]),

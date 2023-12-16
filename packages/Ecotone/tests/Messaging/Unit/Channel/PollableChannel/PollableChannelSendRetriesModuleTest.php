@@ -101,7 +101,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [OrderService::class, DynamicChannelResolver::class],
             [new OrderService(), 'logger' => $loggerExample, $dynamicChannelResolver],
             [
-                DynamicMessageChannelBuilder::createDefault('orders')
+                DynamicMessageChannelBuilder::createRoundRobin('orders')
                     ->withCustomSendingStrategy('dynamicChannel.send')
                     ->withCustomReceivingStrategy('dynamicChannel.receive'),
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders_priority', 3),
@@ -133,7 +133,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
             [OrderService::class, DynamicChannelResolver::class],
             [new OrderService(), 'logger' => $loggerExample, $dynamicChannelResolver],
             [
-                DynamicMessageChannelBuilder::createDefault('orders')
+                DynamicMessageChannelBuilder::createRoundRobin('orders')
                     ->withCustomSendingStrategy('dynamicChannel.send')
                     ->withCustomReceivingStrategy('dynamicChannel.receive'),
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders_priority', 2),

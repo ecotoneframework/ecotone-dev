@@ -6,6 +6,7 @@ namespace Messaging\Unit\Channel\DynamicChannel;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
+use Ecotone\Messaging\Channel\DynamicChannel\RoundRobinChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -70,6 +71,58 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                 SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                 SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
                 SimpleMessageChannelBuilder::createQueueChannel('channel_three'),
+            ]
+        );
+
+        /** Sending to channel one */
+        $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
+
+        /** Receiving from channel two */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(0, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        /** Receiving from channel one */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(1, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        /** Sending to channel two */
+        $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
+
+        /** Receiving from channel three */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(1, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        /** Receiving from channel two */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(2, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+    }
+
+    public function test_sending_and_receiving_with_internal_channels(): void
+    {
+        $dynamicChannelResolver = new DynamicChannelResolver(
+            ['channel_one', 'channel_two'],
+            ['channel_two', 'channel_one', 'channel_three', 'channel_two']
+        );
+        $successServiceActivator = new SuccessServiceActivator();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [$dynamicChannelResolver, $successServiceActivator],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    PollingMetadata::create('async_channel')
+                        ->setExecutionAmountLimit(1)
+                ]),
+            enableAsynchronousProcessing: [
+                DynamicMessageChannelBuilder::create(
+                    'async_channel',
+                    'dynamicChannel.send',
+                    'dynamicChannel.receive',
+                    [
+                        'channel_one' => SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
+                        'channel_two' => SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
+                        'channel_three' => SimpleMessageChannelBuilder::createQueueChannel('channel_three'),
+                    ]
+                ),
             ]
         );
 

@@ -31,6 +31,7 @@ final class RoundRobinChannelBuilder implements MessageChannelBuilder
     /**
      * @param string[] $receivingChannelNames
      * @param string[] $sendingChannelNames
+     * @param MessageChannelBuilder[] $internalMessageChannels
      */
     public static function createWithDifferentChannels(
         string $thisMessageChannelName,
@@ -49,6 +50,7 @@ final class RoundRobinChannelBuilder implements MessageChannelBuilder
 
     /**
      * @param string[] $channelNames
+     * @param MessageChannelBuilder[] $internalMessageChannels
      */
     public static function create(
         string $thisMessageChannelName,

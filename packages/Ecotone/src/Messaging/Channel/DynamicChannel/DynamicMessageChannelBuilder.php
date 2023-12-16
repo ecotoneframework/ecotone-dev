@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Support\Assert;
 
 final class DynamicMessageChannelBuilder implements MessageChannelBuilder
 {
@@ -20,19 +21,26 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         private string $thisMessageChannelName,
         private string $channelNameToResolveSendingMessageChannel,
         private string $channelNameToResolveReceivingMessageChannel,
+        private array $internalMessageChannels = []
     ) {
+        Assert::allInstanceOfType($internalMessageChannels, MessageChannelBuilder::class);
     }
 
+    /**
+     * @param MessageChannelBuilder[] $internalMessageChannels
+     */
     public static function create(
         string $thisMessageChannelName,
         string $channelNameToResolveSendingMessageChannel,
         string $channelNameToResolveReceivingMessageChannel,
+        array $internalMessageChannels = []
     ): self
     {
         return new self(
             $thisMessageChannelName,
             $channelNameToResolveSendingMessageChannel,
-            $channelNameToResolveReceivingMessageChannel
+            $channelNameToResolveReceivingMessageChannel,
+            $internalMessageChannels
         );
     }
 
@@ -44,7 +52,12 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
                 Reference::to(MessagingEntrypoint::class),
                 Reference::to(ChannelResolver::class),
                 $this->channelNameToResolveSendingMessageChannel,
-                $this->channelNameToResolveReceivingMessageChannel
+                $this->channelNameToResolveReceivingMessageChannel,
+                array_map(
+                    fn(MessageChannelBuilder $channelBuilder, $key) => ['channel' => $channelBuilder->compile($builder), 'name' => is_int($key) ? $channelBuilder->getMessageChannelName() : $key],
+                    $this->internalMessageChannels,
+                    array_keys($this->internalMessageChannels)
+                )
             ]
         );
     }

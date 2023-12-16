@@ -198,7 +198,8 @@
         "allow-plugins": {
             "wikimedia/composer-merge-plugin": true,
             "php-http/discovery": false
-        }
+        },
+        "process-timeout": 600
     },
     "minimum-stability": "dev",
     "prefer-stable": true

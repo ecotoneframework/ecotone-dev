@@ -30,7 +30,10 @@ final class ProjectionSetupConfiguration implements DefinedObject
 
     public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource, ?string $asynchronousChannelName): static
     {
-        return new self($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource, $asynchronousChannelName, projectionOptions: [PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection()]);
+        return new self($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource, $asynchronousChannelName, projectionOptions: [PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(
+            retryConfig: [0, 5, 50, 500, 800],
+            detectionWindow: null
+        )]);
     }
 
     public function getDefinition(): Definition

@@ -63,7 +63,7 @@ final class CollectorModuleTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             [
-                RoundRobinChannelBuilder::createWithSameChannels('orders', ['orders_priority']),
+                RoundRobinChannelBuilder::create('orders', ['orders_priority']),
                 SimpleMessageChannelBuilder::createQueueChannel('orders_priority', conversionMediaType: MediaType::createApplicationXPHP()),
             ],
             [

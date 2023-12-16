@@ -14,15 +14,17 @@ interface LoggingGateway
 {
     #[MessageGateway(LoggingService::INFO_LOGGING_CHANNEL)]
     public function info(
-        #[Payload] string $text,
-        #[Header(LoggingService::CONTEXT_MESSAGE_HEADER)] Message $message,
-        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?Throwable $exception = null
+        #[Payload] string                                              $text,
+        #[Header(LoggingService::CONTEXT_MESSAGE_HEADER)] ?Message     $message = null,
+        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?Throwable $exception = null,
+        #[Header(LoggingService::CONTEXT_DATA_HEADER)] array           $contextData = [],
     ): void;
 
     #[MessageGateway(LoggingService::ERROR_LOGGING_CHANNEL)]
     public function error(
-        #[Payload] string $text,
-        #[Header(LoggingService::CONTEXT_MESSAGE_HEADER)] Message $message,
-        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?Throwable $exception = null
+        #[Payload] string                                              $text,
+        #[Header(LoggingService::CONTEXT_MESSAGE_HEADER)] Message      $message,
+        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?Throwable $exception = null,
+        #[Header(LoggingService::CONTEXT_DATA_HEADER)] array           $contextData = [],
     ): void;
 }

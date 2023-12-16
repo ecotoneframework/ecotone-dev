@@ -10,6 +10,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Channel\DynamicChannel\DynamicChannelResolver;
 use Test\Ecotone\Messaging\Fixture\Handler\SuccessServiceActivator;
@@ -90,11 +91,11 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                 DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel',
                     sendingChannelNames: ['channel_one'],
                     receivingChannelNames: ['channel_two', 'channel_one'],
-                    internalMessageChannels: [
+                )
+                    ->withInternalChannelNames([
                         SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         SimpleMessageChannelBuilder::createQueueChannel('channel_two')
-                    ]
-                ),
+                    ]),
             ]
         );
 
@@ -126,11 +127,11 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                 DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel',
                     sendingChannelNames: ['x'],
                     receivingChannelNames: ['x', 'y'],
-                    internalMessageChannels: [
+                )
+                    ->withInternalChannelNames([
                         'x' => SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         'y' => SimpleMessageChannelBuilder::createQueueChannel('channel_two')
-                    ]
-                ),
+                    ]),
             ]
         );
 
@@ -234,5 +235,155 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         /** Receiving from channel two */
         $ecotoneLite->run('async_channel');
         $this->assertSame(2, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+    }
+
+    public function test_sending_using_header_strategy_with_mapping(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [new SuccessServiceActivator()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    PollingMetadata::create('async_channel')
+                        ->setExecutionAmountLimit(1)
+                ]),
+            enableAsynchronousProcessing: [
+                DynamicMessageChannelBuilder::createDefault('async_channel', ['channel_one', 'channel_two', 'channel_three'])
+                    ->withHeaderSendingStrategy(
+                        'tenant',
+                        [
+                            'tenant_a' => 'channel_one',
+                            'tenant_b' => 'channel_two',
+                            'tenant_c' => 'channel_three',
+                        ]
+                    )
+                    ->withInternalChannelNames([
+                        SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
+                        SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
+                        SimpleMessageChannelBuilder::createQueueChannel('channel_three'),
+                    ]),
+            ]
+        );
+
+        $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_b']);
+
+        /** Receiving from tenant_a */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(0, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        /** Receiving from tenant_b */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(1, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_a']);
+
+        /** Receiving from tenant_c */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(1, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        /** Receiving from tenant_a */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(2, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+    }
+
+    public function test_sending_using_header_strategy_without_mapping(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [new SuccessServiceActivator()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    PollingMetadata::create('async_channel')
+                        ->setExecutionAmountLimit(1)
+                ]),
+            enableAsynchronousProcessing: [
+                DynamicMessageChannelBuilder::createDefault('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
+                    ->withHeaderSendingStrategy(
+                        'tenant',
+                    )
+                    ->withInternalChannelNames([
+                        SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
+                        SimpleMessageChannelBuilder::createQueueChannel('tenant_b'),
+                        SimpleMessageChannelBuilder::createQueueChannel('tenant_c'),
+                    ]),
+            ]
+        );
+
+        $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_b']);
+
+        /** Receiving from tenant_a */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(0, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        /** Receiving from tenant_b */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(1, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_a']);
+
+        /** Receiving from tenant_c */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(1, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        /** Receiving from tenant_a */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(2, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+    }
+
+    public function test_sending_using_header_strategy_throws_exception_when_header_is_missing(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [new SuccessServiceActivator()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    PollingMetadata::create('async_channel')
+                        ->setExecutionAmountLimit(1)
+                ]),
+            enableAsynchronousProcessing: [
+                DynamicMessageChannelBuilder::createDefault('async_channel', ['tenant_a', 'tenant_b', 'tenant_c'])
+                    ->withHeaderSendingStrategy(
+                        'tenant',
+                    )
+            ]
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
+    }
+
+    public function test_sending_using_header_strategy_with_default_channel(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
+            [new SuccessServiceActivator()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    PollingMetadata::create('async_channel')
+                        ->setExecutionAmountLimit(1)
+                ]),
+            enableAsynchronousProcessing: [
+                DynamicMessageChannelBuilder::createDefault('async_channel', ['tenant_a', 'tenant_shared'])
+                    ->withHeaderSendingStrategy(
+                        'tenant',
+                        defaultChannelName: 'tenant_shared'
+                    )
+                    ->withInternalChannelNames([
+                        SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
+                        SimpleMessageChannelBuilder::createQueueChannel('tenant_shared'),
+                    ]),
+            ]
+        );
+
+        $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
+
+        /** Receiving from tenant_a */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(0, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
+
+        /** Receiving from tenant_shared */
+        $ecotoneLite->run('async_channel');
+        $this->assertSame(1, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
     }
 }

@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Channel\DynamicChannel;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\CustomReceivingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy\CustomSendingStrategy;
+use Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy\HeaderSendingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy\RoundRobinSendingStrategy;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -40,14 +41,12 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         string $thisMessageChannelName,
         array $sendingChannelNames,
         array $receivingChannelNames,
-        array $internalMessageChannels = []
     ): self
     {
         return new self(
             $thisMessageChannelName,
             new Definition(RoundRobinSendingStrategy::class, [$sendingChannelNames]),
             new Definition(RoundRobinReceivingStrategy::class, [$receivingChannelNames]),
-            $internalMessageChannels
         );
     }
 
@@ -58,15 +57,25 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     public static function createDefault(
         string $thisMessageChannelName,
         array $channelNames = [],
-        array $internalMessageChannels = []
     ): self
     {
         return new self(
             $thisMessageChannelName,
             new Definition(RoundRobinSendingStrategy::class, [$channelNames]),
             new Definition(RoundRobinReceivingStrategy::class, [$channelNames]),
-            $internalMessageChannels
         );
+    }
+
+    /**
+     * @param MessageChannelBuilder[] $internalMessageChannels
+     */
+    public function withInternalChannelNames(array $internalMessageChannels): self
+    {
+        Assert::allInstanceOfType($internalMessageChannels, MessageChannelBuilder::class);
+
+        $this->internalMessageChannels = $internalMessageChannels;
+
+        return $this;
     }
 
     /**
@@ -77,6 +86,22 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         $this->channelSendingStrategy = new Definition(CustomSendingStrategy::class, [
             Reference::to(MessagingEntrypoint::class),
             $requestChannelName
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * @param string $headerName Name of the header that will be used to decide on channel name
+     * @param string[]|null $headerMapping Mapping of header value to channel name. If null header value wil be taken as channel name
+     * @param string|null $defaultChannelName Name of the channel that will be used if no mapping is found. If null Exception will be thrown.
+     */
+    public function withHeaderSendingStrategy(string $headerName, ?array $headerMapping = null, ?string $defaultChannelName = null): self
+    {
+        $this->channelSendingStrategy = new Definition(HeaderSendingStrategy::class, [
+            $headerName,
+            $headerMapping,
+            $defaultChannelName
         ]);
 
         return $this;

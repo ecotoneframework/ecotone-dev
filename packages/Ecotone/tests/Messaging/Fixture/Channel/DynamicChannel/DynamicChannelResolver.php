@@ -38,10 +38,4 @@ final class DynamicChannelResolver
 
         return $channel === null ? NullableMessageChannel::CHANNEL_NAME : $channel;
     }
-
-    #[ServiceActivator('dynamicChannel.sendFromHeader')]
-    public function toSendFromHeader(#[Header("target.channel")] string $targetChannel): string
-    {
-        return $targetChannel;
-    }
 }

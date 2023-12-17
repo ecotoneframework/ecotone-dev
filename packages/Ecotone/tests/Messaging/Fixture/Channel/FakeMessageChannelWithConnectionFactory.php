@@ -14,7 +14,11 @@ final class FakeMessageChannelWithConnectionFactory implements PollableChannel
     /** @var Message[] */
     private array $messages = [];
 
-    public function __construct(public $channelName, public ConnectionFactory $connectionFactory)
+    public function __construct(
+        public $channelName,
+        public ConnectionFactory $connectionFactory,
+        private bool $verifyConnectionOnPoll
+    )
     {
 
     }
@@ -37,9 +41,11 @@ final class FakeMessageChannelWithConnectionFactory implements PollableChannel
             return null;
         }
 
-        $connectionContext = $this->messages[0]->getHeaders()->get('connectionContext');
-        if ($connectionContext !== $this->connectionFactory->createContext()) {
-            return null;
+        if ($this->verifyConnectionOnPoll) {
+            $connectionContext = $this->messages[0]->getHeaders()->get('connectionContext');
+            if ($connectionContext !== $this->connectionFactory->createContext()) {
+                return null;
+            }
         }
 
         return array_shift($this->messages);

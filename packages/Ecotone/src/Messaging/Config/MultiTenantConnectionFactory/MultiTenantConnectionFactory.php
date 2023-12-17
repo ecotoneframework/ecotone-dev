@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Config;
+namespace Ecotone\Messaging\Config\MultiTenantConnectionFactory;
 
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
-use Ecotone\Modelling\MessageHandling\MetadataPropagator\MetadataPropagatorGateway;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Psr\Container\ContainerInterface;
@@ -16,12 +15,14 @@ final class MultiTenantConnectionFactory implements ConnectionFactory
 {
     /**
      * @param array<string, string> $connectionReferenceMapping
+     * @param array<string, ConnectionFactory> $container
      */
     public function __construct(
-        private string             $tenantHeaderName,
-        private array              $connectionReferenceMapping,
-        private ContainerInterface $container,
-        private ?string            $defaultConnectionName = null,
+        private string              $tenantHeaderName,
+        private array               $connectionReferenceMapping,
+        private MessagingEntrypoint $messagingEntrypoint,
+        private ContainerInterface  $container,
+        private ?string             $defaultConnectionName = null,
     )
     {
 
@@ -29,9 +30,7 @@ final class MultiTenantConnectionFactory implements ConnectionFactory
 
     public function createContext(): Context
     {
-        /** @var MessagingEntrypoint $headerPropagator */
-        $headerPropagator = $this->container->get(MessagingEntrypoint::class);
-        $headers = $headerPropagator->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
+        $headers = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
 
         if ($headers === []) {
             throw new InvalidArgumentException('Using multi tenant connection factory without Message context, you most likely need to set up Dynamic Message Channel for fetching. Please check your configuration and documentation about multi tenancy connections.');

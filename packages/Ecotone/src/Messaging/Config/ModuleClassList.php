@@ -30,6 +30,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\GatewayModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageConsumerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\MethodInterceptorModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MultiTenantConnectionFactoryModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\PollerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RequiredConsumersModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RouterModule;
@@ -38,6 +39,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SerializerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ServiceActivatorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
+use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
@@ -82,6 +84,7 @@ class ModuleClassList
         TransformerModule::class,
         MessageConsumerModule::class,
         InstantRetryModule::class,
+        MultiTenantConnectionFactoryModule::class,
 
         /** Attribute based configurations */
         LoggingGateway::class,

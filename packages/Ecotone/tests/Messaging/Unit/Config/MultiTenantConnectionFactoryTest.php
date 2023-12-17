@@ -12,7 +12,8 @@ use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory;
+use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
+use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -113,36 +114,12 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         $ecotoneLite = $this->boostrapEcotone('tenant', $connections, [
             'tenant_a' => 'tenant_a_connection',
             'tenant_b' => 'tenant_b_connection'
-        ]);
+        ], verifyConnectionOnPoll: true);
 
 
         $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_a']);
 
         $this->expectException(InvalidArgumentException::class);
-
-        /** We are not aware at this moment, from which connection should we fetch. Therefore exception is thrown */
-        $ecotoneLite->run('bets');
-    }
-
-    public function test_using_dynamic_message_channel_to_handle_round_robin_fetching_messages()
-    {
-        $notExpectedContext = new NullContext();
-        $expectedContext = new NullContext();
-        $connections = [
-            'tenant_a_connection' => new FakeConnectionFactory($notExpectedContext),
-            'tenant_b_connection' => new FakeConnectionFactory($expectedContext)
-        ];
-
-        $ecotoneLite = $this->boostrapEcotone('tenant', $connections, [
-            'tenant_a' => 'tenant_a_connection',
-            'tenant_b' => 'tenant_b_connection'
-        ],
-            customChannel: DynamicMessageChannelBuilder::createRoundRobin()
-
-        );
-
-
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_a']);
 
         /** We are not aware at this moment, from which connection should we fetch. Therefore exception is thrown */
         $ecotoneLite->run('bets');
@@ -156,29 +133,23 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         array $connections,
         array $tenantConnectionMapping = [],
         ?string $defaultConnectionName = null,
-        ?MessageChannelBuilder $customChannel = null
+        bool $verifyConnectionOnPoll = false,
     ): \Ecotone\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [BetService::class],
-            new LazyInMemoryContainer([
-                'multi_tenant_connection' => new Definition(MultiTenantConnectionFactory::class, [
-                    $tenantHeaderName,
-                    $tenantConnectionMapping,
-                    Reference::to(ContainerInterface::class),
-                    $defaultConnectionName
-                ])
-            ], InMemoryPSRContainer::createFromAssociativeArray(array_merge([
-                new BetService(),
-            ], $connections))),
+            array_merge([new BetService()], $connections),
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('bets')
-                        ->setExecutionAmountLimit(1)
+                        ->setExecutionAmountLimit(1),
+                    $defaultConnectionName
+                        ? MultiTenantConfiguration::createWithDefaultConnection('multi_tenant_connection', $tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName)
+                        : MultiTenantConfiguration::create('multi_tenant_connection', $tenantHeaderName, $tenantConnectionMapping)
                 ]),
             allowGatewaysToBeRegisteredInContainer: true,
             enableAsynchronousProcessing: [
-                $customChannel ?? FakeMessageChannelWithConnectionFactoryBuilder::create('bets', 'multi_tenant_connection')
+                FakeMessageChannelWithConnectionFactoryBuilder::create('bets', 'multi_tenant_connection', $verifyConnectionOnPoll)
             ],
         );
     }

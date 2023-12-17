@@ -12,14 +12,22 @@ use Test\Ecotone\Messaging\Fixture\Config\FakeConnectionFactory;
 
 final class FakeMessageChannelWithConnectionFactoryBuilder implements MessageChannelBuilder
 {
-    private function __construct(private string $channelName, private string $connectionFactoryReferenceName)
+    private function __construct(
+        private string $channelName,
+        private string $connectionFactoryReferenceName,
+        private bool $verifyConnectionOnPoll
+    )
     {
 
     }
 
-    public static function create(string $channelName, string $connectionFactoryReferenceName = FakeConnectionFactory::class)
+    public static function create(
+        string $channelName,
+        string $connectionFactoryReferenceName = FakeConnectionFactory::class,
+        bool $verifyConnectionOnPoll = true
+    )
     {
-        return new self($channelName, $connectionFactoryReferenceName);
+        return new self($channelName, $connectionFactoryReferenceName, $verifyConnectionOnPoll);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
@@ -28,7 +36,8 @@ final class FakeMessageChannelWithConnectionFactoryBuilder implements MessageCha
             FakeMessageChannelWithConnectionFactory::class,
             [
                 $this->channelName,
-                Reference::to($this->connectionFactoryReferenceName)
+                Reference::to($this->connectionFactoryReferenceName),
+                $this->verifyConnectionOnPoll
             ]
         );
     }

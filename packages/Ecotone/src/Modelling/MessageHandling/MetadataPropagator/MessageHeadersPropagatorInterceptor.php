@@ -2,12 +2,14 @@
 
 namespace Ecotone\Modelling\MessageHandling\MetadataPropagator;
 
+use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 
 class MessageHeadersPropagatorInterceptor
 {
+    const GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL = 'ecotone.getCurrentlyPropagatedHeaders';
     private array $currentlyPropagatedHeaders = [];
 
     public function storeHeaders(MethodInvocation $methodInvocation, Message $message)
@@ -36,6 +38,10 @@ class MessageHeadersPropagatorInterceptor
         return MessageHeaders::propagateContextHeaders($this->getLastHeaders(), $headers);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    #[ServiceActivator(self::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL)]
     public function getLastHeaders(): array
     {
         $headers = end($this->currentlyPropagatedHeaders);

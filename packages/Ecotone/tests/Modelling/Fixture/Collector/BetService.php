@@ -17,6 +17,7 @@ use RuntimeException;
 final class BetService
 {
     private array $betHeaders = [];
+    private bool $isFirstBet = true;
 
     #[CommandHandler('makeBet')]
     public function makeBet(bool $shouldThrowException, #[Reference] EventBus $eventBus): void
@@ -52,9 +53,22 @@ final class BetService
 
     #[Asynchronous('bets')]
     #[EventHandler(endpointId: 'whenBetPlaced')]
-    public function when(BetPlaced $event): void
+    public function when(BetPlaced $event, EventBus $eventBus, #[Headers] $headers): void
     {
+        if ($this->isFirstBet) {
+            $this->isFirstBet = false;
 
+            $eventBus->publish(new BetWon());
+        }
+
+        $this->betHeaders[] = $headers;
+    }
+
+    #[Asynchronous('bets')]
+    #[EventHandler(endpointId: 'whenBetWon')]
+    public function whenBetWon(BetWon $event, #[Headers] $headers): void
+    {
+        $this->betHeaders[] = $headers;
     }
 
     #[QueryHandler('getLastBetHeaders')]

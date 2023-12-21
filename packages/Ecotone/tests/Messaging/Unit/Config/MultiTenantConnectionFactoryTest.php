@@ -114,7 +114,6 @@ final class MultiTenantConnectionFactoryTest extends TestCase
 
         /** Sending two Messages to tenant A */
         $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_a']);
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_a']);
         /** Fetching Tenant A */
         $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
         $usedConnectionContext = $ecotoneLite->sendQueryWithRouting('getLastBetHeaders')['tenant'];
@@ -122,7 +121,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         /** Fetching Tenant B */
         $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
         $this->assertNull($ecotoneLite->sendQueryWithRouting('getLastBetHeaders'));;
-        /** Fetching Tenant A */
+        /** Fetching Tenant A - Bet Placed Event was propagated to Tenant A */
         $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
         $usedConnectionContext = $ecotoneLite->sendQueryWithRouting('getLastBetHeaders')['tenant'];
         $this->assertSame('tenant_a', $usedConnectionContext);
@@ -133,6 +132,11 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
         $usedConnectionContext = $ecotoneLite->sendQueryWithRouting('getLastBetHeaders')['tenant'];
         $this->assertSame('tenant_b', $usedConnectionContext);
+
+        /** Fetching Tenant A - Bet Won Event was propagated to Tenant A */
+        $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $usedConnectionContext = $ecotoneLite->sendQueryWithRouting('getLastBetHeaders')['tenant'];
+        $this->assertSame('tenant_a', $usedConnectionContext);
     }
 
     /**

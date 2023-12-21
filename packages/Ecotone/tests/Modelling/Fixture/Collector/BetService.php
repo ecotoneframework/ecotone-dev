@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Fixture\Collector;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use RuntimeException;
 
 final class BetService
 {
+    private array $betHeaders = [];
+
     #[CommandHandler('makeBet')]
     public function makeBet(bool $shouldThrowException, #[Reference] EventBus $eventBus): void
     {
@@ -26,8 +30,9 @@ final class BetService
 
     #[Asynchronous('bets')]
     #[CommandHandler('asyncMakeBet', endpointId: 'asyncMakeBetEndpoint')]
-    public function asyncMakeBet(bool $shouldThrowException, #[Reference] EventBus $eventBus): void
+    public function asyncMakeBet(bool $shouldThrowException, #[Reference] EventBus $eventBus, #[Headers] array $headers): void
     {
+        $this->betHeaders[] = $headers;
         $eventBus->publish(new BetPlaced());
 
         if ($shouldThrowException) {
@@ -50,5 +55,11 @@ final class BetService
     public function when(BetPlaced $event): void
     {
 
+    }
+
+    #[QueryHandler('getLastBetHeaders')]
+    public function getBetHeaders(): ?array
+    {
+        return array_shift($this->betHeaders);
     }
 }

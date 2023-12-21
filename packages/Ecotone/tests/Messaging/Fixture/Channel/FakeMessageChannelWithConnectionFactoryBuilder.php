@@ -15,7 +15,6 @@ final class FakeMessageChannelWithConnectionFactoryBuilder implements MessageCha
     private function __construct(
         private string $channelName,
         private string $connectionFactoryReferenceName,
-        private bool $verifyConnectionOnPoll
     )
     {
 
@@ -24,10 +23,9 @@ final class FakeMessageChannelWithConnectionFactoryBuilder implements MessageCha
     public static function create(
         string $channelName,
         string $connectionFactoryReferenceName = FakeConnectionFactory::class,
-        bool $verifyConnectionOnPoll = true
     )
     {
-        return new self($channelName, $connectionFactoryReferenceName, $verifyConnectionOnPoll);
+        return new self($channelName, $connectionFactoryReferenceName);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
@@ -37,7 +35,6 @@ final class FakeMessageChannelWithConnectionFactoryBuilder implements MessageCha
             [
                 $this->channelName,
                 Reference::to($this->connectionFactoryReferenceName),
-                $this->verifyConnectionOnPoll
             ]
         );
     }

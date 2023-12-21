@@ -11,13 +11,9 @@ use Interop\Queue\ConnectionFactory;
 
 final class FakeMessageChannelWithConnectionFactory implements PollableChannel
 {
-    /** @var Message[] */
-    private array $messages = [];
-
     public function __construct(
         public $channelName,
         public ConnectionFactory $connectionFactory,
-        private bool $verifyConnectionOnPoll
     )
     {
 
@@ -25,9 +21,7 @@ final class FakeMessageChannelWithConnectionFactory implements PollableChannel
 
     public function send(Message $message): void
     {
-        $this->messages[] = MessageBuilder::fromMessage($message)
-            ->setHeader("connectionContext", $this->connectionFactory->createContext())
-            ->build();
+        $this->getContextChannel()->send($message);
     }
 
     public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
@@ -37,17 +31,11 @@ final class FakeMessageChannelWithConnectionFactory implements PollableChannel
 
     public function receive(): ?Message
     {
-        if (empty($this->messages)) {
-            return null;
-        }
+        return $this->getContextChannel()->receive();
+    }
 
-        if ($this->verifyConnectionOnPoll) {
-            $connectionContext = $this->messages[0]->getHeaders()->get('connectionContext');
-            if ($connectionContext !== $this->connectionFactory->createContext()) {
-                return null;
-            }
-        }
-
-        return array_shift($this->messages);
+    private function getContextChannel(): PollableChannel
+    {
+        return $this->connectionFactory->createContext();
     }
 }

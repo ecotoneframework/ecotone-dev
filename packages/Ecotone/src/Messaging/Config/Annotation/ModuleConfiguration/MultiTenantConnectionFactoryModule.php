@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -40,6 +41,12 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                         $multiTenantConfig->getConnectionReferenceMapping(),
                         Reference::to(MessagingEntrypoint::class),
                         Reference::to(ContainerInterface::class),
+                        new Definition(
+                            RoundRobinReceivingStrategy::class,
+                            [
+                                array_keys($multiTenantConfig->getConnectionReferenceMapping())
+                            ]
+                        ),
                         $multiTenantConfig->getDefaultConnectionName()
                     ]
                 )

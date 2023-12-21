@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config\MultiTenantConnectionFactory;
 
+use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
@@ -22,6 +23,7 @@ final class MultiTenantConnectionFactory implements ConnectionFactory
         private array               $connectionReferenceMapping,
         private MessagingEntrypoint $messagingEntrypoint,
         private ContainerInterface  $container,
+        private RoundRobinReceivingStrategy $roundRobinReceivingStrategy,
         private ?string             $defaultConnectionName = null,
     )
     {
@@ -33,6 +35,11 @@ final class MultiTenantConnectionFactory implements ConnectionFactory
         $headers = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
 
         if ($headers === []) {
+            $isPollingConsumer = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::IS_POLLING_CONSUMER_PROPAGATION_CONTEXT);
+            if ($isPollingConsumer) {
+                return $this->container->get($this->connectionReferenceMapping[$this->roundRobinReceivingStrategy->decide()])->createContext();
+            }
+
             throw new InvalidArgumentException('Using multi tenant connection factory without Message context, you most likely need to set up Dynamic Message Channel for fetching. Please check your configuration and documentation about multi tenancy connections.');
         }
 

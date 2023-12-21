@@ -10,7 +10,11 @@ use Ecotone\Messaging\MessageHeaders;
 class MessageHeadersPropagatorInterceptor
 {
     const GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL = 'ecotone.getCurrentlyPropagatedHeaders';
+    const ENABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT = 'ecotone.enablePollingConsumerPropagation';
+    const DISABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT = 'ecotone.disablePollingConsumerPropagation';
+    const IS_POLLING_CONSUMER_PROPAGATION_CONTEXT = 'ecotone.isPollingConsumerPropagation';
     private array $currentlyPropagatedHeaders = [];
+    private bool $isPollingConsumer = false;
 
     public function storeHeaders(MethodInvocation $methodInvocation, Message $message)
     {
@@ -51,6 +55,24 @@ class MessageHeadersPropagatorInterceptor
         }
 
         return $headers;
+    }
+
+    #[ServiceActivator(self::ENABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
+    public function enablePollingConsumerPropagation(): void
+    {
+        $this->isPollingConsumer = true;
+    }
+
+    #[ServiceActivator(self::DISABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
+    public function disablePollingConsumerPropagation(): void
+    {
+        $this->isPollingConsumer = false;
+    }
+
+    #[ServiceActivator(self::IS_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
+    public function isPollingConsumer(): bool
+    {
+        return $this->isPollingConsumer;
     }
 
     private function isCalledForFirstTime($headers): bool

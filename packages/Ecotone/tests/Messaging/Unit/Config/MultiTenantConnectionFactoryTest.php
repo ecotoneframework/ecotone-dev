@@ -15,11 +15,12 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
 use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Enqueue\Null\NullContext;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Test\Ecotone\Messaging\Fixture\Channel\FakeContextWithMessages;
 use Test\Ecotone\Messaging\Fixture\Channel\FakeMessageChannelWithConnectionFactoryBuilder;
 use Test\Ecotone\Messaging\Fixture\Config\FakeConnectionFactory;
 use Test\Ecotone\Messaging\Fixture\Handler\SuccessServiceActivator;
@@ -29,8 +30,8 @@ final class MultiTenantConnectionFactoryTest extends TestCase
 {
     public function test_using_default_connection_factory_for_sending_when_tenant_not_mapped()
     {
-        $notExpectedContext = new NullContext();
-        $expectedContext = new NullContext();
+        $notExpectedContext = new FakeContextWithMessages();
+        $expectedContext = new FakeContextWithMessages();
         $connections = [
             'tenant_a_connection' => new FakeConnectionFactory($notExpectedContext),
             'default_tenant_connection' => new FakeConnectionFactory($expectedContext)
@@ -39,15 +40,13 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         $ecotoneLite = $this->boostrapEcotone('tenant', $connections, defaultConnectionName: 'default_tenant_connection');
         $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'unknown']);
 
-        $usedConnectionContext = $ecotoneLite->getMessageChannel('bets')->receive()->getHeaders()->get('connectionContext');
-        $this->assertNotSame($notExpectedContext, $usedConnectionContext);
-        $this->assertSame($expectedContext, $usedConnectionContext);
+        $this->assertNotNull($expectedContext->receive());;
     }
 
     public function test_using_default_mapped_connection_factory_for_sending()
     {
-        $notExpectedContext = new NullContext();
-        $expectedContext = new NullContext();
+        $notExpectedContext = new FakeContextWithMessages();
+        $expectedContext = new FakeContextWithMessages();
         $connections = [
             'tenant_a_connection' => new FakeConnectionFactory($notExpectedContext),
             'tenant_b_connection' => new FakeConnectionFactory($expectedContext)
@@ -59,15 +58,13 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         ]);
         $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_b']);
 
-        $usedConnectionContext = $ecotoneLite->getMessageChannel('bets')->receive()->getHeaders()->get('connectionContext');
-        $this->assertNotSame($notExpectedContext, $usedConnectionContext);
-        $this->assertSame($expectedContext, $usedConnectionContext);
+        $this->assertNotNull($expectedContext->receive());;
     }
 
     public function test_throwing_exception_when_no_tenant_header_found()
     {
-        $notExpectedContext = new NullContext();
-        $expectedContext = new NullContext();
+        $notExpectedContext = new FakeContextWithMessages();
+        $expectedContext = new FakeContextWithMessages();
         $connections = [
             'tenant_a_connection' => new FakeConnectionFactory($notExpectedContext),
             'tenant_b_connection' => new FakeConnectionFactory($expectedContext)
@@ -85,8 +82,8 @@ final class MultiTenantConnectionFactoryTest extends TestCase
 
     public function test_throwing_exception_when_tenant_can_not_be_mapped_and_no_default_channel_provided()
     {
-        $notExpectedContext = new NullContext();
-        $expectedContext = new NullContext();
+        $notExpectedContext = new FakeContextWithMessages();
+        $expectedContext = new FakeContextWithMessages();
         $connections = [
             'tenant_a_connection' => new FakeConnectionFactory($notExpectedContext),
             'tenant_b_connection' => new FakeConnectionFactory($expectedContext)
@@ -102,27 +99,40 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_x']);
     }
 
-    public function test_throwing_exception_when_trying_to_fetch_from_multi_tenant_connection()
+    public function test_round_robin_as_default_for_multi_tenant_connection_while_fetching_messages()
     {
-        $notExpectedContext = new NullContext();
-        $expectedContext = new NullContext();
         $connections = [
-            'tenant_a_connection' => new FakeConnectionFactory($notExpectedContext),
-            'tenant_b_connection' => new FakeConnectionFactory($expectedContext)
+            'tenant_a_connection' => new FakeConnectionFactory(new FakeContextWithMessages()),
+            'tenant_b_connection' => new FakeConnectionFactory(new FakeContextWithMessages())
         ];
 
         $ecotoneLite = $this->boostrapEcotone('tenant', $connections, [
             'tenant_a' => 'tenant_a_connection',
             'tenant_b' => 'tenant_b_connection'
-        ], verifyConnectionOnPoll: true);
+        ]);
 
 
+        /** Sending two Messages to tenant A */
         $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_a']);
+        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_a']);
+        /** Fetching Tenant A */
+        $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $usedConnectionContext = $ecotoneLite->sendQueryWithRouting('getLastBetHeaders')['tenant'];
+        $this->assertSame('tenant_a', $usedConnectionContext);
+        /** Fetching Tenant B */
+        $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $this->assertNull($ecotoneLite->sendQueryWithRouting('getLastBetHeaders'));;
+        /** Fetching Tenant A */
+        $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $usedConnectionContext = $ecotoneLite->sendQueryWithRouting('getLastBetHeaders')['tenant'];
+        $this->assertSame('tenant_a', $usedConnectionContext);
 
-        $this->expectException(InvalidArgumentException::class);
-
-        /** We are not aware at this moment, from which connection should we fetch. Therefore exception is thrown */
-        $ecotoneLite->run('bets');
+        /** Sending to tenant B */
+        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_b']);
+        /** Fetching Tenant B */
+        $ecotoneLite->run('bets', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
+        $usedConnectionContext = $ecotoneLite->sendQueryWithRouting('getLastBetHeaders')['tenant'];
+        $this->assertSame('tenant_b', $usedConnectionContext);
     }
 
     /**
@@ -133,7 +143,6 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         array $connections,
         array $tenantConnectionMapping = [],
         ?string $defaultConnectionName = null,
-        bool $verifyConnectionOnPoll = false,
     ): \Ecotone\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
@@ -149,7 +158,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
                 ]),
             allowGatewaysToBeRegisteredInContainer: true,
             enableAsynchronousProcessing: [
-                FakeMessageChannelWithConnectionFactoryBuilder::create('bets', 'multi_tenant_connection', $verifyConnectionOnPoll)
+                FakeMessageChannelWithConnectionFactoryBuilder::create('bets', 'multi_tenant_connection')
             ],
         );
     }

@@ -118,6 +118,7 @@ jobs:
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
           DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+          SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
           APP_DB_HOST: 127.0.0.1
           APP_DB_PORT: 5432
           APP_DB_DRIVER: pdo_pgsql
@@ -128,6 +129,7 @@ jobs:
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
           DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
+          SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
           APP_DB_HOST: 127.0.0.1
           APP_DB_PORT: 3306
           APP_DB_DRIVER: pdo_mysql

@@ -17,6 +17,7 @@ final class DbalParameter implements DefinedObject
     public function __construct(
         private ?string $name = null,
         private ?int $type = null,
+        private ?string $expression = null,
         private ?string $convertToMediaType = null
     ) {}
 
@@ -33,6 +34,11 @@ final class DbalParameter implements DefinedObject
     public function getName(): ?string
     {
         return $this->name;
+    }
+
+    public function getExpression(): ?string
+    {
+        return $this->expression;
     }
 
     public function getConvertToMediaType(): ?string

@@ -35,4 +35,16 @@ interface PersonWriteApi
         int $personId,
         #[DbalParameter(convertToMediaType: MediaType::APPLICATION_JSON)] array $roles
     ): void;
+
+    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name)')]
+    public function insertWithExpression(
+        int $personId,
+        #[DbalParameter(expression: 'payload.toLowerCase()')] PersonName $name
+    ): void;
+
+    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name)')]
+    public function insertWithServiceExpression(
+        int $personId,
+        #[DbalParameter(expression: "reference('converter').normalize(payload)")] PersonName $name
+    ): void;
 }

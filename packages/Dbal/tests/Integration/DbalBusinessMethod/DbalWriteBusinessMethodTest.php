@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Dbal\Integration;
+namespace Test\Ecotone\Dbal\Integration\DbalBusinessMethod;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalConnection;
@@ -12,15 +12,17 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonName;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTO;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameNormalizer;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonQueryApi;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonWriteApi;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRole;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
-final class DbalBusinessMethodTest extends DbalMessagingTestCase
+final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
 {
     public function test_write_statement_with_no_return_and_automatic_parameter_binding()
     {
@@ -69,102 +71,6 @@ final class DbalBusinessMethodTest extends DbalMessagingTestCase
         );;
     }
 
-    public function test_fetching_data_from_database()
-    {
-        $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
-        $personWriteGateway->insert(1, 'John');
-
-        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertSame(
-            [['person_id' => 1, 'name' => 'John']],
-            $personQueryGateway->getNameList(1, 0)
-        );
-    }
-
-    /**
-     * @TODO
-     * - allow to convert to camelCase
-     * - Add expression language
-     * - changed parameter name
-     * - returning first row of first column or false (union)
-     * - returning in given Media Type
-     */
-
-    public function test_fetching_list_of_scalar_types()
-    {
-        $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
-        $personWriteGateway->insert(1, 'John');
-        $personWriteGateway->insert(2, 'Marco');
-
-        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertSame(
-            [['person_id' => 1], ['person_id' => 2]],
-            $personQueryGateway->getPersonIds(2, 0)
-        );
-    }
-
-    public function test_fetching_using_first_column_mode()
-    {
-        $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
-        $personWriteGateway->insert(1, 'John');
-        $personWriteGateway->insert(2, 'Marco');
-
-        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertSame(
-            [1, 2],
-            $personQueryGateway->getExtractedPersonIds(2, 0)
-        );
-    }
-
-    public function test_fetching_using_first_column_mode_of_first_row()
-    {
-        $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
-        $personWriteGateway->insert(1, 'John');
-        $personWriteGateway->insert(2, 'Marco');
-
-        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertSame(
-            2,
-            $personQueryGateway->countPersons()
-        );
-    }
-
-    public function test_fetching_using_single_row_result()
-    {
-        $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
-        $personWriteGateway->insert(1, 'John');
-
-        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertEquals(
-            new PersonNameDTO(1, 'John'),
-            $personQueryGateway->getNameDTO(1)
-        );
-    }
-
-    public function test_fetching_and_converting_list_to_dtos()
-    {
-        $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
-        $personWriteGateway->insert(1, 'John');
-
-        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertEquals(
-            [new PersonNameDTO(1, 'John')],
-            $personQueryGateway->getNameListDTO(1, 0)
-        );
-    }
-
     public function test_using_custom_dbal_parameter_conversion_media_type_with_value_objects()
     {
         $ecotoneLite = $this->bootstrapEcotone();
@@ -180,6 +86,34 @@ final class DbalBusinessMethodTest extends DbalMessagingTestCase
         );
     }
 
+    public function test_using_expression_language_on_parameter_value()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var PersonWriteApi $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+
+        $personGateway->insertWithExpression(1, new PersonName('John'));
+
+        $this->assertSame(
+            'john',
+            $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 1])
+        );
+    }
+
+    public function test_using_expression_language_using_service()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var PersonWriteApi $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+
+        $personGateway->insertWithServiceExpression(1, new PersonName('John'));
+
+        $this->assertSame(
+            'john',
+            $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 1])
+        );
+    }
+
     private function bootstrapEcotone(): FlowTestSupport
     {
         $this->setupUserTable();
@@ -190,6 +124,7 @@ final class DbalBusinessMethodTest extends DbalMessagingTestCase
                     DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
                     PersonRoleConverter::class => new PersonRoleConverter(),
                     PersonNameDTOConverter::class => new PersonNameDTOConverter(),
+                    "converter" => new PersonNameNormalizer(),
                 ],
             ),
             configuration: ServiceConfiguration::createWithDefaults()

@@ -18,6 +18,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersConverter;
@@ -122,7 +123,8 @@ final class DbaBusinessMethodModule implements AnnotationModule
                     DbalBusinessMethodHandler::class,
                     [
                         Reference::to($connectionReference),
-                        Reference::to(ConversionService::REFERENCE_NAME)
+                        Reference::to(ConversionService::REFERENCE_NAME),
+                        Reference::to(ExpressionEvaluationService::REFERENCE)
                     ]
                 )
             );

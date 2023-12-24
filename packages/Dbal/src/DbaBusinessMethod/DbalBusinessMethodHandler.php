@@ -7,6 +7,7 @@ namespace Ecotone\Dbal\DbaBusinessMethod;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
@@ -23,6 +24,7 @@ final readonly class DbalBusinessMethodHandler
     public function __construct(
         private ConnectionFactory $connectionFactory,
         private ConversionService $conversionService,
+        private ExpressionEvaluationService $expressionEvaluationService,
     )
     {
 
@@ -70,6 +72,16 @@ final readonly class DbalBusinessMethodHandler
 
                 if (isset($parameterTypes[$parameterName])) {
                     $dbalParameter = $parameterTypes[$parameterName];
+
+                    if ($dbalParameter->getExpression()) {
+                        $headerValue = $this->expressionEvaluationService->evaluate(
+                            $dbalParameter->getExpression(),
+                            [
+                                'payload' => $headerValue
+                            ]
+                        );
+                    }
+
                     if ($dbalParameter->getConvertToMediaType()) {
                         $headerValue = $this->conversionService->convert(
                             $headerValue,

@@ -236,6 +236,17 @@ class UnionTypeDescriptor implements Type, DefinedObject
         return false;
     }
 
+    public function isInteger(): bool
+    {
+        foreach ($this->typeDescriptors as $ownedTypeDescriptor) {
+            if ($ownedTypeDescriptor->isInteger()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @inheritDoc
      */

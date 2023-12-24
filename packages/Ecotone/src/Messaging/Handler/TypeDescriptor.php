@@ -583,6 +583,11 @@ final class TypeDescriptor implements Type, DefinedObject
         return $this->type === self::STRING;
     }
 
+    public function isInteger(): bool
+    {
+        return $this->type === self::INTEGER;
+    }
+
     /**
      * @return bool
      */

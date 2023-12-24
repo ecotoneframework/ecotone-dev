@@ -80,6 +80,8 @@ interface Type
      */
     public function isString(): bool;
 
+    public function isInteger(): bool;
+
     /**
      * @return bool
      */

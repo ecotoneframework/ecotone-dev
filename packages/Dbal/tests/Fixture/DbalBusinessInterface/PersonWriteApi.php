@@ -58,4 +58,8 @@ interface PersonWriteApi
     #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name, :roles)')]
     #[DbalParameter(name: 'roles', expression: "['ROLE_ADMIN']", convertToMediaType: MediaType::APPLICATION_JSON)]
     public function registerAdmin(int $personId, string $name): void;
+
+    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name, :roles)')]
+    #[DbalParameter(name: 'roles', expression: "name === 'Johny' ? ['ROLE_ADMIN'] : []", convertToMediaType: MediaType::APPLICATION_JSON)]
+    public function registerUsingMethodParameters(int $personId, string $name): void;
 }

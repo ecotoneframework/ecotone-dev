@@ -128,7 +128,7 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
         );
     }
 
-    public function test_using_expression_language_with_global_dbal_parameter()
+    public function test_using_expression_language_with_method_level_dbal_parameter()
     {
         $ecotoneLite = $this->bootstrapEcotone();
         /** @var PersonWriteApi $personGateway */
@@ -139,6 +139,25 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
         $this->assertSame(
             ['ROLE_ADMIN'],
             $ecotoneLite->sendQueryWithRouting('person.getRoles', metadata: ['aggregate.id' => 1])
+        );
+    }
+
+    public function test_using_expression_language_with_method_level_dbal_parameter_and_parameters_in_expression()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var PersonWriteApi $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+
+        $personGateway->registerUsingMethodParameters(1, 'Johny');
+        $this->assertSame(
+            ['ROLE_ADMIN'],
+            $ecotoneLite->sendQueryWithRouting('person.getRoles', metadata: ['aggregate.id' => 1])
+        );
+
+        $personGateway->registerUsingMethodParameters(2, 'Franco');
+        $this->assertSame(
+            [],
+            $ecotoneLite->sendQueryWithRouting('person.getRoles', metadata: ['aggregate.id' => 2])
         );
     }
 

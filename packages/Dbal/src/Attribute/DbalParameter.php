@@ -8,7 +8,7 @@ use Attribute;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
-#[Attribute(Attribute::TARGET_PARAMETER)]
+#[Attribute(Attribute::TARGET_PARAMETER|Attribute::TARGET_METHOD|Attribute::IS_REPEATABLE)]
 final class DbalParameter implements DefinedObject
 {
     /**

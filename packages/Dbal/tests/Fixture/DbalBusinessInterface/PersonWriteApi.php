@@ -9,11 +9,18 @@ use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Dbal\Attribute\DbalWriteBusinessMethod;
 use Ecotone\Messaging\Conversion\MediaType;
+use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
 interface PersonWriteApi
 {
     #[DbalWriteBusinessMethod("INSERT INTO persons VALUES (:personId, :name)")]
     public function insert(int $personId, string $name): void;
+
+    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name)')]
+    public function insertWithParameterName(
+        #[DbalParameter(name: 'personId')] int $id,
+        string $name
+    ): void;
 
     #[DbalWriteBusinessMethod('UPDATE persons SET name = :name WHERE person_id = :personId')]
     public function changeName(int $personId, string $name): int;
@@ -47,4 +54,8 @@ interface PersonWriteApi
         int $personId,
         #[DbalParameter(expression: "reference('converter').normalize(payload)")] PersonName $name
     ): void;
+
+    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name, :roles)')]
+    #[DbalParameter(name: 'roles', expression: "['ROLE_ADMIN']", convertToMediaType: MediaType::APPLICATION_JSON)]
+    public function registerAdmin(int $personId, string $name): void;
 }

@@ -28,6 +28,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use Ramsey\Uuid\Uuid;
 
@@ -185,10 +186,26 @@ final class DbaBusinessMethodModule implements AnnotationModule
             )
         ];
 
+        /** @var DbalParameter $dbalParameterAttribute */
+        foreach ($interface->getMethodAnnotationsOf(TypeDescriptor::create(DbalParameter::class)) as $dbalParameterAttribute) {
+            Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice");
+            Assert::isTrue($dbalParameterAttribute->getName() !== null, "Parameter name must be defined");
+            Assert::isTrue($dbalParameterAttribute->getExpression() !== null, "Parameter {$dbalParameterAttribute->getName()} must have expression defined");
+
+            $parameterConverters[$dbalParameterAttribute->getName()] = GatewayHeaderValueBuilder::create(
+                DbalBusinessMethodHandler::HEADER_PARAMETER_TYPE_PREFIX . $dbalParameterAttribute->getName(),
+                $dbalParameterAttribute
+            );
+        }
+
         foreach ($interface->getInterfaceParameters() as $interfaceParameter) {
             if ($interfaceParameter->hasAnnotation(DbalParameter::class)) {
+                $annotationsOfType = $interfaceParameter->getAnnotationsOfType(DbalParameter::class);
+                Assert::isTrue(count($annotationsOfType) === 1, "Only one DbalParameter annotation can be used on {$interfaceParameter}");
                 /** @var DbalParameter $dbalParameterAttribute */
-                $dbalParameterAttribute = $interfaceParameter->getAnnotationsOfType(DbalParameter::class)[0];
+                $dbalParameterAttribute = $annotationsOfType[0];
+
+                Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice");
                 $parameterConverters[] = GatewayHeaderValueBuilder::create(
                     DbalBusinessMethodHandler::HEADER_PARAMETER_TYPE_PREFIX . $interfaceParameter->getName(),
                     $dbalParameterAttribute

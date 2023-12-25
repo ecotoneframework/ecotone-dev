@@ -65,38 +65,42 @@ final readonly class DbalBusinessMethodHandler
             }
         }
 
-        $parameters = [];
+        /** @var array<string, mixed> $originalParameters */
+        $originalParameters = [];
+        /** @var array<string, mixed> $preparedParameters */
+        $preparedParameters = [];
         foreach ($headers as $headerName => $headerValue) {
             if (str_starts_with($headerName, self::HEADER_PARAMETER_VALUE_PREFIX)) {
                 $parameterName = substr($headerName, strlen(self::HEADER_PARAMETER_VALUE_PREFIX));
 
-                if (isset($parameterTypes[$parameterName])) {
-                    $dbalParameter = $parameterTypes[$parameterName];
-
-                    if ($dbalParameter->getExpression()) {
-                        $headerValue = $this->expressionEvaluationService->evaluate(
-                            $dbalParameter->getExpression(),
-                            [
-                                'payload' => $headerValue
-                            ]
-                        );
-                    }
-
-                    if ($dbalParameter->getConvertToMediaType()) {
-                        $headerValue = $this->conversionService->convert(
-                            $headerValue,
-                            TypeDescriptor::createFromVariable($headerValue),
-                            MediaType::createApplicationXPHP(),
-                            TypeDescriptor::createStringType(),
-                            MediaType::parseMediaType($dbalParameter->getConvertToMediaType())
-                        );
-                    }
-                }
-
-                $parameters[$parameterName] = $headerValue;
+                $originalParameters[$parameterName] = $headerValue;
+                $preparedParameters[$parameterName] = $headerValue;
             }
         }
-        return $parameters;
+
+        /** DbalParameter for parameter */
+        foreach ($originalParameters as $parameterName => $parameterValue) {
+            if (isset($parameterTypes[$parameterName])) {
+                $dbalParameter = $parameterTypes[$parameterName];
+
+                $parameterValue = $this->getParameterValue($dbalParameter, ['payload' => $parameterValue], $parameterValue);
+                if ($dbalParameter->getName()) {
+                    $parameterName = $dbalParameter->getName();
+                }
+                unset($parameterTypes[$parameterName]);
+            }
+
+            $preparedParameters[$parameterName] = $parameterValue;
+        }
+
+        /** Class/Method leve DbalParameters */
+        foreach ($parameterTypes as $dbalParameter) {
+            if ($dbalParameter->getExpression()) {
+                $preparedParameters[$dbalParameter->getName()] = $this->getParameterValue($dbalParameter, $originalParameters, null);
+            }
+        }
+
+        return $preparedParameters;
     }
 
     private function getConnection(): \Doctrine\DBAL\Connection
@@ -104,5 +108,30 @@ final readonly class DbalBusinessMethodHandler
         /** @var DbalContext $context */
         $context = $this->connectionFactory->createContext();
         return $context->getDbalConnection();
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function getParameterValue(DbalParameter $dbalParameter, array $context, mixed $parameterValue): mixed
+    {
+        if ($dbalParameter->getExpression()) {
+            $parameterValue = $this->expressionEvaluationService->evaluate(
+                $dbalParameter->getExpression(),
+                $context
+            );
+        }
+
+        if ($dbalParameter->getConvertToMediaType()) {
+            $parameterValue = $this->conversionService->convert(
+                $parameterValue,
+                TypeDescriptor::createFromVariable($parameterValue),
+                MediaType::createApplicationXPHP(),
+                TypeDescriptor::createStringType(),
+                MediaType::parseMediaType($dbalParameter->getConvertToMediaType())
+            );
+        }
+
+        return $parameterValue;
     }
 }

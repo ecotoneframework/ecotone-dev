@@ -593,7 +593,7 @@ class InterfaceToCallTest extends TestCase
         );
         $this->assertEquals(
             new Converter(),
-            $interfaceToCall->getMethodAnnotation(TypeDescriptor::create(Converter::class))
+            $interfaceToCall->getSingleMethodAnnotationOf(TypeDescriptor::create(Converter::class))
         );
     }
 
@@ -603,7 +603,7 @@ class InterfaceToCallTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $interfaceToCall->getMethodAnnotation(TypeDescriptor::create(ClassReference::class));
+        $interfaceToCall->getSingleMethodAnnotationOf(TypeDescriptor::create(ClassReference::class));
     }
 
     public function test_throwing_exception_when_retrieving_not_existing_class_annotation()

@@ -45,6 +45,12 @@ interface PersonQueryApi
     )]
     public function getNameDTOOrNull(int $personId): PersonNameDTO|null;
 
+    #[DbalQueryBusinessMethod(
+        'SELECT person_id, name FROM persons WHERE person_id = :personId',
+        fetchMode: FetchMode::FIRST_ROW
+    )]
+    public function getNameDTOOrFalse(int $personId): PersonNameDTO|false;
+
     /**
      * @return PersonNameDTO[]
      */

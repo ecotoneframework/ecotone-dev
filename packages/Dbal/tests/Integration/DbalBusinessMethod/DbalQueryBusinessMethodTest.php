@@ -112,6 +112,14 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
         $this->assertNull($personQueryGateway->getNameDTOOrNull(1));
     }
 
+    public function test_fetching_using_single_row_result_allowing_false()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+
+        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
+        $this->assertFalse($personQueryGateway->getNameDTOOrFalse(1));
+    }
+
     public function test_fetching_and_converting_list_to_dtos()
     {
         $ecotoneLite = $this->bootstrapEcotone();

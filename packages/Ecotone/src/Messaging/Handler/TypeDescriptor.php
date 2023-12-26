@@ -29,6 +29,7 @@ final class TypeDescriptor implements Type, DefinedObject
     public const         BOOL = 'bool';
     private const BOOL_LONG_NAME = 'boolean';
     private const BOOL_FALSE_NAME = 'false';
+    private const BOOL_TRUE_NAME = 'true';
     public const         STRING = 'string';
 
     //    compound types
@@ -84,7 +85,7 @@ final class TypeDescriptor implements Type, DefinedObject
      */
     public static function isItTypeOfScalar(string $type): bool
     {
-        return in_array($type, [self::INTEGER, self::FLOAT, self::BOOL, self::STRING, self::INTEGER_LONG_NAME, self::DOUBLE, self::BOOL_LONG_NAME]);
+        return in_array($type, [self::INTEGER, self::FLOAT, self::BOOL, self::STRING, self::INTEGER_LONG_NAME, self::DOUBLE, self::BOOL_LONG_NAME, self::BOOL_FALSE_NAME, self::BOOL_TRUE_NAME]);
     }
 
     /**

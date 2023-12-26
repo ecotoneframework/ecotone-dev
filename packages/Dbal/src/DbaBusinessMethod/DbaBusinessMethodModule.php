@@ -187,7 +187,10 @@ final class DbaBusinessMethodModule implements AnnotationModule
         ];
 
         /** @var DbalParameter $dbalParameterAttribute */
-        foreach ($interface->getMethodAnnotationsOf(TypeDescriptor::create(DbalParameter::class)) as $dbalParameterAttribute) {
+        foreach (array_merge(
+            $interface->getClassAnnotationOf(TypeDescriptor::create(DbalParameter::class)),
+            $interface->getMethodAnnotationsOf(TypeDescriptor::create(DbalParameter::class))
+         ) as $dbalParameterAttribute) {
             Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice");
             Assert::isTrue($dbalParameterAttribute->getName() !== null, "Parameter name must be defined");
             Assert::isTrue($dbalParameterAttribute->getExpression() !== null, "Parameter {$dbalParameterAttribute->getName()} must have expression defined");

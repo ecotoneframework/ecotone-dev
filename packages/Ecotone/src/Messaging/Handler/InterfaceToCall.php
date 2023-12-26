@@ -131,12 +131,7 @@ class InterfaceToCall
         return false;
     }
 
-    /**
-     * @param Type $className
-     *
-     * @throws MessagingException
-     */
-    public function getClassAnnotation(Type $className): object
+    public function getSingleClassAnnotationOf(Type $className): object
     {
         foreach ($this->getClassAnnotations() as $classAnnotation) {
             if (TypeDescriptor::createFromVariable($classAnnotation)->equals($className)) {
@@ -145,6 +140,21 @@ class InterfaceToCall
         }
 
         throw InvalidArgumentException::create("Trying to retrieve not existing class annotation {$className} for {$this}");
+    }
+
+    /**
+     * @return object[]
+     */
+    public function getClassAnnotationOf(Type $className): array
+    {
+        $annotations = [];
+        foreach ($this->getClassAnnotations() as $classAnnotation) {
+            if (TypeDescriptor::createFromVariable($classAnnotation)->equals($className)) {
+                $annotations[] = $classAnnotation;
+            }
+        }
+
+        return $annotations;
     }
 
     /**

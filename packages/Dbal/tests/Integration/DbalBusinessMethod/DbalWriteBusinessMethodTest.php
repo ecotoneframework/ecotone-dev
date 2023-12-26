@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\ClassLevelDbalParameterWriteApi;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonName;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTO;
@@ -147,6 +148,25 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
         $ecotoneLite = $this->bootstrapEcotone();
         /** @var PersonWriteApi $personGateway */
         $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+
+        $personGateway->registerUsingMethodParameters(1, 'Johny');
+        $this->assertSame(
+            ['ROLE_ADMIN'],
+            $ecotoneLite->sendQueryWithRouting('person.getRoles', metadata: ['aggregate.id' => 1])
+        );
+
+        $personGateway->registerUsingMethodParameters(2, 'Franco');
+        $this->assertSame(
+            [],
+            $ecotoneLite->sendQueryWithRouting('person.getRoles', metadata: ['aggregate.id' => 2])
+        );
+    }
+
+    public function test_using_expression_language_with_class_level_dbal_parameter()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var ClassLevelDbalParameterWriteApi $personGateway */
+        $personGateway = $ecotoneLite->getGateway(ClassLevelDbalParameterWriteApi::class);
 
         $personGateway->registerUsingMethodParameters(1, 'Johny');
         $this->assertSame(

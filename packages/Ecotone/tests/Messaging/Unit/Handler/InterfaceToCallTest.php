@@ -589,7 +589,7 @@ class InterfaceToCallTest extends TestCase
 
         $this->assertEquals(
             new ClassReference('exampleConverterService'),
-            $interfaceToCall->getClassAnnotation(TypeDescriptor::create(ClassReference::class))
+            $interfaceToCall->getSingleClassAnnotationOf(TypeDescriptor::create(ClassReference::class))
         );
         $this->assertEquals(
             new Converter(),
@@ -612,7 +612,7 @@ class InterfaceToCallTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $interfaceToCall->getClassAnnotation(TypeDescriptor::create(Asynchronous::class));
+        $interfaceToCall->getSingleClassAnnotationOf(TypeDescriptor::create(Asynchronous::class));
     }
 
     public function test_not_throwing_exception_when_retrieving_constructor_parameter_attributes()

@@ -24,10 +24,7 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
 {
     /**
      * @TODO
-     * - allow to convert to camelCase
      * - storing whole object as single parameter
-     * - Add expression language
-     * - changed parameter name
      * - returning first row of first column or false (union)
      * - returning in given Media Type
      * - serializing with camel or snake case
@@ -105,6 +102,14 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
             new PersonNameDTO(1, 'John'),
             $personQueryGateway->getNameDTO(1)
         );
+    }
+
+    public function test_fetching_using_single_row_result_allowing_nulls()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+
+        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
+        $this->assertNull($personQueryGateway->getNameDTOOrNull(1));
     }
 
     public function test_fetching_and_converting_list_to_dtos()

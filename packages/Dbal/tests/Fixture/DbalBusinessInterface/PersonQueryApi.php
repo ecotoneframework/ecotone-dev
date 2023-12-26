@@ -39,6 +39,12 @@ interface PersonQueryApi
     )]
     public function getNameDTO(int $personId): PersonNameDTO;
 
+    #[DbalQueryBusinessMethod(
+        'SELECT person_id, name FROM persons WHERE person_id = :personId',
+        fetchMode: FetchMode::FIRST_ROW
+    )]
+    public function getNameDTOOrNull(int $personId): PersonNameDTO|null;
+
     /**
      * @return PersonNameDTO[]
      */

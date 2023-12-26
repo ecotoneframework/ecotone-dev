@@ -8,6 +8,7 @@ use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
@@ -17,6 +18,7 @@ use Ecotone\Messaging\Message;
 final readonly class DbalBusinessMethodHandler
 {
     public const SQL_HEADER = "ecotone.dbal.business_method.sql";
+    public const IS_INTERFACE_NULLABLE = "ecotone.dbal.business_method.return_type";
     public const HEADER_FETCH_MODE = "ecotone.dbal.business_method.fetch_mode";
     public const HEADER_PARAMETER_VALUE_PREFIX = "ecotone.dbal.business_method.parameter.value.";
     public const HEADER_PARAMETER_TYPE_PREFIX = "ecotone.dbal.business_method.parameter.type.";
@@ -30,7 +32,12 @@ final readonly class DbalBusinessMethodHandler
 
     }
 
-    public function executeQuery(string $sql, int $fetchMode, array $headers): Message
+    public function executeQuery(
+        string $sql,
+        bool   $isInterfaceNullable,
+        int    $fetchMode,
+        array  $headers
+    ): ?Message
     {
         $parameters = $this->getParameters($headers);
         $query = $this->getConnection()->executeQuery($sql, $parameters);
@@ -43,8 +50,17 @@ final readonly class DbalBusinessMethodHandler
             default => throw new \InvalidArgumentException("Unsupported fetch mode {$fetchMode}")
         };
 
+        $type = TypeDescriptor::createFromVariable($result);
+        if ($type->isNonCollectionArray()) {
+            $type = TypeDescriptor::create('array<string, string>');
+        }
+
+        if ($result === false && $isInterfaceNullable) {
+            return null;
+        }
+
         return MessageBuilder::withPayload($result)
-                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter('array<string, string>'))
+                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($type->toString()))
                     ->build();
     }
 

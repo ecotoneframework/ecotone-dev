@@ -97,6 +97,10 @@ final class DbaBusinessMethodModule implements AnnotationModule
                     GatewayHeaderValueBuilder::create(
                         DbalBusinessMethodHandler::HEADER_FETCH_MODE,
                         $attribute->getFetchMode()
+                    ),
+                    GatewayHeaderValueBuilder::create(
+                        DbalBusinessMethodHandler::IS_INTERFACE_NULLABLE,
+                        $interface->canItReturnNull()
                     )
                 ]
             ));
@@ -125,7 +129,7 @@ final class DbaBusinessMethodModule implements AnnotationModule
                     [
                         Reference::to($connectionReference),
                         Reference::to(ConversionService::REFERENCE_NAME),
-                        Reference::to(ExpressionEvaluationService::REFERENCE)
+                        Reference::to(ExpressionEvaluationService::REFERENCE),
                     ]
                 )
             );
@@ -150,6 +154,7 @@ final class DbaBusinessMethodModule implements AnnotationModule
                     ->withInputChannelName(self::getQueryRequestChannelName($connectionReference))
                     ->withMethodParameterConverters([
                         HeaderBuilder::create('sql', DbalBusinessMethodHandler::SQL_HEADER),
+                        HeaderBuilder::create('isInterfaceNullable', DbalBusinessMethodHandler::IS_INTERFACE_NULLABLE),
                         HeaderBuilder::create('fetchMode', DbalBusinessMethodHandler::HEADER_FETCH_MODE),
                         AllHeadersBuilder::createWith('headers')
                     ])
@@ -191,9 +196,9 @@ final class DbaBusinessMethodModule implements AnnotationModule
             $interface->getClassAnnotationOf(TypeDescriptor::create(DbalParameter::class)),
             $interface->getMethodAnnotationsOf(TypeDescriptor::create(DbalParameter::class))
          ) as $dbalParameterAttribute) {
-            Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice");
-            Assert::isTrue($dbalParameterAttribute->getName() !== null, "Parameter name must be defined");
-            Assert::isTrue($dbalParameterAttribute->getExpression() !== null, "Parameter {$dbalParameterAttribute->getName()} must have expression defined");
+            Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice in {$dbalParameterAttribute->getName()}");
+            Assert::isTrue($dbalParameterAttribute->getName() !== null, "Parameter name must be defined in {$dbalParameterAttribute->getName()}");
+            Assert::isTrue($dbalParameterAttribute->getExpression() !== null, "Parameter {$dbalParameterAttribute->getName()} must have expression defined in {$dbalParameterAttribute->getName()}");
 
             $parameterConverters[$dbalParameterAttribute->getName()] = GatewayHeaderValueBuilder::create(
                 DbalBusinessMethodHandler::HEADER_PARAMETER_TYPE_PREFIX . $dbalParameterAttribute->getName(),

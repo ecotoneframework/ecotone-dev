@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
 use Ecotone\Dbal\Attribute\DbalQueryBusinessMethod;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
+use Ecotone\Messaging\Conversion\MediaType;
 
 interface PersonQueryApi
 {
@@ -38,6 +39,13 @@ interface PersonQueryApi
         fetchMode: FetchMode::FIRST_ROW
     )]
     public function getNameDTO(int $personId): PersonNameDTO;
+
+    #[DbalQueryBusinessMethod(
+        'SELECT person_id, name FROM persons WHERE person_id = :personId',
+        fetchMode: FetchMode::FIRST_ROW,
+        replyContentType: MediaType::APPLICATION_JSON
+    )]
+    public function getNameDTOInJson(int $personId): string;
 
     #[DbalQueryBusinessMethod(
         'SELECT person_id, name FROM persons WHERE person_id = :personId',

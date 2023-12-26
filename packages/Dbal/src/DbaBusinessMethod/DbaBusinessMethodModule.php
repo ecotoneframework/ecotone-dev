@@ -88,6 +88,10 @@ final class DbaBusinessMethodModule implements AnnotationModule
 
             $interface = $interfaceToCallRegistry->getFor($businessMethod->getClassName(), $businessMethod->getMethodName());
 
+            if ($attribute->getReplyContentType()) {
+                $gateway = $gateway->withReplyContentType($attribute->getReplyContentType());
+            }
+
             Assert::isFalse($interface->getReturnType()->isAnything(), "{$interface} must have return type defined.");
             Assert::isFalse($interface->getReturnType()->isVoid(), "{$interface} query business method must have return type defined. Did you meant to use DbalWriteBusinessMethod?");
 

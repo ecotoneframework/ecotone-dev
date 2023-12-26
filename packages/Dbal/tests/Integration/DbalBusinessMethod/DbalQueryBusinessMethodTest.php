@@ -25,7 +25,6 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     /**
      * @TODO
      * - storing whole object as single parameter
-     * - returning first row of first column or false (union)
      * - returning in given Media Type
      * - serializing with camel or snake case
      */
@@ -133,6 +132,21 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
             $personQueryGateway->getNameListDTO(1, 0)
         );
     }
+
+    public function test_fetching_to_specific_format()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var PersonWriteApi $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        $personWriteGateway->insert(1, 'John');
+
+        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
+        $this->assertEquals(
+            '{"person_id":1,"name":"John"}',
+            $personQueryGateway->getNameDTOInJson(1)
+        );
+    }
+
 
     public function test_using_custom_dbal_parameter_conversion_media_type_with_value_objects()
     {

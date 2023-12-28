@@ -30,7 +30,7 @@
     "extra": {
         "merge-plugin": {
             "include": [
-                "../../packages/local_packages.json"
+                "../../../packages/local_packages.json"
             ]
         }
     }

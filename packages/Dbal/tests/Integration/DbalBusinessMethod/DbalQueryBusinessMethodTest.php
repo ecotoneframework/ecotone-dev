@@ -25,8 +25,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     /**
      * @TODO
      * - storing whole object as single parameter
-     * - returning in given Media Type
      * - serializing with camel or snake case
+     * - automatic paramter binding based on type
      */
 
 

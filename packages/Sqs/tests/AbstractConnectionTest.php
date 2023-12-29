@@ -35,7 +35,7 @@ abstract class AbstractConnectionTest extends TestCase
 
     public static function cleanUpSqs(): void
     {
-        $context = \Test\Ecotone\Sqs\AbstractConnectionTest::getConnection()->createContext();
+        $context = AbstractConnectionTest::getConnection()->createContext();
 
         foreach (['async', 'sqs'] as $queue) {
             try {

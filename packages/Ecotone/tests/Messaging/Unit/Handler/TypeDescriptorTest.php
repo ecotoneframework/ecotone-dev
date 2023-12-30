@@ -605,6 +605,7 @@ class TypeDescriptorTest extends TestCase
         $this->assertEquals(stdClass::class, TypeDescriptor::createFromVariable(new stdClass()));
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([]));
         $this->assertEquals(TypeDescriptor::createCollection('int'), TypeDescriptor::createFromVariable([1, 2, 3]));
+        $this->assertEquals(TypeDescriptor::create('array<string, int>'), TypeDescriptor::createFromVariable(['bla' => 1, 'bla2' => 2, 'bla3' => 3]));
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([new stdClass(), 12]));
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([new stdClass(), OrderExample::createFromId(1)]));
         $this->assertEquals(TypeDescriptor::createCollection(stdClass::class), TypeDescriptor::createFromVariable([new stdClass()]));

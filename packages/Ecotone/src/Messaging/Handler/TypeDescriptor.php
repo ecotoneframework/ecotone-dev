@@ -365,13 +365,21 @@ final class TypeDescriptor implements Type, DefinedObject
             }
 
             $collectionType = TypeDescriptor::createFromVariable(reset($variable));
-            foreach ($variable as $type) {
+            $hasIntKeys = true;
+            foreach ($variable as $key => $type) {
+                if (! is_int($key)) {
+                    $hasIntKeys = false;
+                }
                 if (! $collectionType->equals(TypeDescriptor::createFromVariable($type))) {
                     return new self(self::ARRAY);
                 }
             }
 
-            return self::createCollection($collectionType->toString());
+            if ($hasIntKeys) {
+                return self::createCollection($collectionType->toString());
+            }
+
+            return new self("array<string,{$collectionType->toString()}>");
         } elseif ($type === self::ITERABLE) {
             $type = self::ITERABLE;
         } elseif ($type === self::OBJECT) {

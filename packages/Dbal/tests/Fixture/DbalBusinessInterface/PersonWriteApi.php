@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Dbal\Attribute\DbalWriteBusinessMethod;

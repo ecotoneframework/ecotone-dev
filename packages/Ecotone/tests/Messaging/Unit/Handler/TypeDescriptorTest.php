@@ -31,7 +31,7 @@ class TypeDescriptorTest extends TestCase
 {
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_guessing_type_hint_from_compound_type_and_array_of_scalar_type()
     {
@@ -56,7 +56,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_guessing_type_hint_from_null()
     {
@@ -76,7 +76,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_returning_base_type_when_docblock_is_incorrect()
     {
@@ -88,7 +88,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_throwing_exception_if_type_hint_is_incorrect()
     {
@@ -99,7 +99,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_passing_incompatible_resource_type_hint_and_scalar_union_type()
     {
@@ -110,7 +110,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_passing_incompatible_resource_hint_and_compound_union_type()
     {
@@ -121,7 +121,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_passing_incompatible_compound_hint_and_resource_union_type()
     {
@@ -132,7 +132,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_converting_doc_block_array_type_to_generic()
     {
@@ -168,7 +168,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_choosing_doc_block_type_hint_over_array()
     {
@@ -180,7 +180,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_choosing_doc_block_collection_type_hint_over_compound()
     {
@@ -199,7 +199,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_throwing_exception_if_resolving_collection_type_for_non_collection()
     {
@@ -212,7 +212,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_checking_equality()
     {
@@ -234,7 +234,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_choosing_declaration_type_over_docblock_when_interface()
     {
@@ -246,7 +246,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_choosing_declaration_type_over_docblock_when_object_type()
     {
@@ -258,7 +258,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_ignoring_docblock_if_not_property_is_not_iterable()
     {
@@ -278,7 +278,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_with_prefixed_type()
     {
@@ -290,7 +290,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_with_compound_object_type_hint()
     {
@@ -302,7 +302,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_for_void_return_type_hint()
     {
@@ -327,7 +327,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_with_mixed_type_result_in_unknown_type_hint()
     {
@@ -339,7 +339,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_anything_with_anything()
     {
@@ -356,7 +356,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_class_of_the_same_type()
     {
@@ -367,7 +367,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_class_with_scalar()
     {
@@ -382,7 +382,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_class_with_compound()
     {
@@ -397,7 +397,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_different_collections()
     {
@@ -408,7 +408,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_same_collections()
     {
@@ -419,7 +419,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_collection_different_types()
     {
@@ -430,7 +430,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_scalar_with_compound()
     {
@@ -445,7 +445,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_scalar_with_compound()
     {
@@ -460,7 +460,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_scalar_with_object()
     {
@@ -475,7 +475,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_scalar_with_object_containing_to_string_method()
     {
@@ -486,7 +486,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_different_classes()
     {
@@ -501,7 +501,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_class_and_its_interface()
     {
@@ -516,7 +516,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_subclass_interface_with_base_interface()
     {
@@ -527,7 +527,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_interface_with_subclass_interface()
     {
@@ -538,7 +538,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_class_with_its_abstract_class()
     {
@@ -549,7 +549,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_void_with_void()
     {
@@ -560,7 +560,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_actual_class_to_object_type_hint()
     {
@@ -571,7 +571,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_object_type_hint_to_actual_class()
     {
@@ -582,7 +582,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_with_false_type_resulting_in_boolean()
     {
@@ -594,7 +594,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_guessing_type_from_variable()
     {
@@ -617,7 +617,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_collection_type()
     {
@@ -626,7 +626,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_collection_type_with_two_generic_types()
     {

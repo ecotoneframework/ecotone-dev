@@ -93,7 +93,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
             if ($interceptorInterface->hasMethodAnnotation($beforeSendAnnotation)) {
                 /** @var Before $beforeInterceptor */
                 $beforeSendInterceptor    = $interceptorInterface->getSingleMethodAnnotationOf($beforeSendAnnotation);
-                $beforeSendInterceptors[] = \Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor::create(
+                $beforeSendInterceptors[] = MethodInterceptor::create(
                     AnnotatedDefinitionReference::getReferenceFor($methodInterceptor),
                     $interceptorInterface,
                     self::createMessageHandler($methodInterceptor, $parameterConverterFactory, $interceptorInterface, $interfaceToCallRegistry),
@@ -105,7 +105,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
             if ($interceptorInterface->hasMethodAnnotation($beforeAnnotation)) {
                 /** @var Before $beforeInterceptor */
                 $beforeInterceptor     = $interceptorInterface->getSingleMethodAnnotationOf($beforeAnnotation);
-                $preCallInterceptors[] = \Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor::create(
+                $preCallInterceptors[] = MethodInterceptor::create(
                     AnnotatedDefinitionReference::getReferenceFor($methodInterceptor),
                     $interceptorInterface,
                     self::createMessageHandler($methodInterceptor, $parameterConverterFactory, $interceptorInterface, $interfaceToCallRegistry),
@@ -117,7 +117,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
             if ($interceptorInterface->hasMethodAnnotation($afterAnnotation)) {
                 /** @var After $afterInterceptor */
                 $afterInterceptor       = $interceptorInterface->getSingleMethodAnnotationOf($afterAnnotation);
-                $postCallInterceptors[] = \Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor::create(
+                $postCallInterceptors[] = MethodInterceptor::create(
                     AnnotatedDefinitionReference::getReferenceFor($methodInterceptor),
                     $interceptorInterface,
                     self::createMessageHandler($methodInterceptor, $parameterConverterFactory, $interceptorInterface, $interfaceToCallRegistry),

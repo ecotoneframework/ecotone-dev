@@ -36,7 +36,7 @@ class JMSConverter implements Converter
 
         try {
             if ($sourceMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP) && $targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)) {
-                if ($sourceType->isIterable() && ! $targetType->isNonCollectionArray()) {
+                if ($sourceType->isIterable() && ! $targetType->isArrayButNotClassBasedCollection()) {
                     return $this->serializer->fromArray($source, $targetType->toString());
                 } elseif ($targetType->isIterable()) {
                     return $this->serializer->toArray($source, $context);

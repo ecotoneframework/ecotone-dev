@@ -183,10 +183,10 @@ class UnionTypeDescriptor implements Type, DefinedObject
     /**
      * @inheritDoc
      */
-    public function isNonCollectionArray(): bool
+    public function isArrayButNotClassBasedCollection(): bool
     {
         foreach ($this->typeDescriptors as $ownedTypeDescriptor) {
-            if ($ownedTypeDescriptor->isNonCollectionArray()) {
+            if ($ownedTypeDescriptor->isArrayButNotClassBasedCollection()) {
                 return true;
             }
         }

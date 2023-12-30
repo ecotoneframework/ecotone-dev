@@ -43,6 +43,17 @@ class TypeDescriptorTest extends TestCase
         );
     }
 
+    public function test_is_non_class_collection()
+    {
+        $this->assertFalse(TypeDescriptor::create('string')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::createIterable()->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array<string>')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array<string, string>')->isArrayButNotClassBasedCollection());
+        $this->assertFalse(TypeDescriptor::create('array<\stdClass>')->isArrayButNotClassBasedCollection());
+        $this->assertFalse(TypeDescriptor::create('array<string, \stdClass>')->isArrayButNotClassBasedCollection());
+    }
+
     /**
      * @throws TypeDefinitionException
      * @throws \Ecotone\Messaging\MessagingException
@@ -593,7 +604,7 @@ class TypeDescriptorTest extends TestCase
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([]));
         $this->assertEquals(stdClass::class, TypeDescriptor::createFromVariable(new stdClass()));
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([]));
-        $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([1, 2, 3]));
+        $this->assertEquals(TypeDescriptor::createCollection('int'), TypeDescriptor::createFromVariable([1, 2, 3]));
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([new stdClass(), 12]));
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([new stdClass(), OrderExample::createFromId(1)]));
         $this->assertEquals(TypeDescriptor::createCollection(stdClass::class), TypeDescriptor::createFromVariable([new stdClass()]));

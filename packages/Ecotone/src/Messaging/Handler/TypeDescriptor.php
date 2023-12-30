@@ -551,9 +551,19 @@ final class TypeDescriptor implements Type, DefinedObject
     /**
      * @return bool
      */
-    public function isNonCollectionArray(): bool
+    public function isArrayButNotClassBasedCollection(): bool
     {
-        return $this->type === self::ARRAY;
+        if ($this->isCollection()) {
+            foreach ($this->resolveGenericTypes() as $genericType) {
+                if ($genericType->isClassOrInterface()) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return $this->type === self::ARRAY || $this->type === self::ITERABLE;
     }
 
     /**

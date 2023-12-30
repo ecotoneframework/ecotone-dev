@@ -63,7 +63,7 @@ interface Type
     /**
      * @return bool
      */
-    public function isNonCollectionArray(): bool;
+    public function isArrayButNotClassBasedCollection(): bool;
 
     /**
      * @return bool

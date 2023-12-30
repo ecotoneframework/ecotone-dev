@@ -52,7 +52,7 @@ final readonly class DbalBusinessMethodHandler
         };
 
         $type = TypeDescriptor::createFromVariable($result);
-        if ($type->isNonCollectionArray()) {
+        if ($type->isArrayButNotClassBasedCollection()) {
             $type = TypeDescriptor::create('array<string, string>');
         }
 

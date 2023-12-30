@@ -17,7 +17,7 @@ use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Ecotone\Messaging\Message;
 
-final readonly class DbalBusinessMethodHandler
+final class DbalBusinessMethodHandler
 {
     public const SQL_HEADER = "ecotone.dbal.business_method.sql";
     public const IS_INTERFACE_NULLABLE = "ecotone.dbal.business_method.return_type";

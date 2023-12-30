@@ -52,6 +52,7 @@ class TypeDescriptorTest extends TestCase
         $this->assertTrue(TypeDescriptor::create('array<string, string>')->isArrayButNotClassBasedCollection());
         $this->assertFalse(TypeDescriptor::create('array<\stdClass>')->isArrayButNotClassBasedCollection());
         $this->assertFalse(TypeDescriptor::create('array<string, \stdClass>')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array<array<string,int>>')->isArrayButNotClassBasedCollection());
     }
 
     /**
@@ -614,6 +615,13 @@ class TypeDescriptorTest extends TestCase
         $this->assertEquals(TypeDescriptor::NULL, TypeDescriptor::createFromVariable(null));
         $this->assertEquals(TypeDescriptor::CLOSURE, TypeDescriptor::createFromVariable(function () {
         })->toString());
+    }
+
+    public function test_resolving_structured_array_type()
+    {
+        $this->assertEquals(TypeDescriptor::create('array<int, array>'), TypeDescriptor::create('array<int, array{person_id: string}>'));
+        $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::create('array{person_id: string}'));
+        $this->assertEquals(TypeDescriptor::create('array<string, array>'), TypeDescriptor::create('array<string, array{person_id: string}>'));
     }
 
     /**

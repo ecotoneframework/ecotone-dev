@@ -154,6 +154,32 @@ class InterfaceToCallTest extends TestCase
         );
     }
 
+    public function test_structured_array_collection_type_docblock()
+    {
+        $interfaceToCall = InterfaceToCall::create(
+            User::class,
+            'withStructuredArrayCollectionType'
+        );
+
+        $this->assertEquals(
+            TypeDescriptor::create('array<int, array>'),
+            $interfaceToCall->getParameterWithName('param')->getTypeDescriptor()
+        );
+    }
+
+    public function test_structured_array_collection_type_docblock_return_type()
+    {
+        $interfaceToCall = InterfaceToCall::create(
+            User::class,
+            'withStructuredArrayCollectionReturnType'
+        );
+
+        $this->assertEquals(
+            TypeDescriptor::create('array<int, array>'),
+            $interfaceToCall->getReturnType()
+        );
+    }
+
     /**
      * @throws MessagingException
      * @throws InvalidArgumentException

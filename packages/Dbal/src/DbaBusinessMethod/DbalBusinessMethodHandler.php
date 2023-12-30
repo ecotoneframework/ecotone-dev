@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\DbaBusinessMethod;
 
 use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -168,9 +169,9 @@ final readonly class DbalBusinessMethodHandler
                 if ($typeDescriptor->isCollection() && $typeDescriptor->isSingleTypeCollection()) {
                     $typeDescriptor = $typeDescriptor->resolveGenericTypes()[0];
                     if ($typeDescriptor->isInteger()) {
-                        $preparedParameterTypes[$parameterName] = ArrayParameterType::INTEGER;
+                        $preparedParameterTypes[$parameterName] = Connection::PARAM_INT_ARRAY;
                     } else {
-                        $preparedParameterTypes[$parameterName] = ArrayParameterType::STRING;
+                        $preparedParameterTypes[$parameterName] = Connection::PARAM_STR_ARRAY;
                     }
                 }
             }

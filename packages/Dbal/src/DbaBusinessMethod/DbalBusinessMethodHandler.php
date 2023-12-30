@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\DbaBusinessMethod;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -107,6 +108,7 @@ final readonly class DbalBusinessMethodHandler
                 if ($dbalParameter->getName()) {
                     $parameterName = $dbalParameter->getName();
                 }
+
                 if ($dbalParameter->getType()) {
                     $preparedParameterTypes[$parameterName] = $dbalParameter->getType();
                 }
@@ -114,7 +116,7 @@ final readonly class DbalBusinessMethodHandler
 
             $preparedParameters[$parameterName] = $parameterValue;
         }
-        
+
         /** Class/Method leve DbalParameters */
         foreach ($parameterTypes as $dbalParameter) {
             $preparedParameters[$dbalParameter->getName()] = $this->getParameterValue($dbalParameter, $originalParameters, null);
@@ -123,7 +125,7 @@ final readonly class DbalBusinessMethodHandler
             }
         }
 
-        return [$preparedParameters, $preparedParameterTypes];
+        return [$preparedParameters, $this->autoResolveTypesIfNeeded($preparedParameters, $preparedParameterTypes)];
     }
 
     private function getConnection(): \Doctrine\DBAL\Connection
@@ -156,5 +158,23 @@ final readonly class DbalBusinessMethodHandler
         }
 
         return $parameterValue;
+    }
+
+    private function autoResolveTypesIfNeeded(array $preparedParameters, array $preparedParameterTypes): array
+    {
+        foreach ($preparedParameters as $parameterName => $parameterValue) {
+            if (!isset($preparedParameterTypes[$parameterName])) {
+                $typeDescriptor = TypeDescriptor::createFromVariable($parameterValue);
+                if ($typeDescriptor->isCollection() && $typeDescriptor->isSingleTypeCollection()) {
+                    $typeDescriptor = $typeDescriptor->resolveGenericTypes()[0];
+                    if ($typeDescriptor->isInteger()) {
+                        $preparedParameterTypes[$parameterName] = ArrayParameterType::INTEGER;
+                    } else {
+                        $preparedParameterTypes[$parameterName] = ArrayParameterType::STRING;
+                    }
+                }
+            }
+        }
+        return $preparedParameterTypes;
     }
 }

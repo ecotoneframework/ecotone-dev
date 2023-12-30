@@ -18,4 +18,15 @@ interface ParameterDbalTypeConversion
     #[DbalQueryBusinessMethod('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]
     #[DbalParameter("personIds", type: ArrayParameterType::INTEGER, expression: '[1]')]
     public function getPersonsWithWithMethodLevelParameter(): array;
+
+    #[DbalQueryBusinessMethod('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]
+    public function getPersonsWithAutoresolve(
+        array $personIds
+    ): array;
+
+    #[DbalQueryBusinessMethod('SELECT person_id, name FROM persons WHERE name IN (:names)')]
+    #[DbalParameter('names', expression: "['John']")]
+    public function getPersonsWithMethodLevelParameterAndAutoresolve(
+        array $names
+    ): array;
 }

@@ -38,6 +38,24 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
         );
     }
 
+    public function test_using_auto_resolved_parameter_type()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var PersonWriteApi $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        $personWriteGateway->insert(1, 'John');
+
+        $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
+        $this->assertSame(
+            [],
+            $personQueryGateway->getPersonsWithAutoresolve([2])
+        );
+        $this->assertSame(
+            [['person_id' => 1, 'name' => 'John']],
+            $personQueryGateway->getPersonsWithAutoresolve([1])
+        );
+    }
+
     public function test_using_predefined_parameter_type_on_method_level_attribute()
     {
         $ecotoneLite = $this->bootstrapEcotone();
@@ -49,6 +67,20 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
         $this->assertSame(
             [['person_id' => 1, 'name' => 'John']],
             $personQueryGateway->getPersonsWithWithMethodLevelParameter()
+        );
+    }
+
+    public function test_using_predefined_parameter_type_on_method_level_attribute_and_autoresolve()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var PersonWriteApi $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        $personWriteGateway->insert(1, 'John');
+
+        $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
+        $this->assertSame(
+            [['person_id' => 1, 'name' => 'John']],
+            $personQueryGateway->getPersonsWithMethodLevelParameterAndAutoresolve(['John'])
         );
     }
 

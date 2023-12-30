@@ -365,10 +365,6 @@ final class TypeDescriptor implements Type, DefinedObject
             }
 
             $collectionType = TypeDescriptor::createFromVariable(reset($variable));
-            if (! $collectionType->isClassNotInterface()) {
-                return new self(self::ARRAY);
-            }
-
             foreach ($variable as $type) {
                 if (! $collectionType->equals(TypeDescriptor::createFromVariable($type))) {
                     return new self(self::ARRAY);

@@ -54,7 +54,7 @@ final class DbalBusinessMethodHandler
 
         $type = TypeDescriptor::createFromVariable($result);
         if ($type->isArrayButNotClassBasedCollection()) {
-            $type = TypeDescriptor::create('array<string, string>');
+            $type = TypeDescriptor::create('array<int, array>');
         }
 
         if ($result === false && $isInterfaceNullable) {

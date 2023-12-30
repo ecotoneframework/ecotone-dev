@@ -87,7 +87,7 @@ abstract class DbalMessagingTestCase extends TestCase
                     CREATE TABLE persons (
                         person_id INTEGER PRIMARY KEY,
                         name VARCHAR(255),
-                        roles JSON DEFAULT '[]'
+                        roles TEXT DEFAULT '[]'
                     )
                 SQL);
         }

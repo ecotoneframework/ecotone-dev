@@ -39,8 +39,8 @@ final readonly class DbalBusinessMethodHandler
         array  $headers
     ): ?Message
     {
-        $parameters = $this->getParameters($headers);
-        $query = $this->getConnection()->executeQuery($sql, $parameters);
+        list($parameters, $parameterTypes) = $this->getParameters($headers);
+        $query = $this->getConnection()->executeQuery($sql, $parameters, $parameterTypes);
 
         $result = match($fetchMode) {
             FetchMode::ASSOCIATIVE => $query->fetchAllAssociative(),
@@ -66,11 +66,14 @@ final readonly class DbalBusinessMethodHandler
 
     public function executeWrite(string $sql, array $headers): int
     {
-        $parameters = $this->getParameters($headers);
+        list($parameters, $parameterTypes) = $this->getParameters($headers);
 
-        return $this->getConnection()->executeStatement($sql, $parameters);
+        return $this->getConnection()->executeStatement($sql, $parameters, $parameterTypes);
     }
 
+    /**
+     * @return array<array<string, mixed>, array<string, string>>
+     */
     private function getParameters(array $headers): array
     {
         /** @var array<string, DbalParameter> $parameterTypes */
@@ -85,12 +88,12 @@ final readonly class DbalBusinessMethodHandler
         $originalParameters = [];
         /** @var array<string, mixed> $preparedParameters */
         $preparedParameters = [];
+        $preparedParameterTypes = [];
         foreach ($headers as $headerName => $headerValue) {
             if (str_starts_with($headerName, self::HEADER_PARAMETER_VALUE_PREFIX)) {
                 $parameterName = substr($headerName, strlen(self::HEADER_PARAMETER_VALUE_PREFIX));
 
                 $originalParameters[$parameterName] = $headerValue;
-                $preparedParameters[$parameterName] = $headerValue;
             }
         }
 
@@ -98,25 +101,29 @@ final readonly class DbalBusinessMethodHandler
         foreach ($originalParameters as $parameterName => $parameterValue) {
             if (isset($parameterTypes[$parameterName])) {
                 $dbalParameter = $parameterTypes[$parameterName];
+                unset($parameterTypes[$parameterName]);
 
                 $parameterValue = $this->getParameterValue($dbalParameter, ['payload' => $parameterValue], $parameterValue);
                 if ($dbalParameter->getName()) {
                     $parameterName = $dbalParameter->getName();
                 }
-                unset($parameterTypes[$parameterName]);
+                if ($dbalParameter->getType()) {
+                    $preparedParameterTypes[$parameterName] = $dbalParameter->getType();
+                }
             }
 
             $preparedParameters[$parameterName] = $parameterValue;
         }
-
+        
         /** Class/Method leve DbalParameters */
         foreach ($parameterTypes as $dbalParameter) {
-            if ($dbalParameter->getExpression()) {
-                $preparedParameters[$dbalParameter->getName()] = $this->getParameterValue($dbalParameter, $originalParameters, null);
+            $preparedParameters[$dbalParameter->getName()] = $this->getParameterValue($dbalParameter, $originalParameters, null);
+            if ($dbalParameter->getType()) {
+                $preparedParameterTypes[$dbalParameter->getName()] = $dbalParameter->getType();
             }
         }
 
-        return $preparedParameters;
+        return [$preparedParameters, $preparedParameterTypes];
     }
 
     private function getConnection(): \Doctrine\DBAL\Connection

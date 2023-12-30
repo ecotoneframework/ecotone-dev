@@ -23,9 +23,6 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
 {
     /**
-     * @TODO
-     * - storing whole object as single parameter
-     * - serializing with camel or snake case
      * - automatic paramter binding based on type
      */
 

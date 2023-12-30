@@ -43,7 +43,8 @@
         "doctrine/cache": "^1.0.0",
         "doctrine/annotations": "^1.13",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "ecotone/jms-converter": "~1.208.1"
+        "ecotone/jms-converter": "~1.208.1",
+        "symfony/expression-language": "^6.0|^7.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

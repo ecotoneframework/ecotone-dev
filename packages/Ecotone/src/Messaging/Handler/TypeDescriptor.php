@@ -22,6 +22,7 @@ final class TypeDescriptor implements Type, DefinedObject
     public const COLLECTION_TYPE_REGEX = "/[a-zA-Z0-9]*<([\\a-zA-Z0-9,\s]*)>/";
     public const STRUCTURED_COLLECTION_ARRAY_TYPE = '/[a-zA-Z0-9]*<([\\a-zA-Z0-9,\s\<\>\{\}]*)>/';
     public const STRUCTURED_ARRAY_TYPE = '/^array\{.*\}$/';
+    private const COLLECTION_TYPE_SPLIT_REGEX = '/(?:[^,<>()]+|<[^<>]*(?:<(?:[^<>]+)>)?[^<>]*>)+/';
 
     //    scalar types
     public const         INTEGER = 'int';
@@ -53,8 +54,6 @@ final class TypeDescriptor implements Type, DefinedObject
     private static array $cache = [];
 
     private string $type;
-
-    private const COLLECTION_TYPE_SPLIT_REGEX = '/(?:[^,<>()]+|<[^<>]*(?:<(?:[^<>]+)>)?[^<>]*>)+/';
 
     /**
      * @return string[]

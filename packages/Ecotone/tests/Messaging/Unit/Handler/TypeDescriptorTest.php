@@ -53,6 +53,7 @@ class TypeDescriptorTest extends TestCase
         $this->assertFalse(TypeDescriptor::create('array<\stdClass>')->isArrayButNotClassBasedCollection());
         $this->assertFalse(TypeDescriptor::create('array<string, \stdClass>')->isArrayButNotClassBasedCollection());
         $this->assertTrue(TypeDescriptor::create('array<array<string,int>>')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array<string, array<string,int>>')->isArrayButNotClassBasedCollection());
     }
 
     /**
@@ -613,8 +614,8 @@ class TypeDescriptorTest extends TestCase
         $this->assertEquals(TypeDescriptor::createCollection(stdClass::class), TypeDescriptor::createFromVariable([new stdClass(), new stdClass()]));
         $this->assertEquals(TypeDescriptor::RESOURCE, TypeDescriptor::createFromVariable(fopen('file', 'w+')));
         $this->assertEquals(TypeDescriptor::NULL, TypeDescriptor::createFromVariable(null));
-        $this->assertEquals(TypeDescriptor::CLOSURE, TypeDescriptor::createFromVariable(function () {
-        })->toString());
+        $this->assertEquals(TypeDescriptor::CLOSURE, TypeDescriptor::createFromVariable(function () {})->toString());
+        $this->assertEquals('array<array<string,int>>', TypeDescriptor::createFromVariable([['bla' => 1, 'bla2' => 2, 'bla3' => 3]])->toString());
     }
 
     public function test_resolving_structured_array_type()
@@ -642,6 +643,22 @@ class TypeDescriptorTest extends TestCase
         $this->assertEquals(
             [TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()],
             TypeDescriptor::create('array<string,int>')->resolveGenericTypes()
+        );
+    }
+
+    public function test_creating_collection_type_with_nested_generic_types()
+    {
+        $this->assertEquals(
+            [TypeDescriptor::createStringType(), TypeDescriptor::createCollection('int')],
+            TypeDescriptor::create('array<string,array<int>>')->resolveGenericTypes()
+        );
+    }
+
+    public function test_creating_collection_type_with_two_types_and_nested_generic_type()
+    {
+        $this->assertEquals(
+            [TypeDescriptor::createStringType(), TypeDescriptor::createCollection('int')],
+            TypeDescriptor::create('array<string,array<int>>')->resolveGenericTypes()
         );
     }
 

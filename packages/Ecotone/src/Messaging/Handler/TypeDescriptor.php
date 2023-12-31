@@ -54,25 +54,27 @@ final class TypeDescriptor implements Type, DefinedObject
 
     private string $type;
 
+    private const COLLECTION_TYPE_SPLIT_REGEX = '/(?:[^,<>()]+|<[^<>]*(?:<(?:[^<>]+)>)?[^<>]*>)+/';
+
     /**
      * @return string[]
      */
     private static function resolveCollectionTypes(string $foundCollectionTypes): array
     {
-        $collectionTypes = explode(',', $foundCollectionTypes);
-        $collectionTypes = array_map(
-            function (string $type) {
-                return self::removeSlashPrefix($type);
-            },
-            $collectionTypes
-        );
+        preg_match_all(self::COLLECTION_TYPE_SPLIT_REGEX, $foundCollectionTypes, $match);
+        $collectionTypes = $match[0];
 
-        return array_filter(
-            $collectionTypes,
-            function (string $type) {
-                return $type !== self::MIXED;
+        $resolvedTypes = [];
+        foreach ($collectionTypes as $collectionType) {
+            /** Collection in collection */
+            if (preg_match(self::COLLECTION_TYPE_REGEX, $collectionType)) {
+                $resolvedTypes[] = TypeDescriptor::create($collectionType)->toString();
+            }else {
+                $resolvedTypes[] = self::removeSlashPrefix($collectionType);
             }
-        );
+        }
+
+        return $resolvedTypes;
     }
 
     /**
@@ -374,22 +376,17 @@ final class TypeDescriptor implements Type, DefinedObject
                 return new self(self::ARRAY);
             }
 
-            $collectionType = TypeDescriptor::createFromVariable(reset($variable));
-            $hasIntKeys = true;
-            foreach ($variable as $key => $type) {
-                if (! is_int($key)) {
-                    $hasIntKeys = false;
-                }
-                if (! $collectionType->equals(TypeDescriptor::createFromVariable($type))) {
-                    return new self(self::ARRAY);
-                }
+            $collectionType = TypeDescriptor::createFromVariable(reset($variable))->toString();
+            /** This won't be iterating over all variables for performance reasons */
+            if (TypeDescriptor::createFromVariable(end($variable))->toString() !== $collectionType) {
+                return new self(self::ARRAY);
             }
 
-            if ($hasIntKeys) {
-                return self::createCollection($collectionType->toString());
+            if (array_key_first($variable) === 0) {
+                return new self("array<{$collectionType}>");
             }
 
-            return new self("array<string,{$collectionType->toString()}>");
+            return new self("array<string,{$collectionType}>");
         } elseif ($type === self::ITERABLE) {
             $type = self::ITERABLE;
         } elseif ($type === self::OBJECT) {
@@ -416,18 +413,12 @@ final class TypeDescriptor implements Type, DefinedObject
      */
     public function resolveGenericTypes(): array
     {
-        if (! $this->isCollection()) {
+        preg_match(self::COLLECTION_TYPE_REGEX, $this->type, $match);
+        if (!isset($match[1])) {
             throw InvalidArgumentException::create("Can't resolve collection type on non collection");
         }
 
-        preg_match(self::COLLECTION_TYPE_REGEX, $this->type, $match);
-
-        return array_map(
-            function (string $type) {
-                return TypeDescriptor::create($type);
-            },
-            self::resolveCollectionTypes($match[1])
-        );
+        return array_map(fn(string $type) => TypeDescriptor::create($type), self::resolveCollectionTypes($match[1]));
     }
 
     public static function createWithDocBlock(?string $type, ?string $docBlockTypeDescription): Type
@@ -753,12 +744,7 @@ final class TypeDescriptor implements Type, DefinedObject
 
             if (preg_match(self::COLLECTION_TYPE_REGEX, $type, $match)) {
                 $foundCollectionTypes = $match[1];
-                /** Collection in collection */
-                if (preg_match(self::COLLECTION_TYPE_REGEX, $foundCollectionTypes)) {
-                    $collectionTypes = array_map(fn(Type $type) => $type->toString(),TypeDescriptor::create($foundCollectionTypes)->resolveGenericTypes());
-                }else {
-                    $collectionTypes = self::resolveCollectionTypes($foundCollectionTypes);
-                }
+                $collectionTypes = self::resolveCollectionTypes($foundCollectionTypes);
 
                 if (empty($collectionTypes)) {
                     $type = self::ARRAY;

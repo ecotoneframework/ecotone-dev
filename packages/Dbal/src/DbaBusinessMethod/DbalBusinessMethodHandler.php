@@ -52,17 +52,12 @@ final class DbalBusinessMethodHandler
             default => throw new \InvalidArgumentException("Unsupported fetch mode {$fetchMode}")
         };
 
-        $type = TypeDescriptor::createFromVariable($result);
-        if ($type->isArrayButNotClassBasedCollection()) {
-            $type = TypeDescriptor::create('array<int, array>');
-        }
-
         if ($result === false && $isInterfaceNullable) {
             return null;
         }
 
         return MessageBuilder::withPayload($result)
-                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($type->toString()))
+                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($result)->toString()))
                     ->build();
     }
 

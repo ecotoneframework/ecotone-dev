@@ -11,6 +11,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
@@ -20,7 +21,7 @@ use Ecotone\Messaging\Message;
 final class DbalBusinessMethodHandler
 {
     public const SQL_HEADER = "ecotone.dbal.business_method.sql";
-    public const IS_INTERFACE_NULLABLE = "ecotone.dbal.business_method.return_type";
+    public const IS_INTERFACE_NULLABLE = "ecotone.dbal.business_method.return_type_is_nullable";
     public const HEADER_FETCH_MODE = "ecotone.dbal.business_method.fetch_mode";
     public const HEADER_PARAMETER_VALUE_PREFIX = "ecotone.dbal.business_method.parameter.value.";
     public const HEADER_PARAMETER_TYPE_PREFIX = "ecotone.dbal.business_method.parameter.type.";
@@ -49,6 +50,7 @@ final class DbalBusinessMethodHandler
             FetchMode::FIRST_COLUMN => $query->fetchFirstColumn(),
             FetchMode::FIRST_ROW => $query->fetchAssociative(),
             FetchMode::FIRST_COLUMN_OF_FIRST_ROW => $query->fetchOne(),
+            FetchMode::ITERATE => $this->prepareGenerator($query),
             default => throw new \InvalidArgumentException("Unsupported fetch mode {$fetchMode}")
         };
 
@@ -172,5 +174,12 @@ final class DbalBusinessMethodHandler
             }
         }
         return $preparedParameterTypes;
+    }
+
+    private function prepareGenerator(\Doctrine\DBAL\Result $query): \Generator
+    {
+        while ($row = $query->fetchAssociative()) {
+            yield $row;
+        }
     }
 }

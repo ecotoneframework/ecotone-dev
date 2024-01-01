@@ -64,4 +64,13 @@ interface PersonQueryApi
      */
     #[DbalQueryBusinessMethod('SELECT person_id, name FROM persons LIMIT :limit OFFSET :offset')]
     public function getNameListDTO(int $limit, int $offset): array;
+
+    /**
+     * @return iterable<PersonNameDTO>
+     */
+    #[DbalQueryBusinessMethod(
+        'SELECT person_id, name FROM persons ORDER BY person_id ASC',
+        fetchMode: FetchMode::ITERATE
+    )]
+    public function getPersonIdsIterator(): iterable;
 }

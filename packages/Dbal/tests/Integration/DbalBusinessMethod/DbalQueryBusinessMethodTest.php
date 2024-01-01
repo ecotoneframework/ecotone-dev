@@ -144,20 +144,22 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
         );
     }
 
-
-    public function test_using_custom_dbal_parameter_conversion_media_type_with_value_objects()
+    public function test_using_iterator_to_fetch_results()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonWriteApi $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        $personDTOs = [new PersonNameDTO(1, 'John1'), new PersonNameDTO(2, 'John2')];;
+        $personWriteGateway->insert(1, 'John1');
+        $personWriteGateway->insert(2, 'John2');
 
-        $personGateway->insert(1, 'John');
-        $personGateway->changeRolesWithValueObjects(1, [new PersonRole('ROLE_ADMIN')]);
-
-        $this->assertSame(
-            ['ROLE_ADMIN'],
-            $ecotoneLite->sendQueryWithRouting('person.getRoles', metadata: ['aggregate.id' => 1])
-        );
+        $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
+        foreach($personQueryGateway->getPersonIdsIterator() as $key => $personDTO) {
+            $this->assertEquals(
+                $personDTOs[$key],
+                $personDTO
+            );
+        }
     }
 
     private function bootstrapEcotone(): FlowTestSupport

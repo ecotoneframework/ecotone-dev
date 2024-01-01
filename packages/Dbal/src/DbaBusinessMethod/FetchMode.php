@@ -10,6 +10,7 @@ final class FetchMode
     public const FIRST_COLUMN = 1;
     public const FIRST_ROW = 2;
     public const FIRST_COLUMN_OF_FIRST_ROW = 3;
+    public const ITERATE = 4;
 
 
     private function __construct()

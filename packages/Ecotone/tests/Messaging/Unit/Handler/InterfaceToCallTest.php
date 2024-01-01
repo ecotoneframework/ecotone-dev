@@ -123,7 +123,7 @@ class InterfaceToCallTest extends TestCase
         );
 
         $this->assertEquals(
-            TypeDescriptor::create('array'),
+            TypeDescriptor::create('array<mixed>'),
             $interfaceToCall->getReturnType()
         );
     }

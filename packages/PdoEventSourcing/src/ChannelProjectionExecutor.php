@@ -39,7 +39,7 @@ final class ChannelProjectionExecutor implements ProjectionExecutor
 
         if (! is_null($state)) {
             $stateType = TypeDescriptor::createFromVariable($state);
-            if (! $stateType->isNonCollectionArray()) {
+            if (! $stateType->isArrayButNotClassBasedCollection()) {
                 $state = $this->conversionService->convert(
                     $state,
                     $stateType,

@@ -86,7 +86,8 @@ abstract class DbalMessagingTestCase extends TestCase
             $this->getConnection()->executeStatement(<<<SQL
                     CREATE TABLE persons (
                         person_id INTEGER PRIMARY KEY,
-                        name VARCHAR(255)
+                        name VARCHAR(255),
+                        roles VARCHAR(255) DEFAULT '[]'
                     )
                 SQL);
         }

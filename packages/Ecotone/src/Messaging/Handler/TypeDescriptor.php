@@ -20,6 +20,9 @@ use ReflectionException;
 final class TypeDescriptor implements Type, DefinedObject
 {
     public const COLLECTION_TYPE_REGEX = "/[a-zA-Z0-9]*<([\\a-zA-Z0-9,\s]*)>/";
+    public const STRUCTURED_COLLECTION_ARRAY_TYPE = '/[a-zA-Z0-9]*<([\\a-zA-Z0-9,\s\<\>\{\}]*)>/';
+    public const STRUCTURED_ARRAY_TYPE = '/^array\{.*\}$/';
+    private const COLLECTION_TYPE_SPLIT_REGEX = '/(?:[^,<>()]+|<[^<>]*(?:<(?:[^<>]+)>)?[^<>]*>)+/';
 
     //    scalar types
     public const         INTEGER = 'int';
@@ -29,6 +32,7 @@ final class TypeDescriptor implements Type, DefinedObject
     public const         BOOL = 'bool';
     private const BOOL_LONG_NAME = 'boolean';
     private const BOOL_FALSE_NAME = 'false';
+    private const BOOL_TRUE_NAME = 'true';
     public const         STRING = 'string';
 
     //    compound types
@@ -51,22 +55,25 @@ final class TypeDescriptor implements Type, DefinedObject
 
     private string $type;
 
+    /**
+     * @return string[]
+     */
     private static function resolveCollectionTypes(string $foundCollectionTypes): array
     {
-        $collectionTypes = explode(',', $foundCollectionTypes);
-        $collectionTypes = array_map(
-            function (string $type) {
-                return self::removeSlashPrefix($type);
-            },
-            $collectionTypes
-        );
+        preg_match_all(self::COLLECTION_TYPE_SPLIT_REGEX, $foundCollectionTypes, $match);
+        $collectionTypes = $match[0];
 
-        return array_filter(
-            $collectionTypes,
-            function (string $type) {
-                return $type !== self::MIXED;
+        $resolvedTypes = [];
+        foreach ($collectionTypes as $collectionType) {
+            /** Collection in collection */
+            if (preg_match(self::COLLECTION_TYPE_REGEX, $collectionType)) {
+                $resolvedTypes[] = TypeDescriptor::create($collectionType)->toString();
+            }else {
+                $resolvedTypes[] = self::removeSlashPrefix($collectionType);
             }
-        );
+        }
+
+        return $resolvedTypes;
     }
 
     /**
@@ -84,7 +91,7 @@ final class TypeDescriptor implements Type, DefinedObject
      */
     public static function isItTypeOfScalar(string $type): bool
     {
-        return in_array($type, [self::INTEGER, self::FLOAT, self::BOOL, self::STRING, self::INTEGER_LONG_NAME, self::DOUBLE, self::BOOL_LONG_NAME]);
+        return in_array($type, [self::INTEGER, self::FLOAT, self::BOOL, self::STRING, self::INTEGER_LONG_NAME, self::DOUBLE, self::BOOL_LONG_NAME, self::BOOL_FALSE_NAME, self::BOOL_TRUE_NAME]);
     }
 
     /**
@@ -105,6 +112,11 @@ final class TypeDescriptor implements Type, DefinedObject
     public static function isItTypeOfCollection(string $type): bool
     {
         return (bool)preg_match(self::COLLECTION_TYPE_REGEX, $type);
+    }
+
+    private static function isStructuredArrayType(string $type): bool
+    {
+        return (bool)preg_match(self::STRUCTURED_COLLECTION_ARRAY_TYPE, $type) || (bool)preg_match(self::STRUCTURED_ARRAY_TYPE, $type);
     }
 
     /**
@@ -363,18 +375,17 @@ final class TypeDescriptor implements Type, DefinedObject
                 return new self(self::ARRAY);
             }
 
-            $collectionType = TypeDescriptor::createFromVariable(reset($variable));
-            if (! $collectionType->isClassNotInterface()) {
+            $collectionType = TypeDescriptor::createFromVariable(reset($variable))->toString();
+            /** This won't be iterating over all variables for performance reasons */
+            if (TypeDescriptor::createFromVariable(end($variable))->toString() !== $collectionType) {
                 return new self(self::ARRAY);
             }
 
-            foreach ($variable as $type) {
-                if (! $collectionType->equals(TypeDescriptor::createFromVariable($type))) {
-                    return new self(self::ARRAY);
-                }
+            if (array_key_first($variable) === 0) {
+                return new self("array<{$collectionType}>");
             }
 
-            return self::createCollection($collectionType->toString());
+            return new self("array<string,{$collectionType}>");
         } elseif ($type === self::ITERABLE) {
             $type = self::ITERABLE;
         } elseif ($type === self::OBJECT) {
@@ -401,18 +412,12 @@ final class TypeDescriptor implements Type, DefinedObject
      */
     public function resolveGenericTypes(): array
     {
-        if (! $this->isCollection()) {
+        preg_match(self::COLLECTION_TYPE_REGEX, $this->type, $match);
+        if (!isset($match[1])) {
             throw InvalidArgumentException::create("Can't resolve collection type on non collection");
         }
 
-        preg_match(self::COLLECTION_TYPE_REGEX, $this->type, $match);
-
-        return array_map(
-            function (string $type) {
-                return TypeDescriptor::create($type);
-            },
-            self::resolveCollectionTypes($match[1])
-        );
+        return array_map(fn(string $type) => TypeDescriptor::create($type), self::resolveCollectionTypes($match[1]));
     }
 
     public static function createWithDocBlock(?string $type, ?string $docBlockTypeDescription): Type
@@ -554,9 +559,19 @@ final class TypeDescriptor implements Type, DefinedObject
     /**
      * @return bool
      */
-    public function isNonCollectionArray(): bool
+    public function isArrayButNotClassBasedCollection(): bool
     {
-        return $this->type === self::ARRAY;
+        if ($this->isCollection()) {
+            foreach ($this->resolveGenericTypes() as $genericType) {
+                if ($genericType->isClassOrInterface()) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return $this->type === self::ARRAY || $this->type === self::ITERABLE;
     }
 
     /**
@@ -581,6 +596,11 @@ final class TypeDescriptor implements Type, DefinedObject
     public function isString(): bool
     {
         return $this->type === self::STRING;
+    }
+
+    public function isInteger(): bool
+    {
+        return $this->type === self::INTEGER;
     }
 
     /**
@@ -626,7 +646,7 @@ final class TypeDescriptor implements Type, DefinedObject
      */
     private static function isResolvableType(string $typeToCheck): bool
     {
-        return self::isItTypeOfPrimitive($typeToCheck) || class_exists($typeToCheck) || interface_exists($typeToCheck) || $typeToCheck == self::ANYTHING || self::isItTypeOfCollection($typeToCheck);
+        return self::isItTypeOfPrimitive($typeToCheck) || class_exists($typeToCheck) || interface_exists($typeToCheck) || $typeToCheck == self::ANYTHING || self::isItTypeOfCollection($typeToCheck) || self::isStructuredArrayType($typeToCheck);
     }
 
     /**
@@ -720,9 +740,6 @@ final class TypeDescriptor implements Type, DefinedObject
                 $finalTypes[] = new self(self::ANYTHING);
                 continue;
             }
-            if (! self::isResolvableType($type)) {
-                throw TypeDefinitionException::create("Passed type hint `{$type}` is not resolvable");
-            }
 
             if (preg_match(self::COLLECTION_TYPE_REGEX, $type, $match)) {
                 $foundCollectionTypes = $match[1];
@@ -739,7 +756,32 @@ final class TypeDescriptor implements Type, DefinedObject
 
                     $type = str_replace($foundCollectionTypes, implode(',', $collectionTypes), $match[0]);
                 }
+            }else if (preg_match(self::STRUCTURED_COLLECTION_ARRAY_TYPE, $type, $match)) {
+                $foundCollectionTypes = $match[1];
+                $collectionTypes = self::resolveCollectionTypes($foundCollectionTypes);
+
+                if (count($collectionTypes) <= 1) {
+                    $type = self::ARRAY;
+                } else {
+                    $resolvedTypes = [];
+                    foreach ($collectionTypes as $collectionType) {
+                        try {
+                            $resolvedTypes[] = self::resolveType($collectionType);
+                        }catch (TypeDefinitionException $exception) {
+                            throw TypeDefinitionException::create("Unknown collection type in {$type}. Passed type in collection is not resolvable: {$collectionType}.");
+                        }
+                    }
+
+                    $type = str_replace($foundCollectionTypes, implode(',', $resolvedTypes), $match[0]);
+                }
+            }else if (preg_match(self::STRUCTURED_ARRAY_TYPE, $type)) {
+                $type = self::ARRAY;
+            }else {
+                if (! self::isResolvableType($type)) {
+                    throw TypeDefinitionException::create("Passed type hint `{$type}` is not resolvable");
+                }
             }
+
 
             $finalTypes[] = new self(self::removeSlashPrefix($type));
         }

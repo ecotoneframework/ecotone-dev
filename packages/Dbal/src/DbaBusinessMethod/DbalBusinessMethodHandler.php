@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\DbaBusinessMethod;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -169,6 +170,14 @@ final class DbalBusinessMethodHandler
                         $preparedParameterTypes[$parameterName] = Connection::PARAM_INT_ARRAY;
                     } else {
                         $preparedParameterTypes[$parameterName] = Connection::PARAM_STR_ARRAY;
+                    }
+                }else {
+                    if ($typeDescriptor->isInteger()) {
+                        $preparedParameterTypes[$parameterName] = ParameterType::INTEGER;
+                    } else if ($typeDescriptor->isString()) {
+                        $preparedParameterTypes[$parameterName] = ParameterType::STRING;
+                    } else if ($typeDescriptor->isBoolean()) {
+                        $preparedParameterTypes[$parameterName] = ParameterType::BOOLEAN;
                     }
                 }
             }

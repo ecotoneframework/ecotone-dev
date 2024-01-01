@@ -12,10 +12,10 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
 interface PersonWriteApi
 {
-    #[DbalWriteBusinessMethod("INSERT INTO persons VALUES (:personId, :name)")]
+    #[DbalWriteBusinessMethod("INSERT INTO persons VALUES (:personId, :name, DEFAULT)")]
     public function insert(int $personId, string $name): void;
 
-    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name)')]
+    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]
     public function insertWithParameterName(
         #[DbalParameter(name: 'personId')] int $id,
         string $name
@@ -42,13 +42,13 @@ interface PersonWriteApi
         #[DbalParameter(convertToMediaType: MediaType::APPLICATION_JSON)] array $roles
     ): void;
 
-    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name)')]
+    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]
     public function insertWithExpression(
         int $personId,
         #[DbalParameter(expression: 'payload.toLowerCase()')] PersonName $name
     ): void;
 
-    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name)')]
+    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]
     public function insertWithServiceExpression(
         int $personId,
         #[DbalParameter(expression: "reference('converter').normalize(payload)")] PersonName $name

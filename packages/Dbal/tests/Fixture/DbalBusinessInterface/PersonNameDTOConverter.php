@@ -12,8 +12,8 @@ class PersonNameDTOConverter
     public function from(PersonNameDTO $personNameDTO): array
     {
         return [
-            "person_id" => $personNameDTO->getPersonId(),
-            "name" => $personNameDTO->getName()
+            'person_id' => $personNameDTO->getPersonId(),
+            'name' => $personNameDTO->getName(),
         ];
     }
 

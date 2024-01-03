@@ -13,6 +13,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\MessageConverter;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Generator;
 
 class GatewayReplyConverter
 {
@@ -56,7 +57,7 @@ class GatewayReplyConverter
         }
 
         if (! $replyContentType) {
-            if ($data instanceof \Generator) {
+            if ($data instanceof Generator) {
                 $isCollection = $targetType->isCollection();
                 $genericType = null;
                 if ($isCollection) {
@@ -117,13 +118,13 @@ class GatewayReplyConverter
         return $data;
     }
 
-    private function yieldResults(\Generator $data, bool $isCollection, ?TypeDescriptor $expectedType): \Generator
+    private function yieldResults(Generator $data, bool $isCollection, ?TypeDescriptor $expectedType): Generator
     {
         foreach ($data as $result) {
             if ($expectedType !== null) {
                 $sourceType = TypeDescriptor::createFromVariable($result);
 
-                if ($isCollection && !$sourceType->isCompatibleWith($expectedType)) {
+                if ($isCollection && ! $sourceType->isCompatibleWith($expectedType)) {
                     $result = $this->conversionService->convert($result, $sourceType, MediaType::createApplicationXPHP(), $expectedType, MediaType::createApplicationXPHP());
                 }
             }

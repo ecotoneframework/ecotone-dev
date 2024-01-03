@@ -6,9 +6,9 @@ namespace Ecotone\Dbal\DbaBusinessMethod;
 
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Dbal\Attribute\DbalQueryBusinessMethod;
 use Ecotone\Dbal\Attribute\DbalWriteBusinessMethod;
-use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -21,7 +21,6 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersConverter;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -30,12 +29,11 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
-use Ramsey\Uuid\Uuid;
 
 #[ModuleAnnotation]
 final class DbaBusinessMethodModule implements AnnotationModule
 {
-    private const BUSINESS_METHOD_HANDLER_REQUEST_CHANNEL_PREFIX = "ecotone.dbal.business_method.invoke.";
+    private const BUSINESS_METHOD_HANDLER_REQUEST_CHANNEL_PREFIX = 'ecotone.dbal.business_method.invoke.';
 
     /**
      * @param GatewayProxyBuilder[] $dbalBusinessMethodGateways
@@ -44,8 +42,7 @@ final class DbaBusinessMethodModule implements AnnotationModule
     private function __construct(
         private array $dbalBusinessMethodGateways,
         private array $connectionReferences
-    )
-    {
+    ) {
     }
 
     private static function getWriteRequestChannelName(string $connectionReferenceName): string
@@ -105,7 +102,7 @@ final class DbaBusinessMethodModule implements AnnotationModule
                     GatewayHeaderValueBuilder::create(
                         DbalBusinessMethodHandler::IS_INTERFACE_NULLABLE,
                         $interface->canItReturnNull()
-                    )
+                    ),
                 ]
             ));
 
@@ -141,12 +138,12 @@ final class DbaBusinessMethodModule implements AnnotationModule
             $messagingConfiguration->registerMessageHandler(
                 ServiceActivatorBuilder::create(
                     $referenceName,
-                    $interfaceToCallRegistry->getFor(DbalBusinessMethodHandler::class, "executeWrite")
+                    $interfaceToCallRegistry->getFor(DbalBusinessMethodHandler::class, 'executeWrite')
                 )
                     ->withInputChannelName(self::getWriteRequestChannelName($connectionReference))
                     ->withMethodParameterConverters([
                         HeaderBuilder::create('sql', DbalBusinessMethodHandler::SQL_HEADER),
-                        AllHeadersBuilder::createWith('headers')
+                        AllHeadersBuilder::createWith('headers'),
                     ])
             );
 
@@ -160,7 +157,7 @@ final class DbaBusinessMethodModule implements AnnotationModule
                         HeaderBuilder::create('sql', DbalBusinessMethodHandler::SQL_HEADER),
                         HeaderBuilder::create('isInterfaceNullable', DbalBusinessMethodHandler::IS_INTERFACE_NULLABLE),
                         HeaderBuilder::create('fetchMode', DbalBusinessMethodHandler::HEADER_FETCH_MODE),
-                        AllHeadersBuilder::createWith('headers')
+                        AllHeadersBuilder::createWith('headers'),
                     ])
             );
         }
@@ -192,14 +189,14 @@ final class DbaBusinessMethodModule implements AnnotationModule
             GatewayHeaderValueBuilder::create(
                 DbalBusinessMethodHandler::SQL_HEADER,
                 $attribute->getSql()
-            )
+            ),
         ];
 
         /** @var DbalParameter $dbalParameterAttribute */
         foreach (array_merge(
             $interface->getClassAnnotationOf(TypeDescriptor::create(DbalParameter::class)),
             $interface->getMethodAnnotationsOf(TypeDescriptor::create(DbalParameter::class))
-         ) as $dbalParameterAttribute) {
+        ) as $dbalParameterAttribute) {
             Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice in {$dbalParameterAttribute->getName()}");
             Assert::isTrue($dbalParameterAttribute->getName() !== null, "Parameter name must be defined in {$dbalParameterAttribute->getName()}");
             Assert::isTrue($dbalParameterAttribute->getExpression() !== null, "Parameter {$dbalParameterAttribute->getName()} must have expression defined in {$dbalParameterAttribute->getName()}");

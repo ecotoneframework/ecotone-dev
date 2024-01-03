@@ -5,21 +5,22 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\DbalBusinessMethod;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTO;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonQueryApi;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonWriteApi;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRole;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonWriteApi;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
+/**
+ * @internal
+ */
 final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
 {
     /**
@@ -149,7 +150,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
         $ecotoneLite = $this->bootstrapEcotone();
         /** @var PersonWriteApi $personWriteGateway */
         $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
-        $personDTOs = [new PersonNameDTO(1, 'John1'), new PersonNameDTO(2, 'John2')];;
+        $personDTOs = [new PersonNameDTO(1, 'John1'), new PersonNameDTO(2, 'John2')];
+        ;
         $personWriteGateway->insert(1, 'John1');
         $personWriteGateway->insert(2, 'John2');
 

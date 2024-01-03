@@ -13,7 +13,6 @@ use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\Conversion\JsonToArray\JsonToArrayConverter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Conversion\StringToUuid\StringToUuidConverter;
-use Ecotone\Messaging\Conversion\UuidToString\UuidToStringConverter;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
@@ -1137,7 +1136,7 @@ class GatewayProxyBuilderTest extends MessagingTest
     {
         $requestChannelName = 'request-channel';
         $requestChannel = DirectChannel::create();
-        $expectedResultSet = [new \stdClass(), 5];
+        $expectedResultSet = [new stdClass(), 5];
         $requestChannel->subscribe(DataReturningService::createServiceActivatorWithGenerator($expectedResultSet));
 
         $gatewayBuilder = GatewayProxyBuilder::create('ref-name', IteratorReturningGateway::class, 'executeWithAdvancedIterator', $requestChannelName);
@@ -1162,9 +1161,9 @@ class GatewayProxyBuilderTest extends MessagingTest
         $requestChannel->subscribe(DataReturningService::createServiceActivatorWithGenerator([1, 2]));
 
         $gatewayBuilder = GatewayProxyBuilder::create('ref-name', IteratorReturningGateway::class, 'executeIterator', $requestChannelName);
-        $resultOne = new \stdClass();
+        $resultOne = new stdClass();
         $resultOne->id = 1;
-        $resultTwo = new \stdClass();
+        $resultTwo = new stdClass();
         $resultTwo->id = 2;
         $expectedResultSet = [$resultOne, $resultTwo];
 

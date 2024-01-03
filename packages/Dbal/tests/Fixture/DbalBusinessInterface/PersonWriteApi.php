@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
-use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Dbal\Attribute\DbalWriteBusinessMethod;
 use Ecotone\Messaging\Conversion\MediaType;
-use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
 interface PersonWriteApi
 {
-    #[DbalWriteBusinessMethod("INSERT INTO persons VALUES (:personId, :name, DEFAULT)")]
+    #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]
     public function insert(int $personId, string $name): void;
 
     #[DbalWriteBusinessMethod('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]

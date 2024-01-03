@@ -16,7 +16,7 @@ interface ParameterDbalTypeConversion
     ): array;
 
     #[DbalQueryBusinessMethod('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]
-    #[DbalParameter("personIds", type: Connection::PARAM_INT_ARRAY, expression: '[1]')]
+    #[DbalParameter('personIds', type: Connection::PARAM_INT_ARRAY, expression: '[1]')]
     public function getPersonsWithWithMethodLevelParameter(): array;
 
     #[DbalQueryBusinessMethod('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]

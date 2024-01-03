@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\DbalBusinessMethod;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -15,14 +14,15 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\ClassLevelDbalParameterWriteApi;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonName;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTO;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameNormalizer;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonQueryApi;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonWriteApi;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRole;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonWriteApi;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
+/**
+ * @internal
+ */
 final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
 {
     public function test_write_statement_with_no_return_and_automatic_parameter_binding()
@@ -31,7 +31,7 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
         /** @var PersonWriteApi $personGateway */
         $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
 
-        $personGateway->insert(1, "John");
+        $personGateway->insert(1, 'John');
 
         $this->assertSame(
             'John',
@@ -68,7 +68,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
         $this->assertSame(
             'Johny Bravo',
             $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 1])
-        );;
+        );
+        ;
     }
 
     public function test_using_custom_dbal_parameter_conversion_media_type()
@@ -83,7 +84,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
         $this->assertSame(
             ['ROLE_ADMIN'],
             $ecotoneLite->sendQueryWithRouting('person.getRoles', metadata: ['aggregate.id' => 1])
-        );;
+        );
+        ;
     }
 
     public function test_using_custom_dbal_parameter_conversion_media_type_with_value_objects()
@@ -191,7 +193,7 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
                     DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
                     PersonRoleConverter::class => new PersonRoleConverter(),
                     PersonNameDTOConverter::class => new PersonNameDTOConverter(),
-                    "converter" => new PersonNameNormalizer(),
+                    'converter' => new PersonNameNormalizer(),
                 ],
             ),
             configuration: ServiceConfiguration::createWithDefaults()

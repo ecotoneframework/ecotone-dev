@@ -4,35 +4,33 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\DbaBusinessMethod;
 
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
+use Generator;
 use Interop\Queue\ConnectionFactory;
-use Ecotone\Messaging\Message;
+use InvalidArgumentException;
 
 final class DbalBusinessMethodHandler
 {
-    public const SQL_HEADER = "ecotone.dbal.business_method.sql";
-    public const IS_INTERFACE_NULLABLE = "ecotone.dbal.business_method.return_type_is_nullable";
-    public const HEADER_FETCH_MODE = "ecotone.dbal.business_method.fetch_mode";
-    public const HEADER_PARAMETER_VALUE_PREFIX = "ecotone.dbal.business_method.parameter.value.";
-    public const HEADER_PARAMETER_TYPE_PREFIX = "ecotone.dbal.business_method.parameter.type.";
+    public const SQL_HEADER = 'ecotone.dbal.business_method.sql';
+    public const IS_INTERFACE_NULLABLE = 'ecotone.dbal.business_method.return_type_is_nullable';
+    public const HEADER_FETCH_MODE = 'ecotone.dbal.business_method.fetch_mode';
+    public const HEADER_PARAMETER_VALUE_PREFIX = 'ecotone.dbal.business_method.parameter.value.';
+    public const HEADER_PARAMETER_TYPE_PREFIX = 'ecotone.dbal.business_method.parameter.type.';
 
     public function __construct(
         private ConnectionFactory $connectionFactory,
         private ConversionService $conversionService,
         private ExpressionEvaluationService $expressionEvaluationService,
-    )
-    {
+    ) {
 
     }
 
@@ -41,9 +39,8 @@ final class DbalBusinessMethodHandler
         bool   $isInterfaceNullable,
         int    $fetchMode,
         array  $headers
-    ): ?Message
-    {
-        list($parameters, $parameterTypes) = $this->getParameters($headers);
+    ): ?Message {
+        [$parameters, $parameterTypes] = $this->getParameters($headers);
         $query = $this->getConnection()->executeQuery($sql, $parameters, $parameterTypes);
 
         $result = match($fetchMode) {
@@ -52,7 +49,7 @@ final class DbalBusinessMethodHandler
             FetchMode::FIRST_ROW => $query->fetchAssociative(),
             FetchMode::FIRST_COLUMN_OF_FIRST_ROW => $query->fetchOne(),
             FetchMode::ITERATE => $this->prepareGenerator($query),
-            default => throw new \InvalidArgumentException("Unsupported fetch mode {$fetchMode}")
+            default => throw new InvalidArgumentException("Unsupported fetch mode {$fetchMode}")
         };
 
         if ($result === false && $isInterfaceNullable) {
@@ -66,7 +63,7 @@ final class DbalBusinessMethodHandler
 
     public function executeWrite(string $sql, array $headers): int
     {
-        list($parameters, $parameterTypes) = $this->getParameters($headers);
+        [$parameters, $parameterTypes] = $this->getParameters($headers);
 
         return $this->getConnection()->executeStatement($sql, $parameters, $parameterTypes);
     }
@@ -127,7 +124,7 @@ final class DbalBusinessMethodHandler
         return [$preparedParameters, $this->autoResolveTypesIfNeeded($preparedParameters, $preparedParameterTypes)];
     }
 
-    private function getConnection(): \Doctrine\DBAL\Connection
+    private function getConnection(): Connection
     {
         /** @var DbalContext $context */
         $context = $this->connectionFactory->createContext();
@@ -162,7 +159,7 @@ final class DbalBusinessMethodHandler
     private function autoResolveTypesIfNeeded(array $preparedParameters, array $preparedParameterTypes): array
     {
         foreach ($preparedParameters as $parameterName => $parameterValue) {
-            if (!isset($preparedParameterTypes[$parameterName])) {
+            if (! isset($preparedParameterTypes[$parameterName])) {
                 $typeDescriptor = TypeDescriptor::createFromVariable($parameterValue);
                 if ($typeDescriptor->isCollection() && $typeDescriptor->isSingleTypeCollection()) {
                     $typeDescriptor = $typeDescriptor->resolveGenericTypes()[0];
@@ -171,12 +168,12 @@ final class DbalBusinessMethodHandler
                     } else {
                         $preparedParameterTypes[$parameterName] = Connection::PARAM_STR_ARRAY;
                     }
-                }else {
+                } else {
                     if ($typeDescriptor->isInteger()) {
                         $preparedParameterTypes[$parameterName] = ParameterType::INTEGER;
-                    } else if ($typeDescriptor->isString()) {
+                    } elseif ($typeDescriptor->isString()) {
                         $preparedParameterTypes[$parameterName] = ParameterType::STRING;
-                    } else if ($typeDescriptor->isBoolean()) {
+                    } elseif ($typeDescriptor->isBoolean()) {
                         $preparedParameterTypes[$parameterName] = ParameterType::BOOLEAN;
                     }
                 }
@@ -185,7 +182,7 @@ final class DbalBusinessMethodHandler
         return $preparedParameterTypes;
     }
 
-    private function prepareGenerator(\Doctrine\DBAL\Result $query): \Generator
+    private function prepareGenerator(\Doctrine\DBAL\Result $query): Generator
     {
         while ($row = $query->fetchAssociative()) {
             yield $row;

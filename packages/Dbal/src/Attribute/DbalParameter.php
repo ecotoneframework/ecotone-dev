@@ -8,7 +8,7 @@ use Attribute;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
-#[Attribute(Attribute::TARGET_PARAMETER|Attribute::TARGET_METHOD|Attribute::TARGET_CLASS|Attribute::IS_REPEATABLE)]
+#[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_METHOD | Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
 final class DbalParameter implements DefinedObject
 {
     /**
@@ -19,11 +19,12 @@ final class DbalParameter implements DefinedObject
         private ?int $type = null,
         private ?string $expression = null,
         private ?string $convertToMediaType = null
-    ) {}
+    ) {
+    }
 
     public function getHeaderName(): string
     {
-        return "ecotone.dbal.business_method." . $this->name;
+        return 'ecotone.dbal.business_method.' . $this->name;
     }
 
     public function getType(): ?int
@@ -53,7 +54,7 @@ final class DbalParameter implements DefinedObject
             [
                 $this->name,
                 $this->type,
-                $this->convertToMediaType
+                $this->convertToMediaType,
             ]
         );
     }

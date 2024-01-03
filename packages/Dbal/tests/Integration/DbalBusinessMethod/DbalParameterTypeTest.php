@@ -13,11 +13,13 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\ParameterDbalTypeConversion;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonQueryApi;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonWriteApi;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
+/**
+ * @internal
+ */
 final class DbalParameterTypeTest extends DbalMessagingTestCase
 {
     public function test_using_predefined_parameter_type()

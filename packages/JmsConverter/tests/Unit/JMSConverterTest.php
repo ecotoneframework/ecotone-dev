@@ -166,6 +166,17 @@ class JMSConverterTest extends TestCase
         );
     }
 
+    public function test_converting_with_keeping_nulls_and_values()
+    {
+        $toSerialize = ['test' => null, 'test2' => 1, 'test3' => 'bla'];
+        $expectedSerializationString = '{"test":null,"test2":1,"test3":"bla"}';
+
+        $this->assertEquals(
+            $expectedSerializationString,
+            $this->serializeToJson($toSerialize, [], JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(true))
+        );
+    }
+
     public function test_throwing_exception_if_converted_type_is_union_type()
     {
         $toSerialize = new PropertyWithUnionType([]);

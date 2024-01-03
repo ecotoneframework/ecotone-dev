@@ -278,7 +278,7 @@ final class TypeDescriptor implements Type, DefinedObject
         return class_exists($typeHint) || interface_exists($typeHint);
     }
 
-    private static function initialize(?string $typeHint, ?string $docBlockTypeDescription): Type
+    private static function initialize(?string $typeHint, ?string $docBlockTypeDescription = null): Type
     {
         $cacheKey = $typeHint . ':' . $docBlockTypeDescription;
         if (isset(self::$cache[$cacheKey])) {
@@ -360,7 +360,7 @@ final class TypeDescriptor implements Type, DefinedObject
      * @throws TypeDefinitionException
      * @throws MessagingException
      */
-    public static function createFromVariable($variable): self
+    public static function createFromVariable($variable): Type
     {
         $type = strtolower(gettype($variable));
 
@@ -372,20 +372,20 @@ final class TypeDescriptor implements Type, DefinedObject
             $type = self::BOOL;
         } elseif ($type === self::ARRAY) {
             if (empty($variable)) {
-                return new self(self::ARRAY);
+                return self::initialize(self::ARRAY);
             }
 
             $collectionType = TypeDescriptor::createFromVariable(reset($variable))->toString();
             /** This won't be iterating over all variables for performance reasons */
             if (TypeDescriptor::createFromVariable(end($variable))->toString() !== $collectionType) {
-                return new self(self::ARRAY);
+                return self::initialize(self::ARRAY);
             }
 
             if (array_key_first($variable) === 0) {
-                return new self("array<{$collectionType}>");
+                return self::initialize("array<{$collectionType}>");
             }
 
-            return new self("array<string,{$collectionType}>");
+            return self::initialize("array<string,{$collectionType}>");
         } elseif ($type === self::ITERABLE) {
             $type = self::ITERABLE;
         } elseif ($type === self::OBJECT) {
@@ -400,7 +400,7 @@ final class TypeDescriptor implements Type, DefinedObject
             $type = self::ANYTHING;
         }
 
-        return new self($type);
+        return self::initialize($type);
     }
 
     /**
@@ -425,63 +425,34 @@ final class TypeDescriptor implements Type, DefinedObject
         return self::initialize($type, $docBlockTypeDescription);
     }
 
-    /**
-     * @param string $className
-     *
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     */
-    public static function createCollection(string $className): TypeDescriptor
+    public static function createCollection(string $className): Type
     {
-        return new self("array<{$className}>");
+        return self::initialize("array<{$className}>");
     }
 
-    /**
-     * @param string $type
-     *
-     * @return Type
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     */
     public static function create(?string $type): Type
     {
         return self::initialize($type, '');
     }
 
-    /**
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     */
-    public static function createAnythingType(): TypeDescriptor
+    public static function createAnythingType(): Type
     {
-        return new self(self::ANYTHING);
+        return self::initialize(self::ANYTHING);
     }
 
-    /**
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     */
-    public static function createBooleanType(): TypeDescriptor
+    public static function createBooleanType(): Type
     {
-        return new self(self::BOOL);
+        return self::initialize(self::BOOL);
     }
 
-    /**
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     */
-    public static function createIntegerType(): TypeDescriptor
+    public static function createIntegerType(): Type
     {
-        return new self(self::INTEGER);
+        return self::initialize(self::INTEGER);
     }
 
-    /**
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     */
-    public static function createArrayType(): TypeDescriptor
+    public static function createArrayType(): Type
     {
-        return new self(self::ARRAY);
+        return self::initialize(self::ARRAY);
     }
 
     /**
@@ -490,18 +461,14 @@ final class TypeDescriptor implements Type, DefinedObject
      * @throws TypeDefinitionException
      * @throws MessagingException
      */
-    public static function createIterable(): TypeDescriptor
+    public static function createIterable(): Type
     {
-        return new self(self::ITERABLE);
+        return self::initialize(self::ITERABLE);
     }
 
-    /**
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     */
-    public static function createStringType(): TypeDescriptor
+    public static function createStringType(): Type
     {
-        return new self(self::STRING);
+        return self::initialize(self::STRING);
     }
 
     /**
@@ -646,7 +613,7 @@ final class TypeDescriptor implements Type, DefinedObject
      */
     private static function isResolvableType(string $typeToCheck): bool
     {
-        return self::isItTypeOfPrimitive($typeToCheck) || class_exists($typeToCheck) || interface_exists($typeToCheck) || $typeToCheck == self::ANYTHING || self::isItTypeOfCollection($typeToCheck) || self::isStructuredArrayType($typeToCheck);
+        return self::isItTypeOfPrimitive($typeToCheck) || class_exists($typeToCheck) || interface_exists($typeToCheck) || $typeToCheck == self::ANYTHING || self::isItTypeOfCollection($typeToCheck) || self::isStructuredArrayType($typeToCheck) || self::isMixedType($typeToCheck) || self::isNull($typeToCheck);
     }
 
     /**
@@ -697,34 +664,34 @@ final class TypeDescriptor implements Type, DefinedObject
     private static function resolveType(?string $typeHint): Type
     {
         if (is_null($typeHint)) {
-            return new self(self::ANYTHING);
+            return new static(self::ANYTHING);
         }
         $typeHint = trim($typeHint);
         if ($typeHint == '') {
-            return new self(self::ANYTHING);
+            return new static(self::ANYTHING);
         }
 
         $finalTypes = [];
         foreach (explode('|', $typeHint) as $type) {
             if ($type === self::VOID) {
-                $finalTypes[] = new self(self::VOID);
+                $finalTypes[] = new static(self::VOID);
                 continue;
             }
 
             if ($typeHint === self::INTEGER_LONG_NAME) {
-                $finalTypes[] = new self(self::INTEGER);
+                $finalTypes[] = new static(self::INTEGER);
                 continue;
             }
             if ($typeHint === self::DOUBLE) {
-                $finalTypes[] = new self(self::FLOAT);
+                $finalTypes[] = new static(self::FLOAT);
                 continue;
             }
             if (in_array($typeHint, [self::BOOL_LONG_NAME, self::BOOL_FALSE_NAME])) {
-                $finalTypes[] = new self(self::BOOL);
+                $finalTypes[] = new static(self::BOOL);
                 continue;
             }
             if ($typeHint === self::CALLABLE) {
-                $finalTypes[] = new self(self::CLOSURE);
+                $finalTypes[] = new static(self::CLOSURE);
                 continue;
             }
 
@@ -733,11 +700,11 @@ final class TypeDescriptor implements Type, DefinedObject
             }
 
             if ($type === self::NULL) {
-                $finalTypes[] = new self(self::NULL);
+                $finalTypes[] = new static(self::NULL);
                 continue;
             }
             if ($type === self::MIXED) {
-                $finalTypes[] = new self(self::ANYTHING);
+                $finalTypes[] = new static(self::ANYTHING);
                 continue;
             }
 
@@ -783,7 +750,7 @@ final class TypeDescriptor implements Type, DefinedObject
             }
 
 
-            $finalTypes[] = new self(self::removeSlashPrefix($type));
+            $finalTypes[] = new static(self::removeSlashPrefix($type));
         }
 
         return UnionTypeDescriptor::createWith($finalTypes);

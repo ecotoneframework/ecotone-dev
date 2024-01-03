@@ -616,6 +616,8 @@ class TypeDescriptorTest extends TestCase
         $this->assertEquals(TypeDescriptor::NULL, TypeDescriptor::createFromVariable(null));
         $this->assertEquals(TypeDescriptor::CLOSURE, TypeDescriptor::createFromVariable(function () {})->toString());
         $this->assertEquals('array<array<string,int>>', TypeDescriptor::createFromVariable([['bla' => 1, 'bla2' => 2, 'bla3' => 3]])->toString());
+        $this->assertEquals('array<string,null>', TypeDescriptor::createFromVariable(['test' => null])->toString());
+        $this->assertEquals('array', TypeDescriptor::createFromVariable(['test' => null,'test2' => '123'])->toString());
     }
 
     public function test_resolving_structured_array_type()

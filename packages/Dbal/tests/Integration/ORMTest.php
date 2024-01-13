@@ -31,10 +31,10 @@ final class ORMTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapEcotone();
 
-        $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
+        $ecotone->sendCommand(new RegisterPerson(100, 'Johny'));
 
         self::assertEquals(
-            'Johnny',
+            'Johny',
             $ecotone->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100])
         );
     }

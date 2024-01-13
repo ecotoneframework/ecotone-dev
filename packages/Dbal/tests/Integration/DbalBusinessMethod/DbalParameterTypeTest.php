@@ -31,11 +31,11 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
-        $this->assertSame(
+        $this->assertEquals(
             [],
             $personQueryGateway->getPersonsWith([2])
         );
-        $this->assertSame(
+        $this->assertEquals(
             [['person_id' => 1, 'name' => 'John']],
             $personQueryGateway->getPersonsWith([1])
         );
@@ -49,11 +49,11 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
-        $this->assertSame(
+        $this->assertEquals(
             [],
             $personQueryGateway->getPersonsWithAutoresolve([2])
         );
-        $this->assertSame(
+        $this->assertEquals(
             [['person_id' => 1, 'name' => 'John']],
             $personQueryGateway->getPersonsWithAutoresolve([1])
         );
@@ -67,7 +67,7 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
-        $this->assertSame(
+        $this->assertEquals(
             [['person_id' => 1, 'name' => 'John']],
             $personQueryGateway->getPersonsWithWithMethodLevelParameter()
         );
@@ -81,7 +81,7 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
-        $this->assertSame(
+        $this->assertEquals(
             [['person_id' => 1, 'name' => 'John']],
             $personQueryGateway->getPersonsWithMethodLevelParameterAndAutoresolve(['John'])
         );

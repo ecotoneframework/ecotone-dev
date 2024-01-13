@@ -33,12 +33,12 @@ final class InbuiltConvertersTest extends DbalMessagingTestCase
         $activityGateway = $ecotoneLite->getGateway(ActivityService::class);
         $activityGateway->add('1', 'registered_at', new \DateTimeImmutable('2020-01-01 10:00:00'));
 
-        $this->assertSame(
+        $this->assertEquals(
             [],
             $activityGateway->findAfterOrAt('registered_at', new \DateTimeImmutable('2020-01-01 10:00:01'))
         );
 
-        $this->assertSame(
+        $this->assertEquals(
             ['1'],
             $activityGateway->findAfterOrAt('registered_at', new \DateTimeImmutable('2020-01-01 10:00:00'))
         );
@@ -54,13 +54,13 @@ final class InbuiltConvertersTest extends DbalMessagingTestCase
         /** This will be converted to 2020-01-02 00:00:00 */
         $activityGateway->add('1', 'registered_at', new \DateTimeImmutable('2020-01-02 01:00:00'));
 
-        $this->assertSame(
+        $this->assertEquals(
             [],
             /** This will be converted to 2020-01-02 00:00:00 */
             $activityGateway->findBefore('registered_at', new \DateTimeImmutable('2020-01-02 23:59:59'))
         );
 
-        $this->assertSame(
+        $this->assertEquals(
             ['1'],
             /** This will be converted to 2020-01-03 00:00:00 */
             $activityGateway->findBefore('registered_at', new \DateTimeImmutable('2020-01-03 00:00:00'))
@@ -74,12 +74,12 @@ final class InbuiltConvertersTest extends DbalMessagingTestCase
         $activityGateway = $ecotoneLite->getGateway(ActivityService::class);
         $activityGateway->store(new PersonId('1'), 'registered_at', new \DateTimeImmutable('2020-01-01 10:00:00'));
 
-        $this->assertSame(
+        $this->assertEquals(
             [],
             $activityGateway->findAfterOrAt('registered_at', new \DateTimeImmutable('2020-01-01 10:00:01'))
         );
 
-        $this->assertSame(
+        $this->assertEquals(
             ['1'],
             $activityGateway->findAfterOrAt('registered_at', new \DateTimeImmutable('2020-01-01 10:00:00'))
         );

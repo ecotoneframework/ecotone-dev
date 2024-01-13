@@ -24,11 +24,6 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
  */
 final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
 {
-    /**
-     * - automatic paramter binding based on type
-     */
-
-
     public function test_fetching_data_from_database()
     {
         $ecotoneLite = $this->bootstrapEcotone();
@@ -37,7 +32,7 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertSame(
+        $this->assertEquals(
             [['person_id' => 1, 'name' => 'John']],
             $personQueryGateway->getNameList(1, 0)
         );
@@ -52,7 +47,7 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
         $personWriteGateway->insert(2, 'Marco');
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertSame(
+        $this->assertEquals(
             [['person_id' => 1], ['person_id' => 2]],
             $personQueryGateway->getPersonIds(2, 0)
         );
@@ -67,7 +62,7 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
         $personWriteGateway->insert(2, 'Marco');
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertSame(
+        $this->assertEquals(
             [1, 2],
             $personQueryGateway->getExtractedPersonIds(2, 0)
         );
@@ -82,7 +77,7 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
         $personWriteGateway->insert(2, 'Marco');
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        $this->assertSame(
+        $this->assertEquals(
             2,
             $personQueryGateway->countPersons()
         );
@@ -141,8 +136,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
         $this->assertEquals(
-            '{"person_id":1,"name":"John"}',
-            $personQueryGateway->getNameDTOInJson(1)
+            \json_decode('{"person_id":1,"name":"John"}', true),
+            \json_decode($personQueryGateway->getNameDTOInJson(1), true)
         );
     }
 

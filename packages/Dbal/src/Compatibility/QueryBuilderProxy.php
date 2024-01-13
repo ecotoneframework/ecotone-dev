@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Compatibility;
 
+use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Result;
 use InvalidArgumentException;
@@ -25,169 +26,161 @@ final class QueryBuilderProxy extends QueryBuilder
     }
 
     // override all public methods from parent class with empty body
-    public function select($select = null)
+    public function select($select = null): self
     {
         $this->queryBuilder->{__FUNCTION__}(...func_get_args());
 
         return $this;
     }
 
-    public function from($from, $alias = null)
+    public function from($from, $alias = null): self
     {
         $this->queryBuilder->{__FUNCTION__}($from, $alias);
 
         return $this;
     }
 
-    public function addSelect($select = null)
+    public function addSelect($select = null): self
     {
         $this->queryBuilder->{__FUNCTION__}(...func_get_args());
 
         return $this;
     }
 
-    public function delete($delete = null, $alias = null)
+    public function delete($delete = null, $alias = null): self
     {
         $this->queryBuilder->{__FUNCTION__}($delete, $alias);
 
         return $this;
     }
 
-    public function update($update = null, $alias = null)
+    public function update($update = null, $alias = null): self
     {
         $this->queryBuilder->{__FUNCTION__}($update, $alias);
 
         return $this;
     }
 
-    public function set($key, $value)
+    public function set($key, $value): self
     {
         $this->queryBuilder->{__FUNCTION__}($key, $value);
 
         return $this;
     }
 
-    public function where($predicates)
+    public function where($predicates): self
     {
         $this->queryBuilder->{__FUNCTION__}($predicates);
 
         return $this;
     }
 
-    public function andWhere($where)
+    public function andWhere($where): self
     {
         $this->queryBuilder->{__FUNCTION__}($where);
 
         return $this;
     }
 
-    public function orWhere($where)
+    public function orWhere($where): self
     {
         $this->queryBuilder->{__FUNCTION__}($where);
 
         return $this;
     }
 
-    public function groupBy($groupBy)
+    public function groupBy($groupBy): self
     {
         $this->queryBuilder->{__FUNCTION__}($groupBy);
 
         return $this;
     }
 
-    public function addGroupBy($groupBy)
+    public function addGroupBy($groupBy): self
     {
         $this->queryBuilder->{__FUNCTION__}($groupBy);
 
         return $this;
     }
 
-    public function having($having)
+    public function having($having): self
     {
         $this->queryBuilder->{__FUNCTION__}($having);
 
         return $this;
     }
 
-    public function setFirstResult($firstResult)
+    public function setFirstResult($firstResult): self
     {
         $this->queryBuilder->{__FUNCTION__}($firstResult);
 
         return $this;
     }
 
-    public function setMaxResults($maxResults)
+    public function setMaxResults($maxResults): self
     {
         $this->queryBuilder->{__FUNCTION__}($maxResults);
 
         return $this;
     }
 
-    public function setParameter($key, $value, $type = null)
+    public function setParameter($key, $value, $type = null): self
     {
         $this->queryBuilder->{__FUNCTION__}($key, $value, $type);
 
         return $this;
     }
 
-    public function setParameters(array $params, array $types = [])
+    public function setParameters(array $params, array $types = []): self
     {
         $this->queryBuilder->{__FUNCTION__}($params, $types);
 
         return $this;
     }
 
-    public function __clone()
+    public function __clone(): void
     {
         $this->queryBuilder->{__FUNCTION__}();
-
-        return $this;
     }
 
-    public function __toString()
+    public function __toString(): string
     {
-        $this->queryBuilder->{__FUNCTION__}();
-
-        return $this;
+        return $this->queryBuilder->{__FUNCTION__}();
     }
 
-    public function expr()
+    public function expr(): ExpressionBuilder
     {
-        $this->queryBuilder->{__FUNCTION__}();
-
-        return $this;
+        return $this->queryBuilder->{__FUNCTION__}();
     }
 
-    public function resetQueryParts($queryPartNames = null)
+    public function resetQueryParts($queryPartNames = null): self
     {
         $this->queryBuilder->{__FUNCTION__}($queryPartNames);
 
         return $this;
     }
 
-    public function getQueryPart($queryPartName)
+    public function getQueryPart($queryPartName): mixed
     {
-        $this->queryBuilder->{__FUNCTION__}($queryPartName);
-
-        return $this;
+        return $this->queryBuilder->{__FUNCTION__}($queryPartName);
     }
 
-    public function getSQL()
+    public function getSQL(): string
     {
         return $this->queryBuilder->{__FUNCTION__}();
     }
 
-    public function getType()
+    public function getType(): int
     {
         return $this->queryBuilder->{__FUNCTION__}();
     }
 
-    public function getState()
+    public function getState(): int
     {
         return $this->queryBuilder->{__FUNCTION__}();
     }
 
-    public function execute()
+    public function execute(): Result|int|string
     {
         return $this->queryBuilder->{__FUNCTION__}();
     }

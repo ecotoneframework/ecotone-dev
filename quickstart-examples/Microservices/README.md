@@ -3,7 +3,7 @@
 ## Publisher
 
 On the publisher side all you need to do it to createPublisher configuration.  
-Then you can fetch it directly from your [Depedency Container](https://github.com/ecotoneframework/quickstart-examples/blob/main/Microservices/run_example.php#L33).
+Then you can fetch it directly from your [Dependency Container](https://github.com/ecotoneframework/quickstart-examples/blob/main/Microservices/run_example.php#L33).
 
 ## Consumer
 

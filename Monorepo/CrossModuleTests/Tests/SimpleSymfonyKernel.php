@@ -3,7 +3,7 @@
 namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
-use Ecotone\SymfonyBundle\DepedencyInjection\SymfonyContainerAdapter;
+use Ecotone\SymfonyBundle\DependencyInjection\SymfonyContainerAdapter;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\HttpKernel\Kernel;

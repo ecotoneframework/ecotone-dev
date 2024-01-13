@@ -6,7 +6,7 @@ namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
 use Ecotone\Messaging\Attribute\Converter;
 
-final readonly class DateTimeToDayStringConverter
+final class DateTimeToDayStringConverter
 {
     #[Converter]
     public function to(\DateTimeInterface $dateTime): string

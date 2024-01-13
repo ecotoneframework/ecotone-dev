@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
-final readonly class PersonId
+final class PersonId
 {
     public function __construct(private string $id)
     {

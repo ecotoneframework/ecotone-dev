@@ -11,6 +11,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
@@ -195,14 +196,14 @@ final class DbalBusinessMethodHandler
         if ($type->isClassOrInterface() && $this->conversionService->canConvert(
                 $type,
                 MediaType::createApplicationXPHP(),
-                TypeDescriptor::createStringType(),
+                UnionTypeDescriptor::createWith([TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()]),
                 MediaType::createApplicationXPHP()
         )) {
             return $this->conversionService->convert(
                 $parameterValue,
                 $type,
                 MediaType::createApplicationXPHP(),
-                TypeDescriptor::createStringType(),
+                UnionTypeDescriptor::createWith([TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()]),
                 MediaType::createApplicationXPHP(),
             );
         }

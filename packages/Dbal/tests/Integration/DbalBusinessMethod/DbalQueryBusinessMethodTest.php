@@ -10,6 +10,9 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
+
+use function json_decode;
+
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTO;
@@ -136,8 +139,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
         $this->assertEquals(
-            \json_decode('{"person_id":1,"name":"John"}', true),
-            \json_decode($personQueryGateway->getNameDTOInJson(1), true)
+            json_decode('{"person_id":1,"name":"John"}', true),
+            json_decode($personQueryGateway->getNameDTOInJson(1), true)
         );
     }
 

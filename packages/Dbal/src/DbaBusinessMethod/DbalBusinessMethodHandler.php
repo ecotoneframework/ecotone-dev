@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\DbaBusinessMethod;
 
+use DateTimeInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
@@ -194,10 +195,10 @@ final class DbalBusinessMethodHandler
     {
         $type = TypeDescriptor::createFromVariable($parameterValue);
         if ($type->isClassOrInterface() && $this->conversionService->canConvert(
-                $type,
-                MediaType::createApplicationXPHP(),
-                UnionTypeDescriptor::createWith([TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()]),
-                MediaType::createApplicationXPHP()
+            $type,
+            MediaType::createApplicationXPHP(),
+            UnionTypeDescriptor::createWith([TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()]),
+            MediaType::createApplicationXPHP()
         )) {
             return $this->conversionService->convert(
                 $parameterValue,
@@ -208,7 +209,7 @@ final class DbalBusinessMethodHandler
             );
         }
 
-        if ($parameterValue instanceof \DateTimeInterface) {
+        if ($parameterValue instanceof DateTimeInterface) {
             return $parameterValue->format('Y-m-d H:i:s.u');
         }
 

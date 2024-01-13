@@ -8,7 +8,7 @@ final class PersonId
 {
     public function __construct(private string $id)
     {
-        
+
     }
 
     public function __toString(): string

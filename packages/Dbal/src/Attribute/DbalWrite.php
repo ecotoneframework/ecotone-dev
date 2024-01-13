@@ -8,7 +8,7 @@ use Attribute;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class DbalWriteMethod
+class DbalWrite
 {
     public function __construct(
         private string $sql,

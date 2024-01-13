@@ -7,8 +7,8 @@ namespace Ecotone\Dbal\DbaBusinessMethod;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Attribute\DbalParameter;
-use Ecotone\Dbal\Attribute\DbalQueryMethod;
-use Ecotone\Dbal\Attribute\DbalWriteMethod;
+use Ecotone\Dbal\Attribute\DbalQuery;
+use Ecotone\Dbal\Attribute\DbalWrite;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -62,8 +62,8 @@ final class DbaBusinessMethodModule implements AnnotationModule
     {
         $connectionReferences = [];
         $gatewayProxyBuilders = [];
-        foreach ($annotationRegistrationService->findAnnotatedMethods(DbalWriteMethod::class) as $businessMethod) {
-            /** @var DbalWriteMethod $attribute */
+        foreach ($annotationRegistrationService->findAnnotatedMethods(DbalWrite::class) as $businessMethod) {
+            /** @var DbalWrite $attribute */
             $attribute = $businessMethod->getAnnotationForMethod();
 
             $gateway = self::getGateway($businessMethod, $attribute);
@@ -77,8 +77,8 @@ final class DbaBusinessMethodModule implements AnnotationModule
             $connectionReferences[] = $attribute->getConnectionReferenceName();
         }
 
-        foreach ($annotationRegistrationService->findAnnotatedMethods(DbalQueryMethod::class) as $businessMethod) {
-            /** @var DbalQueryMethod $attribute */
+        foreach ($annotationRegistrationService->findAnnotatedMethods(DbalQuery::class) as $businessMethod) {
+            /** @var DbalQuery $attribute */
             $attribute = $businessMethod->getAnnotationForMethod();
 
             $gateway = self::getGateway($businessMethod, $attribute);
@@ -171,19 +171,19 @@ final class DbaBusinessMethodModule implements AnnotationModule
         return false;
     }
 
-    private static function getGateway(AnnotatedMethod $businessMethod, DbalWriteMethod|DbalQueryMethod $attribute): GatewayProxyBuilder
+    private static function getGateway(AnnotatedMethod $businessMethod, DbalWrite|DbalQuery $attribute): GatewayProxyBuilder
     {
         return GatewayProxyBuilder::create(
             AnnotatedDefinitionReference::getReferenceFor($businessMethod),
             $businessMethod->getClassName(),
             $businessMethod->getMethodName(),
-            $attribute instanceof DbalWriteMethod
+            $attribute instanceof DbalWrite
                 ? self::getWriteRequestChannelName($attribute->getConnectionReferenceName())
                 : self::getQueryRequestChannelName($attribute->getConnectionReferenceName())
         );
     }
 
-    private static function getParameterConverters(DbalWriteMethod|DbalQueryMethod $attribute, InterfaceToCall $interface): array
+    private static function getParameterConverters(DbalWrite|DbalQuery $attribute, InterfaceToCall $interface): array
     {
         $parameterConverters = [
             GatewayHeaderValueBuilder::create(

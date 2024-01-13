@@ -12,12 +12,13 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\ClassLevelDbalParameterWriteApi;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonName;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameNormalizer;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRole;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonWriteApi;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
 /**
@@ -28,8 +29,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
     public function test_write_statement_with_no_return_and_automatic_parameter_binding()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonService::class);
 
         $personGateway->insert(1, 'John');
 
@@ -42,8 +43,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
     public function test_write_statement_with_no_return_and_manual_parameter_binding()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonService::class);
 
         $personGateway->insertWithParameterName(1, 'John');
 
@@ -56,8 +57,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
     public function test_write_statement_with_return_of_amount_of_changed_rows()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonService::class);
 
         $personGateway->insert(1, 'John');
         $this->assertSame(
@@ -75,8 +76,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
     public function test_using_custom_dbal_parameter_conversion_media_type()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonService::class);
 
         $personGateway->insert(1, 'John');
         $personGateway->changeRoles(1, ['ROLE_ADMIN']);
@@ -91,8 +92,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
     public function test_using_custom_dbal_parameter_conversion_media_type_with_value_objects()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonService::class);
 
         $personGateway->insert(1, 'John');
         $personGateway->changeRolesWithValueObjects(1, [new PersonRole('ROLE_ADMIN')]);
@@ -106,8 +107,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
     public function test_using_expression_language_on_parameter_value()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonService::class);
 
         $personGateway->insertWithExpression(1, new PersonName('John'));
 
@@ -120,8 +121,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
     public function test_using_expression_language_using_service()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonService::class);
 
         $personGateway->insertWithServiceExpression(1, new PersonName('John'));
 
@@ -134,8 +135,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
     public function test_using_expression_language_with_method_level_dbal_parameter()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonService::class);
 
         $personGateway->registerAdmin(1, 'John');
 
@@ -148,8 +149,8 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
     public function test_using_expression_language_with_method_level_dbal_parameter_and_parameters_in_expression()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personGateway */
-        $personGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personGateway */
+        $personGateway = $ecotoneLite->getGateway(PersonService::class);
 
         $personGateway->registerUsingMethodParameters(1, 'Johny');
         $this->assertSame(
@@ -194,6 +195,7 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
                     PersonRoleConverter::class => new PersonRoleConverter(),
                     PersonNameDTOConverter::class => new PersonNameDTOConverter(),
                     'converter' => new PersonNameNormalizer(),
+                    DateTimeToDayStringConverter::class => new DateTimeToDayStringConverter(),
                 ],
             ),
             configuration: ServiceConfiguration::createWithDefaults()

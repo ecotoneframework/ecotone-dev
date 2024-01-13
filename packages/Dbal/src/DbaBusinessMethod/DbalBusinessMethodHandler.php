@@ -11,6 +11,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
@@ -110,7 +111,7 @@ final class DbalBusinessMethodHandler
                 }
             }
 
-            $preparedParameters[$parameterName] = $parameterValue;
+            $preparedParameters[$parameterName] = $this->getParameterValueWithDefaultConversion($parameterValue);
         }
 
         /** Class/Method leve DbalParameters */
@@ -153,7 +154,7 @@ final class DbalBusinessMethodHandler
             );
         }
 
-        return $parameterValue;
+        return $this->getParameterValueWithDefaultConversion($parameterValue);
     }
 
     private function autoResolveTypesIfNeeded(array $preparedParameters, array $preparedParameterTypes): array
@@ -187,5 +188,34 @@ final class DbalBusinessMethodHandler
         while ($row = $query->fetchAssociative()) {
             yield $row;
         }
+    }
+
+    private function getParameterValueWithDefaultConversion(mixed $parameterValue): mixed
+    {
+        $type = TypeDescriptor::createFromVariable($parameterValue);
+        if ($type->isClassOrInterface() && $this->conversionService->canConvert(
+                $type,
+                MediaType::createApplicationXPHP(),
+                UnionTypeDescriptor::createWith([TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()]),
+                MediaType::createApplicationXPHP()
+        )) {
+            return $this->conversionService->convert(
+                $parameterValue,
+                $type,
+                MediaType::createApplicationXPHP(),
+                UnionTypeDescriptor::createWith([TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()]),
+                MediaType::createApplicationXPHP(),
+            );
+        }
+
+        if ($parameterValue instanceof \DateTimeInterface) {
+            return $parameterValue->format('Y-m-d H:i:s.u');
+        }
+
+        if ($type->isClassOrInterface() && method_exists($parameterValue, '__toString')) {
+            return (string) $parameterValue;
+        }
+
+        return $parameterValue;
     }
 }

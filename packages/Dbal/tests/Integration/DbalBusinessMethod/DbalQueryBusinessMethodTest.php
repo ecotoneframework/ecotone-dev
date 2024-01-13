@@ -11,11 +11,12 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTO;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonQueryApi;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonWriteApi;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
 /**
@@ -31,8 +32,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     public function test_fetching_data_from_database()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
@@ -45,8 +46,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     public function test_fetching_list_of_scalar_types()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
         $personWriteGateway->insert(2, 'Marco');
 
@@ -60,8 +61,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     public function test_fetching_using_first_column_mode()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
         $personWriteGateway->insert(2, 'Marco');
 
@@ -75,8 +76,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     public function test_fetching_using_first_column_mode_of_first_row()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
         $personWriteGateway->insert(2, 'Marco');
 
@@ -90,8 +91,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     public function test_fetching_using_single_row_result()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
@@ -120,8 +121,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     public function test_fetching_and_converting_list_to_dtos()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
@@ -134,8 +135,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     public function test_fetching_to_specific_format()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
@@ -148,8 +149,8 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
     public function test_using_iterator_to_fetch_results()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personDTOs = [new PersonNameDTO(1, 'John1'), new PersonNameDTO(2, 'John2')];
         ;
         $personWriteGateway->insert(1, 'John1');
@@ -174,6 +175,7 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
                     DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
                     PersonRoleConverter::class => new PersonRoleConverter(),
                     PersonNameDTOConverter::class => new PersonNameDTOConverter(),
+                    DateTimeToDayStringConverter::class => new DateTimeToDayStringConverter(),
                 ],
             ),
             configuration: ServiceConfiguration::createWithDefaults()

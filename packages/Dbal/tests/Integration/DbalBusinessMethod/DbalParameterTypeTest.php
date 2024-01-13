@@ -11,10 +11,11 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\ParameterDbalTypeConversion;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonWriteApi;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
 /**
@@ -25,8 +26,8 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
     public function test_using_predefined_parameter_type()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
@@ -43,8 +44,8 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
     public function test_using_auto_resolved_parameter_type()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
@@ -61,8 +62,8 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
     public function test_using_predefined_parameter_type_on_method_level_attribute()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
@@ -75,8 +76,8 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
     public function test_using_predefined_parameter_type_on_method_level_attribute_and_autoresolve()
     {
         $ecotoneLite = $this->bootstrapEcotone();
-        /** @var PersonWriteApi $personWriteGateway */
-        $personWriteGateway = $ecotoneLite->getGateway(PersonWriteApi::class);
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
         $personWriteGateway->insert(1, 'John');
 
         $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
@@ -96,6 +97,7 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
                     DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
                     PersonRoleConverter::class => new PersonRoleConverter(),
                     PersonNameDTOConverter::class => new PersonNameDTOConverter(),
+                    DateTimeToDayStringConverter::class => new DateTimeToDayStringConverter(),
                 ],
             ),
             configuration: ServiceConfiguration::createWithDefaults()

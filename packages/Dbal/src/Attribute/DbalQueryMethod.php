@@ -9,7 +9,7 @@ use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class DbalQueryBusinessMethod
+class DbalQueryMethod
 {
     public function __construct(
         private string  $sql,

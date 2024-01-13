@@ -62,6 +62,7 @@ abstract class DbalMessagingTestCase extends TestCase
         $this->deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
         $this->deleteTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
         $this->deleteTable('persons', $connection);
+        $this->deleteTable('activities', $connection);
     }
 
     protected function checkIfTableExists(Connection $connection, string $table): bool
@@ -88,6 +89,19 @@ abstract class DbalMessagingTestCase extends TestCase
                         person_id INTEGER PRIMARY KEY,
                         name VARCHAR(255),
                         roles VARCHAR(255) DEFAULT '[]'
+                    )
+                SQL);
+        }
+    }
+
+    protected function setupActivityTable(): void
+    {
+        if (! $this->checkIfTableExists($this->getConnection(), 'activities')) {
+            $this->getConnection()->executeStatement(<<<SQL
+                    CREATE TABLE activities (
+                        person_id VARCHAR(36) PRIMARY KEY,
+                        type VARCHAR(255),
+                        occurred_at TIMESTAMP
                     )
                 SQL);
         }

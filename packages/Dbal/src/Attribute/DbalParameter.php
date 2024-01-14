@@ -18,7 +18,8 @@ final class DbalParameter implements DefinedObject
         private ?string $name = null,
         private ?int $type = null,
         private ?string $expression = null,
-        private ?string $convertToMediaType = null
+        private ?string $convertToMediaType = null,
+        private bool $ignored = false
     ) {
     }
 
@@ -45,6 +46,11 @@ final class DbalParameter implements DefinedObject
     public function getConvertToMediaType(): ?string
     {
         return $this->convertToMediaType;
+    }
+
+    public function isIgnored(): bool
+    {
+        return $this->ignored;
     }
 
     public function getDefinition(): Definition

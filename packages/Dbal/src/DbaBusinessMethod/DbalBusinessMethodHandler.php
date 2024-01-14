@@ -102,6 +102,10 @@ final class DbalBusinessMethodHandler
                 $dbalParameter = $parameterTypes[$parameterName];
                 unset($parameterTypes[$parameterName]);
 
+                if ($dbalParameter->isIgnored()) {
+                    continue;
+                }
+
                 $parameterValue = $this->getParameterValue($dbalParameter, ['payload' => $parameterValue], $parameterValue);
                 if ($dbalParameter->getName()) {
                     $parameterName = $dbalParameter->getName();

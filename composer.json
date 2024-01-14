@@ -48,7 +48,7 @@
             "Ecotone\\Modelling\\": "packages/Ecotone/src/Modelling/",
             "Ecotone\\OpenTelemetry\\": "packages/OpenTelemetry/src",
             "Ecotone\\SymfonyBundle\\": "packages/Symfony/SymfonyBundle",
-            "Ecotone\\SymfonyBundle\\DepedencyInjection\\": "packages/Symfony/DepedencyInjection",
+            "Ecotone\\SymfonyBundle\\DependencyInjection\\": "packages/Symfony/DependencyInjection",
             "Monorepo\\": "Monorepo"
         }
     },
@@ -130,10 +130,10 @@
         "doctrine/annotations": "^1.13",
         "doctrine/cache": "^1.0.0",
         "doctrine/orm": "^2.0|^3.0",
-        "friends-of-behat/symfony-extension": "^2.1",
+        "friends-of-behat/symfony-extension": "<=2.4.2|^2.5",
         "friendsofphp/php-cs-fixer": "^3.9",
         "guzzlehttp/psr7": "^2.0",
-        "orchestra/testbench": "^7.6",
+        "orchestra/testbench": "^7.6|^8.0",
         "php-coveralls/php-coveralls": "^2.5",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^9.5",

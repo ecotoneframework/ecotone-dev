@@ -9,5 +9,5 @@ parameters:
 		- packages/PdoEventSourcing/src
 		- packages/Laravel/src
 		- packages/LiteApplication/src
-		- packages/Symfony/DepedencyInjection
+		- packages/Symfony/DependencyInjection
 		- packages/OpenTelemetry/src

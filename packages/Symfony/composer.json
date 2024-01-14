@@ -33,7 +33,7 @@
     "require-dev": {
         "behat/behat": "^3.10",
         "doctrine/doctrine-bundle": "^2.7.2",
-        "friends-of-behat/symfony-extension": "^2.1",
+        "friends-of-behat/symfony-extension": "<=2.4.2|^2.5",
         "monolog/monolog": "^2.9|^3.3.1",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^9.5",
@@ -51,7 +51,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Ecotone\\SymfonyBundle\\DepedencyInjection\\": "DepedencyInjection",
+            "Ecotone\\SymfonyBundle\\DependencyInjection\\": "DependencyInjection",
             "Ecotone\\SymfonyBundle\\": "SymfonyBundle"
         }
     },

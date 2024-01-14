@@ -29,4 +29,11 @@ interface ParameterDbalTypeConversion
     public function getPersonsWithMethodLevelParameterAndAutoresolve(
         array $names
     ): array;
+
+    #[DbalQuery('SELECT person_id, name FROM persons LIMIT :limit OFFSET :offset')]
+    #[DbalParameter('limit', expression: 'pagination.limit')]
+    #[DbalParameter('offset', expression: 'pagination.offset')]
+    public function getNameListWithIgnoredParameters(
+        #[DbalParameter(ignored: true)] Pagination $pagination
+    ): array;
 }

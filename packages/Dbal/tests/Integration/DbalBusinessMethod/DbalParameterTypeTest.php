@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\Pagination;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\ParameterDbalTypeConversion;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
@@ -84,6 +85,21 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
         $this->assertEquals(
             [['person_id' => 1, 'name' => 'John']],
             $personQueryGateway->getPersonsWithMethodLevelParameterAndAutoresolve(['John'])
+        );
+    }
+
+    public function test_ignoring_parameter()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
+        $personWriteGateway->insert(1, 'John');
+        $personWriteGateway->insert(2, 'John');
+
+        $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
+        $this->assertEquals(
+            [['person_id' => 1, 'name' => 'John']],
+            $personQueryGateway->getNameListWithIgnoredParameters(new Pagination(1, 0))
         );
     }
 

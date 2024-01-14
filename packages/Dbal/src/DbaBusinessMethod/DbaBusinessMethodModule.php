@@ -215,6 +215,12 @@ final class DbaBusinessMethodModule implements AnnotationModule
                 $dbalParameterAttribute = $annotationsOfType[0];
 
                 Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice");
+                if ($dbalParameterAttribute->isIgnored()) {
+                    Assert::null($dbalParameterAttribute->getName(), "Ignored Parameter {$interfaceParameter->getName()} can not have name defined");
+                    Assert::null($dbalParameterAttribute->getType(), "Ignored Parameter {$interfaceParameter->getName()} can not have type defined");
+                    Assert::null($dbalParameterAttribute->getExpression(), "Ignored Parameter {$interfaceParameter->getName()} can not have expression defined");
+                }
+
                 $parameterConverters[] = GatewayHeaderValueBuilder::create(
                     DbalBusinessMethodHandler::HEADER_PARAMETER_TYPE_PREFIX . $interfaceParameter->getName(),
                     $dbalParameterAttribute

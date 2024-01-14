@@ -34,6 +34,6 @@ interface ParameterDbalTypeConversion
     #[DbalParameter('limit', expression: 'pagination.limit')]
     #[DbalParameter('offset', expression: 'pagination.offset')]
     public function getNameListWithIgnoredParameters(
-        Pagination $pagination
+        #[DbalParameter(ignored: true)] Pagination $pagination
     ): array;
 }

@@ -34,6 +34,18 @@ interface ParameterDbalTypeConversion
     #[DbalParameter('limit', expression: 'pagination.limit')]
     #[DbalParameter('offset', expression: 'pagination.offset')]
     public function getNameListWithIgnoredParameters(
-        #[DbalParameter(ignored: true)] Pagination $pagination
+        Pagination $pagination
+    ): array;
+
+    #[DbalQuery('SELECT person_id, name FROM persons LIMIT :limit OFFSET :offset')]
+    #[DbalParameter('limit', expression: 'limitParameter')]
+    #[DbalParameter('offset', expression: 'offsetParameter')]
+    public function getNameListWithMultipleIgnoredParameters(
+        int $limitParameter, int $offsetParameter
+    ): array;
+
+    #[DbalQuery('SELECT person_id, name FROM persons LIMIT :(pagination.limit) OFFSET :(pagination.offset)')]
+    public function usingExpressionLanguageWithSQL(
+        Pagination $pagination
     ): array;
 }

@@ -103,6 +103,36 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
         );
     }
 
+    public function test_ignoring_multiple_parameters()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
+        $personWriteGateway->insert(1, 'John');
+        $personWriteGateway->insert(2, 'John');
+
+        $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
+        $this->assertEquals(
+            [['person_id' => 1, 'name' => 'John']],
+            $personQueryGateway->getNameListWithMultipleIgnoredParameters(1, 0)
+        );
+    }
+
+    public function test_using_expression_language_within_query()
+    {
+        $ecotoneLite = $this->bootstrapEcotone();
+        /** @var PersonService $personWriteGateway */
+        $personWriteGateway = $ecotoneLite->getGateway(PersonService::class);
+        $personWriteGateway->insert(1, 'John');
+        $personWriteGateway->insert(2, 'John');
+
+        $personQueryGateway = $ecotoneLite->getGateway(ParameterDbalTypeConversion::class);
+        $this->assertEquals(
+            [['person_id' => 1, 'name' => 'John']],
+            $personQueryGateway->usingExpressionLanguageWithSQL(new Pagination(1, 0))
+        );
+    }
+
     private function bootstrapEcotone(): FlowTestSupport
     {
         $this->setupUserTable();

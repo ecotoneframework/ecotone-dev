@@ -31,7 +31,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.210.2",
+        "ecotone/ecotone": "~1.210.3",
         "open-telemetry/sdk": "^1.0.0|^1.0.0beta17"
     },
     "require-dev": {
@@ -61,7 +61,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.210.2-dev"
+            "dev-main": "1.210.3-dev"
         },
         "ecotone": {
             "repository": "open-telemetry"

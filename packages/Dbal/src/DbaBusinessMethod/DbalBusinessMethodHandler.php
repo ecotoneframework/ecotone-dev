@@ -19,7 +19,6 @@ use Enqueue\Dbal\DbalContext;
 use Generator;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
-use Ramsey\Uuid\Uuid;
 
 final class DbalBusinessMethodHandler
 {

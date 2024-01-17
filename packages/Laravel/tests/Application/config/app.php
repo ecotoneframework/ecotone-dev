@@ -171,12 +171,12 @@ return [
         /*
          * Application Service Providers...
          */
-        \Test\Ecotone\Laravel\Fixture\User\LaravelProvider::class,
-        \Test\Ecotone\Laravel\Fixture\ExpressionLanguage\LaravelProvider::class,
-        \Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\LaravelProvider::class,
-        \Test\Ecotone\Laravel\Fixture\Order\LaravelProvider::class,
-        \Test\Ecotone\Laravel\Fixture\Product\LaravelProvider::class,
-        \Ecotone\Laravel\EcotoneProvider::class,
+        Test\Ecotone\Laravel\Fixture\User\LaravelProvider::class,
+        Test\Ecotone\Laravel\Fixture\ExpressionLanguage\LaravelProvider::class,
+        Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\LaravelProvider::class,
+        Test\Ecotone\Laravel\Fixture\Order\LaravelProvider::class,
+        Test\Ecotone\Laravel\Fixture\Product\LaravelProvider::class,
+        Ecotone\Laravel\EcotoneProvider::class,
     ],
 
     /*

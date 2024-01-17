@@ -19,8 +19,8 @@ class ReferenceServiceConverter implements Converter
 {
     private object $object;
     private string $method;
-    private \Ecotone\Messaging\Handler\Type $sourceType;
-    private \Ecotone\Messaging\Handler\Type $targetType;
+    private Type $sourceType;
+    private Type $targetType;
 
     /**
      * ReferenceConverter constructor.
@@ -73,7 +73,7 @@ class ReferenceServiceConverter implements Converter
     {
         return $sourceMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
             && $targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
-            && $sourceType->equals($this->sourceType)
+            && $sourceType->isCompatibleWith($this->sourceType)
             && $targetType->equals($this->targetType);
     }
 }

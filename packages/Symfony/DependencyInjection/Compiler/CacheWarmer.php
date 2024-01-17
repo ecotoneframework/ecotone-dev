@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
+namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
@@ -14,12 +14,12 @@ class CacheWarmer implements CacheWarmerInterface
     ) {
     }
 
-    public function isOptional()
+    public function isOptional(): bool
     {
         return true;
     }
 
-    public function warmUp(string $cacheDir)
+    public function warmUp(string $cacheDir, string $buildDir = null): array
     {
         foreach ($this->configuredMessagingSystem->getGatewayList() as $gatewayReference) {
             $this->proxyFactory->createWithCurrentConfiguration(

@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\SymfonyBundle\DepedencyInjection;
+namespace Ecotone\SymfonyBundle\DependencyInjection;
 
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
@@ -9,8 +9,8 @@ use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\CacheWarmer;
-use Ecotone\SymfonyBundle\DepedencyInjection\Compiler\SymfonyConfigurationVariableService;
+use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheWarmer;
+use Ecotone\SymfonyBundle\DependencyInjection\Compiler\SymfonyConfigurationVariableService;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\Reference;
 
 class EcotoneExtension extends Extension
 {
-    public function load(array $configs, ContainerBuilder $container)
+    public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);

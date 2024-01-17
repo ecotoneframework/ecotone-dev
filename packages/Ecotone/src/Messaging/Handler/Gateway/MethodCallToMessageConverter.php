@@ -19,7 +19,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 class MethodCallToMessageConverter
 {
-    private ?\Ecotone\Messaging\Handler\InterfaceToCall $interfaceToCall;
+    private ?InterfaceToCall $interfaceToCall;
     private ?array $methodArgumentConverters;
 
     /**
@@ -43,7 +43,7 @@ class MethodCallToMessageConverter
         foreach ($this->methodArgumentConverters as $methodParameterConverter) {
             if (empty($methodArguments) && $methodParameterConverter->isSupporting(null) && ! $this->isPayloadConverter($methodParameterConverter)) {
                 $messageBuilder = $methodParameterConverter->convertToMessage(null, $messageBuilder);
-                break;
+                continue;
             }
 
             foreach ($methodArguments as $methodArgument) {

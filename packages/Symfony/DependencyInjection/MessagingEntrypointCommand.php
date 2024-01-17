@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\SymfonyBundle\DepedencyInjection;
+namespace Ecotone\SymfonyBundle\DependencyInjection;
 
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;

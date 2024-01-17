@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
+namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
 use Ecotone\Lite\InMemoryContainerImplementation;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -8,7 +8,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 class AliasExternalReferenceForTesting implements CompilerPassInterface
 {
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         if (! $container->hasParameter('ecotone.external_references')) {
             return;

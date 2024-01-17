@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\SymfonyBundle\DepedencyInjection;
+namespace Ecotone\SymfonyBundle\DependencyInjection;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;

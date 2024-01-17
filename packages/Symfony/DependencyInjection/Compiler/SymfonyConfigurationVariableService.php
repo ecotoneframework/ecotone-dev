@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\SymfonyBundle\DepedencyInjection\Compiler;
+namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
 use Ecotone\Messaging\ConfigurationVariableService;
 use Symfony\Component\DependencyInjection\ContainerInterface;

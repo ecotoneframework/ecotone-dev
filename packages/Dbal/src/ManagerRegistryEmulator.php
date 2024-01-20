@@ -26,6 +26,13 @@ final class ManagerRegistryEmulator implements ManagerRegistry
     ) {
     }
 
+    public static function fromDsnAndConfig(string $dsn, array $config = []): EcotoneManagerRegistryConnectionFactory
+    {
+        return new EcotoneManagerRegistryConnectionFactory(
+            new self(DbalConnection::fromDsn($dsn)->createContext()->getDbalConnection(), $config),
+        );
+    }
+
     public static function fromConnectionFactory(DbalConnectionFactory $dbalConnectionFactory): EcotoneManagerRegistryConnectionFactory
     {
         return new EcotoneManagerRegistryConnectionFactory(new self($dbalConnectionFactory->createContext()->getDbalConnection()));

@@ -38,13 +38,13 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                     MultiTenantConnectionFactory::class,
                     [
                         $multiTenantConfig->getTenantHeaderName(),
-                        $multiTenantConfig->getConnectionReferenceMapping(),
+                        $multiTenantConfig->getTenantToConnectionMapping(),
                         Reference::to(MessagingEntrypoint::class),
                         Reference::to(ContainerInterface::class),
                         new Definition(
                             RoundRobinReceivingStrategy::class,
                             [
-                                array_keys($multiTenantConfig->getConnectionReferenceMapping())
+                                array_keys($multiTenantConfig->getTenantToConnectionMapping())
                             ]
                         ),
                         $multiTenantConfig->getDefaultConnectionName()

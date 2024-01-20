@@ -4,34 +4,37 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config\MultiTenantConnectionFactory;
 
+use Enqueue\Dbal\DbalConnectionFactory;
+
 final class MultiTenantConfiguration
 {
     /**
-     * @param array<string, string> $connectionReferenceMapping
+     * @param array<string, string> $tenantToConnectionMapping
+     * @param string $referenceName - Name of the reference on which connection factory will be registered in Dependency Container
      */
     private function __construct(
-        private string  $referenceName,
         private string  $tenantHeaderName,
-        private array   $connectionReferenceMapping,
+        private array   $tenantToConnectionMapping,
+        private string  $referenceName,
         private ?string $defaultConnectionName = null,
     )
     {
     }
 
     /**
-     * @param array<string, string> $connectionReferenceMapping
+     * @param array<string, string> $tenantToConnectionMapping
      */
-    public static function create(string $referenceName, string $tenantHeaderName, array $connectionReferenceMapping): self
+    public static function create(string $tenantHeaderName, array $tenantToConnectionMapping, string $referenceName = DbalConnectionFactory::class): self
     {
-        return new self($referenceName, $tenantHeaderName, $connectionReferenceMapping);
+        return new self($tenantHeaderName, $tenantToConnectionMapping, $referenceName);
     }
 
     /**
-     * @param array<string, string> $connectionReferenceMapping
+     * @param array<string, string> $tenantToConnectionMapping
      */
-    public static function createWithDefaultConnection(string $referenceName, string $tenantHeaderName, array $connectionReferenceMapping, string $defaultConnectionName): self
+    public static function createWithDefaultConnection(string $tenantHeaderName, array $tenantToConnectionMapping, string $defaultConnectionName, string $referenceName = DbalConnectionFactory::class): self
     {
-        return new self($referenceName, $tenantHeaderName, $connectionReferenceMapping, $defaultConnectionName);
+        return new self($tenantHeaderName, $tenantToConnectionMapping, $referenceName, $defaultConnectionName);
     }
 
     public function getReferenceName(): string
@@ -44,9 +47,9 @@ final class MultiTenantConfiguration
         return $this->tenantHeaderName;
     }
 
-    public function getConnectionReferenceMapping(): array
+    public function getTenantToConnectionMapping(): array
     {
-        return $this->connectionReferenceMapping;
+        return $this->tenantToConnectionMapping;
     }
 
     public function getDefaultConnectionName(): ?string

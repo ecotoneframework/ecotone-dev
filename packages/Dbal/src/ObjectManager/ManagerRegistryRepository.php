@@ -32,6 +32,5 @@ class ManagerRegistryRepository implements StandardRepository
         $objectManager = $this->managerRegistry->getManagerForClass(get_class($aggregate));
 
         $objectManager->persist($aggregate);
-        $objectManager->flush();
     }
 }

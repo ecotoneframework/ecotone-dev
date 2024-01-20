@@ -131,9 +131,8 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDocumentStore(true, enableDocumentStoreAggregateRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                     MultiTenantConfiguration::create(
-                        DbalConnectionFactory::class,
                         'tenant',
-                        ['tenant_a' => 'tenant_a_connection']
+                        ['tenant_a' => 'tenant_a_connection'],
                     )
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),

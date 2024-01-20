@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config\MultiTenantConnectionFactory;
 
+use Doctrine\DBAL\Connection;
+use Doctrine\Persistence\ManagerRegistry;
+use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
+use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Psr\Container\ContainerInterface;
@@ -30,14 +35,30 @@ final class MultiTenantConnectionFactory implements ConnectionFactory
 
     }
 
-    public function createContext(): Context
+    public function getRegistry(): ManagerRegistry
+    {
+        $connectionFactory = $this->getConnectionFactory();
+        Assert::isTrue($connectionFactory instanceof EcotoneManagerRegistryConnectionFactory, "Connection factory  was not registered using " . EcotoneManagerRegistryConnectionFactory::class . " by `DbalConnection::createForManagerRegistry()`");
+
+        return $connectionFactory->getRegistry();
+    }
+
+    public function getConnection(): Connection
+    {
+        /** @var DbalContext $dbalConnection */
+        $dbalConnection = $this->createContext();
+
+        return $dbalConnection->getDbalConnection();
+    }
+
+    public function getConnectionFactory(): ConnectionFactory
     {
         $headers = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
 
         if ($headers === []) {
             $isPollingConsumer = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::IS_POLLING_CONSUMER_PROPAGATION_CONTEXT);
             if ($isPollingConsumer) {
-                return $this->container->get($this->connectionReferenceMapping[$this->roundRobinReceivingStrategy->decide()])->createContext();
+                return $this->container->get($this->connectionReferenceMapping[$this->roundRobinReceivingStrategy->decide()]);
             }
 
             throw new InvalidArgumentException('Using multi tenant connection factory without Message context, you most likely need to set up Dynamic Message Channel for fetching. Please check your configuration and documentation about multi tenancy connections.');
@@ -48,13 +69,18 @@ final class MultiTenantConnectionFactory implements ConnectionFactory
         }
 
         if (isset($this->connectionReferenceMapping[$headers[$this->tenantHeaderName]])) {
-            return $this->container->get($this->connectionReferenceMapping[$headers[$this->tenantHeaderName]])->createContext();
+            return $this->container->get($this->connectionReferenceMapping[$headers[$this->tenantHeaderName]]);
         }
 
         if ($this->defaultConnectionName === null) {
             throw new InvalidArgumentException("Lack of mapping for tenant `{$headers[$this->tenantHeaderName]}`. Please provide mapping for this tenant or default connection name.");
         }
 
-        return $this->container->get($this->defaultConnectionName)->createContext();
+        return $this->container->get($this->defaultConnectionName);
+    }
+
+    public function createContext(): Context
+    {
+        return $this->getConnectionFactory()->createContext();
     }
 }

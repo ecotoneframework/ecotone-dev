@@ -7,17 +7,20 @@ namespace Test\Ecotone\Dbal\Integration;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalConnection;
+use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Modelling\AggregateNotFoundException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
+use Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler\PersonQueryService;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\ORMPersonRepository;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\RegisterPersonService;
 use Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler\SaveMultipleEntitiesHandler;
@@ -39,27 +42,50 @@ final class ORMTest extends DbalMessagingTestCase
         );
     }
 
-    public function test_flushing_object_manager_on_command_bus()
+    public function configuration(): iterable
     {
-        $this->setupUserTable();
         $connectionFactory = $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person']);
         $ORMPersonRepository = new ORMPersonRepository($connectionFactory->getRegistry());
 
+        yield "For standard Object Manager Connection" => [
+            [DbalConnectionFactory::class => $connectionFactory, ORMPersonRepository::class => $ORMPersonRepository, RegisterPersonService::class => new RegisterPersonService()],
+            ['Test\Ecotone\Dbal\Fixture\ORM\PersonRepository'],
+            false
+        ];
+        yield 'For Aggregate with Object Manager Connection' => [
+            [DbalConnectionFactory::class => $connectionFactory],
+            ['Test\Ecotone\Dbal\Fixture\ORM\Person'],
+            true
+        ];
+        /** Namespace Person, to make use of inbuilt Aggregate */
+        /** Multitenancy connection */
+    }
+
+    /**
+     * @dataProvider configuration
+     */
+    public function test_flushing_object_manager_on_command_bus(array $services, array $namespaces, bool $enableDoctrineORMAggregates): void
+    {
+        $this->setupUserTable();
+
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [
-                DbalConnectionFactory::class => $connectionFactory,
-                ORMPersonRepository::class => $ORMPersonRepository,
-                RegisterPersonService::class => new RegisterPersonService(),
+            containerOrAvailableServices: array_merge([
                 SaveMultipleEntitiesHandler::class => new SaveMultipleEntitiesHandler(),
-            ],
+                PersonQueryService::class => new PersonQueryService()
+            ], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\ORM\PersonRepository',
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
+                ])
+                ->withNamespaces(array_merge($namespaces, [
+                    /** This registers second Person with id +1 */
                     'Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler',
-                ]),
+                    'Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler'
+                ])),
             pathToRootCatalog: __DIR__ . '/../../',
-            addInMemoryStateStoredRepository: false
+            addInMemoryStateStoredRepository: false,
         );
 
         $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
@@ -67,34 +93,36 @@ final class ORMTest extends DbalMessagingTestCase
 
         self::assertEquals(
             'Paul',
-            $ORMPersonRepository->get(100)->getName()
+            $ecotone->sendQueryWithRouting('person.byById', 100, metadata: ['aggregate.id' => 100])->getName()
         );
         self::assertEquals(
             'Paul2',
-            $ORMPersonRepository->get(101)->getName()
+            $ecotone->sendQueryWithRouting('person.byById', 101, metadata: ['aggregate.id' => 101])->getName()
+        );
+        self::assertEquals(
+            [100, 101],
+            $ecotone->sendQueryWithRouting('person.getAllIds')
         );
     }
 
-    public function test_disabling_flushing_object_manager_on_command_bus()
+    /**
+     * @dataProvider configuration
+     */
+    public function test_disabling_flushing_object_manager_on_command_bus(array $services, array $namespaces, bool $enableDoctrineORMAggregates)
     {
         $this->setupUserTable();
-        $connectionFactory = $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person']);
+        /** @var EcotoneManagerRegistryConnectionFactory $connectionFactory */
+        $connectionFactory = $services[DbalConnectionFactory::class];
         $entityManager = $connectionFactory->getRegistry()->getManager();
-        $ORMPersonRepository = new ORMPersonRepository($connectionFactory->getRegistry());
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [
-                DbalConnectionFactory::class => $connectionFactory,
-                ORMPersonRepository::class => $ORMPersonRepository,
-                RegisterPersonService::class => new RegisterPersonService(),
-            ],
+            containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces([
-                    'Test\Ecotone\Dbal\Fixture\ORM\PersonRepository',
-                ])
+                ->withNamespaces($namespaces)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withDoctrineORMRepositories($enableDoctrineORMAggregates)
                         ->withClearAndFlushObjectManagerOnCommandBus(false),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
@@ -104,26 +132,29 @@ final class ORMTest extends DbalMessagingTestCase
         $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
         $entityManager->clear();
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(AggregateNotFoundException::class);
 
-        $ORMPersonRepository->get(100);
+        $ecotone->sendQueryWithRouting('person.byById', 100, metadata: ['aggregate.id' => 100]);
     }
 
-    public function test_object_manager_reconnects_on_command_bus()
+    /**
+     * @dataProvider configuration
+     */
+    public function test_object_manager_reconnects_on_command_bus(array $services, array $namespaces, bool $enableDoctrineORMAggregates)
     {
         $this->setupUserTable();
-        $connectionFactory = $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person']);
+        /** @var EcotoneManagerRegistryConnectionFactory $connectionFactory */
+        $connectionFactory = $services[DbalConnectionFactory::class];
         $entityManager = $connectionFactory->getRegistry()->getManager();
-        $ORMPersonRepository = new ORMPersonRepository($connectionFactory->getRegistry());
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [
-                DbalConnectionFactory::class => $connectionFactory,
-                ORMPersonRepository::class => $ORMPersonRepository,
-                RegisterPersonService::class => new RegisterPersonService(),
-            ],
+            containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withDoctrineORMRepositories($enableDoctrineORMAggregates)
+                ])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\ORM\PersonRepository',
                 ]),
@@ -135,7 +166,7 @@ final class ORMTest extends DbalMessagingTestCase
         $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
 
         $this->assertNotNull(
-            $ORMPersonRepository->get(100)
+            $ecotone->sendQueryWithRouting('person.byById', 100, metadata: ['aggregate.id' => 100])
         );
     }
 

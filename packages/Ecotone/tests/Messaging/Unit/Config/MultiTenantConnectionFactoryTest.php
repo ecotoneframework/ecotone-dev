@@ -157,8 +157,8 @@ final class MultiTenantConnectionFactoryTest extends TestCase
                     PollingMetadata::create('bets')
                         ->setExecutionAmountLimit(1),
                     $defaultConnectionName
-                        ? MultiTenantConfiguration::createWithDefaultConnection('multi_tenant_connection', $tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName)
-                        : MultiTenantConfiguration::create('multi_tenant_connection', $tenantHeaderName, $tenantConnectionMapping)
+                        ? MultiTenantConfiguration::createWithDefaultConnection($tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName, 'multi_tenant_connection')
+                        : MultiTenantConfiguration::create($tenantHeaderName, $tenantConnectionMapping, 'multi_tenant_connection')
                 ]),
             allowGatewaysToBeRegisteredInContainer: true,
             enableAsynchronousProcessing: [

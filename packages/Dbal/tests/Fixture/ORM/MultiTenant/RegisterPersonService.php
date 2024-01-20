@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Dbal\Fixture\ORM\PersonRepository;
+namespace Test\Ecotone\Dbal\Fixture\ORM\MultiTenant;
 
 use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Interop\Queue\ConnectionFactory;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonWasRenamed;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
@@ -32,9 +31,12 @@ final class RegisterPersonService
         $repository->save($person);
     }
 
-    #[QueryHandler('person.byById')]
-    public function getById(int $id, ORMPersonRepository $repository): Person
+    /**
+     * @return int[]
+     */
+    #[QueryHandler("person.getAllIds")]
+    public function getAllPersonIds(#[Reference] MultiTenantConnectionFactory $connectionFactory): array
     {
-        return $repository->get($id);
+         return $connectionFactory->getConnection()->fetchFirstColumn("SELECT id FROM persons");
     }
 }

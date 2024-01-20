@@ -70,4 +70,10 @@ class Person
     {
         return $this->roles;
     }
+
+    #[QueryHandler('person.byById')]
+    public function getById(): Person
+    {
+        return $this;
+    }
 }

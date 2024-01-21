@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionF
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonWasRenamed;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
@@ -16,27 +17,24 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 final class RegisterPersonService
 {
     #[CommandHandler]
-    public function register(RegisterPerson $command, ORMPersonRepository $repository): void
+    public function register(RegisterPerson $command, ORMPersonRepository $repository, #[Reference(DbalConnectionFactory::class)] MultiTenantConnectionFactory $multiTenantConnectionFactory): void
     {
-        $repository->save(Person::register($command));
+        $repository->save(Person::register($command), $multiTenantConnectionFactory);
     }
 
     #[CommandHandler(Person::RENAME_COMMAND)]
-    public function rename(string $command, array $metadata, ORMPersonRepository $repository, EventBus $eventBus): void
+    public function rename(string $command, array $metadata, ORMPersonRepository $repository, EventBus $eventBus, #[Reference(DbalConnectionFactory::class)] MultiTenantConnectionFactory $multiTenantConnectionFactory): void
     {
         $id = $metadata['aggregate.id'];
-        $person = $repository->get($id);
+        $person = $repository->get($id, $multiTenantConnectionFactory);
         $person->changeName($command);
         $eventBus->publish(new PersonWasRenamed($id, $command));
-        $repository->save($person);
+        $repository->save($person, $multiTenantConnectionFactory);
     }
 
-    /**
-     * @return int[]
-     */
-    #[QueryHandler("person.getAllIds")]
-    public function getAllPersonIds(#[Reference] MultiTenantConnectionFactory $connectionFactory): array
+    #[QueryHandler('person.byById')]
+    public function getById(int $id, ORMPersonRepository $repository, #[Reference(DbalConnectionFactory::class)] MultiTenantConnectionFactory $multiTenantConnectionFactory): Person
     {
-         return $connectionFactory->getConnection()->fetchFirstColumn("SELECT id FROM persons");
+        return $repository->get($id, $multiTenantConnectionFactory);
     }
 }

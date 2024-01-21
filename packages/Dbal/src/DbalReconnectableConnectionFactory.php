@@ -4,7 +4,7 @@ namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
+use Ecotone\Messaging\Config\MultiTenantConnectionFactory\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
@@ -67,7 +67,7 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
      */
     public static function getWrappedConnection(object $connection): Connection
     {
-        if ($connection instanceof MultiTenantConnectionFactory) {
+        if ($connection instanceof HeaderBasedMultiTenantConnectionFactory) {
             /** @var DbalContext $dbalConnection */
             $dbalConnection = $connection->createContext();
 

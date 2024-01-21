@@ -39,20 +39,6 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         return new Definition(ManagerRegistryRepository::class, [
             new Reference($this->connectionReferenceName),
             $this->relatedClasses,
-        ], [self::class, 'createFromManagerRegistryConnectionFactory']);
-    }
-
-    public static function createFromManagerRegistryConnectionFactory(ConnectionFactory $connectionFactory, ?array $relatedClasses)
-    {
-        Assert::isTrue($connectionFactory instanceof ManagerRegistryConnectionFactory, 'To use Doctrine ORM you need to change Connection Factory. Read DBAL Module configuration page.');
-
-        // TODO: this seems really wrong to use reflection here
-        $registry = new ReflectionClass($connectionFactory);
-        $property = $registry->getProperty('registry');
-        $property->setAccessible(true);
-        /** @var ManagerRegistry $registry */
-        $registry = $property->getValue($connectionFactory);
-
-        return new ManagerRegistryRepository($registry, $relatedClasses);
+        ]);
     }
 }

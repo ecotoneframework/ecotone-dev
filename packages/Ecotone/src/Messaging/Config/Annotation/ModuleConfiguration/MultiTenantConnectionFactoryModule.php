@@ -14,7 +14,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
+use Ecotone\Messaging\Config\MultiTenantConnectionFactory\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Psr\Container\ContainerInterface;
@@ -35,7 +35,7 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
             $messagingConfiguration->registerServiceDefinition(
                 $multiTenantConfig->getReferenceName(),
                 new Definition(
-                    MultiTenantConnectionFactory::class,
+                    HeaderBasedMultiTenantConnectionFactory::class,
                     [
                         $multiTenantConfig->getTenantHeaderName(),
                         $multiTenantConfig->getTenantToConnectionMapping(),

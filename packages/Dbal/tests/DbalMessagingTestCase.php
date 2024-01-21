@@ -81,10 +81,11 @@ abstract class DbalMessagingTestCase extends TestCase
         }
     }
 
-    protected function setupUserTable(): void
+    protected function setupUserTable(?Connection $connection = null): void
     {
-        if (! $this->checkIfTableExists($this->getConnection(), 'persons')) {
-            $this->getConnection()->executeStatement(<<<SQL
+        $connection = $connection ?? $this->getConnection();
+        if (! $this->checkIfTableExists($connection, 'persons')) {
+            $connection->executeStatement(<<<SQL
                     CREATE TABLE persons (
                         person_id INTEGER PRIMARY KEY,
                         name VARCHAR(255),
@@ -92,6 +93,10 @@ abstract class DbalMessagingTestCase extends TestCase
                     )
                 SQL);
         }
+
+        $connection->executeStatement(<<<SQL
+    DELETE FROM persons
+SQL);
     }
 
     protected function setupActivityTable(): void

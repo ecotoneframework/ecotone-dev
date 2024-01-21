@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\Persistence\ManagerRegistry;
+use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
+use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
 use Ecotone\Modelling\StandardRepository;
+use Interop\Queue\ConnectionFactory;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 
 class ManagerRegistryRepository implements StandardRepository
 {
-    public function __construct(private ManagerRegistry $managerRegistry, private ?array $relatedClasses)
+    public function __construct(private ConnectionFactory $connectionFactory, private ?array $relatedClasses)
     {
     }
 
@@ -24,13 +28,27 @@ class ManagerRegistryRepository implements StandardRepository
 
     public function findBy(string $aggregateClassName, array $identifiers): ?object
     {
-        return $this->managerRegistry->getRepository($aggregateClassName)->findOneBy($identifiers);
+        return $this->getManagerRegistry()->getRepository($aggregateClassName)->findOneBy($identifiers);
     }
 
     public function save(array $identifiers, object $aggregate, array $metadata, ?int $versionBeforeHandling): void
     {
-        $objectManager = $this->managerRegistry->getManagerForClass(get_class($aggregate));
+        $objectManager = $this->getManagerRegistry()->getManagerForClass(get_class($aggregate));
 
         $objectManager->persist($aggregate);
+    }
+
+    private function getManagerRegistry(): ManagerRegistry
+    {
+        $connectionFactory = $this->connectionFactory;
+        if ($connectionFactory instanceof MultiTenantConnectionFactory) {
+            $connectionFactory = $connectionFactory->getConnectionFactory();
+        }
+
+        if ($connectionFactory instanceof EcotoneManagerRegistryConnectionFactory) {
+            return $connectionFactory->getRegistry();
+        }
+
+        throw new InvalidArgumentException("To make use of Doctrine ORM based Aggregates, you need to construct your Connection using DbalConnection::createForManagerRegistry() method (https://docs.ecotone.tech/modules/dbal-support).");
     }
 }

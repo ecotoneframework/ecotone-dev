@@ -5,6 +5,7 @@ namespace Ecotone\Dbal;
 use Doctrine\DBAL\Connection;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Messaging\Config\MultiTenantConnectionFactory\HeaderBasedMultiTenantConnectionFactory;
+use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
@@ -32,6 +33,11 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     public function getConnectionInstanceId(): string
     {
         return get_class($this->connectionFactory) . spl_object_id($this->connectionFactory);
+    }
+
+    public function getConnectionFactory(): ConnectionFactory
+    {
+        return $this->connectionFactory;
     }
 
     /**

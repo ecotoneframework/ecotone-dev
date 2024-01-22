@@ -151,7 +151,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         /** First should be rolled back */
         $aggregateCommitted = true;
         try {
-            $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100]);
+            $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100, 'tenant' => 'tenant_a']);
         } catch (AggregateNotFoundException) {
             $aggregateCommitted = false;
         }
@@ -160,7 +160,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         /** Second after exception should not */
         $aggregateCommitted = true;
         try {
-            $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 101]);
+            $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 101, 'tenant' => 'tenant_a']);
         } catch (AggregateNotFoundException) {
             $aggregateCommitted = false;
         }

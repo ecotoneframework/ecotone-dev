@@ -20,4 +20,6 @@ interface MultiTenantConnectionFactory extends ConnectionFactory
     public function getConnection(): Connection;
 
     public function getConnectionFactory(): ConnectionFactory;
+
+    public function currentActiveTenant(): string;
 }

@@ -17,7 +17,7 @@ use Interop\Queue\Context;
  */
 final class SingleConnectionMultiTenantConnectionFactory implements MultiTenantConnectionFactory
 {
-    public function __construct(private ConnectionFactory $connectionFactory)
+    public function __construct(private ConnectionFactory $connectionFactory, private string $tenantName = 'test')
     {
 
     }
@@ -47,5 +47,10 @@ final class SingleConnectionMultiTenantConnectionFactory implements MultiTenantC
     public function getConnectionFactory(): ConnectionFactory
     {
         return $this->connectionFactory;
+    }
+
+    public function currentActiveTenant(): string
+    {
+        return $this->tenantName;
     }
 }

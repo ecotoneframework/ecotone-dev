@@ -54,12 +54,27 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
     public function getConnectionFactory(): ConnectionFactory
     {
+        $currentTenant = $this->currentActiveTenant();
+
+        if (isset($this->connectionReferenceMapping[$currentTenant])) {
+            return $this->container->get($this->connectionReferenceMapping[$currentTenant]);
+        }
+
+        if ($this->defaultConnectionName === null) {
+            throw new InvalidArgumentException("Lack of mapping for tenant `{$headers[$this->tenantHeaderName]}`. Please provide mapping for this tenant or default connection name.");
+        }
+
+        return $this->container->get($this->defaultConnectionName);
+    }
+
+    public function currentActiveTenant(): string
+    {
         $headers = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
 
         if ($headers === []) {
             $isPollingConsumer = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::IS_POLLING_CONSUMER_PROPAGATION_CONTEXT);
             if ($isPollingConsumer) {
-                return $this->container->get($this->connectionReferenceMapping[$this->roundRobinReceivingStrategy->decide()]);
+                return $this->roundRobinReceivingStrategy->decide();
             }
 
             throw new InvalidArgumentException('Using multi tenant connection factory without Message context, you most likely need to set up Dynamic Message Channel for fetching. Please check your configuration and documentation about multi tenancy connections.');
@@ -69,15 +84,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
             throw new InvalidArgumentException("Lack of context about tenant in Message Headers. Please add {$this->tenantHeaderName} header metadata to your message.");
         }
 
-        if (isset($this->connectionReferenceMapping[$headers[$this->tenantHeaderName]])) {
-            return $this->container->get($this->connectionReferenceMapping[$headers[$this->tenantHeaderName]]);
-        }
-
-        if ($this->defaultConnectionName === null) {
-            throw new InvalidArgumentException("Lack of mapping for tenant `{$headers[$this->tenantHeaderName]}`. Please provide mapping for this tenant or default connection name.");
-        }
-
-        return $this->container->get($this->defaultConnectionName);
+        return $headers[$this->tenantHeaderName];
     }
 
     public function createContext(): Context

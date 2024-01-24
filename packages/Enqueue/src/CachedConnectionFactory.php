@@ -32,7 +32,7 @@ class CachedConnectionFactory implements ConnectionFactory
 
     public function createContext(): Context
     {
-        $relatedTo = $this->relatedTo();
+        $relatedTo = $this->getCurrentActiveConnection();
         $context = isset($this->cachedContext[$relatedTo]) ? $this->cachedContext[$relatedTo] : null;
 
         if (!$context || $this->connectionFactory->isDisconnected($context)) {
@@ -57,9 +57,9 @@ class CachedConnectionFactory implements ConnectionFactory
         return $this->connectionFactory;
     }
 
-    private function relatedTo(): string
+    private function getCurrentActiveConnection(): string
     {
-        $connectionFactory = $this->connectionFactory->getConnectionFactory();
+        $connectionFactory = $this->connectionFactory->getWrappedConnectionFactory();
         if ($connectionFactory instanceof MultiTenantConnectionFactory) {
             return $connectionFactory->currentActiveTenant();
         }

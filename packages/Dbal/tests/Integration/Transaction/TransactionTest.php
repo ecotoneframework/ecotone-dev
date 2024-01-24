@@ -155,18 +155,4 @@ final class TransactionTest extends DbalMessagingTestCase
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }
-
-    private function connectionForTenantB(): DbalConnectionFactory
-    {
-        return DbalConnection::fromDsn(
-            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'
-        );
-    }
-
-    private function connectionForTenantA(): DbalConnectionFactory
-    {
-        return DbalConnection::fromDsn(
-            getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'
-        );
-    }
 }

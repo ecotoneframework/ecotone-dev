@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Config\MultiTenantConnectionFactory;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
+use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Support\Assert;
@@ -22,6 +23,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
     /**
      * @param array<string, string> $connectionReferenceMapping
      * @param array<string, ConnectionFactory> $container
+     * @param string|null $pollingConsumerTenant
      */
     public function __construct(
         private string              $tenantHeaderName,
@@ -30,9 +32,20 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         private ContainerInterface  $container,
         private RoundRobinReceivingStrategy $roundRobinReceivingStrategy,
         private ?string             $defaultConnectionName = null,
+        private ?string $pollingConsumerTenant = null,
     )
     {
 
+    }
+
+    public function enablePollingConsumerPropagation(): void
+    {
+        $this->pollingConsumerTenant = $this->roundRobinReceivingStrategy->decide();
+    }
+
+    public function disablePollingConsumerPropagation(): void
+    {
+        $this->pollingConsumerTenant = null;
     }
 
     public function getRegistry(): ManagerRegistry
@@ -61,7 +74,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         }
 
         if ($this->defaultConnectionName === null) {
-            throw new InvalidArgumentException("Lack of mapping for tenant `{$headers[$this->tenantHeaderName]}`. Please provide mapping for this tenant or default connection name.");
+            throw new InvalidArgumentException("Lack of mapping for tenant `{$currentTenant}`. Please provide mapping for this tenant or default connection name.");
         }
 
         return $this->container->get($this->defaultConnectionName);
@@ -69,16 +82,11 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
     public function currentActiveTenant(): string
     {
-        $headers = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
-
-        if ($headers === []) {
-            $isPollingConsumer = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::IS_POLLING_CONSUMER_PROPAGATION_CONTEXT);
-            if ($isPollingConsumer) {
-                return $this->roundRobinReceivingStrategy->decide();
-            }
-
-            throw new InvalidArgumentException('Using multi tenant connection factory without Message context, you most likely need to set up Dynamic Message Channel for fetching. Please check your configuration and documentation about multi tenancy connections.');
+        if ($this->pollingConsumerTenant !== null) {
+            return $this->pollingConsumerTenant;
         }
+
+        $headers = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
 
         if (!array_key_exists($this->tenantHeaderName, $headers)) {
             throw new InvalidArgumentException("Lack of context about tenant in Message Headers. Please add {$this->tenantHeaderName} header metadata to your message.");

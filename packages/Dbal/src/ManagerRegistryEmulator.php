@@ -38,9 +38,12 @@ final class ManagerRegistryEmulator implements ManagerRegistry
         return new EcotoneManagerRegistryConnectionFactory(new self($dbalConnectionFactory->createContext()->getDbalConnection()));
     }
 
-    public static function create(Connection $connection): EcotoneManagerRegistryConnectionFactory
+    /**
+     * @param string[] $pathsToMapping
+     */
+    public static function create(Connection $connection, array $pathsToMapping = []): EcotoneManagerRegistryConnectionFactory
     {
-        return new EcotoneManagerRegistryConnectionFactory(new self($connection));
+        return new EcotoneManagerRegistryConnectionFactory(new self($connection, $pathsToMapping));
     }
 
     public static function createEntityManager(EntityManagerInterface $entityManager): EcotoneManagerRegistryConnectionFactory

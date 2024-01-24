@@ -13,7 +13,7 @@ use Interop\Queue\Destination;
 
 abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 {
-    private bool $initialized = false;
+    private array $initialized = [];
 
     public function __construct(
         protected CachedConnectionFactory  $connectionFactory,
@@ -28,18 +28,23 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 
     public function handle(Message $message): void
     {
-        if ($this->autoDeclare && ! $this->initialized) {
-            $this->initialize();
-            $this->initialized = true;
+        $context = $this->connectionFactory->createContext();
+        if ($this->autoDeclare) {
+            $contextId = \spl_object_id($context);
+
+            if (!isset($this->initialized[$contextId])) {
+                $this->initialize();
+                $this->initialized[$contextId] = true;
+            }
         }
 
         $outboundMessage                       = $this->outboundMessageConverter->prepare($message, $this->conversionService);
         $headers                               = $outboundMessage->getHeaders();
         $headers[MessageHeaders::CONTENT_TYPE] = $outboundMessage->getContentType();
 
-        $messageToSend = $this->connectionFactory->createContext()->createMessage($outboundMessage->getPayload(), $headers, []);
+        $messageToSend = $context->createMessage($outboundMessage->getPayload(), $headers, []);
 
-        $this->connectionFactory->getProducer()
+        $context->createProducer()
             ->setTimeToLive($outboundMessage->getTimeToLive())
             ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
             ->send($this->destination, $messageToSend);

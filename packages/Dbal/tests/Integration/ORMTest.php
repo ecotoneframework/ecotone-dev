@@ -320,7 +320,7 @@ final class ORMTest extends DbalMessagingTestCase
         );
     }
 
-    private function connectionForTenantB(): EcotoneManagerRegistryConnectionFactory
+    protected function connectionForTenantB(): EcotoneManagerRegistryConnectionFactory
     {
         $connectionTenantB = ManagerRegistryEmulator::fromDsnAndConfig(
             getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone',
@@ -329,7 +329,7 @@ final class ORMTest extends DbalMessagingTestCase
         return $connectionTenantB;
     }
 
-    private function connectionForTenantA(): EcotoneManagerRegistryConnectionFactory
+    protected function connectionForTenantA(): EcotoneManagerRegistryConnectionFactory
     {
         $connectionTenantA = ManagerRegistryEmulator::fromDsnAndConfig(
             getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone',

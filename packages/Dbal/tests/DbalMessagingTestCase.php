@@ -35,11 +35,9 @@ abstract class DbalMessagingTestCase extends TestCase
     /**
      * @param string[] $pathsToMapping
      */
-    public function getORMConnectionFactory(array $pathsToMapping): EcotoneManagerRegistryConnectionFactory
+    public function getORMConnectionFactory(array $pathsToMapping, ?Connection $connection = null): EcotoneManagerRegistryConnectionFactory
     {
-        return new EcotoneManagerRegistryConnectionFactory(
-            new ManagerRegistryEmulator($this->getConnection(), $pathsToMapping)
-        );
+        return ManagerRegistryEmulator::create($connection ?? $this->getConnection(), $pathsToMapping);
     }
 
     protected function getConnection(): Connection
@@ -54,15 +52,18 @@ abstract class DbalMessagingTestCase extends TestCase
 
     public function setUp(): void
     {
-        $connection = $this->getConnection();
+        /** @var ConnectionFactory $connection */
+        foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connection) {
+            $connection = $connection->createContext()->getDbalConnection();
 
-        $this->deleteTable('enqueue', $connection);
-        $this->deleteTable(OrderService::ORDER_TABLE, $connection);
-        $this->deleteTable(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
-        $this->deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
-        $this->deleteTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
-        $this->deleteTable('persons', $connection);
-        $this->deleteTable('activities', $connection);
+            $this->deleteTable('enqueue', $connection);
+            $this->deleteTable(OrderService::ORDER_TABLE, $connection);
+            $this->deleteTable(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
+            $this->deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
+            $this->deleteTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
+            $this->deleteTable('persons', $connection);
+            $this->deleteTable('activities', $connection);
+        }
     }
 
     protected function checkIfTableExists(Connection $connection, string $table): bool
@@ -110,5 +111,33 @@ SQL);
                     )
                 SQL);
         }
+    }
+
+    protected function connectionForTenantB(): ConnectionFactory
+    {
+        return DbalConnection::fromDsn(
+            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'
+        );
+    }
+
+    protected function connectionForTenantA(): ConnectionFactory
+    {
+        return self::prepareConnection();
+    }
+
+    protected function connectionForTenantAWithManagerRegistry(array $paths): EcotoneManagerRegistryConnectionFactory
+    {
+        return ManagerRegistryEmulator::create(
+            $this->connectionForTenantA()->createContext()->getDbalConnection(),
+            $paths
+        );
+    }
+
+    protected function connectionForTenantBWithManagerRegistry(array $paths): EcotoneManagerRegistryConnectionFactory
+    {
+        return ManagerRegistryEmulator::create(
+            $this->connectionForTenantB()->createContext()->getDbalConnection(),
+            $paths
+        );
     }
 }

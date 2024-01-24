@@ -35,7 +35,7 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
         return get_class($this->connectionFactory) . spl_object_id($this->connectionFactory);
     }
 
-    public function getConnectionFactory(): ConnectionFactory
+    public function getWrappedConnectionFactory(): ConnectionFactory
     {
         return $this->connectionFactory;
     }

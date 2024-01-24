@@ -17,6 +17,9 @@ use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfigurati
 use Ecotone\Messaging\Config\MultiTenantConnectionFactory\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Psr\Container\ContainerInterface;
 
 #[ModuleAnnotation]
@@ -51,6 +54,24 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                     ]
                 )
             );
+
+            $interfaceToCall = $interfaceToCallRegistry->getFor(HeaderBasedMultiTenantConnectionFactory::class, 'enablePollingConsumerPropagation');
+            $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptor::create(
+                $multiTenantConfig->getReferenceName() . '.' . 'enablePollingConsumerPropagation',
+                $interfaceToCall,
+                ServiceActivatorBuilder::create($multiTenantConfig->getReferenceName(), $interfaceToCall),
+                0,
+                MessageHeadersPropagatorInterceptor::class . '::' . 'enablePollingConsumerPropagation'
+            ));
+
+            $interfaceToCall = $interfaceToCallRegistry->getFor(HeaderBasedMultiTenantConnectionFactory::class, 'disablePollingConsumerPropagation');
+            $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptor::create(
+                $multiTenantConfig->getReferenceName() . '.' . 'disablePollingConsumerPropagation',
+                $interfaceToCall,
+                ServiceActivatorBuilder::create($multiTenantConfig->getReferenceName(), $interfaceToCall),
+                0,
+                MessageHeadersPropagatorInterceptor::class . '::' . 'disablePollingConsumerPropagation'
+            ));
         }
     }
 

@@ -66,6 +66,12 @@ abstract class DbalMessagingTestCase extends TestCase
         }
     }
 
+    public function tearDown(): void
+    {
+        $this->connectionForTenantA()->createContext()->getDbalConnection()->close();
+        $this->connectionForTenantB()->createContext()->getDbalConnection()->close();
+    }
+
     protected function checkIfTableExists(Connection $connection, string $table): bool
     {
         $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();

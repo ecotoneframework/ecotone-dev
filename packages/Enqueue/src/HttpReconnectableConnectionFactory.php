@@ -31,4 +31,9 @@ final class HttpReconnectableConnectionFactory implements ReconnectableConnectio
     {
         return get_class($this->connectionFactory) . spl_object_id($this->connectionFactory);
     }
+
+    public function getWrappedConnectionFactory(): ConnectionFactory
+    {
+        return $this->connectionFactory;
+    }
 }

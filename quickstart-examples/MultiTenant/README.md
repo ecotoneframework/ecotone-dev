@@ -6,6 +6,10 @@ Each Module has it's own directory containing specific example and `run_example.
 To run example, execute `php run_example.php` in specific directory.  
 Look at logs to see which channels are used and how messages are processed.  
 
+## Command Handler for Multiple Tenants
+
+[This example](src/CommandHandlerForMultipleTenants) shows how to use Command Handler for Multiple Tenants.
+
 ## Round Robin with Single Consumer
 
 [This example](src/RoundRobinWithSingleConsumer) shows how to use Round Robin with Single Consumer.   

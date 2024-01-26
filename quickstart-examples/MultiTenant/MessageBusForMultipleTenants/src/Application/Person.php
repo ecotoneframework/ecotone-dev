@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\MultiTenant\Application;
 
 use Doctrine\ORM\Mapping as ORM;
-use Ecotone\Modelling\Attribute\Identifier;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'persons')]
@@ -13,7 +12,6 @@ class Person
 {
     #[ORM\Id]
     #[ORM\Column(name: 'person_id', type: 'integer')]
-    #[Identifier]
     private int $personId;
 
     #[ORM\Column(name: 'name', type: 'string')]
@@ -27,7 +25,7 @@ class Person
 
     public static function register(RegisterPerson $command): static
     {
-        return new self($command->getPersonId(), $command->getName());
+        return new self($command->personId, $command->name);
     }
 
     public function getName(): string

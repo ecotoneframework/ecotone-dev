@@ -17,6 +17,7 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
+        "doctrine/orm": "^2.0|^3.0",
         "wikimedia/composer-merge-plugin": "^2.0"
     },
     "minimum-stability": "dev",

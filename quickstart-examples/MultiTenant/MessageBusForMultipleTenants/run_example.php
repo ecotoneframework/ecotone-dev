@@ -24,9 +24,15 @@ $commandBus->send(new RegisterPerson(1, "John Doe"), metadata: ['tenant' => 'ten
 $commandBus->send(new RegisterPerson(2, "John Doe"), metadata: ['tenant' => 'tenant_a']);
 $commandBus->send(new RegisterPerson(2, "John Doe"), metadata: ['tenant' => 'tenant_b']);
 
+
+
+/** Setup */
 function bootstrapEcotone(): \Ecotone\Messaging\Config\ConfiguredMessagingSystem
 {
     return EcotoneLiteApplication::bootstrap(
+        /**
+         * In your application you will register Services inside your Dependency Container
+         */
         objectsToRegister: [
             'logger' => new EchoLogger(),
             // Registering connection for tenants. Look src/Configuration/EcotoneConfiguration.php for usage based on tenant header
@@ -40,7 +46,7 @@ function bootstrapEcotone(): \Ecotone\Messaging\Config\ConfiguredMessagingSystem
 function getConnectionFactory(string $dsn): EcotoneManagerRegistryConnectionFactory
 {
     /**
-     * This is test class that emulates Doctrine ManagerRegistry. Follow link to configure:
+     * This is test class that emulates Doctrine ManagerRegistry. Follow link to configure in your application:
      * @link https://docs.ecotone.tech/modules/dbal-support#configuration
      */
     return ManagerRegistryEmulator::fromDsnAndConfig($dsn, [__DIR__ . '/src/Domain']);

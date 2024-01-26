@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
 use Ecotone\Messaging\Config\MultiTenantConnectionFactory\HeaderBasedMultiTenantConnectionFactory;
+use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
@@ -54,6 +55,12 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                     ]
                 )
             );
+            if (count($multiTenantConfigurations) === 1) {
+                $messagingConfiguration->registerServiceAlias(
+                    MultiTenantConnectionFactory::class,
+                    new Reference($multiTenantConfig->getReferenceName())
+                );
+            }
 
             $interfaceToCall = $interfaceToCallRegistry->getFor(HeaderBasedMultiTenantConnectionFactory::class, 'enablePollingConsumerPropagation');
             $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptor::create(

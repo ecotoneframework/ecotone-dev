@@ -17,9 +17,7 @@ final readonly class PersonRepository
 
     public function save(Person $person): void
     {
-        /** @var EntityManager $entityManager */
-        $entityManager = $this->getRegistry()->getRepository(Person::class);
-        $entityManager->persist($person);
+        $this->getRegistry()->getManager(Person::class)->persist($person);
     }
 
     public function find(int $personId): ?Person

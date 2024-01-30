@@ -16,6 +16,8 @@ use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
+use Ecotone\Laravel\Config\LaravelConnectionModule;
+use Ecotone\Laravel\Config\LaravelTenantDatabaseSwitcher;
 use Ecotone\Lite\Test\Configuration\EcotoneTestSupportModule;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorModule;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeModule;
@@ -31,7 +33,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\GatewayModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageConsumerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\MethodInterceptorModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MultiTenantConnectionFactoryModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MultiTenant\MultiTenantConnectionFactoryModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\PollerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RequiredConsumersModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RouterModule;
@@ -40,7 +42,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SerializerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ServiceActivatorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
@@ -142,6 +143,11 @@ class ModuleClassList
 
     public const TEST_MODULES = [
         EcotoneTestSupportModule::class,
+    ];
+
+    public const LARAVEL_MODULES = [
+        LaravelConnectionModule::class,
+        LaravelTenantDatabaseSwitcher::class,
     ];
 
     public static function allModules(): array

@@ -10,8 +10,6 @@ use Ecotone\Messaging\Handler\Logger\EchoLogger;
 /** Setup */
 function bootstrapEcotone(string $rootDirectory): ConfiguredMessagingSystem
 {
-    require $rootDirectory . "/vendor/autoload.php";
-
     return EcotoneLiteApplication::bootstrap(
         /**
          * In your application you will register Services inside your Dependency Container
@@ -19,11 +17,21 @@ function bootstrapEcotone(string $rootDirectory): ConfiguredMessagingSystem
         objectsToRegister: [
             'logger' => new EchoLogger(),
             // Registering connection for tenants. Look src/Configuration/EcotoneConfiguration.php for usage based on tenant header
-            'tenant_a_factory' => getConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
-            'tenant_b_factory' => getConnectionFactory(getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'),
+            'tenant_a_factory' => getTenantAConnection(),
+            'tenant_b_factory' => getTenantBConnection(),
         ],
         pathToRootCatalog: $rootDirectory
     );
+}
+
+function getTenantBConnection(): EcotoneManagerRegistryConnectionFactory
+{
+    return getConnectionFactory(getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone');
+}
+
+function getTenantAConnection(): EcotoneManagerRegistryConnectionFactory
+{
+    return getConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone');
 }
 
 function getConnectionFactory(string $dsn): EcotoneManagerRegistryConnectionFactory
@@ -32,10 +40,13 @@ function getConnectionFactory(string $dsn): EcotoneManagerRegistryConnectionFact
      * This is test class that emulates Doctrine ManagerRegistry. Follow link to configure in your application:
      * @link https://docs.ecotone.tech/modules/dbal-support#configuration
      */
-    $managerRegistry = ManagerRegistryEmulator::fromDsnAndConfig($dsn, [__DIR__ . '/src/Domain']);
-    migrate($managerRegistry->getConnection());
+    return ManagerRegistryEmulator::fromDsnAndConfig($dsn, [__DIR__ . '/src/Domain']);
+}
 
-    return $managerRegistry;
+function runMigrationForTenants(): void
+{
+    migrate(getTenantAConnection()->getConnection());
+    migrate(getTenantBConnection()->getConnection());
 }
 
 function migrate(Connection $connection): void

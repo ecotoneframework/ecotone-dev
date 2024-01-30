@@ -1,24 +1,22 @@
 <?php
 
 use App\MultiTenant\Application\RegisterPerson;
-use App\MultiTenant\ProcessImage;
-use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-use Ecotone\Dbal\ManagerRegistryEmulator;
-use Ecotone\Lite\EcotoneLiteApplication;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
-use Enqueue\Dbal\DbalConnectionFactory;
-use PHPUnit\Framework\TestCase;
+use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\QueryBus;
+use Illuminate\Support\Facades\Config;
 use PHPUnit\Framework\Assert;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Foundation\Http\Kernel;
 
+require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . "/../boostrap.php";
+$app = require __DIR__.'/bootstrap/app.php';
+$app->make(Kernel::class)->bootstrap();
+runMigrationForTenants();
 
-$messagingSystem = bootstrapEcotone(__DIR__);
-$commandBus = $messagingSystem->getCommandBus();
-$queryBus = $messagingSystem->getQueryBus();
+//Config::set('database.default', 'tenant_a');
+$commandBus = $app->get(CommandBus::class);
+$queryBus = $app->get(QueryBus::class);
 
 echo "Running demo:\n";
 

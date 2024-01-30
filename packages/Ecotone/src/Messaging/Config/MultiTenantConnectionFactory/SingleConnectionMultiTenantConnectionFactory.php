@@ -53,4 +53,9 @@ final class SingleConnectionMultiTenantConnectionFactory implements MultiTenantC
     {
         return $this->tenantName;
     }
+
+    public function hasActiveTenant(): bool
+    {
+        return true;
+    }
 }

@@ -7,9 +7,11 @@ namespace Ecotone\Messaging\Config\MultiTenantConnectionFactory;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
+use Ecotone\Messaging\Config\ConnectionReference;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
@@ -17,11 +19,15 @@ use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Psr\Container\ContainerInterface;
+use Ecotone\Messaging\Message;
 
 final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnectionFactory
 {
+    public const TENANT_ACTIVATED_CHANNEL_NAME = 'ecotone.multi_tenant_propagation_channel.activate';
+    public const TENANT_DEACTIVATED_CHANNEL_NAME = 'ecotone.multi_tenant_propagation_channel.deactivate';
+
     /**
-     * @param array<string, string> $connectionReferenceMapping
+     * @param array<string, string|ConnectionReference> $connectionReferenceMapping
      * @param array<string, ConnectionFactory> $container
      * @param string|null $pollingConsumerTenant
      */
@@ -30,8 +36,9 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         private array               $connectionReferenceMapping,
         private MessagingEntrypoint $messagingEntrypoint,
         private ContainerInterface  $container,
+        private LoggingGateway $loggingGateway,
         private RoundRobinReceivingStrategy $roundRobinReceivingStrategy,
-        private ?string             $defaultConnectionName = null,
+        private string|ConnectionReference|null $defaultConnectionName = null,
         private ?string $pollingConsumerTenant = null,
     )
     {
@@ -67,20 +74,61 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
     public function getConnectionFactory(): ConnectionFactory
     {
-        $currentTenant = $this->currentActiveTenant();
+        $connectionReference = $this->getCurrentConnectionReferenceOrNull();
 
-        if (isset($this->connectionReferenceMapping[$currentTenant])) {
-            return $this->container->get($this->connectionReferenceMapping[$currentTenant]);
+        if ($connectionReference === null) {
+            $tenant = $this->getCurrentTenantOrNull();
+
+            if ($tenant === null) {
+                throw new InvalidArgumentException("Lack of context about tenant in Message Headers. Please add `{$this->tenantHeaderName}` header metadata to your message.");
+            }else {
+                throw new InvalidArgumentException("Lack of mapping for tenant `{$tenant}`. Please provide mapping for this tenant or default connection name.");
+            }
         }
 
-        if ($this->defaultConnectionName === null) {
-            throw new InvalidArgumentException("Lack of mapping for tenant `{$currentTenant}`. Please provide mapping for this tenant or default connection name.");
-        }
-
-        return $this->container->get($this->defaultConnectionName);
+        return $this->container->get((string)$connectionReference);
     }
 
     public function currentActiveTenant(): string
+    {
+        $tenant = $this->getCurrentTenantOrNull();
+
+        if ($tenant === null) {
+            throw new InvalidArgumentException("Lack of context about tenant in Message Headers. Please add `{$this->tenantHeaderName}` header metadata to your message.");
+        }
+
+        return $tenant;
+    }
+
+    public function hasActiveTenant(): bool
+    {
+        return $this->getCurrentTenantOrNull() !== null;
+    }
+
+    public function propagateTenant(MethodInvocation $methodInvocation, Message $message): mixed
+    {
+        $tenant = $this->getCurrentTenantOrNull();
+        if ($tenant === null) {
+            return $methodInvocation->proceed();
+        }
+
+        /** @var string|ConnectionReference $connectionReference */
+        $connectionReference = $this->getCurrentConnectionReferenceOrNull($tenant);
+
+        try {
+            $this->loggingGateway->info("Activating tenant `{$tenant}` on connection `{$connectionReference}`", $message);
+            $this->messagingEntrypoint->send($connectionReference, self::TENANT_ACTIVATED_CHANNEL_NAME, ['tenant' => $tenant]);
+
+            $result = $methodInvocation->proceed();
+        } finally {
+            $this->loggingGateway->info("Deactivating tenant `{$tenant}` on connection `{$connectionReference}`", $message);
+            $this->messagingEntrypoint->send($connectionReference, self::TENANT_DEACTIVATED_CHANNEL_NAME, ['tenant' => $tenant]);
+        }
+
+        return $result;
+    }
+
+    private function getCurrentTenantOrNull(): ?string
     {
         if ($this->pollingConsumerTenant !== null) {
             return $this->pollingConsumerTenant;
@@ -89,10 +137,25 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         $headers = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
 
         if (!array_key_exists($this->tenantHeaderName, $headers)) {
-            throw new InvalidArgumentException("Lack of context about tenant in Message Headers. Please add {$this->tenantHeaderName} header metadata to your message.");
+            return null;
         }
 
         return $headers[$this->tenantHeaderName];
+    }
+
+    public function getCurrentConnectionReferenceOrNull(?string $tenant = null): string|ConnectionReference|null
+    {
+        $currentTenant = $tenant ?? $this->getCurrentTenantOrNull();
+
+        if (isset($this->connectionReferenceMapping[$currentTenant])) {
+            return $this->connectionReferenceMapping[$currentTenant];
+        }
+
+        if ($this->defaultConnectionName === null) {
+            return null;
+        }
+
+        return $this->defaultConnectionName;
     }
 
     public function createContext(): Context

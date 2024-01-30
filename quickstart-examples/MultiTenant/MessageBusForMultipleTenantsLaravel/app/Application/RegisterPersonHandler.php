@@ -9,8 +9,8 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 final class RegisterPersonHandler
 {
     #[CommandHandler]
-    public function handle(RegisterPerson $command, PersonQueryService $personRepository)
+    public function handle(RegisterPerson $command)
     {
-        $personRepository->save(Person::register($command));
+        Person::register($command)->save();
     }
 }

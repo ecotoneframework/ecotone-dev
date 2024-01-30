@@ -22,4 +22,6 @@ interface MultiTenantConnectionFactory extends ConnectionFactory
     public function getConnectionFactory(): ConnectionFactory;
 
     public function currentActiveTenant(): string;
+
+    public function hasActiveTenant(): bool;
 }

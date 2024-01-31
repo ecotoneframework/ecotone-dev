@@ -54,7 +54,7 @@ function migrate(Connection $connection): void
     if (! checkIfTableExists($connection, 'persons')) {
         $connection->executeStatement(<<<SQL
                     CREATE TABLE persons (
-                        person_id INTEGER PRIMARY KEY,
+                        customer_id INTEGER PRIMARY KEY,
                         name VARCHAR(255),
                         roles VARCHAR(255) DEFAULT '[]'
                     )

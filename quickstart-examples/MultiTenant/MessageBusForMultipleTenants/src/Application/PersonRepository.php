@@ -16,14 +16,14 @@ final readonly class PersonRepository
 
     }
 
-    public function save(Person $person): void
+    public function save(Customer $person): void
     {
-        $this->getRegistry()->getManager(Person::class)->persist($person);
+        $this->getRegistry()->getManager(Customer::class)->persist($person);
     }
 
-    public function find(int $personId): ?Person
+    public function find(int $personId): ?Customer
     {
-        $this->getRegistry()->getRepository(Person::class)->find($personId);
+        $this->getRegistry()->getRepository(Customer::class)->find($personId);
     }
 
     #[QueryHandler('person.getAllRegistered')]

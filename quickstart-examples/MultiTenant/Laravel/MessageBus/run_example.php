@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\Kernel;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . '/vendor/autoload.php';
-require __DIR__ . "/../boostrap.php";
+require __DIR__ . "/../../boostrap.php";
 $app = require __DIR__.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 runMigrationForTenants();

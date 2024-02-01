@@ -7,7 +7,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Interop\Queue\ConnectionFactory;
 
 /** This is for compatibility if someone is using Multi-Tenancy without any Message Broker modules */
-if (!class_exists(ConnectionFactory::class)) {
+if (!interface_exists(ConnectionFactory::class)) {
     class_alias(ConnectionFactoryCompatibility::class, ConnectionFactory::class);
 }
 

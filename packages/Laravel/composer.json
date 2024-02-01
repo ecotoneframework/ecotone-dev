@@ -29,7 +29,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Test\\Ecotone\\Laravel\\": "tests"
+            "Test\\Ecotone\\Laravel\\": "tests",
+            "App\\MultiTenant\\": "tests/MultiTenant/app"
         }
     },
     "require": {

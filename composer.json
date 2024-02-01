@@ -94,6 +94,7 @@
                 "packages/OpenTelemetry/tests"
             ],
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
+            "App\\MultiTenant\\": "packages/Laravel/tests/MultiTenant/app",
             "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
             "Tests\\Ecotone\\": "tests"
         }

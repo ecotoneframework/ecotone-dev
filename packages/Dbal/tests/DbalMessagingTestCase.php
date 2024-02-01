@@ -91,19 +91,16 @@ abstract class DbalMessagingTestCase extends TestCase
     protected function setupUserTable(?Connection $connection = null): void
     {
         $connection = $connection ?? $this->getConnection();
-        if (! $this->checkIfTableExists($connection, 'persons')) {
-            $connection->executeStatement(<<<SQL
-                    CREATE TABLE persons (
-                        person_id INTEGER PRIMARY KEY,
-                        name VARCHAR(255),
-                        roles VARCHAR(255) DEFAULT '[]'
-                    )
-                SQL);
-        }
-
         $connection->executeStatement(<<<SQL
-    DELETE FROM persons
+        DROP TABLE IF EXISTS persons
 SQL);
+        $connection->executeStatement(<<<SQL
+                CREATE TABLE persons (
+                    customer_id INTEGER PRIMARY KEY,
+                    name VARCHAR(255),
+                    is_active bool DEFAULT true
+                )
+            SQL);
     }
 
     protected function setupActivityTable(): void

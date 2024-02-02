@@ -173,7 +173,6 @@ return [
          * Package Service Providers...
          */
         EcotoneProvider::class,
-        \App\MultiTenant\Providers\AppServiceProvider::class,
     ],
 
     /*

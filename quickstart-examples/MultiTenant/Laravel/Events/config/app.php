@@ -168,6 +168,7 @@ return [
         Illuminate\Translation\TranslationServiceProvider::class,
         ArtisanServiceProvider::class,
         Illuminate\Database\DatabaseServiceProvider::class,
+        Illuminate\Queue\QueueServiceProvider::class,
 
         /*
          * Package Service Providers...

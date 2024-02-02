@@ -86,7 +86,13 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
             }
         }
 
-        return $this->container->get((string)$connectionReference);
+        $connection = $this->container->get((string)$connectionReference);
+        Assert::isTrue(
+            $connection instanceof ConnectionFactory,
+            sprintf("Connection reference %s, does not return ConnectionFactory. Please check if you have registered it correctly.", (string)$connectionReference)
+        );
+
+        return $connection;
     }
 
     public function currentActiveTenant(): string
@@ -117,12 +123,12 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
         try {
             $this->loggingGateway->info("Activating tenant `{$tenant}` on connection `{$connectionReference}`", $message);
-            $this->messagingEntrypoint->send($connectionReference, self::TENANT_ACTIVATED_CHANNEL_NAME, ['tenant' => $tenant]);
+            $this->messagingEntrypoint->sendWithHeaders($connectionReference, [$this->tenantHeaderName => $tenant], self::TENANT_ACTIVATED_CHANNEL_NAME);
 
             $result = $methodInvocation->proceed();
         } finally {
             $this->loggingGateway->info("Deactivating tenant `{$tenant}` on connection `{$connectionReference}`", $message);
-            $this->messagingEntrypoint->send($connectionReference, self::TENANT_DEACTIVATED_CHANNEL_NAME, ['tenant' => $tenant]);
+            $this->messagingEntrypoint->sendWithHeaders($connectionReference, [$this->tenantHeaderName => $tenant], self::TENANT_DEACTIVATED_CHANNEL_NAME);
         }
 
         return $result;

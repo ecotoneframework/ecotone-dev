@@ -96,9 +96,9 @@ abstract class DbalMessagingTestCase extends TestCase
 SQL);
         $connection->executeStatement(<<<SQL
                 CREATE TABLE persons (
-                    customer_id INTEGER PRIMARY KEY,
+                    person_id INTEGER PRIMARY KEY,
                     name VARCHAR(255),
-                    is_active bool DEFAULT true
+                    roles VARCHAR(255) DEFAULT '[]'
                 )
             SQL);
     }

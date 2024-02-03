@@ -56,7 +56,7 @@ function migrate(Connection $connection): void
 SQL);
     $connection->executeStatement(<<<SQL
                 CREATE TABLE persons (
-                    customer_id INTEGER PRIMARY KEY,
+                    person_id INTEGER PRIMARY KEY,
                     name VARCHAR(255),
                     is_active bool DEFAULT true
                 )

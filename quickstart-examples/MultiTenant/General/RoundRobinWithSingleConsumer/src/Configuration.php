@@ -1,11 +1,10 @@
 <?php
 
-namespace General\RoundRobinWithSingleConsumer\src;
+namespace App\MultiTenant;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
-use Ecotone\Messaging\Channel\DynamicChannel\RoundRobinChannelBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 
 class Configuration

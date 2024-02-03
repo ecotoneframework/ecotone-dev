@@ -1,6 +1,6 @@
 <?php
 
-namespace General\RoundRobinWithSingleConsumer\src;
+namespace App\MultiTenant;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\CommandHandler;

@@ -1,6 +1,6 @@
 <?php
 
-namespace General\RoundRobinWithSingleConsumer\src;
+namespace App\MultiTenant;
 
 final readonly class ProcessImage
 {

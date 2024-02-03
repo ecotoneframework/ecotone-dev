@@ -16,22 +16,14 @@ final readonly class PersonRepository
 
     }
 
-    public function save(Customer $person): void
+    public function save(Person $person): void
     {
-        $this->getRegistry()->getManager(Customer::class)->persist($person);
+        $this->getRegistry()->getManager(Person::class)->persist($person);
     }
 
-    public function find(int $personId): ?Customer
+    public function find(int $personId): ?Person
     {
-        $this->getRegistry()->getRepository(Customer::class)->find($personId);
-    }
-
-    #[QueryHandler('person.getAllRegistered')]
-    public function getAllRegisteredPersonIds(): array
-    {
-        return $this->connectionFactory->getConnection()->executeQuery(<<<SQL
-    SELECT person_id FROM persons;
-SQL)->fetchFirstColumn();
+        $this->getRegistry()->getRepository(Person::class)->find($personId);
     }
 
     public function getRegistry(): ManagerRegistry

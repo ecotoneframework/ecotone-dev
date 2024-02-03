@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Application;
 
-use App\MultiTenant\Application\Command\RegisterCustomer;
 use Doctrine\ORM\Mapping as ORM;
+use Ecotone\Modelling\Attribute\Aggregate;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'persons')]
@@ -24,9 +26,9 @@ class Person
         $this->name = $name;
     }
 
-    public static function register(RegisterCustomer $command): static
+    public static function register(RegisterPerson $command): static
     {
-        return new self($command->customerId, $command->name);
+        return new self($command->personId, $command->name);
     }
 
     public function getName(): string

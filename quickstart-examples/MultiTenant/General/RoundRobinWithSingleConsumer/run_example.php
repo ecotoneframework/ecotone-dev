@@ -1,9 +1,9 @@
 <?php
 
+use App\MultiTenant\ProcessImage;
 use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use General\RoundRobinWithSingleConsumer\src\ProcessImage;
 use PHPUnit\Framework\TestCase;
 
 require __DIR__ . "/vendor/autoload.php";

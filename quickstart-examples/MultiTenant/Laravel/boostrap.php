@@ -9,20 +9,6 @@ function runMigrationForTenants(LaravelConnection $tenantAConnection, LaravelCon
 {
     migrate($tenantAConnection->getDoctrineConnection());
     migrate($tenantBConnection->getDoctrineConnection());
-}
-
-function migrate(Connection $connection): void
-{
-    $connection->executeStatement(<<<SQL
-        DROP TABLE IF EXISTS persons
-SQL);
-    $connection->executeStatement(<<<SQL
-                CREATE TABLE persons (
-                    customer_id INTEGER PRIMARY KEY,
-                    name VARCHAR(255),
-                    is_active bool DEFAULT true
-                )
-            SQL);
 
     foreach (['tenant_a_connection', 'tenant_b_connection'] as $connectionName) {
         if (Schema::connection($connectionName)->hasTable('jobs')) {
@@ -39,4 +25,18 @@ SQL);
             $table->index(['queue', 'reserved_at']);
         });
     }
+}
+
+function migrate(Connection $connection): void
+{
+    $connection->executeStatement(<<<SQL
+        DROP TABLE IF EXISTS persons
+SQL);
+    $connection->executeStatement(<<<SQL
+                CREATE TABLE persons (
+                    customer_id INTEGER PRIMARY KEY,
+                    name VARCHAR(255),
+                    is_active bool DEFAULT true
+                )
+            SQL);
 }

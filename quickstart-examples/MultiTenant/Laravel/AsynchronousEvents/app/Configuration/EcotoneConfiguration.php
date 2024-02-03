@@ -27,7 +27,6 @@ final readonly class EcotoneConfiguration
     #[ServiceContext]
     public function laravelQueueConfiguration()
     {
-//        return DbalBackedMessageChannelBuilder::create('notifications');
         return LaravelQueueMessageChannelBuilder::create('notifications');
     }
 }

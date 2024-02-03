@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\MultiTenant\Configuration;
 
 use Ecotone\Laravel\Config\LaravelConnectionReference;
+use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
 
-final readonly class EcotoneConfiguration
+final class EcotoneConfiguration
 {
     #[ServiceContext]
     public function multiTenantConfiguration(): MultiTenantConfiguration
@@ -20,5 +21,11 @@ final readonly class EcotoneConfiguration
                 'tenant_b' => LaravelConnectionReference::create('tenant_b_connection')
             ],
         );
+    }
+
+    #[ServiceContext]
+    public function laravelQueueConfiguration(): LaravelQueueMessageChannelBuilder
+    {
+        return LaravelQueueMessageChannelBuilder::create('notifications');
     }
 }

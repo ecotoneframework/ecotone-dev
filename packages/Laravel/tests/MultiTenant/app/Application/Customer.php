@@ -14,15 +14,12 @@ class Customer extends Model
     protected $primaryKey = 'customer_id';
     public $timestamps = false;
 
-    private function __construct(int $customerId, string $name)
-    {
-        $this->customer_id = $customerId;
-        $this->name = $name;
-    }
-
     public static function register(RegisterCustomer $command): static
     {
-        return new self($command->customerId, $command->name);
+        return self::create([
+            'customer_id' => $command->customerId,
+            'name' => $command->name
+        ]);
     }
 
     public function getName(): string

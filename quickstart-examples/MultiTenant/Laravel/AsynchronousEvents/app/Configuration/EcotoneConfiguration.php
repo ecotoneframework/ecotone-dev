@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Configuration;
 
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Laravel\Config\LaravelConnectionReference;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
@@ -24,8 +25,9 @@ final readonly class EcotoneConfiguration
     }
 
     #[ServiceContext]
-    public function laravelQueueConfiguration(): LaravelQueueMessageChannelBuilder
+    public function laravelQueueConfiguration()
     {
+//        return DbalBackedMessageChannelBuilder::create('notifications');
         return LaravelQueueMessageChannelBuilder::create('notifications');
     }
 }

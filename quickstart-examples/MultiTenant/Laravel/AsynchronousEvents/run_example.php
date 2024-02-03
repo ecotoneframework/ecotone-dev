@@ -4,6 +4,7 @@ use App\MultiTenant\Application\Command\RegisterCustomer;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Assert;
 
@@ -20,7 +21,25 @@ echo "Running demo:\n";
 
 $commandBus->send(new RegisterCustomer(1, "John Doe"), metadata: ['tenant' => 'tenant_a']);
 $commandBus->send(new RegisterCustomer(2, "John Doe"), metadata: ['tenant' => 'tenant_a']);
+
+/** Consume Messages for Tenant A */
+Artisan::call('ecotone:run', ['consumerName' => 'notifications', '--stopOnFailure' => true, '--executionTimeLimit' => 1000]);
+
+/** This is not yet consumed */
 $commandBus->send(new RegisterCustomer(2, "John Doe"), metadata: ['tenant' => 'tenant_b']);
+
+Assert::assertSame(
+    2,
+    $queryBus->sendWithRouting('getNotificationsCount', metadata: ['tenant' => 'tenant_a'])
+);
+
+Assert::assertSame(
+    0,
+    $queryBus->sendWithRouting('getNotificationsCount', metadata: ['tenant' => 'tenant_b'])
+);
+
+/** Consume Messages for Tenant B */
+Artisan::call('ecotone:run', ['consumerName' => 'notifications', '--stopOnFailure' => true, '--executionTimeLimit' => 1000]);
 
 Assert::assertSame(
     2,

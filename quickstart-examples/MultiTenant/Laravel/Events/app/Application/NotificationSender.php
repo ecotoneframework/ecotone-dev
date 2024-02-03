@@ -18,7 +18,7 @@ final class NotificationSender
         }
 
         self::$notifications[$tenant]++;
-        echo "Sending welcome notification to customer {$customer->getCustomerId()}\n";
+        echo "Sending welcome notification to customer {$customer->getCustomerId()} for tenant {$tenant}\n";
     }
 
     #[QueryHandler("getNotificationsCount")]

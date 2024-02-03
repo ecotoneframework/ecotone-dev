@@ -42,10 +42,10 @@ jobs:
           - 3306:3306
       postgres:
         image: postgres
-        postgresql-config: max_connections=250
         env:
           POSTGRES_USER: ecotone
           POSTGRES_PASSWORD: secret
+          PGOPTIONS:  "-c max_connections=250"
         options: >-
           --health-cmd pg_isready
           --health-interval 10s

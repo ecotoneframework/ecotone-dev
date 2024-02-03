@@ -1,15 +1,10 @@
 <?php
 
-namespace Ecotone\Messaging\Config\MultiTenantConnectionFactory;
+namespace Ecotone\Dbal\MultiTenant;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Interop\Queue\ConnectionFactory;
-
-/** This is for compatibility if someone is using Multi-Tenancy without any Message Broker modules */
-if (!interface_exists(ConnectionFactory::class)) {
-    class_alias(ConnectionFactoryCompatibility::class, ConnectionFactory::class);
-}
 
 interface MultiTenantConnectionFactory extends ConnectionFactory
 {

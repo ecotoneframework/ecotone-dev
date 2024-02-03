@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Config\MultiTenantConnectionFactory;
+namespace Ecotone\Dbal\MultiTenant;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;

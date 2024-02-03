@@ -80,14 +80,17 @@ jobs:
     - name: Validate composer.json and composer.lock
       run: composer validate --strict
 
-    - name: Install dependencies
+    - name: Install dependencies no dev dependencies
+      run: composer update --${{ matrix.stability }} --no-dev --prefer-dist --no-interaction
+
+    - name: Test PHPStan
+      run: vendor/bin/phpstan
+
+    - name: Install dependencies with dev dependencies
       run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
     - name: Validate cross package versions
       run: vendor/bin/monorepo-builder validate
-
-    - name: Test PHPStan
-      run: vendor/bin/phpstan
 
     - name: Test PHPUnit on Postgres
       run: vendor/bin/phpunit

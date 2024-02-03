@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\ORM\MultiTenant;
 
 use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;

@@ -2,28 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Messaging\Unit\Config;
+namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Lite\LazyInMemoryContainer;
-use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\HeaderBasedMultiTenantConnectionFactory;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
-use Test\Ecotone\Messaging\Fixture\Channel\FakeContextWithMessages;
-use Test\Ecotone\Messaging\Fixture\Channel\FakeMessageChannelWithConnectionFactoryBuilder;
-use Test\Ecotone\Messaging\Fixture\Config\FakeConnectionFactory;
-use Test\Ecotone\Messaging\Fixture\Handler\SuccessServiceActivator;
+use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
+use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeContextWithMessages;
+use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeMessageChannelWithConnectionFactoryBuilder;
 use Test\Ecotone\Modelling\Fixture\Collector\BetService;
 
 final class MultiTenantConnectionFactoryTest extends TestCase
@@ -153,16 +146,20 @@ final class MultiTenantConnectionFactoryTest extends TestCase
             [BetService::class],
             array_merge([new BetService()], $connections),
             ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     PollingMetadata::create('bets')
                         ->setExecutionAmountLimit(1),
                     $defaultConnectionName
-                        ? MultiTenantConfiguration::createWithDefaultConnection($tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName, 'multi_tenant_connection')
-                        : MultiTenantConfiguration::create($tenantHeaderName, $tenantConnectionMapping, 'multi_tenant_connection')
+                        ? MultiTenantConfiguration::createWithDefaultConnection($tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName, DbalConnectionFactory::class)
+                        : MultiTenantConfiguration::create($tenantHeaderName, $tenantConnectionMapping, DbalConnectionFactory::class),
+                    DbalConfiguration::createWithDefaults()
+                        ->withTransactionOnCommandBus(false)
+                        ->withTransactionOnAsynchronousEndpoints(false)
                 ]),
             allowGatewaysToBeRegisteredInContainer: true,
             enableAsynchronousProcessing: [
-                FakeMessageChannelWithConnectionFactoryBuilder::create('bets', 'multi_tenant_connection')
+                FakeMessageChannelWithConnectionFactoryBuilder::create('bets', DbalConnectionFactory::class)
             ],
         );
     }

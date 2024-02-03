@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Config\MultiTenantConnectionFactory;
+namespace Ecotone\Dbal\MultiTenant;
 
 use Ecotone\Messaging\Config\ConnectionReference;
 use Enqueue\Dbal\DbalConnectionFactory;

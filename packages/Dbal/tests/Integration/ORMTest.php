@@ -12,7 +12,7 @@ use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;

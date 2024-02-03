@@ -8,7 +8,7 @@ use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\PersonCommandService;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\RegisterPerson;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Enqueue\Dbal\DbalConnectionFactory;
 use function array_map;
 

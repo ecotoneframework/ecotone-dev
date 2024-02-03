@@ -4,8 +4,8 @@ namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\HeaderBasedMultiTenantConnectionFactory;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
+use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;

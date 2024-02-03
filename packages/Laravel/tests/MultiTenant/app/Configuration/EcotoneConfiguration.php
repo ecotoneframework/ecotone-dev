@@ -7,7 +7,7 @@ namespace App\MultiTenant\Configuration;
 use Ecotone\Laravel\Config\LaravelConnectionReference;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 
 final class EcotoneConfiguration
 {

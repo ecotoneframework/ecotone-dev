@@ -2,21 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Messaging\Fixture\Channel;
+namespace Test\Ecotone\Dbal\Fixture\MultiTenant;
 
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\PollableChannel;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
 use Interop\Queue\Destination;
-use Interop\Queue\Exception\PurgeQueueNotSupportedException;
-use Interop\Queue\Exception\SubscriptionConsumerNotSupportedException;
-use Interop\Queue\Exception\TemporaryQueueNotSupportedException;
 use Interop\Queue\Message;
 use Interop\Queue\Producer;
 use Interop\Queue\Queue;
 use Interop\Queue\SubscriptionConsumer;
 use Interop\Queue\Topic;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 final class FakeContextWithMessages implements Context, PollableChannel
 {

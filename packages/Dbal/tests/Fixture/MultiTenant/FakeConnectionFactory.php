@@ -2,12 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Messaging\Fixture\Config;
+namespace Test\Ecotone\Dbal\Fixture\MultiTenant;
 
-use Enqueue\Null\NullContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
-use Test\Ecotone\Messaging\Fixture\Channel\FakeContextWithMessages;
 
 final class FakeConnectionFactory implements ConnectionFactory
 {

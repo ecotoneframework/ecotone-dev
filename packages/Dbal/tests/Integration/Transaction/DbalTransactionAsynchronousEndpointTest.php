@@ -9,7 +9,7 @@ use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;

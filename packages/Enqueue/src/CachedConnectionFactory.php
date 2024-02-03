@@ -2,7 +2,7 @@
 
 namespace Ecotone\Enqueue;
 
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;

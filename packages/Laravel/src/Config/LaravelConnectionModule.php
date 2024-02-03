@@ -13,7 +13,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Interop\Queue\ConnectionFactory;
 

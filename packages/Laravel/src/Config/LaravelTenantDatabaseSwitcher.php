@@ -6,7 +6,7 @@ namespace Ecotone\Laravel\Config;
 
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Config\ConnectionReference;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\HeaderBasedMultiTenantConnectionFactory;
+use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Illuminate\Support\Facades\Config;
 
 final class LaravelTenantDatabaseSwitcher

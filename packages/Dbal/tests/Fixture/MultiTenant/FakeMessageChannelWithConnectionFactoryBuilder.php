@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Messaging\Fixture\Channel;
+namespace Test\Ecotone\Dbal\Fixture\MultiTenant;
 
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Test\Ecotone\Messaging\Fixture\Config\FakeConnectionFactory;
+use Test\Ecotone\Messaging\Fixture\Channel\FakeMessageChannelWithConnectionFactory;
 
 final class FakeMessageChannelWithConnectionFactoryBuilder implements MessageChannelBuilder
 {

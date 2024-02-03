@@ -6,7 +6,7 @@ namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Modelling\StandardRepository;
 use Interop\Queue\ConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;

@@ -11,6 +11,7 @@ use Ecotone\Dbal\DbaBusinessMethod\DbaBusinessMethodModule;
 use Ecotone\Dbal\DbalTransaction\DbalTransactionModule;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStoreModule;
+use Ecotone\Dbal\MultiTenant\Module\MultiTenantConnectionFactoryModule;
 use Ecotone\Dbal\ObjectManager\ObjectManagerModule;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
@@ -33,7 +34,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\GatewayModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageConsumerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\MethodInterceptorModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MultiTenant\MultiTenantConnectionFactoryModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\PollerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RequiredConsumersModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RouterModule;
@@ -86,7 +86,6 @@ class ModuleClassList
         TransformerModule::class,
         MessageConsumerModule::class,
         InstantRetryModule::class,
-        MultiTenantConnectionFactoryModule::class,
 
         /** Attribute based configurations */
         LoggingGateway::class,
@@ -116,6 +115,7 @@ class ModuleClassList
         DbalTransactionModule::class,
         DbalPublisherModule::class,
         DbaBusinessMethodModule::class,
+        MultiTenantConnectionFactoryModule::class,
     ];
 
     public const REDIS_MODULES = [

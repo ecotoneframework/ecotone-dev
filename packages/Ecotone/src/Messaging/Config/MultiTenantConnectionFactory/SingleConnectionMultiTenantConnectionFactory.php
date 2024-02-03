@@ -24,7 +24,7 @@ final class SingleConnectionMultiTenantConnectionFactory implements MultiTenantC
 
     public function createContext(): Context
     {
-        $this->getConnectionFactory()->createContext();
+        return $this->getConnectionFactory()->createContext();
     }
 
     public function getRegistry(): ManagerRegistry

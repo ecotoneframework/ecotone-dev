@@ -156,6 +156,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(false)
                         ->withTransactionOnAsynchronousEndpoints(false)
+                        ->withDeduplication(false)
                 ]),
             allowGatewaysToBeRegisteredInContainer: true,
             enableAsynchronousProcessing: [

@@ -6,7 +6,7 @@ namespace App\MultiTenant\Application;
 
 use Doctrine\ORM\EntityManager;
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 final readonly class PersonRepository

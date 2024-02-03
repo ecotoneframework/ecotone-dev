@@ -3,6 +3,7 @@
 namespace App\MultiTenant;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -19,6 +20,10 @@ class Configuration
             ]),
             AmqpBackedMessageChannelBuilder::create("image_processing_one"),
             AmqpBackedMessageChannelBuilder::create("image_processing_two"),
+            DbalConfiguration::createWithDefaults()
+                ->withTransactionOnCommandBus(false)
+                ->withTransactionOnAsynchronousEndpoints(false)
+                ->withDeduplication(false)
         ];
     }
 

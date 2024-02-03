@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Configuration;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Laravel\Config\LaravelConnectionReference;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 
 final readonly class EcotoneConfiguration
 {

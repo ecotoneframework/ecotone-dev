@@ -6,7 +6,7 @@ namespace App\MultiTenant\Configuration;
 
 use Ecotone\Laravel\Config\LaravelConnectionReference;
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 
 final readonly class EcotoneConfiguration
 {

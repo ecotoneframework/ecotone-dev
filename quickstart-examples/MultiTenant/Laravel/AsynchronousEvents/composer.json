@@ -13,7 +13,7 @@
         }
     },
     "require": {
-        "ecotone/dbal": "^1.210@dev",
+        "ecotone/dbal": "^1.210.3",
         "ecotone/laravel": "^1.210",
         "laravel/laravel": "^10.0"
     },

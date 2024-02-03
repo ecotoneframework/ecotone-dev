@@ -11,7 +11,7 @@ use Interop\Queue\ConnectionFactory;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\ORMPersonRepository;
 
-final readonly class PersonQueryService
+final class PersonQueryService
 {
     /**
      * @return int[]

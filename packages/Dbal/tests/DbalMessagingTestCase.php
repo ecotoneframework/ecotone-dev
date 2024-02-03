@@ -17,6 +17,9 @@ use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 abstract class DbalMessagingTestCase extends TestCase
 {
+    private ConnectionFactory $tenantAConnection;
+    private ConnectionFactory $tenantBConnection;
+
     public function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
         $dbalConnectionFactory = self::prepareConnection();
@@ -118,14 +121,27 @@ SQL);
 
     protected function connectionForTenantB(): ConnectionFactory
     {
-        return DbalConnection::fromDsn(
+        if (isset($this->tenantBConnection)) {
+            return $this->tenantBConnection;
+        }
+
+        $connectionFactory = DbalConnection::fromDsn(
             getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'
         );
+
+        $this->tenantBConnection = $connectionFactory;
+        return $connectionFactory;
     }
 
     protected function connectionForTenantA(): ConnectionFactory
     {
-        return self::prepareConnection();
+        $connectionFactory = self::prepareConnection();
+        if (isset($this->tenantAConnection)) {
+            return $this->tenantAConnection;
+        }
+
+        $this->tenantAConnection = $connectionFactory;
+        return $connectionFactory;
     }
 
     protected function connectionForTenantAWithManagerRegistry(array $paths): EcotoneManagerRegistryConnectionFactory

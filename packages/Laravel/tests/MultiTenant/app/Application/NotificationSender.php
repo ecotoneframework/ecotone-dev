@@ -9,20 +9,20 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 
 final class NotificationSender
 {
-    private static array $notifications = [];
+    private array $notifications = [];
 
     public function sendWelcomeNotification(Customer $customer, #[Header('tenant')] $tenant): void
     {
-        if (!isset(self::$notifications[$tenant])) {
-            self::$notifications[$tenant] = 0;
+        if (!isset($this->notifications[$tenant])) {
+            $this->notifications[$tenant] = 0;
         }
 
-        self::$notifications[$tenant]++;
+        $this->notifications[$tenant]++;
     }
 
     #[QueryHandler("getNotificationsCount")]
     public function getNotifications(#[Header('tenant')] $tenant): int
     {
-        return self::$notifications[$tenant] ?? 0;
+        return $this->notifications[$tenant] ?? 0;
     }
 }

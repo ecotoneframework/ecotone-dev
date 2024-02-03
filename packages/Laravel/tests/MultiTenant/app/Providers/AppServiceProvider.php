@@ -2,7 +2,7 @@
 
 namespace App\MultiTenant\Providers;
 
-use Ecotone\Dbal\DbalConnection;
+use App\MultiTenant\Application\NotificationSender;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -12,11 +12,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton('tenant_a_connection', function () {
-            return DbalConnection::resolveLaravelConnection('tenant_a_connection');
-        });
-        $this->app->singleton('tenant_b_connection', function () {
-            return DbalConnection::resolveLaravelConnection('tenant_b_connection');
+        $this->app->singleton(NotificationSender::class, function () {
+            return new NotificationSender();
         });
     }
 

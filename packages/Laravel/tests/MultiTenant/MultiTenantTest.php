@@ -31,6 +31,12 @@ final class MultiTenantTest extends TestCase
         $this->commandBus = $app->get(CommandBus::class);
     }
 
+    public function tearDown(): void
+    {
+        DB::connection('tenant_a_connection')->getDoctrineConnection()->close();
+        DB::connection('tenant_b_connection')->getDoctrineConnection()->close();
+    }
+
     public function test_run_message_handlers_for_multi_tenant_connection(): void
     {
         $this->commandBus->send(new RegisterCustomer(1, 'John Doe'), metadata: ['tenant' => 'tenant_a']);
@@ -121,7 +127,7 @@ final class MultiTenantTest extends TestCase
                 metadata: ['tenant' => 'tenant_a', 'shouldThrowException' => true]
             );
         }catch (\RuntimeException $exception) {}
-        
+
         $this->commandBus->sendWithRouting(
             'customer.register_with_event',
             new RegisterCustomer(2, 'John Doe'), metadata: ['tenant' => 'tenant_a']

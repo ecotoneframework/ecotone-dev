@@ -47,7 +47,7 @@
         "symfony/expression-language": "^6.0|^7.0",
         "nesbot/carbon": "^2.71",
         "moneyphp/money": "^4.1.0",
-        "ecotone/dbal": "^1.210.3"
+        "ecotone/dbal": "~1.210.3"
     },
     "extra": {
         "laravel": {

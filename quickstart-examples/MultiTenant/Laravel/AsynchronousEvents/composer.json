@@ -13,7 +13,7 @@
         }
     },
     "require": {
-        "ecotone/lite-dbal-starter": "^1.0.0",
+        "ecotone/lite-dbal-starter": "^1.0.1",
         "ecotone/laravel-starter": "^1.0.0",
         "laravel/laravel": "^10.0"
     },

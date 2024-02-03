@@ -1,3 +1,0 @@
-# Multi-Tenancy in Symfony
-
-Coming soon...

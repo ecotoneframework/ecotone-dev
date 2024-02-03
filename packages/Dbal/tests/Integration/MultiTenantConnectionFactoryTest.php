@@ -14,10 +14,10 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Dbal\Fixture\Betting\BetService;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeContextWithMessages;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeMessageChannelWithConnectionFactoryBuilder;
-use Test\Ecotone\Modelling\Fixture\Collector\BetService;
 
 final class MultiTenantConnectionFactoryTest extends TestCase
 {

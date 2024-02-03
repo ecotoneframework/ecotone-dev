@@ -84,6 +84,7 @@ services:
       - ".env"
   database:
     image: postgres:12.1
+    command: postgres -c 'max_connections=250'
     environment:
       POSTGRES_USER: "ecotone"
       POSTGRES_PASSWORD: "secret"

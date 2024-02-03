@@ -1,6 +1,6 @@
 <?php
 
-namespace App\MultiTenant;
+namespace General\RoundRobinWithSingleConsumer\src;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;

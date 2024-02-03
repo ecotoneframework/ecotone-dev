@@ -9,11 +9,11 @@ use Interop\Queue\Context;
 
 final class FakeConnectionFactory implements ConnectionFactory
 {
-    public function __construct(
-        private FakeContextWithMessages $context = new FakeContextWithMessages()
-    )
-    {
+    private FakeContextWithMessages $context;
 
+    public function __construct()
+    {
+        $this->context  = new FakeContextWithMessages();
     }
 
     public function createContext(): Context

@@ -60,7 +60,8 @@ class CachedConnectionFactory implements ConnectionFactory
     private function getCurrentActiveConnection(): string
     {
         $connectionFactory = $this->connectionFactory->getWrappedConnectionFactory();
-        if ($connectionFactory instanceof MultiTenantConnectionFactory) {
+        /** @phpstan-ignore-next-line  */
+        if (class_exists(MultiTenantConnectionFactory::class) && $connectionFactory instanceof MultiTenantConnectionFactory) {
             return $connectionFactory->currentActiveTenant();
         }
 

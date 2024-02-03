@@ -6,7 +6,6 @@ namespace App\MultiTenant\Configuration;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Config\MultiTenantConnectionFactory\MultiTenantConfiguration;
 
 final readonly class EcotoneConfiguration
 {

@@ -9,7 +9,7 @@ use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\PollableChannel;
 
-final readonly class InternalChannelResolver implements ChannelResolver
+final class InternalChannelResolver implements ChannelResolver
 {
     /**
      * @param array{channel: MessageChannel[]|PollableChannel[], name: string} $internalChannels

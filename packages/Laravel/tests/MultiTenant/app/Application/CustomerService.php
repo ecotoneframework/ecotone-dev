@@ -23,11 +23,19 @@ final class CustomerService
     }
 
     #[CommandHandler('customer.register_with_event')]
-    public function handleWithEvent(RegisterCustomer $command, EventBus $eventBus)
+    public function handleWithEvent(
+        RegisterCustomer $command,
+        EventBus $eventBus,
+        #[Header('shouldThrowException')] bool $shouldThrowException = false
+    )
     {
         Customer::register($command)->save();
 
         $eventBus->publish(new CustomerWasRegistered($command->customerId));
+
+        if ($shouldThrowException) {
+            throw new \RuntimeException("Throwing an execption to test error handling.");
+        }
     }
 
     #[CommandHandler('customer.register_with_business_interface')]

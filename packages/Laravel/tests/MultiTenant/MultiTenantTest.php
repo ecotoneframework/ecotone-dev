@@ -110,4 +110,33 @@ final class MultiTenantTest extends TestCase
             $this->queryBus->sendWithRouting('getNotificationsCount', metadata: ['tenant' => 'tenant_b'])
         );
     }
+
+    public function test_transactions_rollbacks_model_changes_and_published_events(): void
+    {
+        /** This one will be rolled back */
+        try {
+            $this->commandBus->sendWithRouting(
+                'customer.register_with_event',
+                new RegisterCustomer(1, 'John Doe'),
+                metadata: ['tenant' => 'tenant_a', 'shouldThrowException' => true]
+            );
+        }catch (\RuntimeException $exception) {}
+        
+        $this->commandBus->sendWithRouting(
+            'customer.register_with_event',
+            new RegisterCustomer(2, 'John Doe'), metadata: ['tenant' => 'tenant_a']
+        );
+
+        /** Consume Messages for Tenant A */
+        Artisan::call('ecotone:run', ['consumerName' => 'notifications', '--stopOnFailure' => true, '--executionTimeLimit' => 1000]);
+
+        $this->assertSame(
+            1,
+            $this->queryBus->sendWithRouting('getNotificationsCount', metadata: ['tenant' => 'tenant_a'])
+        );
+        $this->assertSame(
+            [2],
+            $this->queryBus->sendWithRouting('customer.getAllRegistered', metadata: ['tenant' => 'tenant_a'])
+        );
+    }
 }

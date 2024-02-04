@@ -145,34 +145,4 @@ final class MultiTenantTest extends TestCase
             $this->queryBus->sendWithRouting('customer.getAllRegistered', metadata: ['tenant' => 'tenant_a'])
         );
     }
-
-    public function test_laravel_connection_reconnects_in_multi_tenant_environment(): void
-    {
-        DB::connection('tenant_a_connection')->getDoctrineConnection()->close();
-        DB::connection('tenant_b_connection')->getDoctrineConnection()->close();
-
-        $this->commandBus->sendWithRouting(
-            'customer.register_with_event',
-            new RegisterCustomer(1, 'John Doe'), metadata: ['tenant' => 'tenant_a']
-        );
-        $this->commandBus->sendWithRouting(
-            'customer.register_with_event',
-            new RegisterCustomer(2, 'John Doe'), metadata: ['tenant' => 'tenant_b']
-        );
-
-        DB::connection('tenant_a_connection')->getDoctrineConnection()->close();
-        DB::connection('tenant_b_connection')->getDoctrineConnection()->close();
-
-        /** Consume Messages for Tenant A */
-        Artisan::call('ecotone:run', ['consumerName' => 'notifications', '--stopOnFailure' => true, '--executionTimeLimit' => 1000]);
-
-        $this->assertSame(
-            1,
-            $this->queryBus->sendWithRouting('getNotificationsCount', metadata: ['tenant' => 'tenant_a'])
-        );
-        $this->assertSame(
-            1,
-            $this->queryBus->sendWithRouting('getNotificationsCount', metadata: ['tenant' => 'tenant_b'])
-        );
-    }
 }

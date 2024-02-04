@@ -16,6 +16,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
@@ -104,6 +105,7 @@ class BusRoutingModuleTest extends MessagingTest
         $this->assertEquals(
             MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
                 ->registerServiceDefinition(MessageHeadersPropagatorInterceptor::class)
+                ->registerServiceDefinition(MessageHandlerLogger::class)
                 ->registerBeforeMethodInterceptor(
                     MethodInterceptor::create(
                         MessageHeadersPropagatorInterceptor::class,

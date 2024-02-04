@@ -43,6 +43,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ServiceActivatorModu
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
 use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
+use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Modelling\Config\BusModule;
@@ -91,6 +92,7 @@ class ModuleClassList
         LoggingGateway::class,
         LoggingService::class,
         MessageHeadersPropagatorInterceptor::class,
+        MessageHandlerLogger::class
     ];
 
     public const ASYNCHRONOUS_MODULE = [

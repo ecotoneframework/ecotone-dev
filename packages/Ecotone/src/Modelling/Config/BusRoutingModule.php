@@ -19,6 +19,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
@@ -371,6 +372,10 @@ class BusRoutingModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             MessageHeadersPropagatorInterceptor::class,
             new Definition(MessageHeadersPropagatorInterceptor::class)
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            MessageHandlerLogger::class,
+            new Definition(MessageHandlerLogger::class)
         );
 
         $propagateHeadersInterfaceToCall = $interfaceToCallRegistry->getFor(MessageHeadersPropagatorInterceptor::class, 'propagateHeaders');

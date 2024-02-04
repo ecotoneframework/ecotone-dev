@@ -19,13 +19,7 @@ final class FakeLoggingService
     private array $beforeLogHeaders = [];
     private array $afterLogHeaders = [];
 
-    #[CommandHandler('placeOrder')]
-    public function doSomething($command, array $headers, EventBus $eventBus): void
-    {
-        $eventBus->publish(new OrderWasPlaced());
-    }
-
-    #[Around(pointcut: CommandBus::class . "||". PropagatingGateway::class)]
+    #[Around(pointcut: PropagatingGateway::class)]
     public function intercept(MethodInvocation $methodInvocation, Message $message, #[Reference] FakeLoggingGateway $fakeLoggingGateway): mixed
     {
         $fakeLoggingGateway->logBefore($message);

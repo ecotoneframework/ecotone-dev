@@ -121,8 +121,8 @@ final class HeaderPropagationTest extends TestCase
     public function test_interceptors_which_do_not_propagate_do_not_affect_event_bus_propagation()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [FakeLoggingService::class, FakeLoggingGateway::class, PropagatingGateway::class],
-            [new FakeLoggingService()],
+            [OrderService::class, FakeLoggingService::class, FakeLoggingGateway::class, PropagatingGateway::class],
+            [new OrderService(), new FakeLoggingService()],
         );
 
         $ecotoneTestSupport->getGateway(PropagatingGateway::class)->placeOrderWithPropagation([

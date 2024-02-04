@@ -166,11 +166,29 @@ final class ManagerRegistryEmulator implements ManagerRegistry
 
     private function setupEntityManager(): void
     {
-        $config = ORMSetup::createAttributeMetadataConfiguration(
-            $this->pathsToMapping,
-            true
-        );
+        /** Doctrine 3.0 >= */
+        if (class_exists(ORMSetup::class)) {
+            $config = ORMSetup::createAttributeMetadataConfiguration(
+                $this->pathsToMapping,
+                true
+            );
 
-        $this->entityManager = new EntityManager($this->getConnection(), $config);
+            /** To fake phpstan as in version 2.0, constructor is protected */
+            $entityManager = $this->getEntityManagerName();
+            $this->entityManager = new $entityManager($this->getConnection(), $config, null);
+        } else {
+            $config = Setup::createAttributeMetadataConfiguration(
+                $this->pathsToMapping,
+                true
+            );
+
+            $this->entityManager = EntityManager::create($this->getConnection(), $config);
+        }
+    }
+
+    private function getEntityManagerName(): string
+    {
+        $entityManager = '\Doctrine\ORM\EntityManager';
+        return $entityManager;
     }
 }

@@ -447,6 +447,12 @@ final class TracingTreeTest extends TracingTest
         /** @var Event $event */
         $event = $result['details']['events'][0];
         $this->stringStartsWith(
+            'Publishing Event Message using Class routing',
+        )->evaluate($event->getName());
+
+        /** @var Event $event */
+        $event = $result['details']['events'][1];
+        $this->stringStartsWith(
             'Collecting message with id',
         )->evaluate($event->getName());
     }

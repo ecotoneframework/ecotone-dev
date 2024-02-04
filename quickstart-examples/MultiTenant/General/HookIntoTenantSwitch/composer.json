@@ -1,0 +1,37 @@
+{
+    "type": "ecotone-quickstart",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "dgafka.mail@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "App\\MultiTenant\\": "src"
+        }
+    },
+    "require": {
+        "ecotone/lite-dbal-starter": "^1.0.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "wikimedia/composer-merge-plugin": "^2.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "wikimedia/composer-merge-plugin": true
+        }
+    },
+    "extra": {
+        "merge-plugin": {
+            "include": [
+                "../../../../packages/local_packages.json"
+            ]
+        }
+    }
+}

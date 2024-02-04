@@ -5,6 +5,7 @@ namespace Test\Ecotone\Modelling\Unit\Config;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
@@ -112,7 +113,7 @@ class BusRoutingModuleTest extends MessagingTest
                                 AllHeadersBuilder::createWith('headers'),
                             ]),
                         Precedence::ENDPOINT_HEADERS_PRECEDENCE - 2,
-                        CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class
+                        CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class . '||' . MessageGateway::class
                     )
                 )
                 ->registerAroundMethodInterceptor(
@@ -120,7 +121,7 @@ class BusRoutingModuleTest extends MessagingTest
                         MessageHeadersPropagatorInterceptor::class,
                         $storeHeadersInterfaceToCall,
                         Precedence::ENDPOINT_HEADERS_PRECEDENCE - 1,
-                        CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class,
+                        CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class . '||' . MessageGateway::class,
                         ParameterConverterAnnotationFactory::create()->createParameterConverters($storeHeadersInterfaceToCall),
                     )
                 )

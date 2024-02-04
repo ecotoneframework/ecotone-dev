@@ -29,7 +29,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Test\\Ecotone\\Laravel\\": "tests"
+            "Test\\Ecotone\\Laravel\\": "tests",
+            "App\\MultiTenant\\": "tests/MultiTenant/app"
         }
     },
     "require": {
@@ -45,7 +46,8 @@
         "wikimedia/composer-merge-plugin": "^2.0",
         "symfony/expression-language": "^6.0|^7.0",
         "nesbot/carbon": "^2.71",
-        "moneyphp/money": "^4.1.0"
+        "moneyphp/money": "^4.1.0",
+        "ecotone/dbal": "~1.210.3"
     },
     "extra": {
         "laravel": {

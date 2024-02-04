@@ -7,6 +7,7 @@ use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -374,7 +375,15 @@ class BusRoutingModule implements AnnotationModule
 
         $propagateHeadersInterfaceToCall = $interfaceToCallRegistry->getFor(MessageHeadersPropagatorInterceptor::class, 'propagateHeaders');
         $storeHeadersInterfaceToCall = $interfaceToCallRegistry->getFor(MessageHeadersPropagatorInterceptor::class, 'storeHeaders');
-        $pointcut = CommandBus::class . '||' . EventBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class . '||' . PropagateHeaders::class . '||' . MessagingEntrypointWithHeadersPropagation::class;
+        $pointcut =
+            CommandBus::class . '||' .
+            EventBus::class . '||' .
+            QueryBus::class . '||' .
+            AsynchronousRunningEndpoint::class . '||' .
+            PropagateHeaders::class . '||' .
+            MessagingEntrypointWithHeadersPropagation::class . '||' .
+            MessageGateway::class;
+
         $messagingConfiguration
             ->registerBeforeMethodInterceptor(
                 MethodInterceptor::create(

@@ -8,6 +8,7 @@ use Ecotone\Messaging\Support\Assert;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Enqueue\AmqpExt\AmqpConsumer;
 use Enqueue\AmqpExt\AmqpContext;
+use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Interop\Queue\SubscriptionConsumer;
 use ReflectionClass;
@@ -104,5 +105,10 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         }
 
         return $this->subscriptionConsumer;
+    }
+
+    public function getWrappedConnectionFactory(): ConnectionFactory
+    {
+        return $this->connectionFactory;
     }
 }

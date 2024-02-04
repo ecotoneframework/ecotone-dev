@@ -2,7 +2,7 @@ version: "3"
 
 services:
   app:
-    image: simplycodedsoftware/php:8.1
+    image: simplycodedsoftware/php:8.2.12
     volumes:
       - "$PWD:/data/app"
     user: 1000:1000
@@ -12,6 +12,7 @@ services:
     environment:
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone
     networks:
       - default
   database:
@@ -23,6 +24,15 @@ services:
       POSTGRES_PASSWORD: "secret"
     ports:
       - "5432:5432"
+  database-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: "secret"
+      MYSQL_USER: "ecotone"
+      MYSQL_PASSWORD: "secret"
+      MYSQL_DATABASE: "ecotone"
+    ports:
+      - "3306:3306"
   rabbitmq:
     image: rabbitmq:3.6-management-alpine
     environment:

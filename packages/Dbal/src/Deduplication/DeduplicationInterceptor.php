@@ -28,7 +28,7 @@ use Throwable;
 class DeduplicationInterceptor
 {
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
-    private bool $isInitialized = false;
+    private array $initialized = [];
 
     public function __construct(private ConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private LoggerInterface $logger)
     {
@@ -37,10 +37,11 @@ class DeduplicationInterceptor
     public function deduplicate(MethodInvocation $methodInvocation, Message $message, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint)
     {
         $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connection));
+        $contextId = \spl_object_id($connectionFactory->createContext());
 
-        if (! $this->isInitialized) {
+        if (!isset($this->initialized[$contextId])) {
             $this->createDataBaseTable($connectionFactory);
-            $this->isInitialized = true;
+            $this->initialized[$contextId] = true;
         }
         $this->removeExpiredMessages($connectionFactory);
         $messageId = $deduplicatedAttribute?->getDeduplicationHeaderName() ? $message->getHeaders()->get($deduplicatedAttribute->getDeduplicationHeaderName()) : $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
@@ -82,7 +83,7 @@ class DeduplicationInterceptor
                 'routing_slip' => $routingSlip,
             ]);
         } catch (Throwable $exception) {
-            $this->isInitialized = false;
+            unset($this->initialized[$contextId]);
 
             throw $exception;
         }

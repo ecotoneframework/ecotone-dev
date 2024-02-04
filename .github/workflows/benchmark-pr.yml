@@ -36,7 +36,7 @@ jobs:
         ports:
           - 3306:3306
       postgres:
-        image: postgres
+        image: simplycodedsoftware/postgres:16.1
         env:
           POSTGRES_USER: ecotone
           POSTGRES_PASSWORD: secret

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Enqueue\Dbal\DbalConnectionFactory;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -16,7 +18,7 @@ use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
-use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
@@ -148,6 +150,11 @@ final class MessagingSystemConfiguration implements Configuration
      * @var array<string, Definition> $serviceDefinitions
      */
     private array $serviceDefinitions = [];
+
+    /**
+     * @var array<string, Reference> $serviceAliases
+     */
+    private array $serviceAliases = [];
 
     private InterfaceToCallRegistry $interfaceToCallRegistry;
 
@@ -1031,6 +1038,15 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
+    public function registerServiceAlias(string|Reference $id, Reference $aliasTo): Configuration
+    {
+        if (! isset($this->serviceAliases[(string) $id])) {
+            $this->serviceAliases[(string) $id] = $aliasTo;
+        }
+
+        return $this;
+    }
+
     /**
      * @inheritDoc
      */
@@ -1126,6 +1142,10 @@ final class MessagingSystemConfiguration implements Configuration
                 Reference::to(MessagingEntrypoint::class),
                 $consoleCommandConfiguration,
             ]));
+        }
+
+        foreach ($this->serviceAliases as $id => $aliasTo) {
+            $messagingBuilder->replace($id, $aliasTo);
         }
 
         $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints(), $gatewayListReferences]));

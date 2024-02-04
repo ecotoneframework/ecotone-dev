@@ -29,6 +29,9 @@ class Person
     #[ORM\Column(name: 'name', type: 'string')]
     private string $name;
 
+    /**
+     * @var array<string>
+     */
     #[ORM\Column(name: 'roles', type: 'json')]
     public array $roles = [];
 
@@ -69,5 +72,11 @@ class Person
     public function getRoles(): array
     {
         return $this->roles;
+    }
+
+    #[QueryHandler('person.byById')]
+    public function getById(): Person
+    {
+        return $this;
     }
 }

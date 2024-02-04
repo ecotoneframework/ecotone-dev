@@ -7,6 +7,7 @@ namespace Ecotone\Dbal;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\ORMSetup;
 use Doctrine\ORM\Tools\Setup;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
@@ -165,11 +166,11 @@ final class ManagerRegistryEmulator implements ManagerRegistry
 
     private function setupEntityManager(): void
     {
-        $config = Setup::createAttributeMetadataConfiguration(
+        $config = ORMSetup::createAttributeMetadataConfiguration(
             $this->pathsToMapping,
             true
         );
 
-        $this->entityManager = EntityManager::create($this->getConnection(), $config);
+        $this->entityManager = new EntityManager($this->getConnection(), $config);
     }
 }

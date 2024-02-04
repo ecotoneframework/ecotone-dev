@@ -2,6 +2,7 @@
 
 namespace Ecotone\Modelling\MessageHandling\MetadataPropagator;
 
+use Ecotone\Messaging\Attribute\PropagateHeaders;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
@@ -16,18 +17,21 @@ class MessageHeadersPropagatorInterceptor
     private array $currentlyPropagatedHeaders = [];
     private bool $isPollingConsumer = false;
 
-    public function storeHeaders(MethodInvocation $methodInvocation, Message $message)
+    public function storeHeaders(MethodInvocation $methodInvocation, Message $message, ?PropagateHeaders $propagateHeaders = null)
     {
-        $userlandHeaders = MessageHeaders::unsetAllFrameworkHeaders($message->getHeaders()->headers());
-        $userlandHeaders[MessageHeaders::MESSAGE_ID] = $message->getHeaders()->getMessageId();
-        $userlandHeaders[MessageHeaders::MESSAGE_CORRELATION_ID] = $message->getHeaders()->getCorrelationId();
+        if ($propagateHeaders !== null && !$propagateHeaders->doPropagation()) {
+            $userlandHeaders = [];
+        }else {
+            $userlandHeaders = MessageHeaders::unsetAllFrameworkHeaders($message->getHeaders()->headers());
+            $userlandHeaders[MessageHeaders::MESSAGE_ID] = $message->getHeaders()->getMessageId();
+            $userlandHeaders[MessageHeaders::MESSAGE_CORRELATION_ID] = $message->getHeaders()->getCorrelationId();
+        }
 
         $this->currentlyPropagatedHeaders[] = $userlandHeaders;
-
         try {
             $reply = $methodInvocation->proceed();
         } finally {
-            array_shift($this->currentlyPropagatedHeaders);
+            array_pop($this->currentlyPropagatedHeaders);
         }
 
         return $reply;

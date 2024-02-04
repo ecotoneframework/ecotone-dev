@@ -111,7 +111,11 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                         'propagateTenant'
                     ),
                     Precedence::BETWEEN_INSTANT_RETRY_AND_TRANSACTION_PRECEDENCE,
-                    CommandBus::class . '||' . QueryBus::class . '||' . AsynchronousRunningEndpoint::class  . '||' . PropagateHeaders::class  . '||' . MessagingEntrypointWithHeadersPropagation::class
+                    CommandBus::class . '||' .
+                    QueryBus::class . '||' .
+                    AsynchronousRunningEndpoint::class  . '||' .
+                    PropagateHeaders::class  . '||' .
+                    MessagingEntrypointWithHeadersPropagation::class
                 )
             );
         }

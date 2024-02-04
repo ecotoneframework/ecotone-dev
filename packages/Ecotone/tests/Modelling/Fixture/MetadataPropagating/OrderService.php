@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\MetadataPropagating;
 
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;

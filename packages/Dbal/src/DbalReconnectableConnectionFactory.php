@@ -25,9 +25,12 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
     public function createContext(): Context
     {
-        $this->reconnect();
+        $context = $this->connectionFactory->createContext();
+        if ($this->isDisconnected($context)) {
+            $this->reconnect();
+        }
 
-        return $this->connectionFactory->createContext();
+        return $context;
     }
 
     public function getConnectionInstanceId(): string
@@ -50,7 +53,10 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
             return false;
         }
 
-        return ! $context->getDbalConnection()->isConnected()  || (method_exists(Connection::class, 'ping') && ! $context->getDbalConnection()->ping());
+        $connection = $context->getDbalConnection();
+        $isConnected = $connection->isConnected() && $this->ping($connection);
+
+        return !$isConnected;
     }
 
     public function reconnect(): void
@@ -66,6 +72,17 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     public function getConnection(): Connection
     {
         return self::getWrappedConnection($this->connectionFactory);
+    }
+
+    private function ping(Connection $connection): bool
+    {
+        try {
+            $connection->executeQuery($connection->getDatabasePlatform()->getDummySelectSQL());
+        } catch (\Exception $e) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

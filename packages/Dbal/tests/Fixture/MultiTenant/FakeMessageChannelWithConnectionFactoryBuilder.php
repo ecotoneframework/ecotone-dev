@@ -8,7 +8,6 @@ use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Test\Ecotone\Messaging\Fixture\Channel\FakeMessageChannelWithConnectionFactory;
 
 final class FakeMessageChannelWithConnectionFactoryBuilder implements MessageChannelBuilder
 {

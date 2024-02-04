@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Messaging\Fixture\Channel;
+namespace Test\Ecotone\Dbal\Fixture\MultiTenant;
 
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Queue\ConnectionFactory;
 
 final class FakeMessageChannelWithConnectionFactory implements PollableChannel

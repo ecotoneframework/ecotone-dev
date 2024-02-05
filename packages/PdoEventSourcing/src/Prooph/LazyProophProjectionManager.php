@@ -25,7 +25,8 @@ use function str_contains;
 
 class LazyProophProjectionManager implements ProjectionManager
 {
-    private ?ProjectionManager $lazyInitializedProjectionManager = null;
+    /** @var LazyProophProjectionManager[] */
+    private array $lazyInitializedProjectionManager = [];
 
     /**
      * @param ProjectionSetupConfiguration[] $projectionSetupConfigurations
@@ -40,20 +41,21 @@ class LazyProophProjectionManager implements ProjectionManager
 
     private function getProjectionManager(): ProjectionManager
     {
-        if ($this->lazyInitializedProjectionManager) {
-            return $this->lazyInitializedProjectionManager;
+        $context = $this->lazyProophEventStore->getContextName();
+        if (isset($this->lazyInitializedProjectionManager[$context])) {
+            return $this->lazyInitializedProjectionManager[$context];
         }
 
         $eventStore = $this->getLazyProophEventStore();
 
-        $this->lazyInitializedProjectionManager = match ($eventStore->getEventStoreType()) {
+        $this->lazyInitializedProjectionManager[$context] = match ($eventStore->getEventStoreType()) {
             LazyProophEventStore::EVENT_STORE_TYPE_POSTGRES => new PostgresProjectionManager($eventStore->getEventStore(), $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
             LazyProophEventStore::EVENT_STORE_TYPE_MYSQL => new MySqlProjectionManager($eventStore->getEventStore(), $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
             LazyProophEventStore::EVENT_STORE_TYPE_MARIADB => new MariaDbProjectionManager($eventStore->getEventStore(), $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
             LazyProophEventStore::EVENT_STORE_TYPE_IN_MEMORY => $this->eventSourcingConfiguration->getInMemoryProjectionManager()
         };
 
-        return $this->lazyInitializedProjectionManager;
+        return $this->lazyInitializedProjectionManager[$context];
     }
 
     public function ensureEventStoreIsPrepared(): void

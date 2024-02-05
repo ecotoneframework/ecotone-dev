@@ -35,6 +35,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
@@ -65,6 +66,7 @@ use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\IgnorePayload;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\BusModule;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
@@ -168,32 +170,46 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionInitialization = TypeDescriptor::create(ProjectionInitialization::class);
             $projectionDelete = TypeDescriptor::create(ProjectionDelete::class);
             $projectionReset = TypeDescriptor::create(ProjectionReset::class);
+            $parameterConverterFactory = ParameterConverterAnnotationFactory::create();
             foreach ($classDefinition->getPublicMethodNames() as $publicMethodName) {
                 foreach ($annotationRegistrationService->getAnnotationsForMethod($projectionClassName, $publicMethodName) as $attribute) {
                     $attributeType = TypeDescriptor::createFromVariable($attribute);
+                    $interfaceToCall = $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName);
                     if ($attributeType->equals($projectionInitialization)) {
                         $requestChannel = Uuid::uuid4()->toString();
                         $projectionLifeCycle = $projectionLifeCycle->withInitializationRequestChannel($requestChannel);
                         $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
                             $referenceName,
-                            $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName)
-                        )->withInputChannelName($requestChannel);
+                            $interfaceToCall
+                        )
+                            ->withInputChannelName($requestChannel)
+                            ->withMethodParameterConverters(
+                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall, (bool)$interfaceToCall->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class)))
+                            );
                     }
                     if ($attributeType->equals($projectionDelete)) {
                         $requestChannel = Uuid::uuid4()->toString();
                         $projectionLifeCycle = $projectionLifeCycle->withDeleteRequestChannel($requestChannel);
                         $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
                             $referenceName,
-                            $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName)
-                        )->withInputChannelName($requestChannel);
+                            $interfaceToCall
+                        )
+                            ->withInputChannelName($requestChannel)
+                            ->withMethodParameterConverters(
+                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall, (bool)$interfaceToCall->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class)))
+                            );
                     }
                     if ($attributeType->equals($projectionReset)) {
                         $requestChannel = Uuid::uuid4()->toString();
                         $projectionLifeCycle = $projectionLifeCycle->withResetRequestChannel($requestChannel);
                         $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
                             $referenceName,
-                            $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName)
-                        )->withInputChannelName($requestChannel);
+                            $interfaceToCall
+                        )
+                            ->withInputChannelName($requestChannel)
+                            ->withMethodParameterConverters(
+                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall, (bool)$interfaceToCall->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class)))
+                            );
                     }
                 }
             }

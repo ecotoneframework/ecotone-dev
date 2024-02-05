@@ -17,6 +17,7 @@ use Iterator;
 use PDO;
 use Prooph\Common\Messaging\MessageConverter;
 use Prooph\EventStore\EventStore;
+use Prooph\EventStore\Exception\StreamNotFound;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Pdo\MariaDbEventStore;
 use Prooph\EventStore\Pdo\MySqlEventStore;
@@ -60,7 +61,7 @@ class LazyProophEventStore implements EventStore
     private array $initializedEventStore = [];
     private MessageConverter $messageConverter;
     /** @var arraay */
-    private array $requireInitialization = [];
+    private array $initializated = [];
     private bool $canBeInitialized;
     private array $ensuredExistingStreams = [];
 
@@ -129,7 +130,11 @@ class LazyProophEventStore implements EventStore
         if (! isset($this->ensuredExistingStreams[$this->getContextName()][$streamName->toString()]) && ! $this->hasStream($streamName)) {
             $this->create(new Stream($streamName, $streamEvents, []));
         } else {
-            $this->getEventStore()->appendTo($streamName, $streamEvents);
+            try {
+                $this->getEventStore()->appendTo($streamName, $streamEvents);
+            }catch (StreamNotFound) {
+                $this->create(new Stream($streamName, $streamEvents, []));
+            }
         }
     }
 
@@ -142,7 +147,7 @@ class LazyProophEventStore implements EventStore
     public function prepareEventStore(): void
     {
         $connectionName = $this->getContextName();
-        if (!$this->canBeInitialized || isset($this->requireInitialization[$connectionName]) || $this->eventSourcingConfiguration->isInMemory()) {
+        if (!$this->canBeInitialized || isset($this->initializated[$connectionName]) || $this->eventSourcingConfiguration->isInMemory()) {
             return;
         }
 
@@ -162,7 +167,7 @@ class LazyProophEventStore implements EventStore
             };
         }
 
-        $this->requireInitialization[$connectionName] = true;
+        $this->initializated[$connectionName] = true;
     }
 
     public function getEventStore(): EventStore

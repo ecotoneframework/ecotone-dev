@@ -15,7 +15,6 @@ class ProjectionEventHandler
     public const PROJECTION_STATE = 'projection.state';
     public const PROJECTION_IS_REBUILDING = 'projection.is_rebuilding';
     public const PROJECTION_NAME = 'projection.name';
-    public const PROJECTION_IS_POLLING = 'projection.isPolling';
 
     public function __construct(
         private LazyProophProjectionManager $lazyProophProjectionManager,

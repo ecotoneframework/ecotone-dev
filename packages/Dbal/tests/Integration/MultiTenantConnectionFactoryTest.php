@@ -92,6 +92,25 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false, metadata: ['tenant' => 'tenant_x']);
     }
 
+    public function test_throwing_exception_when_trying_to_switch_to_different_tenant_when_one_is_activated()
+    {
+        $notExpectedContext = new FakeContextWithMessages();
+        $expectedContext = new FakeContextWithMessages();
+        $connections = [
+            'tenant_a_connection' => new FakeConnectionFactory($notExpectedContext),
+            'tenant_b_connection' => new FakeConnectionFactory($expectedContext)
+        ];
+
+        $ecotoneLite = $this->boostrapEcotone('tenant', $connections, [
+            'tenant_a' => 'tenant_a_connection',
+            'tenant_b' => 'tenant_b_connection'
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $ecotoneLite->sendCommandWithRoutingKey('makeBetAndSwitchTenant', false, metadata: ['tenant' => 'tenant_a', 'newTenant' => 'tenant_b']);
+    }
+
     public function test_round_robin_as_default_for_multi_tenant_connection_while_fetching_messages()
     {
         $connections = [

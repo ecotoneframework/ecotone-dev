@@ -9,6 +9,7 @@ use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
@@ -30,6 +31,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\QueryBus;
 use Psr\Container\ContainerInterface;
@@ -113,9 +115,11 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                     Precedence::BETWEEN_INSTANT_RETRY_AND_TRANSACTION_PRECEDENCE,
                     CommandBus::class . '||' .
                     QueryBus::class . '||' .
+                    EventBus::class . '||' .
                     AsynchronousRunningEndpoint::class  . '||' .
                     PropagateHeaders::class  . '||' .
-                    MessagingEntrypointWithHeadersPropagation::class
+                    MessagingEntrypointWithHeadersPropagation::class . '||' .
+                    MessageGateway::class
                 )
             );
         }

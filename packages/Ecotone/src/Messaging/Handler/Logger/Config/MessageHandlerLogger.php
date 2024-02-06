@@ -20,47 +20,47 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 
 final class MessageHandlerLogger
 {
-//    #[Presend(precedence: 1000, pointcut: Asynchronous::class)]
-//    public function asynchronous(Message $message, #[Reference] LoggingGateway $loggingGateway, Asynchronous $asynchronous, ?IdentifiedAnnotation $identifiedAnnotation = null): void
-//    {
-//        $loggingGateway->info(
-//            sprintf("Message Handler%s is Asynchronous, sending Message to `%s` Message Channel", $identifiedAnnotation ? ' with endpoint id ' . $identifiedAnnotation->getEndpointId() : '', implode(",", $asynchronous->getChannelName())),
-//            $message
-//        );
-//    }
-//
-//    #[Around(precedence: 1000, pointcut: CommandHandler::class)]
-//    public function aroundCommandHandler(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $loggingGateway): mixed
-//    {
-//        $loggingGateway->info(
-//            "Executing Command Handler " . $methodInvocation->getInterfaceToCall()->toString(),
-//            $message
-//        );
-//
-//        return $methodInvocation->proceed();
-//    }
-//
-//    #[Around(precedence: 1000, pointcut: EventHandler::class)]
-//    public function aroundEventHandler(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $loggingGateway): mixed
-//    {
-//        $loggingGateway->info(
-//            'Executing Event Handler ' . $methodInvocation->getInterfaceToCall()->toString(),
-//            $message
-//        );
-//
-//        return $methodInvocation->proceed();
-//    }
-//
-//    #[Around(precedence: 1000, pointcut: QueryHandler::class)]
-//    public function aroundQueryHandler(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $loggingGateway): mixed
-//    {
-//        $loggingGateway->info(
-//            'Executing Query Handler ' . $methodInvocation->getInterfaceToCall()->toString(),
-//            $message
-//        );
-//
-//        return $methodInvocation->proceed();
-//    }
+    #[Presend(precedence: 1000, pointcut: Asynchronous::class)]
+    public function asynchronous(Message $message, #[Reference] LoggingGateway $loggingGateway, Asynchronous $asynchronous, ?IdentifiedAnnotation $identifiedAnnotation = null): void
+    {
+        $loggingGateway->info(
+            sprintf("Message Handler%s is Asynchronous, sending Message to `%s` Message Channel", $identifiedAnnotation ? ' with endpoint id ' . $identifiedAnnotation->getEndpointId() : '', implode(",", $asynchronous->getChannelName())),
+            $message
+        );
+    }
+
+    #[Around(precedence: 1000, pointcut: CommandHandler::class)]
+    public function aroundCommandHandler(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $loggingGateway): mixed
+    {
+        $loggingGateway->info(
+            "Executing Command Handler " . $methodInvocation->getInterfaceToCall()->toString(),
+            $message
+        );
+
+        return $methodInvocation->proceed();
+    }
+
+    #[Around(precedence: 1000, pointcut: EventHandler::class)]
+    public function aroundEventHandler(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $loggingGateway): mixed
+    {
+        $loggingGateway->info(
+            'Executing Event Handler ' . $methodInvocation->getInterfaceToCall()->toString(),
+            $message
+        );
+
+        return $methodInvocation->proceed();
+    }
+
+    #[Around(precedence: 1000, pointcut: QueryHandler::class)]
+    public function aroundQueryHandler(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $loggingGateway): mixed
+    {
+        $loggingGateway->info(
+            'Executing Query Handler ' . $methodInvocation->getInterfaceToCall()->toString(),
+            $message
+        );
+
+        return $methodInvocation->proceed();
+    }
 
 //    #[Around(pointcut: ServiceActivator::class)]
 //    public function aroundServiceActivator(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $loggingGateway): mixed

@@ -11,7 +11,13 @@ use PHPUnit\Framework\Assert;
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . "/../boostrap.php";
 $app = require __DIR__.'/bootstrap/app.php';
+try {
 $app->make(Kernel::class)->bootstrap();
+}catch (Throwable $e) {
+    echo "Error: " . $e->getMessage();
+    dump($e->getTraceAsString());
+    exit(1);
+}
 runMigrationForTenants(DB::connection('tenant_a_connection'), DB::connection('tenant_b_connection'));
 
 $commandBus = $app->get(CommandBus::class);

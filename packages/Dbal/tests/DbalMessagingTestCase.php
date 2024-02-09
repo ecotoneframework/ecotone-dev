@@ -19,6 +19,7 @@ abstract class DbalMessagingTestCase extends TestCase
 {
     private ConnectionFactory $tenantAConnection;
     private ConnectionFactory $tenantBConnection;
+    private static ?DbalConnectionFactory $defaultConnection = null;
 
     public function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
@@ -30,9 +31,15 @@ abstract class DbalMessagingTestCase extends TestCase
 
     public static function prepareConnection(): DbalConnectionFactory
     {
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
+        if (null !== self::$defaultConnection && self::$defaultConnection->createContext()->getDbalConnection()->isConnected()) {
+            return self::$defaultConnection;
+        }
 
-        return new DbalConnectionFactory($dsn);
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
+        $dbalConnection = new DbalConnectionFactory($dsn);
+        self::$defaultConnection = $dbalConnection;
+
+        return $dbalConnection;
     }
 
     /**

@@ -14,7 +14,7 @@
     },
     "require": {
         "ecotone/laravel-starter": "^1.1.0",
-        "ecotone/lite-event-sourcing-starter": "^1.0.0",
+        "ecotone/lite-event-sourcing-starter": "^1.0",
         "laravel/laravel": "^10.0"
     },
     "require-dev": {

@@ -54,6 +54,7 @@ use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Filter\MessageFilterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
+use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -364,7 +365,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $this->registerProjectionManagerAction(
             'deleteProjection',
             [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'), HeaderBuilder::create('deleteEmittedEvents', 'ecotone.eventSourcing.manager.deleteEmittedEvents')],
-            [GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
+            [
+                GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
+                GatewayHeaderValueBuilder::create('ecotone.eventSourcing.manager.deleteEmittedEvents', true),
+                GatewayHeadersBuilder::create('metadata')
+            ],
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_DELETE_PROJECTION,
@@ -374,7 +379,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $this->registerProjectionManagerAction(
             'resetProjection',
             [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            [GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
+            [
+                GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
+                GatewayHeadersBuilder::create('metadata')
+            ],
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_RESET_PROJECTION,
@@ -394,7 +402,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $this->registerProjectionManagerAction(
             'initializeProjection',
             [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            [GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
+            [
+                GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
+                GatewayHeadersBuilder::create('metadata')
+            ],
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_INITIALIZE_PROJECTION,
@@ -404,7 +415,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $this->registerProjectionManagerAction(
             'triggerProjection',
             [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
-            [GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
+            [
+                GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
+                GatewayHeadersBuilder::create('metadata')
+            ],
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_TRIGGER_PROJECTION,

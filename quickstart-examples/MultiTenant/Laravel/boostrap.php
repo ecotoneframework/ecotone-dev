@@ -11,9 +11,10 @@ function runMigrationForTenants(LaravelConnection $tenantAConnection, LaravelCon
     migrate($tenantBConnection->getDoctrineConnection());
 
     foreach (['tenant_a_connection', 'tenant_b_connection'] as $connectionName) {
-        if (Schema::connection($connectionName)->hasTable('jobs')) {
-            Schema::connection($connectionName)->drop('jobs');
+        foreach (Schema::connection($connectionName)->getTableListing() as $tableName) {
+            Schema::connection($connectionName)->drop($tableName);
         }
+
         Schema::connection($connectionName)->create('jobs', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('queue');

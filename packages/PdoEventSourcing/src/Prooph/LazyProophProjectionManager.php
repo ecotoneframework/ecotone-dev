@@ -10,6 +10,7 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Modelling\Event;
 use Prooph\Common\Messaging\Message;
+use Prooph\EventStore\Exception\ProjectionNotFound;
 use Prooph\EventStore\Exception\RuntimeException;
 use Prooph\EventStore\Pdo\Projection\MariaDbProjectionManager;
 use Prooph\EventStore\Pdo\Projection\MySqlProjectionManager;
@@ -80,8 +81,10 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function deleteProjection(string $name, bool $deleteEmittedEvents): void
     {
-        $this->getProjectionManager()->deleteProjection($name, $deleteEmittedEvents);
-        $this->triggerActionOnProjection($name);
+        try {
+            $this->getProjectionManager()->deleteProjection($name, $deleteEmittedEvents);
+            $this->triggerActionOnProjection($name);
+        }catch (ProjectionNotFound) {}
     }
 
     public function resetProjection(string $name): void

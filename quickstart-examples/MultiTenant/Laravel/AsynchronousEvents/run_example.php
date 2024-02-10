@@ -20,7 +20,9 @@ $app->make(Kernel::class)->bootstrap();
 }
 runMigrationForTenants(DB::connection('tenant_a_connection'), DB::connection('tenant_b_connection'));
 
+/** @var CommandBus $commandBus */
 $commandBus = $app->get(CommandBus::class);
+/** @var QueryBus $queryBus */
 $queryBus = $app->get(QueryBus::class);
 
 echo "Running demo:\n";

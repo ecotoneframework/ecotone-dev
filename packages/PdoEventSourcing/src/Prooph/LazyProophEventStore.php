@@ -60,7 +60,7 @@ class LazyProophEventStore implements EventStore
     /** @var EventStore[] */
     private array $initializedEventStore = [];
     private MessageConverter $messageConverter;
-    /** @var arraay */
+    /** @var array<string, bool> */
     private array $initializated = [];
     private bool $canBeInitialized;
     private array $ensuredExistingStreams = [];

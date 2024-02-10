@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace  Test\Ecotone\Dbal\Fixture\Betting;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -27,6 +28,12 @@ final class BetService
         if ($shouldThrowException) {
             throw new RuntimeException('test');
         }
+    }
+
+    #[CommandHandler('makeBetAndSwitchTenant')]
+    public function makeBetAndSwitchTenant(#[Header('newTenant')] string $newTenant, #[Reference] CommandBus $commandBus): void
+    {
+        $commandBus->sendWithRouting('makeBet', false, metadata: ['tenant' => $newTenant]);
     }
 
     #[Asynchronous('bets')]

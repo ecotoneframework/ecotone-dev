@@ -36,12 +36,6 @@ return [
             'throw' => false,
         ],
 
-        'common' => [
-            'driver' => 'local',
-            'root' => storage_path('../../Common'),
-            'throw' => false,
-        ],
-
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

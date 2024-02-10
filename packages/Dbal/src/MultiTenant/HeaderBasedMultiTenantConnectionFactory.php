@@ -111,15 +111,23 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         return $this->getCurrentTenantOrNull() !== null;
     }
 
+    private string|null $currentActiveTenant = null;
+
     public function propagateTenant(MethodInvocation $methodInvocation, Message $message): mixed
     {
         $tenant = $this->getCurrentTenantOrNull();
-        if ($tenant === null) {
+        if ($tenant === null || $tenant === $this->currentActiveTenant) {
             return $methodInvocation->proceed();
+        }
+
+        if ($this->currentActiveTenant !== null) {
+            throw new InvalidArgumentException("Tenant `{$tenant}` is already active. Please deactivate it before activating another tenant.");
         }
 
         /** @var string|ConnectionReference $connectionReference */
         $connectionReference = $this->getCurrentConnectionReferenceOrNull($tenant);
+        Assert::notNull($connectionReference, "Lack of mapping for tenant `{$tenant}`. Please provide mapping for this tenant or default connection name.");
+        $this->currentActiveTenant = $tenant;
 
         try {
             $this->loggingGateway->info("Activating tenant `{$tenant}` on connection `{$connectionReference}`", $message);
@@ -127,6 +135,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
             $result = $methodInvocation->proceed();
         } finally {
+            $this->currentActiveTenant = null;
             $this->loggingGateway->info("Deactivating tenant `{$tenant}` on connection `{$connectionReference}`", $message);
             $this->messagingEntrypoint->sendWithHeaders($connectionReference, [$this->tenantHeaderName => $tenant], self::TENANT_DEACTIVATED_CHANNEL_NAME);
         }

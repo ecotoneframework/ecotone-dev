@@ -4,13 +4,12 @@ namespace Ecotone\Messaging\Attribute;
 
 use Attribute;
 
-#[Attribute(Attribute::TARGET_METHOD|Attribute::TARGET_CLASS)]
+#[Attribute(Attribute::TARGET_METHOD | Attribute::TARGET_CLASS)]
 final class PropagateHeaders
 {
     public function __construct(
         private bool $doPropagation = true
-    )
-    {
+    ) {
 
     }
 

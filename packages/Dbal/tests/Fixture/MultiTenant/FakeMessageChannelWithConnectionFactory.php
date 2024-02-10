@@ -13,8 +13,7 @@ final class FakeMessageChannelWithConnectionFactory implements PollableChannel
     public function __construct(
         public $channelName,
         public ConnectionFactory $connectionFactory,
-    )
-    {
+    ) {
 
     }
 

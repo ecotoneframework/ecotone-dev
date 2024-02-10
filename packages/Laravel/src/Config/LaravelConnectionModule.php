@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Laravel\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -13,7 +14,6 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Interop\Queue\ConnectionFactory;
 
@@ -47,11 +47,11 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
                 new Definition(
                     ConnectionFactory::class,
                     [
-                        $connection
+                        $connection,
                     ],
                     [
                         LaravelConnectionResolver::class,
-                        'resolveLaravelConnection'
+                        'resolveLaravelConnection',
                     ]
                 )
             );
@@ -64,7 +64,7 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
                 [],
                 [
                     LaravelTenantDatabaseSwitcher::class,
-                    'create'
+                    'create',
                 ]
             )
         );

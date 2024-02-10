@@ -9,10 +9,10 @@ use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -49,15 +49,15 @@ final class ORMTest extends DbalMessagingTestCase
         $connectionFactory = $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person']);
         $ORMPersonRepository = new ORMPersonRepository($connectionFactory->getRegistry());
 
-        yield "For standard Object Manager Connection" => [
+        yield 'For standard Object Manager Connection' => [
             [DbalConnectionFactory::class => $connectionFactory, ORMPersonRepository::class => $ORMPersonRepository, RegisterPersonService::class => new RegisterPersonService()],
             ['Test\Ecotone\Dbal\Fixture\ORM\PersonRepository'],
-            false
+            false,
         ];
         yield 'For Aggregate with Object Manager Connection' => [
             [DbalConnectionFactory::class => $connectionFactory],
             ['Test\Ecotone\Dbal\Fixture\ORM\Person'],
-            true
+            true,
         ];
     }
 
@@ -72,7 +72,7 @@ final class ORMTest extends DbalMessagingTestCase
             array_merge(
                 [
                     \Test\Ecotone\Dbal\Fixture\ORM\MultiTenant\ORMPersonRepository::class => new \Test\Ecotone\Dbal\Fixture\ORM\MultiTenant\ORMPersonRepository(),
-                    \Test\Ecotone\Dbal\Fixture\ORM\MultiTenant\RegisterPersonService::class => new \Test\Ecotone\Dbal\Fixture\ORM\MultiTenant\RegisterPersonService()
+                    \Test\Ecotone\Dbal\Fixture\ORM\MultiTenant\RegisterPersonService::class => new \Test\Ecotone\Dbal\Fixture\ORM\MultiTenant\RegisterPersonService(),
                 ],
                 $tenantConnections
             ),
@@ -82,9 +82,9 @@ final class ORMTest extends DbalMessagingTestCase
                 'tenant',
                 [
                     'tenant_a' => 'tenant_a_connection',
-                    'tenant_b' => 'tenant_b_connection'
+                    'tenant_b' => 'tenant_b_connection',
                 ]
-            )
+            ),
         ];
         yield 'For Aggregate with Object Manager Connection' => [
             $tenantConnections,
@@ -94,9 +94,9 @@ final class ORMTest extends DbalMessagingTestCase
                 'tenant',
                 [
                     'tenant_a' => 'tenant_a_connection',
-                    'tenant_b' => 'tenant_b_connection'
+                    'tenant_b' => 'tenant_b_connection',
                 ]
-            )
+            ),
         ];
     }
 
@@ -111,7 +111,7 @@ final class ORMTest extends DbalMessagingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([
                 SaveMultipleEntitiesHandler::class => new SaveMultipleEntitiesHandler(),
-                PersonQueryService::class => new PersonQueryService()
+                PersonQueryService::class => new PersonQueryService(),
             ], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -122,7 +122,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withNamespaces(array_merge($namespaces, [
                     /** This registers second Person with id +1 */
                     'Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler',
-                    'Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler'
+                    'Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler',
                 ])),
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryStateStoredRepository: false,
@@ -181,7 +181,7 @@ final class ORMTest extends DbalMessagingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([
                 SaveMultipleEntitiesHandler::class => new SaveMultipleEntitiesHandler(),
-                PersonQueryService::class => new PersonQueryService()
+                PersonQueryService::class => new PersonQueryService(),
             ], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -192,7 +192,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withNamespaces(array_merge($namespaces, [
                     /** This registers second Person with id +1 */
                     'Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler',
-                    'Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler'
+                    'Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler',
                 ])),
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryStateStoredRepository: false,
@@ -263,7 +263,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
-                        ->withDoctrineORMRepositories($enableDoctrineORMAggregates)
+                        ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
                 ])
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',

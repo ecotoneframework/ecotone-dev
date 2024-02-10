@@ -34,7 +34,7 @@ class PollToGatewayTaskExecutor implements TaskExecutor
             $this->gateway->execute([
                 MessageBuilder::fromMessage($message)
                     ->setHeader(MessageHeaders::CONSUMER_POLLING_METADATA, $pollingMetadata)
-                    ->build()
+                    ->build(),
             ]);
         }
     }

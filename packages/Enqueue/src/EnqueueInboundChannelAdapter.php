@@ -12,6 +12,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use Interop\Queue\Message as EnqueueMessage;
 
+use function spl_object_id;
+
 abstract class EnqueueInboundChannelAdapter implements MessagePoller
 {
     private array $initialized = [];
@@ -38,9 +40,9 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
         try {
             $context = $this->connectionFactory->createContext();
             if ($this->declareOnStartup) {
-                $contextId = \spl_object_id($context);
+                $contextId = spl_object_id($context);
 
-                if (!isset($this->initialized[$contextId])) {
+                if (! isset($this->initialized[$contextId])) {
                     $this->initialize();
                     $this->initialized[$contextId] = true;
                 }

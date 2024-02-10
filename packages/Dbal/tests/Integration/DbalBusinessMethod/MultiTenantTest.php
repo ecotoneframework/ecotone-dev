@@ -5,20 +5,23 @@ declare(strict_types=1);
 namespace Integration\DbalBusinessMethod;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\PersonCommandService;
-use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\RegisterPerson;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameNormalizer;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\PersonCommandService;
+use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\RegisterPerson;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
+/**
+ * @internal
+ */
 final class MultiTenantTest extends DbalMessagingTestCase
 {
     public function test_write_statement_with_no_return_and_automatic_parameter_binding()
@@ -60,14 +63,14 @@ final class MultiTenantTest extends DbalMessagingTestCase
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\DbalBusinessInterface',
                     'Test\Ecotone\Dbal\Fixture\ORM\Person',
-                    'Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler'
+                    'Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler',
                 ])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(
                         tenantHeaderName: 'tenant',
                         tenantToConnectionMapping: [
                             'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection'
+                            'tenant_b' => 'tenant_b_connection',
                         ],
                     ),
                     DbalConfiguration::createWithDefaults()

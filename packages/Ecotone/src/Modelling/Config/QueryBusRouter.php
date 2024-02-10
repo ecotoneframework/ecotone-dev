@@ -23,8 +23,7 @@ class QueryBusRouter
     public function __construct(
         private array $channelMapping,
         private LoggingGateway $loggingGateway
-    )
-    {
+    ) {
 
     }
 

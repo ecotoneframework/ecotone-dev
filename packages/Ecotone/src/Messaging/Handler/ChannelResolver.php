@@ -2,10 +2,7 @@
 
 namespace Ecotone\Messaging\Handler;
 
-use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\PollableChannel;
-use Ecotone\Messaging\SubscribableChannel;
 
 /**
  * Interface ChannelResolver

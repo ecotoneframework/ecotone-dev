@@ -7,9 +7,9 @@ namespace Ecotone\Dbal\ObjectManager;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\StandardRepository;
 use Interop\Queue\ConnectionFactory;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 
 class ManagerRegistryRepository implements StandardRepository
 {
@@ -49,6 +49,6 @@ class ManagerRegistryRepository implements StandardRepository
             return $connectionFactory->getRegistry();
         }
 
-        throw new InvalidArgumentException("To make use of Doctrine ORM based Aggregates, you need to construct your Connection using DbalConnection::createForManagerRegistry() method (https://docs.ecotone.tech/modules/dbal-support).");
+        throw new InvalidArgumentException('To make use of Doctrine ORM based Aggregates, you need to construct your Connection using DbalConnection::createForManagerRegistry() method (https://docs.ecotone.tech/modules/dbal-support).');
     }
 }

@@ -10,10 +10,10 @@ use Ecotone\Messaging\Attribute\PropagateHeaders;
 
 interface PropagatingGateway
 {
-    #[MessageGateway("placeOrder")]
+    #[MessageGateway('placeOrder')]
     public function placeOrderWithPropagation(#[Headers] $headers): void;
 
-    #[MessageGateway("placeOrder")]
+    #[MessageGateway('placeOrder')]
     #[PropagateHeaders(false)]
     public function placeOrderWithoutPropagation(#[Headers] $headers): void;
 }

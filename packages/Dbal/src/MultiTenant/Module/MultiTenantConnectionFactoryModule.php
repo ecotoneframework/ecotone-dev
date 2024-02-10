@@ -39,8 +39,6 @@ use Psr\Container\ContainerInterface;
 #[ModuleAnnotation]
 final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationModule implements AnnotationModule
 {
-
-
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         return new self();
@@ -71,10 +69,10 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                         new Definition(
                             RoundRobinReceivingStrategy::class,
                             [
-                                array_keys($multiTenantConfig->getTenantToConnectionMapping())
+                                array_keys($multiTenantConfig->getTenantToConnectionMapping()),
                             ]
                         ),
-                        $multiTenantConfig->getDefaultConnectionName()
+                        $multiTenantConfig->getDefaultConnectionName(),
                     ]
                 )
             );

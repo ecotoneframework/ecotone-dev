@@ -13,7 +13,6 @@ use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -44,8 +43,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         string $thisMessageChannelName,
         array $sendingChannelNames,
         array $receivingChannelNames,
-    ): self
-    {
+    ): self {
         return new self(
             $thisMessageChannelName,
             new Definition(RoundRobinSendingStrategy::class, [$sendingChannelNames]),
@@ -62,8 +60,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     public static function createRoundRobin(
         string $thisMessageChannelName,
         array $channelNames = [],
-    ): self
-    {
+    ): self {
         return new self(
             $thisMessageChannelName,
             new Definition(RoundRobinSendingStrategy::class, [$channelNames]),
@@ -90,7 +87,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     {
         $this->channelSendingStrategy = new Definition(CustomSendingStrategy::class, [
             Reference::to(MessagingEntrypoint::class),
-            $requestChannelName
+            $requestChannelName,
         ]);
 
         return $this;
@@ -106,7 +103,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         $this->channelSendingStrategy = new Definition(HeaderSendingStrategy::class, [
             $headerName,
             $headerMapping,
-            $defaultChannelName
+            $defaultChannelName,
         ]);
 
         return $this;
@@ -119,7 +116,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     {
         $this->channelReceivingStrategy = new Definition(CustomReceivingStrategy::class, [
             Reference::to(MessagingEntrypoint::class),
-            $requestChannelName
+            $requestChannelName,
         ]);
 
         return $this;
@@ -127,7 +124,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
-        if (!$builder->has(InternalChannelResolver::class)) {
+        if (! $builder->has(InternalChannelResolver::class)) {
             $builder->register(
                 InternalChannelResolver::class,
                 new Definition(
@@ -135,10 +132,10 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
                     [
                         Reference::to(ChannelResolver::class),
                         array_map(
-                            fn(MessageChannelBuilder $channelBuilder, $key) => ['channel' => $channelBuilder->compile($builder), 'name' => is_int($key) ? $channelBuilder->getMessageChannelName() : $key],
+                            fn (MessageChannelBuilder $channelBuilder, $key) => ['channel' => $channelBuilder->compile($builder), 'name' => is_int($key) ? $channelBuilder->getMessageChannelName() : $key],
                             $this->internalMessageChannels,
                             array_keys($this->internalMessageChannels)
-                        )
+                        ),
                     ]
                 )
             );

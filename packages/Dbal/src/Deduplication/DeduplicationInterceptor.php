@@ -18,6 +18,9 @@ use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 use Psr\Log\LoggerInterface;
+
+use function spl_object_id;
+
 use Throwable;
 
 /**
@@ -37,9 +40,9 @@ class DeduplicationInterceptor
     public function deduplicate(MethodInvocation $methodInvocation, Message $message, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint)
     {
         $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connection));
-        $contextId = \spl_object_id($connectionFactory->createContext());
+        $contextId = spl_object_id($connectionFactory->createContext());
 
-        if (!isset($this->initialized[$contextId])) {
+        if (! isset($this->initialized[$contextId])) {
             $this->createDataBaseTable($connectionFactory);
             $this->initialized[$contextId] = true;
         }

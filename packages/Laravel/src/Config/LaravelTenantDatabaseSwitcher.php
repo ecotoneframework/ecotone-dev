@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace Ecotone\Laravel\Config;
 
+use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Config\ConnectionReference;
-use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Illuminate\Support\Facades\Config;
 
 final class LaravelTenantDatabaseSwitcher
 {
     public function __construct(
         private string $defaultConnectionName,
-    )
-    {
+    ) {
 
     }
 

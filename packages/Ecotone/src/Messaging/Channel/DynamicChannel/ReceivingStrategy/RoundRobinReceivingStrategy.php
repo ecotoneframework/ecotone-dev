@@ -11,8 +11,7 @@ final class RoundRobinReceivingStrategy implements ChannelReceivingStrategy
     public function __construct(
         private array $channelNames,
         private int   $currentChannelIndex = 0,
-    )
-    {
+    ) {
 
     }
 

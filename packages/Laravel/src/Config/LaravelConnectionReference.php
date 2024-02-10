@@ -14,8 +14,7 @@ final class LaravelConnectionReference extends ConnectionReference implements De
     private function __construct(
         private string $laravelConnectionName,
         string $referenceName,
-    )
-    {
+    ) {
         parent::__construct($referenceName);
     }
 
@@ -40,7 +39,7 @@ final class LaravelConnectionReference extends ConnectionReference implements De
             LaravelConnectionReference::class,
             [
                 $this->laravelConnectionName,
-                $this->getReferenceName()
+                $this->getReferenceName(),
             ],
         );
     }

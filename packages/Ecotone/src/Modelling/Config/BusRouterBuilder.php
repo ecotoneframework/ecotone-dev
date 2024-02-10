@@ -11,7 +11,6 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadConverter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Exception;
@@ -150,7 +149,7 @@ class BusRouterBuilder implements MessageHandlerBuilder
                 'config' => fn (RouterBuilder $router) => $router->setResolutionRequired(false)
                     ->withMethodParameterConverters([
                         PayloadBuilder::create('object'),
-                        MessageConverterBuilder::create('message')
+                        MessageConverterBuilder::create('message'),
                     ]),
             ],
             'eventByName' => [
@@ -160,7 +159,7 @@ class BusRouterBuilder implements MessageHandlerBuilder
                     ->setResolutionRequired(false)
                     ->withMethodParameterConverters([
                         HeaderBuilder::createOptional('routedName', BusModule::EVENT_CHANNEL_NAME_BY_NAME),
-                        MessageConverterBuilder::create('message')
+                        MessageConverterBuilder::create('message'),
                     ]),
             ],
             'commandByObject' => [
@@ -169,7 +168,7 @@ class BusRouterBuilder implements MessageHandlerBuilder
                 'config' => fn (RouterBuilder $router) => $router
                     ->withMethodParameterConverters([
                         PayloadBuilder::create('object'),
-                        MessageConverterBuilder::create('message')
+                        MessageConverterBuilder::create('message'),
                     ]),
             ],
             'commandByName' => [
@@ -178,7 +177,7 @@ class BusRouterBuilder implements MessageHandlerBuilder
                 'config' => fn (RouterBuilder $router) => $router
                     ->withMethodParameterConverters([
                         HeaderBuilder::createOptional('name', BusModule::COMMAND_CHANNEL_NAME_BY_NAME),
-                        MessageConverterBuilder::create('message')
+                        MessageConverterBuilder::create('message'),
                     ]),
             ],
             'queryByObject' => [
@@ -187,7 +186,7 @@ class BusRouterBuilder implements MessageHandlerBuilder
                 'config' => fn (RouterBuilder $router) => $router
                     ->withMethodParameterConverters([
                         PayloadBuilder::create('object'),
-                        MessageConverterBuilder::create('message')
+                        MessageConverterBuilder::create('message'),
                     ]),
             ],
             'queryByName' => [
@@ -196,14 +195,14 @@ class BusRouterBuilder implements MessageHandlerBuilder
                 'config' => fn (RouterBuilder $router) => $router
                     ->withMethodParameterConverters([
                         HeaderBuilder::createOptional('name', BusModule::QUERY_CHANNEL_NAME_BY_NAME),
-                        MessageConverterBuilder::create('message')
+                        MessageConverterBuilder::create('message'),
                     ]),
             ],
         ];
         $config = $configs[$this->type] ?? throw InvalidArgumentException::create("Incorrect type {$this->type}");
         $routerReference = $builder->register($config['class'].'.'.$this->type, new Definition($config['class'], [
             $this->channelNamesRouting,
-            Reference::to(LoggingGateway::class)
+            Reference::to(LoggingGateway::class),
         ]));
         $interfaceToCall = $builder->getInterfaceToCall(new InterfaceToCallReference($config['class'], $config['method']));
         $router = RouterBuilder::create($routerReference->getId(), $interfaceToCall);

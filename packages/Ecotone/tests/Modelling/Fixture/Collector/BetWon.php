@@ -6,5 +6,4 @@ namespace Test\Ecotone\Modelling\Fixture\Collector;
 
 final class BetWon
 {
-
 }

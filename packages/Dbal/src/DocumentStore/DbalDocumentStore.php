@@ -16,6 +16,8 @@ use Ecotone\Messaging\Store\Document\DocumentNotFound;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Enqueue\Dbal\DbalContext;
 
+use function spl_object_id;
+
 final class DbalDocumentStore implements DocumentStore
 {
     public const ECOTONE_DOCUMENT_STORE = 'ecotone_document_store';
@@ -25,8 +27,7 @@ final class DbalDocumentStore implements DocumentStore
         private bool $autoDeclare,
         private ConversionService $conversionService,
         private array $initialized = [],
-    )
-    {
+    ) {
     }
 
     public function dropCollection(string $collectionName): void
@@ -226,14 +227,14 @@ final class DbalDocumentStore implements DocumentStore
         }
         $connection = $this->getConnection();
 
-        if (isset($this->initialized[\spl_object_id($connection)])) {
+        if (isset($this->initialized[spl_object_id($connection)])) {
             return true;
         }
 
         $tableExists = $connection->getSchemaManager()->tablesExist([$this->getTableName()]);
 
         if ($tableExists) {
-            $this->initialized[\spl_object_id($connection)] = true;
+            $this->initialized[spl_object_id($connection)] = true;
         }
 
         return $tableExists;

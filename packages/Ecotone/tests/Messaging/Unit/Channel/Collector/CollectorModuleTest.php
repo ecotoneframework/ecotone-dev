@@ -24,8 +24,9 @@ use PHPUnit\Framework\TestCase;
 
 use RuntimeException;
 
-use Test\Ecotone\Messaging\Fixture\Channel\DynamicChannel\DynamicChannelResolver;
 use function str_contains;
+
+use Test\Ecotone\Messaging\Fixture\Channel\DynamicChannel\DynamicChannelResolver;
 
 use Test\Ecotone\Modelling\Fixture\Collector\BetNotificator;
 use Test\Ecotone\Modelling\Fixture\Collector\BetService;

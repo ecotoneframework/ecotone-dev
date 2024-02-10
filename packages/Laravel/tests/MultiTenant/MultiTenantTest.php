@@ -7,14 +7,18 @@ namespace Test\Ecotone\Laravel\MultiTenant;
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
-use Illuminate\Support\Facades\Artisan;
-use PHPUnit\Framework\TestCase;
-use Illuminate\Foundation\Http\Kernel;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Http\Kernel;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 require __DIR__ . '/boostrap.php';
 
+/**
+ * @internal
+ */
 final class MultiTenantTest extends TestCase
 {
     private Application $app;
@@ -72,16 +76,18 @@ final class MultiTenantTest extends TestCase
             $this->queryBus->sendWithRouting('customer.getAllRegistered', metadata: ['tenant' => 'tenant_b'])
         );
     }
-    
+
     public function test_sending_events_using_laravel_db_queue(): void
     {
         $this->commandBus->sendWithRouting(
             'customer.register_with_event',
-            new RegisterCustomer(1, 'John Doe'), metadata: ['tenant' => 'tenant_a']
+            new RegisterCustomer(1, 'John Doe'),
+            metadata: ['tenant' => 'tenant_a']
         );
         $this->commandBus->sendWithRouting(
             'customer.register_with_event',
-            new RegisterCustomer(2, 'John Doe'), metadata: ['tenant' => 'tenant_a']
+            new RegisterCustomer(2, 'John Doe'),
+            metadata: ['tenant' => 'tenant_a']
         );
 
         /** Consume Messages for Tenant A */
@@ -90,7 +96,8 @@ final class MultiTenantTest extends TestCase
         /** This is not yet consumed */
         $this->commandBus->sendWithRouting(
             'customer.register_with_event',
-            new RegisterCustomer(2, 'John Doe'), metadata: ['tenant' => 'tenant_b']
+            new RegisterCustomer(2, 'John Doe'),
+            metadata: ['tenant' => 'tenant_b']
         );
 
         $this->assertSame(
@@ -126,11 +133,13 @@ final class MultiTenantTest extends TestCase
                 new RegisterCustomer(1, 'John Doe'),
                 metadata: ['tenant' => 'tenant_a', 'shouldThrowException' => true]
             );
-        }catch (\RuntimeException $exception) {}
+        } catch (RuntimeException $exception) {
+        }
 
         $this->commandBus->sendWithRouting(
             'customer.register_with_event',
-            new RegisterCustomer(2, 'John Doe'), metadata: ['tenant' => 'tenant_a']
+            new RegisterCustomer(2, 'John Doe'),
+            metadata: ['tenant' => 'tenant_a']
         );
 
         /** Consume Messages for Tenant A */

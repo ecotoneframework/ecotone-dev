@@ -13,7 +13,8 @@ final class CustomReceivingStrategy implements ChannelReceivingStrategy
     public function __construct(
         private MessagingEntrypoint $messagingEntrypoint,
         private string $channelNameToResolveReceivingMessageChannel
-    ) {}
+    ) {
+    }
 
     public function decide(): string
     {

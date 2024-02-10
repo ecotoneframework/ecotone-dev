@@ -84,7 +84,8 @@ class LazyProophProjectionManager implements ProjectionManager
         try {
             $this->getProjectionManager()->deleteProjection($name, $deleteEmittedEvents);
             $this->triggerActionOnProjection($name);
-        }catch (ProjectionNotFound) {}
+        } catch (ProjectionNotFound) {
+        }
     }
 
     public function resetProjection(string $name): void

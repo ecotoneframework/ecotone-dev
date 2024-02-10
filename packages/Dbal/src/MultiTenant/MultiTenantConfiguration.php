@@ -18,8 +18,7 @@ final class MultiTenantConfiguration
         private array   $tenantToConnectionMapping,
         private string  $referenceName,
         private string|ConnectionReference|null $defaultConnectionName = null,
-    )
-    {
+    ) {
     }
 
     /**

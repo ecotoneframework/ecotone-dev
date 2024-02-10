@@ -14,8 +14,7 @@ final class HeaderSendingStrategy implements ChannelSendingStrategy
         private string $headerName,
         private ?array $headerMapping,
         private ?string $defaultChannelName
-    )
-    {
+    ) {
 
     }
 
@@ -37,8 +36,8 @@ final class HeaderSendingStrategy implements ChannelSendingStrategy
             return $headerValue;
         }
 
-        if (!array_key_exists($headerValue, $this->headerMapping)) {
-            throw new InvalidArgumentException("Header {$this->headerName} must be one of " . implode(", ", array_keys($this->headerMapping)));
+        if (! array_key_exists($headerValue, $this->headerMapping)) {
+            throw new InvalidArgumentException("Header {$this->headerName} must be one of " . implode(', ', array_keys($this->headerMapping)));
         }
 
         return $this->headerMapping[$headerValue];

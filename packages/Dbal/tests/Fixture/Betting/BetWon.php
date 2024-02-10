@@ -6,5 +6,4 @@ namespace  Test\Ecotone\Dbal\Fixture\Betting;
 
 final class BetWon
 {
-
 }

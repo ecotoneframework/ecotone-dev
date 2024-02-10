@@ -55,7 +55,7 @@ final class PollableChannelSendRetriesModule extends NoExternalConfigurationModu
     {
         return $extensionObject instanceof PollableChannelConfiguration
             || $extensionObject instanceof GlobalPollableChannelConfiguration
-            || ($extensionObject instanceof MessageChannelBuilder && $extensionObject->isPollable() && !($extensionObject instanceof DynamicMessageChannelBuilder));
+            || ($extensionObject instanceof MessageChannelBuilder && $extensionObject->isPollable() && ! ($extensionObject instanceof DynamicMessageChannelBuilder));
     }
 
     public function getModulePackageName(): string

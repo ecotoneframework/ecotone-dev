@@ -8,8 +8,6 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
-use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
-use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\ORMPersonRepository;
 
 final class PersonQueryService
 {

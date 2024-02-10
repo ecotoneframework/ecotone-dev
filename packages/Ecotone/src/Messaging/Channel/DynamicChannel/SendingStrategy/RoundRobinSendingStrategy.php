@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy;
 
-use Ecotone\Messaging\Channel\DynamicChannel\InternalChannelResolver;
 use Ecotone\Messaging\Channel\DynamicChannel\ChannelSendingStrategy;
 use Ecotone\Messaging\Message;
 
@@ -13,8 +12,7 @@ final class RoundRobinSendingStrategy implements ChannelSendingStrategy
     public function __construct(
         private array $channelNames,
         private int   $currentChannelIndex = 0,
-    )
-    {
+    ) {
 
     }
 

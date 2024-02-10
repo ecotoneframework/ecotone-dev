@@ -6,12 +6,11 @@ namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -23,7 +22,7 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
  */
 final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCase
 {
-    public function setUp():void
+    public function setUp(): void
     {
         parent::setUp();
         $this->setupUserTable();
@@ -79,7 +78,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             [Person::class, MultipleInternalCommandsService::class],
             [
                 new MultipleInternalCommandsService(),
-                'tenant_a_connection' => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])
+                'tenant_a_connection' => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -93,7 +92,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     MultiTenantConfiguration::create(
                         'tenant',
                         ['tenant_a' => 'tenant_a_connection'],
-                    )
+                    ),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])),
             addInMemoryStateStoredRepository: false
@@ -204,7 +203,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     MultiTenantConfiguration::create(
                         'tenant',
                         ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'],
-                    )
+                    ),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])),
             addInMemoryStateStoredRepository: false

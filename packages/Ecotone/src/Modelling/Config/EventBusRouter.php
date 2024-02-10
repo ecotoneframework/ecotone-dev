@@ -5,9 +5,9 @@ namespace Ecotone\Modelling\Config;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Message;
 use ReflectionClass;
 use ReflectionException;
-use Ecotone\Messaging\Message;
 
 /**
  * Class EventPublisherRouter
@@ -19,8 +19,7 @@ class EventBusRouter
     public function __construct(
         private array $channelMapping,
         private LoggingGateway $loggingGateway
-    )
-    {
+    ) {
 
     }
 

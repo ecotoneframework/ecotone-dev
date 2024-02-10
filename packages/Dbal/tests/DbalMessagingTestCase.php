@@ -100,10 +100,10 @@ abstract class DbalMessagingTestCase extends TestCase
 
     protected function setupUserTable(?Connection $connection = null): void
     {
-        $connection = $connection ?? $this->getConnection();
+        $connection ??= $this->getConnection();
         $connection->executeStatement(<<<SQL
-        DROP TABLE IF EXISTS persons
-SQL);
+                    DROP TABLE IF EXISTS persons
+            SQL);
         $connection->executeStatement(<<<SQL
                 CREATE TABLE persons (
                     person_id INTEGER PRIMARY KEY,

@@ -4,15 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\ObjectManager;
 
-use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\RepositoryBuilder;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
-use Interop\Queue\ConnectionFactory;
-use ReflectionClass;
 
 class DoctrineORMRepositoryBuilder implements RepositoryBuilder
 {

@@ -94,7 +94,7 @@ final class HeaderPropagationTest extends TestCase
         );
 
         $ecotoneTestSupport->getGateway(PropagatingGateway::class)->placeOrderWithPropagation([
-            'token' => '123'
+            'token' => '123',
         ]);
 
         $headers = $ecotoneTestSupport->getRecordedEventHeaders()[0];
@@ -110,7 +110,7 @@ final class HeaderPropagationTest extends TestCase
         );
 
         $ecotoneTestSupport->getGateway(PropagatingGateway::class)->placeOrderWithoutPropagation([
-            'token' => '123'
+            'token' => '123',
         ]);
 
         $headers = $ecotoneTestSupport->getRecordedEventHeaders()[0];
@@ -126,7 +126,7 @@ final class HeaderPropagationTest extends TestCase
         );
 
         $ecotoneTestSupport->getGateway(PropagatingGateway::class)->placeOrderWithPropagation([
-            'token' => '123'
+            'token' => '123',
         ]);
 
         $headers = $ecotoneTestSupport->getRecordedEventHeaders()[0];

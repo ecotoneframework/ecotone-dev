@@ -14,7 +14,6 @@ use Interop\Queue\Producer;
 use Interop\Queue\Queue;
 use Interop\Queue\SubscriptionConsumer;
 use Interop\Queue\Topic;
-use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 final class FakeContextWithMessages implements Context, PollableChannel
 {

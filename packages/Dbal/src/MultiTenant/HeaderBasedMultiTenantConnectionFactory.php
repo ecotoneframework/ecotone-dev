@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ConnectionReference;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
@@ -19,7 +20,6 @@ use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Psr\Container\ContainerInterface;
-use Ecotone\Messaging\Message;
 
 final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnectionFactory
 {
@@ -40,8 +40,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         private RoundRobinReceivingStrategy $roundRobinReceivingStrategy,
         private string|ConnectionReference|null $defaultConnectionName = null,
         private ?string $pollingConsumerTenant = null,
-    )
-    {
+    ) {
 
     }
 
@@ -58,7 +57,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
     public function getRegistry(): ManagerRegistry
     {
         $connectionFactory = $this->getConnectionFactory();
-        Assert::isTrue($connectionFactory instanceof EcotoneManagerRegistryConnectionFactory, "Connection factory was not registered by `DbalConnection::createForManagerRegistry()`");
+        Assert::isTrue($connectionFactory instanceof EcotoneManagerRegistryConnectionFactory, 'Connection factory was not registered by `DbalConnection::createForManagerRegistry()`');
 
         return $connectionFactory->getRegistry();
     }
@@ -81,7 +80,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
             if ($tenant === null) {
                 throw new InvalidArgumentException("Lack of context about tenant in Message Headers. Please add `{$this->tenantHeaderName}` header metadata to your message.");
-            }else {
+            } else {
                 throw new InvalidArgumentException("Lack of mapping for tenant `{$tenant}`. Please provide mapping for this tenant or default connection name.");
             }
         }
@@ -89,7 +88,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         $connection = $this->container->get((string)$connectionReference);
         Assert::isTrue(
             $connection instanceof ConnectionFactory,
-            sprintf("Connection reference %s, does not return ConnectionFactory. Please check if you have registered it correctly.", (string)$connectionReference)
+            sprintf('Connection reference %s, does not return ConnectionFactory. Please check if you have registered it correctly.', (string)$connectionReference)
         );
 
         return $connection;
@@ -151,7 +150,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
 
         $headers = $this->messagingEntrypoint->send([], MessageHeadersPropagatorInterceptor::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL);
 
-        if (!array_key_exists($this->tenantHeaderName, $headers)) {
+        if (! array_key_exists($this->tenantHeaderName, $headers)) {
             return null;
         }
 

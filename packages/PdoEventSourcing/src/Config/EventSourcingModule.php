@@ -368,7 +368,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             [
                 GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
                 GatewayHeaderValueBuilder::create('ecotone.eventSourcing.manager.deleteEmittedEvents', true),
-                GatewayHeadersBuilder::create('metadata')
+                GatewayHeadersBuilder::create('metadata'),
             ],
             $eventSourcingConfiguration,
             $configuration,
@@ -381,7 +381,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
             [
                 GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
-                GatewayHeadersBuilder::create('metadata')
+                GatewayHeadersBuilder::create('metadata'),
             ],
             $eventSourcingConfiguration,
             $configuration,
@@ -404,7 +404,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
             [
                 GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
-                GatewayHeadersBuilder::create('metadata')
+                GatewayHeadersBuilder::create('metadata'),
             ],
             $eventSourcingConfiguration,
             $configuration,
@@ -417,7 +417,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             [HeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name')],
             [
                 GatewayHeaderBuilder::create('name', 'ecotone.eventSourcing.manager.name'),
-                GatewayHeadersBuilder::create('metadata')
+                GatewayHeadersBuilder::create('metadata'),
             ],
             $eventSourcingConfiguration,
             $configuration,

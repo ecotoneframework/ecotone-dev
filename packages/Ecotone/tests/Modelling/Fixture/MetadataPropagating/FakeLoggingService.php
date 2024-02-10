@@ -8,11 +8,9 @@ use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Messaging\Message;
+use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\EventBus;
 
 final class FakeLoggingService
 {
@@ -41,13 +39,13 @@ final class FakeLoggingService
         $this->afterLogHeaders = $headers;
     }
 
-    #[QueryHandler("getBeforeLogHeaders")]
+    #[QueryHandler('getBeforeLogHeaders')]
     public function getBeforeLogHeaders(): array
     {
         return $this->beforeLogHeaders;
     }
 
-    #[QueryHandler("getAfterLogHeaders")]
+    #[QueryHandler('getAfterLogHeaders')]
     public function getAfterLogHeaders(): array
     {
         return $this->afterLogHeaders;

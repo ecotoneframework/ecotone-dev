@@ -3,11 +3,11 @@
 namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
-use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalContext;
+use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use ReflectionClass;
@@ -56,7 +56,7 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
         $connection = $context->getDbalConnection();
         $isConnected = $connection->isConnected() && $this->ping($connection);
 
-        return !$isConnected;
+        return ! $isConnected;
     }
 
     public function reconnect(): void
@@ -78,7 +78,7 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     {
         try {
             $connection->executeQuery($connection->getDatabasePlatform()->getDummySelectSQL());
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ORM\MultiTenant;
 
-use Doctrine\ORM\EntityManager;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Support\Assert;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;

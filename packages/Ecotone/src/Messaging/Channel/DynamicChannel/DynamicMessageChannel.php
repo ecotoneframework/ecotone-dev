@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\DynamicChannel;
 
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -23,7 +22,8 @@ final class DynamicMessageChannel implements PollableChannel
         private ChannelSendingStrategy  $sendingStrategy,
         private ChannelReceivingStrategy $receivingStrategy,
         private LoggingGateway          $loggingGateway,
-    ) {}
+    ) {
+    }
 
     public function send(Message $message): void
     {

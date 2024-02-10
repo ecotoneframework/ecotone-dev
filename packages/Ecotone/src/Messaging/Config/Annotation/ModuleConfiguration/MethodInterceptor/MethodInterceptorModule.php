@@ -43,8 +43,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
         private array $preCallInterceptors,
         private array $aroundInterceptors,
         private array $postCallInterceptors
-    )
-    {
+    ) {
     }
 
     /**

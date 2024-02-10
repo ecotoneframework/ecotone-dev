@@ -23,8 +23,7 @@ class CommandBusRouter
     public function __construct(
         private array $channelMapping,
         private LoggingGateway $loggingGateway
-    )
-    {
+    ) {
     }
 
     public function routeByObject(object $object, Message $message): array

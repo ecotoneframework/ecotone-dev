@@ -13,14 +13,14 @@ final class NotificationSender
 
     public function sendWelcomeNotification(Customer $customer, #[Header('tenant')] $tenant): void
     {
-        if (!isset($this->notifications[$tenant])) {
+        if (! isset($this->notifications[$tenant])) {
             $this->notifications[$tenant] = 0;
         }
 
         $this->notifications[$tenant]++;
     }
 
-    #[QueryHandler("getNotificationsCount")]
+    #[QueryHandler('getNotificationsCount')]
     public function getNotifications(#[Header('tenant')] $tenant): int
     {
         return $this->notifications[$tenant] ?? 0;

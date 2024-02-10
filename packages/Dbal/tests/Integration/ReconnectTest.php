@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -16,13 +15,16 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderRegisteringGateway;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderService;
 
+/**
+ * @internal
+ */
 final class ReconnectTest extends DbalMessagingTestCase
 {
     public function test_it_will_automatically_reconnect(): void
     {
         $connectionFactory = $this->connectionForTenantA();
         $ecotone = $this->bootstrapEcotone([
-            DbalConnectionFactory::class => $connectionFactory
+            DbalConnectionFactory::class => $connectionFactory,
         ]);
 
         self::assertCount(0, $ecotone
@@ -41,14 +43,14 @@ final class ReconnectTest extends DbalMessagingTestCase
     {
         $connectionFactory = $this->connectionForTenantA();
         $ecotone = $this->bootstrapEcotone([
-            'tenant_a_connection' => $connectionFactory
+            'tenant_a_connection' => $connectionFactory,
         ], [
             MultiTenantConfiguration::create(
                 'tenant',
                 [
                     'tenant_a' => 'tenant_a_connection',
                 ],
-            )
+            ),
         ]);
 
         self::assertCount(0, $ecotone

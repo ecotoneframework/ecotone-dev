@@ -42,7 +42,7 @@ class DbalConnection
             $connection instanceof Connection => self::create($connection),
             $connection instanceof ManagerRegistry => self::createForManagerRegistry($connection),
             default => throw new InvalidArgumentException(sprintf(
-                "Connection instance is unknown type %s. Please read Dbal Module installation guide.",
+                'Connection instance is unknown type %s. Please read Dbal Module installation guide.',
                 $connection::class
             ))
         };

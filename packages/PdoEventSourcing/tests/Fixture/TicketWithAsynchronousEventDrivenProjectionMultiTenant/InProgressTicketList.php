@@ -38,8 +38,7 @@ class InProgressTicketList
     public function addTicket(
         TicketWasRegistered $event,
         #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory
-    ): void
-    {
+    ): void {
         $this->getConnection($connectionFactory)->executeStatement(<<<SQL
                 INSERT INTO in_progress_tickets VALUES (?,?)
             SQL, [$event->getTicketId(), $event->getTicketType()]);
@@ -49,8 +48,7 @@ class InProgressTicketList
     public function closeTicket(
         TicketWasClosed $event,
         #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory
-    ): void
-    {
+    ): void {
         $this->getConnection($connectionFactory)->executeStatement(<<<SQL
                 DELETE FROM in_progress_tickets WHERE ticket_id = ?
             SQL, [$event->getTicketId()]);

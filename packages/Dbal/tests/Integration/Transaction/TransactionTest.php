@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-use Ecotone\Dbal\ManagerRegistryEmulator;
+use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Exception;
@@ -49,10 +47,12 @@ final class TransactionTest extends DbalMessagingTestCase
 
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk', metadata: ['tenant' => 'tenant_a']);
-        } catch (Exception) {}
+        } catch (Exception) {
+        }
         try {
             $ecotone->sendCommandWithRoutingKey('order.register', 'milk', metadata: ['tenant' => 'tenant_b']);
-        } catch (Exception) {}
+        } catch (Exception) {
+        }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered', metadata: ['tenant' => 'tenant_a']));
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered', metadata: ['tenant' => 'tenant_b']));
@@ -145,9 +145,9 @@ final class TransactionTest extends DbalMessagingTestCase
                         'tenant',
                         [
                             'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection'
+                            'tenant_b' => 'tenant_b_connection',
                         ]
-                    )
+                    ),
                 ])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\Transaction',

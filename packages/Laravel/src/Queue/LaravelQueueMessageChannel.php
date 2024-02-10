@@ -16,6 +16,7 @@ use Illuminate\Contracts\Queue\Factory;
 use Illuminate\Contracts\Queue\Queue;
 
 use Illuminate\Queue\SyncQueue;
+
 use function json_decode;
 use function json_encode;
 
@@ -56,7 +57,7 @@ final class LaravelQueueMessageChannel implements PollableChannel
             return;
         }
 
-        Assert::isTrue(!$connection instanceof SyncQueue, "Sync mode is not supported for Laravel Queue Message Channel.");
+        Assert::isTrue(! $connection instanceof SyncQueue, 'Sync mode is not supported for Laravel Queue Message Channel.');
         $connection->pushOn(
             $this->queueName,
             $jobName,

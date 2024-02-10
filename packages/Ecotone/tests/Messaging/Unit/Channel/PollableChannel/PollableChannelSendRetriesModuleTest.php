@@ -107,7 +107,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders_priority', 3),
             ],
             [
-                PollableChannelConfiguration::createWithDefaults('orders_priority')->withCollector(false)
+                PollableChannelConfiguration::createWithDefaults('orders_priority')->withCollector(false),
             ]
         );
 
@@ -139,7 +139,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders_priority', 2),
             ],
             [
-                PollableChannelConfiguration::createWithDefaults('orders_priority')->withCollector(false)
+                PollableChannelConfiguration::createWithDefaults('orders_priority')->withCollector(false),
             ]
         );
 

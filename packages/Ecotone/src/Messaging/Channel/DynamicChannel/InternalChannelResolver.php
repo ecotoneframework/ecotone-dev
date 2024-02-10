@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\DynamicChannel;
 
 use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\PollableChannel;
 
@@ -17,8 +16,8 @@ final class InternalChannelResolver implements ChannelResolver
     public function __construct(
         private ChannelResolver $channelResolver,
         private array $internalChannels,
-    )
-    {}
+    ) {
+    }
 
     public function resolve(MessageChannel|string $channelName): MessageChannel
     {

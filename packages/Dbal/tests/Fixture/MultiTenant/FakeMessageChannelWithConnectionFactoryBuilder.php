@@ -14,16 +14,14 @@ final class FakeMessageChannelWithConnectionFactoryBuilder implements MessageCha
     private function __construct(
         private string $channelName,
         private string $connectionFactoryReferenceName,
-    )
-    {
+    ) {
 
     }
 
     public static function create(
         string $channelName,
         string $connectionFactoryReferenceName = FakeConnectionFactory::class,
-    )
-    {
+    ) {
         return new self($channelName, $connectionFactoryReferenceName);
     }
 

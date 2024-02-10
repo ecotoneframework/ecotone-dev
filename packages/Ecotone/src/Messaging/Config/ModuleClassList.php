@@ -51,9 +51,7 @@ use Ecotone\Modelling\Config\BusRoutingModule;
 use Ecotone\Modelling\Config\DistributedGatewayModule;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryModule;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
-use Ecotone\Modelling\MessageHandling\MetadataPropagator\HeaderPropagationContextGateway;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
-use Ecotone\Modelling\MessageHandling\MetadataPropagator\MetadataPropagatorGateway;
 use Ecotone\OpenTelemetry\Configuration\OpenTelemetryModule;
 use Ecotone\Redis\Configuration\RedisMessageConsumerModule;
 use Ecotone\Redis\Configuration\RedisMessagePublisherModule;
@@ -92,7 +90,7 @@ class ModuleClassList
         LoggingGateway::class,
         LoggingService::class,
         MessageHeadersPropagatorInterceptor::class,
-        MessageHandlerLogger::class
+        MessageHandlerLogger::class,
     ];
 
     public const ASYNCHRONOUS_MODULE = [

@@ -11,6 +11,8 @@ use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
 use Interop\Queue\Destination;
 
+use function spl_object_id;
+
 abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 {
     private array $initialized = [];
@@ -30,9 +32,9 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
     {
         $context = $this->connectionFactory->createContext();
         if ($this->autoDeclare) {
-            $contextId = \spl_object_id($context);
+            $contextId = spl_object_id($context);
 
-            if (!isset($this->initialized[$contextId])) {
+            if (! isset($this->initialized[$contextId])) {
                 $this->initialize();
                 $this->initialized[$contextId] = true;
             }

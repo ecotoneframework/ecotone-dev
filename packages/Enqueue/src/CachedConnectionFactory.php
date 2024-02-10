@@ -33,9 +33,9 @@ class CachedConnectionFactory implements ConnectionFactory
     public function createContext(): Context
     {
         $relatedTo = $this->getCurrentActiveConnection();
-        $context = isset($this->cachedContext[$relatedTo]) ? $this->cachedContext[$relatedTo] : null;
+        $context = $this->cachedContext[$relatedTo] ?? null;
 
-        if (!$context || $this->connectionFactory->isDisconnected($context)) {
+        if (! $context || $this->connectionFactory->isDisconnected($context)) {
             $this->cachedContext[$relatedTo] = $this->connectionFactory->createContext();
         }
 

@@ -13,6 +13,8 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;
 use Illuminate\Support\Facades\DB;
+use PDO;
+use RuntimeException;
 
 final class CustomerService
 {
@@ -27,14 +29,13 @@ final class CustomerService
         RegisterCustomer $command,
         EventBus $eventBus,
         #[Header('shouldThrowException')] bool $shouldThrowException = false
-    )
-    {
+    ) {
         Customer::register($command)->save();
 
         $eventBus->publish(new CustomerWasRegistered($command->customerId));
 
         if ($shouldThrowException) {
-            throw new \RuntimeException("Throwing an execption to test error handling.");
+            throw new RuntimeException('Throwing an execption to test error handling.');
         }
     }
 
@@ -48,8 +49,8 @@ final class CustomerService
     public function getAllRegisteredPersonIds(): array
     {
         return DB::connection()->getPdo()->query(<<<SQL
-            SELECT customer_id FROM persons;    
-SQL)->fetchAll(\PDO::FETCH_COLUMN);
+                        SELECT customer_id FROM persons;
+            SQL)->fetchAll(PDO::FETCH_COLUMN);
     }
 
     #[Asynchronous('notifications')]
@@ -58,8 +59,7 @@ SQL)->fetchAll(\PDO::FETCH_COLUMN);
         CustomerWasRegistered $event,
         NotificationSender    $notificationSender,
         #[Header('tenant')]   $tenant
-    )
-    {
+    ) {
         $customer = Customer::find($event->customerId);
 
         $notificationSender->sendWelcomeNotification($customer, $tenant);

@@ -16,7 +16,8 @@ final class CustomSendingStrategy implements ChannelSendingStrategy
     public function __construct(
         private MessagingEntrypoint $messagingEntrypoint,
         private string $channelNameToResolveSendingMessageChannel
-    ) {}
+    ) {
+    }
 
     public function decideFor(Message $message): string
     {

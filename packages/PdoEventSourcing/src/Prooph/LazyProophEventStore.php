@@ -10,8 +10,6 @@ use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use Iterator;
 use PDO;
@@ -132,7 +130,7 @@ class LazyProophEventStore implements EventStore
         } else {
             try {
                 $this->getEventStore()->appendTo($streamName, $streamEvents);
-            }catch (StreamNotFound) {
+            } catch (StreamNotFound) {
                 $this->create(new Stream($streamName, $streamEvents, []));
             }
         }
@@ -147,7 +145,7 @@ class LazyProophEventStore implements EventStore
     public function prepareEventStore(): void
     {
         $connectionName = $this->getContextName();
-        if (!$this->canBeInitialized || isset($this->initializated[$connectionName]) || $this->eventSourcingConfiguration->isInMemory()) {
+        if (! $this->canBeInitialized || isset($this->initializated[$connectionName]) || $this->eventSourcingConfiguration->isInMemory()) {
             return;
         }
 

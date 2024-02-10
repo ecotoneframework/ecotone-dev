@@ -11,13 +11,15 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjectionMultiTenant\InProgressTicketList;
 
+/**
+ * @internal
+ */
 final class MultiTenantTest extends EventSourcingMessagingTestCase
 {
     public function test_building_asynchronous_event_driven_projection_with_multi_tenancy(): void
@@ -27,7 +29,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 new InProgressTicketList(), new TicketEventConverter(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
-                "logger" => new EchoLogger()
+                'logger' => new EchoLogger(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
@@ -43,7 +45,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                             'tenant_a' => 'tenant_a_connection',
                             'tenant_b' => 'tenant_b_connection',
                         ]
-                    )
+                    ),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true
@@ -86,7 +88,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
         self::assertEquals(
             [
                 ['ticket_id' => '122', 'ticket_type' => 'alert'],
-                ['ticket_id' => '124', 'ticket_type' => 'alert']
+                ['ticket_id' => '124', 'ticket_type' => 'alert'],
             ],
             $ecotone->sendQueryWithRouting('getInProgressTickets', metadata: ['tenant' => 'tenant_b'])
         );
@@ -99,7 +101,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectionMultiTenant\InProgressTicketList(), new TicketEventConverter(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
-                'logger' => new EchoLogger()
+                'logger' => new EchoLogger(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
@@ -115,7 +117,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                             'tenant_a' => 'tenant_a_connection',
                             'tenant_b' => 'tenant_b_connection',
                         ]
-                    )
+                    ),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true
@@ -155,7 +157,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
         self::assertEquals(
             [
                 ['ticket_id' => '122', 'ticket_type' => 'alert'],
-                ['ticket_id' => '124', 'ticket_type' => 'alert']
+                ['ticket_id' => '124', 'ticket_type' => 'alert'],
             ],
             $ecotone->sendQueryWithRouting('getInProgressTickets', metadata: ['tenant' => 'tenant_b'])
         );
@@ -168,7 +170,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 new InProgressTicketList(), new TicketEventConverter(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
-                'logger' => new EchoLogger()
+                'logger' => new EchoLogger(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
@@ -184,7 +186,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                             'tenant_a' => 'tenant_a_connection',
                             'tenant_b' => 'tenant_b_connection',
                         ]
-                    )
+                    ),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true

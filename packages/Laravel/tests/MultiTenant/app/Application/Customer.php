@@ -18,7 +18,7 @@ class Customer extends Model
     {
         return self::create([
             'customer_id' => $command->customerId,
-            'name' => $command->name
+            'name' => $command->name,
         ]);
     }
 

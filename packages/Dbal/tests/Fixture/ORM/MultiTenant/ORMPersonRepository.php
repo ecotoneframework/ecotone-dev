@@ -12,7 +12,7 @@ final class ORMPersonRepository
 {
     public function save(Person $person, MultiTenantConnectionFactory $multiTenantConnectionFactory): void
     {
-        $multiTenantConnectionFactory->getRegistry()->getManager()->persist($person);
+        $multiTenantConnectionFactory->getManager()->persist($person);
     }
 
     public function get(int $personId, MultiTenantConnectionFactory $multiTenantConnectionFactory): Person
@@ -25,6 +25,6 @@ final class ORMPersonRepository
 
     private function getORMRepository(MultiTenantConnectionFactory $multiTenantConnectionFactory): \Doctrine\Persistence\ObjectRepository
     {
-        return $multiTenantConnectionFactory->getRegistry()->getRepository(Person::class);
+        return $multiTenantConnectionFactory->getManager()->getRepository(Person::class);
     }
 }

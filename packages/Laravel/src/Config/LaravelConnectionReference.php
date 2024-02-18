@@ -15,12 +15,12 @@ final class LaravelConnectionReference extends ConnectionReference implements De
         private string $laravelConnectionName,
         string $referenceName,
     ) {
-        parent::__construct($referenceName);
+        parent::__construct($referenceName, $this->laravelConnectionName);
     }
 
-    public static function create(string $connectionName): self
+    public static function create(string $connectionName, ?string $referenceName = null): self
     {
-        return new self($connectionName, 'ecotone.laravel.connection.' . $connectionName);
+        return new self($connectionName, $referenceName ?? 'ecotone.laravel.connection.' . $connectionName);
     }
 
     public static function createGlobalConnection(string $connectionName): self
@@ -41,6 +41,10 @@ final class LaravelConnectionReference extends ConnectionReference implements De
                 $this->laravelConnectionName,
                 $this->getReferenceName(),
             ],
+            [
+                self::class,
+                'create',
+            ]
         );
     }
 }

@@ -7,9 +7,6 @@ use Illuminate\Support\Facades\Schema;
 
 function runMigrationForTenants(LaravelConnection $tenantAConnection, LaravelConnection $tenantBConnection): void
 {
-    migrate($tenantAConnection->getDoctrineConnection());
-    migrate($tenantBConnection->getDoctrineConnection());
-
     foreach (['tenant_a_connection', 'tenant_b_connection'] as $connectionName) {
         foreach (Schema::connection($connectionName)->getTableListing() as $tableName) {
             Schema::connection($connectionName)->drop($tableName);
@@ -26,6 +23,9 @@ function runMigrationForTenants(LaravelConnection $tenantAConnection, LaravelCon
             $table->index(['queue', 'reserved_at']);
         });
     }
+
+    migrate($tenantAConnection->getDoctrineConnection());
+    migrate($tenantBConnection->getDoctrineConnection());
 }
 
 function migrate(Connection $connection): void

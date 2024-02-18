@@ -21,10 +21,6 @@ runMigrationForTenants(DB::connection('tenant_a_connection'), DB::connection('te
 $commandBus = $app->get(CommandBus::class);
 /** @var QueryBus $queryBus */
 $queryBus = $app->get(QueryBus::class);
-/** @var ProjectionManager $projectionManager */
-$projectionManager = $app->get(ProjectionManager::class);
-$projectionManager->deleteProjection('registered_products', metadata: ['tenant' => 'tenant_a']);
-$projectionManager->deleteProjection('registered_products', metadata: ['tenant' => 'tenant_b']);
 echo "Running demo:\n";
 
 $laptopId = Uuid::uuid4();

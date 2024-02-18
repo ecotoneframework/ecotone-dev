@@ -48,6 +48,11 @@
             "(cd MultiTenant/Laravel/Events && composer update && php run_example.php)",
             "(cd MultiTenant/Laravel/AsynchronousEvents && composer update && php run_example.php)",
             "(cd MultiTenant/Laravel/EventSourcing && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/MessageBus && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/Aggregate && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/Events && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/AsynchronousEvents && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/EventSourcing && composer update && php run_example.php)",
             "(cd MultiTenant/General/HookIntoTenantSwitch && composer update && php run_example.php)",
             "(cd MultiTenant/General/MessageBusForMultipleTenants && composer update && php run_example.php)",
             "(cd MultiTenant/General/RoundRobinWithSingleConsumer && composer update && php run_example.php)"

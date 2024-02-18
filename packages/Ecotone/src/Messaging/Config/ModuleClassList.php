@@ -148,7 +148,6 @@ class ModuleClassList
 
     public const LARAVEL_MODULES = [
         LaravelConnectionModule::class,
-        LaravelTenantDatabaseSwitcher::class,
     ];
 
     public const SYMFONY_MODULES = [

@@ -41,7 +41,7 @@ final readonly class RegisteredProductList
             new Table(self::TABLE_NAME, [
                 new Column('product_id', Type::getType(Types::GUID)),
                 new Column('name', Type::getType(Types::STRING)),
-                new Column('registered_at', Type::getType(Types::DATETIME_IMMUTABLE))
+                new Column('registered_at', Type::getType(Types::DATETIME_IMMUTABLE), ['precision' => 6])
             ])
         );
     }

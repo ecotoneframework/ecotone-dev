@@ -11,7 +11,8 @@ function runMigrationForSymfonyTenants(Kernel $kernel): void
 
     /** @var Connection $connection */
     foreach ([$connectionTenantA, $connectionTenantB] as $connection) {
-        foreach ($connection->createSchemaManager()->listTables() as $table) {
+        $abstractSchemaManager = method_exists('createSchemaManager', $connection::class) ? $connection->createSchemaManager() : $connection->getSchemaManager();
+        foreach ($abstractSchemaManager->listTables() as $table) {
             $connection->executeStatement('DROP TABLE ' . $table->getName());
         }
     }

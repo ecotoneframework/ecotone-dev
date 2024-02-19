@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Laravel\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -15,6 +16,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Interop\Queue\ConnectionFactory;
 
 #[ModuleAnnotation]
@@ -27,6 +29,10 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        if (!class_exists(HeaderBasedMultiTenantConnectionFactory::class)) {
+            return;
+        }
+
         $laravelRelatedMultiTenantConfigurations = [];
         $laravelConnections = ExtensionObjectResolver::resolve(LaravelConnectionReference::class, $extensionObjects);
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
@@ -67,6 +73,14 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
                     'create',
                 ]
             )
+        );
+        $messagingConfiguration->registerMessageHandler(
+            ServiceActivatorBuilder::create(LaravelTenantDatabaseSwitcher::class, 'switchOn')
+                ->withInputChannelName(HeaderBasedMultiTenantConnectionFactory::TENANT_ACTIVATED_CHANNEL_NAME)
+        );
+        $messagingConfiguration->registerMessageHandler(
+            ServiceActivatorBuilder::create(LaravelTenantDatabaseSwitcher::class, 'switchOff')
+                ->withInputChannelName(HeaderBasedMultiTenantConnectionFactory::TENANT_DEACTIVATED_CHANNEL_NAME)
         );
     }
 

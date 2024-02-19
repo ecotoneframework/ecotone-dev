@@ -11,7 +11,7 @@ final class NotificationSender
 {
     private static array $notifications = [];
 
-    public function sendWelcomeNotification(Customer $customer, #[Header('tenant')] $tenant): void
+    public function sendWelcomeNotification(Customer $customer, string $tenant): void
     {
         if (!isset(self::$notifications[$tenant])) {
             self::$notifications[$tenant] = 0;

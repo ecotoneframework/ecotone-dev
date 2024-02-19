@@ -57,6 +57,7 @@ use Ecotone\Redis\Configuration\RedisMessageConsumerModule;
 use Ecotone\Redis\Configuration\RedisMessagePublisherModule;
 use Ecotone\Sqs\Configuration\SqsMessageConsumerModule;
 use Ecotone\Sqs\Configuration\SqsMessagePublisherModule;
+use Ecotone\SymfonyBundle\Config\SymfonyConnectionModule;
 
 class ModuleClassList
 {
@@ -147,19 +148,9 @@ class ModuleClassList
 
     public const LARAVEL_MODULES = [
         LaravelConnectionModule::class,
-        LaravelTenantDatabaseSwitcher::class,
     ];
 
-    public static function allModules(): array
-    {
-        return array_merge(
-            self::CORE_MODULES,
-            self::ASYNCHRONOUS_MODULE,
-            self::AMQP_MODULES,
-            self::DBAL_MODULES,
-            self::EVENT_SOURCING_MODULES,
-            self::JMS_CONVERTER_MODULES,
-            self::TRACING_MODULES
-        );
-    }
+    public const SYMFONY_MODULES = [
+        SymfonyConnectionModule::class,
+    ];
 }

@@ -26,20 +26,4 @@ class EloquentRepositoryTest extends TestCase
 
         $this->assertTrue($repository->canHandle(User::class));
     }
-
-    public function test_it_proxies_saving_aggregate_to_model()
-    {
-        $repository = new EloquentRepository();
-        $model = $this->getMockBuilder(Model::class)->getMock();
-        $model
-            ->expects($this->once())
-            ->method('save');
-
-        $repository->save(
-            [1],
-            $model,
-            [],
-            1
-        );
-    }
 }

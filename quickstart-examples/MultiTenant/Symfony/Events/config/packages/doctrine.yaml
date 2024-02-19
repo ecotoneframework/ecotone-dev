@@ -1,0 +1,31 @@
+doctrine:
+  dbal:
+    default_connection: tenant_a_connection
+    connections:
+      tenant_a_connection:
+        url: '%env(resolve:DATABASE_DSN)%'
+        charset: UTF8
+      tenant_b_connection:
+        url: '%env(resolve:SECONDARY_DATABASE_DSN)%'
+        charset: UTF8
+  orm:
+    auto_generate_proxy_classes: "%kernel.debug%"
+    entity_managers:
+      tenant_a_connection:
+        connection: tenant_a_connection
+        mappings:
+          App:
+            is_bundle: false
+            type: attribute
+            dir: '%kernel.project_dir%/src'
+            prefix: 'App\MultiTenant'
+            alias: App
+      tenant_b_connection:
+        connection: tenant_b_connection
+        mappings:
+          App:
+            is_bundle: false
+            type: attribute
+            dir: '%kernel.project_dir%/src'
+            prefix: 'App\MultiTenant'
+            alias: App

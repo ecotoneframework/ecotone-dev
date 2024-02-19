@@ -48,7 +48,7 @@ class SymfonyContainerAdapter implements CompilerPass
         foreach ($this->definitions as $id => $definition) {
             $symfonyDefinition = $this->resolveArgument($definition);
             if ($symfonyDefinition instanceof SymfonyReference) {
-                $this->symfonyBuilder->setAlias($id, $symfonyDefinition);
+                $this->symfonyBuilder->setAlias($id, (string)$symfonyDefinition)->setPublic(true);
             } else {
                 $this->symfonyBuilder->setDefinition($id, $symfonyDefinition);
             }

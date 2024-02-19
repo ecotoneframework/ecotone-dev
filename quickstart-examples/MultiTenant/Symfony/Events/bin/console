@@ -1,0 +1,21 @@
+#!/usr/bin/env php
+<?php
+
+use App\MultiTenant\Configuration\Kernel;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+
+if (!in_array(PHP_SAPI, ['cli', 'phpdbg', 'embed'], true)) {
+    echo 'Warning: The console should be invoked via the CLI version of PHP, not the '.PHP_SAPI.' SAPI'.PHP_EOL;
+}
+
+set_time_limit(0);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$input = new ArgvInput();
+$kernel = new Kernel('dev', true);
+$kernel->boot();
+
+$application = new Application($kernel);
+$application->run($input);

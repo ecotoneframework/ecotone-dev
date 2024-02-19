@@ -18,16 +18,16 @@ final readonly class PersonRepository
 
     public function save(Person $person): void
     {
-        $this->getRegistry()->getManager(Person::class)->persist($person);
+        $this->getManager()->persist($person);
     }
 
     public function find(int $personId): ?Person
     {
-        $this->getRegistry()->getRepository(Person::class)->find($personId);
+        $this->getManager()->find($personId);
     }
 
-    public function getRegistry(): ManagerRegistry
+    public function getManager(): EntityManager
     {
-        return $this->connectionFactory->getRegistry();
+        return $this->connectionFactory->getManager();
     }
 }

@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\MultiTenant;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Config\ConnectionReference;
@@ -54,18 +55,37 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         $this->pollingConsumerTenant = null;
     }
 
-    public function getRegistry(): ManagerRegistry
+    public function getManager(?string $tenant = null): ObjectManager
     {
+        if ($tenant !== null) {
+            $connectionReference = $this->getCurrentConnectionReferenceOrNull($tenant);
+            Assert::notNull($connectionReference, "Lack of mapping for tenant `{$tenant}`. Please provide mapping for this tenant or default connection name.");
+        } else {
+            $connectionReference = $this->getCurrentConnectionReferenceOrNull();
+            Assert::notNull($connectionReference, "Lack of context about tenant in Message Headers. Please add `{$this->tenantHeaderName}` header metadata to your message.");
+        }
+
         $connectionFactory = $this->getConnectionFactory();
         Assert::isTrue($connectionFactory instanceof EcotoneManagerRegistryConnectionFactory, 'Connection factory was not registered by `DbalConnection::createForManagerRegistry()`');
 
-        return $connectionFactory->getRegistry();
+        /** @var ManagerRegistry $managerRegistry */
+        $managerRegistry = $connectionFactory->getRegistry();
+
+        return $managerRegistry->getManager($connectionReference instanceof ConnectionReference ? $connectionReference->getConnectionName() : null);
     }
 
-    public function getConnection(): Connection
+    public function getConnection(?string $tenant = null): Connection
     {
+        if ($tenant !== null) {
+            $connectionReference = $this->getCurrentConnectionReferenceOrNull($tenant);
+            Assert::notNull($connectionReference, "Lack of mapping for tenant `{$tenant}`. Please provide mapping for this tenant or default connection name.");
+        } else {
+            $connectionReference = $this->getCurrentConnectionReferenceOrNull();
+            Assert::notNull($connectionReference, "Lack of context about tenant in Message Headers. Please add `{$this->tenantHeaderName}` header metadata to your message.");
+        }
+
         /** @var DbalContext $dbalConnection */
-        $dbalConnection = $this->createContext();
+        $dbalConnection = $this->container->get($this->getConnectionReference($connectionReference))->createContext();
         Assert::isTrue($dbalConnection instanceof DbalContext, 'Connection factory was not registered using by Ecotone\Dbal\DbalConnection::*');
 
         return $dbalConnection->getDbalConnection();
@@ -85,7 +105,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
             }
         }
 
-        $connection = $this->container->get((string)$connectionReference);
+        $connection = $this->container->get($this->getConnectionReference($connectionReference));
         Assert::isTrue(
             $connection instanceof ConnectionFactory,
             sprintf('Connection reference %s, does not return ConnectionFactory. Please check if you have registered it correctly.', (string)$connectionReference)
@@ -175,5 +195,10 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
     public function createContext(): Context
     {
         return $this->getConnectionFactory()->createContext();
+    }
+
+    private function getConnectionReference(ConnectionReference|string|null $connectionReference): string
+    {
+        return $connectionReference instanceof ConnectionReference ? $connectionReference->getReferenceName() : (string)$connectionReference;
     }
 }

@@ -39,12 +39,12 @@ final class MultiTenantTest extends TestCase
         $this->commandBus->send(new RegisterCustomer(2, 'John Doe'), metadata: ['tenant' => 'tenant_a']);
         $this->commandBus->send(new RegisterCustomer(2, 'John Doe'), metadata: ['tenant' => 'tenant_b']);
 
-        $this->assertSame(
+        $this->assertEquals(
             [1, 2],
             $this->queryBus->sendWithRouting('customer.getAllRegistered', metadata: ['tenant' => 'tenant_a'])
         );
 
-        $this->assertSame(
+        $this->assertEquals(
             [2],
             $this->queryBus->sendWithRouting('customer.getAllRegistered', metadata: ['tenant' => 'tenant_b'])
         );

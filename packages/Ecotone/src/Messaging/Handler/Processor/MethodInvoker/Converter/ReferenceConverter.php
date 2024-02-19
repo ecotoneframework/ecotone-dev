@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
  * @internal
@@ -19,8 +17,7 @@ class ReferenceConverter implements ParameterConverter
         private ExpressionEvaluationService $expressionEvaluationService,
         private object $service,
         private ?string $expression
-    )
-    {
+    ) {
     }
 
     /**

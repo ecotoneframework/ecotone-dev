@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\ObjectManager;
 
-use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;

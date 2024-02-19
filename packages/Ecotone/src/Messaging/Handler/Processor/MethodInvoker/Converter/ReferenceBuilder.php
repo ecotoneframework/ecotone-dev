@@ -23,8 +23,7 @@ class ReferenceBuilder implements ParameterConverterBuilder
         private string $parameterName,
         private string $referenceServiceName,
         private ?string $expression
-    )
-    {
+    ) {
     }
 
     public static function create(string $parameterName, string $referenceServiceName, ?string $expression = null): self
@@ -45,7 +44,7 @@ class ReferenceBuilder implements ParameterConverterBuilder
         return new Definition(ReferenceConverter::class, [
             new Reference(ExpressionEvaluationService::REFERENCE),
             new Reference($this->referenceServiceName),
-            $this->expression
+            $this->expression,
         ]);
     }
 }

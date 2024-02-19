@@ -4,7 +4,6 @@ namespace Test\Ecotone\Laravel;
 
 use DateTime;
 use Ecotone\Laravel\EloquentRepository;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User;
 use Orchestra\Testbench\TestCase;
 

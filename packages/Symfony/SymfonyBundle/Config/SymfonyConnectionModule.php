@@ -60,17 +60,17 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
             );
         }
 
-//        $messagingConfiguration->registerServiceDefinition(
-//            LaravelTenantDatabaseSwitcher::class,
-//            new Definition(
-//                LaravelTenantDatabaseSwitcher::class,
-//                [],
-//                [
-//                    LaravelTenantDatabaseSwitcher::class,
-//                    'create',
-//                ]
-//            )
-//        );
+        //        $messagingConfiguration->registerServiceDefinition(
+        //            LaravelTenantDatabaseSwitcher::class,
+        //            new Definition(
+        //                LaravelTenantDatabaseSwitcher::class,
+        //                [],
+        //                [
+        //                    LaravelTenantDatabaseSwitcher::class,
+        //                    'create',
+        //                ]
+        //            )
+        //        );
     }
 
     public function canHandle($extensionObject): bool

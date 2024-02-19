@@ -10,6 +10,6 @@ class Kernel extends \Symfony\Component\HttpKernel\Kernel
 
     public function getProjectDir(): string
     {
-        return __DIR__ . "/../../";
+        return __DIR__ . '/../../';
     }
 }

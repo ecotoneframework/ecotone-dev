@@ -2,12 +2,12 @@
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use \Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\HttpKernel\Kernel;
 
 function runMigrationForSymfonyTenants(Kernel $kernel): void
 {
-    $connectionTenantA = $kernel->getContainer()->get(MultiTenantConnectionFactory::class)->getConnection("tenant_a");
-    $connectionTenantB = $kernel->getContainer()->get(MultiTenantConnectionFactory::class)->getConnection("tenant_b");
+    $connectionTenantA = $kernel->getContainer()->get(MultiTenantConnectionFactory::class)->getConnection('tenant_a');
+    $connectionTenantB = $kernel->getContainer()->get(MultiTenantConnectionFactory::class)->getConnection('tenant_b');
 
     /** @var Connection $connection */
     foreach ([$connectionTenantA, $connectionTenantB] as $connection) {
@@ -24,18 +24,18 @@ function runMigrationForSymfonyTenants(Kernel $kernel): void
 function migrateSymfony(Connection $connection): void
 {
     $connection->executeStatement(<<<SQL
-        DROP TABLE IF EXISTS persons
-SQL);
+                DROP TABLE IF EXISTS persons
+        SQL);
     $connection->executeStatement(<<<SQL
-                CREATE TABLE persons (
-                    customer_id INTEGER PRIMARY KEY,
-                    name VARCHAR(255),
-                    is_active bool DEFAULT true
-                )
-            SQL);
+            CREATE TABLE persons (
+                customer_id INTEGER PRIMARY KEY,
+                name VARCHAR(255),
+                is_active bool DEFAULT true
+            )
+        SQL);
     $connection->executeStatement(<<<SQL
-                CREATE TABLE customer_notifications (
-                    customer_id INTEGER PRIMARY KEY
-                )
-            SQL);
+            CREATE TABLE customer_notifications (
+                customer_id INTEGER PRIMARY KEY
+            )
+        SQL);
 }

@@ -16,8 +16,7 @@ class Reference
     public function __construct(
         string $referenceName = '',
         ?string $expression = null,
-    )
-    {
+    ) {
         $this->referenceName = $referenceName;
         $this->expression    = $expression;
     }

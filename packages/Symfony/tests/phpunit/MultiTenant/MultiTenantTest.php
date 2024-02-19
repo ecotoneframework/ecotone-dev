@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace Test\MultiTenant;
 
-use Symfony\App\MultiTenant\Application\Command\RegisterCustomer;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
-use Illuminate\Support\Facades\Artisan;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
+use Symfony\App\MultiTenant\Application\Command\RegisterCustomer;
 use Symfony\App\MultiTenant\Configuration\Kernel;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\ConsoleOutput;
+
 require_once __DIR__ . '/boostrap.php';
 
+/**
+ * @internal
+ */
 final class MultiTenantTest extends TestCase
 {
     private QueryBus $queryBus;
@@ -58,7 +62,7 @@ final class MultiTenantTest extends TestCase
                 new RegisterCustomer(1, 'John Doe'),
                 metadata: ['tenant' => 'tenant_a', 'shouldThrowException' => true]
             );
-        } catch (\RuntimeException $exception) {
+        } catch (RuntimeException $exception) {
         }
 
         $this->commandBus->send(

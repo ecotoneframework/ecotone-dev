@@ -7,7 +7,6 @@ namespace Ecotone\Dbal\Attribute;
 use Attribute;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Messaging\Attribute\ServiceActivator;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 class OnTenantActivation extends ServiceActivator

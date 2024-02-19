@@ -29,7 +29,7 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (!class_exists(HeaderBasedMultiTenantConnectionFactory::class)) {
+        if (! class_exists(HeaderBasedMultiTenantConnectionFactory::class)) {
             return;
         }
 

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyBundle\Config;
 
-use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Config\ConnectionReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -25,10 +23,9 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
         string $connectionName,
         string $managerRegistryReference = 'doctrine',
         ?string $referenceName = null
-    ): self
-    {
+    ): self {
         return new self(
-         $referenceName ?? $managerRegistryReference . '.' . $connectionName . '.' . Uuid::uuid4()->toString(),
+            $referenceName ?? $managerRegistryReference . '.' . $connectionName . '.' . Uuid::uuid4()->toString(),
             $managerRegistryReference,
             $connectionName
         );

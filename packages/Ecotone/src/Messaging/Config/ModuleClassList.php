@@ -18,7 +18,6 @@ use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
 use Ecotone\Laravel\Config\LaravelConnectionModule;
-use Ecotone\Laravel\Config\LaravelTenantDatabaseSwitcher;
 use Ecotone\Lite\Test\Configuration\EcotoneTestSupportModule;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorModule;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeModule;

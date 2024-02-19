@@ -3,7 +3,6 @@
 namespace Ecotone\Dbal\MultiTenant;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Interop\Queue\ConnectionFactory;
 

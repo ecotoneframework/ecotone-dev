@@ -35,7 +35,7 @@
     },
     "require": {
         "ecotone/ecotone": "~1.212.0",
-        "laravel/framework": "^9.5.2|^10.0"
+        "laravel/framework": "^9.5.2|^10.0|^11.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",

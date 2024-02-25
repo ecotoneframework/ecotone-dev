@@ -72,7 +72,7 @@ class AmqpDistributionModule
 
                 foreach ($this->distributedEventHandlers as $distributedEventHandler) {
                     /** Adjust star to RabbitMQ so it can substitute for zero or more words. */
-                    $distributedEventHandler = str_replace("*", "#", $distributedEventHandler);
+                    $distributedEventHandler = str_replace('*', '#', $distributedEventHandler);
                     $amqpConfiguration[] = AmqpBinding::createFromNames(self::AMQP_DISTRIBUTED_EXCHANGE, $queueName, $distributedEventHandler);
                 }
             }

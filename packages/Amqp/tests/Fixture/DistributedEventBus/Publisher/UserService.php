@@ -9,7 +9,7 @@ use Ecotone\Modelling\DistributedBus;
 class UserService
 {
     public const CHANGE_BILLING_DETAILS = 'changeBillingDetails';
-    public const BILLING_DETAILS_WERE_CHANGED = 'userService.billingDetailsWereChanged';
+    public const BILLING_DETAILS_WERE_CHANGED = 'userService.billing.DetailsWereChanged';
 
     #[CommandHandler(self::CHANGE_BILLING_DETAILS)]
     public function changeBillingDetails(#[Reference] DistributedBus $distributedBus)

@@ -85,7 +85,7 @@ class ObjectManagerModule implements AnnotationModule
         $repositories = [];
 
         if ($dbalConfiguration->isDoctrineORMRepositoriesEnabled()) {
-            $repositories[] = new DoctrineORMRepositoryBuilder($dbalConfiguration->getDoctrineORMRepositoryConnectionReference(), $dbalConfiguration->getDoctrineORMClasses());
+            $repositories[] = new DoctrineORMRepositoryBuilder($dbalConfiguration);
         }
 
         return $repositories;

@@ -10,7 +10,7 @@ class PropertyWithTypeAndMetadataType
      * @var string
      * @Serializer\Type("integer")
      */
-    #[Serializer\Type("integer")]
+    #[Serializer\Type('integer')]
     private $data;
 
     /**

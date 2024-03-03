@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\Persistence\ObjectManager;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -18,8 +17,7 @@ class ManagerRegistryRepository implements StandardRepository
         private ConnectionFactory $connectionFactory,
         private ?array $relatedClasses,
         private bool $autoFlushOnCommand
-    )
-    {
+    ) {
     }
 
     public function canHandle(string $aggregateClassName): bool

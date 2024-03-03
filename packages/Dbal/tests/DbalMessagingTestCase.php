@@ -3,7 +3,6 @@
 namespace Test\Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Sequence;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;

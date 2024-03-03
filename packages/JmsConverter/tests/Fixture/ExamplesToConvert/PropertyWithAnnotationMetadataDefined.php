@@ -10,8 +10,8 @@ class PropertyWithAnnotationMetadataDefined
      * @Serializer\SerializedName("naming")
      * @Serializer\Type("string")
      */
-    #[Serializer\SerializedName("naming")]
-    #[Serializer\Type("string")]
+    #[Serializer\SerializedName('naming')]
+    #[Serializer\Type('string')]
     private $name;
 
     /**

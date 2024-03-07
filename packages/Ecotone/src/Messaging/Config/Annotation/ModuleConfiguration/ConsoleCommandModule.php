@@ -25,12 +25,14 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 #[ModuleAnnotation]
 final class ConsoleCommandModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public const ECOTONE_COMMAND_PARAMETER_PREFIX = 'ecotone.oneTimeCommand.';
+    const HEADER_PARAMETER = 'header';
 
     /**
      * @var ServiceActivatorBuilder[]
@@ -108,6 +110,7 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
 
     private static function prepareParameter(InterfaceToCallRegistry $interfaceToCallRegistry, bool|string $className, string $methodName, array $parameterConverters, array $parameters): array
     {
+        $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
         $interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
 
         if ($interfaceToCall->canReturnValue() && ! $interfaceToCall->getReturnType()->equals(TypeDescriptor::create(ConsoleCommandResultSet::class))) {
@@ -115,14 +118,20 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
         }
 
         foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
-            if ($interfaceParameter->getTypeDescriptor()->isClassOrInterface()) {
+            Assert::isFalse($interfaceParameter->getName() === self::HEADER_PARAMETER, "Parameter name 'header' is reserved for headers and cannot be used as a parameter name");
+            if ($parameterConverter = $parameterConverterAnnotationFactory->getConverterFor($interfaceParameter)) {
+                $parameterConverters[] = $parameterConverter;
+            }elseif ($interfaceParameter->getTypeDescriptor()->isClassOrInterface()) {
                 $parameterConverters[] = ReferenceBuilder::create($interfaceParameter->getName(), $interfaceParameter->getTypeDescriptor()->toString());
             } else {
                 $headerName = self::ECOTONE_COMMAND_PARAMETER_PREFIX . $interfaceParameter->getName();
                 $parameterConverters[] = HeaderBuilder::create($interfaceParameter->getName(), $headerName);
+                $parameterType = $interfaceParameter->getTypeDescriptor();
+                $isOption = $interfaceParameter->hasAnnotation(ConsoleParameterOption::class) || $parameterType->isArrayButNotClassBasedCollection() || $parameterType->isBoolean();
+
                 $parameters[]          = $interfaceParameter->hasDefaultValue()
-                    ? ConsoleCommandParameter::createWithDefaultValue($interfaceParameter->getName(), $headerName, $interfaceParameter->hasAnnotation(ConsoleParameterOption::class), $interfaceParameter->getDefaultValue())
-                    : ConsoleCommandParameter::create($interfaceParameter->getName(), $headerName, $interfaceParameter->getTypeDescriptor()->isBoolean());
+                    ? ConsoleCommandParameter::createWithDefaultValue($interfaceParameter->getName(), $headerName, $isOption, $interfaceParameter->getTypeDescriptor()->isArrayButNotClassBasedCollection(), $interfaceParameter->getDefaultValue())
+                    : ConsoleCommandParameter::create($interfaceParameter->getName(), $headerName, $isOption, $interfaceParameter->getTypeDescriptor()->isArrayButNotClassBasedCollection());
             }
         }
 

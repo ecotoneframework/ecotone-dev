@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
@@ -36,7 +36,7 @@ use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;

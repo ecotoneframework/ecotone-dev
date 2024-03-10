@@ -2,7 +2,6 @@
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -19,14 +18,14 @@ class ConsoleCommandRunner
 
         foreach ($parameters as $argumentName => $value) {
             if ($argumentName === ConsoleCommandConfiguration::HEADER_PARAMETER_NAME) {
-                Assert::isIterable($value, "Header parameter should be iterable");
+                Assert::isIterable($value, 'Header parameter should be iterable');
 
                 foreach ($value as $header) {
                     $result = explode(':', $header);
                     if (count($result) !== 2) {
                         throw InvalidArgumentException::create("Invalid header format. Should be in format 'headerName:headerValue'");
                     }
-                    list($headerName, $headerValue) = $result;
+                    [$headerName, $headerValue] = $result;
 
                     $arguments[$headerName] = $headerValue;
                 }

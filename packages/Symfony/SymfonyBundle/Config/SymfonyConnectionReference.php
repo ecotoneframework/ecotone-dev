@@ -64,7 +64,7 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
 
     public function getManagerRegistryReference(): string
     {
-        Assert::isTrue($this->managerRegistryReference !== null, "This connection is not manager registry based");
+        Assert::isTrue($this->managerRegistryReference !== null, 'This connection is not manager registry based');
 
         return $this->managerRegistryReference;
     }

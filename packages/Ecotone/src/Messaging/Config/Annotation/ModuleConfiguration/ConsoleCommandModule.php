@@ -120,7 +120,7 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
             Assert::isFalse($interfaceParameter->getName() === ConsoleCommandConfiguration::HEADER_PARAMETER_NAME, "Parameter name 'header' is reserved for headers and cannot be used as a parameter name");
             if ($parameterConverter = $parameterConverterAnnotationFactory->getConverterFor($interfaceParameter)) {
                 $parameterConverters[] = $parameterConverter;
-            }elseif ($interfaceParameter->getTypeDescriptor()->isClassOrInterface()) {
+            } elseif ($interfaceParameter->getTypeDescriptor()->isClassOrInterface()) {
                 $parameterConverters[] = ReferenceBuilder::create($interfaceParameter->getName(), $interfaceParameter->getTypeDescriptor()->toString());
             } else {
                 $headerName = self::ECOTONE_COMMAND_PARAMETER_PREFIX . $interfaceParameter->getName();

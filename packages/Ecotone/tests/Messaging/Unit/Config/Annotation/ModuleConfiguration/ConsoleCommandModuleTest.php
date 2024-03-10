@@ -190,7 +190,7 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
         );
 
         $ecotoneLite->runConsoleCommand('cli-command:array-options', [
-            'names' => ['one', 'two']
+            'names' => ['one', 'two'],
         ]);
 
         $this->assertEquals(
@@ -209,7 +209,7 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
 
         $ecotoneLite->runConsoleCommand('cli-command:array-options-and-argument', [
             'email' => 'test@example.com',
-            'names' => ['one', 'two']
+            'names' => ['one', 'two'],
         ]);
 
         $this->assertEquals(
@@ -229,7 +229,7 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
 
         $ecotoneLite->runConsoleCommand('cli-command:with-headers', [
             'content' => 'Hello World',
-            'header' => ['email:test@example.com']
+            'header' => ['email:test@example.com'],
         ]);
 
         $this->assertEquals(
@@ -249,7 +249,7 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
 
         $ecotoneLite->runConsoleCommand('cli-command:with-multiple-headers', [
             'content' => 'Hello World',
-            'header' => ['supportive_email:test@example.com', 'billing_email:test2@example.com']
+            'header' => ['supportive_email:test@example.com', 'billing_email:test2@example.com'],
         ]);
 
         $this->assertEquals(
@@ -271,7 +271,7 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
 
         $ecotoneLite->runConsoleCommand('cli-command:with-headers', [
             'content' => 'Hello World',
-            'header' => ['email']
+            'header' => ['email'],
         ]);
     }
 }

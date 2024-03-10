@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand;
 
 use Ecotone\Messaging\Attribute\ConsoleCommand;
-use Ecotone\Messaging\Attribute\ConsoleParameterOption;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 
 final class ConsoleCommandWithMessageHeaders
@@ -24,8 +23,7 @@ final class ConsoleCommandWithMessageHeaders
         string $content,
         #[Header('supportive_email')] string $supportiveEmail,
         #[Header('billing_email')] string $billingEmail,
-    ): void
-    {
+    ): void {
         $this->parameters[] = $content;
         $this->parameters[] = $supportiveEmail;
         $this->parameters[] = $billingEmail;

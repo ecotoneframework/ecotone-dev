@@ -23,7 +23,7 @@ final class LaravelConnectionReference extends ConnectionReference implements De
         return new self($connectionName, $referenceName ?? 'ecotone.laravel.connection.' . $connectionName);
     }
 
-    public static function createGlobalConnection(string $connectionName): self
+    public static function defaultConnection(string $connectionName): self
     {
         return new self($connectionName, DbalConnectionFactory::class);
     }

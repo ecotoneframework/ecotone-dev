@@ -32,7 +32,6 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 final class ConsoleCommandModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public const ECOTONE_COMMAND_PARAMETER_PREFIX = 'ecotone.oneTimeCommand.';
-    const HEADER_PARAMETER = 'header';
 
     /**
      * @var ServiceActivatorBuilder[]
@@ -118,7 +117,7 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
         }
 
         foreach ($interfaceToCall->getInterfaceParameters() as $interfaceParameter) {
-            Assert::isFalse($interfaceParameter->getName() === self::HEADER_PARAMETER, "Parameter name 'header' is reserved for headers and cannot be used as a parameter name");
+            Assert::isFalse($interfaceParameter->getName() === ConsoleCommandConfiguration::HEADER_PARAMETER_NAME, "Parameter name 'header' is reserved for headers and cannot be used as a parameter name");
             if ($parameterConverter = $parameterConverterAnnotationFactory->getConverterFor($interfaceParameter)) {
                 $parameterConverters[] = $parameterConverter;
             }elseif ($interfaceParameter->getTypeDescriptor()->isClassOrInterface()) {

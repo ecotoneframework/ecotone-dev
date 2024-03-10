@@ -18,12 +18,14 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ConsoleCommandWithArrayOptions;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ConsoleCommandWithMessageHeaders;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\DefaultParametersOneTimeCommandExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\OneTimeWithIncorrectResultSet;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\OneTimeWithResultExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ParametersOneTimeCommandExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ParametersWithReferenceOneTimeCommandExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ReferenceBasedConsoleCommand;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\StdClassConverter;
 
 /**
  * Class InboundChannelAdapterModuleTest
@@ -214,5 +216,62 @@ class ConsoleCommandModuleTest extends AnnotationConfigurationTest
             ['test@example.com', ['one', 'two']],
             $consoleCommand->getParameters()
         );
+    }
+
+    public function test_execute_console_with_extra_header_values()
+    {
+        $consoleCommand = new ConsoleCommandWithMessageHeaders();
+        $stdClassConverter = new StdClassConverter();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ConsoleCommandWithMessageHeaders::class, StdClassConverter::class],
+            [$consoleCommand, $stdClassConverter]
+        );
+
+        $ecotoneLite->runConsoleCommand('cli-command:with-headers', [
+            'content' => 'Hello World',
+            'header' => ['email:test@example.com']
+        ]);
+
+        $this->assertEquals(
+            ['Hello World', 'test@example.com'],
+            $consoleCommand->getParameters()
+        );
+    }
+
+    public function test_execute_console_with_multiple_extra_header_values()
+    {
+        $consoleCommand = new ConsoleCommandWithMessageHeaders();
+        $stdClassConverter = new StdClassConverter();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ConsoleCommandWithMessageHeaders::class, StdClassConverter::class],
+            [$consoleCommand, $stdClassConverter]
+        );
+
+        $ecotoneLite->runConsoleCommand('cli-command:with-multiple-headers', [
+            'content' => 'Hello World',
+            'header' => ['supportive_email:test@example.com', 'billing_email:test2@example.com']
+        ]);
+
+        $this->assertEquals(
+            ['Hello World', 'test@example.com', 'test2@example.com'],
+            $consoleCommand->getParameters()
+        );
+    }
+
+    public function test_execute_console_with_incorrect_header_value()
+    {
+        $consoleCommand = new ConsoleCommandWithMessageHeaders();
+        $stdClassConverter = new StdClassConverter();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ConsoleCommandWithMessageHeaders::class, StdClassConverter::class],
+            [$consoleCommand, $stdClassConverter]
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $ecotoneLite->runConsoleCommand('cli-command:with-headers', [
+            'content' => 'Hello World',
+            'header' => ['email']
+        ]);
     }
 }

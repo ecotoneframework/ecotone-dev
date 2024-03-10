@@ -35,7 +35,13 @@ class MessagingEntrypointCommand extends Command
     {
         foreach ($this->parameters as $parameter) {
             if ($parameter->isOption()) {
-                $this->addOption($parameter->getName(), null, InputOption::VALUE_OPTIONAL, '', $parameter->getDefaultValue());
+                $this->addOption(
+                    $parameter->getName(),
+                    null,
+                    $parameter->isArray() ? InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY : InputOption::VALUE_OPTIONAL,
+                    '',
+                    $parameter->getDefaultValue()
+                );
             } else {
                 if ($parameter->hasDefaultValue()) {
                     $this->addArgument($parameter->getName(), InputArgument::OPTIONAL, '', $parameter->getDefaultValue());

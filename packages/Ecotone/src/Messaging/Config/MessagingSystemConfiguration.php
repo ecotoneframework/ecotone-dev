@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -1137,7 +1138,7 @@ final class MessagingSystemConfiguration implements Configuration
 
         foreach ($this->consoleCommands as $consoleCommandConfiguration) {
             $builder->register("console.{$consoleCommandConfiguration->getName()}", new Definition(ConsoleCommandRunner::class, [
-                Reference::to(MessagingEntrypoint::class),
+                Reference::to(MessagingEntrypointWithHeadersPropagation::class),
                 $consoleCommandConfiguration,
             ]));
         }

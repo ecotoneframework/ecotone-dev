@@ -22,6 +22,8 @@ use Interop\Queue\ConnectionFactory;
 #[ModuleAnnotation]
 final class SymfonyConnectionModule extends NoExternalConfigurationModule implements AnnotationModule
 {
+    const DOCTRINE_DBAL_CONNECTION_PREFIX = 'doctrine.dbal.connection_';
+
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         return new self();
@@ -44,33 +46,37 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
 
         $symfonyConnections = array_unique($symfonyConnections);
         foreach ($symfonyConnections as $connection) {
-            $messagingConfiguration->registerServiceDefinition(
-                $connection->getReferenceName(),
-                new Definition(
-                    ConnectionFactory::class,
-                    [
-                        Reference::to($connection->getManagerRegistryReference()),
-                        $connection->getConnectionName(),
-                    ],
-                    [
-                        DbalConnection::class,
-                        'createForManagerRegistry',
-                    ]
-                )
-            );
+            if ($connection->isManagerRegistryBasedConnection()) {
+                $messagingConfiguration->registerServiceDefinition(
+                    $connection->getReferenceName(),
+                    new Definition(
+                        ConnectionFactory::class,
+                        [
+                            Reference::to($connection->getManagerRegistryReference()),
+                            $connection->getConnectionName(),
+                        ],
+                        [
+                            DbalConnection::class,
+                            'createForManagerRegistry',
+                        ]
+                    )
+                );
+            }else {
+                $messagingConfiguration->registerServiceDefinition(
+                    $connection->getReferenceName(),
+                    new Definition(
+                        ConnectionFactory::class,
+                        [
+                            Reference::to(self::DOCTRINE_DBAL_CONNECTION_PREFIX . $connection->getConnectionName()),
+                        ],
+                        [
+                            DbalConnection::class,
+                            'create',
+                        ]
+                    )
+                );
+            }
         }
-
-        //        $messagingConfiguration->registerServiceDefinition(
-        //            LaravelTenantDatabaseSwitcher::class,
-        //            new Definition(
-        //                LaravelTenantDatabaseSwitcher::class,
-        //                [],
-        //                [
-        //                    LaravelTenantDatabaseSwitcher::class,
-        //                    'create',
-        //                ]
-        //            )
-        //        );
     }
 
     public function canHandle($extensionObject): bool

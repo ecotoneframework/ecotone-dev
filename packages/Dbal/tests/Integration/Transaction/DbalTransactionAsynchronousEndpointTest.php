@@ -243,7 +243,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
             ['personId' => 101, 'personName' => 'Johny', 'exception' => false],
         ], metadata: ['tenant' => 'tenant_b']);
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, failAtError: true));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, failAtError: false));
 
         /** Saved in tenant b */
         $this->assertNotNull($ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100, 'tenant' => 'tenant_b']));

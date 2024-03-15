@@ -63,7 +63,8 @@
             "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "tests/Behat/Bootstrap",
             "Fixture\\": "tests/Fixture",
             "Ecotone\\SymfonyBundle\\App\\": "App",
-            "Symfony\\App\\MultiTenant\\": "tests/phpunit/MultiTenant/src"
+            "Symfony\\App\\MultiTenant\\": "tests/phpunit/MultiTenant/src",
+            "Symfony\\App\\SingleTenant\\": "tests/phpunit/SingleTenant/src"
         }
     },
     "scripts": {

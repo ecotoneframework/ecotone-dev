@@ -96,6 +96,7 @@
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
             "App\\MultiTenant\\": "packages/Laravel/tests/MultiTenant/app",
             "Symfony\\App\\MultiTenant\\": "packages/Symfony/tests/phpunit/MultiTenant/src",
+            "Symfony\\App\\SingleTenant\\": "packages/Symfony/tests/phpunit/SingleTenant/src",
             "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
             "Tests\\Ecotone\\": "tests"
         }

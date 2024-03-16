@@ -1,0 +1,19 @@
+doctrine:
+  dbal:
+    default_connection: defined_connection
+    connections:
+      defined_connection:
+        url: '%env(resolve:DATABASE_DSN)%'
+        charset: UTF8
+  orm:
+    auto_generate_proxy_classes: "%kernel.debug%"
+    entity_managers:
+      defined_orm_connection:
+        connection: defined_connection
+        mappings:
+          App:
+            is_bundle: false
+            type: attribute
+            dir: '%kernel.project_dir%/src'
+            prefix: 'Symfony\App\SingleTenant'
+            alias: App

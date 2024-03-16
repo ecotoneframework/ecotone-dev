@@ -34,6 +34,9 @@ function migrateSymfony(Connection $connection): void
             )
         SQL);
     $connection->executeStatement(<<<SQL
+                DROP TABLE IF EXISTS customer_notifications
+        SQL);
+    $connection->executeStatement(<<<SQL
             CREATE TABLE customer_notifications (
                 customer_id INTEGER PRIMARY KEY
             )

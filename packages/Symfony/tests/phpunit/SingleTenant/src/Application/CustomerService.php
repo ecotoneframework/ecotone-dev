@@ -6,10 +6,7 @@ namespace Symfony\App\SingleTenant\Application;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
-use Ecotone\Dbal\Attribute\MultiTenantConnection;
-use Ecotone\Dbal\Attribute\MultiTenantObjectManager;
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;

@@ -1,8 +1,8 @@
 <?php
 
 use Doctrine\DBAL\Connection;
-use Symfony\Component\HttpKernel\Kernel;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Symfony\Component\HttpKernel\Kernel;
 
 function runMigrationForSymfony(Kernel $kernel): void
 {

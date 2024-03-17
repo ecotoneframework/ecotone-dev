@@ -68,7 +68,7 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
                     new Definition(
                         ConnectionFactory::class,
                         [
-                            $connection->getConnectionName()
+                            $connection->getConnectionName(),
                         ],
                         [
                             'doctrine',
@@ -82,7 +82,7 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
                     new Definition(
                         ConnectionFactory::class,
                         [
-                            Reference::to($referenceToConnection)
+                            Reference::to($referenceToConnection),
                         ],
                         [
                             DbalConnection::class,

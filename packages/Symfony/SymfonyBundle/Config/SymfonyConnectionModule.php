@@ -22,7 +22,7 @@ use Interop\Queue\ConnectionFactory;
 #[ModuleAnnotation]
 final class SymfonyConnectionModule extends NoExternalConfigurationModule implements AnnotationModule
 {
-    public const DOCTRINE_DBAL_CONNECTION_PREFIX = 'doctrine.dbal.connection_';
+    public const DOCTRINE_DBAL_CONNECTION_PREFIX = 'ecotone.doctrine.dbal.connection_';
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
@@ -62,12 +62,27 @@ final class SymfonyConnectionModule extends NoExternalConfigurationModule implem
                     )
                 );
             } else {
+                $referenceToConnection = self::DOCTRINE_DBAL_CONNECTION_PREFIX . $connection->getReferenceName();
+                $messagingConfiguration->registerServiceDefinition(
+                    $referenceToConnection,
+                    new Definition(
+                        ConnectionFactory::class,
+                        [
+                            $connection->getConnectionName()
+                        ],
+                        [
+                            'doctrine',
+                            'getConnection',
+                        ]
+                    )
+                );
+
                 $messagingConfiguration->registerServiceDefinition(
                     $connection->getReferenceName(),
                     new Definition(
                         ConnectionFactory::class,
                         [
-                            Reference::to(self::DOCTRINE_DBAL_CONNECTION_PREFIX . $connection->getConnectionName()),
+                            Reference::to($referenceToConnection)
                         ],
                         [
                             DbalConnection::class,

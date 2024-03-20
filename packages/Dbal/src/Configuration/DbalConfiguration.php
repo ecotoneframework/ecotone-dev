@@ -22,6 +22,7 @@ class DbalConfiguration
     private bool $transactionOnConsoleCommands = self::DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS;
     private bool $clearObjectManagerOnAsynchronousEndpoints = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
     private bool $clearAndFlushObjectManagerOnCommandBus = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
+    private bool $flushDuringPersistingAggregate = true;
     private array $defaultConnectionReferenceNames = [DbalConnectionFactory::class];
 
     private bool $deduplicatedEnabled = self::DEFAULT_DEDUPLICATION_ENABLED;
@@ -176,6 +177,17 @@ class DbalConfiguration
         return $self;
     }
 
+    /**
+     * This will enable flushing during persisting aggregate using Ecotone's Doctrine ORM Repository
+     */
+    public function withFlushWhenPersistingAggregate(bool $isEnabled): self
+    {
+        $self                                 = clone $this;
+        $self->flushDuringPersistingAggregate = $isEnabled;
+
+        return $self;
+    }
+
     public function withDefaultConnectionReferenceNames(array $connectionReferenceNames = [DbalConnectionFactory::class]): self
     {
         $self = clone $this;
@@ -259,6 +271,11 @@ class DbalConfiguration
     public function isClearAndFlushObjectManagerOnCommandBus(): bool
     {
         return $this->clearAndFlushObjectManagerOnCommandBus;
+    }
+
+    public function isFlushingDuringPersistingAggregate(): bool
+    {
+        return $this->flushDuringPersistingAggregate;
     }
 
     public function isEnableDbalDocumentStore(): bool

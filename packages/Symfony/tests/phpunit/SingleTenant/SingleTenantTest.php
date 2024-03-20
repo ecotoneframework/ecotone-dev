@@ -4,11 +4,18 @@ declare(strict_types=1);
 
 namespace Test\SingleTenant;
 
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\App\SingleTenant\Application\Command\RegisterCustomer;
+use Symfony\App\SingleTenant\Application\Customer;
+use Symfony\App\SingleTenant\Application\CustomerService;
+use Symfony\App\SingleTenant\Application\External\ExternalRegistrationHappened;
+use Symfony\App\SingleTenant\Configuration\EcotoneConfiguration;
 use Symfony\App\SingleTenant\Configuration\Kernel;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -72,6 +79,60 @@ final class SingleTenantTest extends TestCase
         $this->assertSame(
             1,
             $this->queryBus->sendWithRouting('getNotificationsCount')
+        );
+    }
+
+    public function test_single_tenant_with_inner_container_using_command_bus(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Customer::class, EcotoneConfiguration::class],
+            $this->kernel->getContainer(),
+            ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(
+                ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::SYMFONY_PACKAGE,
+                ])
+            ),
+            addInMemoryStateStoredRepository: false
+        );
+
+        $ecotoneLite->sendCommand(new RegisterCustomer(1, 'John Doe'));
+        $ecotoneLite->sendCommand(new RegisterCustomer(2, 'John Doe'));
+
+        $this->assertEquals(
+            1,
+            $ecotoneLite->getAggregate(Customer::class, 1)->getCustomerId()
+        );
+        $this->assertEquals(
+            2,
+            $ecotoneLite->getAggregate(Customer::class, 2)->getCustomerId()
+        );
+    }
+
+    public function test_single_tenant_with_inner_container_using_event_bus(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Customer::class, EcotoneConfiguration::class],
+            $this->kernel->getContainer(),
+            ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(
+                ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::SYMFONY_PACKAGE,
+                ])
+            ),
+            addInMemoryStateStoredRepository: false
+        );
+
+        $ecotoneLite->publishEvent(new ExternalRegistrationHappened(1, 'John Doe'));
+        $ecotoneLite->publishEvent(new ExternalRegistrationHappened(2, 'John Doe'));
+
+        $this->assertEquals(
+            1,
+            $ecotoneLite->getAggregate(Customer::class, 1)->getCustomerId()
+        );
+        $this->assertEquals(
+            2,
+            $ecotoneLite->getAggregate(Customer::class, 2)->getCustomerId()
         );
     }
 }

@@ -11,11 +11,14 @@ use Doctrine\ORM\Mapping\Table;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Distributed;
+use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\WithEvents;
 use RuntimeException;
 use Symfony\App\SingleTenant\Application\Command\RegisterCustomer;
 use Symfony\App\SingleTenant\Application\Event\CustomerWasRegistered;
+use Symfony\App\SingleTenant\Application\External\ExternalRegistrationHappened;
 
 // Important Attribute to tell Ecotone that this is an Aggregate
 #[Aggregate]
@@ -49,6 +52,17 @@ class Customer
         if ($shouldThrowException) {
             throw new RuntimeException('Rollback transaction');
         }
+
+        return $self;
+    }
+
+    #[EventHandler]
+    public static function registerFromEvent(ExternalRegistrationHappened $event): self
+    {
+        $self = new self();
+        $self->customerId = $event->customerId;
+        $self->name = $event->name;
+        $self->recordThat(new CustomerWasRegistered($event->customerId));
 
         return $self;
     }

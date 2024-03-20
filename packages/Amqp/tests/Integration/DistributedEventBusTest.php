@@ -37,11 +37,14 @@ final class DistributedEventBusTest extends AmqpMessagingTest
     public function test_distributing_event_and_publish_async_private_event(): void
     {
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher'], [new UserService()]);
-        $ticketService = $this->bootstrapEcotone('ticket_service',
+        $ticketService = $this->bootstrapEcotone(
+            'ticket_service',
             [
                 'Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver',
                 'Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler',
-            ], [new TicketServiceReceiver(), new TicketNotificationSubscriber()]);
+            ],
+            [new TicketServiceReceiver(), new TicketNotificationSubscriber()]
+        );
 
         $ticketService->run('ticket_service');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
@@ -57,11 +60,14 @@ final class DistributedEventBusTest extends AmqpMessagingTest
     public function test_distributing_event_and_publish_async_without_amqp_transactions(): void
     {
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher'], [new UserService()]);
-        $ticketService = $this->bootstrapEcotone('ticket_service',
+        $ticketService = $this->bootstrapEcotone(
+            'ticket_service',
             [
                 'Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver',
                 'Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler',
-            ], [new TicketServiceReceiver(), new TicketNotificationSubscriber()]);
+            ],
+            [new TicketServiceReceiver(), new TicketNotificationSubscriber()]
+        );
 
         $ticketService->run('ticket_service');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
@@ -83,7 +89,8 @@ final class DistributedEventBusTest extends AmqpMessagingTest
     public function test_distributing_event_and_publish_async_with_amqp_transactions(): void
     {
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher'], [new UserService()]);
-        $ticketService = $this->bootstrapEcotone('ticket_service',
+        $ticketService = $this->bootstrapEcotone(
+            'ticket_service',
             [
                 'Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver',
                 'Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler',
@@ -91,7 +98,7 @@ final class DistributedEventBusTest extends AmqpMessagingTest
             [new TicketServiceReceiver(), new TicketNotificationSubscriber()],
             [
                 AmqpConfiguration::createWithDefaults()
-                    ->withTransactionOnAsynchronousEndpoints(true)
+                    ->withTransactionOnAsynchronousEndpoints(true),
             ]
         );
 
@@ -117,8 +124,7 @@ final class DistributedEventBusTest extends AmqpMessagingTest
         array  $namespaces,
         array  $services,
         array  $extensionObjects = [],
-    ): FlowTestSupport
-    {
+    ): FlowTestSupport {
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([AmqpConnectionFactory::class => $this->getCachedConnectionFactory()], $services),
             configuration: ServiceConfiguration::createWithDefaults()

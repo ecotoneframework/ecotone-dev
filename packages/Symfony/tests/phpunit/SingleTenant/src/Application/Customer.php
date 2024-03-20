@@ -11,7 +11,6 @@ use Doctrine\ORM\Mapping\Table;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\WithEvents;

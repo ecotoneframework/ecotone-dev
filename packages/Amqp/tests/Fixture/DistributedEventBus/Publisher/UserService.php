@@ -16,8 +16,7 @@ class UserService
     public function changeBillingDetails(
         #[Reference] DistributedBus $distributedBus,
         #[Header('shouldThrowException')] bool $shouldThrowException = false,
-    )
-    {
+    ) {
         $distributedBus->publishEvent(
             self::BILLING_DETAILS_WERE_CHANGED,
             'ticket was created',

@@ -7,6 +7,7 @@ use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;
+use RuntimeException;
 
 class TicketServiceReceiver
 {
@@ -20,13 +21,12 @@ class TicketServiceReceiver
         string $ticket,
         EventBus $eventBus,
         #[Header('shouldThrowException')] bool $shouldThrowException = false,
-    ): void
-    {
+    ): void {
         $this->tickets[] = $ticket;
         $eventBus->publish(new TicketRegistered($ticket));
 
         if ($shouldThrowException) {
-            throw new \RuntimeException('Should throw exception');
+            throw new RuntimeException('Should throw exception');
         }
     }
 

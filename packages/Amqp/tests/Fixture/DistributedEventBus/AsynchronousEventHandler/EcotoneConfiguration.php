@@ -17,7 +17,7 @@ final class EcotoneConfiguration
         return [
             AmqpBackedMessageChannelBuilder::create('notification_channel'),
             PollingMetadata::create('notification_channel')
-                ->withTestingSetup(maxExecutionTimeInMilliseconds: 1000)
+                ->withTestingSetup(maxExecutionTimeInMilliseconds: 1000),
         ];
     }
 
@@ -25,8 +25,8 @@ final class EcotoneConfiguration
     public function messaging()
     {
         return [
-              GlobalPollableChannelConfiguration::createWithDefaults()
-                    ->withCollector(false)
+            GlobalPollableChannelConfiguration::createWithDefaults()
+                  ->withCollector(false),
         ];
     }
 }

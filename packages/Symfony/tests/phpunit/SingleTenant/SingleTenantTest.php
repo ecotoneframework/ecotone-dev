@@ -13,7 +13,6 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\App\SingleTenant\Application\Command\RegisterCustomer;
 use Symfony\App\SingleTenant\Application\Customer;
-use Symfony\App\SingleTenant\Application\CustomerService;
 use Symfony\App\SingleTenant\Application\External\ExternalRegistrationHappened;
 use Symfony\App\SingleTenant\Configuration\EcotoneConfiguration;
 use Symfony\App\SingleTenant\Configuration\Kernel;

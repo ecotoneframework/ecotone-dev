@@ -11,7 +11,7 @@ use Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver\TicketRegistered;
 
 final class TicketNotificationSubscriber
 {
-    const GET_TICKET_NOTIFICATION_COUNT = 'getTicketNotificationCount';
+    public const GET_TICKET_NOTIFICATION_COUNT = 'getTicketNotificationCount';
     private int $counter = 0;
 
     #[Asynchronous('notification_channel')]

@@ -22,6 +22,7 @@ use Ecotone\Modelling\Config\BusModule;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
+use Ecotone\Modelling\MessageBus;
 use Ecotone\Modelling\QueryBus;
 
 /**
@@ -316,6 +317,14 @@ final class FlowTestSupport
         $messagingEntrypoint = $this->configuredMessagingSystem->getGatewayByName(MessagingEntrypoint::class);
 
         return $messagingEntrypoint->sendWithHeaders($payload, $metadata, $targetChannel);
+    }
+
+    public function sendMessage(string $targetChannel, mixed $payload, array $metadata = []): mixed
+    {
+        /** @var MessageBus $messageBus */
+        $messageBus = $this->configuredMessagingSystem->getGatewayByName(MessageBus::class);
+
+        return $messageBus->send($targetChannel, $payload, $metadata);
     }
 
     public function sendMessageDirectToChannel(Message $message): mixed

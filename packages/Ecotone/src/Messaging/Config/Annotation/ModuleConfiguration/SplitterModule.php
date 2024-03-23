@@ -20,7 +20,7 @@ class SplitterModule extends MessageHandlerRegisterConfiguration
      */
     public static function createMessageHandlerFrom(AnnotatedFinding $annotationRegistration, InterfaceToCallRegistry $interfaceToCallRegistry): MessageHandlerBuilderWithParameterConverters
     {
-        /** @var Transformer $annotation */
+        /** @var Splitter $annotation */
         $annotation = $annotationRegistration->getAnnotationForMethod();
 
         return

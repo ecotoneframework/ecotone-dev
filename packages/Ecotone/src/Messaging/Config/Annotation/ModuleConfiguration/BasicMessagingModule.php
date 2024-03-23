@@ -41,6 +41,7 @@ use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\NullableMessageChannel;
+use Ecotone\Modelling\MessageBus;
 
 #[ModuleAnnotation]
 class BasicMessagingModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -127,6 +128,18 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
                 'sendMessage',
                 MessagingEntrypoint::ENTRYPOINT
             )
+        );
+        $messagingConfiguration->registerGatewayBuilder(
+            GatewayProxyBuilder::create(
+                MessageBus::class,
+                MessageBus::class,
+                'send',
+                MessagingEntrypoint::ENTRYPOINT
+            )->withParameterConverters([
+                GatewayHeaderBuilder::create('targetChannel', MessagingEntrypoint::ENTRYPOINT),
+                GatewayPayloadBuilder::create('payload'),
+                GatewayHeadersBuilder::create('metadata'),
+            ])
         );
 
         $messagingConfiguration->registerGatewayBuilder(

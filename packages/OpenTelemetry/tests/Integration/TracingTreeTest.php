@@ -31,6 +31,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberOne;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberTwo;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
+use Test\Ecotone\OpenTelemetry\Fixture\MessageHandlerFlow\ExampleMessageHandler;
 
 /**
  * @internal
@@ -56,6 +57,34 @@ final class TracingTreeTest extends TracingTest
                     'children' => [
                         [
                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
+                            'children' => [],
+                        ],
+                    ],
+                ],
+            ],
+            self::buildTree($exporter)
+        );
+    }
+
+    public function test_tracing_tree_with_single_levels_of_nesting_for_message_handler()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [ExampleMessageHandler::class],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), ExampleMessageHandler::class => new ExampleMessageHandler()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+        )
+            ->sendMessage(targetChannel: 'handleMessage', payload: 'some');
+
+        self::compareTreesByDetails(
+            [
+                [
+                    'details' => ['name' => 'Message Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Message Handler: ' . ExampleMessageHandler::class . '::handle'],
                             'children' => [],
                         ],
                     ],

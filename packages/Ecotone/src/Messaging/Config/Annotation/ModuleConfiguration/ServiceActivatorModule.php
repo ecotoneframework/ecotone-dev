@@ -29,7 +29,8 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
             ->withRequiredReply($annotation->isRequiresReply())
             ->withOutputMessageChannel($annotation->getOutputChannelName())
             ->withInputChannelName($annotation->getInputChannelName())
-            ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames());
+            ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
+            ->withChangingHeaders($annotation->isChangingHeaders());
     }
 
     /**

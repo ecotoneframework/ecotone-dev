@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\AllConfigurationDefined\ServiceActivatorWithAllConfigurationDefined;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\MessageHandler\ExampleMessageHandlerChangingHeaders;
 
 /**
  * Class AnnotationServiceActivatorConfigurationTest
@@ -56,6 +57,30 @@ class ServiceActivatorModuleTest extends AnnotationConfigurationTest
                         ])
                         ->withRequiredReply(true)
                         ->withRequiredInterceptorNames(['someReference'])
+                )
+        );
+    }
+
+    public function test_registering_message_handler_changing_headers()
+    {
+        $annotationConfiguration = ServiceActivatorModule::create(
+            InMemoryAnnotationFinder::createFrom([
+                ExampleMessageHandlerChangingHeaders::class,
+            ]),
+            InterfaceToCallRegistry::createEmpty()
+        );
+
+        $configuration = $this->createMessagingSystemConfiguration();
+        $annotationConfiguration->prepare($configuration, [], ModuleReferenceSearchService::createEmpty(), InterfaceToCallRegistry::createEmpty());
+
+        $this->assertEquals(
+            $configuration,
+            $this->createMessagingSystemConfiguration()
+                ->registerMessageHandler(
+                    ServiceActivatorBuilder::create(ExampleMessageHandlerChangingHeaders::class, InterfaceToCall::create(ExampleMessageHandlerChangingHeaders::class, 'test'))
+                        ->withEndpointId('test')
+                        ->withInputChannelName('someRequestChannel')
+                        ->withChangingHeaders(true)
                 )
         );
     }

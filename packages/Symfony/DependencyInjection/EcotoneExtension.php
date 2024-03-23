@@ -22,6 +22,7 @@ class EcotoneExtension extends Extension
     {
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
+        $config = $container->resolveEnvPlaceholders($config, true);
 
         $skippedModules = $config['skippedModulePackageNames'] ?? [];
         if (! $config['test']) {
@@ -51,7 +52,7 @@ class EcotoneExtension extends Extension
                 ->withConsumerMemoryLimit($config['defaultMemoryLimit']);
         }
         if (isset($config['defaultConnectionExceptionRetry'])) {
-            $retryTemplate            = $config['defaultConnectionExceptionRetry'];
+            $retryTemplate = $config['defaultConnectionExceptionRetry'];
             $serviceConfiguration = $serviceConfiguration
                 ->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackoffWithMaxDelay(

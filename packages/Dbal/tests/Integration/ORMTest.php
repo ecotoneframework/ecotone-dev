@@ -257,7 +257,7 @@ final class ORMTest extends DbalMessagingTestCase
                     DbalConfiguration::createWithDefaults()
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates)
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
-                        ->withFlushWhenPersistingAggregate(false),
+                        ->withFlushWhenPersisting(false),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryStateStoredRepository: false

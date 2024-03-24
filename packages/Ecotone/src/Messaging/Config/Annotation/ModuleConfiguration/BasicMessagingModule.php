@@ -129,18 +129,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
                 MessagingEntrypoint::ENTRYPOINT
             )
         );
-        $messagingConfiguration->registerGatewayBuilder(
-            GatewayProxyBuilder::create(
-                MessageBus::class,
-                MessageBus::class,
-                'send',
-                MessagingEntrypoint::ENTRYPOINT
-            )->withParameterConverters([
-                GatewayHeaderBuilder::create('targetChannel', MessagingEntrypoint::ENTRYPOINT),
-                GatewayPayloadBuilder::create('payload'),
-                GatewayHeadersBuilder::create('metadata'),
-            ])
-        );
 
         $messagingConfiguration->registerGatewayBuilder(
             GatewayProxyBuilder::create(

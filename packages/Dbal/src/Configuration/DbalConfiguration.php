@@ -22,7 +22,7 @@ class DbalConfiguration
     private bool $transactionOnConsoleCommands = self::DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS;
     private bool $clearObjectManagerOnAsynchronousEndpoints = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
     private bool $clearAndFlushObjectManagerOnCommandBus = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
-    private bool $flushDuringPersistingAggregate = true;
+    private bool $flushDuringPersisting = true;
     private array $defaultConnectionReferenceNames = [DbalConnectionFactory::class];
 
     private bool $deduplicatedEnabled = self::DEFAULT_DEDUPLICATION_ENABLED;
@@ -40,7 +40,7 @@ class DbalConfiguration
     private string $documentStoreConnectionReference = DbalConnectionFactory::class;
     private bool $inMemoryDocumentStore = false;
 
-    private bool $enableDocumentStoreAggregateRepository = false;
+    private bool $enableDocumentStoreStandardRepository = false;
     private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
 
     private function __construct()
@@ -178,12 +178,12 @@ class DbalConfiguration
     }
 
     /**
-     * This will enable flushing during persisting aggregate using Ecotone's Doctrine ORM Repository
+     * This will enable flushing during persisting aggregate/saga using Ecotone's Doctrine ORM Repository
      */
-    public function withFlushWhenPersistingAggregate(bool $isEnabled): self
+    public function withFlushWhenPersisting(bool $isEnabled): self
     {
         $self                                 = clone $this;
-        $self->flushDuringPersistingAggregate = $isEnabled;
+        $self->flushDuringPersisting = $isEnabled;
 
         return $self;
     }
@@ -215,7 +215,7 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreAggregateRepository = false, string $connectionReference = DbalConnectionFactory::class): self
+    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStandardRepository = false, string $connectionReference = DbalConnectionFactory::class): self
     {
         $self = clone $this;
         $self->enableDbalDocumentStore = $isDocumentStoreEnabled;
@@ -223,7 +223,7 @@ class DbalConfiguration
         $self->dbalDocumentStoreReference = $reference;
         $self->initializeDbalDocumentStore = $initializeDatabaseTable;
         $self->documentStoreConnectionReference = $connectionReference;
-        $self->enableDocumentStoreAggregateRepository = $enableDocumentStoreAggregateRepository;
+        $self->enableDocumentStoreStandardRepository = $enableDocumentStoreStandardRepository;
 
         return $self;
     }
@@ -273,9 +273,9 @@ class DbalConfiguration
         return $this->clearAndFlushObjectManagerOnCommandBus;
     }
 
-    public function isFlushingDuringPersistingAggregate(): bool
+    public function isFlushingDuringPersisting(): bool
     {
-        return $this->flushDuringPersistingAggregate;
+        return $this->flushDuringPersisting;
     }
 
     public function isEnableDbalDocumentStore(): bool
@@ -303,9 +303,9 @@ class DbalConfiguration
         return $this->inMemoryDocumentStore;
     }
 
-    public function isEnableDocumentStoreAggregateRepository(): bool
+    public function isEnableDocumentStoreStandardRepository(): bool
     {
-        return $this->enableDocumentStoreAggregateRepository;
+        return $this->enableDocumentStoreStandardRepository;
     }
 
     public function getDisabledTransactionsOnAsynchronousEndpointNames(): array

@@ -145,15 +145,6 @@ final class TracerInterceptor
         );
     }
 
-    public function traceMessageBus(MethodInvocation $methodInvocation, Message $message)
-    {
-        return $this->trace(
-            'Message Bus',
-            $methodInvocation,
-            $message,
-        );
-    }
-
     public function traceLogs(MethodInvocation $methodInvocation, Message $message)
     {
         $logMessage = $message->getPayload();

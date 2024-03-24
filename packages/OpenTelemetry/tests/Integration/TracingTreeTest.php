@@ -66,7 +66,7 @@ final class TracingTreeTest extends TracingTest
         );
     }
 
-    public function test_tracing_tree_with_single_levels_of_nesting_for_message_handler()
+    public function test_tracing_tree_with_two_levels_of_nesting_and_message_handler()
     {
         $exporter = new InMemoryExporter(new ArrayObject());
 
@@ -76,16 +76,21 @@ final class TracingTreeTest extends TracingTest
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
-            ->sendMessage(targetChannel: 'handleMessage', payload: 'some');
+            ->sendCommandWithRoutingKey('handleCommand');
 
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Message Bus'],
+                    'details' => ['name' => 'Command Bus'],
                     'children' => [
                         [
-                            'details' => ['name' => 'Message Handler: ' . ExampleMessageHandler::class . '::handle'],
-                            'children' => [],
+                            'details' => ['name' => 'Command Handler: ' . ExampleMessageHandler::class . '::handleCommand'],
+                            'children' => [
+                                [
+                                    'details' => ['name' => 'Message Handler: ' . ExampleMessageHandler::class . '::handle'],
+                                    'children' => [],
+                                ],
+                            ],
                         ],
                     ],
                 ],

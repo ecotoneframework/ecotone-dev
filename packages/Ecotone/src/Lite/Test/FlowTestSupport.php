@@ -319,14 +319,6 @@ final class FlowTestSupport
         return $messagingEntrypoint->sendWithHeaders($payload, $metadata, $targetChannel);
     }
 
-    public function sendMessage(string $targetChannel, mixed $payload, array $metadata = []): mixed
-    {
-        /** @var MessageBus $messageBus */
-        $messageBus = $this->configuredMessagingSystem->getGatewayByName(MessageBus::class);
-
-        return $messageBus->send($targetChannel, $payload, $metadata);
-    }
-
     public function sendMessageDirectToChannel(Message $message): mixed
     {
         Assert::isTrue($message->getHeaders()->containsKey(MessagingEntrypoint::ENTRYPOINT), "Message must be sent directly to channel, so it must contains `ecotone.messaging.entrypoint` header. Use `sendDirectToChannel` method instead, if you don't want to add it manually.");

@@ -87,7 +87,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true, enableDocumentStoreAggregateRepository: true),
+                        ->withDocumentStore(true, enableDocumentStoreStandardRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                     MultiTenantConfiguration::create(
                         'tenant',
@@ -147,7 +147,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true, enableDocumentStoreAggregateRepository: true),
+                        ->withDocumentStore(true, enableDocumentStoreStandardRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])),
@@ -198,7 +198,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true, enableDocumentStoreAggregateRepository: true),
+                        ->withDocumentStore(true, enableDocumentStoreStandardRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                     MultiTenantConfiguration::create(
                         'tenant',

@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Attribute;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
-final class MessageHandler extends ServiceActivator
+final class InternalHandler extends ServiceActivator
 {
     public function __construct(
         string $inputChannelName,

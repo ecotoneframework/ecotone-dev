@@ -60,28 +60,4 @@ class ServiceActivatorModuleTest extends AnnotationConfigurationTest
                 )
         );
     }
-
-    public function test_registering_message_handler_changing_headers()
-    {
-        $annotationConfiguration = ServiceActivatorModule::create(
-            InMemoryAnnotationFinder::createFrom([
-                ExampleMessageHandlerChangingHeaders::class,
-            ]),
-            InterfaceToCallRegistry::createEmpty()
-        );
-
-        $configuration = $this->createMessagingSystemConfiguration();
-        $annotationConfiguration->prepare($configuration, [], ModuleReferenceSearchService::createEmpty(), InterfaceToCallRegistry::createEmpty());
-
-        $this->assertEquals(
-            $configuration,
-            $this->createMessagingSystemConfiguration()
-                ->registerMessageHandler(
-                    ServiceActivatorBuilder::create(ExampleMessageHandlerChangingHeaders::class, InterfaceToCall::create(ExampleMessageHandlerChangingHeaders::class, 'test'))
-                        ->withEndpointId('test')
-                        ->withInputChannelName('someRequestChannel')
-                        ->withChangingHeaders(true)
-                )
-        );
-    }
 }

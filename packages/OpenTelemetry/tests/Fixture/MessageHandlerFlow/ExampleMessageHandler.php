@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Fixture\MessageHandlerFlow;
 
-use Ecotone\Messaging\Attribute\MessageHandler;
+use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Messaging\Message;
 
-final readonly class ExampleMessageHandler
+final class ExampleMessageHandler
 {
     #[CommandHandler('handleCommand', outputChannelName: 'handleMessage')]
     public function handleCommand(Message $message): Message
@@ -16,7 +16,7 @@ final readonly class ExampleMessageHandler
         return $message;
     }
 
-    #[MessageHandler('handleMessage')]
+    #[InternalHandler('handleMessage')]
     public function handle(Message $message): void
     {
 

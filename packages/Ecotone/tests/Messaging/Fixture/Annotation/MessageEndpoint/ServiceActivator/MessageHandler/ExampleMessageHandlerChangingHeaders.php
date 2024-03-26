@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\MessageHandler;
 
-use Ecotone\Messaging\Attribute\MessageHandler;
+use Ecotone\Messaging\Attribute\InternalHandler;
 
 final readonly class ExampleMessageHandlerChangingHeaders
 {
-    #[MessageHandler('someRequestChannel', endpointId: 'test', changingHeaders: true)]
+    #[InternalHandler('someRequestChannel', endpointId: 'test', changingHeaders: true)]
     public function test(): void
     {
     }

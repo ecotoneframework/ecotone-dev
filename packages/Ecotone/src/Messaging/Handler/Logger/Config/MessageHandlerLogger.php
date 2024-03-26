@@ -8,7 +8,7 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\Interceptor\Presend;
-use Ecotone\Messaging\Attribute\MessageHandler;
+use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -62,7 +62,7 @@ final class MessageHandlerLogger
         return $methodInvocation->proceed();
     }
 
-    #[Around(precedence: 1000, pointcut: MessageHandler::class)]
+    #[Around(precedence: 1000, pointcut: InternalHandler::class)]
     public function aroundMessageHandler(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $loggingGateway): mixed
     {
         $loggingGateway->info(

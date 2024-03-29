@@ -6,6 +6,7 @@ namespace Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\EventHandler;
+use InvalidArgumentException;
 
 final class DoubleEventHandler
 {
@@ -24,7 +25,7 @@ final class DoubleEventHandler
             return;
         }
 
-        throw new \InvalidArgumentException('exception');
+        throw new InvalidArgumentException('exception');
     }
 
     #[Asynchronous('async')]
@@ -39,6 +40,6 @@ final class DoubleEventHandler
             return;
         }
 
-        throw new \InvalidArgumentException('exception');
+        throw new InvalidArgumentException('exception');
     }
 }

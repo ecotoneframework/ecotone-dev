@@ -208,7 +208,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
             containerOrAvailableServices: array_merge($services, [
                 new OrderService(),
                 DbalConnectionFactory::class => $connectionFactory,
-                'managerRegistry' => $connectionFactory
+                'managerRegistry' => $connectionFactory,
             ]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')

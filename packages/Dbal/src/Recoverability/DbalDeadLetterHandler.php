@@ -25,9 +25,10 @@ use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 
-use Ramsey\Uuid\Uuid;
 use function json_decode;
 use function json_encode;
+
+use Ramsey\Uuid\Uuid;
 
 class DbalDeadLetterHandler
 {
@@ -194,7 +195,7 @@ class DbalDeadLetterHandler
     {
         try {
             $rowsAffected = $this->storeInDatabase($headers[MessageHeaders::MESSAGE_ID], $headers, $payload);
-        }catch (UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException) {
             /** If same Message for different Event Handlers failed */
             $rowsAffected = $this->storeInDatabase(Uuid::uuid4()->toString(), $headers, $payload);
         }

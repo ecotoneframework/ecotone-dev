@@ -21,6 +21,6 @@ final class EcotoneConfiguration
     #[ServiceContext]
     public function channel()
     {
-        return DbalBackedMessageChannelBuilder::create("async");
+        return DbalBackedMessageChannelBuilder::create('async');
     }
 }

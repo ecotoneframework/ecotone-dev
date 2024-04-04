@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Workflow\Application;
 
-use Ecotone\Messaging\Attribute\MessageHandler;
+use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\CommandHandler;
 
@@ -18,7 +18,7 @@ final readonly class ImageProcessingWorkflow
         return $command;
     }
 
-    #[MessageHandler(inputChannelName: 'image.resize', outputChannelName: 'image.upload')]
+    #[InternalHandler(inputChannelName: 'image.resize', outputChannelName: 'image.upload')]
     public function resizeImage(ProcessImage $command, ImageResizer $imageResizer): ProcessImage
     {
         $resizedImagePath = $imageResizer->resizeImage($command->path);
@@ -26,7 +26,7 @@ final readonly class ImageProcessingWorkflow
         return new ProcessImage($resizedImagePath);
     }
 
-    #[MessageHandler(inputChannelName: 'image.upload')]
+    #[InternalHandler(inputChannelName: 'image.upload')]
     public function uploadImage(ProcessImage $command, ImageUploader $imageUploader): void
     {
         $imageUploader->uploadImage($command->path);

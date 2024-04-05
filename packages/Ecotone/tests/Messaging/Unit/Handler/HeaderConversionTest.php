@@ -10,9 +10,12 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
-use \Test\Ecotone\Messaging\Fixture\Handler\HeaderConversion\ConvertedHeaderEndpoint;
+use Test\Ecotone\Messaging\Fixture\Handler\HeaderConversion\ConvertedHeaderEndpoint;
 use Test\Ecotone\Messaging\Fixture\Handler\HeaderConversion\JsonConverter;
 
+/**
+ * @internal
+ */
 final class HeaderConversionTest extends TestCase
 {
     /**
@@ -28,13 +31,13 @@ final class HeaderConversionTest extends TestCase
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel(
                     'async'
-                )
+                ),
             ]
         );
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('withScalarConversion', metadata: [
-                'token' => '537edce7-7e56-4777-b6ec-a012c40b9d1b'
+                'token' => '537edce7-7e56-4777-b6ec-a012c40b9d1b',
             ])
             ->run('async');
 
@@ -57,13 +60,13 @@ final class HeaderConversionTest extends TestCase
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel(
                     'async'
-                )
+                ),
             ]
         );
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('withScalarConversion', metadata: [
-                'token' => Uuid::fromString('537edce7-7e56-4777-b6ec-a012c40b9d1b')
+                'token' => Uuid::fromString('537edce7-7e56-4777-b6ec-a012c40b9d1b'),
             ])
             ->run('async');
 
@@ -86,13 +89,13 @@ final class HeaderConversionTest extends TestCase
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel(
                     'async'
-                )
+                ),
             ]
         );
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('withFallbackConversion', metadata: [
-                'tokens' => [1, 2, 3, 4, 5]
+                'tokens' => [1, 2, 3, 4, 5],
             ])
             ->run('async');
 
@@ -110,11 +113,11 @@ final class HeaderConversionTest extends TestCase
     {
         yield [
             ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withDefaultSerializationMediaType(MediaType::APPLICATION_X_PHP_SERIALIZED)
+                ->withDefaultSerializationMediaType(MediaType::APPLICATION_X_PHP_SERIALIZED),
         ];
         yield [
             ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON)
+                ->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON),
         ];
     }
 }

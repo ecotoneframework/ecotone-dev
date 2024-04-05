@@ -49,9 +49,9 @@ class HeaderConverter implements ParameterConverter
         if (! $sourceValueType->isCompatibleWith($targetType)) {
             if ($this->canConvertTo($headerValue, MediaType::APPLICATION_X_PHP, $targetType)) {
                 $headerValue = $this->doConversion($headerValue, MediaType::APPLICATION_X_PHP, $targetType);
-            }elseif ($sourceValueType->isScalar() && $this->canConvertTo($headerValue, DefaultHeaderMapper::FALLBACK_HEADER_CONVERSION_MEDIA_TYPE, $targetType)) {
+            } elseif ($sourceValueType->isScalar() && $this->canConvertTo($headerValue, DefaultHeaderMapper::FALLBACK_HEADER_CONVERSION_MEDIA_TYPE, $targetType)) {
                 $headerValue = $this->doConversion($headerValue, DefaultHeaderMapper::FALLBACK_HEADER_CONVERSION_MEDIA_TYPE, $targetType);
-            }else {
+            } else {
                 throw ConversionException::create("Can't convert {$this->headerName} from {$sourceValueType} to {$targetType}. Lack of PHP Converter or JSON Media Type Converter available.");
             }
         }

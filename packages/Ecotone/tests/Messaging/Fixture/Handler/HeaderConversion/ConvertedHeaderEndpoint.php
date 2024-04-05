@@ -17,8 +17,7 @@ final class ConvertedHeaderEndpoint
     #[CommandHandler('withScalarConversion', endpointId: 'withScalarConversionEndpoint')]
     public function handleWithScalarConversion(
         #[Header('token')] UuidInterface $token
-    )
-    {
+    ) {
         $this->result = $token;
     }
 
@@ -26,8 +25,7 @@ final class ConvertedHeaderEndpoint
     #[CommandHandler('withFallbackConversion', endpointId: 'withFallbackConversionEndpoint')]
     public function handleWithFallbackConversion(
         #[Header('tokens')] array $tokens
-    )
-    {
+    ) {
         $this->result = $tokens;
     }
 

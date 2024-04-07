@@ -3,7 +3,6 @@
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\IgnorePayload;

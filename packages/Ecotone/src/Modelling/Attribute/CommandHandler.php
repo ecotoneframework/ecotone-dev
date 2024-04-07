@@ -4,6 +4,7 @@ namespace Ecotone\Modelling\Attribute;
 
 use Attribute;
 use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
+use InvalidArgumentException;
 
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 class CommandHandler extends InputOutputEndpointAnnotation
@@ -24,7 +25,7 @@ class CommandHandler extends InputOutputEndpointAnnotation
         $this->identifierMapping = $identifierMapping;
 
         if ($identifierMetadataMapping && $identifierMapping) {
-            throw new \InvalidArgumentException("You can't define both `identifierMetadataMapping` and `identifierMapping`");
+            throw new InvalidArgumentException("You can't define both `identifierMetadataMapping` and `identifierMapping`");
         }
     }
 

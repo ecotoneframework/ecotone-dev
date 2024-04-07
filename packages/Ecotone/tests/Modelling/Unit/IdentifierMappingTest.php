@@ -14,6 +14,9 @@ use Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier\OrderProce
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier\OrderStarted;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier\OrderStartedAsynchronous;
 
+/**
+ * @internal
+ */
 final class IdentifierMappingTest extends TestCase
 {
     /**
@@ -42,7 +45,7 @@ final class IdentifierMappingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$sagaClass],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async')
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ]
         );
 
@@ -101,7 +104,7 @@ final class IdentifierMappingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessWithAttributePayloadMapping::class],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async')
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ]
         );
 
@@ -123,7 +126,7 @@ final class IdentifierMappingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessWithAttributePayloadMapping::class],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async')
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ]
         );
 
@@ -159,7 +162,7 @@ final class IdentifierMappingTest extends TestCase
                     '',
                     'ongoing'
                 ), metadata: [
-                    'orderId' => '123'
+                    'orderId' => '123',
                 ])
                 ->getSaga(OrderProcessWithAttributeHeadersMapping::class, '123')
                 ->getStatus()
@@ -168,7 +171,7 @@ final class IdentifierMappingTest extends TestCase
 
     public static function sagasTypes(): iterable
     {
-        yield "Property based identifier" => [OrderProcess::class];
-        yield "Method based identifier" => [OrderProcessWithMethodBasedIdentifier::class];
+        yield 'Property based identifier' => [OrderProcess::class];
+        yield 'Method based identifier' => [OrderProcessWithMethodBasedIdentifier::class];
     }
 }

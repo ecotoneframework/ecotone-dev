@@ -9,8 +9,7 @@ final class OrderStartedAsynchronous
     public function __construct(
         public string $id,
         public string $status = 'started'
-    )
-    {
+    ) {
 
     }
 }

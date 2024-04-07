@@ -27,7 +27,9 @@ final class OrderProcess
     }
 
     #[EventHandler]
-    public function createWhenOnExisting(OrderStarted $event): void {}
+    public function createWhenOnExisting(OrderStarted $event): void
+    {
+    }
 
     #[Asynchronous('async')]
     #[EventHandler(endpointId: 'createWhenAsync')]
@@ -38,7 +40,9 @@ final class OrderProcess
 
     #[Asynchronous('async')]
     #[EventHandler(endpointId: 'createWhenAsync2')]
-    public function createWhenAsyncOnExisting(OrderStartedAsynchronous $event): void {}
+    public function createWhenAsyncOnExisting(OrderStartedAsynchronous $event): void
+    {
+    }
 
     public function getOrderId(): string
     {

@@ -2,7 +2,6 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -37,8 +36,7 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
         private array $identifierMapping,
         ?ClassDefinition $messageClassNameToConvertTo,
         InterfaceToCallRegistry $interfaceToCallRegistry
-    )
-    {
+    ) {
         $this->initialize($interfaceToCallRegistry, $aggregateClassName, $messageClassNameToConvertTo, $metadataIdentifierMapping, $identifierMapping);
     }
 
@@ -109,8 +107,7 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
         ?ClassDefinition $handledMessageClassNameDefinition,
         array $metadataIdentifierMapping,
         array $identifierMapping
-    ): void
-    {
+    ): void {
         $messageIdentifiersMapping = [];
 
         $aggregateIdentifierAnnotation = TypeDescriptor::create(AggregateIdentifier::class);

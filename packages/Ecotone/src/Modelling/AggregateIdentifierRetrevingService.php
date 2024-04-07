@@ -10,7 +10,6 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -29,8 +28,7 @@ class AggregateIdentifierRetrevingService
         private array $messageIdentifierMapping,
         private array $identifierMapping,
         private ExpressionEvaluationService $expressionEvaluationService,
-    )
-    {
+    ) {
 
     }
 

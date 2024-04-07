@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\IdentifierMapping\AttributeMapping;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;
@@ -17,7 +16,7 @@ final class OrderProcessWithAttributeHeadersMapping
     private string $orderId;
     private string $status;
 
-    private function __construct(string $orderId, string $status = "started")
+    private function __construct(string $orderId, string $status = 'started')
     {
         $this->orderId = $orderId;
         $this->status  = $status;

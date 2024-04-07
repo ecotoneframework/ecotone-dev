@@ -10,8 +10,7 @@ final class OrderStartedAsynchronous
 {
     public function __construct(
         #[TargetIdentifier('orderId')] public string $id
-    )
-    {
+    ) {
 
     }
 }

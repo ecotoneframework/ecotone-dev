@@ -2,8 +2,6 @@
 
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 
-use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
-use Ecotone\Modelling\Attribute\TargetAggregateVersion;
 use Ecotone\Modelling\Attribute\TargetIdentifier;
 use Ecotone\Modelling\Attribute\TargetVersion;
 

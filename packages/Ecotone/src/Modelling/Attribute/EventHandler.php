@@ -4,6 +4,7 @@ namespace Ecotone\Modelling\Attribute;
 
 use Attribute;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use InvalidArgumentException;
 
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 class EventHandler extends IdentifiedAnnotation
@@ -30,7 +31,7 @@ class EventHandler extends IdentifiedAnnotation
         $this->identifierMapping = $identifierMapping;
 
         if ($identifierMetadataMapping && $identifierMapping) {
-            throw new \InvalidArgumentException("You can't define both `identifierMetadataMapping` and `identifierMapping`");
+            throw new InvalidArgumentException("You can't define both `identifierMetadataMapping` and `identifierMapping`");
         }
     }
 

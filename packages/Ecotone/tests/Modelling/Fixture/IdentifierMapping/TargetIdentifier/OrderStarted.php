@@ -10,8 +10,7 @@ final class OrderStarted
 {
     public function __construct(
         #[TargetIdentifier('orderId')] public string $id
-    )
-    {
+    ) {
 
     }
 }

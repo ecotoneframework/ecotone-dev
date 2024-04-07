@@ -17,9 +17,10 @@ final class OrderProcessWithAttributeHeadersMapping
     private string $orderId;
     private string $status;
 
-    private function __construct(string $orderId)
+    private function __construct(string $orderId, string $status = "started")
     {
         $this->orderId = $orderId;
+        $this->status  = $status;
     }
 
     #[CommandHandler('startOrder')]
@@ -29,13 +30,18 @@ final class OrderProcessWithAttributeHeadersMapping
     }
 
     #[EventHandler(identifierMapping: ['orderId' => "headers['orderId']"])]
-    public function createWhen(OrderStarted $event): self
+    public function updateWhen(OrderStarted $event): void
     {
-        return new self($event->id);
+        $this->status = $event->status;
     }
 
     public function getOrderId(): string
     {
         return $this->orderId;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
     }
 }

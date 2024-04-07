@@ -7,6 +7,7 @@ namespace Test\Ecotone\Modelling\Unit;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Modelling\Fixture\IdentifierMapping\AttributeMapping\OrderProcessWithAttributeHeadersMapping;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\AttributeMapping\OrderProcessWithAttributePayloadMapping;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier\OrderProcess;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier\OrderProcessWithMethodBasedIdentifier;
@@ -140,6 +141,27 @@ final class IdentifierMappingTest extends TestCase
                 ))
                 ->run('async')
                 ->getSaga(OrderProcessWithAttributePayloadMapping::class, '123')
+                ->getStatus()
+        );
+    }
+
+    public function test_mapping_using_attribute_mapper_from_header(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OrderProcessWithAttributeHeadersMapping::class],
+        );
+
+        $this->assertEquals(
+            'ongoing',
+            $ecotoneLite
+                ->sendCommandWithRoutingKey('startOrder', '123')
+                ->publishEvent(new \Test\Ecotone\Modelling\Fixture\IdentifierMapping\AttributeMapping\OrderStarted(
+                    '',
+                    'ongoing'
+                ), metadata: [
+                    'orderId' => '123'
+                ])
+                ->getSaga(OrderProcessWithAttributeHeadersMapping::class, '123')
                 ->getStatus()
         );
     }

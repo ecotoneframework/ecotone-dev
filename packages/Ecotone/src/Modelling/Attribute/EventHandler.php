@@ -13,11 +13,12 @@ class EventHandler extends IdentifiedAnnotation
     public string $outputChannelName;
     public array $requiredInterceptorNames;
     public array $identifierMetadataMapping;
+    public array $identifierMapping;
 
     /**
      * @param string $listenTo Registers event handler to listen from defined inputs | e.g. from single - "ecotone.modelling.created" | e.g. from multiple - "ecotone.modelling.*"
      */
-    public function __construct(string $listenTo = '', string $endpointId = '', string $outputChannelName = '', bool $dropMessageOnNotFound = false, array $identifierMetadataMapping = [], array $requiredInterceptorNames = [])
+    public function __construct(string $listenTo = '', string $endpointId = '', string $outputChannelName = '', bool $dropMessageOnNotFound = false, array $identifierMetadataMapping = [], array $requiredInterceptorNames = [], array $identifierMapping = [])
     {
         parent::__construct($endpointId);
 
@@ -26,6 +27,11 @@ class EventHandler extends IdentifiedAnnotation
         $this->outputChannelName = $outputChannelName;
         $this->requiredInterceptorNames = $requiredInterceptorNames;
         $this->identifierMetadataMapping = $identifierMetadataMapping;
+        $this->identifierMapping = $identifierMapping;
+
+        if ($identifierMetadataMapping && $identifierMapping) {
+            throw new \InvalidArgumentException("You can't define both `identifierMetadataMapping` and `identifierMapping`");
+        }
     }
 
     public function getListenTo(): string
@@ -51,5 +57,10 @@ class EventHandler extends IdentifiedAnnotation
     public function getIdentifierMetadataMapping(): array
     {
         return $this->identifierMetadataMapping;
+    }
+
+    public function getIdentifierMapping(): array
+    {
+        return $this->identifierMapping;
     }
 }

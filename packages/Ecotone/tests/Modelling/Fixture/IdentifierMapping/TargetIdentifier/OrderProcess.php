@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Modelling\Fixture\IdentifierMapping;
+namespace Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -26,12 +26,19 @@ final class OrderProcess
         return new self($event->id);
     }
 
+    #[EventHandler]
+    public function createWhenOnExisting(OrderStarted $event): void {}
+
     #[Asynchronous('async')]
     #[EventHandler(endpointId: 'createWhenAsync')]
     public static function createWhenAsync(OrderStartedAsynchronous $event): self
     {
         return new self($event->id);
     }
+
+    #[Asynchronous('async')]
+    #[EventHandler(endpointId: 'createWhenAsync2')]
+    public function createWhenAsyncOnExisting(OrderStartedAsynchronous $event): void {}
 
     public function getOrderId(): string
     {

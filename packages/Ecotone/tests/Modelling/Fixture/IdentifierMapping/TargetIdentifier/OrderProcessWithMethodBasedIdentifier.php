@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Modelling\Fixture\IdentifierMapping;
+namespace Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\EventHandler;

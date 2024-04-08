@@ -10,8 +10,12 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
+use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler\DoubleEventHandler;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler\ExampleEvent;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderGateway;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderService;
@@ -40,11 +44,11 @@ final class DeadLetterTest extends DbalMessagingTestCase
 
         self::assertEquals(0, $gateway->getOrderAmount());
 
-        $this->assertErrorMessageCount($ecotone, 1);
+        $this->assertErrorMessageCount($ecotone, 1, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
         $this->replyAllErrorMessages($ecotone);
 
-        $this->assertErrorMessageCount($ecotone, 0);
+        $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
         $ecotone->run('orderService');
 
@@ -70,11 +74,11 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $ecotone->run('orderService');
         $ecotone->run('orderService');
 
-        $this->assertErrorMessageCount($ecotone, 2);
+        $this->assertErrorMessageCount($ecotone, 2, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
         $this->replyAllErrorMessagesById($ecotone);
 
-        $this->assertErrorMessageCount($ecotone, 0);
+        $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
         $ecotone->run('orderService');
         $ecotone->run('orderService');
@@ -101,11 +105,11 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $ecotone->run('orderService');
         $ecotone->run('orderService');
 
-        $this->assertErrorMessageCount($ecotone, 2);
+        $this->assertErrorMessageCount($ecotone, 2, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
         $this->deleteAllErrorMessagesById($ecotone);
 
-        $this->assertErrorMessageCount($ecotone, 0);
+        $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
         $ecotone->run('orderService');
         $ecotone->run('orderService');
@@ -113,7 +117,57 @@ final class DeadLetterTest extends DbalMessagingTestCase
         self::assertEquals(0, $gateway->getOrderAmount());
     }
 
-    private function assertErrorMessageCount(FlowTestSupport $ecotone, int $amount): void
+    public function test_same_event_is_stored_in_dead_letter_twice_for_different_endpoints_and_replayed(): void
+    {
+        $doubleEventHandler = new DoubleEventHandler();
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler',
+        ], [$doubleEventHandler]);
+
+        $ecotone->publishEvent(new ExampleEvent('test'));
+
+        $ecotone->run('async');
+        $ecotone->run('async');
+
+        $this->assertErrorMessageCount($ecotone, 2);
+        self::assertEquals(0, $doubleEventHandler->successfulCalls);
+
+        $this->replyAllErrorMessagesById($ecotone);
+        $this->assertErrorMessageCount($ecotone, 0);
+
+        $ecotone->run('async');
+        $ecotone->run('async');
+
+        self::assertEquals(2, $doubleEventHandler->successfulCalls);
+    }
+
+    public function test_same_event_is_stored_in_dead_letter_twice_for_different_endpoints_and_removed(): void
+    {
+        $doubleEventHandler = new DoubleEventHandler();
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler',
+        ], [$doubleEventHandler]);
+        $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
+
+        $messageId = Uuid::uuid4()->toString();
+        $ecotone->publishEvent(new ExampleEvent('test'), metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
+
+        $ecotone->run('async');
+        $ecotone->run('async');
+
+        $this->assertErrorMessageCount($ecotone, 2);
+        $deadLetter->delete($messageId);
+        $this->assertErrorMessageCount($ecotone, 1);
+
+        $messages = $deadLetter->list(100, 0);
+        self::assertCount(1, $messages);
+        /** As new Message Id was generated */
+        self::assertNotEquals($messageId, $messages[0]->getMessageId());
+        $deadLetter->delete($messages[0]->getMessageId());
+        $this->assertErrorMessageCount($ecotone, 0);
+    }
+
+    private function assertErrorMessageCount(FlowTestSupport $ecotone, int $amount, string $deadLetterReference = DeadLetterGateway::class): void
     {
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
@@ -121,7 +175,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         self::assertEquals($amount, $gateway->count());
 
         /** @var DeadLetterGateway $gateway */
-        $gateway = $ecotone->getGateway(ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
+        $gateway = $ecotone->getGateway($deadLetterReference);
 
         self::assertCount($amount, $gateway->list(100, 0));
         self::assertEquals($amount, $gateway->count());
@@ -146,12 +200,16 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $ecotone->getGateway(DeadLetterGateway::class)->replyAll();
     }
 
-    private function bootstrapEcotone(array $namespaces): FlowTestSupport
+    private function bootstrapEcotone(array $namespaces, array $services = []): FlowTestSupport
     {
         $connectionFactory = $this->getConnectionFactory();
 
         return (EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [new OrderService(), DbalConnectionFactory::class => $connectionFactory, 'managerRegistry' => $connectionFactory],
+            containerOrAvailableServices: array_merge($services, [
+                new OrderService(),
+                DbalConnectionFactory::class => $connectionFactory,
+                'managerRegistry' => $connectionFactory,
+            ]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\Recoverability;
 
 use DateTime;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
@@ -26,6 +27,8 @@ use Interop\Queue\Exception\Exception;
 
 use function json_decode;
 use function json_encode;
+
+use Ramsey\Uuid\Uuid;
 
 class DbalDeadLetterHandler
 {
@@ -58,7 +61,10 @@ class DbalDeadLetterHandler
             ->fetchAllAssociative();
 
         return array_map(function (array $message) {
-            return ErrorContext::fromHeaders($this->decodeHeaders($message));
+            return ErrorContext::fromHeaders(array_merge(
+                $this->decodeHeaders($message),
+                [MessageHeaders::MESSAGE_ID => $message['message_id']]
+            ));
         }, $messages);
     }
 
@@ -187,21 +193,12 @@ class DbalDeadLetterHandler
 
     private function insertHandledMessage(string $payload, array $headers): void
     {
-        $rowsAffected = $this->getConnection()->insert(
-            $this->getTableName(),
-            [
-                'message_id' => $headers[MessageHeaders::MESSAGE_ID],
-                'failed_at' =>  new DateTime(date('Y-m-d H:i:s.u', $headers[MessageHeaders::TIMESTAMP])),
-                'payload' => $payload,
-                'headers' => json_encode($this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE),
-            ],
-            [
-                'message_id' => Types::STRING,
-                'failed_at' => Types::DATETIME_MUTABLE,
-                'payload' => Types::TEXT,
-                'headers' => Types::TEXT,
-            ]
-        );
+        try {
+            $rowsAffected = $this->storeInDatabase($headers[MessageHeaders::MESSAGE_ID], $headers, $payload);
+        } catch (UniqueConstraintViolationException) {
+            /** If same Message for different Event Handlers failed */
+            $rowsAffected = $this->storeInDatabase(Uuid::uuid4()->toString(), $headers, $payload);
+        }
 
         if (1 !== $rowsAffected) {
             throw new Exception('There was a problem inserting exceptional message. Dbal did not confirm that the record is inserted.');
@@ -290,5 +287,25 @@ class DbalDeadLetterHandler
             ->andWhere('message_id = :messageId')
             ->setParameter('messageId', $messageId, Types::TEXT)
             ->executeStatement();
+    }
+
+    private function storeInDatabase(mixed $messageId, array $headers, string $payload): string|int
+    {
+        $rowsAffected = $this->getConnection()->insert(
+            $this->getTableName(),
+            [
+                'message_id' => $messageId,
+                'failed_at' => new DateTime(date('Y-m-d H:i:s.u', $headers[MessageHeaders::TIMESTAMP])),
+                'payload' => $payload,
+                'headers' => json_encode($this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService), JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_IGNORE),
+            ],
+            [
+                'message_id' => Types::STRING,
+                'failed_at' => Types::DATETIME_MUTABLE,
+                'payload' => Types::TEXT,
+                'headers' => Types::TEXT,
+            ]
+        );
+        return $rowsAffected;
     }
 }

@@ -98,13 +98,13 @@ final class EcotoneLite
         bool                     $allowGatewaysToBeRegisteredInContainer = false,
         bool                     $addInMemoryStateStoredRepository = true,
         bool                     $addEventSourcedRepository = true,
-        ?array                   $enableAsynchronousProcessing = null
+        ?array                   $enableAsynchronousProcessing = null,
+        TestConfiguration        $testConfiguration = null,
     ): FlowTestSupport {
-        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing);
+        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration);
 
         if ($addEventSourcedRepository) {
-            $configuration = $configuration
-                ->addExtensionObject(InMemoryRepositoryBuilder::createForAllEventSourcedAggregates());
+            $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createForAllEventSourcedAggregates());
         }
 
         return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false)
@@ -128,9 +128,10 @@ final class EcotoneLite
         bool                     $allowGatewaysToBeRegisteredInContainer = false,
         bool                     $addInMemoryStateStoredRepository = true,
         bool                     $runForProductionEventStore = false,
-        ?array                   $enableAsynchronousProcessing = null
+        ?array                   $enableAsynchronousProcessing = null,
+        TestConfiguration        $testConfiguration = null,
     ): FlowTestSupport {
-        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing);
+        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration);
 
         if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && ! $runForProductionEventStore) {
             Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
@@ -234,7 +235,7 @@ final class EcotoneLite
         return $extensionObjectsWithoutTestConfiguration;
     }
 
-    private static function prepareForFlowTesting(?ServiceConfiguration $configuration, array $packagesToSkip, array $classesToResolve, bool $addInMemoryStateStoredRepository, ?array $enableAsynchronousProcessing): ServiceConfiguration
+    private static function prepareForFlowTesting(?ServiceConfiguration $configuration, array $packagesToSkip, array $classesToResolve, bool $addInMemoryStateStoredRepository, ?array $enableAsynchronousProcessing, ?TestConfiguration $testConfiguration): ServiceConfiguration
     {
         if ($enableAsynchronousProcessing !== null) {
             if ($configuration !== null && in_array(ModulePackageList::ASYNCHRONOUS_PACKAGE, $configuration->getSkippedModulesPackages())) {
@@ -247,7 +248,7 @@ final class EcotoneLite
         }
 
         $configuration = $configuration ?: ServiceConfiguration::createWithDefaults();
-        $testConfiguration = ExtensionObjectResolver::resolveUnique(TestConfiguration::class, $configuration->getExtensionObjects(), TestConfiguration::createWithDefaults());
+        $testConfiguration = $testConfiguration ?? TestConfiguration::createWithDefaults();
 
         if (! $configuration->areSkippedPackagesDefined()) {
             $configuration = $configuration

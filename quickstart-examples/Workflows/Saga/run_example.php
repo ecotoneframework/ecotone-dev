@@ -26,7 +26,7 @@ $commandBus->send(new PlaceOrder(
     ]
 ));
 
-$messagingSystem->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+$messagingSystem->run('async_saga', ExecutionPollingMetadata::createWithTestingSetup());
 
 Assert::assertEquals(
     OrderProcessStatus::READY_TO_BE_SHIPPED,

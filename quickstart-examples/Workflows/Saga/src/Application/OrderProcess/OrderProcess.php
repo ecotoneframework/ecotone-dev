@@ -40,7 +40,7 @@ final class OrderProcess
         return new self($event->orderId, OrderProcessStatus::PLACED);
     }
 
-    #[Asynchronous('async')]
+    #[Asynchronous('async_saga')]
     #[EventHandler(endpointId: "takePaymentEndpoint", outputChannelName: "takePayment")]
     public function whenOrderProcessStarted(OrderProcessWasStarted $event, OrderService $orderService): TakePayment
     {
@@ -57,7 +57,7 @@ final class OrderProcess
     }
 
     #[Delayed(new TimeSpan(hours: 1))]
-    #[Asynchronous('async')]
+    #[Asynchronous('async_saga')]
     #[EventHandler(endpointId: "whenPaymentFailedEndpoint", outputChannelName: "takePayment")]
     public function whenPaymentFailed(PaymentFailed $event, OrderService $orderService): ?TakePayment
     {

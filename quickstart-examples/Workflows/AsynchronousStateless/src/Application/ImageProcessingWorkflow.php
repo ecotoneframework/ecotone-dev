@@ -19,7 +19,7 @@ final readonly class ImageProcessingWorkflow
         return $command;
     }
 
-    #[Asynchronous('async')]
+    #[Asynchronous('async_workflow')]
     #[InternalHandler(inputChannelName: 'image.resize', outputChannelName: 'image.upload', endpointId: 'imageResizeEndpoint')]
     public function resizeImage(ProcessImage $command, ImageResizer $imageResizer): ProcessImage
     {
@@ -28,7 +28,7 @@ final readonly class ImageProcessingWorkflow
         return new ProcessImage($resizedImagePath);
     }
 
-    #[Asynchronous('async')]
+    #[Asynchronous('async_workflow')]
     #[InternalHandler(inputChannelName: 'image.upload', endpointId: 'imageUploadEndpoint')]
     public function uploadImage(ProcessImage $command, ImageUploader $imageUploader): void
     {

@@ -13,7 +13,7 @@ final readonly class EcotoneConfiguration
     #[ServiceContext]
     public function databaseChannel()
     {
-        return DbalBackedMessageChannelBuilder::create('async');
+        return DbalBackedMessageChannelBuilder::create('async_saga');
     }
 
     #[ServiceContext]

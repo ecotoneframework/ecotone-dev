@@ -14,6 +14,6 @@ echo "Running demo:\n";
 
 $commandBus->send(new ProcessImage(__DIR__ . '/../ecotone_logo.png'));
 echo "Running asynchronous consumer\n";
-$messagingSystem->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+$messagingSystem->run('async_workflow', ExecutionPollingMetadata::createWithTestingSetup());
 
 echo "Demo finished.\n";

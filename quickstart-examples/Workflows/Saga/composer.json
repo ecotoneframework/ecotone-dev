@@ -20,7 +20,7 @@
     "require": {
         "ecotone/lite-dbal-starter": "^1.0.1",
         "intervention/image": "^3.5.1",
-        "moneyphp/money": "^4.5",
+        "moneyphp/money": "^4.1.0",
         "webmozart/assert": "^1.11"
     },
     "require-dev": {

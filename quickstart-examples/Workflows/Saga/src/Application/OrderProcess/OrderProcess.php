@@ -24,6 +24,8 @@ final class OrderProcess
 {
     use WithEvents;
 
+    const MAXIMUM_PAYMENT_ATTEMPTS = 2;
+
     private function __construct(
         #[Identifier] private string $orderId,
         private OrderProcessStatus   $orderStatus,
@@ -59,9 +61,7 @@ final class OrderProcess
     #[EventHandler(endpointId: "whenPaymentFailedEndpoint", outputChannelName: "takePayment")]
     public function whenPaymentFailed(PaymentFailed $event, OrderService $orderService): ?TakePayment
     {
-        if ($this->paymentAttempt >= 2) {
-            $this->orderStatus = OrderProcessStatus::CANCELLED;
-
+        if ($this->paymentAttempt >= self::MAXIMUM_PAYMENT_ATTEMPTS) {
             return null;
         }
 
@@ -77,7 +77,7 @@ final class OrderProcess
     #[EventHandler]
     public function whenSecondPaymentFailedCancelOrder(PaymentFailed $event): void
     {
-        if ($this->paymentAttempt > 2) {
+        if ($this->paymentAttempt >= self::MAXIMUM_PAYMENT_ATTEMPTS) {
             $this->orderStatus = OrderProcessStatus::CANCELLED;
         }
     }

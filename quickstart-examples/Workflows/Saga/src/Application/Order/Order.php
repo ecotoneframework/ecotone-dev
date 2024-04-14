@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Workflow\Saga\Application\Order;
 
 use App\Workflow\Saga\Application\Order\Command\PlaceOrder;
+use App\Workflow\Saga\Application\Order\Event\OrderWasPlaced;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\WithEvents;
 use Money\Money;
 
 /**
@@ -17,6 +19,8 @@ use Money\Money;
 #[Aggregate]
 final class Order
 {
+    use WithEvents;
+
     /**
      * @param Item[] $items
      */
@@ -26,7 +30,7 @@ final class Order
         private array $items
     )
     {
-
+        $this->recordThat(new OrderWasPlaced($this->orderId));
     }
 
     #[CommandHandler]

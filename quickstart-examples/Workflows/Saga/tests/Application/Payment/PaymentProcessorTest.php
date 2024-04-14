@@ -8,7 +8,7 @@ use App\Workflow\Saga\Application\Payment\Command\TakePayment;
 use App\Workflow\Saga\Application\Payment\Event\PaymentFailed;
 use App\Workflow\Saga\Application\Payment\Event\PaymentWasSuccessful;
 use App\Workflow\Saga\Application\Payment\PaymentService;
-use App\Workflow\Saga\Infrastructure\StubPaymentProcessor;
+use App\Workflow\Saga\Application\Payment\PaymentProcessor;
 use Ecotone\Lite\EcotoneLite;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
@@ -20,7 +20,7 @@ final class PaymentProcessorTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [PaymentService::class],
             [
-                PaymentService::class => new PaymentService(new StubPaymentProcessor())
+                PaymentService::class => new PaymentService(new PaymentProcessor())
             ]
         );
 
@@ -37,7 +37,7 @@ final class PaymentProcessorTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [PaymentService::class],
             [
-                PaymentService::class => new PaymentService(new StubPaymentProcessor(2))
+                PaymentService::class => new PaymentService(new PaymentProcessor(2))
             ]
         );
 
@@ -54,7 +54,7 @@ final class PaymentProcessorTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [PaymentService::class],
             [
-                PaymentService::class => new PaymentService(new StubPaymentProcessor(2))
+                PaymentService::class => new PaymentService(new PaymentProcessor(2))
             ]
         );
 

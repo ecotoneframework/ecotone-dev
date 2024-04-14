@@ -9,10 +9,9 @@ use App\Workflow\Saga\Application\Order\OrderService;
 use App\Workflow\Saga\Application\OrderProcess\Event\OrderProcessWasStarted;
 use App\Workflow\Saga\Application\OrderProcess\OrderProcess;
 use App\Workflow\Saga\Application\OrderProcess\OrderProcessStatus;
-use App\Workflow\Saga\Application\Payment\Command\TakePayment;
 use App\Workflow\Saga\Application\Payment\PaymentService;
+use App\Workflow\Saga\Application\Payment\PaymentProcessor;
 use App\Workflow\Saga\Infrastructure\StubOrderService;
-use App\Workflow\Saga\Infrastructure\StubPaymentProcessor;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Scheduling\TimeSpan;
@@ -55,7 +54,7 @@ final class OrderProcessTest extends TestCase
             [OrderProcess::class, PaymentService::class],
             [
                 OrderService::class => new StubOrderService($totalPrice),
-                PaymentService::class => new PaymentService(new StubPaymentProcessor())
+                PaymentService::class => new PaymentService(new PaymentProcessor())
             ],
             enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('async')]
         );
@@ -77,7 +76,7 @@ final class OrderProcessTest extends TestCase
             [OrderProcess::class, PaymentService::class],
             [
                 OrderService::class => new StubOrderService($totalPrice),
-                PaymentService::class => new PaymentService(new StubPaymentProcessor(successAfterAttempt: 3))
+                PaymentService::class => new PaymentService(new PaymentProcessor(successAfterAttempt: 3))
             ],
             enableAsynchronousProcessing: [
                 // Make Message Channel aware of the delay

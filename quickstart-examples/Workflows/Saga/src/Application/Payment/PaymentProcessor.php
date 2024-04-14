@@ -6,10 +6,19 @@ namespace App\Workflow\Saga\Application\Payment;
 
 use Money\Money;
 
-interface PaymentProcessor
+final class PaymentProcessor
 {
-    /**
-     * @return bool Whether the payment was successful
-     */
-    public function takePayment(string $orderId, Money $amount): bool;
+    public function __construct(private int $successAfterAttempt = 1, private int $attempt = 0)
+    {
+    }
+
+    public function takePayment(string $orderId, Money $amount): bool
+    {
+        $this->attempt++;
+        if ($this->attempt < $this->successAfterAttempt) {
+            return false;
+        }
+
+        return true;
+    }
 }

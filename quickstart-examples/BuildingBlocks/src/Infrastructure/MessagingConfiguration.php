@@ -16,7 +16,7 @@ final class MessagingConfiguration
         /** This also works for state-stored sagas */
         return DbalConfiguration::createWithDefaults()
             ->withDocumentStore(
-                enableDocumentStoreAggregateRepository: true
+                enableDocumentStoreStandardRepository: true,
             );
     }
 

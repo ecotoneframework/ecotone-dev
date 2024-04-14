@@ -44,6 +44,6 @@ class Configuration
     public function enableDocumentStoreRepository()
     {
         return DbalConfiguration::createWithDefaults()
-                ->withDocumentStore(enableDocumentStoreAggregateRepository: true);
+                ->withDocumentStore(enableDocumentStoreStandardRepository: true);
     }
 }

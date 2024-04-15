@@ -4,9 +4,6 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeader
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\Endpoint\AddHeader;
-use Ecotone\Messaging\Attribute\Endpoint\Delayed;
-use Ecotone\Messaging\Attribute\Endpoint\ExpireAfter;
-use Ecotone\Messaging\Attribute\Endpoint\Priority;
 use Ecotone\Messaging\Attribute\Endpoint\RemoveHeader;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;

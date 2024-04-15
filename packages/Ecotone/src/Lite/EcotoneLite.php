@@ -11,7 +11,6 @@ use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
@@ -248,7 +247,7 @@ final class EcotoneLite
         }
 
         $configuration = $configuration ?: ServiceConfiguration::createWithDefaults();
-        $testConfiguration = $testConfiguration ?? TestConfiguration::createWithDefaults();
+        $testConfiguration ??= TestConfiguration::createWithDefaults();
 
         if (! $configuration->areSkippedPackagesDefined()) {
             $configuration = $configuration

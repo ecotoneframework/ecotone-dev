@@ -25,8 +25,7 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
         private InterfaceToCall $interfaceToCall,
         private MessageProcessor $messageProcessor,
         private bool $shouldChangeMessageHeaders
-    )
-    {
+    ) {
     }
 
     public static function createWith(InterfaceToCall $interfaceToCall, MessageProcessor $messageProcessor, bool $shouldChangeMessageHeaders = false)
@@ -46,8 +45,8 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
         }
 
         if ($this->shouldChangeMessageHeaders) {
-            Assert::isFalse($result instanceof Message, "Message should not be returned when changing headers in " . $this->interfaceToCall->toString());
-            Assert::isTrue(is_array($result), "Result should be an array when changing headers in " . $this->interfaceToCall->toString());
+            Assert::isFalse($result instanceof Message, 'Message should not be returned when changing headers in ' . $this->interfaceToCall->toString());
+            Assert::isTrue(is_array($result), 'Result should be an array when changing headers in ' . $this->interfaceToCall->toString());
 
             return MessageBuilder::fromMessage($message)
                 ->setMultipleHeaders($result)

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Conversion\MediaType;
-
 interface MessageBus
 {
     /**

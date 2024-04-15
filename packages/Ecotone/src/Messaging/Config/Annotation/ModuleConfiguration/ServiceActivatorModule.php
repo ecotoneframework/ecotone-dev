@@ -12,9 +12,9 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\Saga;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 
 #[ModuleAnnotation]
 class ServiceActivatorModule extends MessageHandlerRegisterConfiguration

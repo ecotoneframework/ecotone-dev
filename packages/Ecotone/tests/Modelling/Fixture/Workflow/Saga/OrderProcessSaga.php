@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Fixture\Workflow\Saga;
 
 use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\Saga;
@@ -22,24 +21,22 @@ final class OrderProcessSaga
     public function __construct(
         #[Identifier] private string $orderId,
         private bool $shouldTakePayment
-    )
-    {
+    ) {
         $this->recordThat(new OrderProcessSagaStarted($orderId));
     }
 
     #[EventHandler]
     public static function whenOrderWasPlaced(
         OrderWasPlaced $event,
-        #[Header("shouldTakePayment")] bool $shouldTakePayment = true
-    ): self
-    {
+        #[Header('shouldTakePayment')] bool $shouldTakePayment = true
+    ): self {
         return new self($event->orderId, $shouldTakePayment);
     }
 
-    #[EventHandler(outputChannelName: "takePayment")]
+    #[EventHandler(outputChannelName: 'takePayment')]
     public function triggerPayment(OrderProcessSagaStarted $event): ?TakePayment
     {
-        if (!$this->shouldTakePayment) {
+        if (! $this->shouldTakePayment) {
             return null;
         }
 

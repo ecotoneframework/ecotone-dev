@@ -29,7 +29,6 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\MessageBus;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
 use Ecotone\OpenTelemetry\TracerInterceptor;

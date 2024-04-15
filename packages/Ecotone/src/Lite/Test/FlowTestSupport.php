@@ -23,7 +23,6 @@ use Ecotone\Modelling\Config\BusModule;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\MessageBus;
 use Ecotone\Modelling\QueryBus;
 
 /**

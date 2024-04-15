@@ -8,8 +8,8 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\MessageHeaders;
-use Test\Ecotone\Messaging\Fixture\AddHeaders\AddingMultipleHeaders;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Messaging\Fixture\AddHeaders\AddingMultipleHeaders;
 
 /**
  * Class EndpointHeadersInterceptorTest
@@ -22,18 +22,22 @@ class EndpointHeadersInterceptorTest extends TestCase
 {
     public function test_adding_multiple_headers()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([
-            AddingMultipleHeaders::class
-        ], [
-            AddingMultipleHeaders::class => new AddingMultipleHeaders()
-        ], enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async')
-        ],
-        testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'));
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [
+                AddingMultipleHeaders::class,
+            ],
+            [
+                AddingMultipleHeaders::class => new AddingMultipleHeaders(),
+            ],
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ],
+            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async')
+        );
 
         $headers = $ecotoneLite
             ->sendCommandWithRoutingKey('addHeaders', metadata: [
-                'user' => '1233'
+                'user' => '1233',
             ])
             ->getRecordedEcotoneMessagesFrom('async')[0]->getHeaders()->headers();
 

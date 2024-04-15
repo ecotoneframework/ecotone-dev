@@ -15,8 +15,7 @@ final class InternalHandler extends ServiceActivator
         string $endpointId = '',
         array $requiredInterceptorNames = [],
         bool $changingHeaders = false,
-    )
-    {
+    ) {
         parent::__construct(
             inputChannelName: $inputChannelName,
             endpointId: $endpointId,

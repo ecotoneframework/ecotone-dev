@@ -18,8 +18,7 @@ class ServiceActivator extends InputOutputEndpointAnnotation
         bool $requiresReply = false,
         array $requiredInterceptorNames = [],
         private bool $changingHeaders = false,
-    )
-    {
+    ) {
         parent::__construct($inputChannelName, $endpointId, $outputChannelName, $requiredInterceptorNames);
         $this->requiresReply = $requiresReply;
     }

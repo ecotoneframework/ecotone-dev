@@ -466,7 +466,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())
+                SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()),
             ]
         );
 
@@ -491,7 +491,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())
+                SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()),
             ]
         );
 

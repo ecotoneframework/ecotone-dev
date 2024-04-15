@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\AsynchronousPaymentHandler;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\Command\TakePayment;
-use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\Event\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\OrderProcessSaga;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\PaymentHandler;
 
+/**
+ * @internal
+ */
 final class WorkflowTest extends TestCase
 {
     public function test_workflow_with_joined_output_command_handler(): void
@@ -21,7 +23,7 @@ final class WorkflowTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessSaga::class, PaymentHandler::class],
             [
-                PaymentHandler::class => new PaymentHandler()
+                PaymentHandler::class => new PaymentHandler(),
             ]
         );
 
@@ -43,7 +45,7 @@ final class WorkflowTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessSaga::class, PaymentHandler::class],
             [
-                PaymentHandler::class => new PaymentHandler()
+                PaymentHandler::class => new PaymentHandler(),
             ]
         );
 
@@ -60,10 +62,10 @@ final class WorkflowTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderProcessSaga::class, AsynchronousPaymentHandler::class],
             [
-                AsynchronousPaymentHandler::class => new AsynchronousPaymentHandler()
+                AsynchronousPaymentHandler::class => new AsynchronousPaymentHandler(),
             ],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async')
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ]
         );
 

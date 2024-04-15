@@ -19,8 +19,8 @@ final class AddingMultipleHeaders
     #[TimeToLive(1001)]
     #[Priority(1)]
     #[RemoveHeader('user')]
-    #[Asynchronous("async")]
-    #[CommandHandler("addHeaders", endpointId: "addHeadersEndpoint")]
+    #[Asynchronous('async')]
+    #[CommandHandler('addHeaders', endpointId: 'addHeadersEndpoint')]
     public function test(): void
     {
 

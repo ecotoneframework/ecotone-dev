@@ -16,7 +16,7 @@ final class AsynchronousPaymentHandler
     }
 
     #[Asynchronous('async')]
-    #[CommandHandler('takePayment', endpointId: "takePaymentEndpoint")]
+    #[CommandHandler('takePayment', endpointId: 'takePaymentEndpoint')]
     public function takePayment(TakePayment $command): void
     {
         $this->isPaymentTaken = true;

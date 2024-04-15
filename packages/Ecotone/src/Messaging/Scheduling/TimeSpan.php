@@ -15,8 +15,7 @@ final class TimeSpan implements DefinedObject
         public int $minutes = 0,
         public int $hours = 0,
         public int $days = 0,
-    )
-    {
+    ) {
 
     }
 
@@ -34,7 +33,7 @@ final class TimeSpan implements DefinedObject
                 $this->seconds,
                 $this->minutes,
                 $this->hours,
-                $this->days
+                $this->days,
             ]
         );
     }

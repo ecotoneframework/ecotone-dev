@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\AllConfigurationDefined\ServiceActivatorWithAllConfigurationDefined;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\MessageHandler\ExampleMessageHandlerChangingHeaders;
 
 /**
  * Class AnnotationServiceActivatorConfigurationTest

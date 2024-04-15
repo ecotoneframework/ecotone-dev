@@ -109,6 +109,15 @@ final class TracerInterceptor
         );
     }
 
+    public function traceMessageHandler(MethodInvocation $methodInvocation, Message $message)
+    {
+        return $this->trace(
+            'Message Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
+            $methodInvocation,
+            $message,
+        );
+    }
+
     public function traceCommandBus(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(

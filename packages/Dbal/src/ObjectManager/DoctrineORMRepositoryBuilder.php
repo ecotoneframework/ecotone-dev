@@ -35,7 +35,7 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         return new Definition(ManagerRegistryRepository::class, [
             new Reference($this->dbalConfiguration->getDoctrineORMRepositoryConnectionReference()),
             $this->dbalConfiguration->getDoctrineORMClasses(),
-            $this->dbalConfiguration->isFlushingDuringPersistingAggregate(),
+            $this->dbalConfiguration->isFlushingDuringPersisting(),
         ]);
     }
 }

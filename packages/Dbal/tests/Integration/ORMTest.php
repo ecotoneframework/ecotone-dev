@@ -197,7 +197,7 @@ final class ORMTest extends DbalMessagingTestCase
     /**
      * @dataProvider configuration
      */
-    public function test_flushing_object_manager_on_command_bus(array $services, array $namespaces, bool $enableDoctrineORMAggregates): void
+    public function test_flushing_object_manager_on_command_bus_without_multi_tenancy(array $services, array $namespaces, bool $enableDoctrineORMAggregates): void
     {
         $this->setupUserTable();
 
@@ -257,7 +257,7 @@ final class ORMTest extends DbalMessagingTestCase
                     DbalConfiguration::createWithDefaults()
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates)
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
-                        ->withFlushWhenPersistingAggregate(false),
+                        ->withFlushWhenPersisting(false),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryStateStoredRepository: false

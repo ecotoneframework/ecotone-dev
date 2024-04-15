@@ -104,9 +104,9 @@ final class VerificationProcessTest extends TestCase
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
                     PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),
-                    /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
-                    TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
                 ]),
+            /** We don't want command bus to fail, when command handler is not found, as we want to assert if commands were sent */
+            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false)
         );
     }
 }

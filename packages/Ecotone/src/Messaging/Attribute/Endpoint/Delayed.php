@@ -5,19 +5,17 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Attribute\Endpoint;
 
 use Attribute;
+use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Scheduling\TimeSpan;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
-class Delayed
+class Delayed extends AddHeader
 {
-    private int $time;
-
-    public function __construct(int $time)
+    /**
+     * @param int|TimeSpan $time if integer is provided it is treated as milliseconds
+     */
+    public function __construct(int|TimeSpan $time)
     {
-        $this->time = $time;
-    }
-
-    public function getTime(): int
-    {
-        return $this->time;
+        parent::__construct(MessageHeaders::DELIVERY_DELAY, $time instanceof TimeSpan ? $time->toMilliseconds() : $time);
     }
 }

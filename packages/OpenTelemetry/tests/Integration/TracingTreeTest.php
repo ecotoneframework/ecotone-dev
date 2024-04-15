@@ -31,6 +31,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberOne;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberTwo;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
+use Test\Ecotone\OpenTelemetry\Fixture\MessageHandlerFlow\ExampleMessageHandler;
 
 /**
  * @internal
@@ -57,6 +58,39 @@ final class TracingTreeTest extends TracingTest
                         [
                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
                             'children' => [],
+                        ],
+                    ],
+                ],
+            ],
+            self::buildTree($exporter)
+        );
+    }
+
+    public function test_tracing_tree_with_two_levels_of_nesting_and_message_handler()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [ExampleMessageHandler::class],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), ExampleMessageHandler::class => new ExampleMessageHandler()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+        )
+            ->sendCommandWithRoutingKey('handleCommand');
+
+        self::compareTreesByDetails(
+            [
+                [
+                    'details' => ['name' => 'Command Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Command Handler: ' . ExampleMessageHandler::class . '::handleCommand'],
+                            'children' => [
+                                [
+                                    'details' => ['name' => 'Message Handler: ' . ExampleMessageHandler::class . '::handle'],
+                                    'children' => [],
+                                ],
+                            ],
                         ],
                     ],
                 ],

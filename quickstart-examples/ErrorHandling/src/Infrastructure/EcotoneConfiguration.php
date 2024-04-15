@@ -30,7 +30,7 @@ final class EcotoneConfiguration
     public function aggregateRepository(): DbalConfiguration
     {
         return DbalConfiguration::createWithDefaults()
-                ->withDocumentStore(enableDocumentStoreAggregateRepository: true);
+                ->withDocumentStore(enableDocumentStoreStandardRepository: true,);
     }
 
     #[ServiceContext]

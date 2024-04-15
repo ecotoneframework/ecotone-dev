@@ -42,7 +42,7 @@ class EndpointHeadersInterceptorModule extends NoExternalConfigurationModule imp
                 $interfaceToCall,
                 TransformerBuilder::createWithDirectObject(new EndpointHeadersInterceptor(), 'addMetadata'),
                 Precedence::ENDPOINT_HEADERS_PRECEDENCE,
-                ExpireAfter::class . '||' . Priority::class . '||' . Delayed::class . '||' . AddHeader::class . '||' . RemoveHeader::class
+                AddHeader::class . '||' . RemoveHeader::class
             )
         );
     }

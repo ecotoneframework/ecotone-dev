@@ -27,6 +27,7 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\Config\RegisterAggregateRepositoryChannels;
 use Psr\Container\ContainerInterface;
+use ReflectionClass;
 
 final class EcotoneLite
 {
@@ -154,8 +155,7 @@ final class EcotoneLite
         ServiceConfiguration $serviceConfiguration,
         array $configurationVariables,
         bool $enableTesting
-    ): string
-    {
+    ): string {
         if ($useCachedVersion) {
             return 'messaging';
         }
@@ -165,7 +165,7 @@ final class EcotoneLite
         $fileSha = '';
 
         foreach ($classesToResolve as $class) {
-            $filePath = (new \ReflectionClass($class))->getFileName();
+            $filePath = (new ReflectionClass($class))->getFileName();
 
             if ($filePath) {
                 $fileSha .= sha1_file($filePath);

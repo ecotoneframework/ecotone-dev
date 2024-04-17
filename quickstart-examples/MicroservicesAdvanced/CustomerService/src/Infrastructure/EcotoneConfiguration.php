@@ -28,7 +28,7 @@ class EcotoneConfiguration
     public function documentStoreRepository()
     {
         return DbalConfiguration::createWithDefaults()
-            ->withDocumentStore(enableDocumentStoreAggregateRepository: true);
+            ->withDocumentStore(enableDocumentStoreStandardRepository: true,);
     }
 
     #[ServiceContext]

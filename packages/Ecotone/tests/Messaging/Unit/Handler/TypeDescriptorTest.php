@@ -31,7 +31,7 @@ class TypeDescriptorTest extends TestCase
 {
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_guessing_type_hint_from_compound_type_and_array_of_scalar_type()
     {
@@ -43,9 +43,22 @@ class TypeDescriptorTest extends TestCase
         );
     }
 
+    public function test_is_non_class_collection()
+    {
+        $this->assertFalse(TypeDescriptor::create('string')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::createIterable()->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array<string>')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array<string, string>')->isArrayButNotClassBasedCollection());
+        $this->assertFalse(TypeDescriptor::create('array<\stdClass>')->isArrayButNotClassBasedCollection());
+        $this->assertFalse(TypeDescriptor::create('array<string, \stdClass>')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array<array<string,int>>')->isArrayButNotClassBasedCollection());
+        $this->assertTrue(TypeDescriptor::create('array<string, array<string,int>>')->isArrayButNotClassBasedCollection());
+    }
+
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_guessing_type_hint_from_null()
     {
@@ -65,7 +78,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_returning_base_type_when_docblock_is_incorrect()
     {
@@ -77,7 +90,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_throwing_exception_if_type_hint_is_incorrect()
     {
@@ -88,7 +101,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_passing_incompatible_resource_type_hint_and_scalar_union_type()
     {
@@ -99,7 +112,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_passing_incompatible_resource_hint_and_compound_union_type()
     {
@@ -110,7 +123,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_passing_incompatible_compound_hint_and_resource_union_type()
     {
@@ -121,7 +134,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_converting_doc_block_array_type_to_generic()
     {
@@ -157,7 +170,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_choosing_doc_block_type_hint_over_array()
     {
@@ -169,7 +182,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_choosing_doc_block_collection_type_hint_over_compound()
     {
@@ -188,7 +201,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_throwing_exception_if_resolving_collection_type_for_non_collection()
     {
@@ -201,7 +214,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_checking_equality()
     {
@@ -223,7 +236,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_choosing_declaration_type_over_docblock_when_interface()
     {
@@ -235,7 +248,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_choosing_declaration_type_over_docblock_when_object_type()
     {
@@ -247,7 +260,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_ignoring_docblock_if_not_property_is_not_iterable()
     {
@@ -267,7 +280,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_with_prefixed_type()
     {
@@ -279,7 +292,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_with_compound_object_type_hint()
     {
@@ -291,7 +304,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_for_void_return_type_hint()
     {
@@ -316,7 +329,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_with_mixed_type_result_in_unknown_type_hint()
     {
@@ -328,7 +341,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_anything_with_anything()
     {
@@ -345,7 +358,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_class_of_the_same_type()
     {
@@ -356,7 +369,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_class_with_scalar()
     {
@@ -371,7 +384,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_class_with_compound()
     {
@@ -386,7 +399,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_different_collections()
     {
@@ -397,7 +410,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_same_collections()
     {
@@ -408,7 +421,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_collection_different_types()
     {
@@ -419,7 +432,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_scalar_with_compound()
     {
@@ -434,7 +447,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_scalar_with_compound()
     {
@@ -449,7 +462,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_scalar_with_object()
     {
@@ -464,7 +477,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_scalar_with_object_containing_to_string_method()
     {
@@ -475,7 +488,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_different_classes()
     {
@@ -490,7 +503,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_class_and_its_interface()
     {
@@ -505,7 +518,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_subclass_interface_with_base_interface()
     {
@@ -516,7 +529,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_interface_with_subclass_interface()
     {
@@ -527,7 +540,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_class_with_its_abstract_class()
     {
@@ -538,7 +551,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_void_with_void()
     {
@@ -549,7 +562,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_compatibility_when_comparing_actual_class_to_object_type_hint()
     {
@@ -560,7 +573,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_no_compatibility_when_comparing_object_type_hint_to_actual_class()
     {
@@ -571,7 +584,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_with_false_type_resulting_in_boolean()
     {
@@ -583,7 +596,7 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_guessing_type_from_variable()
     {
@@ -593,20 +606,30 @@ class TypeDescriptorTest extends TestCase
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([]));
         $this->assertEquals(stdClass::class, TypeDescriptor::createFromVariable(new stdClass()));
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([]));
-        $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([1, 2, 3]));
+        $this->assertEquals(TypeDescriptor::createCollection('int'), TypeDescriptor::createFromVariable([1, 2, 3]));
+        $this->assertEquals(TypeDescriptor::create('array<string, int>'), TypeDescriptor::createFromVariable(['bla' => 1, 'bla2' => 2, 'bla3' => 3]));
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([new stdClass(), 12]));
         $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::createFromVariable([new stdClass(), OrderExample::createFromId(1)]));
         $this->assertEquals(TypeDescriptor::createCollection(stdClass::class), TypeDescriptor::createFromVariable([new stdClass()]));
         $this->assertEquals(TypeDescriptor::createCollection(stdClass::class), TypeDescriptor::createFromVariable([new stdClass(), new stdClass()]));
         $this->assertEquals(TypeDescriptor::RESOURCE, TypeDescriptor::createFromVariable(fopen('file', 'w+')));
         $this->assertEquals(TypeDescriptor::NULL, TypeDescriptor::createFromVariable(null));
-        $this->assertEquals(TypeDescriptor::CLOSURE, TypeDescriptor::createFromVariable(function () {
-        })->toString());
+        $this->assertEquals(TypeDescriptor::CLOSURE, TypeDescriptor::createFromVariable(function () {})->toString());
+        $this->assertEquals('array<array<string,int>>', TypeDescriptor::createFromVariable([['bla' => 1, 'bla2' => 2, 'bla3' => 3]])->toString());
+        $this->assertEquals('array<string,null>', TypeDescriptor::createFromVariable(['test' => null])->toString());
+        $this->assertEquals('array', TypeDescriptor::createFromVariable(['test' => null, 'test2' => '123'])->toString());
+    }
+
+    public function test_resolving_structured_array_type()
+    {
+        $this->assertEquals(TypeDescriptor::create('array<int, array>'), TypeDescriptor::create('array<int, array{person_id: string}>'));
+        $this->assertEquals(TypeDescriptor::ARRAY, TypeDescriptor::create('array{person_id: string}'));
+        $this->assertEquals(TypeDescriptor::create('array<string, array>'), TypeDescriptor::create('array<string, array{person_id: string}>'));
     }
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_collection_type()
     {
@@ -615,13 +638,29 @@ class TypeDescriptorTest extends TestCase
 
     /**
      * @throws TypeDefinitionException
-     * @throws \Ecotone\Messaging\MessagingException
+     * @throws MessagingException
      */
     public function test_creating_collection_type_with_two_generic_types()
     {
         $this->assertEquals(
             [TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()],
             TypeDescriptor::create('array<string,int>')->resolveGenericTypes()
+        );
+    }
+
+    public function test_creating_collection_type_with_nested_generic_types()
+    {
+        $this->assertEquals(
+            [TypeDescriptor::createStringType(), TypeDescriptor::createCollection('int')],
+            TypeDescriptor::create('array<string,array<int>>')->resolveGenericTypes()
+        );
+    }
+
+    public function test_creating_collection_type_with_two_types_and_nested_generic_type()
+    {
+        $this->assertEquals(
+            [TypeDescriptor::createStringType(), TypeDescriptor::createCollection('int')],
+            TypeDescriptor::create('array<string,array<int>>')->resolveGenericTypes()
         );
     }
 

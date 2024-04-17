@@ -18,6 +18,7 @@ services:
       COMPOSER_ROOT_VERSION: 'dev-main'
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone
       APP_DB_HOST: database-mysql
       APP_DB_PORT: 3306
       APP_DB_DRIVER: pdo_mysql
@@ -44,6 +45,7 @@ services:
       COMPOSER_ROOT_VERSION: 'dev-main'
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone
       APP_DB_HOST: database-mysql
       APP_DB_PORT: 3306
       APP_DB_DRIVER: pdo_mysql
@@ -70,6 +72,7 @@ services:
       COMPOSER_ROOT_VERSION: 'dev-main'
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
+      SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone
       APP_DB_HOST: database
       APP_DB_PORT: 5432
       APP_DB_DRIVER: pdo_pgsql
@@ -80,7 +83,7 @@ services:
     env_file:
       - ".env"
   database:
-    image: postgres:12.1
+    image: simplycodedsoftware/postgres:16.1
     environment:
       POSTGRES_USER: "ecotone"
       POSTGRES_PASSWORD: "secret"

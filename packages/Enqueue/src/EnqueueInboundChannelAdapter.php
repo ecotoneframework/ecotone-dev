@@ -12,9 +12,11 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use Interop\Queue\Message as EnqueueMessage;
 
+use function spl_object_id;
+
 abstract class EnqueueInboundChannelAdapter implements MessagePoller
 {
-    private bool $initialized = false;
+    private array $initialized = [];
 
     public function __construct(
         protected CachedConnectionFactory         $connectionFactory,
@@ -36,14 +38,18 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
     public function receiveWithTimeout(int $timeoutInMilliseconds = 0): ?Message
     {
         try {
-            if ($this->declareOnStartup && $this->initialized === false) {
-                $this->initialize();
+            $context = $this->connectionFactory->createContext();
+            if ($this->declareOnStartup) {
+                $contextId = spl_object_id($context);
 
-                $this->initialized = true;
+                if (! isset($this->initialized[$contextId])) {
+                    $this->initialize();
+                    $this->initialized[$contextId] = true;
+                }
             }
 
             $consumer = $this->connectionFactory->getConsumer(
-                $this->connectionFactory->createContext()->createQueue($this->queueName)
+                $context->createQueue($this->queueName)
             );
 
             /** @var EnqueueMessage $message */

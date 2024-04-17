@@ -4,17 +4,18 @@ namespace Ecotone\EventSourcing\Prooph;
 
 use Doctrine\DBAL\Driver\PDOConnection;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Interop\Queue\ConnectionFactory;
 use Iterator;
 use PDO;
 use Prooph\Common\Messaging\MessageConverter;
 use Prooph\EventStore\EventStore;
+use Prooph\EventStore\Exception\StreamNotFound;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Pdo\MariaDbEventStore;
 use Prooph\EventStore\Pdo\MySqlEventStore;
@@ -54,18 +55,21 @@ class LazyProophEventStore implements EventStore
     public const AGGREGATE_TYPE = '_aggregate_type';
     public const AGGREGATE_ID = '_aggregate_id';
 
-    private ?EventStore $initializedEventStore = null;
+    /** @var EventStore[] */
+    private array $initializedEventStore = [];
     private MessageConverter $messageConverter;
-    private bool $requireInitialization;
+    /** @var array<string, bool> */
+    private array $initializated = [];
+    private bool $canBeInitialized;
     private array $ensuredExistingStreams = [];
 
     public function __construct(
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private EventMapper $messageFactory,
-        private DbalConnectionFactory|ManagerRegistryConnectionFactory|null $connectionFactory,
+        private ConnectionFactory|null $connectionFactory,
     ) {
         $this->messageConverter = new FromProophMessageToArrayConverter();
-        $this->requireInitialization = $eventSourcingConfiguration->isInitializedOnStart();
+        $this->canBeInitialized = $eventSourcingConfiguration->isInitializedOnStart();
     }
 
     public function fetchStreamMetadata(StreamName $streamName): array
@@ -116,15 +120,19 @@ class LazyProophEventStore implements EventStore
     public function create(Stream $stream): void
     {
         $this->getEventStore()->create($stream);
-        $this->ensuredExistingStreams[$stream->streamName()->toString()] = true;
+        $this->ensuredExistingStreams[$this->getContextName()][$stream->streamName()->toString()] = true;
     }
 
     public function appendTo(StreamName $streamName, Iterator $streamEvents): void
     {
-        if (! array_key_exists($streamName->toString(), $this->ensuredExistingStreams) && ! $this->hasStream($streamName)) {
+        if (! isset($this->ensuredExistingStreams[$this->getContextName()][$streamName->toString()]) && ! $this->hasStream($streamName)) {
             $this->create(new Stream($streamName, $streamEvents, []));
         } else {
-            $this->getEventStore()->appendTo($streamName, $streamEvents);
+            try {
+                $this->getEventStore()->appendTo($streamName, $streamEvents);
+            } catch (StreamNotFound) {
+                $this->create(new Stream($streamName, $streamEvents, []));
+            }
         }
     }
 
@@ -136,7 +144,8 @@ class LazyProophEventStore implements EventStore
 
     public function prepareEventStore(): void
     {
-        if (! $this->requireInitialization || $this->eventSourcingConfiguration->isInMemory()) {
+        $connectionName = $this->getContextName();
+        if (! $this->canBeInitialized || isset($this->initializated[$connectionName]) || $this->eventSourcingConfiguration->isInMemory()) {
             return;
         }
 
@@ -156,20 +165,21 @@ class LazyProophEventStore implements EventStore
             };
         }
 
-        $this->requireInitialization = false;
+        $this->initializated[$connectionName] = true;
     }
 
     public function getEventStore(): EventStore
     {
-        if ($this->initializedEventStore) {
-            return $this->initializedEventStore;
+        $contextName = $this->getContextName();
+        if (isset($this->initializedEventStore[$contextName])) {
+            return $this->initializedEventStore[$contextName];
         }
         $this->prepareEventStore();
 
         if ($this->eventSourcingConfiguration->isInMemory()) {
-            $this->initializedEventStore = $this->eventSourcingConfiguration->getInMemoryEventStore();
+            $this->initializedEventStore[$contextName] = $this->eventSourcingConfiguration->getInMemoryEventStore();
 
-            return $this->initializedEventStore;
+            return $this->initializedEventStore[$contextName];
         }
 
         $eventStoreType =  $this->getEventStoreType();
@@ -207,7 +217,7 @@ class LazyProophEventStore implements EventStore
             $writeLockStrategy
         );
 
-        $this->initializedEventStore = $eventStore;
+        $this->initializedEventStore[$contextName] = $eventStore;
 
         return $eventStore;
     }
@@ -404,5 +414,14 @@ class LazyProophEventStore implements EventStore
 
         /** Laravel case @look Illuminate\Database\PDO\Connection */
         return $connection->getWrappedConnection();
+    }
+
+    public function getContextName(): string
+    {
+        $connectionName = 'default';
+        if ($this->connectionFactory instanceof MultiTenantConnectionFactory) {
+            $connectionName = $this->connectionFactory->currentActiveTenant();
+        }
+        return $connectionName;
     }
 }

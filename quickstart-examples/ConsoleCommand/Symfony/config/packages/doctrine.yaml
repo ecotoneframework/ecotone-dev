@@ -1,0 +1,7 @@
+doctrine:
+  dbal:
+    default_connection: connection
+    connections:
+      connection:
+        url: '%env(resolve:DATABASE_DSN)%'
+        charset: UTF8

@@ -16,7 +16,7 @@ final class ClassPropertyDefinition
     private const PRIVATE_VISIBILITY = 'private';
 
     private string $name;
-    private \Ecotone\Messaging\Handler\Type $type;
+    private Type $type;
     private bool $isNullable;
     private bool $isStatic;
     private string $visibility;
@@ -98,7 +98,7 @@ final class ClassPropertyDefinition
     public function getAnnotation(Type $annotationClass): object
     {
         foreach ($this->annotations as $annotation) {
-            if (TypeDescriptor::createFromVariable($annotation)->equals($annotationClass)) {
+            if (TypeDescriptor::createFromVariable($annotation)->isCompatibleWith($annotationClass)) {
                 return $annotation;
             }
         }
@@ -181,6 +181,6 @@ final class ClassPropertyDefinition
 
     public function __toString()
     {
-        return $this->visibility . $this->name . $this->type->toString();
+        return '`' . $this->visibility . ':' . $this->name . '` (' . $this->type->toString() . ')';
     }
 }

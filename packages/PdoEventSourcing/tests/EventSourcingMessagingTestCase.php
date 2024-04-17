@@ -12,6 +12,9 @@ use PHPUnit\Framework\TestCase;
 
 abstract class EventSourcingMessagingTestCase extends TestCase
 {
+    private ConnectionFactory $tenantAConnection;
+    private ConnectionFactory $tenantBConnection;
+
     protected static function getSchemaManager(Connection $connection): \Doctrine\DBAL\Schema\AbstractSchemaManager
     {
         return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
@@ -20,7 +23,33 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 
     protected function setUp(): void
     {
-        self::clearDataTables($this->getConnection());
+        self::clearDataTables($this->connectionForTenantA()->createContext()->getDbalConnection());
+        self::clearDataTables($this->connectionForTenantB()->createContext()->getDbalConnection());
+    }
+
+    protected function connectionForTenantB(): ConnectionFactory
+    {
+        if (isset($this->tenantBConnection)) {
+            return $this->tenantBConnection;
+        }
+
+        $connectionFactory = DbalConnection::fromDsn(
+            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'
+        );
+
+        $this->tenantBConnection = $connectionFactory;
+        return $connectionFactory;
+    }
+
+    protected function connectionForTenantA(): ConnectionFactory
+    {
+        $connectionFactory = $this->getConnectionFactory();
+        if (isset($this->tenantAConnection)) {
+            return $this->tenantAConnection;
+        }
+
+        $this->tenantAConnection = $connectionFactory;
+        return $connectionFactory;
     }
 
     public static function getConnectionFactory(bool $isRegistry = false): ConnectionFactory

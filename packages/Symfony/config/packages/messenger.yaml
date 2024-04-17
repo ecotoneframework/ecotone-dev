@@ -14,7 +14,7 @@ framework:
   messenger:
     transports:
       messenger_async:
-        dsn: 'doctrine://default?queue_name=async&use_notify=false'
+        dsn: 'doctrine://default?queue_name=async'
         options:
           use_notify: false
       amqp_async:

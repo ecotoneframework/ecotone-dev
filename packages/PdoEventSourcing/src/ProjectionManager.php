@@ -2,6 +2,8 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Messaging\Attribute\PropagateHeaders;
+
 interface ProjectionManager
 {
     /**
@@ -12,13 +14,17 @@ interface ProjectionManager
 
     /**
      * @throws ProjectionNotFoundException
+     * @param array<string, mixed> $metadata Additional metadata to be passed to projection command
      */
-    public function deleteProjection(string $name): void;
+    #[PropagateHeaders]
+    public function deleteProjection(string $name, array $metadata = []): void;
 
     /**
      * @throws ProjectionNotFoundException
+     * @param array<string, mixed> $metadata Additional metadata to be passed to projection command
      */
-    public function resetProjection(string $name): void;
+    #[PropagateHeaders]
+    public function resetProjection(string $name, array $metadata = []): void;
 
     /**
      * @throws ProjectionNotFoundException
@@ -27,13 +33,17 @@ interface ProjectionManager
 
     /**
      * @throws ProjectionNotFoundException
+     * @param array<string, mixed> $metadata Additional metadata to be passed to projection command
      */
-    public function initializeProjection(string $name): void;
+    #[PropagateHeaders]
+    public function initializeProjection(string $name, array $metadata = []): void;
 
     /**
      * @throws ProjectionNotFoundException
+     * @param array<string, mixed> $metadata Additional metadata to be passed to projection command
      */
-    public function triggerProjection(string $name): void;
+    #[PropagateHeaders]
+    public function triggerProjection(string $name, array $metadata = []): void;
 
     public function hasInitializedProjectionWithName(string $name): bool;
 

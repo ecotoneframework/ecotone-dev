@@ -31,6 +31,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberOne;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberTwo;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
+use Test\Ecotone\OpenTelemetry\Fixture\MessageHandlerFlow\ExampleMessageHandler;
 
 /**
  * @internal
@@ -57,6 +58,39 @@ final class TracingTreeTest extends TracingTest
                         [
                             'details' => ['name' => 'Command Handler: ' . User::class . '::register'],
                             'children' => [],
+                        ],
+                    ],
+                ],
+            ],
+            self::buildTree($exporter)
+        );
+    }
+
+    public function test_tracing_tree_with_two_levels_of_nesting_and_message_handler()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [ExampleMessageHandler::class],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), ExampleMessageHandler::class => new ExampleMessageHandler()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+        )
+            ->sendCommandWithRoutingKey('handleCommand');
+
+        self::compareTreesByDetails(
+            [
+                [
+                    'details' => ['name' => 'Command Bus'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Command Handler: ' . ExampleMessageHandler::class . '::handleCommand'],
+                            'children' => [
+                                [
+                                    'details' => ['name' => 'Message Handler: ' . ExampleMessageHandler::class . '::handle'],
+                                    'children' => [],
+                                ],
+                            ],
                         ],
                     ],
                 ],
@@ -183,7 +217,7 @@ final class TracingTreeTest extends TracingTest
 
         $this->assertSame(
             'exception',
-            $node['details']['events'][0]->getName()
+            $node['details']['events'][1]->getName()
         );
     }
 
@@ -446,6 +480,12 @@ final class TracingTreeTest extends TracingTest
 
         /** @var Event $event */
         $event = $result['details']['events'][0];
+        $this->stringStartsWith(
+            'Publishing Event Message using Class routing',
+        )->evaluate($event->getName());
+
+        /** @var Event $event */
+        $event = $result['details']['events'][2];
         $this->stringStartsWith(
             'Collecting message with id',
         )->evaluate($event->getName());

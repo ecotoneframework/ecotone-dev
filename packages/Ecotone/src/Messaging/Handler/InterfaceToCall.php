@@ -105,7 +105,7 @@ class InterfaceToCall
     public function hasMethodAnnotation(Type $className): bool
     {
         foreach ($this->methodAnnotations as $methodAnnotation) {
-            if (TypeDescriptor::createFromVariable($methodAnnotation)->equals($className)) {
+            if (TypeDescriptor::createFromVariable($methodAnnotation)->isCompatibleWith($className)) {
                 return true;
             }
         }
@@ -123,7 +123,7 @@ class InterfaceToCall
     public function hasClassAnnotation(Type $className): bool
     {
         foreach ($this->getClassAnnotations() as $classAnnotation) {
-            if (TypeDescriptor::createFromVariable($classAnnotation)->equals($className)) {
+            if (TypeDescriptor::createFromVariable($classAnnotation)->isCompatibleWith($className)) {
                 return true;
             }
         }
@@ -131,15 +131,10 @@ class InterfaceToCall
         return false;
     }
 
-    /**
-     * @param Type $className
-     *
-     * @throws MessagingException
-     */
-    public function getClassAnnotation(Type $className): object
+    public function getSingleClassAnnotationOf(Type $className): object
     {
         foreach ($this->getClassAnnotations() as $classAnnotation) {
-            if (TypeDescriptor::createFromVariable($classAnnotation)->equals($className)) {
+            if (TypeDescriptor::createFromVariable($classAnnotation)->isCompatibleWith($className)) {
                 return $classAnnotation;
             }
         }
@@ -148,19 +143,49 @@ class InterfaceToCall
     }
 
     /**
+     * @return object[]
+     */
+    public function getClassAnnotationOf(Type $className): array
+    {
+        $annotations = [];
+        foreach ($this->getClassAnnotations() as $classAnnotation) {
+            if (TypeDescriptor::createFromVariable($classAnnotation)->isCompatibleWith($className)) {
+                $annotations[] = $classAnnotation;
+            }
+        }
+
+        return $annotations;
+    }
+
+    /**
      * @param Type $className
      *
      * @throws MessagingException
      */
-    public function getMethodAnnotation(Type $className): object
+    public function getSingleMethodAnnotationOf(Type $className): object
     {
         foreach ($this->methodAnnotations as $methodAnnotation) {
-            if (TypeDescriptor::createFromVariable($methodAnnotation)->equals($className)) {
+            if (TypeDescriptor::createFromVariable($methodAnnotation)->isCompatibleWith($className)) {
                 return $methodAnnotation;
             }
         }
 
         throw InvalidArgumentException::create("Trying to retrieve not existing method annotation {$className} for {$this}");
+    }
+
+    /**
+     * @return object[]
+     */
+    public function getMethodAnnotationsOf(Type $className): array
+    {
+        $methodAnnotations = [];
+        foreach ($this->methodAnnotations as $methodAnnotation) {
+            if (TypeDescriptor::createFromVariable($methodAnnotation)->isCompatibleWith($className)) {
+                $methodAnnotations[] = $methodAnnotation;
+            }
+        }
+
+        return $methodAnnotations;
     }
 
     public function isStaticallyCalled(): ?bool

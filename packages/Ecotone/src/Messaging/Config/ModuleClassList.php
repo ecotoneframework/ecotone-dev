@@ -7,14 +7,17 @@ use Ecotone\Amqp\Configuration\AmqpModule;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherModule;
 use Ecotone\Amqp\Transaction\AmqpTransactionModule;
 use Ecotone\Dbal\Configuration\DbalPublisherModule;
+use Ecotone\Dbal\DbaBusinessMethod\DbaBusinessMethodModule;
 use Ecotone\Dbal\DbalTransaction\DbalTransactionModule;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStoreModule;
+use Ecotone\Dbal\MultiTenant\Module\MultiTenantConnectionFactoryModule;
 use Ecotone\Dbal\ObjectManager\ObjectManagerModule;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
+use Ecotone\Laravel\Config\LaravelConnectionModule;
 use Ecotone\Lite\Test\Configuration\EcotoneTestSupportModule;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorModule;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeModule;
@@ -39,6 +42,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ServiceActivatorModu
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
 use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
+use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Modelling\Config\BusModule;
@@ -46,11 +50,13 @@ use Ecotone\Modelling\Config\BusRoutingModule;
 use Ecotone\Modelling\Config\DistributedGatewayModule;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryModule;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
+use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\OpenTelemetry\Configuration\OpenTelemetryModule;
 use Ecotone\Redis\Configuration\RedisMessageConsumerModule;
 use Ecotone\Redis\Configuration\RedisMessagePublisherModule;
 use Ecotone\Sqs\Configuration\SqsMessageConsumerModule;
 use Ecotone\Sqs\Configuration\SqsMessagePublisherModule;
+use Ecotone\SymfonyBundle\Config\SymfonyConnectionModule;
 
 class ModuleClassList
 {
@@ -83,6 +89,8 @@ class ModuleClassList
         /** Attribute based configurations */
         LoggingGateway::class,
         LoggingService::class,
+        MessageHeadersPropagatorInterceptor::class,
+        MessageHandlerLogger::class,
     ];
 
     public const ASYNCHRONOUS_MODULE = [
@@ -106,6 +114,8 @@ class ModuleClassList
         DeduplicationModule::class,
         DbalTransactionModule::class,
         DbalPublisherModule::class,
+        DbaBusinessMethodModule::class,
+        MultiTenantConnectionFactoryModule::class,
     ];
 
     public const REDIS_MODULES = [
@@ -135,16 +145,11 @@ class ModuleClassList
         EcotoneTestSupportModule::class,
     ];
 
-    public static function allModules(): array
-    {
-        return array_merge(
-            self::CORE_MODULES,
-            self::ASYNCHRONOUS_MODULE,
-            self::AMQP_MODULES,
-            self::DBAL_MODULES,
-            self::EVENT_SOURCING_MODULES,
-            self::JMS_CONVERTER_MODULES,
-            self::TRACING_MODULES
-        );
-    }
+    public const LARAVEL_MODULES = [
+        LaravelConnectionModule::class,
+    ];
+
+    public const SYMFONY_MODULES = [
+        SymfonyConnectionModule::class,
+    ];
 }

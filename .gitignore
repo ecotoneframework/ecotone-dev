@@ -10,9 +10,11 @@ composer.lock
 .htaccess
 .php-cs-fixer.cache
 cache
+cache/.gitignore
 packages/cache
 auth.json
 ./config.json
 .env
 .phpbench/
 phpunit.xml
+packages/Laravel/tests/Application/storage/logs/laravel.log

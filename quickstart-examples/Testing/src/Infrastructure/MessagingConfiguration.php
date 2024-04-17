@@ -22,6 +22,6 @@ final class MessagingConfiguration
     #[ServiceContext]
     public function registerDocumentStoreRepository(): DbalConfiguration
     {
-        return DbalConfiguration::createWithDefaults()->withDocumentStore(enableDocumentStoreAggregateRepository: true);
+        return DbalConfiguration::createWithDefaults()->withDocumentStore(enableDocumentStoreStandardRepository: true);
     }
 }

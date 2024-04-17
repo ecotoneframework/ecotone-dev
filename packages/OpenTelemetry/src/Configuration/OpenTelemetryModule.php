@@ -6,6 +6,7 @@ namespace Ecotone\OpenTelemetry\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -68,6 +69,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $this->registerTracerFor('traceCommandHandler', CommandHandler::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceQueryHandler', QueryHandler::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceEventHandler', EventHandler::class, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerTracerFor('traceMessageHandler', InternalHandler::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceCommandBus', CommandBus::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceQueryBus', QueryBus::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceEventBus', EventBus::class, $messagingConfiguration, $interfaceToCallRegistry);

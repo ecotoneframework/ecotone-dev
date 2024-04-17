@@ -1,0 +1,40 @@
+{
+    "type": "ecotone-quickstart",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "dgafka.mail@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "App\\MultiTenant\\": "src"
+        }
+    },
+    "require": {
+        "ecotone/symfony-starter": "^1.1.0",
+        "symfony/orm-pack": "^2.4",
+        "symfony/yaml": "^7.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "doctrine/orm": "^2.0|^3.0",
+        "wikimedia/composer-merge-plugin": "^2.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "wikimedia/composer-merge-plugin": true
+        }
+    },
+    "extra": {
+        "merge-plugin": {
+            "include": [
+                "../../../packages/local_packages.json"
+            ]
+        }
+    }
+}

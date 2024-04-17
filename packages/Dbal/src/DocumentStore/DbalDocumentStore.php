@@ -16,12 +16,18 @@ use Ecotone\Messaging\Store\Document\DocumentNotFound;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Enqueue\Dbal\DbalContext;
 
+use function spl_object_id;
+
 final class DbalDocumentStore implements DocumentStore
 {
     public const ECOTONE_DOCUMENT_STORE = 'ecotone_document_store';
 
-    public function __construct(private CachedConnectionFactory $cachedConnectionFactory, private bool $initialize, private ConversionService $conversionService)
-    {
+    public function __construct(
+        private CachedConnectionFactory $cachedConnectionFactory,
+        private bool $autoDeclare,
+        private ConversionService $conversionService,
+        private array $initialized = [],
+    ) {
     }
 
     public function dropCollection(string $collectionName): void
@@ -183,7 +189,7 @@ final class DbalDocumentStore implements DocumentStore
 
     private function createDataBaseTable(): void
     {
-        if (! $this->initialize) {
+        if (! $this->autoDeclare) {
             return;
         }
 
@@ -216,13 +222,22 @@ final class DbalDocumentStore implements DocumentStore
 
     private function doesTableExists(): bool
     {
-        if (! $this->initialize) {
+        if (! $this->autoDeclare) {
+            return true;
+        }
+        $connection = $this->getConnection();
+
+        if (isset($this->initialized[spl_object_id($connection)])) {
             return true;
         }
 
-        $this->initialize = ! $this->getConnection()->getSchemaManager()->tablesExist([$this->getTableName()]);
+        $tableExists = $connection->getSchemaManager()->tablesExist([$this->getTableName()]);
 
-        return ! $this->initialize;
+        if ($tableExists) {
+            $this->initialized[spl_object_id($connection)] = true;
+        }
+
+        return $tableExists;
     }
 
     private function convertToJSONDocument(TypeDescriptor $type, object|array|string $document): mixed

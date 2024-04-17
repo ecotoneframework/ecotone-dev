@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Config;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
@@ -16,7 +17,7 @@ use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
-use Ecotone\Messaging\Config\BeforeSend\BeforeSendChannelInterceptorBuilder;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
@@ -35,7 +36,7 @@ use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -148,6 +149,11 @@ final class MessagingSystemConfiguration implements Configuration
      * @var array<string, Definition> $serviceDefinitions
      */
     private array $serviceDefinitions = [];
+
+    /**
+     * @var array<string, Reference> $serviceAliases
+     */
+    private array $serviceAliases = [];
 
     private InterfaceToCallRegistry $interfaceToCallRegistry;
 
@@ -1020,7 +1026,7 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    public function registerServiceDefinition(string|Reference $id, Container\Definition|array $definition = []): Configuration
+    public function registerServiceDefinition(string|Reference $id, Definition|array $definition = []): Configuration
     {
         if (! isset($this->serviceDefinitions[(string) $id])) {
             if (is_array($definition)) {
@@ -1028,6 +1034,15 @@ final class MessagingSystemConfiguration implements Configuration
             }
             $this->serviceDefinitions[(string) $id] = $definition;
         }
+        return $this;
+    }
+
+    public function registerServiceAlias(string|Reference $id, Reference $aliasTo): Configuration
+    {
+        if (! isset($this->serviceAliases[(string) $id])) {
+            $this->serviceAliases[(string) $id] = $aliasTo;
+        }
+
         return $this;
     }
 
@@ -1123,9 +1138,13 @@ final class MessagingSystemConfiguration implements Configuration
 
         foreach ($this->consoleCommands as $consoleCommandConfiguration) {
             $builder->register("console.{$consoleCommandConfiguration->getName()}", new Definition(ConsoleCommandRunner::class, [
-                Reference::to(MessagingEntrypoint::class),
+                Reference::to(MessagingEntrypointWithHeadersPropagation::class),
                 $consoleCommandConfiguration,
             ]));
+        }
+
+        foreach ($this->serviceAliases as $id => $aliasTo) {
+            $messagingBuilder->replace($id, $aliasTo);
         }
 
         $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints(), $gatewayListReferences]));

@@ -2,6 +2,7 @@
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
@@ -13,7 +14,7 @@ class CachedConnectionFactory implements ConnectionFactory
     private static $instances = [];
 
     private ReconnectableConnectionFactory $connectionFactory;
-    private ?Context $cachedContext = null;
+    private array $cachedContext = [];
 
     private function __construct(ReconnectableConnectionFactory $reconnectableConnectionFactory)
     {
@@ -31,11 +32,14 @@ class CachedConnectionFactory implements ConnectionFactory
 
     public function createContext(): Context
     {
-        if (! $this->cachedContext || $this->connectionFactory->isDisconnected($this->cachedContext)) {
-            $this->cachedContext = $this->connectionFactory->createContext();
+        $relatedTo = $this->getCurrentActiveConnection();
+        $context = $this->cachedContext[$relatedTo] ?? null;
+
+        if (! $context || $this->connectionFactory->isDisconnected($context)) {
+            $this->cachedContext[$relatedTo] = $this->connectionFactory->createContext();
         }
 
-        return $this->cachedContext;
+        return $this->cachedContext[$relatedTo];
     }
 
     public function getConsumer(Destination $destination): Consumer
@@ -51,5 +55,15 @@ class CachedConnectionFactory implements ConnectionFactory
     public function getInnerConnectionFactory(): ConnectionFactory
     {
         return $this->connectionFactory;
+    }
+
+    private function getCurrentActiveConnection(): string
+    {
+        $connectionFactory = $this->connectionFactory->getWrappedConnectionFactory();
+        if (interface_exists(MultiTenantConnectionFactory::class) && $connectionFactory instanceof MultiTenantConnectionFactory) {
+            return $connectionFactory->currentActiveTenant();
+        }
+
+        return 'default';
     }
 }

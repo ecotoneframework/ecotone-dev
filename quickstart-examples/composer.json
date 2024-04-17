@@ -39,12 +39,33 @@
             "(cd RefactorToReactiveSystem && composer update && php run_example.php Stage_1 && php run_example.php Stage_2 && php run_example.php Stage_3)",
             "(cd ErrorHandling && composer update && php run_example.php)",
             "(cd Testing && composer update && php run_example.php && vendor/bin/phpunit tests)",
-            "(cd BuildingBlocks && composer update && php run_example.php && vendor/bin/phpunit tests)"
+            "(cd BuildingBlocks && composer update && php run_example.php && vendor/bin/phpunit tests)",
+            "(cd BusinessInterface/ServiceActivator && composer update && php run_example.php)",
+            "(cd BusinessInterface/Routing && composer update && php run_example.php)",
+            "(cd BusinessInterface/Asynchronous && composer update && php run_example.php)",
+            "(cd MultiTenant/Laravel/MessageBus && composer update && php run_example.php)",
+            "(cd MultiTenant/Laravel/Aggregate && composer update && php run_example.php)",
+            "(cd MultiTenant/Laravel/Events && composer update && php run_example.php)",
+            "(cd MultiTenant/Laravel/AsynchronousEvents && composer update && php run_example.php)",
+            "(cd MultiTenant/Laravel/EventSourcing && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/MessageBus && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/Aggregate && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/Events && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/AsynchronousEvents && composer update && php run_example.php)",
+            "(cd MultiTenant/Symfony/EventSourcing && composer update && php run_example.php)",
+            "(cd MultiTenant/General/HookIntoTenantSwitch && composer update && php run_example.php)",
+            "(cd MultiTenant/General/MessageBusForMultipleTenants && composer update && php run_example.php)",
+            "(cd MultiTenant/General/RoundRobinWithSingleConsumer && composer update && php run_example.php)",
+            "(cd ConsoleCommand/Laravel && composer update && php artisan app:example-command John --types=1 --types=2 --selection=custom)",
+            "(cd ConsoleCommand/Symfony && composer update && php bin/console app:example-command John --types=1 --types=2 --selection=custom)",
+            "(cd Workflows/SynchronousStateless && composer update && php run_example.php)",
+            "(cd Workflows/AsynchronousStateless && composer update && php run_example.php)",
+            "(cd Workflows/Saga && composer update && php run_example.php)"
         ]
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.206.1-dev"
+            "dev-main": "1.219.1-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"

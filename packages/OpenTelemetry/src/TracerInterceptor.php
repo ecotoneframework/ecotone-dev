@@ -109,6 +109,15 @@ final class TracerInterceptor
         );
     }
 
+    public function traceMessageHandler(MethodInvocation $methodInvocation, Message $message)
+    {
+        return $this->trace(
+            'Message Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
+            $methodInvocation,
+            $message,
+        );
+    }
+
     public function traceCommandBus(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
@@ -139,13 +148,17 @@ final class TracerInterceptor
     public function traceLogs(MethodInvocation $methodInvocation, Message $message)
     {
         $logMessage = $message->getPayload();
-        /** @var Message $contextMessage */
-        $contextMessage = $message->getHeaders()->get(LoggingService::CONTEXT_MESSAGE_HEADER);
-        $attributes = [
-            MessageHeaders::MESSAGE_ID => $contextMessage->getHeaders()->getMessageId(),
-            MessageHeaders::MESSAGE_CORRELATION_ID => $contextMessage->getHeaders()->getCorrelationId(),
-            MessageHeaders::PARENT_MESSAGE_ID => $contextMessage->getHeaders()->getParentId(),
-        ];
+
+        $attributes = [];
+        if ($message->getHeaders()->containsKey(LoggingService::CONTEXT_MESSAGE_HEADER)) {
+            /** @var Message $contextMessage */
+            $contextMessage = $message->getHeaders()->get(LoggingService::CONTEXT_MESSAGE_HEADER);
+            $attributes = [
+                MessageHeaders::MESSAGE_ID => $contextMessage->getHeaders()->getMessageId(),
+                MessageHeaders::MESSAGE_CORRELATION_ID => $contextMessage->getHeaders()->getCorrelationId(),
+                MessageHeaders::PARENT_MESSAGE_ID => $contextMessage->getHeaders()->getParentId(),
+            ];
+        }
 
         if ($message->getHeaders()->containsKey(LoggingService::CONTEXT_EXCEPTION_HEADER)) {
             /** @var Exception $exception */

@@ -77,7 +77,7 @@ interface Configuration extends CompilerPass
     public function registerBeforeMethodInterceptor(MethodInterceptor $methodInterceptor): Configuration;
 
     /**
-     * @param \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder $aroundInterceptorReference
+     * @param AroundInterceptorBuilder $aroundInterceptorReference
      * @return Configuration
      */
     public function registerAroundMethodInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): Configuration;
@@ -142,4 +142,6 @@ interface Configuration extends CompilerPass
     public function buildMessagingSystemFromConfiguration(?ContainerInterface $externalReferenceSearchService = null): ConfiguredMessagingSystem;
 
     public function registerServiceDefinition(string|Reference $id, Container\Definition $definition): Configuration;
+
+    public function registerServiceAlias(string|Reference $id, Reference $aliasTo): Configuration;
 }

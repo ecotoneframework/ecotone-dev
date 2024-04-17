@@ -7,6 +7,7 @@ namespace Ecotone\Dbal;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\ORMSetup;
 use Doctrine\ORM\Tools\Setup;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
@@ -26,14 +27,24 @@ final class ManagerRegistryEmulator implements ManagerRegistry
     ) {
     }
 
+    public static function fromDsnAndConfig(string $dsn, array $config = []): EcotoneManagerRegistryConnectionFactory
+    {
+        return new EcotoneManagerRegistryConnectionFactory(
+            new self(DbalConnection::fromDsn($dsn)->createContext()->getDbalConnection(), $config),
+        );
+    }
+
     public static function fromConnectionFactory(DbalConnectionFactory $dbalConnectionFactory): EcotoneManagerRegistryConnectionFactory
     {
         return new EcotoneManagerRegistryConnectionFactory(new self($dbalConnectionFactory->createContext()->getDbalConnection()));
     }
 
-    public static function create(Connection $connection): EcotoneManagerRegistryConnectionFactory
+    /**
+     * @param string[] $pathsToMapping
+     */
+    public static function create(Connection $connection, array $pathsToMapping = []): EcotoneManagerRegistryConnectionFactory
     {
-        return new EcotoneManagerRegistryConnectionFactory(new self($connection));
+        return new EcotoneManagerRegistryConnectionFactory(new self($connection, $pathsToMapping));
     }
 
     public static function createEntityManager(EntityManagerInterface $entityManager): EcotoneManagerRegistryConnectionFactory
@@ -155,11 +166,29 @@ final class ManagerRegistryEmulator implements ManagerRegistry
 
     private function setupEntityManager(): void
     {
-        $config = Setup::createAttributeMetadataConfiguration(
-            $this->pathsToMapping,
-            true
-        );
+        /** Doctrine 3.0 >= */
+        if (class_exists(ORMSetup::class)) {
+            $config = ORMSetup::createAttributeMetadataConfiguration(
+                $this->pathsToMapping,
+                true
+            );
 
-        $this->entityManager = EntityManager::create($this->getConnection(), $config);
+            /** To fake phpstan as in version 2.0, constructor is protected */
+            $entityManager = $this->getEntityManagerName();
+            $this->entityManager = new $entityManager($this->getConnection(), $config, null);
+        } else {
+            $config = Setup::createAttributeMetadataConfiguration(
+                $this->pathsToMapping,
+                true
+            );
+
+            $this->entityManager = EntityManager::create($this->getConnection(), $config);
+        }
+    }
+
+    private function getEntityManagerName(): string
+    {
+        $entityManager = '\Doctrine\ORM\EntityManager';
+        return $entityManager;
     }
 }

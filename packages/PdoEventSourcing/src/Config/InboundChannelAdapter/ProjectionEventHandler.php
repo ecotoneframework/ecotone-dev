@@ -15,9 +15,6 @@ class ProjectionEventHandler
     public const PROJECTION_STATE = 'projection.state';
     public const PROJECTION_IS_REBUILDING = 'projection.is_rebuilding';
     public const PROJECTION_NAME = 'projection.name';
-    public const PROJECTION_IS_POLLING = 'projection.isPolling';
-
-    private bool $wasInitialized = false;
 
     public function __construct(
         private LazyProophProjectionManager $lazyProophProjectionManager,
@@ -28,15 +25,14 @@ class ProjectionEventHandler
 
     public function execute(MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): void
     {
-        if (! $this->wasInitialized && $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel()) {
-            $messagingEntrypoint->send([], $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel());
-            $this->wasInitialized = true;
-        }
-
         $status = ProjectionStatus::RUNNING();
         $projectHasRelatedStream = $this->lazyProophProjectionManager->hasInitializedProjectionWithName($this->projectionSetupConfiguration->getProjectionName());
         if ($projectHasRelatedStream) {
             $status = $this->lazyProophProjectionManager->getProjectionStatus($this->projectionSetupConfiguration->getProjectionName());
+        } else {
+            if ($this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel()) {
+                $messagingEntrypoint->send([], $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getInitializationRequestChannel());
+            }
         }
 
         $projectionExecutor = new ChannelProjectionExecutor($this->projectionSetupConfiguration, $this->conversionService, $messagingEntrypoint, $status);

@@ -5,6 +5,7 @@ namespace Ecotone\Dbal\ObjectManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -29,6 +30,10 @@ class ObjectManagerInterceptor
         $managerRegistries = [];
 
         foreach ($this->managerRegistryConnectionFactories as $managerRegistryConnectionFactory) {
+            if ($managerRegistryConnectionFactory instanceof MultiTenantConnectionFactory) {
+                $managerRegistryConnectionFactory = $managerRegistryConnectionFactory->getConnectionFactory();
+            }
+
             if ($managerRegistryConnectionFactory instanceof EcotoneManagerRegistryConnectionFactory) {
                 $managerRegistries[] = $managerRegistryConnectionFactory->getRegistry();
             }

@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Ecotone\JMSConverter;
 
@@ -8,6 +9,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\Converter;
+use JMS\Serializer\Handler\EnumHandler;
 use JMS\Serializer\Handler\HandlerRegistry;
 use JMS\Serializer\Naming\CamelCaseNamingStrategy;
 use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
@@ -34,6 +36,7 @@ class JMSConverterBuilder implements CompilableBuilder
                     : new CamelCaseNamingStrategy()
             )
             ->configureHandlers(function (HandlerRegistry $registry) use ($convertersHandlers) {
+                $registry->registerSubscribingHandler(new EnumHandler());
                 foreach ($convertersHandlers as $converterHandler) {
                     $registry->registerHandler(
                         $converterHandler->getDirection(),
@@ -55,6 +58,7 @@ class JMSConverterBuilder implements CompilableBuilder
         }
 
         $builder->setDocBlockTypeResolver(true);
+        $builder->enableEnumSupport();
 
         return new JMSConverter($builder->build(), $jmsConverterConfiguration);
     }

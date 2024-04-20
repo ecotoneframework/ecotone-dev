@@ -17,6 +17,9 @@ use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\Page;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\PageRepository;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\RepositoryBusinessInterface;
 
+/**
+ * @internal
+ */
 final class CustomRepositoriesTest extends TestCase
 {
     public function test_using_custom_repository_for_standard_aggregates()

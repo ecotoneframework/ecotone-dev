@@ -8,7 +8,6 @@ final class CommentCreated
 {
     public function __construct(
         public string $id,
-    )
-    {
+    ) {
     }
 }

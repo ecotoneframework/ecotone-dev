@@ -13,8 +13,7 @@ final class Page
 {
     private function __construct(
         #[Identifier] private string $id
-    )
-    {
+    ) {
 
     }
 

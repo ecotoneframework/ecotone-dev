@@ -13,8 +13,7 @@ final class Author
 {
     private function __construct(
         #[Identifier] private string $id
-    )
-    {
+    ) {
 
     }
 

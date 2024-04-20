@@ -13,12 +13,11 @@ final class Article
 {
     private function __construct(
         #[Identifier] private string $id
-    )
-    {
+    ) {
 
     }
 
-    #[CommandHandler("create.article")]
+    #[CommandHandler('create.article')]
     public static function create(string $id): self
     {
         return new self($id);

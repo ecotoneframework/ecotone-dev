@@ -9,6 +9,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
+use Test\Ecotone\Modelling\Fixture\CustomRepositories\EventSourcing\Comment;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\Article;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\ArticleRepository;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\Author;
@@ -61,7 +62,7 @@ final class CustomRepositoriesTest extends TestCase
         );
     }
 
-    public function test_using_two_custom_repositories_and_inbuilt_repository_for_standard_aggregates()
+    public function test_default_repository_are_not_used_when_multiple_repositories_provided()
     {
         $articleRepository = ArticleRepository::createEmpty();
         $pageRepository = PageRepository::createEmpty();
@@ -79,6 +80,25 @@ final class CustomRepositoriesTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         $this->verify(Author::create('123'), $ecotoneLite, 'create.author', Author::class, null);
+    }
+
+    public function test_default_repository_is_used_when_multiple_repositories_are_registered_for_different_type()
+    {
+        $articleRepository = ArticleRepository::createEmpty();
+        $pageRepository = PageRepository::createEmpty();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Article::class, ArticleRepository::class, Page::class, PageRepository::class, Comment::class],
+            [
+                ArticleRepository::class => $articleRepository,
+                PageRepository::class => $pageRepository,
+            ],
+        );
+
+        // We have provided multiple standard repositories, therefore there is single Event Sourced repository
+        $ecotoneLite->sendCommandWithRoutingKey('create.comment', '123');
+
+        $this->assertNotNull($ecotoneLite->getAggregate(Comment::class, '123'));
     }
 
     private function verify(object $expectedAggregate, FlowTestSupport $ecotoneLite, string $creationMethod, string $className, ?InMemoryStandardRepository $customRepository): void

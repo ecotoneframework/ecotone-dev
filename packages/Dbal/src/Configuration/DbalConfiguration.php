@@ -39,6 +39,7 @@ class DbalConfiguration
     private bool $initializeDbalDocumentStore = true;
     private string $documentStoreConnectionReference = DbalConnectionFactory::class;
     private bool $inMemoryDocumentStore = false;
+    private ?array $documentStoreRelatedAggregates = null;
 
     private bool $enableDocumentStoreStandardRepository = false;
     private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
@@ -215,7 +216,7 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStandardRepository = false, string $connectionReference = DbalConnectionFactory::class): self
+    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStandardRepository = false, string $connectionReference = DbalConnectionFactory::class, ?array $documentStoreRelatedAggregates = null): self
     {
         $self = clone $this;
         $self->enableDbalDocumentStore = $isDocumentStoreEnabled;
@@ -224,6 +225,7 @@ class DbalConfiguration
         $self->initializeDbalDocumentStore = $initializeDatabaseTable;
         $self->documentStoreConnectionReference = $connectionReference;
         $self->enableDocumentStoreStandardRepository = $enableDocumentStoreStandardRepository;
+        $self->documentStoreRelatedAggregates = $documentStoreRelatedAggregates;
 
         return $self;
     }
@@ -306,6 +308,11 @@ class DbalConfiguration
     public function isEnableDocumentStoreStandardRepository(): bool
     {
         return $this->enableDocumentStoreStandardRepository;
+    }
+
+    public function getDocumentStoreRelatedAggregates(): ?array
+    {
+        return $this->documentStoreRelatedAggregates;
     }
 
     public function getDisabledTransactionsOnAsynchronousEndpointNames(): array

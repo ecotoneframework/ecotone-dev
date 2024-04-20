@@ -9,7 +9,6 @@ use Monorepo\ExampleApp\Common\Domain\User\User;
 use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Ramsey\Uuid\UuidInterface;
 
-#[Repository]
 final class InMemoryUserRepository implements UserRepository
 {
     /** @var User[] */

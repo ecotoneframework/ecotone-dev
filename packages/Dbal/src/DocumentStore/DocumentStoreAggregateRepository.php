@@ -9,13 +9,17 @@ final class DocumentStoreAggregateRepository implements StandardRepository
 {
     private const COLLECTION_NAME = 'aggregates_';
 
-    public function __construct(private DocumentStore $documentStore)
+    public function __construct(private DocumentStore $documentStore, private ?array $relatedAggregates = null)
     {
     }
 
     public function canHandle(string $aggregateClassName): bool
     {
-        return true;
+        if (is_null($this->relatedAggregates)) {
+            return false;
+        }
+
+        return in_array($aggregateClassName, $this->relatedAggregates);
     }
 
     public function findBy(string $aggregateClassName, array $identifiers): ?object

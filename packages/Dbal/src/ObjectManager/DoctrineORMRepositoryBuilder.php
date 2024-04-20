@@ -19,7 +19,7 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
     public function canHandle(string $aggregateClassName): bool
     {
         if (is_null($this->dbalConfiguration->getDoctrineORMClasses())) {
-            return true;
+            return false;
         }
 
         return in_array($aggregateClassName, $this->dbalConfiguration->getDoctrineORMClasses());

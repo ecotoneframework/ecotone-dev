@@ -203,7 +203,10 @@ class DbalDocumentStoreModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
 
         if ($dbalConfiguration->isEnableDocumentStoreStandardRepository()) {
-            return [new DocumentStoreAggregateRepositoryBuilder($dbalConfiguration->getDbalDocumentStoreReference())];
+            return [new DocumentStoreAggregateRepositoryBuilder(
+                $dbalConfiguration->getDbalDocumentStoreReference(),
+                $dbalConfiguration->getDocumentStoreRelatedAggregates()
+            )];
         }
 
         return [];

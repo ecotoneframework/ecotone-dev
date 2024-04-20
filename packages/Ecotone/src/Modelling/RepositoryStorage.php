@@ -62,7 +62,7 @@ class RepositoryStorage
             }
         }
 
-        throw InvalidArgumentException::create('There is no repository available for aggregate: ' . $this->aggregateClassName);
+        throw InvalidArgumentException::create('There is no repository available for aggregate: ' . $this->aggregateClassName . ". This happens because are multiple Repositories of given type registered, therefore each Repository need to specify which aggregate it can handle. If this fails during Ecotone Lite tests, consider turning off default In Memory implementations.");
     }
 
     private function returnRepository(EventSourcedRepository|StandardRepository|LazyRepositoryBuilder $repository): EventSourcedRepository|StandardRepository

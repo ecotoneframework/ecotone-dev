@@ -6,6 +6,7 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\Article;
@@ -74,21 +75,10 @@ final class CustomRepositoriesTest extends TestCase
             addInMemoryStateStoredRepository: true,
         );
 
-        $this->verify(Article::create('123'), $ecotoneLite, 'create.article', Article::class, $articleRepository);
-        $this->verify(Page::create('123'), $ecotoneLite, 'create.page', Page::class, $pageRepository);
+        // As more than one repository is available, the repository need to be handled explicitly
+        $this->expectException(InvalidArgumentException::class);
+
         $this->verify(Author::create('123'), $ecotoneLite, 'create.author', Author::class, null);
-        $this->assertEquals(
-            Article::create('123'),
-            $ecotoneLite->getGateway(RepositoryBusinessInterface::class)->getArticle('123')
-        );
-        $this->assertEquals(
-            Page::create('123'),
-            $ecotoneLite->getGateway(RepositoryBusinessInterface::class)->getPage('123')
-        );
-        $this->assertEquals(
-            Author::create('123'),
-            $ecotoneLite->getGateway(RepositoryBusinessInterface::class)->getAuthor('123')
-        );
     }
 
     private function verify(object $expectedAggregate, FlowTestSupport $ecotoneLite, string $creationMethod, string $className, ?InMemoryStandardRepository $customRepository): void

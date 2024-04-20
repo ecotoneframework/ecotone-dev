@@ -30,7 +30,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~1.220.0",
+        "ecotone/enqueue": "~1.220.1",
         "enqueue/dbal": "^0.10.17",
         "doctrine/dbal": "^2.12.0|^3.0"
     },
@@ -43,7 +43,7 @@
         "doctrine/cache": "^1.0.0",
         "doctrine/annotations": "^1.13",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "ecotone/jms-converter": "~1.220.0",
+        "ecotone/jms-converter": "~1.220.1",
         "symfony/expression-language": "^6.0|^7.0"
     },
     "scripts": {
@@ -56,7 +56,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.220.0-dev"
+            "dev-main": "1.220.1-dev"
         },
         "ecotone": {
             "repository": "dbal"

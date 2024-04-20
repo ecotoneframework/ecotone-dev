@@ -26,6 +26,9 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\Config\RegisterAggregateRepositoryChannels;
+
+use function json_decode;
+
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 
@@ -323,9 +326,9 @@ final class EcotoneLite
 
     private static function shouldUseAutomaticCache(bool $useCachedVersion, string $pathToRootCatalog): bool
     {
-        if (!$useCachedVersion && file_exists($pathToRootCatalog . 'composer.json')) {
-            $composer = \json_decode(file_get_contents($pathToRootCatalog . 'composer.json'), true);
-            if (!self::isRunningTestsForEcotoneFramework($composer['name'])) {
+        if (! $useCachedVersion && file_exists($pathToRootCatalog . 'composer.json')) {
+            $composer = json_decode(file_get_contents($pathToRootCatalog . 'composer.json'), true);
+            if (! self::isRunningTestsForEcotoneFramework($composer['name'])) {
                 $useCachedVersion = true;
             }
         } else {

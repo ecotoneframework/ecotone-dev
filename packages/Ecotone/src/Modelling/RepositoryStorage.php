@@ -80,8 +80,10 @@ class RepositoryStorage
         return $repository;
     }
 
-    private function isEventSourced(EventSourcedRepository|StandardRepository|RepositoryBuilder $repository): bool
+    private function isEventSourced(object $repository): bool
     {
+        Assert::isTrue($repository instanceof EventSourcedRepository || $repository instanceof StandardRepository || $repository instanceof RepositoryBuilder, 'Invalid repository type provided. Expected EventSourcedRepository, StandardRepository. Got ' . get_class($repository) . '. Have you forgot to implement Interface?');
+        
         if ($repository instanceof RepositoryBuilder) {
             return $repository->isEventSourced();
         }

@@ -9,7 +9,7 @@ use Monorepo\ExampleApp\Common\Domain\Product\Product;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
 use Ramsey\Uuid\UuidInterface;
 
-#[Repository]
+
 final class InMemoryProductRepository implements ProductRepository
 {
     /** @var Product[] */

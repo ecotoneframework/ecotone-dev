@@ -10,7 +10,7 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 class RepositoryStorage
 {
     /**
-     * @var array<EventSourcedRepository|StandardRepository> $repositories
+     * @var array<EventSourcedRepository|StandardRepository|RepositoryBuilder> $repositories
      */
     private array $repositories;
 
@@ -20,12 +20,15 @@ class RepositoryStorage
     public function __construct(private string $aggregateClassName, private bool $isEventSourcedAggregate, array $aggregateRepositories)
     {
         $this->repositories = array_values($aggregateRepositories);
+
+        foreach ($this->repositories as $repository) {
+            Assert::isTrue($repository instanceof EventSourcedRepository || $repository instanceof StandardRepository || $repository instanceof RepositoryBuilder, 'Invalid repository type provided. Expected EventSourcedRepository, StandardRepository. Got ' . get_class($repository) . '. Have you forgot to implement Interface?');
+        }
     }
 
     public function getRepository(): EventSourcedRepository|StandardRepository
     {
         if (count($this->repositories) === 1) {
-            /** @var EventSourcedRepository|StandardRepository|RepositoryBuilder $repository */
             $repository = $this->repositories[0];
             if ($this->isEventSourced($repository) && ! $this->isEventSourcedAggregate) {
                 throw InvalidArgumentException::create("There is only one repository registered. For event sourcing usage, however aggregate {$this->aggregateClassName} is not event sourced. If it should be event sourced change attribute to " . EventSourcingAggregate::class);
@@ -80,10 +83,8 @@ class RepositoryStorage
         return $repository;
     }
 
-    private function isEventSourced(object $repository): bool
+    private function isEventSourced(EventSourcedRepository|StandardRepository|RepositoryBuilder $repository): bool
     {
-        Assert::isTrue($repository instanceof EventSourcedRepository || $repository instanceof StandardRepository || $repository instanceof RepositoryBuilder, 'Invalid repository type provided. Expected EventSourcedRepository, StandardRepository. Got ' . get_class($repository) . '. Have you forgot to implement Interface?');
-        
         if ($repository instanceof RepositoryBuilder) {
             return $repository->isEventSourced();
         }

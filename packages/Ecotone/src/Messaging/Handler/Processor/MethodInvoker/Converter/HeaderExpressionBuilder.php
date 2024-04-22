@@ -43,7 +43,7 @@ class HeaderExpressionBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Definition
+    public function compile(InterfaceToCall $interfaceToCall): Definition
     {
         return new Definition(HeaderExpressionConverter::class, [
             Reference::to(ExpressionEvaluationService::REFERENCE),

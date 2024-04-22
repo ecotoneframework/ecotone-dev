@@ -33,7 +33,7 @@ class AllHeadersBuilder implements ParameterConverterBuilder
     }
 
 
-    public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Definition
+    public function compile(InterfaceToCall $interfaceToCall): Definition
     {
         return new Definition(AllHeadersConverter::class);
     }

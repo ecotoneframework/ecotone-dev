@@ -22,7 +22,7 @@ class AttributeBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Definition
+    public function compile(InterfaceToCall $interfaceToCall): Definition
     {
         return new Definition(ValueConverter::class, [new AttributeReference(get_class($this->attributeInstance), $this->className, $this->methodName)]);
     }

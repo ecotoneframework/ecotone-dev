@@ -31,7 +31,7 @@ class ConfigurationVariableBuilder implements ParameterConverterBuilder
         return $this->parameterName === $parameter->getName();
     }
 
-    public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Definition
+    public function compile(InterfaceToCall $interfaceToCall): Definition
     {
         return new Definition(ValueConverter::class, [
             Reference::to(ConfigurationVariableService::REFERENCE_NAME),

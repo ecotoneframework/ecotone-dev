@@ -2,43 +2,54 @@
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
 use ReflectionClass;
 
 final class EventSourcingHandlerExecutor implements DefinedObject
 {
     /**
-     * @param InterfaceToCall[] $eventSourcingHandlerMethods
+     * @param EventSourcingHandlerMethod[] $eventSourcingHandlerMethods
      */
     public function __construct(private string $aggregateClassName, private array $eventSourcingHandlerMethods)
     {
     }
 
+    /**
+     * @param Event[] $events
+     */
     public function fill(array $events, ?object $existingAggregate): object
     {
         $aggregate = $existingAggregate ?? (new $this->aggregateClassName());
         foreach ($events as $event) {
-            if ($event instanceof Event) {
-                $event = $event->getPayload();
-            }
             if ($event instanceof SnapshotEvent) {
                 $aggregate = $event->getAggregate();
 
                 continue;
             }
 
-            $eventType = TypeDescriptor::createFromVariable($event);
-            foreach ($this->eventSourcingHandlerMethods as $methodInterface) {
-                if ($methodInterface->getFirstParameter()->canBePassedIn($eventType)) {
-                    $aggregate->{$methodInterface->getMethodName()}($event);
+            $eventType = TypeDescriptor::createFromVariable($event->getPayload());
+            $message = MessageBuilder::withPayload($event->getPayload())
+                ->setMultipleHeaders($event->getMetadata())
+                ->build();
+            foreach ($this->eventSourcingHandlerMethods as $eventSourcingHandler) {
+                $eventSourcingHandlerInterface = $eventSourcingHandler->getInterfaceToCall();
+                if ($eventSourcingHandlerInterface->getFirstParameter()->canBePassedIn($eventType)) {
+                    (new MethodInvoker(
+                        $aggregate,
+                        $eventSourcingHandlerInterface->getMethodName(),
+                        $eventSourcingHandler->getParameterConverters(),
+                        $eventSourcingHandler->getInterfaceToCall()
+                    ))->executeEndpoint($message);
                 }
             }
         }
@@ -52,6 +63,7 @@ final class EventSourcingHandlerExecutor implements DefinedObject
             return new static($classDefinition->getClassType()->toString(), []);
         }
 
+        $parameterConverterFactory = ParameterConverterAnnotationFactory::create();
         $class = new ReflectionClass($classDefinition->getClassType()->toString());
 
         if ($class->hasMethod('__construct')) {
@@ -74,19 +86,25 @@ final class EventSourcingHandlerExecutor implements DefinedObject
                 if ($methodToCheck->isStaticallyCalled()) {
                     throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should not be static.");
                 }
-                if ($methodToCheck->getInterfaceParameterAmount() !== 1) {
-                    throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should not be have only one parameter type hinted for handled event.");
+                if ($methodToCheck->getInterfaceParameterAmount() < 1) {
+                    throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should have at least one parameter.");
+                }
+                if (!$methodToCheck->getFirstParameter()->isObjectTypeHint()) {
+                    throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should have first parameter as Event Class type hint.");
                 }
                 if (! $methodToCheck->hasReturnTypeVoid()) {
                     throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should return void return type");
                 }
 
-                $eventSourcingHandlerMethods[$method] = $methodToCheck;
+                $eventSourcingHandlerMethods[$method] = new EventSourcingHandlerMethodBuilder(
+                    $methodToCheck,
+                    $parameterConverterFactory->createParameterWithDefaults($methodToCheck)
+                );
             }
         }
 
         if (! $eventSourcingHandlerMethods) {
-            throw InvalidArgumentException::create("Your aggregate {$classDefinition->getClassType()}, is event sourced. You must define atleast one EventSourcingHandler to provide aggregate's identifier after first event.");
+            throw InvalidArgumentException::create("Your aggregate {$classDefinition->getClassType()}, is event sourced. You must define at least one EventSourcingHandler to provide aggregate's identifier after first event.");
         }
 
         return new static($classDefinition->getClassType()->toString(), $eventSourcingHandlerMethods);
@@ -94,13 +112,9 @@ final class EventSourcingHandlerExecutor implements DefinedObject
 
     public function getDefinition(): Definition
     {
-        $interfaceToCallReferences = [];
-        foreach ($this->eventSourcingHandlerMethods as $methodInterface) {
-            $interfaceToCallReferences[] = InterfaceToCallReference::fromInstance($methodInterface);
-        }
         return new Definition(self::class, [
             $this->aggregateClassName,
-            $interfaceToCallReferences,
+            $this->eventSourcingHandlerMethods,
         ]);
     }
 }

@@ -22,7 +22,7 @@ final class Person
     private string $type;
     private int $registeredWithRevision = 0;
 
-    #[CommandHandler('person.register')]
+    #[CommandHandler]
     public static function register(RegisterPerson $command): array
     {
         return [

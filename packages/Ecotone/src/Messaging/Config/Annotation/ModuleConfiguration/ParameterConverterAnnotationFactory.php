@@ -21,6 +21,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadExpressionBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
+use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Modelling\Attribute\IgnorePayload;
 
 /**
  * Class ParameterConverterAnnotationFactory
@@ -41,7 +43,10 @@ class ParameterConverterAnnotationFactory
         return new self();
     }
 
-    public function createParameterWithDefaults(InterfaceToCall $relatedClassInterface, bool $ignorePayload): array
+    /**
+     * @return ParameterConverterBuilder[]
+     */
+    public function createParameterWithDefaults(InterfaceToCall $relatedClassInterface): array
     {
         return
             MethodArgumentsFactory::createDefaultMethodParameters(
@@ -49,10 +54,13 @@ class ParameterConverterAnnotationFactory
                 $this->createParameterConverters($relatedClassInterface),
                 [],
                 null,
-                $ignorePayload
+                $relatedClassInterface->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class))
             );
     }
 
+    /**
+     * @return ParameterConverterBuilder[]
+     */
     public function createParameterConverters(InterfaceToCall $relatedClassInterface): array
     {
         $parameterConverters = [];

@@ -132,7 +132,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
 
         $compiledMethodParameterConverters = [];
         foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
-            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $this->interfaceToCall, $this->interfaceToCall->getInterfaceParameters()[$index]);
+            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $this->interfaceToCall);
         }
 
         if ($this->isEventSourced) {

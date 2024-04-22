@@ -185,7 +185,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         )
                             ->withInputChannelName($requestChannel)
                             ->withMethodParameterConverters(
-                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall, (bool)$interfaceToCall->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class)))
+                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall)
                             );
                     }
                     if ($attributeType->equals($projectionDelete)) {
@@ -197,7 +197,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         )
                             ->withInputChannelName($requestChannel)
                             ->withMethodParameterConverters(
-                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall, (bool)$interfaceToCall->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class)))
+                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall)
                             );
                     }
                     if ($attributeType->equals($projectionReset)) {
@@ -209,7 +209,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                         )
                             ->withInputChannelName($requestChannel)
                             ->withMethodParameterConverters(
-                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall, (bool)$interfaceToCall->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class)))
+                                $parameterConverterFactory->createParameterWithDefaults($interfaceToCall)
                             );
                     }
                 }

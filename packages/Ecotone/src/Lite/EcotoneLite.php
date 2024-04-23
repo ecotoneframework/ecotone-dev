@@ -328,7 +328,7 @@ final class EcotoneLite
     {
         if (! $useCachedVersion && file_exists($pathToRootCatalog . 'composer.json')) {
             $composer = json_decode(file_get_contents($pathToRootCatalog . 'composer.json'), true);
-            if (!isset($composer['name']) || ! self::isRunningTestsForEcotoneFramework($composer['name'])) {
+            if (! isset($composer['name']) || ! self::isRunningTestsForEcotoneFramework($composer['name'])) {
                 $useCachedVersion = true;
             }
         } else {

@@ -326,6 +326,9 @@ final class EcotoneLite
 
     private static function shouldUseAutomaticCache(bool $useCachedVersion, string $pathToRootCatalog): bool
     {
+        /** @TODO require scanning all use statements within related Classes, if they have not changed (e.g. Event Names)  */
+        return $useCachedVersion;
+
         if (! $useCachedVersion && file_exists($pathToRootCatalog . 'composer.json')) {
             $composer = json_decode(file_get_contents($pathToRootCatalog . 'composer.json'), true);
             if (! isset($composer['name']) || ! self::isRunningTestsForEcotoneFramework($composer['name'])) {

@@ -15,6 +15,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\EventSourcingHandlerExecutor;
+use Ecotone\Modelling\EventSourcingHandlerExecutorBuilder;
 
 final class ResolveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder
 {
@@ -108,7 +109,7 @@ final class ResolveAggregateServiceBuilder extends InputOutputMessageHandlerBuil
     {
         return new Definition(ResolveEventSourcingAggregateService::class, [
             $isFactoryMethod,
-            EventSourcingHandlerExecutor::createFor($classDefinition, true, $this->interfaceToCallRegistry),
+            EventSourcingHandlerExecutorBuilder::createFor($classDefinition, true, $this->interfaceToCallRegistry),
         ]);
     }
 

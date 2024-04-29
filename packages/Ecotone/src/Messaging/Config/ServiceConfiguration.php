@@ -42,6 +42,8 @@ class ServiceConfiguration
      */
     private array $pollableEndpointAnnotations = [];
 
+    private bool $isEnterpriseModeDefault = false;
+
     private function __construct()
     {
         $this->cacheDirectoryPath = sys_get_temp_dir();
@@ -217,6 +219,18 @@ class ServiceConfiguration
         $this->connectionRetryTemplate = $channelPollRetryTemplate;
 
         return $this;
+    }
+
+    public function withDefaultEnterpriseMode(bool $enabled): self
+    {
+        $this->isEnterpriseModeDefault = $enabled;
+
+        return $this;
+    }
+
+    public function isEnterpriseModeDefault(): bool
+    {
+        return $this->isEnterpriseModeDefault;
     }
 
     /**

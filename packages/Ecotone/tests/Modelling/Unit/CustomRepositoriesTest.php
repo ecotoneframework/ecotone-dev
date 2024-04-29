@@ -8,6 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Messaging\BaseEcotoneTest;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\EventSourcing\Comment;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\Article;
@@ -20,7 +21,7 @@ use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\RepositoryBusines
 /**
  * @internal
  */
-final class CustomRepositoriesTest extends TestCase
+final class CustomRepositoriesTest extends BaseEcotoneTest
 {
     public function test_using_custom_repository_for_standard_aggregates()
     {
@@ -85,7 +86,12 @@ final class CustomRepositoriesTest extends TestCase
         $this->verify(Author::create('123'), $ecotoneLite, 'create.author', Author::class, null);
     }
 
-    public function test_default_repository_is_used_when_multiple_repositories_are_registered_for_different_type()
+    /**
+     * @dataProvider enterpriseMode
+     */
+    public function test_default_repository_is_used_when_multiple_repositories_are_registered_for_different_type(
+        bool $isEnterprise
+    )
     {
         $articleRepository = ArticleRepository::createEmpty();
         $pageRepository = PageRepository::createEmpty();
@@ -96,6 +102,7 @@ final class CustomRepositoriesTest extends TestCase
                 ArticleRepository::class => $articleRepository,
                 PageRepository::class => $pageRepository,
             ],
+            defaultEnterpriseMode: $isEnterprise,
         );
 
         // We have provided multiple standard repositories, therefore there is single Event Sourced repository

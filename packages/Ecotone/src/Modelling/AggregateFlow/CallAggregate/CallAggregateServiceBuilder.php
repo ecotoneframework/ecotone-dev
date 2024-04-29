@@ -23,6 +23,7 @@ use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
 use Ecotone\Modelling\EventSourcingHandlerExecutor;
+use Ecotone\Modelling\EventSourcingHandlerExecutorBuilder;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
@@ -36,7 +37,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
      * @var bool
      */
     private bool $isCommandHandler;
-    private EventSourcingHandlerExecutor $eventSourcingHandlerExecutor;
+    private Definition $eventSourcingHandlerExecutor;
     private ?string $aggregateMethodWithEvents;
     private ?string $aggregateVersionProperty;
     private bool $isEventSourced = false;
@@ -88,7 +89,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         }
 
         $this->interfaceToCall = $interfaceToCall;
-        $this->eventSourcingHandlerExecutor = EventSourcingHandlerExecutor::createFor($aggregateClassDefinition, $this->isEventSourced, $interfaceToCallRegistry);
+        $this->eventSourcingHandlerExecutor = EventSourcingHandlerExecutorBuilder::createFor($aggregateClassDefinition, $this->isEventSourced, $interfaceToCallRegistry);
         $isFactoryMethod = $this->interfaceToCall->isFactoryMethod();
         if (! $this->isEventSourced && $isFactoryMethod) {
             Assert::isTrue($this->interfaceToCall->getReturnType()->isClassNotInterface(), "Factory method {$this->interfaceToCall} for standard aggregate should return object. Did you wanted to register Event Sourced Aggregate?");

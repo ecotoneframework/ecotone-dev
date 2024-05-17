@@ -3,6 +3,8 @@
 namespace Test\Ecotone\Modelling\Fixture\OrderAggregate;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -35,6 +37,13 @@ class Order
     public static function register(PlaceOrder $placeOrder): self
     {
         return new self($placeOrder->getOrderId());
+    }
+
+    #[CommandHandler('order.cancel_from_metadata', 'orderCancelFromMetadata')]
+    public function cancelFromMetadata(): void
+    {
+        $this->isCancelled = true;
+        $this->recordThat(new OrderCancelled($this->orderId));
     }
 
     #[CommandHandler('order.cancel', 'orderCancel')]

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
+use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
@@ -193,10 +194,15 @@ final class EcotoneLite
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
      */
-    private static function prepareConfiguration(ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $serviceConfiguration, array $classesToResolve, array $configurationVariables, ?string $pathToRootCatalog, bool $enableTesting, bool $allowGatewaysToBeRegisteredInContainer, bool $useCachedVersion): ConfiguredMessagingSystemWithTestSupport|ConfiguredMessagingSystem
+    private static function prepareConfiguration(ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $serviceConfiguration, array $classesToResolve, array $configurationVariables, ?string $originalPathToRootCatalog, bool $enableTesting, bool $allowGatewaysToBeRegisteredInContainer, bool $useCachedVersion): ConfiguredMessagingSystemWithTestSupport|ConfiguredMessagingSystem
     {
-        //        moving out of vendor catalog
-        $pathToRootCatalog = $pathToRootCatalog ?: __DIR__ . '/../../../../../';
+        if ($originalPathToRootCatalog !== null) {
+            $originalPathToRootCatalog = rtrim($originalPathToRootCatalog, '/') . '/';
+        }
+        // moving out of vendor catalog
+        $pathToRootCatalog = $originalPathToRootCatalog ?: __DIR__ . '/../../../../';
+        $pathToRootCatalog = FileSystemAnnotationFinder::getRealRootCatalog($pathToRootCatalog, $pathToRootCatalog);
+
         if (is_null($serviceConfiguration)) {
             $serviceConfiguration = ServiceConfiguration::createWithDefaults();
         }

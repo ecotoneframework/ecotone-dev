@@ -50,8 +50,6 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
 
     public function save(Message $message, array $metadata): Message
     {
-        $metadata = MessageHeaders::unsetNonUserKeys($metadata);
-
         $events = $this->resolveEvents($message, $metadata, $this->calledInterface);
         if ($events === []) {
             return MessageBuilder::fromMessage($message)->build();
@@ -69,7 +67,7 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
             );
         }
 
-        $aggregateIds = $message->getHeaders()->containsKey(AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER) ? $message->getHeaders()->get(AggregateMessage::AGGREGATE_ID) : [];
+        $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
         $aggregateIds = $aggregateIds ?: $this->getAggregateIds($aggregateIds, $aggregate);
 
         if ($this->useSnapshot && is_object($aggregate)) {
@@ -84,6 +82,7 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
             }
         }
 
+        $metadata = MessageHeaders::unsetNonUserKeys($metadata);
         $this->aggregateRepository->save($aggregateIds, $this->aggregateClassName, $events, $metadata, $versionBeforeHandling);
 
         $aggregateIds = $aggregateIds ?: $this->getAggregateIds($aggregateIds, $aggregate);

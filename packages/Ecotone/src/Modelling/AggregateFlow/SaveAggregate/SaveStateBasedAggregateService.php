@@ -34,11 +34,9 @@ final class SaveStateBasedAggregateService implements SaveAggregateService
 
     public function save(Message $message, array $metadata): Message
     {
-        $metadata = MessageHeaders::unsetNonUserKeys($metadata);
-
         $aggregate = $this->resolveAggregate($message);
 
-        $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;
+        $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : 0;
         if ($this->aggregateVersionProperty && $this->isAggregateVersionAutomaticallyIncreased) {
             $this->propertyEditorAccessor->enrichDataWith(
                 PropertyPath::createWith($this->aggregateVersionProperty),
@@ -49,9 +47,10 @@ final class SaveStateBasedAggregateService implements SaveAggregateService
             );
         }
 
-        $aggregateIds = $message->getHeaders()->containsKey(AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER) ? $message->getHeaders()->get(AggregateMessage::AGGREGATE_ID) : [];
+        $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
         $aggregateIds = $aggregateIds ?: $this->getAggregateIds($aggregateIds, $aggregate, false);
 
+        $metadata = MessageHeaders::unsetNonUserKeys($metadata);
         $this->aggregateRepository->save($aggregateIds, $aggregate, $metadata, $versionBeforeHandling);
 
         $aggregateIds = $aggregateIds ?: $this->getAggregateIds($aggregateIds, $aggregate, true);

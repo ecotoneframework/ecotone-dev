@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
+use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
+use Ecotone\AnnotationFinder\FileSystem\RootCatalogNotFound;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
@@ -26,9 +28,9 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\Config\RegisterAggregateRepositoryChannels;
+use function json_decode;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
-use function json_decode;
 
 final class EcotoneLite
 {
@@ -45,10 +47,147 @@ final class EcotoneLite
         array                    $configurationVariables = [],
         bool                     $useCachedVersion = false,
         ?string                  $pathToRootCatalog = null,
-        bool                     $allowGatewaysToBeRegisteredInContainer = false,
-    ): ConfiguredMessagingSystem
-    {
+        bool                     $allowGatewaysToBeRegisteredInContainer = false
+    ): ConfiguredMessagingSystem {
         return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, false, $allowGatewaysToBeRegisteredInContainer, $useCachedVersion);
+    }
+
+    /**
+     * This should be used in cases we want to test stateless services.
+     * It will not register any repositories for aggregates.
+     *
+     * In case you want to test flows or stateful classes like Aggregates and Sagas, use "bootstrapFlowTesting" instead
+     *
+     * @param string[] $classesToResolve
+     * @param array<string,string> $configurationVariables
+     * @param ContainerInterface|object[] $containerOrAvailableServices
+     * @deprecated Ecotone 2.0 will drop this method, use "bootstrapFlowTesting" instead
+     */
+    public static function bootstrapForTesting(
+        array                    $classesToResolve = [],
+        ContainerInterface|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration    $configuration = null,
+        array                    $configurationVariables = [],
+        ?string                  $pathToRootCatalog = null,
+        bool                     $allowGatewaysToBeRegisteredInContainer = false
+    ): ConfiguredMessagingSystemWithTestSupport {
+        if (! $configuration) {
+            $configuration = ServiceConfiguration::createWithDefaults();
+        }
+
+        if (! $configuration->areSkippedPackagesDefined()) {
+            $configuration = $configuration
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages());
+        }
+
+        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false);
+    }
+
+    /**
+     * Provides default configuration for testing flows
+     * Skips all module package names and registers repositories for aggregates
+     *
+     * @param string[] $classesToResolve
+     * @param array<string,string> $configurationVariables
+     * @param ContainerInterface|object[] $containerOrAvailableServices
+     * @param MessageChannelBuilder[] $enableAsynchronousProcessing
+     * @param bool $defaultEnterpriseMode bool Forces to use Enterprise mode or not (must be used instead of ServiceConfiguration option)
+     */
+    public static function bootstrapFlowTesting(
+        array                    $classesToResolve = [],
+        ContainerInterface|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration    $configuration = null,
+        array                    $configurationVariables = [],
+        ?string                  $pathToRootCatalog = null,
+        bool                     $allowGatewaysToBeRegisteredInContainer = false,
+        bool                     $addInMemoryStateStoredRepository = true,
+        bool                     $addEventSourcedRepository = true,
+        ?array                   $enableAsynchronousProcessing = null,
+        TestConfiguration        $testConfiguration = null,
+        bool $defaultEnterpriseMode = false
+    ): FlowTestSupport {
+        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $defaultEnterpriseMode);
+
+        if ($addEventSourcedRepository) {
+            $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createDefaultEventSourcedRepository());
+        }
+
+        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false)
+            ->getFlowTestSupport();
+    }
+
+    /**
+     * Provides default configuration for testing flows with In Memory Event Store.
+     * Enables eventSourcing, dbal, jmsConverter packages and provides default repositories.
+     *
+     * @param string[] $classesToResolve
+     * @param array<string,string> $configurationVariables
+     * @param ContainerInterface|object[] $containerOrAvailableServices
+     */
+    public static function bootstrapFlowTestingWithEventStore(
+        array                    $classesToResolve = [],
+        ContainerInterface|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration    $configuration = null,
+        array                    $configurationVariables = [],
+        ?string                  $pathToRootCatalog = null,
+        bool                     $allowGatewaysToBeRegisteredInContainer = false,
+        bool                     $addInMemoryStateStoredRepository = true,
+        bool                     $runForProductionEventStore = false,
+        ?array                   $enableAsynchronousProcessing = null,
+        TestConfiguration        $testConfiguration = null,
+        bool                     $defaultEnterpriseMode = false,
+    ): FlowTestSupport {
+        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $defaultEnterpriseMode);
+
+        if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && ! $runForProductionEventStore) {
+            Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
+
+            $configuration = $configuration
+                ->addExtensionObject(EventSourcingConfiguration::createInMemory());
+        }
+
+        if (! $configuration->hasExtensionObject(DbalConfiguration::class)) {
+            $configuration = $configuration
+                ->addExtensionObject(DbalConfiguration::createForTesting());
+        }
+
+        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false)
+            ->getFlowTestSupport();
+    }
+
+    private static function getFileNameBasedOnConfig(
+        string $pathToRootCatalog,
+        bool $useCachedVersion,
+        array $classesToResolve,
+        ServiceConfiguration $serviceConfiguration,
+        array $configurationVariables,
+        bool $enableTesting
+    ): string {
+        if ($useCachedVersion) {
+            return 'messaging';
+        }
+
+        // this is temporary cache based on if files have changed
+        // get file contents based on class names, configuration and configuration variables
+        $fileSha = '';
+
+        if (file_exists($pathToRootCatalog . 'composer.lock')) {
+            $fileSha .= sha1_file($pathToRootCatalog . 'composer.lock');
+        }
+
+        foreach ($classesToResolve as $class) {
+            $filePath = (new ReflectionClass($class))->getFileName();
+
+            if ($filePath) {
+                $fileSha .= sha1_file($filePath);
+            }
+        }
+
+        $fileSha .= sha1(serialize($serviceConfiguration));
+        $fileSha .= sha1(serialize($configurationVariables));
+        $fileSha .= $enableTesting ? 'true' : 'false';
+
+        return sha1($fileSha);
     }
 
     /**
@@ -57,14 +196,23 @@ final class EcotoneLite
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
      */
-    private static function prepareConfiguration(
-        ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $serviceConfiguration, array $classesToResolve,
-        array $configurationVariables, ?string $pathToRootCatalog, bool $enableTesting,
-        bool $allowGatewaysToBeRegisteredInContainer, bool $useCachedVersion
-    ): ConfiguredMessagingSystemWithTestSupport|ConfiguredMessagingSystem
+    private static function prepareConfiguration(ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $serviceConfiguration, array $classesToResolve, array $configurationVariables, ?string $originalPathToRootCatalog, bool $enableTesting, bool $allowGatewaysToBeRegisteredInContainer, bool $useCachedVersion): ConfiguredMessagingSystemWithTestSupport|ConfiguredMessagingSystem
     {
-        //        moving out of vendor catalog
-        $pathToRootCatalog = $pathToRootCatalog ?: __DIR__ . '/../../../../';
+        // moving out of vendor catalog
+        $pathToRootCatalog = $originalPathToRootCatalog ?: __DIR__ . '/../../../../';
+        try {
+            $pathToRootCatalog = FileSystemAnnotationFinder::getRealRootCatalog($pathToRootCatalog, $pathToRootCatalog);
+        } catch (RootCatalogNotFound $exception) {
+            // This will be used when symlinks to Ecotone packages are used (e.g. Split Testing - Github Actions)
+            $debug = debug_backtrace();
+            $pathToRootCatalog = FileSystemAnnotationFinder::getRealRootCatalog(
+                dirname(array_pop($debug)['file']),
+                $pathToRootCatalog
+            );
+        }
+
+
+
         if (is_null($serviceConfiguration)) {
             $serviceConfiguration = ServiceConfiguration::createWithDefaults();
         }
@@ -84,7 +232,7 @@ final class EcotoneLite
             $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
         }
 
-        if (!$definitionHolder) {
+        if (! $definitionHolder) {
             $messagingConfiguration = MessagingSystemConfiguration::prepare(
                 $pathToRootCatalog,
                 $configurationVariableService,
@@ -128,125 +276,18 @@ final class EcotoneLite
         return $messagingSystem;
     }
 
-    private static function shouldUseAutomaticCache(bool $useCachedVersion, string $pathToRootCatalog): bool
+    private static function getExtensionObjectsWithoutTestConfiguration(ServiceConfiguration $configuration): array
     {
-        if (!$useCachedVersion && file_exists($pathToRootCatalog . 'composer.json')) {
-            $composer = json_decode(file_get_contents($pathToRootCatalog . 'composer.json'), true);
-            if (!self::isRunningTestsForEcotoneFramework($composer['name'])) {
-                $useCachedVersion = true;
+        $extensionObjectsWithoutTestConfiguration = [];
+        foreach ($configuration->getExtensionObjects() as $extensionObject) {
+            if ($extensionObject instanceof TestConfiguration) {
+                continue;
             }
-        } else {
-            $useCachedVersion = true;
+
+            $extensionObjectsWithoutTestConfiguration[] = $extensionObject;
         }
 
-        return $useCachedVersion;
-    }
-
-    private static function isRunningTestsForEcotoneFramework($name): bool
-    {
-        return str_starts_with($name, 'ecotone/');
-    }
-
-    private static function getFileNameBasedOnConfig(
-        string               $pathToRootCatalog,
-        bool                 $useCachedVersion,
-        array                $classesToResolve,
-        ServiceConfiguration $serviceConfiguration,
-        array                $configurationVariables,
-        bool                 $enableTesting
-    ): string
-    {
-        if ($useCachedVersion) {
-            return 'messaging';
-        }
-
-        // this is temporary cache based on if files have changed
-        // get file contents based on class names, configuration and configuration variables
-        $fileSha = '';
-
-        if (file_exists($pathToRootCatalog . 'composer.lock')) {
-            $fileSha .= sha1_file($pathToRootCatalog . 'composer.lock');
-        }
-
-        foreach ($classesToResolve as $class) {
-            $filePath = (new ReflectionClass($class))->getFileName();
-
-            if ($filePath) {
-                $fileSha .= sha1_file($filePath);
-            }
-        }
-
-        $fileSha .= sha1(serialize($serviceConfiguration));
-        $fileSha .= sha1(serialize($configurationVariables));
-        $fileSha .= $enableTesting ? 'true' : 'false';
-
-        return sha1($fileSha);
-    }
-
-    /**
-     * This should be used in cases we want to test stateless services.
-     * It will not register any repositories for aggregates.
-     *
-     * In case you want to test flows or stateful classes like Aggregates and Sagas, use "bootstrapFlowTesting" instead
-     *
-     * @param string[] $classesToResolve
-     * @param array<string,string> $configurationVariables
-     * @param ContainerInterface|object[] $containerOrAvailableServices
-     * @deprecated Ecotone 2.0 will drop this method, use "bootstrapFlowTesting" instead
-     */
-    public static function bootstrapForTesting(
-        array                    $classesToResolve = [],
-        ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration    $configuration = null,
-        array                    $configurationVariables = [],
-        ?string                  $pathToRootCatalog = null,
-        bool                     $allowGatewaysToBeRegisteredInContainer = false
-    ): ConfiguredMessagingSystemWithTestSupport
-    {
-        if (!$configuration) {
-            $configuration = ServiceConfiguration::createWithDefaults();
-        }
-
-        if (!$configuration->areSkippedPackagesDefined()) {
-            $configuration = $configuration
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages());
-        }
-
-        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false);
-    }
-
-    /**
-     * Provides default configuration for testing flows
-     * Skips all module package names and registers repositories for aggregates
-     *
-     * @param string[] $classesToResolve
-     * @param array<string,string> $configurationVariables
-     * @param ContainerInterface|object[] $containerOrAvailableServices
-     * @param MessageChannelBuilder[] $enableAsynchronousProcessing
-     * @param bool $defaultEnterpriseMode bool Forces to use Enterprise mode or not (must be used instead of ServiceConfiguration option)
-     */
-    public static function bootstrapFlowTesting(
-        array                    $classesToResolve = [],
-        ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration    $configuration = null,
-        array                    $configurationVariables = [],
-        ?string                  $pathToRootCatalog = null,
-        bool                     $allowGatewaysToBeRegisteredInContainer = false,
-        bool                     $addInMemoryStateStoredRepository = true,
-        bool                     $addEventSourcedRepository = true,
-        ?array                   $enableAsynchronousProcessing = null,
-        TestConfiguration        $testConfiguration = null,
-        bool                     $defaultEnterpriseMode = false,
-    ): FlowTestSupport
-    {
-        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $defaultEnterpriseMode);
-
-        if ($addEventSourcedRepository) {
-            $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createDefaultEventSourcedRepository());
-        }
-
-        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false)
-            ->getFlowTestSupport();
+        return $extensionObjectsWithoutTestConfiguration;
     }
 
     private static function prepareForFlowTesting(
@@ -268,7 +309,7 @@ final class EcotoneLite
         $configuration = $configuration ?: ServiceConfiguration::createWithDefaults();
         $testConfiguration ??= TestConfiguration::createWithDefaults();
 
-        if (!$configuration->areSkippedPackagesDefined()) {
+        if (! $configuration->areSkippedPackagesDefined()) {
             $configuration = $configuration
                 ->withSkippedModulePackageNames($packagesToSkip);
         }
@@ -284,7 +325,7 @@ final class EcotoneLite
         foreach ($classesToResolve as $class) {
             Assert::isTrue(is_string($class), 'Classes to resolve must be strings, instead given: ' . TypeDescriptor::createFromVariable($class)->toString());
             $aggregateClass = ClassDefinition::createFor(TypeDescriptor::create($class));
-            if (!$aggregateClass->hasClassAnnotation($aggregateAnnotation)) {
+            if (! $aggregateClass->hasClassAnnotation($aggregateAnnotation)) {
                 continue;
             }
 
@@ -301,63 +342,26 @@ final class EcotoneLite
         }
 
         return $configuration
-            ->withDefaultEnterpriseMode($defaultEnterpriseMode);
+                ->withDefaultEnterpriseMode($defaultEnterpriseMode);
     }
 
-    private static function getExtensionObjectsWithoutTestConfiguration(ServiceConfiguration $configuration): array
+    private static function shouldUseAutomaticCache(bool $useCachedVersion, string $pathToRootCatalog): bool
     {
-        $extensionObjectsWithoutTestConfiguration = [];
-        foreach ($configuration->getExtensionObjects() as $extensionObject) {
-            if ($extensionObject instanceof TestConfiguration) {
-                continue;
+        $composerPath = $pathToRootCatalog . DIRECTORY_SEPARATOR . 'composer.json';
+        if (! $useCachedVersion && file_exists($composerPath)) {
+            $composer = json_decode(file_get_contents($composerPath), true);
+            if (! isset($composer['name']) || ! self::isRunningTestsForEcotoneFramework($composer['name'])) {
+                $useCachedVersion = true;
             }
-
-            $extensionObjectsWithoutTestConfiguration[] = $extensionObject;
+        } else {
+            $useCachedVersion = true;
         }
 
-        return $extensionObjectsWithoutTestConfiguration;
+        return $useCachedVersion;
     }
 
-    /**
-     * Provides default configuration for testing flows with In Memory Event Store.
-     * Enables eventSourcing, dbal, jmsConverter packages and provides default repositories.
-     *
-     * @param string[] $classesToResolve
-     * @param array<string,string> $configurationVariables
-     * @param ContainerInterface|object[] $containerOrAvailableServices
-     */
-    public static function bootstrapFlowTestingWithEventStore(
-        array                    $classesToResolve = [],
-        ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration    $configuration = null,
-        array                    $configurationVariables = [],
-        ?string                  $pathToRootCatalog = null,
-        bool                     $allowGatewaysToBeRegisteredInContainer = false,
-        bool                     $addInMemoryStateStoredRepository = true,
-        bool                     $runForProductionEventStore = false,
-        ?array                   $enableAsynchronousProcessing = null,
-        TestConfiguration        $testConfiguration = null,
-        bool                     $defaultEnterpriseMode = false,
-    ): FlowTestSupport
+    private static function isRunningTestsForEcotoneFramework($name): bool
     {
-        $configuration = self::prepareForFlowTesting(
-            $configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
-            $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $defaultEnterpriseMode,
-        );
-
-        if (!$configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && !$runForProductionEventStore) {
-            Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
-
-            $configuration = $configuration
-                ->addExtensionObject(EventSourcingConfiguration::createInMemory());
-        }
-
-        if (!$configuration->hasExtensionObject(DbalConfiguration::class)) {
-            $configuration = $configuration
-                ->addExtensionObject(DbalConfiguration::createForTesting());
-        }
-
-        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false)
-            ->getFlowTestSupport();
+        return str_starts_with($name, 'ecotone');
     }
 }

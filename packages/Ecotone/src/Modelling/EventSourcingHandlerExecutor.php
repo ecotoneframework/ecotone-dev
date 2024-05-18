@@ -41,10 +41,19 @@ final class EventSourcingHandlerExecutor
 
                 continue;
             }
+            $eventPayload = null;
+            $metadata = [];
+            if ($event instanceof Event) {
+                $eventPayload = $event->getPayload();
+                $eventType = TypeDescriptor::createFromVariable($eventPayload);
+                $metadata  = $event->getMetadata();
+            }else {
+                $eventType = TypeDescriptor::createFromVariable($event);
+                $eventPayload = $event;
+            }
 
-            $eventType = TypeDescriptor::createFromVariable($event->getPayload());
-            $message = MessageBuilder::withPayload($event->getPayload())
-                ->setMultipleHeaders($event->getMetadata())
+            $message = MessageBuilder::withPayload($eventPayload)
+                ->setMultipleHeaders($metadata)
                 ->build();
             foreach ($this->eventSourcingHandlerMethods as $eventSourcingHandler) {
                 $eventSourcingHandlerInterface = $eventSourcingHandler->getInterfaceToCall();

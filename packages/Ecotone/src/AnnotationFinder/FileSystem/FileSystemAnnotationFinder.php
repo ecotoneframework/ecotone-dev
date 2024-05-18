@@ -277,6 +277,11 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         return $this->getCachedMethodAnnotations($className, $methodName);
     }
 
+    private static function throwNotFound(string $originalRootProjectDir)
+    {
+        throw RootCatalogNotFound::create(sprintf("Can't find autoload file in given path `%s` and any preceding ones.", rtrim($originalRootProjectDir, '/')));
+    }
+
     /**
      * @inheritDoc
      */
@@ -438,10 +443,14 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         $rootProjectDir = realpath(rtrim($rootProjectDir, '/'));
         while ($rootProjectDir !== false && !file_exists($rootProjectDir . DIRECTORY_SEPARATOR . '/vendor/autoload.php')) {
             if ($rootProjectDir === DIRECTORY_SEPARATOR) {
-                throw InvalidArgumentException::create(sprintf("Can't find autoload file in given path `%s/vendor/autoload.php` and any preceding ones.", rtrim($originalRootProjectDir, '/')));
+                self::throwNotFound($originalRootProjectDir);
             }
 
             $rootProjectDir = realpath($rootProjectDir . DIRECTORY_SEPARATOR . '..');
+        }
+
+        if ($rootProjectDir === false) {
+            self::throwNotFound($originalRootProjectDir);
         }
 
         return $rootProjectDir;

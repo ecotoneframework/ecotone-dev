@@ -155,6 +155,9 @@
         "nesbot/carbon": "^2.71",
         "moneyphp/money": "^4.1.0"
     },
+    "conflict": {
+        "symfony/doctrine-messenger": ">7.0.5"
+    },
     "extra": {
         "laravel": {
             "providers": [

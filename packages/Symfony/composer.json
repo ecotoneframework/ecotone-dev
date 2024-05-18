@@ -67,6 +67,9 @@
             "Symfony\\App\\SingleTenant\\": "tests/phpunit/SingleTenant/src"
         }
     },
+    "conflict": {
+        "symfony/doctrine-messenger": ">7.0.5"
+    },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": [
@@ -95,4 +98,4 @@
             ]
         }
     }
-}
+},

@@ -8,6 +8,7 @@ use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\InterfaceToCall;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateIdResolver;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\NoAggregateFoundToBeSaved;
@@ -107,5 +108,27 @@ class SaveAggregateServiceTemplate
         }
 
         return AggregateIdResolver::resolveArrayOfIdentifiers(get_class($aggregate), $aggregateIds);
+    }
+
+    /**
+     * @param array<string, string> $aggregateIds
+     */
+    public static  function buildReplyMessage(
+        bool $isFactoryMethod,
+        array $aggregateIds,
+        Message $message
+    ): \Ecotone\Messaging\Support\GenericMessage
+    {
+        if ($isFactoryMethod) {
+            if (count($aggregateIds) === 1) {
+                $aggregateIds = reset($aggregateIds);
+            }
+
+            $message = MessageBuilder::fromMessage($message)
+                ->setPayload($aggregateIds)
+                ->build();
+        }
+
+        return MessageBuilder::fromMessage($message)->build();
     }
 }

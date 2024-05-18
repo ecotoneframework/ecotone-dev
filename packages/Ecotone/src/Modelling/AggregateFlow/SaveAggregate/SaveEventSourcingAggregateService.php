@@ -81,18 +81,11 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
 
         $this->aggregateRepository->save($aggregateIds, $this->aggregateClassName, $events, MessageHeaders::unsetNonUserKeys($metadata), $versionBeforeHandling);
 
-        if ($this->isFactoryMethod) {
-            if (count($aggregateIds) === 1) {
-                $aggregateIds = reset($aggregateIds);
-            }
-
-            $message = MessageBuilder::fromMessage($message)
-                ->setPayload($aggregateIds)
-                ->build()
-            ;
-        }
-
-        return MessageBuilder::fromMessage($message)->build();
+        return SaveAggregateServiceTemplate::buildReplyMessage(
+            $this->isFactoryMethod,
+            $aggregateIds,
+            $message,
+        );
     }
 
     public static function getSnapshotCollectionName(string $aggregateClassname): string

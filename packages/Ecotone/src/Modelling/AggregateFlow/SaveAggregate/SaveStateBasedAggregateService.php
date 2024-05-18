@@ -49,19 +49,12 @@ final class SaveStateBasedAggregateService implements SaveAggregateService
         $this->aggregateRepository->save($aggregateIds, $aggregate, MessageHeaders::unsetNonUserKeys($metadata), $versionBeforeHandling);
 
         $aggregateIds = $this->getAggregateIds($metadata, $aggregate, true);
-        if ($this->isFactoryMethod) {
-            if (count($aggregateIds) === 1) {
-                $aggregateIds = reset($aggregateIds);
-            }
 
-            $message = MessageBuilder::fromMessage($message)
-                ->setPayload($aggregateIds)
-                ->build()
-            ;
-        }
-
-        return MessageBuilder::fromMessage($message)
-            ->build();
+        return SaveAggregateServiceTemplate::buildReplyMessage(
+            $this->isFactoryMethod,
+            $aggregateIds,
+            $message,
+        );
     }
 
     private function getAggregateIds(array $metadata, object|string $aggregate, bool $throwOnNoIdentifier): array

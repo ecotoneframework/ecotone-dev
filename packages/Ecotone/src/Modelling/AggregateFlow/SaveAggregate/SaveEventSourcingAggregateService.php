@@ -31,17 +31,17 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
     public const SNAPSHOT_COLLECTION = 'aggregate_snapshots_';
 
     public function __construct(
-        private string $calledInterface,
-        private string $aggregateClassName,
-        private bool $isFactoryMethod,
+        private string                 $calledClass,
+        private string                 $aggregateClassName,
+        private bool                   $isFactoryMethod,
         private EventSourcedRepository $aggregateRepository,
         private PropertyEditorAccessor $propertyEditorAccessor,
         private PropertyReaderAccessor $propertyReaderAccessor,
-        private array $aggregateIdentifierMapping,
-        private array $aggregateIdentifierGetMethods,
-        private ?string $aggregateVersionProperty,
-        private bool $isAggregateVersionAutomaticallyIncreased,
-        private bool $useSnapshot,
+        private array                  $aggregateIdentifierMapping,
+        private array                  $aggregateIdentifierGetMethods,
+        private ?string                $aggregateVersionProperty,
+        private bool                   $isAggregateVersionAutomaticallyIncreased,
+        private bool                   $useSnapshot,
         private int $snapshotTriggerThreshold,
         private ?DocumentStore $documentStore,
     ) {
@@ -50,22 +50,21 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
 
     public function save(Message $message, array $metadata): Message
     {
-        $events = $this->resolveEvents($message, $metadata, $this->calledInterface);
+        $events = $this->resolveEvents($message, $metadata, $this->calledClass);
         if ($events === []) {
             return MessageBuilder::fromMessage($message)->build();
         }
 
-        $aggregate = $this->resolveAggregate($message);
-        $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : 0;
-        if ($this->aggregateVersionProperty && $this->isAggregateVersionAutomaticallyIncreased) {
-            $this->propertyEditorAccessor->enrichDataWith(
-                PropertyPath::createWith($this->aggregateVersionProperty),
-                $aggregate,
-                $versionBeforeHandling + 1,
-                $message,
-                null
-            );
-        }
+        $aggregate = SaveAggregateServiceTemplate::resolveAggregate($this->calledClass, $message, $this->isFactoryMethod);
+        $versionBeforeHandling = SaveAggregateServiceTemplate::resolveVersionBeforeHandling($message);
+        SaveAggregateServiceTemplate::enrichVersionIfNeeded(
+            $this->propertyEditorAccessor,
+            $versionBeforeHandling,
+            $aggregate,
+            $message,
+            $this->aggregateVersionProperty,
+            $this->isAggregateVersionAutomaticallyIncreased
+        );
 
         $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
         $aggregateIds = $aggregateIds ?: $this->getAggregateIds($aggregateIds, $aggregate);
@@ -105,46 +104,6 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
         return self::SNAPSHOT_COLLECTION . $aggregateClassname;
     }
 
-    private function getAggregateIds(array $aggregateIds, object $aggregate): array
-    {
-        foreach ($this->aggregateIdentifierMapping as $aggregateIdName => $aggregateIdValue) {
-            if (isset($this->aggregateIdentifierGetMethods[$aggregateIdName])) {
-                $id = call_user_func([$aggregate, $this->aggregateIdentifierGetMethods[$aggregateIdName]]);
-
-                if (! is_null($id)) {
-                    $aggregateIds[$aggregateIdName] = $id;
-                }
-
-                continue;
-            }
-
-            $id = $this->propertyReaderAccessor->hasPropertyValue(PropertyPath::createWith($aggregateIdName), $aggregate)
-                ? $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($aggregateIdName), $aggregate)
-                : null;
-
-            if (! $id) {
-                throw NoCorrectIdentifierDefinedException::create("After calling {$this->calledInterface} has no identifier assigned. If you're using Event Sourcing Aggregate, please set up #[EventSourcingHandler] that will assign the id after first event");
-            }
-
-            $aggregateIds[$aggregateIdName] = $id;
-        }
-
-        return AggregateIdResolver::resolveArrayOfIdentifiers(get_class($aggregate), $aggregateIds);
-    }
-
-    private function resolveAggregate(Message $message): object|string
-    {
-        $messageHeaders = $message->getHeaders();
-        if ($this->isFactoryMethod && $messageHeaders->containsKey(AggregateMessage::RESULT_AGGREGATE_OBJECT)) {
-            return $messageHeaders->get(AggregateMessage::RESULT_AGGREGATE_OBJECT);
-        }
-        if ($messageHeaders->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT)) {
-            return $messageHeaders->get(AggregateMessage::CALLED_AGGREGATE_OBJECT);
-        }
-
-        throw NoAggregateFoundToBeSaved::create("After calling {$this->calledInterface} no aggregate was found to be saved.");
-    }
-
     public function resolveEvents(Message $message, array $metadata, string $calledInterface): array
     {
         if ($this->isFactoryMethod) {
@@ -176,5 +135,18 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
 
             return Event::create($event, $metadata);
         }, $events);
+    }
+
+    private function getAggregateIds(mixed $aggregateIds, object|string $aggregate): array
+    {
+        return SaveAggregateServiceTemplate::getAggregateIds(
+            $this->propertyReaderAccessor,
+            $this->calledClass,
+            $this->aggregateIdentifierMapping,
+            $this->aggregateIdentifierGetMethods,
+            $aggregateIds,
+            $aggregate,
+            true
+        );
     }
 }

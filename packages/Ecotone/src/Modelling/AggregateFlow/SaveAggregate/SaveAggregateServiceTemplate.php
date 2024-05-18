@@ -67,14 +67,19 @@ class SaveAggregateServiceTemplate
      */
     public static function getAggregateIds(
         PropertyReaderAccessor $propertyReaderAccessor,
+        array $metadata,
         string $calledClass,
         array $aggregateIdentifierMapping,
         array $aggregateIdentifierGetMethods,
-        array $aggregateIds,
         object|string $aggregate,
         bool $throwOnNoIdentifier
     ): array
     {
+        $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
+        if ($aggregateIds) {
+            return $aggregateIds;
+        }
+
         foreach ($aggregateIdentifierMapping as $aggregateIdName => $aggregateIdValue) {
             if (isset($aggregateIdentifierGetMethods[$aggregateIdName])) {
                 $id = call_user_func([$aggregate, $aggregateIdentifierGetMethods[$aggregateIdName]]);

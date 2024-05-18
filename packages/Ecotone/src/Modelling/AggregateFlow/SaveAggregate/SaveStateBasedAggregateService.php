@@ -45,13 +45,10 @@ final class SaveStateBasedAggregateService implements SaveAggregateService
             $this->isAggregateVersionAutomaticallyIncreased
         );
 
-        $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
-        $aggregateIds = $this->getAggregateIds($aggregateIds, $aggregate, false);
+        $aggregateIds = $this->getAggregateIds($metadata, $aggregate, false);
+        $this->aggregateRepository->save($aggregateIds, $aggregate, MessageHeaders::unsetNonUserKeys($metadata), $versionBeforeHandling);
 
-        $metadata = MessageHeaders::unsetNonUserKeys($metadata);
-        $this->aggregateRepository->save($aggregateIds, $aggregate, $metadata, $versionBeforeHandling);
-
-        $aggregateIds = $this->getAggregateIds($aggregateIds, $aggregate, true);
+        $aggregateIds = $this->getAggregateIds($metadata, $aggregate, true);
         if ($this->isFactoryMethod) {
             if (count($aggregateIds) === 1) {
                 $aggregateIds = reset($aggregateIds);
@@ -67,17 +64,16 @@ final class SaveStateBasedAggregateService implements SaveAggregateService
             ->build();
     }
 
-    private function getAggregateIds(mixed $aggregateIds, object|string $aggregate, bool $throwOnNoIdentifier): array
+    private function getAggregateIds(array $metadata, object|string $aggregate, bool $throwOnNoIdentifier): array
     {
-        $aggregateIds = SaveAggregateServiceTemplate::getAggregateIds(
+        return SaveAggregateServiceTemplate::getAggregateIds(
             $this->propertyReaderAccessor,
+            $metadata,
             $this->calledClass,
             $this->aggregateIdentifierMapping,
             $this->aggregateIdentifierGetMethods,
-            $aggregateIds,
             $aggregate,
             $throwOnNoIdentifier
         );
-        return $aggregateIds;
     }
 }

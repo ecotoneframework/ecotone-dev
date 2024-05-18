@@ -66,9 +66,7 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
             $this->isAggregateVersionAutomaticallyIncreased
         );
 
-        $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
-        $aggregateIds = $aggregateIds ?: $this->getAggregateIds($aggregateIds, $aggregate);
-
+        $aggregateIds = $this->getAggregateIds($metadata, $aggregate);
         if ($this->useSnapshot && is_object($aggregate)) {
             $version = $versionBeforeHandling;
             foreach ($events as $event) {
@@ -81,10 +79,8 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
             }
         }
 
-        $metadata = MessageHeaders::unsetNonUserKeys($metadata);
-        $this->aggregateRepository->save($aggregateIds, $this->aggregateClassName, $events, $metadata, $versionBeforeHandling);
+        $this->aggregateRepository->save($aggregateIds, $this->aggregateClassName, $events, MessageHeaders::unsetNonUserKeys($metadata), $versionBeforeHandling);
 
-        $aggregateIds = $aggregateIds ?: $this->getAggregateIds($aggregateIds, $aggregate);
         if ($this->isFactoryMethod) {
             if (count($aggregateIds) === 1) {
                 $aggregateIds = reset($aggregateIds);
@@ -137,14 +133,14 @@ final class SaveEventSourcingAggregateService implements SaveAggregateService
         }, $events);
     }
 
-    private function getAggregateIds(mixed $aggregateIds, object|string $aggregate): array
+    private function getAggregateIds(array $metadata, object|string $aggregate): array
     {
         return SaveAggregateServiceTemplate::getAggregateIds(
             $this->propertyReaderAccessor,
+            $metadata,
             $this->calledClass,
             $this->aggregateIdentifierMapping,
             $this->aggregateIdentifierGetMethods,
-            $aggregateIds,
             $aggregate,
             true
         );

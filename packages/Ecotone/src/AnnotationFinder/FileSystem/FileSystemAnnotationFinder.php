@@ -414,11 +414,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
             return [];
         }
 
-        $originalRootProjectDir = $rootProjectDir;
-        $rootProjectDir = realpath(rtrim($rootProjectDir, '/'));
-
-        $rootProjectDir = self::getRealRootCatalog($rootProjectDir, $originalRootProjectDir);
-
+        $rootProjectDir = self::getRealRootCatalog($rootProjectDir, $rootProjectDir);
         $namespacesToUse = array_map(fn (string $namespace) => trim($namespace, "\t\n\r\\"), $namespacesToUse);
 
         $paths = $this->getPathsToSearchIn($autoloadNamespaceParser, $rootProjectDir, $namespacesToUse);
@@ -439,9 +435,10 @@ class FileSystemAnnotationFinder implements AnnotationFinder
 
     public static function getRealRootCatalog(string $rootProjectDir, string $originalRootProjectDir): string
     {
+        $rootProjectDir = realpath(rtrim($rootProjectDir, '/'));
         while ($rootProjectDir !== false && !file_exists($rootProjectDir . DIRECTORY_SEPARATOR . '/vendor/autoload.php')) {
             if ($rootProjectDir === DIRECTORY_SEPARATOR) {
-                throw InvalidArgumentException::create(sprintf("Can't find autoload file in given path `%s/vendor/autoload.php` and any preceding ones.", $originalRootProjectDir));
+                throw InvalidArgumentException::create(sprintf("Can't find autoload file in given path `%s/vendor/autoload.php` and any preceding ones.", rtrim($originalRootProjectDir, '/')));
             }
 
             $rootProjectDir = realpath($rootProjectDir . DIRECTORY_SEPARATOR . '..');

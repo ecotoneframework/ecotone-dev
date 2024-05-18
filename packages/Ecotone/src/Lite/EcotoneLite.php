@@ -196,9 +196,6 @@ final class EcotoneLite
      */
     private static function prepareConfiguration(ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $serviceConfiguration, array $classesToResolve, array $configurationVariables, ?string $originalPathToRootCatalog, bool $enableTesting, bool $allowGatewaysToBeRegisteredInContainer, bool $useCachedVersion): ConfiguredMessagingSystemWithTestSupport|ConfiguredMessagingSystem
     {
-        if ($originalPathToRootCatalog !== null) {
-            $originalPathToRootCatalog = rtrim($originalPathToRootCatalog, '/') . '/';
-        }
         // moving out of vendor catalog
         $pathToRootCatalog = $originalPathToRootCatalog ?: __DIR__ . '/../../../../';
         $pathToRootCatalog = FileSystemAnnotationFinder::getRealRootCatalog($pathToRootCatalog, $pathToRootCatalog);

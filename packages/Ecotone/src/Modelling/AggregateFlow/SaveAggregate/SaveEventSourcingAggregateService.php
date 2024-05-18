@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
-use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -16,12 +15,9 @@ use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\AggregateIdResolver;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
-use Ecotone\Modelling\NoAggregateFoundToBeSaved;
-use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use Ecotone\Modelling\SaveAggregateService;
 use Ramsey\Uuid\Uuid;
 

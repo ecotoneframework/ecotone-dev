@@ -441,7 +441,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
     public static function getRealRootCatalog(string $rootProjectDir, string $originalRootProjectDir): string
     {
         $rootProjectDir = realpath(rtrim($rootProjectDir, '/'));
-        while ($rootProjectDir !== false && !file_exists($rootProjectDir . DIRECTORY_SEPARATOR . '/vendor/autoload.php')) {
+        while ($rootProjectDir !== false && ! file_exists($rootProjectDir . DIRECTORY_SEPARATOR . '/vendor/autoload.php')) {
             if ($rootProjectDir === DIRECTORY_SEPARATOR) {
                 self::throwNotFound($originalRootProjectDir);
             }

@@ -8,5 +8,4 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 
 final class RootCatalogNotFound extends InvalidArgumentException
 {
-
 }

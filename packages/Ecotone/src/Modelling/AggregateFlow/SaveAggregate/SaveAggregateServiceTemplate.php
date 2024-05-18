@@ -7,14 +7,12 @@ namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\InterfaceToCall;
+use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateIdResolver;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\NoAggregateFoundToBeSaved;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
-use Ecotone\Modelling\SaveAggregateService;
-use Ecotone\Messaging\Message;
 
 class SaveAggregateServiceTemplate
 {
@@ -22,8 +20,7 @@ class SaveAggregateServiceTemplate
         string  $calledClass,
         Message $message,
         bool    $isFactoryMethod
-    ): object|string
-    {
+    ): object|string {
         $messageHeaders = $message->getHeaders();
         if ($isFactoryMethod && $messageHeaders->containsKey(AggregateMessage::RESULT_AGGREGATE_OBJECT)) {
             return $messageHeaders->get(AggregateMessage::RESULT_AGGREGATE_OBJECT);
@@ -37,8 +34,7 @@ class SaveAggregateServiceTemplate
 
     public static function resolveVersionBeforeHandling(
         Message $message
-    ): int
-    {
+    ): int {
         return $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : 0;
     }
 
@@ -49,8 +45,7 @@ class SaveAggregateServiceTemplate
         Message $message,
         ?string $aggregateVersionProperty,
         bool    $isAggregateVersionAutomaticallyIncreased,
-    )
-    {
+    ) {
         if ($aggregateVersionProperty && $isAggregateVersionAutomaticallyIncreased) {
             $propertyEditorAccessor->enrichDataWith(
                 PropertyPath::createWith($aggregateVersionProperty),
@@ -74,8 +69,7 @@ class SaveAggregateServiceTemplate
         array $aggregateIdentifierGetMethods,
         object|string $aggregate,
         bool $throwOnNoIdentifier
-    ): array
-    {
+    ): array {
         $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
         if ($aggregateIds) {
             return $aggregateIds;
@@ -113,12 +107,11 @@ class SaveAggregateServiceTemplate
     /**
      * @param array<string, string> $aggregateIds
      */
-    public static  function buildReplyMessage(
+    public static function buildReplyMessage(
         bool $isFactoryMethod,
         array $aggregateIds,
         Message $message
-    ): \Ecotone\Messaging\Support\GenericMessage
-    {
+    ): \Ecotone\Messaging\Support\GenericMessage {
         if ($isFactoryMethod) {
             if (count($aggregateIds) === 1) {
                 $aggregateIds = reset($aggregateIds);

@@ -87,7 +87,7 @@ final class MetadataPropagatingTest extends TestCase
     public function test_using_aggregate_id_target_with_asynchronous_endpoint(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Order::class], enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('orders')
+            SimpleMessageChannelBuilder::createQueueChannel('orders'),
         ]);
 
         $orderId = '1';
@@ -113,7 +113,7 @@ final class MetadataPropagatingTest extends TestCase
                         CombinedMessageChannel::create(
                             'orders',
                             ['outbox', 'processing']
-                        )
+                        ),
                     ]
                 ),
             enableAsynchronousProcessing: [

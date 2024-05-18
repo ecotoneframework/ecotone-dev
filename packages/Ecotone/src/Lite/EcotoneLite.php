@@ -201,7 +201,7 @@ final class EcotoneLite
         $pathToRootCatalog = $originalPathToRootCatalog ?: __DIR__ . '/../../../../';
         try {
             $pathToRootCatalog = FileSystemAnnotationFinder::getRealRootCatalog($pathToRootCatalog, $pathToRootCatalog);
-        }catch (RootCatalogNotFound $exception) {
+        } catch (RootCatalogNotFound $exception) {
             // This will be used when symlinks to Ecotone packages are used (e.g. Split Testing - Github Actions)
             $debug = debug_backtrace();
             $pathToRootCatalog = FileSystemAnnotationFinder::getRealRootCatalog(

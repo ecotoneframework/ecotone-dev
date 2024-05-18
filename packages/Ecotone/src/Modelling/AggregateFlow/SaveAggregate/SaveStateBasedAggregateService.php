@@ -5,15 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
-use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\AggregateIdResolver;
-use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\NoAggregateFoundToBeSaved;
-use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use Ecotone\Modelling\SaveAggregateService;
 use Ecotone\Modelling\StandardRepository;
 

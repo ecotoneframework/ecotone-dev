@@ -30,6 +30,11 @@ class ServiceExpectingOneArgument implements DefinedObject
         return $name . "_called";
     }
 
+    public function withReturnMixed(mixed $value): mixed
+    {
+        return $value;
+    }
+
     #[ServiceActivator('withoutReturnValue')]
     public function withoutReturnValue(string $name): void
     {

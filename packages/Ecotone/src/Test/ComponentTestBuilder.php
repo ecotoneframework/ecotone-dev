@@ -58,9 +58,13 @@ class ComponentTestBuilder
     {
     }
 
+    /**
+     * @param array<string, string> $configurationVariables
+     */
     public static function create(
         array $classesToResolve = [],
-        ?ServiceConfiguration $configuration = null
+        ?ServiceConfiguration $configuration = null,
+        array $configurationVariables = [],
     ): self
     {
         // This will be used when symlinks to Ecotone packages are used (e.g. Split Testing - Github Actions)
@@ -70,13 +74,15 @@ class ComponentTestBuilder
 
         FileSystemAnnotationFinder::getRealRootCatalog($pathToRootCatalog, $pathToRootCatalog);
 
+        $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
         return new self(
             InMemoryPSRContainer::createFromAssociativeArray([
-                ServiceCacheConfiguration::REFERENCE_NAME => ServiceCacheConfiguration::noCache()
+                ServiceCacheConfiguration::REFERENCE_NAME => ServiceCacheConfiguration::noCache(),
+                ConfigurationVariableService::REFERENCE_NAME => $configurationVariableService,
             ]),
             MessagingSystemConfiguration::prepare(
                 $pathToRootCatalog,
-                InMemoryConfigurationVariableService::createEmpty(),
+                $configurationVariableService,
                 $configuration ?? ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackages()),
                 $classesToResolve,
                 true,

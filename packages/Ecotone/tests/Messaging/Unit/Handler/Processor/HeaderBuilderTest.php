@@ -8,8 +8,11 @@ use Ecotone\Messaging\Config\Container\BoundParameterConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ConfigurationVariableBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
@@ -18,6 +21,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionService;
+use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**
  * Class HeaderBuilderTest
@@ -45,6 +49,24 @@ class HeaderBuilderTest extends TestCase
             $converter->getArgumentFrom(
                 MessageBuilder::withPayload('a')->setHeader('token', 123)->build(),
             )
+        );
+
+        $messaging = ComponentTestBuilder::create()
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
+                    ->withInputChannelName($inputChannel = 'inputChannel')
+                    ->withMethodParameterConverters([
+                        ConfigurationVariableBuilder::createFrom(
+                            'name',
+                            InterfaceParameter::createNotNullable('value', TypeDescriptor::createIntegerType())
+                        )
+                    ])
+            )
+            ->build();
+
+        $this->assertEquals(
+            100,
+            $messaging->sendDirectToChannel($inputChannel, 'test')
         );
     }
 

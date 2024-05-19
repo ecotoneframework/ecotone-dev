@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Service;
 
+use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ramsey\Uuid\UuidInterface;
@@ -26,9 +27,10 @@ class ServiceExpectingOneArgument implements DefinedObject
     public function withReturnValue(string $name): string
     {
         $this->wasCalled = true;
-        return $name;
+        return $name . "_called";
     }
 
+    #[ServiceActivator('withoutReturnValue')]
     public function withoutReturnValue(string $name): void
     {
         $this->wasCalled = true;

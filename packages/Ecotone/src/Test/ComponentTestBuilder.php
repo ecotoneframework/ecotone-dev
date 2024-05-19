@@ -91,6 +91,22 @@ class ComponentTestBuilder
         return $this;
     }
 
+    public function withConverter(CompilableBuilder $converter): self
+    {
+        $this->messagingSystemConfiguration->registerConverter($converter);
+
+        return $this;
+    }
+
+    public function withConverters(array $converters): self
+    {
+        foreach ($converters as $converter) {
+            $this->withConverter($converter);
+        }
+
+        return $this;
+    }
+
     public function withPollingMetadata(PollingMetadata $pollingMetadata): self
     {
         $this->messagingSystemConfiguration->registerPollingMetadata($pollingMetadata);

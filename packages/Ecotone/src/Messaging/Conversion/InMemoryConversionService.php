@@ -2,12 +2,16 @@
 
 namespace Ecotone\Messaging\Conversion;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use InvalidArgumentException;
 use RuntimeException;
 
-class InMemoryConversionService implements ConversionService
+class InMemoryConversionService implements ConversionService, Converter, CompilableBuilder
 {
     private array $convertTo;
 
@@ -91,6 +95,27 @@ class InMemoryConversionService implements ConversionService
         }
 
         return false;
+    }
+
+    public function matches(TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType): bool
+    {
+        return $this->canConvert($sourceType, $sourceMediaType, $targetType, $targetMediaType);
+    }
+
+    public static function fromSerialized(string $serialized): self
+    {
+        return unserialize($serialized);
+    }
+
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
+    {
+        return new Definition(
+            self::class,
+            [
+                serialize($this)
+            ],
+            'fromSerialized'
+        );
     }
 
     private function getConversionResult(mixed $dataToConvert, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)

@@ -6,9 +6,9 @@ namespace Test\Ecotone;
 
 use Ecotone\Enqueue\EnqueueAcknowledgementCallback;
 use Ecotone\Enqueue\InboundMessageConverter;
-use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Test\InMemoryConversionService;
 use Enqueue\Null\NullConsumer;
 use Enqueue\Null\NullMessage;
 use Enqueue\Null\NullQueue;

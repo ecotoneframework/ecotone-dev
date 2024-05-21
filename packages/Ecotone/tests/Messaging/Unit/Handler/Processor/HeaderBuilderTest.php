@@ -4,23 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\InterfaceParameter;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ConfigurationVariableBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
+use Ecotone\Test\InMemoryConversionService;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use stdClass;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionService;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionServiceConcrete;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 

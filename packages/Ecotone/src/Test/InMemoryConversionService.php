@@ -23,22 +23,22 @@ class InMemoryConversionService implements ConversionService, Converter, Compila
         $this->convertTo = $convertTo;
     }
 
-    public static function createWithConversion(mixed $dataToConvert, string $sourceMediaType, string $sourceType, string $targetMediaType, string $targetType, $conversionResult): self
+    public static function createWithConversion(mixed $dataToConvert, string|MediaType $sourceMediaType, string $sourceType, string|MediaType $targetMediaType, string $targetType, $conversionResult): self
     {
         return new self([
             [
                 'dataToConvert' => $dataToConvert,
-                'sourceMediaType' => MediaType::parseMediaType($sourceMediaType),
+                'sourceMediaType' => MediaType::parseMediaType((string)$sourceMediaType),
                 'sourceType' => TypeDescriptor::create($sourceType),
-                'targetMediaType' => MediaType::parseMediaType($targetMediaType),
+                'targetMediaType' => MediaType::parseMediaType((string)$targetMediaType),
                 'targetType' => TypeDescriptor::create($targetType),
                 'result' => $conversionResult,
             ],
             [
                 'dataToConvert' => $conversionResult,
-                'sourceMediaType' => MediaType::parseMediaType($targetMediaType),
+                'sourceMediaType' => MediaType::parseMediaType((string)$targetMediaType),
                 'sourceType' => TypeDescriptor::create($targetType),
-                'targetMediaType' => MediaType::parseMediaType($sourceMediaType),
+                'targetMediaType' => MediaType::parseMediaType((string)$sourceMediaType),
                 'targetType' => TypeDescriptor::create($sourceType),
                 'result' => $dataToConvert,
             ],

@@ -364,6 +364,19 @@ final class FlowTestSupport
         );
     }
 
+    public function sendMessageDirectToChannelWithMessageReply(string $targetChannel, Message $message): Message
+    {
+        Assert::isFalse($message->getHeaders()->containsKey(MessagingEntrypoint::ENTRYPOINT), 'Message must not contain entrypoint header. Make use of first argument in sendDirectToChannel method');
+        /** @var MessagingEntrypoint $messagingEntrypoint */
+        $messagingEntrypoint = $this->configuredMessagingSystem->getGatewayByName(MessagingEntrypoint::class);
+
+        return $messagingEntrypoint->sendWithHeadersWithMessageReply(
+            $message->getPayload(),
+            $message->getHeaders()->headers(),
+            $targetChannel,
+        );
+    }
+
     /**
      * @param class-string<T> $referenceName
      * @return T

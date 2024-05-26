@@ -9,11 +9,14 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 use Ecotone\Test\ComponentTestBuilder;
 
+use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 use function json_encode;
 
 use Psr\Log\LoggerInterface;
@@ -31,27 +34,41 @@ class LoggingHandlerBuilderTest extends MessagingTest
 {
     public function test_logger_passing_messaging_through()
     {
-        $logParameter = InterfaceToCall::create(LoggingInterceptor::class, 'logAfter')->getParameterWithName('log');
-        $logger = LoggerExample::create();
-        $queueChannel = QueueChannel::create();
-        $loggingHandler = ComponentTestBuilder::create()
-            ->withChannel('outputChannel', $queueChannel)
-            ->withReference(LoggingHandlerBuilder::LOGGER_REFERENCE, $logger)
-            ->build(
-                LoggingHandlerBuilder::createForAfter()
-                    ->withOutputMessageChannel('outputChannel')
+        $messaging = ComponentTestBuilder::create()
+            ->withReference(LoggingHandlerBuilder::LOGGER_REFERENCE, $logger = $this->createMock(LoggerInterface::class))
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
+                    ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        MessageConverterBuilder::create('message'),
-                        MethodArgumentsFactory::getAnnotationValueConverter($logParameter, InterfaceToCall::create(ServiceActivatorWithLoggerExample::class, 'sendMessage'), []),
+                        PayloadBuilder::create('value')
                     ])
-            );
+            )
+            ->build();
 
-        $message = MessageBuilder::withPayload('some')->build();
-        $loggingHandler->handle($message);
+        $this->assertEquals(
+            100,
+            $messaging->sendDirectToChannel($inputChannel, 100)
+        );
 
         $this->assertMessages(
             $message,
             $queueChannel->receive()
+        );
+
+        $messaging = ComponentTestBuilder::create()
+            ->withReference(LoggingHandlerBuilder::LOGGER_REFERENCE, $logger)
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
+                    ->withInputChannelName($inputChannel = 'inputChannel')
+                    ->withMethodParameterConverters([
+                        PayloadBuilder::create('value')
+                    ])
+            )
+            ->build();
+
+        $this->assertEquals(
+            100,
+            $messaging->sendDirectToChannel($inputChannel, 100)
         );
     }
 

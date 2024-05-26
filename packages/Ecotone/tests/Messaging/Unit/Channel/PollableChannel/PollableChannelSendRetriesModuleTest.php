@@ -18,7 +18,7 @@ use Exception;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Test\Ecotone\Messaging\Fixture\Channel\DynamicChannel\DynamicChannelResolver;
-use Test\Ecotone\Messaging\Unit\Handler\Logger\LoggerExample;
+use Ecotone\Test\LoggerExample;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
 

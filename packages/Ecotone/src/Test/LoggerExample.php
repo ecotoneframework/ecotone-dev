@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\Messaging\Unit\Handler\Logger;
+namespace Ecotone\Test;
 
 use Psr\Log\LoggerInterface;
 use Stringable;

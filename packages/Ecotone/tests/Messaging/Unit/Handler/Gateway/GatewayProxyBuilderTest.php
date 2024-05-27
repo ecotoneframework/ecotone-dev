@@ -796,54 +796,61 @@ class GatewayProxyBuilderTest extends MessagingTest
 
     public function test_calling_interface_with_before_and_after_interceptors()
     {
-        $messageHandler = ComponentTestBuilder::create()->build(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'));
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
-
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceCalculatingService::class, 'calculate', $requestChannelName)
-            ->addBeforeInterceptor(
-                MethodInterceptor::create(
-                    'interceptor0',
-                    InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'multiply'),
-                    0,
-                    ''
+        $messaging = ComponentTestBuilder::create()
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceCalculatingService::class,
+                    ServiceInterfaceCalculatingService::class,
+                    'calculate',
+                    $inputChannel = 'inputChannel'
                 )
+                    ->addBeforeInterceptor(
+                        MethodInterceptor::create(
+                            'interceptor0',
+                            InterfaceToCall::create(CalculatingService::class, 'multiply'),
+                            ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'multiply'),
+                            0,
+                            ''
+                        )
+                    )
+                    ->addBeforeInterceptor(
+                        MethodInterceptor::create(
+                            'interceptor1',
+                            InterfaceToCall::create(CalculatingService::class, 'sum'),
+                            ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'sum'),
+                            1,
+                            ''
+                        )
+                    )
+                    ->addAfterInterceptor(
+                        MethodInterceptor::create(
+                            'interceptor2',
+                            InterfaceToCall::create(CalculatingService::class, 'result'),
+                            ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result'),
+                            1,
+                            ''
+                        )
+                    )
+                    ->addAfterInterceptor(
+                        MethodInterceptor::create(
+                            'interceptor3',
+                            InterfaceToCall::create(CalculatingService::class, 'multiply'),
+                            ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'),
+                            0,
+                            ''
+                        )
+                    )
             )
-            ->addBeforeInterceptor(
-                MethodInterceptor::create(
-                    'interceptor1',
-                    InterfaceToCall::create(CalculatingService::class, 'sum'),
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'sum'),
-                    1,
-                    ''
-                )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum')
+                    ->withInputChannelName($inputChannel)
             )
-            ->addAfterInterceptor(
-                MethodInterceptor::create(
-                    'interceptor2',
-                    InterfaceToCall::create(CalculatingService::class, 'result'),
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result'),
-                    1,
-                    ''
-                )
-            )
-            ->addAfterInterceptor(
-                MethodInterceptor::create(
-                    'interceptor3',
-                    InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'),
-                    0,
-                    ''
-                )
-            );
+            ->build();
 
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
-
-        $this->assertEquals(20, $gatewayProxy->calculate(2));
+        $this->assertEquals(
+            20,
+            $messaging->getGateway(ServiceInterfaceCalculatingService::class)->calculate(2)
+        );
     }
 
     public function test_calling_around_interceptors_before_sending_to_error_channel()

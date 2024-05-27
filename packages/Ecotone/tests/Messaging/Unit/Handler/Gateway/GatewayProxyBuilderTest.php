@@ -4,6 +4,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendGateway;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverter;
@@ -63,6 +64,8 @@ use Test\Ecotone\Messaging\Fixture\Handler\StatefulHandler;
 use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverter;
 use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverterGatewayExample;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
+use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingNoArguments;
+use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceCalculatingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceReceiveOnly;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceReceiveOnlyWithNull;
@@ -71,6 +74,7 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSend
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnlyWithTwoArguments;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceWithFutureReceive;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceReceivingMessageAndReturningMessage;
+use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceWithMixed;
 use Test\Ecotone\Messaging\Unit\MessagingTest;
 
 /**
@@ -85,78 +89,76 @@ class GatewayProxyBuilderTest extends MessagingTest
     public function test_creating_gateway_for_send_only_interface()
     {
         $messageHandler = NoReturnMessageHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
+        $messaging = ComponentTestBuilder::create()
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceWithMixed::class,
+                    ServiceWithMixed::class,
+                    'sendWithoutReturnValue',
+                    $inputChannel = 'inputChannel'
+                )
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference($messageHandler, 'handle')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
 
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName);
-
-        /** @var ServiceInterfaceSendOnly $gatewayProxy */
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
-        $gatewayProxy->sendMail('test');
+        $messaging->getGateway(ServiceWithMixed::class)
+            ->sendWithoutReturnValue(new stdClass());
 
         $this->assertTrue($messageHandler->wasCalled());
     }
 
     public function test_throwing_exception_if_reply_channel_passed_for_send_only_interface()
     {
-        $messageHandler = NoReturnMessageHandler::create();
-        $requestChannelName = 'req-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
-
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName);
-
-        $gatewayProxyBuilder->withReplyChannel('replyChannel');
-
         $this->expectException(InvalidArgumentException::class);
 
         ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->withChannel('replyChannel', QueueChannel::create())
-            ->build($gatewayProxyBuilder);
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel('replyChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceWithMixed::class,
+                    ServiceWithMixed::class,
+                    'sendWithoutReturnValue',
+                    $inputChannel = 'inputChannel'
+                )->withReplyChannel('replyChannel')
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
     }
 
     public function test_creating_gateway_for_receive_only()
     {
-        $messageHandler = NoReturnMessageHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
-
-        $payload = 'replyData';
-        $replyChannelName = 'reply-channel';
-        $replyMessage = MessageBuilder::withPayload($payload)->build();
-        $replyChannel = QueueChannel::create();
-        $replyChannel->send($replyMessage);
-
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceReceiveOnly::class, 'sendMail', $requestChannelName);
-        $gatewayProxyBuilder->withReplyChannel($replyChannelName);
-
-        /** @var ServiceInterfaceReceiveOnly $gatewayProxy */
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->withChannel($replyChannelName, $replyChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel('replyChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceReceiveOnly::class,
+                    ServiceInterfaceReceiveOnly::class,
+                    'sendMail',
+                    $inputChannel = 'inputChannel'
+                )->withReplyChannel('replyChannel')
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingNoArguments::createWithReturnValue($result = 'test'), 'withReturnValue')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
 
         $this->assertEquals(
-            $payload,
-            $gatewayProxy->sendMail()
+            $result,
+            $messaging->getGateway(ServiceInterfaceReceiveOnly::class)->sendMail()
         );
     }
 
     public function test_calling_reply_queue_with_time_out()
     {
-        $messageHandler = NoReturnMessageHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
-
         $payload = 'replyData';
         $replyMessage = MessageBuilder::withPayload($payload)->build();
-        $replyChannelName = 'reply-channel';
         $replyChannel = new class ($replyMessage) extends QueueChannel {
             public function __construct(private Message $replyMessage)
             {
@@ -171,117 +173,190 @@ class GatewayProxyBuilderTest extends MessagingTest
             }
         };
 
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceReceiveOnly::class, 'sendMail', $requestChannelName);
-        $gatewayProxyBuilder->withReplyChannel($replyChannelName);
-        $gatewayProxyBuilder->withReplyMillisecondTimeout(1);
-
-        /** @var ServiceInterfaceReceiveOnly $gatewayProxy */
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->withChannel($replyChannelName, $replyChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::create('replyChannel', $replyChannel))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceReceiveOnly::class,
+                    ServiceInterfaceReceiveOnly::class,
+                    'sendMail',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withReplyMillisecondTimeout(1)
+                    ->withReplyChannel('replyChannel')
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(NoReturnMessageHandler::create(), 'handle')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
 
         $this->assertEquals(
             $payload,
-            $gatewayProxy->sendMail()
+            $messaging->getGateway(ServiceInterfaceReceiveOnly::class)->sendMail()
+        );
+    }
+
+    public function test_ignoring_reply_from_message_handler_when_reply_channel_is_set()
+    {
+        $payload = 'replyData';
+        $replyMessage = MessageBuilder::withPayload($payload)->build();
+        $replyChannel = new class ($replyMessage) extends QueueChannel {
+            public function __construct(private Message $replyMessage)
+            {
+                parent::__construct('');
+            }
+            public function receive(): ?Message
+            {
+                return $this->replyMessage;
+            }
+        };
+
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::create('replyChannel', $replyChannel))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceReceiveOnly::class,
+                    ServiceInterfaceReceiveOnly::class,
+                    'sendMail',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withReplyChannel('replyChannel')
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingNoArguments::createWithReturnValue('test'), 'withReturnValue')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
+
+        $this->assertEquals(
+            $payload,
+            $messaging->getGateway(ServiceInterfaceReceiveOnly::class)->sendMail()
         );
     }
 
     public function test_executing_with_method_argument_converters()
     {
-        $messageHandler = StatefulHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($outputChannel = 'outputChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceSendOnlyWithTwoArguments::class,
+                    ServiceInterfaceSendOnlyWithTwoArguments::class,
+                    'sendMail',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withParameterConverters(
+                        [
+                            GatewayHeaderBuilder::create('personId', 'personId'),
+                            GatewayPayloadBuilder::create('content'),
+                        ]
+                    )
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
+                    ->withInputChannelName($inputChannel)
+                    ->withOutputMessageChannel($outputChannel)
+            )
+            ->build();
 
-        $personId = '123';
-        $content = 'some bla content';
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnlyWithTwoArguments::class, 'sendMail', $requestChannelName);
-        $gatewayProxyBuilder->withParameterConverters(
-            [
-                GatewayHeaderBuilder::create('personId', 'personId'),
-                GatewayPayloadBuilder::create('content'),
-            ]
-        );
+        $messaging->getGateway(ServiceInterfaceSendOnlyWithTwoArguments::class)
+                        ->sendMail($personId = '123', $content = 'some bla content');
 
-        /** @var ServiceInterfaceSendOnlyWithTwoArguments $gatewayProxy */
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
+        $message = $messaging->receiveMessageFrom($outputChannel);
 
-        $gatewayProxy->sendMail($personId, $content);
-
-        $this->assertEquals(
-            $personId,
-            $messageHandler->message()->getHeaders()->get('personId')
-        );
-        $this->assertEquals(
-            $content,
-            $messageHandler->message()->getPayload()
-        );
+        $this->assertEquals($personId, $message->getHeaders()->get('personId'));
+        $this->assertEquals($content, $message->getPayload());
     }
 
     public function test_throwing_exception_if_two_payload_converters_passed()
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnlyWithTwoArguments::class, 'sendMail', 'requestChannel');
-        $gatewayProxyBuilder->withParameterConverters(
-            [
-                GatewayPayloadBuilder::create('content'),
-                GatewayPayloadBuilder::create('personId'),
-            ]
-        );
+        ComponentTestBuilder::create()
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceSendOnlyWithTwoArguments::class,
+                    ServiceInterfaceSendOnlyWithTwoArguments::class,
+                    'sendMail',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withParameterConverters(
+                        [
+                            GatewayPayloadBuilder::create('content'),
+                            GatewayPayloadBuilder::create('personId'),
+                        ]
+                    )
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
     }
 
     public function test_converters_execution_according_to_order_in_list()
     {
-        $messageHandler = StatefulHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($outputChannel = 'outputChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceSendOnly::class,
+                    ServiceInterfaceSendOnly::class,
+                    'sendMailWithMetadata',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withParameterConverters(
+                        [
+                            GatewayHeadersBuilder::create('metadata'),
+                            GatewayHeaderBuilder::create('content', 'personId'),
+                        ]
+                    )
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
+                    ->withInputChannelName($inputChannel)
+                    ->withOutputMessageChannel($outputChannel)
+            )
+            ->build();
 
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMailWithMetadata', $requestChannelName);
-        $gatewayProxyBuilder->withParameterConverters(
-            [
-                GatewayHeadersBuilder::create('metadata'),
-                GatewayHeaderBuilder::create('content', 'personId'),
-            ]
-        );
+        $messaging->getGateway(ServiceInterfaceSendOnly::class)
+            ->sendMailWithMetadata(3, ['personId' => 2]);
 
-        /** @var ServiceInterfaceSendOnly $gatewayProxy */
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
-        $gatewayProxy->sendMailWithMetadata(3, ['personId' => 2]);
+        $message = $messaging->receiveMessageFrom($outputChannel);
 
-        $message = $messageHandler->message();
         $this->assertEquals(3, $message->getHeaders()->get('personId'));
     }
 
     public function test_executing_with_multiple_message_converters_for_same_parameter()
     {
-        $messageHandler = StatefulHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($outputChannel = 'outputChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceSendOnly::class,
+                    ServiceInterfaceSendOnly::class,
+                    'sendMail',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withParameterConverters(
+                        [
+                            GatewayHeaderBuilder::create('content', 'test1'),
+                            GatewayHeaderBuilder::create('content', 'test2'),
+                        ]
+                    )
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
+                    ->withInputChannelName($inputChannel)
+                    ->withOutputMessageChannel($outputChannel)
+            )
+            ->build();
 
-        $content = 'testContent';
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName);
-        $gatewayProxyBuilder->withParameterConverters(
-            [
-                GatewayHeaderBuilder::create('content', 'test1'),
-                GatewayHeaderBuilder::create('content', 'test2'),
-            ]
-        );
+        $messaging->getGateway(ServiceInterfaceSendOnly::class)
+            ->sendMail($content = 'testContent');
 
-        /** @var ServiceInterfaceSendOnly $gatewayProxy */
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
-        $gatewayProxy->sendMail($content);
-
-        $message = $messageHandler->message();
+        $message = $messaging->receiveMessageFrom($outputChannel);
         $this->assertEquals($content, $message->getHeaders()->get('test1'));
         $this->assertEquals($content, $message->getHeaders()->get('test2'));
     }
@@ -292,15 +367,19 @@ class GatewayProxyBuilderTest extends MessagingTest
      */
     public function test_throwing_exception_if_gateway_expect_reply_and_request_channel_is_queue()
     {
-        $requestChannelName = 'requestChannel';
-        $requestChannel = QueueChannel::create();
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceReceiveOnly::class, 'sendMail', $requestChannelName);
-
         $this->expectException(InvalidArgumentException::class);
 
         ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->build($gatewayProxyBuilder);
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($inputChannel = 'inputChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceReceiveOnly::class,
+                    ServiceInterfaceReceiveOnly::class,
+                    'sendMail',
+                    $inputChannel
+                )
+            )
+            ->build();
     }
 
     /**
@@ -309,98 +388,133 @@ class GatewayProxyBuilderTest extends MessagingTest
      */
     public function test_creating_with_queue_channel_when_gateway_does_not_expect_reply()
     {
-        $requestChannelName = 'requestChannel';
-        $requestChannel = QueueChannel::create();
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName);
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($inputChannel = 'inputChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceSendOnly::class,
+                    ServiceInterfaceSendOnly::class,
+                    'sendMail',
+                    $inputChannel
+                )
+            )
+            ->build();
 
-        /** @var ServiceInterfaceSendOnly $gateway */
-        $gateway = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
-        $gateway->sendMail('some');
+        $messaging->getGateway(ServiceInterfaceSendOnly::class)
+            ->sendMail('some');
 
         $this->assertEquals(
-            $requestChannel->receive()->getPayload(),
-            'some'
+            'some',
+            $messaging->receiveMessageFrom($inputChannel)->getPayload()
         );
-        $this->assertNull($requestChannel->receive());
     }
 
-    public function test_resolving_response_in_future()
+    public function test_resolving_response_in_future_from_handler()
     {
-        $messageHandler = NoReturnMessageHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
+        $messaging = ComponentTestBuilder::create()
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceWithFutureReceive::class,
+                    ServiceInterfaceWithFutureReceive::class,
+                    'someLongRunningWork',
+                    $inputChannel = 'inputChannel'
+                )
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
 
-        $payload = 'replyData';
-        $replyMessage = MessageBuilder::withPayload($payload)->build();
-        $replyChannelName = 'reply-channel';
-        $replyChannel = QueueChannel::create();
-        $replyChannel->send($replyMessage);
+        $this->assertNotNull(
+            $messaging->getGateway(ServiceInterfaceWithFutureReceive::class)
+                ->someLongRunningWork()
+                ->resolve()
+        );
+    }
 
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceWithFutureReceive::class, 'someLongRunningWork', $requestChannelName);
-        $gatewayProxyBuilder->withReplyChannel($replyChannelName);
+    public function test_resolving_response_in_future_from_reply_channel(): void
+    {
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($replyChannelName = 'replyChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceWithFutureReceive::class,
+                    ServiceInterfaceWithFutureReceive::class,
+                    'someLongRunningWork',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withReplyChannel($replyChannelName)
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
 
-        /** @var ServiceInterfaceWithFutureReceive $gatewayProxy */
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->withChannel($replyChannelName, $replyChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
+        $messaging->getMessageChannel($replyChannelName)->send(MessageBuilder::withPayload('some')->build());
+
         $this->assertEquals(
-            $payload,
-            $gatewayProxy->someLongRunningWork()->resolve()
+            'some',
+            $messaging->getGateway(ServiceInterfaceWithFutureReceive::class)
+                ->someLongRunningWork()
+                ->resolve()
         );
     }
 
     public function test_throwing_exception_when_received_error_message()
     {
-        $messageHandler = NoReturnMessageHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($replyChannelName = 'replyChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceReceiveOnly::class,
+                    ServiceInterfaceReceiveOnly::class,
+                    'sendMail',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withReplyChannel($replyChannelName)
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
 
-        $errorMessage = ErrorMessage::create(MessageHandlingException::create('error occurred'));
-        $replyChannelName = 'replyChannel';
-        $replyChannel = QueueChannel::create();
-        $replyChannel->send($errorMessage);
+        $messaging->getMessageChannel($replyChannelName)->send(ErrorMessage::create(MessageHandlingException::create('error occurred')));
 
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendAndReceive::class, 'getById', $requestChannelName);
-        $gatewayProxyBuilder->withReplyChannel($replyChannelName);
-        /** @var ServiceInterfaceSendAndReceive $gatewayProxy */
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->withChannel($replyChannelName, $replyChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
+        $this->expectException(MessageHandlingException::class);
 
-        $this->expectException(Exception::class);
-
-        $gatewayProxy->getById(1);
+        $messaging->getGateway(ServiceInterfaceReceiveOnly::class)
+            ->sendMail();
     }
 
     public function test_throwing_exception_when_received_error_message_for_future_reply_sender()
     {
-        $messageHandler = NoReturnMessageHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($replyChannelName = 'replyChannel'))
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceWithFutureReceive::class,
+                    ServiceInterfaceWithFutureReceive::class,
+                    'someLongRunningWork',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withReplyChannel($replyChannelName)
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
 
-        $errorMessage = ErrorMessage::create(MessageHandlingException::create('error occurred'));
-        $replyChannelName = 'reply-channel';
-        $replyChannel = QueueChannel::create();
-        $replyChannel->send($errorMessage);
-
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceWithFutureReceive::class, 'someLongRunningWork', $requestChannelName);
-        $gatewayProxyBuilder->withReplyChannel($replyChannelName);
-        /** @var ServiceInterfaceWithFutureReceive $gatewayProxy */
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->withChannel($replyChannelName, $replyChannel)
-            ->buildWithProxy($gatewayProxyBuilder);
+        $messaging->getMessageChannel($replyChannelName)->send(ErrorMessage::create(MessageHandlingException::create('error occurred')));
 
         $this->expectException(MessageHandlingException::class);
 
-        $gatewayProxy->someLongRunningWork()->resolve();
+        $messaging->getGateway(ServiceInterfaceWithFutureReceive::class)
+            ->someLongRunningWork()
+            ->resolve();
     }
 
     public function test_returning_null_when_no_reply_received_for_nullable_interface()

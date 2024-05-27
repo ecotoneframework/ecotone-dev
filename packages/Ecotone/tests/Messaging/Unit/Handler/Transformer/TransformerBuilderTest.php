@@ -93,7 +93,7 @@ class TransformerBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel($inputChannel, 'test');
 
-        $this->assertNull($messaging->pollMessageFrom($outputChannel));
+        $this->assertNull($messaging->receiveMessageFrom($outputChannel));
     }
 
     public function test_transforming_headers_if_array_returned_by_transforming_method()

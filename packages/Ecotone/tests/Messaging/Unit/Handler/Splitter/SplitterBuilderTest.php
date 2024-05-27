@@ -42,8 +42,8 @@ class SplitterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', [1, 2]);
 
-        $this->assertEquals(1, $messaging->pollMessageFrom('outputChannel')->getPayload());
-        $this->assertEquals(2, $messaging->pollMessageFrom('outputChannel')->getPayload());
+        $this->assertEquals(1, $messaging->receiveMessageFrom('outputChannel')->getPayload());
+        $this->assertEquals(2, $messaging->receiveMessageFrom('outputChannel')->getPayload());
     }
 
     /**
@@ -79,8 +79,8 @@ class SplitterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', [1, 2]);
 
-        $this->assertEquals(1, $messaging->pollMessageFrom('outputChannel')->getPayload());
-        $this->assertEquals(2, $messaging->pollMessageFrom('outputChannel')->getPayload());
+        $this->assertEquals(1, $messaging->receiveMessageFrom('outputChannel')->getPayload());
+        $this->assertEquals(2, $messaging->receiveMessageFrom('outputChannel')->getPayload());
     }
 
     public function test_splitting_will_set_new_content_type()
@@ -96,8 +96,8 @@ class SplitterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', [1, 2]);
 
-        $this->assertEquals(MediaType::createApplicationXPHPWithTypeParameter('int')->toString(), $messaging->pollMessageFrom('outputChannel')->getHeaders()->getContentType()->toString());
-        $this->assertEquals(MediaType::createApplicationXPHPWithTypeParameter('int')->toString(), $messaging->pollMessageFrom('outputChannel')->getHeaders()->getContentType()->toString());
+        $this->assertEquals(MediaType::createApplicationXPHPWithTypeParameter('int')->toString(), $messaging->receiveMessageFrom('outputChannel')->getHeaders()->getContentType()->toString());
+        $this->assertEquals(MediaType::createApplicationXPHPWithTypeParameter('int')->toString(), $messaging->receiveMessageFrom('outputChannel')->getHeaders()->getContentType()->toString());
     }
 
     public function test_converting_to_string()

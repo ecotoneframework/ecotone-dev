@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ramsey\Uuid\UuidInterface;
 use stdClass;
+use Ecotone\Messaging\Message;
 
 /**
  * Class ServiceExpectingOneArgument
@@ -88,6 +89,11 @@ class ServiceExpectingOneArgument implements DefinedObject
     public function withInterface(UuidInterface $value)
     {
         return $value;
+    }
+
+    public function withMessage(Message $message): Message
+    {
+        return $message;
     }
 
     /**

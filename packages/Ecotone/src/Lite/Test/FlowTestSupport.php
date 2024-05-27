@@ -118,7 +118,7 @@ final class FlowTestSupport
         return $this->configuredMessagingSystem->getMessageChannelByName($channelName);
     }
 
-    public function pollMessageFrom(string $channelName): ?Message
+    public function receiveMessageFrom(string $channelName): ?Message
     {
         $messageChannel = $this->getMessageChannel($channelName);
         Assert::isTrue($messageChannel instanceof PollableChannel, "Channel {$channelName} is not pollable");

@@ -134,6 +134,13 @@ class ComponentTestBuilder
         return $this;
     }
 
+    public function withGateway(GatewayProxyBuilder $gatewayProxyBuilder): self
+    {
+        $this->messagingSystemConfiguration->registerGatewayBuilder($gatewayProxyBuilder);
+
+        return $this;
+    }
+
     public function build(): FlowTestSupport
     {
         $containerBuilder = new \Ecotone\Messaging\Config\Container\ContainerBuilder();

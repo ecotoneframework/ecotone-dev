@@ -52,7 +52,7 @@ class RouterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', 'some');
 
-        $this->assertNotNull($messaging->pollMessageFrom($chanelName));;
+        $this->assertNotNull($messaging->receiveMessageFrom($chanelName));;
     }
 
     /**
@@ -77,8 +77,8 @@ class RouterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', 'some');
 
-        $this->assertNotNull($messaging->pollMessageFrom('channel1'));
-        $this->assertNotNull($messaging->pollMessageFrom('channel2'));
+        $this->assertNotNull($messaging->receiveMessageFrom('channel1'));
+        $this->assertNotNull($messaging->receiveMessageFrom('channel2'));
     }
 
     /**
@@ -125,7 +125,7 @@ class RouterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', 'some');
 
-        $this->assertNull($messaging->pollMessageFrom($chanelName));
+        $this->assertNull($messaging->receiveMessageFrom($chanelName));
     }
 
     /**
@@ -148,8 +148,8 @@ class RouterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', new \stdClass());
 
-        $this->assertNotNull($messaging->pollMessageFrom('channel1'));
-        $this->assertNull($messaging->pollMessageFrom('channel2'));
+        $this->assertNotNull($messaging->receiveMessageFrom('channel1'));
+        $this->assertNull($messaging->receiveMessageFrom('channel2'));
     }
 
     /**
@@ -171,8 +171,8 @@ class RouterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', new \stdClass());
 
-        $this->assertNull($messaging->pollMessageFrom('channel1'));
-        $this->assertNotNull($messaging->pollMessageFrom($defaultResolutionChannel));
+        $this->assertNull($messaging->receiveMessageFrom('channel1'));
+        $this->assertNotNull($messaging->receiveMessageFrom($defaultResolutionChannel));
     }
 
     /**
@@ -192,7 +192,7 @@ class RouterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', new \stdClass());
 
-        $this->assertNotNull($messaging->pollMessageFrom($channelName));
+        $this->assertNotNull($messaging->receiveMessageFrom($channelName));
     }
 
     /**
@@ -220,8 +220,8 @@ class RouterBuilderTest extends MessagingTest
                 ->build()
         );
 
-        $this->assertNotNull($messaging->pollMessageFrom($privateChannelName));
-        $this->assertNull($messaging->pollMessageFrom($publicChannelName));
+        $this->assertNotNull($messaging->receiveMessageFrom($privateChannelName));
+        $this->assertNull($messaging->receiveMessageFrom($publicChannelName));
     }
 
     /**
@@ -259,8 +259,8 @@ class RouterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel','some');
 
-        $this->assertNotNull($messaging->pollMessageFrom($privateChannelName));
-        $this->assertNotNull($messaging->pollMessageFrom($publicChannelName));
+        $this->assertNotNull($messaging->receiveMessageFrom($privateChannelName));
+        $this->assertNotNull($messaging->receiveMessageFrom($publicChannelName));
     }
 
     /**
@@ -281,10 +281,10 @@ class RouterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', [1, 2]);
 
-        $firstMessage = $messaging->pollMessageFrom('channel1');
+        $firstMessage = $messaging->receiveMessageFrom('channel1');
         $this->assertEquals(1, $firstMessage->getHeaders()->get(MessageHeaders::SEQUENCE_NUMBER));
         $this->assertEquals(2, $firstMessage->getHeaders()->get(MessageHeaders::SEQUENCE_SIZE));
-        $secondMessage = $messaging->pollMessageFrom('channel2');
+        $secondMessage = $messaging->receiveMessageFrom('channel2');
         $this->assertEquals(2, $secondMessage->getHeaders()->get(MessageHeaders::SEQUENCE_NUMBER));
         $this->assertEquals(2, $secondMessage->getHeaders()->get(MessageHeaders::SEQUENCE_SIZE));
     }

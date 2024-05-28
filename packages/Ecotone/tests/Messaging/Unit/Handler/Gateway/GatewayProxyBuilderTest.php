@@ -855,32 +855,36 @@ class GatewayProxyBuilderTest extends MessagingTest
 
     public function test_calling_around_interceptors_before_sending_to_error_channel()
     {
-        $messageHandler = ExceptionMessageHandler::create();
-        $requestChannelName = 'request-channel';
-        $requestChannel = DirectChannel::create();
-        $requestChannel->subscribe($messageHandler);
-
         $transactionOne = NullTransaction::start();
         $transactionInterceptor = new TransactionInterceptor();
         $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
-
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceSendOnly::class, 'sendMail', $requestChannelName)
-            ->withErrorChannel('some')
-            ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory']])])
-            ->addAroundInterceptor(
-                AroundInterceptorBuilder::create('transactionInterceptor', InterfaceToCall::create(TransactionInterceptor::class, 'transactional'), 1, Transactional::class, [])
-            );
-
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, $requestChannel)
-            ->withChannel('some', QueueChannel::create())
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel('some'))
             ->withReference('transactionFactory', $transactionFactoryOne)
             ->withReference('transactionInterceptor', $transactionInterceptor)
-            ->buildWithProxy($gatewayProxyBuilder);
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    TransactionalInterceptorOnGatewayClassExample::class,
+                    TransactionalInterceptorOnGatewayClassExample::class,
+                    'invoke',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withErrorChannel('some')
+                    ->addAroundInterceptor(
+                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
+                    )
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ExceptionMessageHandler::create(), 'handle')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
 
-        $gatewayProxy->sendMail('test');
+        $messaging->getGateway(TransactionalInterceptorOnGatewayClassExample::class)->invoke();
 
+        $this->assertFalse($transactionOne->isCommitted());
         $this->assertTrue($transactionOne->isRolledBack());
+        $this->assertNotNull($messaging->receiveMessageFrom('some'));
     }
 
     public function test_calling_interceptors_before_sending_to_error_channel_when_receive_throws_error()
@@ -890,30 +894,39 @@ class GatewayProxyBuilderTest extends MessagingTest
         $exception = new RuntimeException();
         $replyChannel->withException($exception);
 
-
         $transactionOne = NullTransaction::start();
         $transactionInterceptor = new TransactionInterceptor();
         $transactionFactoryOne = NullTransactionFactory::createWithPredefinedTransaction($transactionOne);
-
-        $gatewayProxyBuilder = GatewayProxyBuilder::create('ref-name', ServiceInterfaceReceiveOnlyWithNull::class, 'sendMail', $requestChannelName)
-            ->withReplyChannel('replyChannel')
-            ->withErrorChannel('some')
-            ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory']])])
-            ->addAroundInterceptor(
-                AroundInterceptorBuilder::create('transactionInterceptor', InterfaceToCall::create(TransactionInterceptor::class, 'transactional'), 1, Transactional::class, [])
-            );
-
-        $gatewayProxy = ComponentTestBuilder::create()
-            ->withChannel($requestChannelName, QueueChannel::create())
-            ->withChannel('some', QueueChannel::create())
-            ->withChannel('replyChannel', $replyChannel)
+        $messaging = ComponentTestBuilder::create()
+            ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $replyChannel))
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel('some'))
             ->withReference('transactionFactory', $transactionFactoryOne)
             ->withReference('transactionInterceptor', $transactionInterceptor)
-            ->buildWithProxy($gatewayProxyBuilder);
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceReceiveOnlyWithNull::class,
+                    ServiceInterfaceReceiveOnlyWithNull::class,
+                    'sendMail',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withEndpointAnnotations([new AttributeDefinition(Transactional::class, [['transactionFactory']])])
+                    ->withErrorChannel('some')
+                    ->withReplyChannel($requestChannelName)
+                    ->addAroundInterceptor(
+                        AroundInterceptorBuilder::createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry::createEmpty(), $transactionInterceptor, 'transactional', 1, Transactional::class)
+                    )
+            )
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(NoReturnMessageHandler::create(), 'handle')
+                    ->withInputChannelName($inputChannel)
+            )
+            ->build();
 
-        $gatewayProxy->sendMail('test');
+        $messaging->getGateway(ServiceInterfaceReceiveOnlyWithNull::class)->sendMail();
 
+        $this->assertFalse($transactionOne->isCommitted());
         $this->assertTrue($transactionOne->isRolledBack());
+        $this->assertNotNull($messaging->receiveMessageFrom('some'));
     }
 
     public function test_converting_to_string()

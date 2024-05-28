@@ -6,5 +6,9 @@ interface StringReturningGateway
 {
     public function execute(string $replyMediaType): string;
 
+    public function executeWithPayload(mixed $payload, string $replyMediaType): string;
+
+    public function executeWithPayloadAndHeaders(mixed $payload, array $headers, string $replyMediaType): string;
+
     public function executeNoParams(): string;
 }

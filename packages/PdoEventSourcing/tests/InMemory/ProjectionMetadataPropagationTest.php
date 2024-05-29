@@ -107,7 +107,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
             containerOrAvailableServices: [new OrderProjection($connection), new OrderEventsConverter(), new NotificationService(), DbalConnectionFactory::class => $connectionFactory],
             configuration: $serviceConfiguration,
             pathToRootCatalog: __DIR__ . '/../../',
-            addEventSourcedRepository: false
+            addInMemoryEventSourcedRepository: false
         );
     }
 }

@@ -10,5 +10,7 @@ interface StringReturningGateway
 
     public function executeWithPayloadAndHeaders(mixed $payload, array $headers, string $replyMediaType): string;
 
+    public function executeWithDefault(mixed $payload = 'default'): string;
+
     public function executeNoParams(): string;
 }

@@ -32,6 +32,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
@@ -134,6 +135,13 @@ class ComponentTestBuilder
         return $this;
     }
 
+    public function withInboundChannelAdapter(InterceptedChannelAdapterBuilder $inboundChannelAdapterBuilder): self
+    {
+        $this->messagingSystemConfiguration->registerConsumer($inboundChannelAdapterBuilder);
+
+        return $this;
+    }
+
     public function withGateway(GatewayProxyBuilder $gatewayProxyBuilder): self
     {
         $this->messagingSystemConfiguration->registerGatewayBuilder($gatewayProxyBuilder);
@@ -160,38 +168,6 @@ class ComponentTestBuilder
             $configuredMessagingSystem->getGatewayByName(MessagingEntrypoint::class),
             $configuredMessagingSystem
         );
-    }
-
-    public function buildWithProxy(GatewayProxyBuilder $gatewayProxy): mixed
-    {
-        $this->messagingSystemConfiguration->registerGatewayBuilder($gatewayProxy);
-
-        $this->compile();
-        return $this->container->get($gatewayProxy->getReferenceName());
-    }
-
-    public function withRegisteredMessageHandlerConsumer(MessageHandlerConsumerBuilder $messageHandlerConsumerBuilder, MessageHandlerBuilder $messageHandlerBuilder): self
-    {
-        $messageHandlerConsumerBuilder->registerConsumer($this->messagingBuilder, $messageHandlerBuilder);
-
-        return $this;
-    }
-
-    public function withRegisteredChannelAdapter(ChannelAdapterConsumerBuilder $channelAdapterConsumerBuilder): self
-    {
-        $channelAdapterConsumerBuilder->registerConsumer($this->messagingBuilder);
-
-        return $this;
-    }
-
-    public function getEndpointRunner(string $endpointId): EndpointRunner
-    {
-        return $this->container->get(new EndpointRunnerReference($endpointId));
-    }
-
-    public function runEndpoint(string $endpointId, ?ExecutionPollingMetadata $executionPollingMetadata = null): void
-    {
-        $this->getEndpointRunner($endpointId)->runEndpointWithExecutionPollingMetadata($executionPollingMetadata);
     }
 
     public function getGatewayByName(string $name)

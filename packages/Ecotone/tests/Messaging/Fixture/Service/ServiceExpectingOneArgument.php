@@ -52,6 +52,15 @@ class ServiceExpectingOneArgument implements DefinedObject
         return ['some' => $name];
     }
 
+    /**
+     * @param stdClass[] $value
+     * @return stdClass[]
+     */
+    public function withArrayStdClasses(array $value): array
+    {
+        return $value;
+    }
+
     public function withArrayTypeHintAndArrayReturnValue(array $values): array
     {
         return $values;

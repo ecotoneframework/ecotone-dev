@@ -36,23 +36,6 @@ class DataReturningService implements DefinedObject
         $this->rejectException = $rejectException;
     }
 
-    public static function createServiceActivator($dataToReturn): MessageHandler
-    {
-        return ComponentTestBuilder::create()->build(self::createServiceActivatorBuilder($dataToReturn));
-    }
-
-    public static function createServiceActivatorWithReturnMessage($payload, array $headers): MessageHandler
-    {
-        return ComponentTestBuilder::create()->build(self::createServiceActivatorBuilderWithReturnMessage($payload, $headers));
-    }
-
-    public static function createServiceActivatorWithGenerator(array $payload): MessageHandler
-    {
-        return ComponentTestBuilder::create()->build(
-            ServiceActivatorBuilder::createWithDirectReference(new self($payload, false, [], false), 'iterate')
-        );
-    }
-
     public static function createServiceActivatorBuilder($dataToReturn): ServiceActivatorBuilder
     {
         return ServiceActivatorBuilder::createWithDirectReference(new self($dataToReturn, false, [], false), 'handle');

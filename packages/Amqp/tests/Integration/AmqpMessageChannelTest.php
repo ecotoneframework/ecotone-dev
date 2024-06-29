@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -161,11 +162,6 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
             ],
             $loggerExample->getInfo()
         );
-    }
-
-    private function connectionRetryLog(int $retry, int $time): string
-    {
-        return sprintf('Retrying to connect to the Message Channel. Current number of retries: %d, Message Consumer will try to reconnect in %dms.', $retry, $time);
     }
 
     public function test_sending_to_dead_letter_as_another_amqp_channel()

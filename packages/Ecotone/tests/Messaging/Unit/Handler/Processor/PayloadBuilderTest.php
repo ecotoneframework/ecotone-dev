@@ -7,10 +7,13 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 use Ecotone\Messaging\Config\Container\BoundParameterConverter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadExpressionBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use ReflectionException;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionService;
+use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 use Test\Ecotone\Messaging\Unit\MessagingTest;
 
 /**
@@ -28,19 +31,19 @@ class PayloadBuilderTest extends MessagingTest
      */
     public function test_creating_payload_converter()
     {
-        $converter = PayloadBuilder::create('some');
-        $converter = ComponentTestBuilder::create()
-            ->build(new BoundParameterConverter(
-                $converter,
-                InterfaceToCall::create(HeadersConversionService::class, 'withNullableString')
-            ));
-
-        $payload = 'rabbit';
-        $this->assertEquals(
-            $payload,
-            $converter->getArgumentFrom(
-                MessageBuilder::withPayload($payload)->build(),
+        $messaging = ComponentTestBuilder::create()
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
+                    ->withInputChannelName($inputChannel = 'inputChannel')
+                    ->withMethodParameterConverters([
+                        PayloadBuilder::create('value')
+                    ])
             )
+            ->build();
+
+        $this->assertEquals(
+            100,
+            $messaging->sendDirectToChannel($inputChannel, 100)
         );
     }
 }

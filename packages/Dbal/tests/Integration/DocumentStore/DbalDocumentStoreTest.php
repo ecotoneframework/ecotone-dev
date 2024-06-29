@@ -5,17 +5,15 @@ namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentStore;
-
-use function json_decode;
-use function json_encode;
-
+use Ecotone\Test\InMemoryConversionService;
 use stdClass;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use function json_decode;
+use function json_encode;
 
 /**
  * @internal

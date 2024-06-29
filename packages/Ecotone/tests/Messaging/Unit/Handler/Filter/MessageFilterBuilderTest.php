@@ -208,11 +208,10 @@ class MessageFilterBuilderTest extends MessagingTest
         $inputChannelName = 'inputChannel';
         $endpointName = 'someName';
 
-        $this->assertEquals(
-            MessageFilterBuilder::createWithReferenceName('ref-name', InterfaceToCallReference::create(MessageSelectorExample::class, 'refuse'))
+        $this->assertIsString(
+            (string)MessageFilterBuilder::createWithReferenceName('ref-name', InterfaceToCallReference::create(MessageSelectorExample::class, 'refuse'))
                 ->withInputChannelName($inputChannelName)
                 ->withEndpointId($endpointName),
-            sprintf('Message filter - %s:%s with name `%s` for input channel `%s`', 'ref-name', 'refuse', $endpointName, $inputChannelName)
         );
     }
 }

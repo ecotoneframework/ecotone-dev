@@ -30,21 +30,23 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::uuid4()->toString();
 
-        /** @var PollableChannel $messageChannel */
-        $messageChannel = $this->getComponentTestingWithConnection()->build(
-            DbalBackedMessageChannelBuilder::create($channelName)
-                ->withReceiveTimeout(1)
-        );
+        $messaging = ComponentTestBuilder::create()
+                ->withReference(DbalConnectionFactory::class, $this->getConnectionFactory())
+                ->withChannel(
+                    DbalBackedMessageChannelBuilder::create($channelName)
+                        ->withReceiveTimeout(1)
+                )
+                ->build();
 
         $payload = 'some';
         $headerName = 'token';
-        $messageChannel->send(
+        $messaging->getMessageChannel($channelName)->send(
             MessageBuilder::withPayload($payload)
                 ->setHeader($headerName, 123)
                 ->build()
         );
 
-        $receivedMessage = $messageChannel->receive();
+        $receivedMessage = $messaging->getMessageChannel($channelName)->receive();
 
         $this->assertNotNull($receivedMessage, 'Not received message');
         $this->assertEquals($payload, $receivedMessage->getPayload(), 'Payload of received is different that sent one');
@@ -58,10 +60,12 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         /** @var PollableChannel $messageChannel */
         $messageChannel = ComponentTestBuilder::create()
             ->withReference('managerRegistry', $this->getConnectionFactory(true))
-            ->build(
+            ->withChannel(
                 DbalBackedMessageChannelBuilder::create($channelName, 'managerRegistry')
                     ->withReceiveTimeout(1)
-            );
+            )
+            ->build()
+            ->getMessageChannel($channelName);
 
         $payload = 'some';
         $headerName = 'token';
@@ -84,7 +88,9 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
         /** @var PollableChannel $messageChannel */
         $messageChannel = $this->getComponentTestingWithConnection(true)
-            ->build(DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1));
+            ->withChannel(DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1))
+            ->build()
+            ->getMessageChannel($channelName);
 
         $payload = 'some';
         $headerName = 'token';
@@ -106,10 +112,12 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $connectionFactory = $this->getConnectionFactory();
         /** @var PollableChannel $messageChannel */
         $messageChannel = $this->getComponentTestingWithConnection()
-            ->build(
-                DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
+            ->withChannel(
+                DbalBackedMessageChannelBuilder::create($queueName = Uuid::uuid4()->toString())
                     ->withReceiveTimeout(1)
-            );
+            )
+            ->build()
+            ->getMessageChannel($queueName);
 
         /** @var DbalContext $dbalContext */
         $dbalContext = $connectionFactory->createContext();
@@ -126,8 +134,12 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $connectionFactory = $this->getConnectionFactory(true);
         /** @var PollableChannel $messageChannel */
         $messageChannel = $this->getComponentTestingWithConnection()
-            ->build(DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
-                ->withReceiveTimeout(1));
+            ->withChannel(
+                DbalBackedMessageChannelBuilder::create($channelName = Uuid::uuid4()->toString())
+                    ->withReceiveTimeout(1)
+            )
+            ->build()
+            ->getMessageChannel($channelName);
 
         /** @var DbalContext $dbalContext */
         $dbalContext = $connectionFactory->createContext();
@@ -143,8 +155,12 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         /** @var PollableChannel $messageChannel */
         $messageChannel = $this->getComponentTestingWithConnection(true)
-            ->build(DbalBackedMessageChannelBuilder::create(Uuid::uuid4()->toString())
-            ->withReceiveTimeout(1));
+            ->withChannel(
+                DbalBackedMessageChannelBuilder::create($channelName = Uuid::uuid4()->toString())
+                    ->withReceiveTimeout(1)
+            )
+            ->build()
+            ->getMessageChannel($channelName);
 
         $messageChannel->send(
             MessageBuilder::withPayload('some')

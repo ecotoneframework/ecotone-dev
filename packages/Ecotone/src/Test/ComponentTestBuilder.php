@@ -55,7 +55,10 @@ use Ramsey\Uuid\Uuid;
 
 class ComponentTestBuilder
 {
-    private function __construct(private InMemoryPSRContainer $container, private MessagingSystemConfiguration $messagingSystemConfiguration)
+    private function __construct(
+        private InMemoryPSRContainer $container,
+        private MessagingSystemConfiguration $messagingSystemConfiguration
+    )
     {
     }
 

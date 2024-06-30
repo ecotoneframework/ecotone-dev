@@ -86,7 +86,7 @@ class ModellingHandlerModule implements AnnotationModule
      */
     private array $serviceQueryHandlers;
     /**
-     * @var AnnotatedFinding[][]
+     * @var AnnotatedFinding[]
      */
     private array $aggregateEventHandlers;
     /**
@@ -155,22 +155,6 @@ class ModellingHandlerModule implements AnnotationModule
             $serviceEventHandlers[$priority][] = $eventHandler;
         }
 
-        $aggregateEventHandlersPreparation = array_filter(
-            $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
-            function (AnnotatedFinding $annotatedFinding) {
-                return $annotatedFinding->hasClassAnnotation(Aggregate::class);
-            }
-        );
-        $aggregateEventHandlers = [];
-        foreach ($aggregateEventHandlersPreparation as $eventHandler) {
-            $priority = Priority::DEFAULT_PRIORITY;
-            if ($eventHandler->hasAnnotation(Priority::class)) {
-                $priority = $eventHandler->getAnnotationsByImportanceOrder(Priority::class)[0]->getHeaderValue();
-            };
-
-            $aggregateEventHandlers[$priority][] = $eventHandler;
-        }
-
         return new self(
             ParameterConverterAnnotationFactory::create(),
             array_filter(
@@ -197,7 +181,12 @@ class ModellingHandlerModule implements AnnotationModule
                     return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
                 }
             ),
-            $aggregateEventHandlers,
+            array_filter(
+                $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
+                function (AnnotatedFinding $annotatedFinding) {
+                    return $annotatedFinding->hasClassAnnotation(Aggregate::class);
+                }
+            ),
             $serviceEventHandlers,
             $aggregateRepositoryReferenceNames,
             $annotationRegistrationService->findAnnotatedMethods(Repository::class)
@@ -349,13 +338,8 @@ class ModellingHandlerModule implements AnnotationModule
             Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as command handler', $registration->getClassName(), $registration->getMethodName()));
         }
 
-        foreach ($this->aggregateEventHandlers as $priorityRegistrations) {
-            $priority = $priorityRegistrations[0]->hasAnnotation(Priority::class) ? $priorityRegistrations[0]->getAnnotationsByImportanceOrder(Priority::class)[0]->getHeaderValue() : Priority::DEFAULT_PRIORITY;
-            foreach ($priorityRegistrations as $registration) {
-                Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as event handler', $registration->getClassName(), $registration->getMethodName()));
-                $registrationPriority = $registration->hasAnnotation(Priority::class) ? $registration->getAnnotationsByImportanceOrder(Priority::class)[0]->getHeaderValue() : Priority::DEFAULT_PRIORITY;
-                Assert::isTrue($priority === $registrationPriority, sprintf('Priority for %s::%s should be the same as for other handlers subscribing to the same Event in the aggregate', $registration->getClassName(), $registration->getMethodName()));
-            }
+        foreach ($this->aggregateEventHandlers as $registration) {
+            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as event handler', $registration->getClassName(), $registration->getMethodName()));
         }
 
         foreach ($this->aggregateQueryHandlers as $registration) {
@@ -471,15 +455,13 @@ class ModellingHandlerModule implements AnnotationModule
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
-
+        
         $aggregateEventHandlers = [];
-        foreach ($this->aggregateEventHandlers as $priorityRegistrations) {
-            foreach ($priorityRegistrations as $registration) {
-                $channelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
-                $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
-                $priority = $registration->hasAnnotation(Priority::class) ? $registration->getAnnotationsByImportanceOrder(Priority::class)[0]->getHeaderValue() : Priority::DEFAULT_PRIORITY;
-                $aggregateEventHandlers[$priority][$registration->getClassName()][$channelName][] = $registration;
-            }
+        foreach ($this->aggregateEventHandlers as $registration) {
+            $channelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
+            $priority = $registration->hasAnnotation(Priority::class) ? $registration->getAnnotationsByImportanceOrder(Priority::class)[0]->getHeaderValue() : Priority::DEFAULT_PRIORITY;
+            $aggregateEventHandlers[$priority][$registration->getClassName()][$channelName][] = $registration;
         }
 
         foreach ($aggregateCommandHandlers as $channelNameRegistrations) {

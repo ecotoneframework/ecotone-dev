@@ -1,5 +1,5 @@
 {
-    "type": "ecotone-quickstart",
+    "name": "ecotone/quickstart",
     "license": "MIT",
     "authors": [
         {

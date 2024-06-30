@@ -4,15 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadExpressionBuilder;
-use Ecotone\Messaging\Handler\InterfaceParameter;
-use Ecotone\Messaging\Handler\MethodArgument;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
@@ -43,7 +37,7 @@ class GatewayPayloadExpressionBuilderTest extends MessagingTest
                     $inputChannel = 'inputChannel'
                 )
                     ->withParameterConverters([
-                        GatewayPayloadExpressionBuilder::create('value', "reference('calculatingService').sum(value)")
+                        GatewayPayloadExpressionBuilder::create('value', "reference('calculatingService').sum(value)"),
                     ])
             )
             ->withMessageHandler(

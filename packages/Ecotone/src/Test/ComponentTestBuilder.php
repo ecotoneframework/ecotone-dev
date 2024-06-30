@@ -5,61 +5,36 @@ namespace Ecotone\Test;
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Lite\PhpDiContainerImplementation;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
-use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
-use Ecotone\Messaging\Config\Container\DefinedObject;
-use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\EndpointRunnerReference;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Config\Container\ProxyBuilder;
-use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
-use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
-use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
-use Ecotone\Messaging\Endpoint\EndpointRunner;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
-use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Gateway\StorageMessagingEntrypoint;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Handler\Logger\StubLoggingGateway;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
-use Ecotone\SymfonyBundle\DependencyInjection\SymfonyContainerAdapter;
-use function get_class;
-
-use Ramsey\Uuid\Uuid;
 
 class ComponentTestBuilder
 {
     private function __construct(
         private InMemoryPSRContainer $container,
         private MessagingSystemConfiguration $messagingSystemConfiguration
-    )
-    {
+    ) {
     }
 
     /**
@@ -69,8 +44,7 @@ class ComponentTestBuilder
         array $classesToResolve = [],
         ?ServiceConfiguration $configuration = null,
         array $configurationVariables = [],
-    ): self
-    {
+    ): self {
         // This will be used when symlinks to Ecotone packages are used (e.g. Split Testing - Github Actions)
         $debug = debug_backtrace();
         $path = dirname(array_pop($debug)['file']);
@@ -154,7 +128,7 @@ class ComponentTestBuilder
 
     public function build(): FlowTestSupport
     {
-        $containerBuilder = new \Ecotone\Messaging\Config\Container\ContainerBuilder();
+        $containerBuilder = new ContainerBuilder();
         $containerBuilder->addCompilerPass($this->messagingSystemConfiguration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
         $containerBuilder->addCompilerPass(new InMemoryContainerImplementation($this->container));

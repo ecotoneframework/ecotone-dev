@@ -115,7 +115,7 @@ class InMemoryConversionService implements ConversionService, Converter, Compila
         return new Definition(
             self::class,
             [
-                serialize($this)
+                serialize($this),
             ],
             'fromSerialized'
         );

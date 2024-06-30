@@ -4,19 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Handler\InterfaceParameter;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadExpressionBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
-use Test\Ecotone\Messaging\Fixture\Service\CallableService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**
@@ -42,7 +35,7 @@ class PayloadExpressionBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        PayloadExpressionBuilder::create('value', 'value ~ 1')
+                        PayloadExpressionBuilder::create('value', 'value ~ 1'),
                     ])
             )
             ->build();
@@ -65,7 +58,7 @@ class PayloadExpressionBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        PayloadExpressionBuilder::create('value', "reference('calculatingService').sum(value)")
+                        PayloadExpressionBuilder::create('value', "reference('calculatingService').sum(value)"),
                     ])
             )
             ->build();

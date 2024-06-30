@@ -6,18 +6,11 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
-use Ecotone\Messaging\Handler\InterfaceParameter;
-use Ecotone\Messaging\Handler\MethodArgument;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Handler\UnionTypeDescriptor;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnly;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceWithMixed;
 
 /**
@@ -36,7 +29,7 @@ class GatewayPayloadBuilderTest extends TestCase
                     $inputChannel = 'inputChannel'
                 )
                     ->withParameterConverters([
-                        GatewayPayloadBuilder::create('value')
+                        GatewayPayloadBuilder::create('value'),
                     ])
             )
             ->withMessageHandler(
@@ -66,7 +59,7 @@ class GatewayPayloadBuilderTest extends TestCase
                     $inputChannel = 'inputChannel'
                 )
                     ->withParameterConverters([
-                        GatewayPayloadBuilder::create('value')
+                        GatewayPayloadBuilder::create('value'),
                     ])
             )
             ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($inputChannel))

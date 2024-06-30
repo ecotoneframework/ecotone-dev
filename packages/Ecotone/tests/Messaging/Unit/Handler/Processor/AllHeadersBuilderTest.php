@@ -2,15 +2,11 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**
@@ -36,7 +32,7 @@ class AllHeadersBuilderTest extends TestCase
             MessageHeaders::MESSAGE_ID => '123',
             MessageHeaders::MESSAGE_CORRELATION_ID => '123',
             MessageHeaders::TIMESTAMP => '123',
-            'some' => 'test'
+            'some' => 'test',
         ];
 
         $evaluatedParameter = $messaging->sendDirectToChannel($inputChannel, 'test', metadata: $headers);

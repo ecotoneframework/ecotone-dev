@@ -2,26 +2,18 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
-use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendGateway;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverter;
-use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
-use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\JsonToArray\JsonToArrayConverter;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Conversion\StringToUuid\StringToUuidConverter;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlingException;
-use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
@@ -29,7 +21,6 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -39,19 +30,12 @@ use Ecotone\Messaging\Transaction\Transactional;
 use Ecotone\Messaging\Transaction\TransactionInterceptor;
 use Ecotone\Test\ComponentTestBuilder;
 use Ecotone\Test\InMemoryConversionService;
-use Exception;
-use ProxyManager\Proxy\RemoteObjectInterface;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use stdClass;
-use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleStdClassConverter;
-use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExceptionalConverter;
-use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\CalculatingServiceInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Channel\PollingChannelThrowingException;
-use Test\Ecotone\Messaging\Fixture\Handler\DataReturningService;
 use Test\Ecotone\Messaging\Fixture\Handler\ExceptionMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\IteratorReturningGateway;
-use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MessageReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MixedReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\StdClassReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\StringReturningGateway;
@@ -60,8 +44,6 @@ use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayClassAndMethodExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayClassExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayMethodExample;
-use Test\Ecotone\Messaging\Fixture\Handler\ReplyViaHeadersMessageHandler;
-use Test\Ecotone\Messaging\Fixture\Handler\StatefulHandler;
 use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverter;
 use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverterGatewayExample;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
@@ -70,13 +52,12 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceCalculatingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceReceiveOnly;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceReceiveOnlyWithNull;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendAndReceive;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnly;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnlyWithTwoArguments;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceWithFutureReceive;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceReceivingMessageAndReturningMessage;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceWithMixed;
 use Test\Ecotone\Messaging\Unit\MessagingTest;
+use TypeError;
 
 /**
  * Class GatewayProxyBuilderTest
@@ -1003,7 +984,7 @@ class GatewayProxyBuilderTest extends MessagingTest
         $messaging = ComponentTestBuilder::create()
             ->withConverter(
                 InMemoryConversionService::createWithConversion(
-                    [1,2,3],
+                    [1, 2, 3],
                     MediaType::APPLICATION_X_PHP,
                     TypeDescriptor::ARRAY,
                     MediaType::APPLICATION_JSON,
@@ -1031,7 +1012,7 @@ class GatewayProxyBuilderTest extends MessagingTest
         $this->assertEquals(
             '[1,2,3]',
             $messaging->getGateway(StringReturningGateway::class)
-                ->executeWithPayload([1,2,3], MediaType::APPLICATION_JSON)
+                ->executeWithPayload([1, 2, 3], MediaType::APPLICATION_JSON)
         );
     }
 
@@ -1164,7 +1145,7 @@ class GatewayProxyBuilderTest extends MessagingTest
             ->build();
 
         $resultSet = [];
-        foreach ($messaging->getGateway(IteratorReturningGateway::class)->executeWithAdvancedIterator($expectedResultSet = [new \stdClass(), new \stdClass()]) as $item) {
+        foreach ($messaging->getGateway(IteratorReturningGateway::class)->executeWithAdvancedIterator($expectedResultSet = [new stdClass(), new stdClass()]) as $item) {
             $resultSet[] = $item;
         }
 
@@ -1311,7 +1292,7 @@ class GatewayProxyBuilderTest extends MessagingTest
             )
             ->build();
 
-        $this->expectException(\TypeError::class);
+        $this->expectException(TypeError::class);
 
         $messaging->getGateway(StdClassReturningGateway::class)->executeWithPayload('something');
     }

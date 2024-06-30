@@ -33,7 +33,7 @@ class ServiceReturningMessage
         return new self($messageToReturn);
     }
 
-    #[ServiceActivator("get")]
+    #[ServiceActivator('get')]
     public function get()
     {
         return $this->messageToReturn;

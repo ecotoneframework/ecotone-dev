@@ -4,19 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
-use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
-use Ecotone\Messaging\Conversion\JsonToArray\JsonToArrayConverter;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Conversion\SerializedToObject\DeserializingConverter;
-use Ecotone\Messaging\Conversion\StringToUuid\StringToUuidConverter;
-use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
-use Ecotone\Messaging\Handler\Processor\WrapWithMessageBuildProcessor;
 use Ecotone\Messaging\Handler\ReferenceNotFoundException;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -32,11 +23,7 @@ use stdClass;
 use Test\Ecotone\Messaging\Fixture\Behat\Ordering\Order;
 use Test\Ecotone\Messaging\Fixture\Behat\Ordering\OrderConfirmation;
 use Test\Ecotone\Messaging\Fixture\Behat\Ordering\OrderProcessor;
-use Test\Ecotone\Messaging\Fixture\Converter\StringToUuidClassConverter;
 use Test\Ecotone\Messaging\Fixture\Handler\ExampleService;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallMultipleUnorderedArgumentsInvocationInterceptorExample;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithPassThroughInterceptorExample;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\StubCallSavingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingMessageAndReturningMessage;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingThreeArguments;
@@ -59,7 +46,7 @@ class MethodInvokerTest extends MessagingTest
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        PayloadBuilder::create('value')
+                        PayloadBuilder::create('value'),
                     ])
             )
             ->build();
@@ -82,7 +69,7 @@ class MethodInvokerTest extends MessagingTest
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingMessageAndReturningMessage::create('test'), 'send')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        MessageConverterBuilder::create('message')
+                        MessageConverterBuilder::create('message'),
                     ])
             )
             ->build();
@@ -136,10 +123,10 @@ class MethodInvokerTest extends MessagingTest
         $this->assertEquals(
             [
                 'payload' => 100,
-                'message_id' => 'someId'
+                'message_id' => 'someId',
             ],
             $messaging->sendDirectToChannel($inputChannel, 100, metadata: [
-                MessageHeaders::MESSAGE_ID => 'someId'
+                MessageHeaders::MESSAGE_ID => 'someId',
             ])
         );
     }
@@ -156,7 +143,7 @@ class MethodInvokerTest extends MessagingTest
             ->withMessageHandler(
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withoutReturnValue')
                     ->withMethodParameterConverters([
-                        PayloadBuilder::create('wrongName')
+                        PayloadBuilder::create('wrongName'),
                     ])
                     ->withInputChannelName($inputChannel = 'inputChannel')
             )
@@ -186,7 +173,7 @@ class MethodInvokerTest extends MessagingTest
             'johnybilbo13',
             $messaging->sendDirectToChannel($inputChannel, 'johny', metadata: [
                 'personSurname' => 'bilbo',
-                'personAge' => 13
+                'personAge' => 13,
             ])
         );
     }
@@ -390,7 +377,7 @@ class MethodInvokerTest extends MessagingTest
             $messaging->sendDirectToChannel(
                 $inputChannel,
                 metadata: [
-                    'uuid' => $uuid
+                    'uuid' => $uuid,
                 ]
             )
         );

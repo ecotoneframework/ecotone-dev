@@ -81,7 +81,7 @@ class FakeConverterService implements Converter, CompilableBuilder
         return new Definition(self::class, [
             $this->data,
             $this->typeDescriptor,
-            $this->mediaType
+            $this->mediaType,
         ]);
     }
 }

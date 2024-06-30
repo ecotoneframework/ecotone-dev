@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Transformer;
 
-use Ecotone\Messaging\Channel\DirectChannel;
-use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -15,8 +13,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
+use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\CalculatingServiceInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingMessageAndReturningMessage;
@@ -62,8 +60,8 @@ class TransformerBuilderTest extends MessagingTest
             ->build();
 
         $this->assertEquals(
-            new \stdClass(),
-            $messaging->sendDirectToChannelWithMessageReply('inputChannel', new \stdClass())->getPayload()
+            new stdClass(),
+            $messaging->sendDirectToChannelWithMessageReply('inputChannel', new stdClass())->getPayload()
         );
     }
 

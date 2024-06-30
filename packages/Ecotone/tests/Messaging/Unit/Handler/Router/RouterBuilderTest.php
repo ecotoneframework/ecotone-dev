@@ -4,20 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
-use Ecotone\Messaging\Channel\DirectChannel;
-use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
-use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Exception;
 use stdClass;
-use Test\Ecotone\Messaging\Fixture\Handler\Splitter\ServiceSplittingArrayPayload;
 use Test\Ecotone\Messaging\Fixture\Router\MultipleChannelRouter;
 use Test\Ecotone\Messaging\Fixture\Router\Order;
 use Test\Ecotone\Messaging\Fixture\Router\SingleChannelRouter;
@@ -52,7 +48,8 @@ class RouterBuilderTest extends MessagingTest
 
         $messaging->sendDirectToChannel('inputChannel', 'some');
 
-        $this->assertNotNull($messaging->receiveMessageFrom($chanelName));;
+        $this->assertNotNull($messaging->receiveMessageFrom($chanelName));
+        ;
     }
 
     /**
@@ -146,7 +143,7 @@ class RouterBuilderTest extends MessagingTest
             )
             ->build();
 
-        $messaging->sendDirectToChannel('inputChannel', new \stdClass());
+        $messaging->sendDirectToChannel('inputChannel', new stdClass());
 
         $this->assertNotNull($messaging->receiveMessageFrom('channel1'));
         $this->assertNull($messaging->receiveMessageFrom('channel2'));
@@ -169,7 +166,7 @@ class RouterBuilderTest extends MessagingTest
             )
             ->build();
 
-        $messaging->sendDirectToChannel('inputChannel', new \stdClass());
+        $messaging->sendDirectToChannel('inputChannel', new stdClass());
 
         $this->assertNull($messaging->receiveMessageFrom('channel1'));
         $this->assertNotNull($messaging->receiveMessageFrom($defaultResolutionChannel));
@@ -181,7 +178,7 @@ class RouterBuilderTest extends MessagingTest
      */
     public function test_routing_by_payload_type_without_mapping()
     {
-        $channelName = \stdClass::class;
+        $channelName = stdClass::class;
         $messaging = ComponentTestBuilder::create()
             ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($channelName))
             ->withMessageHandler(
@@ -190,7 +187,7 @@ class RouterBuilderTest extends MessagingTest
             )
             ->build();
 
-        $messaging->sendDirectToChannel('inputChannel', new \stdClass());
+        $messaging->sendDirectToChannel('inputChannel', new stdClass());
 
         $this->assertNotNull($messaging->receiveMessageFrom($channelName));
     }
@@ -239,7 +236,7 @@ class RouterBuilderTest extends MessagingTest
 
         $this->expectException(InvalidArgumentException::class);
 
-        $messaging->sendDirectToChannel('inputChannel','some');
+        $messaging->sendDirectToChannel('inputChannel', 'some');
     }
 
     /**
@@ -257,7 +254,7 @@ class RouterBuilderTest extends MessagingTest
             )
             ->build();
 
-        $messaging->sendDirectToChannel('inputChannel','some');
+        $messaging->sendDirectToChannel('inputChannel', 'some');
 
         $this->assertNotNull($messaging->receiveMessageFrom($privateChannelName));
         $this->assertNotNull($messaging->receiveMessageFrom($publicChannelName));

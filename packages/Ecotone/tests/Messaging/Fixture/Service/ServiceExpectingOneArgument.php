@@ -7,9 +7,9 @@ namespace Test\Ecotone\Messaging\Fixture\Service;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Message;
 use Ramsey\Uuid\UuidInterface;
 use stdClass;
-use Ecotone\Messaging\Message;
 
 /**
  * Class ServiceExpectingOneArgument
@@ -28,7 +28,7 @@ class ServiceExpectingOneArgument implements DefinedObject
     public function withReturnValue(string $name): string
     {
         $this->wasCalled = true;
-        return $name . "_called";
+        return $name . '_called';
     }
 
     public function withReturnMixed(mixed $value): mixed

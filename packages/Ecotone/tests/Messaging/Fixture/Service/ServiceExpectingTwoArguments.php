@@ -35,7 +35,7 @@ class ServiceExpectingTwoArguments implements DefinedObject
     {
         return [
             'payload' => $payload,
-            'message_id' => $headers[MessageHeaders::MESSAGE_ID]
+            'message_id' => $headers[MessageHeaders::MESSAGE_ID],
         ];
     }
 

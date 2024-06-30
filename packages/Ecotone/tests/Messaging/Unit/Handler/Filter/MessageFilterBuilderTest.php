@@ -2,23 +2,14 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Filter;
 
-use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Handler\Filter\MessageFilterBuilder;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaderDoesNotExistsException;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Exception;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\HeadersConversionServiceConcrete;
-use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithEndingChainAndReturningInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Selector\MessageSelectorExample;
 use Test\Ecotone\Messaging\Unit\MessagingTest;
 
@@ -82,7 +73,7 @@ class MessageFilterBuilderTest extends MessagingTest
 
         $this->assertNotNull(
             $messaging->sendDirectToChannel($inputChannel, metadata: [
-                'filterOut' => false
+                'filterOut' => false,
             ])
         );
     }
@@ -98,7 +89,7 @@ class MessageFilterBuilderTest extends MessagingTest
 
         $this->assertNull(
             $messaging->sendDirectToChannel($inputChannel, metadata: [
-                'filterOut' => true
+                'filterOut' => true,
             ])
         );
     }

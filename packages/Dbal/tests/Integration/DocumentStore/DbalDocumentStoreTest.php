@@ -10,10 +10,12 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Test\InMemoryConversionService;
-use stdClass;
-use Test\Ecotone\Dbal\DbalMessagingTestCase;
+
 use function json_decode;
 use function json_encode;
+
+use stdClass;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
  * @internal

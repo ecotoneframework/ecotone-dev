@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
@@ -32,12 +28,12 @@ class ReferenceBuilderTest extends TestCase
     public function test_creating_reference_converter()
     {
         $messaging = ComponentTestBuilder::create()
-            ->withReference($referenceName = 'refName', $value = new \StdClass())
+            ->withReference($referenceName = 'refName', $value = new stdClass())
             ->withMessageHandler(
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withUnionParameter')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        ReferenceBuilder::create('value', $referenceName)
+                        ReferenceBuilder::create('value', $referenceName),
                     ])
             )
             ->build();
@@ -55,12 +51,12 @@ class ReferenceBuilderTest extends TestCase
     public function test_creating_with_dynamic_reference_resolution()
     {
         $messaging = ComponentTestBuilder::create()
-            ->withReference(stdClass::class, $value = new \StdClass())
+            ->withReference(stdClass::class, $value = new stdClass())
             ->withMessageHandler(
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withUnionParameter')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        ReferenceBuilder::create('value', stdClass::class)
+                        ReferenceBuilder::create('value', stdClass::class),
                     ])
             )
             ->build();
@@ -86,7 +82,7 @@ class ReferenceBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withUnionParameter')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        ReferenceBuilder::create('value', $referenceName, 'service.name')
+                        ReferenceBuilder::create('value', $referenceName, 'service.name'),
                     ])
             )
             ->build();

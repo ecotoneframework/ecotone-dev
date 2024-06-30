@@ -49,13 +49,13 @@ class EcotoneLiteTest extends TestCase
 
         $this->assertEquals(
             [
-                'test1'
+                'test1',
             ],
             $ecotoneLite->getRecordedMessagePayloadsFrom('async1')
         );
         $this->assertEquals(
             [
-                'test2'
+                'test2',
             ],
             $ecotoneLite->getRecordedMessagePayloadsFrom('async2')
         );

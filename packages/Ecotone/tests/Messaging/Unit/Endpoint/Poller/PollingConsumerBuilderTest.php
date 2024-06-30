@@ -12,8 +12,6 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
-use Ecotone\Messaging\Endpoint\PollingConsumer\InterceptedConsumerRunner;
-use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
@@ -128,7 +126,7 @@ class PollingConsumerBuilderTest extends MessagingTest
 
         try {
             $messaging->run('test');
-        }catch (RuntimeException $e) {
+        } catch (RuntimeException $e) {
             $exceptionThrown = true;
         }
 
@@ -160,7 +158,8 @@ class PollingConsumerBuilderTest extends MessagingTest
 
         try {
             $messaging->run('test');
-        }catch (RuntimeException $e) {}
+        } catch (RuntimeException $e) {
+        }
 
         $this->assertEquals(3, $inputChannel->getExceptionCount());
     }
@@ -406,8 +405,7 @@ class PollingConsumerBuilderTest extends MessagingTest
         QueueChannel $inputChannel,
         MessageHandlerBuilder $messageHandler,
         bool $stopOnFailure = false
-    ): FlowTestSupport
-    {
+    ): FlowTestSupport {
         return ComponentTestBuilder::create()
             ->withChannel(SimpleMessageChannelBuilder::create($inputChannelName, $inputChannel))
             ->withPollingMetadata(

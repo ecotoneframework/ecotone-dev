@@ -7,9 +7,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Test\ComponentTestBuilder;
 use InvalidArgumentException;
 
 class DataReturningService implements DefinedObject

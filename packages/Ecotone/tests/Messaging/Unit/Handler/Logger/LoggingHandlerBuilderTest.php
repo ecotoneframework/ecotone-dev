@@ -5,31 +5,16 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Logger;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
-use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Support\MessageBuilder;
 
-use Ecotone\Test\ComponentTestBuilder;
 
 use Ecotone\Test\LoggerExample;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
+use Test\Ecotone\Messaging\Unit\MessagingTest;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriber;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
-use function json_encode;
 
-use Psr\Log\LoggerInterface;
-use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\WithLogger\ServiceActivatorWithLoggerExample;
-use Test\Ecotone\Messaging\Unit\MessagingTest;
+use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
 
 /**
  * Class LoggingHandlerBuilderTest

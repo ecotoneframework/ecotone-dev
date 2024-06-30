@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler\Gateway;
 
-use Ramsey\Uuid\UuidInterface;
+use stdClass;
 
 interface StdClassReturningGateway
 {
-    public function executeNoParameter(): \stdClass;
+    public function executeNoParameter(): stdClass;
 
-    public function executeWithPayload(mixed $payload): \stdClass;
+    public function executeWithPayload(mixed $payload): stdClass;
 }

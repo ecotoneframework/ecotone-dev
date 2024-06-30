@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\ServiceActivator;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
@@ -104,7 +103,8 @@ class ServiceActivatorBuilderTest extends MessagingTest
         $this->assertEquals(
             'test',
             $messaging->sendDirectToChannel('inputChannel', 'test')
-        );;
+        );
+        ;
     }
 
     /**
@@ -120,12 +120,13 @@ class ServiceActivatorBuilderTest extends MessagingTest
                     ->withPassThroughMessageOnVoidInterface(true)
             )
             ->build(
-        );
+            );
 
         $this->assertEquals(
             'test_called',
             $messaging->sendDirectToChannel('inputChannel', 'test')
-        );;
+        );
+        ;
     }
 
     /**
@@ -153,7 +154,8 @@ class ServiceActivatorBuilderTest extends MessagingTest
         $this->assertEquals(
             8,
             $messaging->sendDirectToChannel('someName', 1)
-        );;
+        );
+        ;
     }
 
     public function test_returning_array_from_service_activator()
@@ -169,7 +171,8 @@ class ServiceActivatorBuilderTest extends MessagingTest
         $this->assertEquals(
             ['some' => 'test'],
             $messaging->sendDirectToChannel('inputChannel', 'test')
-        );;
+        );
+        ;
     }
 
     public function test_returning_array_and_changing_headers_from_service_activator()

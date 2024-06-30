@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDescriptor;

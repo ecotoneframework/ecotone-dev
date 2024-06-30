@@ -4,12 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Conversion;
 
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Conversion\ReferenceServiceConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
@@ -19,7 +14,6 @@ use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleIncorrectConverte
 use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleIncorrectUnionReturnTypeConverterService;
 use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleIncorrectUnionSourceTypeConverterService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingTwoArguments;
 
 /**
  * Class ReferenceServiceConverterBuilderTest
@@ -46,7 +40,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
             ->build();
 
         $this->assertEquals(
-            [new \stdClass()],
+            [new stdClass()],
             $messaging->sendDirectToChannel(
                 $inputChannel,
                 ['some']

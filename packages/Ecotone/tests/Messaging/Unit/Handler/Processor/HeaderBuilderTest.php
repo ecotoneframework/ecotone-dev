@@ -36,7 +36,7 @@ class HeaderBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderBuilder::create('value', 'token')
+                        HeaderBuilder::create('value', 'token'),
                     ])
             )
             ->build();
@@ -54,7 +54,7 @@ class HeaderBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderBuilder::createOptional('value', 'token')
+                        HeaderBuilder::createOptional('value', 'token'),
                     ])
             )
             ->build();
@@ -72,7 +72,7 @@ class HeaderBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(HeadersConversionServiceConcrete::create(), 'withUuid')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderBuilder::create('value', 'token')
+                        HeaderBuilder::create('value', 'token'),
                     ])
             )
             ->build();
@@ -109,13 +109,13 @@ class HeaderBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(HeadersConversionServiceConcrete::create(), 'withStdClass')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderBuilder::create('value', 'personId')
+                        HeaderBuilder::create('value', 'personId'),
                     ])
             )
             ->build();
 
         $headerResult = $messaging->sendDirectToChannel($inputChannel, metadata: ['personId' => $data]);
-        $this->assertInstanceOf(StdClass::class, $headerResult);
+        $this->assertInstanceOf(stdClass::class, $headerResult);
     }
 
     public function test_calling_with_php_to_php_conversion()
@@ -136,7 +136,7 @@ class HeaderBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(HeadersConversionServiceConcrete::create(), 'withUuid')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderBuilder::create('value', 'personId')
+                        HeaderBuilder::create('value', 'personId'),
                     ])
             )
             ->build();
@@ -152,7 +152,7 @@ class HeaderBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(HeadersConversionServiceConcrete::create(), 'withDefaultValue')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderBuilder::createOptional('value', 'token')
+                        HeaderBuilder::createOptional('value', 'token'),
                     ])
             )
             ->build();

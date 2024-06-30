@@ -4,20 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Messaging\Config\Container\BoundParameterConverter;
-use Ecotone\Messaging\Handler\InterfaceParameter;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderExpressionBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
-use Test\Ecotone\Messaging\Fixture\Service\CallableService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 
 /**
@@ -43,7 +36,7 @@ class HeaderExpressionBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderExpressionBuilder::create('value', 'token', 'value ~ 1', true)
+                        HeaderExpressionBuilder::create('value', 'token', 'value ~ 1', true),
                     ])
             )
             ->build();
@@ -66,7 +59,7 @@ class HeaderExpressionBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderExpressionBuilder::create('value', 'number', "reference('calculatingService').sum(value)", true)
+                        HeaderExpressionBuilder::create('value', 'number', "reference('calculatingService').sum(value)", true),
                     ])
             )
             ->build();
@@ -84,7 +77,7 @@ class HeaderExpressionBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderExpressionBuilder::create('value', 'token', 'value ~ 1', true)
+                        HeaderExpressionBuilder::create('value', 'token', 'value ~ 1', true),
                     ])
             )
             ->build();
@@ -104,7 +97,7 @@ class HeaderExpressionBuilderTest extends TestCase
                 ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withReturnMixed')
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withMethodParameterConverters([
-                        HeaderExpressionBuilder::create('value', 'token', 'value', false)
+                        HeaderExpressionBuilder::create('value', 'token', 'value', false),
                     ])
             )
             ->build();

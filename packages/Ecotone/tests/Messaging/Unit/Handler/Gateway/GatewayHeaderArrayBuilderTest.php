@@ -4,12 +4,8 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadExpressionBuilder;
-use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
@@ -40,7 +36,7 @@ class GatewayHeaderArrayBuilderTest extends MessagingTest
                     $inputChannel = 'inputChannel'
                 )
                     ->withParameterConverters([
-                        GatewayHeadersBuilder::create('value')
+                        GatewayHeadersBuilder::create('value'),
                     ])
             )
             ->withMessageHandler(
@@ -51,7 +47,7 @@ class GatewayHeaderArrayBuilderTest extends MessagingTest
 
         $message = $messaging->getGateway(ServiceWithMixed::class)->send([
             'token' => 'some',
-            'type' => 'someType'
+            'type' => 'someType',
         ]);
         $this->assertEquals(
             'some',
@@ -75,7 +71,7 @@ class GatewayHeaderArrayBuilderTest extends MessagingTest
                     $inputChannel = 'inputChannel'
                 )
                     ->withParameterConverters([
-                        GatewayHeadersBuilder::create('value')
+                        GatewayHeadersBuilder::create('value'),
                     ])
             )
             ->withMessageHandler(

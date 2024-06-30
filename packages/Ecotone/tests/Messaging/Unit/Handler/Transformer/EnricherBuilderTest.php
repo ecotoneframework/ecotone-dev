@@ -10,7 +10,6 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\JsonToArray\JsonToArrayConverter;
 use Ecotone\Messaging\Conversion\JsonToArray\JsonToArrayConverterBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -23,7 +22,6 @@ use Ecotone\Messaging\Handler\Enricher\EnrichException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
-use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
@@ -750,7 +748,7 @@ class EnricherBuilderTest extends MessagingTest
             )
             ->build();
 
-        $messaging->sendDirectToChannel($inputChannel,             [
+        $messaging->sendDirectToChannel($inputChannel, [
             'orders' => [],
         ]);
 
@@ -830,7 +828,7 @@ class EnricherBuilderTest extends MessagingTest
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $requestChannel))
             ->withMessageHandler(
                 EnricherBuilder::create([
-                    EnrichPayloadWithExpressionBuilder::createWith('test', '1')
+                    EnrichPayloadWithExpressionBuilder::createWith('test', '1'),
                 ])
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withRequestMessageChannel($requestChannelName)
@@ -878,7 +876,7 @@ class EnricherBuilderTest extends MessagingTest
             ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $requestChannel))
             ->withMessageHandler(
                 EnricherBuilder::create([
-                    EnrichPayloadWithExpressionBuilder::createWith('test', '1')
+                    EnrichPayloadWithExpressionBuilder::createWith('test', '1'),
                 ])
                     ->withInputChannelName($inputChannel = 'inputChannel')
                     ->withRequestMessageChannel($requestChannelName)

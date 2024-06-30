@@ -52,6 +52,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Release ${{ github.ref_name }}
+          token: ${{ secrets.ACCESS_TOKEN }}
 
   get_packages:
     name: Package splitting

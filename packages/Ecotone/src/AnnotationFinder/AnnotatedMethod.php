@@ -123,6 +123,15 @@ class AnnotatedMethod implements AnnotatedFinding
         return $annotations;
     }
 
+    public function getAnnotationsByImportanceOrder(string $type): array
+    {
+        if ($this->hasMethodAnnotation($type)) {
+            return $this->getMethodAnnotationsWithType($type);
+        }
+
+        return $this->getClassAnnotationsWithType($type);
+    }
+
     public function hasClassAnnotation(string $type): bool
     {
         foreach ($this->classAnnotations as $classAnnotation) {
@@ -132,6 +141,11 @@ class AnnotatedMethod implements AnnotatedFinding
         }
 
         return false;
+    }
+
+    public function hasAnnotation(string $type): bool
+    {
+        return $this->hasClassAnnotation($type) || $this->hasMethodAnnotation($type);
     }
 
     public function __toString()

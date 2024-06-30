@@ -20,6 +20,9 @@ use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestCommand;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestHandler;
 use Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod\Aggregate;
 use Test\Ecotone\Modelling\Fixture\Outbox\OutboxWithMultipleChannels;
+use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityHandler;
+use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\OrderWasPlaced;
+use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandler;
 
 /**
  * @internal
@@ -43,6 +46,44 @@ final class ModellingEcotoneLiteTest extends TestCase
             $ecotoneTestSupport
                 ->sendCommand(new CreateMerchant($merchantId))
                 ->sendQueryWithRouting('user.get', metadata: ['aggregate.id' => $merchantId])
+        );
+    }
+
+    public function test_synchronous_event_handlers_should_be_handled_in_priority()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [SynchronousPriorityHandler::class],
+            [
+                new SynchronousPriorityHandler(),
+            ]
+        );
+
+        $this->assertSame(
+            ['higherPriorityHandler', 'lowerPriorityHandler'],
+            $ecotoneTestSupport
+                ->publishEvent(new OrderWasPlaced(1))
+                ->sendQueryWithRouting('getTriggers')
+        );
+    }
+
+    public function test_aggregate_and_service_synchronous_event_handlers_should_be_handled_in_priority()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [AggregateSynchronousPriorityHandler::class, SynchronousPriorityHandler::class],
+            [
+                new SynchronousPriorityHandler(),
+            ]
+        );
+
+        $this->assertSame(
+            [
+                'higherPriorityHandler',
+                'aggregateLowerPriorityHandler',
+                'lowerPriorityHandler'
+            ],
+            $ecotoneTestSupport
+                ->sendCommandWithRoutingKey('setup', 1)
+                ->sendQueryWithRouting('getTriggers')
         );
     }
 

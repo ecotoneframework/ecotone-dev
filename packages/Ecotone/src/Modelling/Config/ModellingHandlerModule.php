@@ -455,13 +455,21 @@ class ModellingHandlerModule implements AnnotationModule
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
-        
+
+        $samePriorityChecker = [];
         $aggregateEventHandlers = [];
         foreach ($this->aggregateEventHandlers as $registration) {
             $channelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $priority = $registration->hasAnnotation(Priority::class) ? $registration->getAnnotationsByImportanceOrder(Priority::class)[0]->getHeaderValue() : Priority::DEFAULT_PRIORITY;
             $aggregateEventHandlers[$priority][$registration->getClassName()][$channelName][] = $registration;
+
+            if (isset($samePriorityChecker[$registration->getClassName()][$channelName])) {
+                if (!in_array($priority, $samePriorityChecker[$registration->getClassName()][$channelName])) {
+                    throw new ConfigurationException("Aggregate Event Handler {$registration->getClassName()}::{$registration->getMethodName()} for same subscription, must have same priority defined.");
+                }
+            }
+            $samePriorityChecker[$registration->getClassName()][$channelName][] = $priority;
         }
 
         foreach ($aggregateCommandHandlers as $channelNameRegistrations) {
@@ -486,16 +494,17 @@ class ModellingHandlerModule implements AnnotationModule
             $maximumPriority = max(array_merge(array_keys($this->serviceEventHandlers), array_keys($aggregateEventHandlers)));
 
             for ($priority = $maximumPriority; $priority >= $minimumPriority; $priority--) {
-                if (isset($this->serviceEventHandlers[$priority])) {
-                    foreach ($this->serviceEventHandlers[$priority] as $registration) {
-                        $this->registerServiceHandler(self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
-                    }
-                }
                 if (isset($aggregateEventHandlers[$priority])) {
                     foreach ($aggregateEventHandlers[$priority] as $priorityChannelNameRegistrations) {
                         foreach ($priorityChannelNameRegistrations as $channelName => $registrations) {
                             $this->registerAggregateCommandHandler($messagingConfiguration, $interfaceToCallRegistry, $this->aggregateRepositoryReferenceNames, $registrations, $channelName, $baseEventSourcingConfiguration);
                         }
+                    }
+                }
+
+                if (isset($this->serviceEventHandlers[$priority])) {
+                    foreach ($this->serviceEventHandlers[$priority] as $registration) {
+                        $this->registerServiceHandler(self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
                     }
                 }
             }

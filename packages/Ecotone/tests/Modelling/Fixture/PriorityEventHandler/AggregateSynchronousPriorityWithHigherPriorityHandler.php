@@ -9,11 +9,10 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
 
 #[Aggregate]
-final class AggregateSynchronousPriorityHandler
+final class AggregateSynchronousPriorityWithHigherPriorityHandler
 {
     use WithEvents;
 
@@ -32,10 +31,10 @@ final class AggregateSynchronousPriorityHandler
         return new self($identifier);
     }
 
-    #[Priority(2)]
+    #[Priority(5)]
     #[EventHandler]
-    public function lowerPriorityHandler(OrderWasPlaced $event, SynchronousPriorityHandler $priorityHandler): void
+    public function higherPriorityHandler(OrderWasPlaced $event, SynchronousPriorityHandler $priorityHandler): void
     {
-        $priorityHandler->triggers[] = 'aggregateLowerPriorityHandler';
+        $priorityHandler->triggers[] = 'aggregateHigherPriorityHandler';
     }
 }

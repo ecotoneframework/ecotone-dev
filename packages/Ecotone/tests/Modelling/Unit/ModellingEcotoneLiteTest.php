@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
@@ -20,7 +21,9 @@ use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestCommand;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestHandler;
 use Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod\Aggregate;
 use Test\Ecotone\Modelling\Fixture\Outbox\OutboxWithMultipleChannels;
-use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityHandler;
+use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityWithHigherPriorityHandler;
+use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityWithLowerPriorityHandler;
+use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\IncorrectAggregateSynchronousPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandler;
 
@@ -69,7 +72,7 @@ final class ModellingEcotoneLiteTest extends TestCase
     public function test_aggregate_and_service_synchronous_event_handlers_should_be_handled_in_priority()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [AggregateSynchronousPriorityHandler::class, SynchronousPriorityHandler::class],
+            [AggregateSynchronousPriorityWithLowerPriorityHandler::class, SynchronousPriorityHandler::class],
             [
                 new SynchronousPriorityHandler(),
             ]
@@ -84,6 +87,36 @@ final class ModellingEcotoneLiteTest extends TestCase
             $ecotoneTestSupport
                 ->sendCommandWithRoutingKey('setup', 1)
                 ->sendQueryWithRouting('getTriggers')
+        );
+    }
+
+    public function test_when_aggregate_and_service_with_same_priority_aggregate_should_go_first()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [AggregateSynchronousPriorityWithHigherPriorityHandler::class, SynchronousPriorityHandler::class],
+            [
+                new SynchronousPriorityHandler(),
+            ]
+        );
+
+        $this->assertSame(
+            [
+                'aggregateHigherPriorityHandler',
+                'higherPriorityHandler',
+                'lowerPriorityHandler'
+            ],
+            $ecotoneTestSupport
+                ->sendCommandWithRoutingKey('setup', 1)
+                ->sendQueryWithRouting('getTriggers')
+        );
+    }
+
+    public function test_throwing_an_exception_if_event_handlers_for_same_event_within_aggregate_have_different_priority()
+    {
+        $this->expectException(ConfigurationException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [IncorrectAggregateSynchronousPriorityHandler::class]
         );
     }
 

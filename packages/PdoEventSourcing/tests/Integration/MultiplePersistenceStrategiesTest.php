@@ -15,6 +15,7 @@ use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\Basket;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\BasketCreated;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\BasketProjection;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\EventsConverter;
+use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\Logger;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\Order;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\OrderCreated;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\OrderProjection;
@@ -27,19 +28,20 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
     public function test_allow_multiple_persistent_strategies_per_aggregate(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [Order::class, Basket::class, BasketProjection::class, OrderProjection::class],
+            classesToResolve: [Order::class, Basket::class, BasketProjection::class, OrderProjection::class, Logger::class],
             containerOrAvailableServices: [
                 new EventsConverter(),
                 new BasketProjection($this->getConnection()),
                 new OrderProjection($this->getConnection()),
-                $this->getConnectionFactory(),
+                new Logger(),
+                self::getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
-                        ->withSimpleStreamPersistenceStrategy()
+                        ->withPersistenceStrategyFor(Logger::STREAM, LazyProophEventStore::SIMPLE_STREAM_PERSISTENCE)
                         ->withPersistenceStrategyFor(Order::STREAM, LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE),
                 ])
                 ->withNamespaces([
@@ -89,10 +91,12 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
         self::assertTrue($eventStore->hasStream(Order::STREAM.'-order-1'));
         self::assertTrue($eventStore->hasStream(Order::STREAM.'-order-2'));
         self::assertTrue($eventStore->hasStream(Basket::STREAM));
+        self::assertTrue($eventStore->hasStream(Logger::STREAM));
 
         self::assertCount(1, $eventStore->load(Order::STREAM.'-order-1'));
         self::assertCount(1, $eventStore->load(Order::STREAM.'-order-2'));
         self::assertCount(2, $eventStore->load(Basket::STREAM));
+        self::assertCount(4, $eventStore->load(Logger::STREAM));
 
         self::assertEquals(['order-1', 'order-2'], $ecotone->sendQueryWithRouting('orders'));
         self::assertEquals(['basket-1', 'basket-2'], $ecotone->sendQueryWithRouting('baskets'));

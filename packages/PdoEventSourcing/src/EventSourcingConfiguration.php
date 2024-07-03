@@ -10,6 +10,7 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Prooph\EventStore\InMemoryEventStore;
 use Prooph\EventStore\Pdo\PersistenceStrategy;
+use Prooph\EventStore\StreamName;
 
 class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 {
@@ -182,6 +183,11 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     public function getPersistenceStrategy(): string
     {
         return $this->persistenceStrategy;
+    }
+
+    public function getPersistenceStrategyFor(?StreamName $streamName = null): string
+    {
+        return $this->persistenceStrategies[$streamName?->toString()] ?? $this->persistenceStrategy;
     }
 
     public function getCustomPersistenceStrategy(): PersistenceStrategy

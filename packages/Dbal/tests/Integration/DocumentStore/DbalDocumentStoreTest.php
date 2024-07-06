@@ -176,9 +176,15 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $documentStore = $this->getDocumentStore();
 
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
+        $documentStore->addDocument('companies', '123', '{"name":"Document Stores, INC."}');
+
+        $this->assertEquals(1, $documentStore->countDocuments('users'));
+        $this->assertEquals(1, $documentStore->countDocuments('companies'));
+
         $documentStore->deleteDocument('users', '123');
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
+        $this->assertEquals(1, $documentStore->countDocuments('companies'));
     }
 
     public function test_deleting_non_existing_document()
@@ -216,10 +222,13 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $documentStore = $this->getDocumentStore();
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
         $documentStore->addDocument('users', '124', '{"name":"Johny"}');
+        $documentStore->addDocument('companies', '123', '{"name":"Document Stores, INC."}');
+        $documentStore->addDocument('companies', '124', '{"name":"Document Stores, INC."}');
 
         $documentStore->dropCollection('users');
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
+        $this->assertEquals(2, $documentStore->countDocuments('companies'));
     }
 
     public function test_retrieving_whole_collection()

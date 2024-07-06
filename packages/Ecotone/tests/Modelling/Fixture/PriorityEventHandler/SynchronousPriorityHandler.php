@@ -30,10 +30,10 @@ final class SynchronousPriorityHandler
     #[EventHandler(endpointId: 'higherPriorityHandler')]
     public function higherPriorityHandler(OrderWasPlaced $event): void
     {
-        $this->triggers[] = "higherPriorityHandler";
+        $this->triggers[] = 'higherPriorityHandler';
     }
 
-    #[QueryHandler("getTriggers")]
+    #[QueryHandler('getTriggers')]
     public function getTriggers(): array
     {
         return $this->triggers;

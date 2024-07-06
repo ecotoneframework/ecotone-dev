@@ -19,7 +19,7 @@ final class TicketNotificationEventHandler
         $this->notifications[] = $queryBus->sendWithRouting('getInProgressTickets');
     }
 
-    #[QueryHandler("getNotifications")]
+    #[QueryHandler('getNotifications')]
     public function getNotifications(): array
     {
         return $this->notifications;

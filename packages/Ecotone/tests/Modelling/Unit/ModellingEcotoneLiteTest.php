@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
@@ -23,9 +22,7 @@ use Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod\Aggregate;
 use Test\Ecotone\Modelling\Fixture\Outbox\OutboxWithMultipleChannels;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityWithHigherPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityWithLowerPriorityHandler;
-use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\IncorrectAggregateSynchronousPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\OrderWasPlaced;
-use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\StreamSourceProjection;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandler;
 
 /**
@@ -84,7 +81,7 @@ final class ModellingEcotoneLiteTest extends TestCase
                 'higherPriorityHandler',
                 'middlePriorityHandler',
                 'aggregateLowerPriorityHandler',
-                'lowerPriorityHandler'
+                'lowerPriorityHandler',
             ],
             $ecotoneTestSupport
                 ->sendCommandWithRoutingKey('setup', 1)
@@ -106,7 +103,7 @@ final class ModellingEcotoneLiteTest extends TestCase
                 'aggregateHigherPriorityHandler',
                 'higherPriorityHandler',
                 'middlePriorityHandler',
-                'lowerPriorityHandler'
+                'lowerPriorityHandler',
             ],
             $ecotoneTestSupport
                 ->sendCommandWithRoutingKey('setup', 1)

@@ -63,7 +63,7 @@ final class PriorityBasedOnType
             self::class,
             [
                 $this->number,
-                $this->type
+                $this->type,
             ]
         );
     }

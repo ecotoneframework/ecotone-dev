@@ -12,15 +12,22 @@ final class SynchronousPriorityHandler
 {
     public array $triggers = [];
 
+    #[Priority(3)]
+    #[EventHandler(endpointId: 'middlePriorityHandler')]
+    public function middlePriorityHandler(OrderWasPlaced $event): void
+    {
+        $this->triggers[] = 'middlePriorityHandler';
+    }
+
     #[Priority(1)]
-    #[EventHandler]
+    #[EventHandler(endpointId: 'lowerPriorityHandler')]
     public function lowerPriorityHandler(OrderWasPlaced $event): void
     {
         $this->triggers[] = 'lowerPriorityHandler';
     }
 
     #[Priority(5)]
-    #[EventHandler]
+    #[EventHandler(endpointId: 'higherPriorityHandler')]
     public function higherPriorityHandler(OrderWasPlaced $event): void
     {
         $this->triggers[] = "higherPriorityHandler";

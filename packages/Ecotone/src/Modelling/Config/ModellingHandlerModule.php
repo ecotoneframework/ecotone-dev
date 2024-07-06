@@ -5,6 +5,7 @@ namespace Ecotone\Modelling\Config;
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Endpoint\Priority;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
@@ -21,9 +22,11 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -90,7 +93,7 @@ class ModellingHandlerModule implements AnnotationModule
      */
     private array $aggregateEventHandlers;
     /**
-     * @var AnnotatedFinding[][]
+     * @var AnnotatedFinding[]
      */
     private array $serviceEventHandlers;
     /**
@@ -138,23 +141,6 @@ class ModellingHandlerModule implements AnnotationModule
             $aggregateRepositoryReferenceNames[] = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $aggregateRepositoryClass);
         }
 
-        /** @var AnnotatedFinding[] $serviceEventHandlersPreparation */
-        $serviceEventHandlersPreparation = array_filter(
-            $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
-            function (AnnotatedFinding $annotatedFinding) {
-                return !$annotatedFinding->hasClassAnnotation(Aggregate::class);
-            }
-        );
-        $serviceEventHandlers = [];
-        foreach ($serviceEventHandlersPreparation as $eventHandler) {
-            $priority = Priority::DEFAULT_PRIORITY;
-            if ($eventHandler->hasAnnotation(Priority::class)) {
-                $priority = $eventHandler->getAnnotationsByImportanceOrder(Priority::class)[0]->getHeaderValue();
-            };
-
-            $serviceEventHandlers[$priority][] = $eventHandler;
-        }
-
         return new self(
             ParameterConverterAnnotationFactory::create(),
             array_filter(
@@ -187,7 +173,12 @@ class ModellingHandlerModule implements AnnotationModule
                     return $annotatedFinding->hasClassAnnotation(Aggregate::class);
                 }
             ),
-            $serviceEventHandlers,
+            array_filter(
+                $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
+                function (AnnotatedFinding $annotatedFinding) {
+                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
+                }
+            ),
             $aggregateRepositoryReferenceNames,
             $annotationRegistrationService->findAnnotatedMethods(Repository::class)
         );
@@ -368,7 +359,7 @@ class ModellingHandlerModule implements AnnotationModule
             $inputChannelName = self::getAggregateRepositoryInputChannel($repositoryGateway->getClassName(), $repositoryGateway->getMethodName(), $interface->getReturnType()->isVoid(), $interface->canItReturnNull());
 
             $chainMessageHandlerBuilder = ChainMessageHandlerBuilder::create()
-                                            ->withInputChannelName($inputChannelName);
+                ->withInputChannelName($inputChannelName);
             if ($interface->getReturnType()->isVoid()) {
                 Assert::isTrue($interface->hasFirstParameter(), 'Saving repository should have at least one parameter for aggregate: ' . $repositoryGateway);
 
@@ -449,30 +440,20 @@ class ModellingHandlerModule implements AnnotationModule
             );
         }
 
-        $aggregateCommandHandlers = [];
+        $aggregateCommandOrEventHandlers = [];
         foreach ($this->aggregateCommandHandlers as $registration) {
             $channelName = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
-            $aggregateCommandHandlers[$registration->getClassName()][$channelName][] = $registration;
+            $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
 
-        $samePriorityChecker = [];
-        $aggregateEventHandlers = [];
         foreach ($this->aggregateEventHandlers as $registration) {
             $channelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
-            $priority = $registration->hasAnnotation(Priority::class) ? $registration->getAnnotationsByImportanceOrder(Priority::class)[0]->getHeaderValue() : Priority::DEFAULT_PRIORITY;
-            $aggregateEventHandlers[$priority][$registration->getClassName()][$channelName][] = $registration;
-
-            if (isset($samePriorityChecker[$registration->getClassName()][$channelName])) {
-                if (!in_array($priority, $samePriorityChecker[$registration->getClassName()][$channelName])) {
-                    throw new ConfigurationException("Aggregate Event Handler {$registration->getClassName()}::{$registration->getMethodName()} for same subscription, must have same priority defined.");
-                }
-            }
-            $samePriorityChecker[$registration->getClassName()][$channelName][] = $priority;
+            $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
 
-        foreach ($aggregateCommandHandlers as $channelNameRegistrations) {
+        foreach ($aggregateCommandOrEventHandlers as $channelNameRegistrations) {
             foreach ($channelNameRegistrations as $channelName => $registrations) {
                 $this->registerAggregateCommandHandler($messagingConfiguration, $interfaceToCallRegistry, $this->aggregateRepositoryReferenceNames, $registrations, $channelName, $baseEventSourcingConfiguration);
             }
@@ -488,26 +469,8 @@ class ModellingHandlerModule implements AnnotationModule
         foreach ($this->serviceQueryHandlers as $registration) {
             $this->registerServiceHandler(self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
-
-        if ($this->serviceEventHandlers !== [] || $aggregateEventHandlers !== []) {
-            $minimumPriority = min(array_merge(array_keys($this->serviceEventHandlers), array_keys($aggregateEventHandlers)));
-            $maximumPriority = max(array_merge(array_keys($this->serviceEventHandlers), array_keys($aggregateEventHandlers)));
-
-            for ($priority = $maximumPriority; $priority >= $minimumPriority; $priority--) {
-                if (isset($aggregateEventHandlers[$priority])) {
-                    foreach ($aggregateEventHandlers[$priority] as $priorityChannelNameRegistrations) {
-                        foreach ($priorityChannelNameRegistrations as $channelName => $registrations) {
-                            $this->registerAggregateCommandHandler($messagingConfiguration, $interfaceToCallRegistry, $this->aggregateRepositoryReferenceNames, $registrations, $channelName, $baseEventSourcingConfiguration);
-                        }
-                    }
-                }
-
-                if (isset($this->serviceEventHandlers[$priority])) {
-                    foreach ($this->serviceEventHandlers[$priority] as $registration) {
-                        $this->registerServiceHandler(self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
-                    }
-                }
-            }
+        foreach ($this->serviceEventHandlers as $registration) {
+            $this->registerServiceHandler(self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
         }
     }
 
@@ -588,6 +551,7 @@ class ModellingHandlerModule implements AnnotationModule
                     BridgeBuilder::create()
                         ->withInputChannelName($messageChannelName)
                         ->withOutputMessageChannel($connectionChannel)
+                        ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
                 );
             }
 
@@ -636,9 +600,9 @@ class ModellingHandlerModule implements AnnotationModule
                     $interfaceToCallRegistry,
                     $baseEventSourcingConfiguration
                 )
-                ->withInputChannelName($saveChannel)
-                ->withOutputMessageChannel($publishChannel)
-                ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
+                    ->withInputChannelName($saveChannel)
+                    ->withOutputMessageChannel($publishChannel)
+                    ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
             );
             $configuration->registerMessageHandler(
                 PublishAggregateEventsServiceBuilder::create(
@@ -646,8 +610,8 @@ class ModellingHandlerModule implements AnnotationModule
                     $registration->getMethodName(),
                     $interfaceToCallRegistry
                 )
-                ->withInputChannelName($publishChannel)
-                ->withOutputMessageChannel($annotation->getOutputChannelName())
+                    ->withInputChannelName($publishChannel)
+                    ->withOutputMessageChannel($annotation->getOutputChannelName())
             );
         }
     }
@@ -711,6 +675,7 @@ class ModellingHandlerModule implements AnnotationModule
                 BridgeBuilder::create()
                     ->withInputChannelName($inputChannelName)
                     ->withOutputMessageChannel($endpointInputChannel)
+                    ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
             );
         }
 
@@ -785,9 +750,9 @@ class ModellingHandlerModule implements AnnotationModule
                         $interfaceToCallRegistry,
                         $baseEventSourcingConfiguration
                     )
-                    ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
+                        ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
                 )
-            ->chain(PublishAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName, $interfaceToCallRegistry))
+                ->chain(PublishAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName, $interfaceToCallRegistry))
         );
     }
 }

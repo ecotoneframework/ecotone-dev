@@ -25,6 +25,7 @@ use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPrio
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityWithLowerPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\IncorrectAggregateSynchronousPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\OrderWasPlaced;
+use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\StreamSourceProjection;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandler;
 
 /**
@@ -62,7 +63,7 @@ final class ModellingEcotoneLiteTest extends TestCase
         );
 
         $this->assertSame(
-            ['higherPriorityHandler', 'lowerPriorityHandler'],
+            ['higherPriorityHandler', 'middlePriorityHandler', 'lowerPriorityHandler'],
             $ecotoneTestSupport
                 ->publishEvent(new OrderWasPlaced(1))
                 ->sendQueryWithRouting('getTriggers')
@@ -81,6 +82,7 @@ final class ModellingEcotoneLiteTest extends TestCase
         $this->assertSame(
             [
                 'higherPriorityHandler',
+                'middlePriorityHandler',
                 'aggregateLowerPriorityHandler',
                 'lowerPriorityHandler'
             ],
@@ -103,20 +105,12 @@ final class ModellingEcotoneLiteTest extends TestCase
             [
                 'aggregateHigherPriorityHandler',
                 'higherPriorityHandler',
+                'middlePriorityHandler',
                 'lowerPriorityHandler'
             ],
             $ecotoneTestSupport
                 ->sendCommandWithRoutingKey('setup', 1)
                 ->sendQueryWithRouting('getTriggers')
-        );
-    }
-
-    public function test_throwing_an_exception_if_event_handlers_for_same_event_within_aggregate_have_different_priority()
-    {
-        $this->expectException(ConfigurationException::class);
-
-        EcotoneLite::bootstrapFlowTesting(
-            [IncorrectAggregateSynchronousPriorityHandler::class]
         );
     }
 

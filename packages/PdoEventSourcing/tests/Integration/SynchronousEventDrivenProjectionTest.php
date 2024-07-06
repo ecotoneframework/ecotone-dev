@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
+use Test\Ecotone\EventSourcing\Fixture\ServiceEventHandler\TicketNotificationEventHandler;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\BasketMediaTypeConverter;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\TicketMediaTypeConverter;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
@@ -57,6 +58,38 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
         $ecotone->sendCommand(new RegisterTicket('124', 'Johnny', 'info'));
 
         self::assertEquals([['ticket_id' => '124', 'ticket_type' => 'info']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_synchronous_event_driven_projection_should_be_called_before_standard_event_handlers(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            containerOrAvailableServices: [
+                new InProgressTicketList($this->getConnection()),
+                new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory(),
+                new TicketNotificationEventHandler(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                    'Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection',
+                    'Test\Ecotone\EventSourcing\Fixture\ServiceEventHandler',
+                ])
+                ->withExtensionObjects([
+                    EventSourcingConfiguration::createWithDefaults(),
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
+        );
+
+        $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
+
+        self::assertEquals([], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        self::assertEquals([[['ticket_id' => '123', 'ticket_type' => 'alert']]], $ecotone->sendQueryWithRouting('getNotifications'));
     }
 
     public function test_operations_on_synchronous_event_driven_projection(): void

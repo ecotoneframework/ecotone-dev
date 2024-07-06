@@ -2,6 +2,7 @@
 
 namespace Ecotone\AnnotationFinder;
 
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use InvalidArgumentException;
 
 class AnnotatedMethod implements AnnotatedFinding
@@ -64,8 +65,10 @@ class AnnotatedMethod implements AnnotatedFinding
         return $this->methodAnnotations;
     }
 
-    public function hasMethodAnnotation(string $type): bool
+    public function hasMethodAnnotation(string|TypeDescriptor $type): bool
     {
+        $type = $type instanceof TypeDescriptor ? $type->toString() : $type;
+
         foreach ($this->methodAnnotations as $methodAnnotation) {
             if ($methodAnnotation instanceof $type) {
                 return true;
@@ -123,8 +126,10 @@ class AnnotatedMethod implements AnnotatedFinding
         return $annotations;
     }
 
-    public function getAnnotationsByImportanceOrder(string $type): array
+    public function getAnnotationsByImportanceOrder(string|TypeDescriptor $type): array
     {
+        $type = $type instanceof TypeDescriptor ? $type->toString() : $type;
+
         if ($this->hasMethodAnnotation($type)) {
             return $this->getMethodAnnotationsWithType($type);
         }
@@ -132,8 +137,10 @@ class AnnotatedMethod implements AnnotatedFinding
         return $this->getClassAnnotationsWithType($type);
     }
 
-    public function hasClassAnnotation(string $type): bool
+    public function hasClassAnnotation(string|TypeDescriptor $type): bool
     {
+        $type = $type instanceof TypeDescriptor ? $type->toString() : $type;
+
         foreach ($this->classAnnotations as $classAnnotation) {
             if ($classAnnotation instanceof $type) {
                 return true;
@@ -143,7 +150,7 @@ class AnnotatedMethod implements AnnotatedFinding
         return false;
     }
 
-    public function hasAnnotation(string $type): bool
+    public function hasAnnotation(string|TypeDescriptor $type): bool
     {
         return $this->hasClassAnnotation($type) || $this->hasMethodAnnotation($type);
     }

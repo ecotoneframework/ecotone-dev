@@ -1122,59 +1122,7 @@ final class MessagingSystemConfiguration implements Configuration
             $channelAdapter->registerConsumer($messagingBuilder);
         }
 
-        $messageHandlerBuildersAccordinglyToPriority = [];
-        $projectionHandlers =[];
-        $aggregateHandlers = [];
-        $otherHandlers = [];
-        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
-            $priority = PriorityBasedOnType::default();
-            if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel) {
-                $interfaceToCall = $messageHandlerBuilder->getInterceptedInterface($this->interfaceToCallRegistry);
-                if ($interfaceToCall->hasAnnotation(TypeDescriptor::create(PriorityBasedOnType::class))) {
-                    $priority = $interfaceToCall->getAnnotationsByImportanceOrder(TypeDescriptor::create(PriorityBasedOnType::class))[0];
-                }
-            }
-            if ($messageHandlerBuilder instanceof InterceptedEndpoint) {
-                foreach ($messageHandlerBuilder->getEndpointAnnotations() as $endpointAnnotation) {
-                    $endpointAnnotation = $endpointAnnotation->instance();
-                    if ($endpointAnnotation instanceof PriorityBasedOnType) {
-                        $priority = $endpointAnnotation;
-                    }
-                }
-            }
-            
-            if ($priority->hasPriority(PriorityBasedOnType::PROJECTION_TYPE)) {
-                $projectionHandlers[$priority->getNumber()][] = $messageHandlerBuilder;
-            } elseif ($priority->hasPriority(PriorityBasedOnType::AGGREGATE_TYPE)) {
-                $aggregateHandlers[$priority->getNumber()][] = $messageHandlerBuilder;
-            } else {
-                $otherHandlers[$priority->getNumber()][] = $messageHandlerBuilder;
-            }
-        }
-
-        $minimumPriority = min(array_merge(array_keys($projectionHandlers), array_keys($aggregateHandlers), array_keys($otherHandlers), [1]));
-        $maximumPriority = max(array_merge(array_keys($projectionHandlers), array_keys($aggregateHandlers), array_keys($otherHandlers), [1]));
-
-        for ($priority = $maximumPriority; $priority >= $minimumPriority; $priority--) {
-            if (isset($projectionHandlers[$priority])) {
-                foreach ($projectionHandlers[$priority] as $messageHandlerBuilder) {
-                    $messageHandlerBuildersAccordinglyToPriority[] = $messageHandlerBuilder;
-                }
-            }
-            if (isset($aggregateHandlers[$priority])) {
-                foreach ($aggregateHandlers[$priority] as $messageHandlerBuilder) {
-                    $messageHandlerBuildersAccordinglyToPriority[] = $messageHandlerBuilder;
-                }
-            }
-            if (isset($otherHandlers[$priority])) {
-                foreach ($otherHandlers[$priority] as $messageHandlerBuilder) {
-                    $messageHandlerBuildersAccordinglyToPriority[] = $messageHandlerBuilder;
-                }
-            }
-        }
-
-
-        foreach ($messageHandlerBuildersAccordinglyToPriority as $messageHandlerBuilder) {
+        foreach ($this->getMessageHandlersBasedOnPriority() as $messageHandlerBuilder) {
             $inputChannelBuilder = $this->channelBuilders[$messageHandlerBuilder->getInputMessageChannelName()] ?? throw ConfigurationException::create("Missing channel with name {$messageHandlerBuilder->getInputMessageChannelName()} for {$messageHandlerBuilder}");
             foreach ($this->consumerFactories as $consumerFactory) {
                 if ($consumerFactory->isSupporting($messageHandlerBuilder, $inputChannelBuilder)) {
@@ -1242,5 +1190,64 @@ final class MessagingSystemConfiguration implements Configuration
         $this->consoleCommands[] = $consoleCommandConfiguration;
 
         return $this;
+    }
+
+    /**
+     * @return MessageHandlerBuilder[]
+     */
+    private function getMessageHandlersBasedOnPriority(): array
+    {
+        $messageHandlerBuildersAccordinglyToPriority = [];
+        $projectionHandlers = [];
+        $aggregateHandlers = [];
+        $otherHandlers = [];
+        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
+            $priority = PriorityBasedOnType::default();
+            if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel) {
+                $interfaceToCall = $messageHandlerBuilder->getInterceptedInterface($this->interfaceToCallRegistry);
+                if ($interfaceToCall->hasAnnotation(TypeDescriptor::create(PriorityBasedOnType::class))) {
+                    $priority = $interfaceToCall->getAnnotationsByImportanceOrder(TypeDescriptor::create(PriorityBasedOnType::class))[0];
+                }
+            }
+            if ($messageHandlerBuilder instanceof InterceptedEndpoint) {
+                foreach ($messageHandlerBuilder->getEndpointAnnotations() as $endpointAnnotation) {
+                    $endpointAnnotation = $endpointAnnotation->instance();
+                    if ($endpointAnnotation instanceof PriorityBasedOnType) {
+                        $priority = $endpointAnnotation;
+                    }
+                }
+            }
+
+            if ($priority->hasPriority(PriorityBasedOnType::PROJECTION_TYPE)) {
+                $projectionHandlers[$priority->getNumber()][] = $messageHandlerBuilder;
+            } elseif ($priority->hasPriority(PriorityBasedOnType::AGGREGATE_TYPE)) {
+                $aggregateHandlers[$priority->getNumber()][] = $messageHandlerBuilder;
+            } else {
+                $otherHandlers[$priority->getNumber()][] = $messageHandlerBuilder;
+            }
+        }
+
+        $minimumPriority = min(array_merge(array_keys($projectionHandlers), array_keys($aggregateHandlers), array_keys($otherHandlers), [1]));
+        $maximumPriority = max(array_merge(array_keys($projectionHandlers), array_keys($aggregateHandlers), array_keys($otherHandlers), [1]));
+
+        for ($priority = $maximumPriority; $priority >= $minimumPriority; $priority--) {
+            if (isset($projectionHandlers[$priority])) {
+                foreach ($projectionHandlers[$priority] as $messageHandlerBuilder) {
+                    $messageHandlerBuildersAccordinglyToPriority[] = $messageHandlerBuilder;
+                }
+            }
+            if (isset($aggregateHandlers[$priority])) {
+                foreach ($aggregateHandlers[$priority] as $messageHandlerBuilder) {
+                    $messageHandlerBuildersAccordinglyToPriority[] = $messageHandlerBuilder;
+                }
+            }
+            if (isset($otherHandlers[$priority])) {
+                foreach ($otherHandlers[$priority] as $messageHandlerBuilder) {
+                    $messageHandlerBuildersAccordinglyToPriority[] = $messageHandlerBuilder;
+                }
+            }
+        }
+
+        return $messageHandlerBuildersAccordinglyToPriority;
     }
 }

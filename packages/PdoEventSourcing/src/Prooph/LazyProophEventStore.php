@@ -74,22 +74,22 @@ class LazyProophEventStore implements EventStore
 
     public function fetchStreamMetadata(StreamName $streamName): array
     {
-        return $this->getEventStore()->fetchStreamMetadata($streamName);
+        return $this->getEventStore($streamName)->fetchStreamMetadata($streamName);
     }
 
     public function hasStream(StreamName $streamName): bool
     {
-        return $this->getEventStore()->hasStream($streamName);
+        return $this->getEventStore($streamName)->hasStream($streamName);
     }
 
     public function load(StreamName $streamName, int $fromNumber = 1, int $count = null, MetadataMatcher $metadataMatcher = null): Iterator
     {
-        return $this->getEventStore()->load($streamName, $fromNumber, $count, $metadataMatcher);
+        return $this->getEventStore($streamName)->load($streamName, $fromNumber, $count, $metadataMatcher);
     }
 
     public function loadReverse(StreamName $streamName, int $fromNumber = null, int $count = null, MetadataMatcher $metadataMatcher = null): Iterator
     {
-        return $this->getEventStore()->loadReverse($streamName, $fromNumber, $count, $metadataMatcher);
+        return $this->getEventStore($streamName)->loadReverse($streamName, $fromNumber, $count, $metadataMatcher);
     }
 
     public function fetchStreamNames(?string $filter, ?MetadataMatcher $metadataMatcher, int $limit = 20, int $offset = 0): array
@@ -114,12 +114,12 @@ class LazyProophEventStore implements EventStore
 
     public function updateStreamMetadata(StreamName $streamName, array $newMetadata): void
     {
-        $this->getEventStore()->updateStreamMetadata($streamName, $newMetadata);
+        $this->getEventStore($streamName)->updateStreamMetadata($streamName, $newMetadata);
     }
 
     public function create(Stream $stream): void
     {
-        $this->getEventStore()->create($stream);
+        $this->getEventStore($stream->streamName())->create($stream);
         $this->ensuredExistingStreams[$this->getContextName()][$stream->streamName()->toString()] = true;
     }
 
@@ -129,7 +129,7 @@ class LazyProophEventStore implements EventStore
             $this->create(new Stream($streamName, $streamEvents, []));
         } else {
             try {
-                $this->getEventStore()->appendTo($streamName, $streamEvents);
+                $this->getEventStore($streamName)->appendTo($streamName, $streamEvents);
             } catch (StreamNotFound) {
                 $this->create(new Stream($streamName, $streamEvents, []));
             }
@@ -168,9 +168,9 @@ class LazyProophEventStore implements EventStore
         $this->initializated[$connectionName] = true;
     }
 
-    public function getEventStore(): EventStore
+    public function getEventStore(?StreamName $streamName = null): EventStore
     {
-        $contextName = $this->getContextName();
+        $contextName = $this->getContextName($streamName);
         if (isset($this->initializedEventStore[$contextName])) {
             return $this->initializedEventStore[$contextName];
         }
@@ -185,9 +185,9 @@ class LazyProophEventStore implements EventStore
         $eventStoreType =  $this->getEventStoreType();
 
         $persistenceStrategy = match ($eventStoreType) {
-            self::EVENT_STORE_TYPE_MYSQL => $this->getMysqlPersistenceStrategy(),
-            self::EVENT_STORE_TYPE_MARIADB => $this->getMariaDbPersistenceStrategy(),
-            self::EVENT_STORE_TYPE_POSTGRES => $this->getPostgresPersistenceStrategy(),
+            self::EVENT_STORE_TYPE_MYSQL => $this->getMysqlPersistenceStrategyFor($streamName),
+            self::EVENT_STORE_TYPE_MARIADB => $this->getMariaDbPersistenceStrategyFor($streamName),
+            self::EVENT_STORE_TYPE_POSTGRES => $this->getPostgresPersistenceStrategyFor($streamName),
             default => throw InvalidArgumentException::create('Unexpected match value ' . $eventStoreType)
         };
 
@@ -222,9 +222,9 @@ class LazyProophEventStore implements EventStore
         return $eventStore;
     }
 
-    private function getMysqlPersistenceStrategy(): PersistenceStrategy
+    private function getMysqlPersistenceStrategyFor(?StreamName $streamName = null): PersistenceStrategy
     {
-        return match ($this->eventSourcingConfiguration->getPersistenceStrategy()) {
+        return match ($this->eventSourcingConfiguration->getPersistenceStrategyFor($streamName)) {
             self::AGGREGATE_STREAM_PERSISTENCE => new PersistenceStrategy\MySqlAggregateStreamStrategy($this->messageConverter),
             self::SINGLE_STREAM_PERSISTENCE => new PersistenceStrategy\MySqlSingleStreamStrategy($this->messageConverter),
             self::SIMPLE_STREAM_PERSISTENCE => new InterlopMysqlSimpleStreamStrategy($this->messageConverter),
@@ -232,9 +232,9 @@ class LazyProophEventStore implements EventStore
         };
     }
 
-    private function getMariaDbPersistenceStrategy(): PersistenceStrategy
+    private function getMariaDbPersistenceStrategyFor(?StreamName $streamName = null): PersistenceStrategy
     {
-        return match ($this->eventSourcingConfiguration->getPersistenceStrategy()) {
+        return match ($this->eventSourcingConfiguration->getPersistenceStrategyFor($streamName)) {
             self::AGGREGATE_STREAM_PERSISTENCE => new PersistenceStrategy\MariaDbAggregateStreamStrategy($this->messageConverter),
             self::SINGLE_STREAM_PERSISTENCE => new PersistenceStrategy\MariaDbSingleStreamStrategy($this->messageConverter),
             self::SIMPLE_STREAM_PERSISTENCE => new InterlopMariaDbSimpleStreamStrategy($this->messageConverter),
@@ -242,9 +242,9 @@ class LazyProophEventStore implements EventStore
         };
     }
 
-    private function getPostgresPersistenceStrategy(): PersistenceStrategy
+    private function getPostgresPersistenceStrategyFor(?StreamName $streamName = null): PersistenceStrategy
     {
-        return match ($this->eventSourcingConfiguration->getPersistenceStrategy()) {
+        return match ($this->eventSourcingConfiguration->getPersistenceStrategyFor($streamName)) {
             self::AGGREGATE_STREAM_PERSISTENCE => new PersistenceStrategy\PostgresAggregateStreamStrategy($this->messageConverter),
             self::SINGLE_STREAM_PERSISTENCE => new PersistenceStrategy\PostgresSingleStreamStrategy($this->messageConverter),
             self::SIMPLE_STREAM_PERSISTENCE => new PersistenceStrategy\PostgresSimpleStreamStrategy($this->messageConverter),
@@ -416,12 +416,17 @@ class LazyProophEventStore implements EventStore
         return $connection->getWrappedConnection();
     }
 
-    public function getContextName(): string
+    public function getContextName(?StreamName $streamName = null): string
     {
         $connectionName = 'default';
         if ($this->connectionFactory instanceof MultiTenantConnectionFactory) {
             $connectionName = $this->connectionFactory->currentActiveTenant();
         }
+
+        if ($streamName !== null) {
+            $connectionName .= '-' . $streamName->toString();
+        }
+
         return $connectionName;
     }
 }

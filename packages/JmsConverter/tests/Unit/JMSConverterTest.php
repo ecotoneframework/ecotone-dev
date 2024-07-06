@@ -11,7 +11,7 @@ use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionException;
-use Ecotone\Messaging\Conversion\Converter;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Test\ComponentTestBuilder;
@@ -340,120 +340,120 @@ class JMSConverterTest extends TestCase
     public function test_matching_conversion_from_array_to_xml()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationXml())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationXml())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createStringType(), MediaType::createApplicationXml(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createStringType(), MediaType::createApplicationXml(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_object_to_xml()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationXml())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationXml())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createStringType(), MediaType::createApplicationXml(), TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createStringType(), MediaType::createApplicationXml(), TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_array_to_json()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationJson())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationJson())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_php_object_to_php_array()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_json_object_to_php_object()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationJson())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationJson())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_php_interface_to_json()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::create(PersonInterface::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationJson())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::create(PersonInterface::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationJson())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::create(PersonInterface::class), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::create(PersonInterface::class), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_php_abstract_class_to_json()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::create(PersonAbstractClass::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationJson())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::create(PersonAbstractClass::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationJson())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::create(PersonAbstractClass::class), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::create(PersonAbstractClass::class), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_php_collection_to_array()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createCollection(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createCollection(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createCollection(Person::class), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createCollection(Person::class), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_php_array_to_php_array()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_php_collection_of_objects_to_array()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createCollection('object'), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createCollection('object'), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createCollection('object'), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createCollection('object'), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_not_matching_conversion_from_object_to_format_different_than_xml_and_json()
     {
         $this->assertFalse(
-            $this->getJMSConverter([])->matches(TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationOcetStream())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP(), TypeDescriptor::createStringType(), MediaType::createApplicationOcetStream())
         );
         $this->assertFalse(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createStringType(), MediaType::createApplicationOcetStream(), TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createStringType(), MediaType::createApplicationOcetStream(), TypeDescriptor::create(Person::class), MediaType::createApplicationXPHP())
         );
     }
 
     public function test_matching_conversion_from_array_to_object_and_opposite()
     {
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::create(stdClass::class), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::create(stdClass::class), MediaType::createApplicationXPHP())
         );
         $this->assertTrue(
-            $this->getJMSConverter([])->matches(TypeDescriptor::create(stdClass::class), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
+            $this->getJMSConverter([])->canConvert(TypeDescriptor::create(stdClass::class), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP())
         );
     }
 
@@ -479,11 +479,13 @@ class JMSConverterTest extends TestCase
         return $this->getJMSConverter($jmsHandlerAdapters)->convert($data, TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::create($type), MediaType::createApplicationXPHP(), TypeDescriptor::create($type));
     }
 
-    private function getJMSConverter(array $jmsHandlerAdapters, ?JMSConverterConfiguration $configuration = null): Converter
+    private function getJMSConverter(array $jmsHandlerAdapters, ?JMSConverterConfiguration $configuration = null): ConversionService
     {
-        return ComponentTestBuilder::create()
+        return ComponentTestBuilder::create([StatusConverter::class, ClassToArrayConverter::class])
             ->withReference(StatusConverter::class, new StatusConverter())
             ->withReference(ClassToArrayConverter::class, new ClassToArrayConverter())
-            ->build(new JMSConverterBuilder($jmsHandlerAdapters, $configuration ?: JMSConverterConfiguration::createWithDefaults()));
+            ->withConverter(new JMSConverterBuilder($jmsHandlerAdapters, $configuration ?: JMSConverterConfiguration::createWithDefaults()))
+            ->build()
+            ->getServiceFromContainer(ConversionService::REFERENCE_NAME);
     }
 }

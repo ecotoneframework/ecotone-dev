@@ -46,6 +46,7 @@ use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
@@ -618,10 +619,12 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
             /** Projection will be called sync or async triggered by Event Bus. In that case we need to connect them to event related channels */
             foreach ($projectionSetupConfiguration->getProjectionEventHandlerConfigurations() as $eventHandlerConfiguration) {
+                $interfaceToCall = $interfaceToCallRegistry->getFor($eventHandlerConfiguration->getClassName(), $eventHandlerConfiguration->getMethodName());
                 $messagingConfiguration->registerMessageHandler(
                     BridgeBuilder::create()
                         ->withInputChannelName($eventHandlerConfiguration->getEventBusRoutingKey())
                         ->withOutputMessageChannel($projectionSetupConfiguration->getProjectionInputChannel())
+                        ->withEndpointAnnotations([PriorityBasedOnType::fromInterfaceToCall($interfaceToCall)->toAttributeDefinition()])
                 );
 
                 if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) && $projectionSetupConfiguration->isAsynchronous()) {

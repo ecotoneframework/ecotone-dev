@@ -63,7 +63,7 @@ final readonly class RegisteredProductList
     {
         return DB::connection()->getDoctrineConnection()->fetchFirstColumn(
             sprintf(<<<SQL
-    SELECT name FROM %s ORDER BY registered_at DESC
+    SELECT name FROM %s ORDER BY name ASC
 SQL, self::TABLE_NAME));
     }
 

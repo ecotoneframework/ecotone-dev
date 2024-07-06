@@ -3,13 +3,13 @@
 namespace Test\Ecotone\Dbal\Integration\Recoverability;
 
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
-use Ecotone\Messaging\Conversion\InMemoryConversionService;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\InMemoryConversionService;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
 

@@ -7,7 +7,7 @@ on:
 
 env:
   # 1. for Github split
-  GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.ECOTONE_BOT_TOKEN }}
 
 jobs:
   prepare-code-for-release:
@@ -29,6 +29,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: '0'
+          token: ${{ secrets.ECOTONE_BOT_TOKEN }}
+          
+      - name: Setup Git
+        run: |
+          git config user.name "Ecotone Framework Bot"
+          git config user.email "ecotoneframework@gmail.com"
 
       - name: Checkout branch related to tag
         run: |
@@ -115,8 +121,8 @@ jobs:
           repository_name: '${{ matrix.package.repository }}'
 
           # ↓ the user signed under the split commit
-          user_name: "Dariusz Gafka"
-          user_email: "dgafka.mail@gmail.com"
+          user_name: "Ecotone FrameworkBot"
+          user_email: "ecotoneframework@gmail.com"
   tweet:
     runs-on: ubuntu-latest
     needs: split_packages

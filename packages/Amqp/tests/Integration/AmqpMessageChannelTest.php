@@ -163,11 +163,6 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
         );
     }
 
-    private function connectionRetryLog(int $retry, int $time): string
-    {
-        return sprintf('Retrying to connect to the Message Channel. Current number of retries: %d, Message Consumer will try to reconnect in %dms.', $retry, $time);
-    }
-
     public function test_sending_to_dead_letter_as_another_amqp_channel()
     {
         $queueName = ErrorConfigurationContext::INPUT_CHANNEL;

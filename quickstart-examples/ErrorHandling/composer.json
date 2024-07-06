@@ -1,5 +1,5 @@
 {
-    "type": "workshop",
+    "name": "ecotone/quickstart",
     "license": "MIT",
     "autoload": {
         "psr-4": {

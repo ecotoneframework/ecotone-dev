@@ -108,6 +108,7 @@ final class DbalDocumentStore implements DocumentStore
         $this->getConnection()->delete(
             $this->getTableName(),
             [
+                'collection' => $collectionName,
                 'document_id' => $documentId,
             ]
         );

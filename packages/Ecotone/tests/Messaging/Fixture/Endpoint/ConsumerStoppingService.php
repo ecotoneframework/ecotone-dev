@@ -11,7 +11,7 @@ use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 /**
  * Class InboundChannelAdapterStoppingService
  * @package Test\Ecotone\Messaging\Fixture\Endpoint
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ConsumerStoppingService implements DefinedObject
 {

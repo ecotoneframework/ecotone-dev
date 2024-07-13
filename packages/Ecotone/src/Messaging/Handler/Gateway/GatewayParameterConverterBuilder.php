@@ -10,7 +10,7 @@ use Ecotone\Messaging\Handler\InterfaceParameter;
 /**
  * Interface MessageFromParameterConverterBuilder
  * @package Ecotone\Messaging\Handler\Gateway
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface GatewayParameterConverterBuilder extends CompilableBuilder
 {

@@ -23,7 +23,7 @@ use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
 /**
  * Class AggregateMessageConversionServiceBuilder
  * @package Ecotone\Modelling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
 {

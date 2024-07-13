@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Class PeriodTriggerTest
  * @package Test\Ecotone\Messaging\Unit\Scheduling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

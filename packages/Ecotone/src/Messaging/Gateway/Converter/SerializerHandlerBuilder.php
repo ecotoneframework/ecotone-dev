@@ -18,7 +18,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 /**
  * Class SerializerHandlerBuilder
  * @package Ecotone\Messaging\Gateway\Converter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
 {

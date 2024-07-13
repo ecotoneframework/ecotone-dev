@@ -16,7 +16,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Splitter\SplitterE
 /**
  * Class AnnotationTransformerConfigurationTest
  * @package Test\Ecotone\Messaging\Unit\Config\Annotation\Annotation
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

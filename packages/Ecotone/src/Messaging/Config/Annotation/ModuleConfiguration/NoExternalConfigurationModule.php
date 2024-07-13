@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 /**
  * Class NoExternalConfigurationModule
  * @package Ecotone\Messaging\Config\Annotation\ModuleConfiguration
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 abstract class NoExternalConfigurationModule implements AnnotationModule
 {

@@ -16,7 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 /**
  * Class BaseAnnotationConfiguration
  * @package Ecotone\Messaging\Config\Annotation
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 abstract class ConsumerRegisterConfiguration extends NoExternalConfigurationModule implements AnnotationModule

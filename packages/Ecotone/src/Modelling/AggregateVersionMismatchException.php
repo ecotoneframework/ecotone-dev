@@ -7,7 +7,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * Class AggregateVersionMismatchException
  * @package Ecotone\Modelling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AggregateVersionMismatchException extends MessagingException
 {

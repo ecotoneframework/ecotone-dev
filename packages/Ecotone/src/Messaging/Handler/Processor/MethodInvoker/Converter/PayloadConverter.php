@@ -16,7 +16,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class PayloadConverter implements ParameterConverter

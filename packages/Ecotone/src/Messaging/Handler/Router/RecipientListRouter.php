@@ -9,7 +9,7 @@ use Ecotone\Messaging\Message;
 /**
  * Class RecipientListRouter
  * @package Ecotone\Messaging\Handler\Router
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class RecipientListRouter implements DefinedObject

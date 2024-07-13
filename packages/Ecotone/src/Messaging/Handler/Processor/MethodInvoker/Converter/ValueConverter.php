@@ -12,7 +12,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * Class MessageToStaticValueParameterConverter
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class ValueConverter implements ParameterConverter

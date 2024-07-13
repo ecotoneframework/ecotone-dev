@@ -7,7 +7,7 @@ use Ecotone\Messaging\Message;
 /**
  * Class Bridge
  * @package Ecotone\Messaging\Handler\Bridge
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class Bridge
 {

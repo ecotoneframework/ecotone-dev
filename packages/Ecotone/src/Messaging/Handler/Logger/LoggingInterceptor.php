@@ -17,7 +17,7 @@ use Throwable;
 /**
  * Class LoggingInterceptor
  * @package Ecotone\Messaging\Handler\Logger
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class LoggingInterceptor
 {

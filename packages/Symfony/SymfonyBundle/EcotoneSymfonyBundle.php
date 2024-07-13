@@ -11,7 +11,7 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 /**
  * Class IntegrationMessagingBundle
  * @package Ecotone\SymfonyBundle
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class EcotoneSymfonyBundle extends Bundle
 {

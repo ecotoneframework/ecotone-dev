@@ -7,7 +7,7 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 /**
  * Interface MessageChannelBuilder
  * @package Ecotone\Messaging\Channel
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface MessageChannelBuilder extends CompilableBuilder
 {

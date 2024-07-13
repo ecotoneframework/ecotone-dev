@@ -11,7 +11,7 @@ use Throwable;
 /**
  * Class SignalInterceptor
  * @package Ecotone\Messaging\Endpoint\Interceptor
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SignalInterceptor implements ConsumerInterceptor
 {

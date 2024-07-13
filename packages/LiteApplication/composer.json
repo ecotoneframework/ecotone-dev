@@ -4,12 +4,15 @@
     "homepage": "https://docs.ecotone.tech/",
     "forum": "https://discord.gg/CctGMcrYnV",
     "prefer-stable": true,
-    "license": "MIT",
+    "license": [
+        "Apache-2.0",
+        "Proprietary"
+    ],
     "type": "library",
     "authors": [
         {
             "name": "Dariusz Gafka",
-            "email": "dgafka.mail@gmail.com"
+            "email": "support@simplycodedsoftware.com"
         }
     ],
     "keywords": [

@@ -9,7 +9,7 @@ use Psr\Container\ContainerInterface;
 /**
  * Interface ObjectDefinitionService
  * @package Ecotone\Messaging\Config\Annotation
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface ReferenceSearchService extends ContainerInterface
 {

@@ -14,7 +14,7 @@ use RuntimeException;
 /**
  * Class ExceptionalMessageHandler
  * @package Test\Ecotone\Messaging\Fixture\Handler
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ExceptionalMessageHandler implements MessageHandler
 {

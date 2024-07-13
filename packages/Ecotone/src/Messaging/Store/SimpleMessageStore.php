@@ -9,7 +9,7 @@ use Ramsey\Uuid\UuidInterface;
 /**
  * Class SimpleMessageStore
  * @package Ecotone\Messaging\Store
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 final class SimpleMessageStore implements MessageStore, MessageGroupStore
 {

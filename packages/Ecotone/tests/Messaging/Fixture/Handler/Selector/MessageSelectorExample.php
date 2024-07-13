@@ -8,7 +8,7 @@ use stdClass;
 /**
  * Class TrueMessageSelector
  * @package Test\Ecotone\Messaging\Fixture\Handler\Selector
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class MessageSelectorExample
 {

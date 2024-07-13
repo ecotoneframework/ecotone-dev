@@ -25,7 +25,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleSingleConverterSe
 /**
  * Class ConverterModuleTest
  * @package Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

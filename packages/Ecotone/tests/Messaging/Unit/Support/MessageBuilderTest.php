@@ -16,7 +16,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
 /**
  * Class MessageBuilderTest
  * @package Ecotone\Messaging\Support
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Scheduling;
 /**
  * Class SimpleTriggerContext
  * @package Ecotone\Messaging\Scheduling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SimpleTriggerContext implements TriggerContext
 {

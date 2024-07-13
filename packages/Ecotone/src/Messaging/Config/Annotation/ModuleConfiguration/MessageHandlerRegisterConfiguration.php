@@ -19,7 +19,7 @@ use Ecotone\Modelling\Attribute\IgnorePayload;
 /**
  * Class BaseAnnotationConfiguration
  * @package Ecotone\Messaging\Config\Annotation
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 abstract class MessageHandlerRegisterConfiguration extends NoExternalConfigurationModule implements AnnotationModule

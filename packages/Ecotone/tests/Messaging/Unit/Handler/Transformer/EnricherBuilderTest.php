@@ -36,7 +36,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
 /**
  * Class PayloadEnricherBuilderTest
  * @package Test\Ecotone\Messaging\Unit\Handler\Transformer
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

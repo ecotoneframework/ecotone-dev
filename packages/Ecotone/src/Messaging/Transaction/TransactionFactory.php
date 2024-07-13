@@ -7,7 +7,7 @@ use Ecotone\Messaging\Message;
 /**
  * Interface TransactionManager
  * @package Ecotone\Messaging\Transaction
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface TransactionFactory
 {

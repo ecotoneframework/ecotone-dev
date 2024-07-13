@@ -13,7 +13,7 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 /**
  * Class Interceptor
  * @package Ecotone\Messaging\Config
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class MethodInterceptor implements InterceptorWithPointCut
 {

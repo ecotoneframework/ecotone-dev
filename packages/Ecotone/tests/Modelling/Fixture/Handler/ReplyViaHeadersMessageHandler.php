@@ -11,7 +11,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class DumbMessageHandler
  * @package Test\Ecotone\Messaging\Http
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ReplyViaHeadersMessageHandler implements MessageHandler
 {

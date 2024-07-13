@@ -5,7 +5,7 @@ namespace Test\Ecotone\Messaging\Fixture\Behat\Booking;
 /**
  * Interface BookingService
  * @package Test\Ecotone\Messaging\Fixture\Behat\Booking
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface BookingService
 {

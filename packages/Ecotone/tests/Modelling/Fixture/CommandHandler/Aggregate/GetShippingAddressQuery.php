@@ -7,7 +7,7 @@ use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
 /**
  * Class GetShippingAddressQuery
  * @package Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class GetShippingAddressQuery
 {

@@ -27,7 +27,7 @@ use Throwable;
 /**
  * Class GatewayProxy
  * @package Ecotone\Messaging\Handler\Gateway
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class Gateway implements NonProxyGateway

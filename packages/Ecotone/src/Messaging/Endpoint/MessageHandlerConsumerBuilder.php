@@ -11,7 +11,7 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 /**
  * Interface PollableFactory
  * @package Ecotone\Messaging\Endpoint
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface MessageHandlerConsumerBuilder
 {

@@ -21,7 +21,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * Class MessageFilterBuilder
  * @package Ecotone\Messaging\Handler\Filter
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
 {

@@ -10,7 +10,7 @@ use DateTimeZone;
 /**
  * Class StubClock
  * @package Ecotone\Messaging\Scheduling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class StubUTCClock implements Clock
 {

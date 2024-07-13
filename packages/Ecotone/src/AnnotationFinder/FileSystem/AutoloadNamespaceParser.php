@@ -7,7 +7,7 @@ namespace Ecotone\AnnotationFinder\FileSystem;
 /**
  * Interface AutoloadNamespaceParser
  * @package Ecotone\Messaging\Config\Annotation
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface AutoloadNamespaceParser
 {

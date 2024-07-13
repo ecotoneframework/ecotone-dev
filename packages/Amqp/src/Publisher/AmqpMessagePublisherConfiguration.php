@@ -8,7 +8,7 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
 /**
  * Class RegisterAmqpPublisher
  * @package Ecotone\Amqp\Configuration
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AmqpMessagePublisherConfiguration
 {

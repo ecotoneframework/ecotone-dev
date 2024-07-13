@@ -5,7 +5,7 @@ namespace Ecotone\JMSConverter;
 /**
  * Class JMSConverterConfiguration
  * @package Ecotone\JMSConverter\Configuration
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class JMSConverterConfiguration
 {

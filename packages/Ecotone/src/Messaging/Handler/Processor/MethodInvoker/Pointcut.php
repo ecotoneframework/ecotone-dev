@@ -15,7 +15,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * Class Pointcut
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class Pointcut
 {

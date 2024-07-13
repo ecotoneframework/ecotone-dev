@@ -14,7 +14,7 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 /**
  * Class StaticPropertySetterBuilder
  * @package Ecotone\Messaging\Handler\Enricher\Converter
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class EnrichPayloadWithValueBuilder implements PropertyEditorBuilder
 {

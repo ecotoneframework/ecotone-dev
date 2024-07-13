@@ -70,7 +70,7 @@ use Ramsey\Uuid\Uuid;
 /**
  * Class Configuration
  * @package Ecotone\Messaging\Config
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 final class MessagingSystemConfiguration implements Configuration
 {

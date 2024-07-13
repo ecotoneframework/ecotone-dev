@@ -13,7 +13,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class TransformerMessageProcessor
  * @package Messaging\Handler\Transformer
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class TransformerMessageProcessor implements MessageProcessor

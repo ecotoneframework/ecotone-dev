@@ -33,7 +33,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
 /**
  * Class MethodInvocationTest
  * @package Ecotone\Messaging\Handler\ServiceActivator
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

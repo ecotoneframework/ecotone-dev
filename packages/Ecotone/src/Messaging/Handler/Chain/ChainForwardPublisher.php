@@ -11,7 +11,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class ChainForwardPublisher
  * @package Ecotone\Messaging\Handler\Chain
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ChainForwardPublisher
 {

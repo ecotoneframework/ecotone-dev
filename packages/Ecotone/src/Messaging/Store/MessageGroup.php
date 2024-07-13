@@ -8,7 +8,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * Interface MessageGroup - used in multiple messages scenarios
  * @package Ecotone\Messaging\Store
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface MessageGroup
 {

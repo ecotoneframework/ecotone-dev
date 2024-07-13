@@ -10,7 +10,7 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * Class EventDrivenChannelInterceptorAdapter
  * @package Ecotone\Messaging\Config
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class EventDrivenChannelInterceptorAdapter extends SendingInterceptorAdapter implements SubscribableChannel
 {

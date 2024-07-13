@@ -5,7 +5,7 @@ namespace Test\Ecotone\Messaging\Fixture\Handler\Splitter;
 /**
  * Class WrongSplittingService
  * @package Test\Ecotone\Messaging\Fixture\Handler\Splitter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class WrongSplittingService
 {

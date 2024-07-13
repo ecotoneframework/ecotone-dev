@@ -25,7 +25,7 @@ use function spl_autoload_unregister;
 /**
  * Class LazyProxyConfiguration
  * @package Ecotone\Messaging\Handler\Gateway
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ProxyFactory
 {

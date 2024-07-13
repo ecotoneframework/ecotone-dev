@@ -5,7 +5,7 @@ namespace Test\Ecotone\Modelling\Fixture\Blog;
 /**
  * Class PublishArticleWithoutAuthorCommand
  * @package Test\Ecotone\Modelling\Fixture\Blog
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class PublishArticleWithTitleOnlyCommand
 {

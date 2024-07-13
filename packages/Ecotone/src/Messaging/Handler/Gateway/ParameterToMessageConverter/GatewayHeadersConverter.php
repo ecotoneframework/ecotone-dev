@@ -14,7 +14,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class GatewayHeaderArrayConverter
  * @package Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class GatewayHeadersConverter implements GatewayParameterConverter
 {

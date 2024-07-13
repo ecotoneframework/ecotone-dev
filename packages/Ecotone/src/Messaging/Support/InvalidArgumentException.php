@@ -7,7 +7,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * Class InvalidArgumentException
  * @package Ecotone\Messaging\Support
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class InvalidArgumentException extends MessagingException
 {

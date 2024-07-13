@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
 /**
  * Class ContinuouslyRunningConsumer
  * @package Ecotone\Messaging\Endpoint
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class InterceptedConsumer implements ConsumerLifecycle
 {

@@ -8,7 +8,7 @@ use Ramsey\Uuid\UuidInterface;
 /**
  * Interface MessageStore - used in single message scenarios
  * @package Ecotone\Messaging\Store
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface MessageStore
 {

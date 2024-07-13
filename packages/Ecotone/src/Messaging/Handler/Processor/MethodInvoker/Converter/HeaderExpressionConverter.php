@@ -12,7 +12,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * Class MessageToExpressionEvaluationConverter
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class HeaderExpressionConverter implements ParameterConverter
 {

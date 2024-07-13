@@ -11,7 +11,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Interface MessageConverter
  * @package Ecotone\Messaging\Handler\Gateway
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface MessageConverter
 {

@@ -20,7 +20,7 @@ use Throwable;
 /**
  * Class LoggingService
  * @package Ecotone\Messaging\Handler\Logger
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class LoggingService
 {

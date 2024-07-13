@@ -8,7 +8,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class ServiceExpectingMessageAndReturningMessage
  * @package Test\Ecotone\Messaging\Fixture\Service
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ServiceExpectingMessageAndReturningMessage
 {

@@ -15,7 +15,7 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 /**
  * Class ReferenceBuilderTest
  * @package Test\Ecotone\Messaging\Unit\Handler\Processor
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

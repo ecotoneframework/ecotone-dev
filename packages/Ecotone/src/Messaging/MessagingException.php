@@ -11,7 +11,7 @@ use Throwable;
 /**
  * Class MessagingException
  * @package Ecotone\Messaging\Exception
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 abstract class MessagingException extends Exception
 {

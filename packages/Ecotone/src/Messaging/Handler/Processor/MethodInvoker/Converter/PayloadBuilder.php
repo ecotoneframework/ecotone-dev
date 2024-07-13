@@ -15,7 +15,7 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 /**
  * Class PayloadParameterConverterBuilder
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class PayloadBuilder implements ParameterConverterBuilder
 {

@@ -5,7 +5,7 @@ namespace Test\Ecotone\Messaging\Fixture\Handler\CombinedConversion;
 /**
  * Class OrderNameTransformer
  * @package Fixture\Handler\CombinedConversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class OrderNamePrefixer
 {

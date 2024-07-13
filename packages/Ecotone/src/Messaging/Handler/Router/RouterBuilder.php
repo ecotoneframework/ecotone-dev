@@ -21,7 +21,7 @@ use function get_class;
 /**
  * Class RouterBuilder
  * @package Ecotone\Messaging\Handler\Router
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
 {

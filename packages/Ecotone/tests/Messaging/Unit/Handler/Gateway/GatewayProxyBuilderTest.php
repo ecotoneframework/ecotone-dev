@@ -62,7 +62,7 @@ use TypeError;
 /**
  * Class GatewayProxyBuilderTest
  * @package Ecotone\Messaging\Config
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

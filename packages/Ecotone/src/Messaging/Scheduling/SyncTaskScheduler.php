@@ -9,7 +9,7 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 /**
  * Class SyncTaskScheduler
  * @package Ecotone\Messaging\Scheduling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SyncTaskScheduler implements TaskScheduler
 {

@@ -14,7 +14,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * Class MethodInvocation
  * @package Messaging\Handler\ServiceActivator
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 final class MethodInvoker implements MessageProcessor
 {

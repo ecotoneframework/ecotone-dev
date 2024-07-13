@@ -7,7 +7,7 @@ use Ecotone\Messaging\Attribute\Converter;
 /**
  * Class OrderConverter
  * @package Fixture\Handler\CombinedConversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class OrderConverter
 {

@@ -11,7 +11,7 @@ use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
 /**
  * Class DirectChannelTest
  * @package Ecotone\Messaging\Channel
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

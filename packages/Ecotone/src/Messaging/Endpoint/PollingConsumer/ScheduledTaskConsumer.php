@@ -12,7 +12,7 @@ use Ecotone\Messaging\Scheduling\Trigger;
 /**
  * Class InboundChannelAdapter
  * @package Ecotone\Messaging\Endpoint
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ScheduledTaskConsumer implements ConsumerLifecycle
 {

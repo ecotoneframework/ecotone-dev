@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Endpoint;
 /**
  * Interface PollingConsumerGatewayEntrypoint
  * @package Ecotone\Messaging\Endpoint\PollingConsumer
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface InboundChannelAdapterEntrypoint
 {

@@ -13,7 +13,7 @@ use function json_encode;
 /**
  * Class ArrayToJsonConverter
  * @package Ecotone\Messaging\Conversion\ArrayToJson
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ArrayToJsonConverter implements Converter
 {

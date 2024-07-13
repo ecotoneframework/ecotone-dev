@@ -5,7 +5,7 @@ namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 /**
  * Interface RegisterWithShipping
  * @package Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface RegisterWithShipping
 {

@@ -9,7 +9,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 /**
  * Interface MethodInvocation
  * @package Ecotone\Messaging\MethodInterceptor
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface MethodInvocation
 {

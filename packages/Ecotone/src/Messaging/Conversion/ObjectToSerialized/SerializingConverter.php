@@ -11,7 +11,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 /**
  * Class SerializingConverter
  * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SerializingConverter implements Converter
 {

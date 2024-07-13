@@ -9,7 +9,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * Class TypeDefinitionException
  * @package Ecotone\Messaging\Handler
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class TypeDefinitionException extends MessagingException
 {

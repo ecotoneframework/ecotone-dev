@@ -13,7 +13,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class GatewayExpressionConverter
  * @package Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class GatewayPayloadExpressionConverter implements GatewayParameterConverter
 {

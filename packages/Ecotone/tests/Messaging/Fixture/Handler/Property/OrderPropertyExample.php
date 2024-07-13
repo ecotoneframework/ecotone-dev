@@ -7,7 +7,7 @@ use stdClass as SomeClass;
 /**
  * Class OrderPropertyExample
  * @package Test\Ecotone\Messaging\Fixture\Handler\Property
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class OrderPropertyExample
 {

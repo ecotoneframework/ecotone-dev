@@ -9,7 +9,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 /**
  * Class CollectionConverter
  * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class CollectionConverter implements Converter
 {

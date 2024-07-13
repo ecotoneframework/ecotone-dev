@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 /**
  * Class ConverterReferenceBuilder
  * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ConverterReferenceBuilder implements CompilableBuilder
 {

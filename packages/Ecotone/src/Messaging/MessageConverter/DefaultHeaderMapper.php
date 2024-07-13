@@ -13,7 +13,7 @@ use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 /**
  * Class DefaultHeaderMapper
  * @package Ecotone\Messaging\Endpoint\Mapper
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class DefaultHeaderMapper implements HeaderMapper
 {

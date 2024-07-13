@@ -35,7 +35,7 @@ use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
 /**
  * Class ServiceCallToAggregateAdapterTest
  * @package Test\Ecotone\Modelling
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

@@ -30,7 +30,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\Std
 /**
  * Class InboundChannelAdapterModuleTest
  * @package Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

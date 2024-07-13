@@ -9,7 +9,7 @@ use Ecotone\Messaging\MessageChannel;
 /**
  * Class ResolvableChannel
  * @package Ecotone\Messaging\Config
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class NamedMessageChannel
 {

@@ -9,7 +9,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class ExpressionTransformer
  * @package Ecotone\Messaging\Handler\Transformer
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 final class ExpressionTransformer

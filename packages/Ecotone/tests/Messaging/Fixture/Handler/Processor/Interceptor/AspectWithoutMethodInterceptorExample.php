@@ -7,7 +7,7 @@ use Ecotone\Messaging\Attribute\Interceptor\Around;
 /**
  * Class AspectWithoutMethodInterceptorExample
  * @package Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AspectWithoutMethodInterceptorExample
 {

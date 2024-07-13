@@ -7,7 +7,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * Class PropertyDescriptor
  * @package Ecotone\Messaging\Handler
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 final class ClassPropertyDefinition
 {

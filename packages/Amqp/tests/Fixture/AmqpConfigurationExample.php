@@ -7,7 +7,7 @@ use Ecotone\Messaging\SubscribableChannel;
 /**
  * Interface AmqpConfigurationExample
  * @package Test\Ecotone\Amqp\Fixture
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface AmqpConfigurationExample
 {

@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Class ChannelInterceptorTest
  * @package Test\Ecotone\Messaging\Unit\Channel
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

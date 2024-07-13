@@ -11,7 +11,7 @@ use Ecotone\Messaging\SubscribableChannel;
 /**
  * Class DirectChannel
  * @package Ecotone\Messaging\Channel
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 final class DirectChannel implements SubscribableChannel, DefinedObject
 {

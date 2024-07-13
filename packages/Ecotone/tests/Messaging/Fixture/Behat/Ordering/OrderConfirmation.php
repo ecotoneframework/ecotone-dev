@@ -7,7 +7,7 @@ use Ramsey\Uuid\UuidInterface;
 /**
  * Class OrderConfirmation
  * @package Test\Ecotone\Messaging\Fixture\Behat\Ordering
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class OrderConfirmation
 {

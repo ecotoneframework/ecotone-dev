@@ -15,7 +15,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class MethodCallToMessageConverter
  * @package Ecotone\Messaging\Handler\Gateway\Gateway
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class MethodCallToMessageConverter
 {

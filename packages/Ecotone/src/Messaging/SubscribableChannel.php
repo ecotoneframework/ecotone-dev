@@ -5,7 +5,7 @@ namespace Ecotone\Messaging;
 /**
  * Interface SubscribableChannel
  * @package Ecotone\Messaging
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface SubscribableChannel extends MessageChannel
 {

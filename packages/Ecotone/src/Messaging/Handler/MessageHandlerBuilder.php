@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 /**
  * Interface MessageHandlerBuilder
  * @package Ecotone\Messaging\Config
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface MessageHandlerBuilder extends CompilableBuilder
 {

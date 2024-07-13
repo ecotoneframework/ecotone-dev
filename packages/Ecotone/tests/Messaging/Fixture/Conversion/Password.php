@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Fixture\Conversion;
 /**
  * Class Password
  * @package Test\Ecotone\Messaging\Fixture\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class Password
 {

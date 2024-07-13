@@ -7,7 +7,7 @@ use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
 /**
  * Class SomeResult
  * @package Test\Ecotone\Modelling\Fixture\Annotation\QueryHandler
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SomeResult
 {

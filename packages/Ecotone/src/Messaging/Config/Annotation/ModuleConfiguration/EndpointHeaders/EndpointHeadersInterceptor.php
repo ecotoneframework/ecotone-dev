@@ -16,7 +16,7 @@ use Ecotone\Messaging\MessageHeaders;
 /**
  * Class EndpointHeadersInterceptor
  * @package Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class EndpointHeadersInterceptor implements DefinedObject
 {

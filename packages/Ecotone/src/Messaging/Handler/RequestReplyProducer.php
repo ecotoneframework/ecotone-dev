@@ -16,7 +16,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class RequestReplyProducer
  * @package Ecotone\Messaging\Handler
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class RequestReplyProducer implements MessageHandler
 {

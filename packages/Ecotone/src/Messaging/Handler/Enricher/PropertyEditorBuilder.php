@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 /**
  * Interface PropertySetterBuilder
  * @package Ecotone\Messaging\Handler\Enricher
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface PropertyEditorBuilder extends CompilableBuilder
 {

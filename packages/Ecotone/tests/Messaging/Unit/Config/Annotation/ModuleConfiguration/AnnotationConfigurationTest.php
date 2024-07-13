@@ -11,7 +11,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
 /**
  * Class AnnotationConfigurationTest
  * @package Test\Ecotone\Messaging\Unit\Config\Annotation\Annotation
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 abstract class AnnotationConfigurationTest extends MessagingTest
 {

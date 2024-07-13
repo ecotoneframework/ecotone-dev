@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Endpoint;
 /**
  * Interface Lifecycle
  * @package Ecotone\Messaging\Endpoint
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface ConsumerLifecycle
 {

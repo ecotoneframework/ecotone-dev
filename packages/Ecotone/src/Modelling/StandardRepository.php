@@ -7,7 +7,7 @@ namespace Ecotone\Modelling;
  *
  * Interface AggregateRepository
  * @package Ecotone\Modelling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface StandardRepository
 {

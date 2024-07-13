@@ -7,7 +7,7 @@ use Ecotone\Messaging\Message;
 /**
  * Class MultipleChannelRouter
  * @package Test\Ecotone\Messaging\Fixture\Router
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class MultipleChannelRouter
 {

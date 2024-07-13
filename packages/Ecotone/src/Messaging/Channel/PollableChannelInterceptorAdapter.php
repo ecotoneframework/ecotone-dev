@@ -11,7 +11,7 @@ use Throwable;
 /**
  * Class PollableChannelInterceptorAdapter
  * @package Ecotone\Messaging\Config
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class PollableChannelInterceptorAdapter extends SendingInterceptorAdapter implements PollableChannel
 {

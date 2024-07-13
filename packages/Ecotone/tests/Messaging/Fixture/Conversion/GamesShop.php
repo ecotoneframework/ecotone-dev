@@ -9,7 +9,7 @@ use stdClass;
 /**
  * Class GamesShop
  * @package Test\Ecotone\Messaging\Fixture\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 abstract class GamesShop
 {

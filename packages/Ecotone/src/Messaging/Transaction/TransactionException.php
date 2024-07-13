@@ -7,7 +7,7 @@ use RuntimeException;
 /**
  * Class TransactionException
  * @package Ecotone\Messaging\Transaction
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class TransactionException extends RuntimeException
 {

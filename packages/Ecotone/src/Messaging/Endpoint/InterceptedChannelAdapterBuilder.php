@@ -24,7 +24,7 @@ use Psr\Log\LoggerInterface;
 /**
  * Class InterceptedConsumerBuilder
  * @package Ecotone\Messaging\Endpoint
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsumerBuilder, CompilableBuilder
 {

@@ -17,7 +17,7 @@ use Ramsey\Uuid\Uuid;
 /**
  * Class MessageHeaders
  * @package Ecotone\Messaging
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 final class MessageHeaders
 {

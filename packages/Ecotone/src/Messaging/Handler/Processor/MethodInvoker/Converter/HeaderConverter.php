@@ -17,7 +17,7 @@ use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 /**
  * Class HeaderArgument
  * @package Ecotone\Messaging\Handler\ServiceActivator
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class HeaderConverter implements ParameterConverter

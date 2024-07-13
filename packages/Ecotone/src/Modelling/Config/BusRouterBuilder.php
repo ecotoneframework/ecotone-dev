@@ -18,7 +18,7 @@ use Exception;
 /**
  * Class BusRouterBuilder
  * @package Ecotone\Modelling\Config
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class BusRouterBuilder implements MessageHandlerBuilder
 {

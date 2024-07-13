@@ -9,7 +9,7 @@ use Interop\Amqp\AmqpTopic as EnqueueExchange;
 /**
  * Class AmqpExchange
  * @package Ecotone\Amqp
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AmqpExchange
 {

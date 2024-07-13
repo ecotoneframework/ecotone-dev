@@ -18,7 +18,7 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 /**
  * Class ReferenceServiceConverterBuilderTest
  * @package Test\Ecotone\Messaging\Unit\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

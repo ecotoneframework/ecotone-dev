@@ -18,7 +18,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
 /**
  * Class SplitterBuilderTest
  * @package Ecotone\Messaging\Handler\Splitter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

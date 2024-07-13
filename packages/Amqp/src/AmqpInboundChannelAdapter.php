@@ -21,7 +21,7 @@ use Interop\Queue\Message as EnqueueMessage;
 /**
  * Class InboundEnqueueGateway
  * @package Ecotone\Amqp
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {

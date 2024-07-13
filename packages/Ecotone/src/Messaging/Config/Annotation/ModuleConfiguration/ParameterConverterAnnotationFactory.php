@@ -25,7 +25,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 /**
  * Class ParameterConverterAnnotationFactory
  * @package Ecotone\Messaging\Config\Annotation
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ParameterConverterAnnotationFactory
 {

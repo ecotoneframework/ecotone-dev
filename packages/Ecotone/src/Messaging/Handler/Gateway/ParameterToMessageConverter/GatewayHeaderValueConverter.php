@@ -11,7 +11,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class StaticHeaderMessageArgumentConverter
  * @package Ecotone\Messaging\Handler\Gateway\MethodParameterConverter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class GatewayHeaderValueConverter implements GatewayParameterConverter

@@ -8,7 +8,7 @@ use Psr\Log\LogLevel;
 /**
  * Class EchoLogger
  * @package Ecotone\Messaging\Handler\Logger
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class EchoLogger extends AbstractLogger
 {

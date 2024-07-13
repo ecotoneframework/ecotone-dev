@@ -7,7 +7,7 @@ namespace Ecotone\Messaging;
 /**
  * Interface PollableChannel
  * @package Ecotone\Messaging
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface PollableChannel extends MessageChannel, MessagePoller
 {

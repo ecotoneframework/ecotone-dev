@@ -11,7 +11,7 @@ use Throwable;
 /**
  * Class AbstractChannelInterceptor
  * @package Ecotone\Messaging\Channel
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 abstract class AbstractChannelInterceptor implements ChannelInterceptor
 {

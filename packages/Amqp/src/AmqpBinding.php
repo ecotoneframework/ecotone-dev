@@ -10,7 +10,7 @@ use Interop\Amqp\Impl\AmqpBind as EnqueueBinding;
 /**
  * Class AmqpBinding
  * @package Ecotone\Amqp
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AmqpBinding
 {

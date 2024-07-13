@@ -9,7 +9,7 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * Class NullAcknowledgementCallback
  * @package Ecotone\Messaging\Endpoint
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class NullAcknowledgementCallback implements AcknowledgementCallback
 {

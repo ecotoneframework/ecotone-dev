@@ -9,7 +9,7 @@ use Test\Ecotone\Messaging\Fixture\Dto\WithCustomer\Customer;
 /**
  * Class Order
  * @package Test\Ecotone\Messaging\Fixture\Dto
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class OrderExample
 {

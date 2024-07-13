@@ -65,7 +65,7 @@ use Test\Ecotone\Modelling\Fixture\Handler\ServiceWithCommandAndQueryHandlersUnd
 /**
  * Class AggregateMessageRouterModuleTest
  * @package Test\Ecotone\Modelling\Config
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

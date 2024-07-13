@@ -19,7 +19,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
 /**
  * Class AnnotationModuleConfigurationRetrievingServiceTest
  * @package Test\Ecotone\Messaging\Unit\Config\Annotation
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

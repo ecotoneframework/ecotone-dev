@@ -7,7 +7,7 @@ use Ecotone\Messaging\Transaction\Transaction;
 /**
  * Class NullTransaction
  * @package Ecotone\Messaging\Transaction\Null
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class NullTransaction implements Transaction
 {

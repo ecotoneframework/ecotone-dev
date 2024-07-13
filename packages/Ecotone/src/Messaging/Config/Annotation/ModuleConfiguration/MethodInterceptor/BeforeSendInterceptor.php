@@ -13,7 +13,7 @@ use Throwable;
 /**
  * Class BeforeSendInterceptor
  * @package Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class BeforeSendInterceptor implements ChannelInterceptor
 {

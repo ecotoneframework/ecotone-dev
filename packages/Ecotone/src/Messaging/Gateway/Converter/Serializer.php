@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Gateway\Converter;
 
 /**
  * Interface Serializer
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @TODO 2.0 change namespace and name to SerializerGateway
  */

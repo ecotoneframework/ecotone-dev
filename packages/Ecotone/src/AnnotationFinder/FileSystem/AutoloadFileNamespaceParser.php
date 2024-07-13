@@ -7,7 +7,7 @@ namespace Ecotone\AnnotationFinder\FileSystem;
 /**
  * Class GetUsedPathsFromAutoload
  * @package Ecotone\Messaging\Config\Annotation
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AutoloadFileNamespaceParser implements AutoloadNamespaceParser
 {

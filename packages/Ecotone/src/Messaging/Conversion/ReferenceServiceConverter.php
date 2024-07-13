@@ -13,7 +13,7 @@ use ReflectionMethod;
 /**
  * Class ReferenceConverter
  * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ReferenceServiceConverter implements Converter
 {

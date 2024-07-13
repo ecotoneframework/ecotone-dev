@@ -14,7 +14,7 @@ use Ecotone\Messaging\Message;
 /**
  * Class ExpressionSetter
  * @package Ecotone\Messaging\Handler\Enricher\Converter
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class EnrichPayloadWithExpressionPropertyEditor implements PropertyEditor

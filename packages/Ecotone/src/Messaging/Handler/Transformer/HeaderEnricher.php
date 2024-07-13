@@ -10,7 +10,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class HeaderEnricher
  * @package Ecotone\Messaging\Handler\Transformer
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 final class HeaderEnricher implements DefinedObject

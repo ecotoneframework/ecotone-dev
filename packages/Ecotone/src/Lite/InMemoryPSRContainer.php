@@ -8,7 +8,7 @@ use Psr\Container\ContainerInterface;
 /**
  * Class InMemoryPSRContainer
  * @package Ecotone\Lite
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class InMemoryPSRContainer implements ContainerInterface
 {

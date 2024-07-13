@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Class MediaTypeTest
  * @package Test\Ecotone\Messaging\Unit\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

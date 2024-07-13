@@ -7,7 +7,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * Class UnresolveChannelException
  * @package Ecotone\Messaging\Handler
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class DestinationResolutionException extends MessagingException
 {

@@ -32,7 +32,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
 /**
  * Class PollingConsumerBuilderTest
  * @package Test\Ecotone\Messaging\Unit\Endpoint
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

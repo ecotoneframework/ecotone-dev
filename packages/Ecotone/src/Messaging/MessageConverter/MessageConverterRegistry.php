@@ -9,7 +9,7 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * Class GlobalMessageConverterService
  * @package Ecotone\Messaging\MessageConverter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class MessageConverterRegistry
 {

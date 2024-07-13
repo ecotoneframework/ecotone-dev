@@ -8,7 +8,7 @@ use Ecotone\Messaging\Message;
 /**
  * Class FutureReplySender
  * @package Ecotone\Messaging\Handler\Gateway
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class FutureReplyReceiver implements Future

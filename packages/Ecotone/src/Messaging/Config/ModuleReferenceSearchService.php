@@ -8,7 +8,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * Class ModuleReferenceSearchService
  * @package Ecotone\Messaging\Config
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ModuleReferenceSearchService
 {

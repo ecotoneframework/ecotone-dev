@@ -9,7 +9,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * Class GatewayMessageConversionException
  * @package Ecotone\Messaging\Handler\Gateway
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class GatewayMessageConversionException extends MessagingException
 {

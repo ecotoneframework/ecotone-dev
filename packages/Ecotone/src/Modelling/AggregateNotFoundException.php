@@ -7,7 +7,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * Class AggregateNotFoundException
  * @package Ecotone\Modelling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AggregateNotFoundException extends MessagingException
 {

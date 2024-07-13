@@ -11,7 +11,7 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * Class ConversionService
  * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AutoCollectionConversionService implements ConversionService
 {

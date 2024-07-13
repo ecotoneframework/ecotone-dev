@@ -30,7 +30,7 @@ use function is_string;
 /**
  * Class SplitterBuilder
  * @package Ecotone\Messaging\Handler\Splitter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SplitterBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
 {

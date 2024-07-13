@@ -8,7 +8,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 /**
  * Class StringTransformer
  * @package Test\Ecotone\Messaging\Fixture\Handler\Transformer
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class StringTransformer implements DefinedObject
 {

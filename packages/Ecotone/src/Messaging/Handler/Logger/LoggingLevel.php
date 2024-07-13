@@ -11,7 +11,7 @@ use Psr\Log\LogLevel;
 /**
  * Class LogLevel
  * @package Ecotone\Messaging\Handler\Logger
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class LoggingLevel extends LogLevel
 {

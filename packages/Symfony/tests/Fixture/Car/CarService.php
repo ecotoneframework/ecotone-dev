@@ -5,7 +5,7 @@ namespace Fixture\Car;
 /**
  * Class CarService
  * @package Fixture\Car
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class CarService
 {

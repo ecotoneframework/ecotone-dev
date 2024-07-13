@@ -13,7 +13,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class PollingConsumerTaskExecutor
  * @package Ecotone\Messaging\Endpoint\PollingConsumer
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class PollableChannelPollerAdapter implements MessagePoller
 {

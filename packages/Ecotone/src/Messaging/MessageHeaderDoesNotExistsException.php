@@ -5,7 +5,7 @@ namespace Ecotone\Messaging;
 /**
  * Class MessageHeaderDoesNotExistsException
  * @package Ecotone\Messaging\Exception
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class MessageHeaderDoesNotExistsException extends MessagingException
 {

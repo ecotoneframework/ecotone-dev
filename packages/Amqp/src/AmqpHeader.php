@@ -9,7 +9,7 @@ use Ecotone\Enqueue\EnqueueHeader;
 /**
  * Interface AmqpHeader
  * @package Ecotone\Amqp
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface AmqpHeader extends EnqueueHeader
 {

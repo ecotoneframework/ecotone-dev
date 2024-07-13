@@ -17,7 +17,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class WrapWithMessageProcessor Constructs reply message with correct content type
  * @package Ecotone\Messaging\Handler\Processor
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class WrapWithMessageBuildProcessor implements MessageProcessor
 {

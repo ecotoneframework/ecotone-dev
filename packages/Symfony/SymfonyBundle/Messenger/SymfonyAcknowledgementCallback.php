@@ -12,7 +12,7 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
 /**
  * Class EnqueueAcknowledgementCallback
  * @package Ecotone\Amqp
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SymfonyAcknowledgementCallback implements AcknowledgementCallback
 {

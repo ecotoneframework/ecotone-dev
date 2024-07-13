@@ -12,7 +12,7 @@ use Ecotone\Messaging\Handler\InterfaceParameter;
 /**
  * Class HeaderToMessageConverterBuilder
  * @package Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class GatewayHeaderBuilder implements GatewayParameterConverterBuilder
 {

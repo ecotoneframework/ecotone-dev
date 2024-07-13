@@ -37,7 +37,7 @@ use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
 /**
  * Class ChainMessageHandlerBuilderTest
  * @package Test\Ecotone\Messaging\Unit\Handler\Chain
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

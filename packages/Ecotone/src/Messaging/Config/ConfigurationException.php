@@ -7,7 +7,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * Class ConfigurationException
  * @package Ecotone\Messaging\Config
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ConfigurationException extends MessagingException
 {

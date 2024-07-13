@@ -13,7 +13,7 @@ use function json_decode;
 /**
  * Class JsonToArrayConverter
  * @package Ecotone\Messaging\Conversion\JsonToArray
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class JsonToArrayConverter implements Converter
 {

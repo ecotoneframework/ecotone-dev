@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Handler;
 use Ecotone\Messaging\Message;
 
 /**
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface ParameterConverter
 {

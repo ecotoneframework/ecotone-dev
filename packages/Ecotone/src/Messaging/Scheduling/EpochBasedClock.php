@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Scheduling;
 /**
  * Class UTCBasedClock
  * @package Ecotone\Messaging\Scheduling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class EpochBasedClock implements Clock
 {

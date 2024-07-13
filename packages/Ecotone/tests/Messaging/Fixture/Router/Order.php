@@ -5,7 +5,7 @@ namespace Test\Ecotone\Messaging\Fixture\Router;
 /**
  * Class Order
  * @package Test\Ecotone\Messaging\Fixture\Router
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class Order
 {

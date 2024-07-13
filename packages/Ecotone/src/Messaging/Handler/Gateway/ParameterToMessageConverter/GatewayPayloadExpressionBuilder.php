@@ -14,7 +14,7 @@ use Ecotone\Messaging\Handler\InterfaceParameter;
 /**
  * Class GatewayExpressionBuilder
  * @package Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class GatewayPayloadExpressionBuilder implements GatewayParameterConverterBuilder
 {

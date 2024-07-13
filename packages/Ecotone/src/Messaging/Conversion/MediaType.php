@@ -14,7 +14,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * Class MediaType
  * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 final class MediaType implements DefinedObject
 {

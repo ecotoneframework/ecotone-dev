@@ -13,7 +13,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class Router
  * @package Ecotone\Messaging\Handler\Router
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 final class Router implements MessageHandler

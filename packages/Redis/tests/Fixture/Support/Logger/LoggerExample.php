@@ -8,7 +8,7 @@ use Stringable;
 /**
  * Class LoggerExample
  * @package Test\Ecotone\Messaging\Unit\Handler\Logger
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class LoggerExample implements LoggerInterface
 {

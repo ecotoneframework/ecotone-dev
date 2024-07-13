@@ -14,7 +14,7 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * Class ReferenceConverterBuilder
  * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ReferenceServiceConverterBuilder implements CompilableBuilder
 {

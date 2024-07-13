@@ -20,7 +20,7 @@ use Psr\Log\LogLevel;
 /**
  * Class LoggingHandlerBuilder
  * @package Ecotone\Messaging\Handler\Logger
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
 {

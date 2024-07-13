@@ -9,7 +9,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * Class SchedulingException
  * @package Ecotone\Messaging\Scheduling
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SchedulingException extends MessagingException
 {

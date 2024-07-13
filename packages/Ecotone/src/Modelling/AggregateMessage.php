@@ -5,7 +5,7 @@ namespace Ecotone\Modelling;
 /**
  * Interface CQRS
  * @package Ecotone\Modelling
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 interface AggregateMessage
 {

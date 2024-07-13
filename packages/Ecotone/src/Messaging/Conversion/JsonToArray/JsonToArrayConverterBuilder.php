@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 /**
  * Class JsonToArrayConverterBuilder
  * @package Ecotone\Messaging\Conversion\JsonToArray
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class JsonToArrayConverterBuilder implements CompilableBuilder
 {

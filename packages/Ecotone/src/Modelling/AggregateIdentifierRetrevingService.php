@@ -15,7 +15,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class AggregateMessageConversionService
  * @package Ecotone\Modelling
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class AggregateIdentifierRetrevingService
 {

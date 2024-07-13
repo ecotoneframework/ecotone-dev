@@ -7,7 +7,7 @@ use Test\Ecotone\Messaging\Fixture\Handler\Property\Extra\PrivatePropertyTrait;
 /**
  * Class OrderWithTraits
  * @package Test\Ecotone\Messaging\Fixture\Handler\Property
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class OrderWithTraits
 {

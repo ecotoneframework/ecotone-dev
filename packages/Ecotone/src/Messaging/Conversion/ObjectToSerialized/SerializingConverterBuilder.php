@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 /**
  * Class SerializingConverterBuilder
  * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class SerializingConverterBuilder implements CompilableBuilder
 {

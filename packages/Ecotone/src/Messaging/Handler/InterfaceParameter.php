@@ -12,7 +12,7 @@ use ReflectionException;
 /**
  * Class InterfaceParameter
  * @package Ecotone\Messaging\Handler
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 final class InterfaceParameter
 {

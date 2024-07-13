@@ -21,7 +21,7 @@ use Ramsey\Uuid\Uuid;
 /**
  * Class ChainMessageHandlerBuilder
  * @package Ecotone\Messaging\Handler\Chain
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
 {

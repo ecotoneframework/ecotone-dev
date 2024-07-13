@@ -16,7 +16,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * Class GatewayInternalHandler
  * @package Ecotone\Messaging\Handler\Gateway
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class GatewayInternalHandler
 {

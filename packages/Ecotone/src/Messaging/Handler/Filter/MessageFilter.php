@@ -12,7 +12,7 @@ use Ecotone\Messaging\MessageHeaders;
 /**
  * Class MessageFilter
  * @package Ecotone\Messaging\Handler\Filter
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
 class MessageFilter

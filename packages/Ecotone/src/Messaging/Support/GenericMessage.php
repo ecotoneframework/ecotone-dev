@@ -13,7 +13,7 @@ use function json_encode;
 /**
  * Class GenericMessage
  * @package Ecotone\Messaging\Support
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 final class GenericMessage implements Message
 {

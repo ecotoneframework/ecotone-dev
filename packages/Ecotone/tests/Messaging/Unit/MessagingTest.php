@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Class MessagingTest
  * @package Ecotone\Messaging
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 abstract class MessagingTest extends TestCase
 {

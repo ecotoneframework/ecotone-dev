@@ -19,7 +19,7 @@ use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MultipleMethodsGatewayExample
 /**
  * Class AnnotationTransformerConfigurationTest
  * @package Test\Ecotone\Messaging\Unit\Config\Annotation\Annotation
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
  */

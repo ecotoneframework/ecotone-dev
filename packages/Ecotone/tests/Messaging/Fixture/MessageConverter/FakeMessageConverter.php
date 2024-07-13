@@ -15,7 +15,7 @@ use stdClass;
 /**
  * Class FakeMessageConverter
  * @package Test\Ecotone\Messaging\Fixture\MessageConverter
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class FakeMessageConverter implements MessageConverter
 {

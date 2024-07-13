@@ -11,7 +11,7 @@ namespace Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate;
 /**
  * Class DoStuffCommand
  * @package Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 class DoStuffCommand
 {

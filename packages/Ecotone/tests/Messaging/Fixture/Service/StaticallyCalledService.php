@@ -9,6 +9,9 @@ use Ecotone\Messaging\Attribute\ServiceActivator;
  * @package Test\Ecotone\Messaging\Fixture\Service
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class StaticallyCalledService
 {
     private function __construct()

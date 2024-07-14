@@ -22,6 +22,9 @@ use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Psr\Container\ContainerInterface;
 
+/**
+ * licence Apache-2.0
+ */
 final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnectionFactory
 {
     public const TENANT_ACTIVATED_CHANNEL_NAME = 'ecotone.multi_tenant_propagation_channel.activate';

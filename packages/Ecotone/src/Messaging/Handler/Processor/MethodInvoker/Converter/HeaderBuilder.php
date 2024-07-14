@@ -18,6 +18,9 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class HeaderBuilder implements ParameterConverterBuilder
 {
     private function __construct(private string $parameterName, private string $headerName, private bool $isRequired)

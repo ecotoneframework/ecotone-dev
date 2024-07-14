@@ -14,6 +14,9 @@ use Ramsey\Uuid\Uuid;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class InMemoryMessageGroupTest extends TestCase
 {
     public function test_adding_message()

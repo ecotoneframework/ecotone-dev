@@ -7,6 +7,9 @@ use Ecotone\Messaging\Support\Assert;
 use Prooph\Common\Messaging\Message;
 use Ramsey\Uuid\UuidInterface;
 
+/**
+ * licence Apache-2.0
+ */
 class ProophMessage implements Message
 {
     private UuidInterface $messageId;

@@ -7,6 +7,9 @@ namespace App\MultiTenant\Application;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class NotificationSender
 {
     private array $notifications = [];

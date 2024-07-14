@@ -20,6 +20,9 @@ use Test\Ecotone\Dbal\Fixture\Deduplication\OrderSubscriber;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class DeduplicationModuleTest extends DbalMessagingTestCase
 {
     private const CHANNEL_NAME = 'processOrders';

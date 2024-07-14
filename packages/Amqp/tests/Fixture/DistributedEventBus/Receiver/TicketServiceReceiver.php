@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;
 use RuntimeException;
 
+/**
+ * licence Apache-2.0
+ */
 class TicketServiceReceiver
 {
     public const GET_TICKETS_COUNT      = 'getTicketsCount';

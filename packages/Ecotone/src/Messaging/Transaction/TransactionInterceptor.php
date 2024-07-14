@@ -16,6 +16,9 @@ use Throwable;
  * @package Ecotone\Messaging\Transaction
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class TransactionInterceptor implements DefinedObject
 {
     public function transactional(MethodInvocation $methodInvocation, ReferenceSearchService $referenceSearchService, Transactional $transactional, Message $message)

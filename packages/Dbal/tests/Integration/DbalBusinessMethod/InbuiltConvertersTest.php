@@ -19,6 +19,9 @@ use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonId;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class InbuiltConvertersTest extends DbalMessagingTestCase
 {
     public function test_using_date_time_parameter_default_conversion()

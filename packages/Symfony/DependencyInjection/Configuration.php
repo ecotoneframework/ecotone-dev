@@ -8,6 +8,9 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 /**
  * @TODO Ecotone 2.0 - make use only ServiceContext for setting up ServiceConfiguration and remove Symfony and Laravel global configuration
  */
+/**
+ * licence Apache-2.0
+ */
 class Configuration implements ConfigurationInterface
 {
     public function getConfigTreeBuilder(): TreeBuilder

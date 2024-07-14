@@ -20,6 +20,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  * @package Ecotone\Messaging\Config\Annotation
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class FileSystemAnnotationFinder implements AnnotationFinder
 {
     private const FILE_EXTENSION = 'php';

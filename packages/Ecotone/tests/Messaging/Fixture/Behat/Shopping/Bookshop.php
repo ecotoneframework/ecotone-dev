@@ -7,6 +7,9 @@ namespace Test\Ecotone\Messaging\Fixture\Behat\Shopping;
  * @package Test\Ecotone\Messaging\Fixture\Behat\Shopping
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class Bookshop
 {
     /**

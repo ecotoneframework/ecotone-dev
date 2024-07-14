@@ -25,6 +25,9 @@ use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
  * @package Ecotone\Modelling
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
 {
     private TypeDescriptor $typeToConvertTo;

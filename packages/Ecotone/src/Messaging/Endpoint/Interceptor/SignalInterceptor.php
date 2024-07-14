@@ -13,6 +13,9 @@ use Throwable;
  * @package Ecotone\Messaging\Endpoint\Interceptor
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class SignalInterceptor implements ConsumerInterceptor
 {
     /** @var int supervisor default stop */

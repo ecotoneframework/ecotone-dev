@@ -10,6 +10,9 @@ use Test\Ecotone\Messaging\Fixture\Conversion\BlackListedUser;
  * @package Test\Ecotone\Messaging\Fixture\Conversion\Extra
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class LazyUser implements BlackListedUser
 {
     /**

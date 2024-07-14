@@ -12,6 +12,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
  * @package Ecotone\Messaging\Handler\Gateway\Gateway
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface GatewayParameterConverter
 {
     public function convertToMessage(?MethodArgument $methodArgument, MessageBuilder $messageBuilder): MessageBuilder;

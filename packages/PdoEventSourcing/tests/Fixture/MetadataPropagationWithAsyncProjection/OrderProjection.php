@@ -13,6 +13,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Asynchronous(channelName: self::CHANNEL)]
 #[Projection(name: self::NAME, fromStreams: [Order::class])]
+/**
+ * licence Apache-2.0
+ */
 final class OrderProjection
 {
     public const CHANNEL = 'projection_channel';

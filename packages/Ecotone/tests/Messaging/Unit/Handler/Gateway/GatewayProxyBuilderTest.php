@@ -66,6 +66,9 @@ use TypeError;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class GatewayProxyBuilderTest extends MessagingTest
 {
     public function test_creating_gateway_for_send_only_interface()

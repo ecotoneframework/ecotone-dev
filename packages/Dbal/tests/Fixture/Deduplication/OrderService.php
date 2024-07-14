@@ -8,6 +8,9 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;
 
+/**
+ * licence Apache-2.0
+ */
 class OrderService
 {
     private int $callCounter = 0;

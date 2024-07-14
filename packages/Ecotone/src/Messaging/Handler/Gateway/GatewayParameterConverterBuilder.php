@@ -12,6 +12,9 @@ use Ecotone\Messaging\Handler\InterfaceParameter;
  * @package Ecotone\Messaging\Handler\Gateway
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface GatewayParameterConverterBuilder extends CompilableBuilder
 {
     public function isHandling(InterfaceParameter $parameter): bool;

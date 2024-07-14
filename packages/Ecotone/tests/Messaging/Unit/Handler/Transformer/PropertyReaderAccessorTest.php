@@ -16,6 +16,9 @@ use Test\Ecotone\Messaging\Fixture\Dto\OrderExample;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class PropertyReaderAccessorTest extends TestCase
 {
     public function test_reading_value_from_array_at_first_level()

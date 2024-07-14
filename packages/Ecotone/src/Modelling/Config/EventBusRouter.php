@@ -14,6 +14,9 @@ use ReflectionException;
  * @package Ecotone\Modelling\Config
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class EventBusRouter
 {
     public function __construct(

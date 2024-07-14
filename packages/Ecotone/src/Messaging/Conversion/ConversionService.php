@@ -11,6 +11,9 @@ use Ecotone\Messaging\Handler\Type;
  * @package Ecotone\Messaging\Conversion
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface ConversionService
 {
     public const REFERENCE_NAME = self::class;

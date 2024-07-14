@@ -11,6 +11,9 @@ use Ecotone\Enqueue\EnqueueHeader;
  * @package Ecotone\Amqp
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface AmqpHeader extends EnqueueHeader
 {
     public const PREFIX = 'amqp_';

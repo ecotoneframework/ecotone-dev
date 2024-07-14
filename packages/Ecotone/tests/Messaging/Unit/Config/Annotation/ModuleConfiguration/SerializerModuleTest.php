@@ -29,6 +29,9 @@ use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleSingleConverterSe
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class SerializerModuleTest extends AnnotationConfigurationTest
 {
     /**

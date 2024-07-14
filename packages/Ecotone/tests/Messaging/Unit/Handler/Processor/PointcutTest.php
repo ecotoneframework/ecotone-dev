@@ -27,6 +27,9 @@ use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\MethodIntercept
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class PointcutTest extends TestCase
 {
     public function test_if_empty_point_cut_it_should_no_cut()

@@ -10,6 +10,9 @@ use Ecotone\Messaging\MessagingException;
  * @package Ecotone\Messaging\Store
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface MessageGroup
 {
     /**

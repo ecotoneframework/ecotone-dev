@@ -4,6 +4,9 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\Messaging\Attribute\PropagateHeaders;
 
+/**
+ * licence Apache-2.0
+ */
 interface ProjectionManager
 {
     /**

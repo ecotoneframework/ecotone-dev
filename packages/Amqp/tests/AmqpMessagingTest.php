@@ -13,6 +13,9 @@ use Test\Ecotone\Amqp\Fixture\ErrorChannel\ErrorConfigurationContext;
 use Test\Ecotone\Amqp\Fixture\FailureTransactionWithFatalError\ChannelConfiguration;
 use Test\Ecotone\Amqp\Fixture\Shop\MessagingConfiguration;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class AmqpMessagingTest extends TestCase
 {
     public const RABBITMQ_HOST = 'localhost';

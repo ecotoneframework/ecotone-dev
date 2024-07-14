@@ -16,6 +16,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 
 #[EventSourcingAggregate]
+/**
+ * licence Apache-2.0
+ */
 class Ticket
 {
     use WithAggregateVersioning;

@@ -11,6 +11,9 @@ use Ecotone\Messaging\Support\Assert;
  * @package Ecotone\Messaging\MessageConverter
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class MessageConverterRegistry
 {
     /**

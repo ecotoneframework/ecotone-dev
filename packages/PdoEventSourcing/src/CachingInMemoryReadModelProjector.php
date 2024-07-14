@@ -8,6 +8,9 @@ use Closure;
 use Prooph\EventStore\Projection\ReadModel;
 use Prooph\EventStore\Projection\ReadModelProjector;
 
+/**
+ * licence Apache-2.0
+ */
 class CachingInMemoryReadModelProjector implements ReadModelProjector
 {
     private bool $isFromStreamSetup = false;

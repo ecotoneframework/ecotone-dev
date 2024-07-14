@@ -6,6 +6,9 @@ namespace Test\Ecotone\Laravel\Fixture\Product;
 
 use Money\Money;
 
+/**
+ * licence Apache-2.0
+ */
 final class RegisterProduct
 {
     public function __construct(

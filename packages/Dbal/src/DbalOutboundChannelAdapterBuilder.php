@@ -11,6 +11,9 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Enqueue\Dbal\DbalConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
     /**

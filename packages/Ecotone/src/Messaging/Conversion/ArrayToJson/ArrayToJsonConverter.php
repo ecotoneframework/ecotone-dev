@@ -15,6 +15,9 @@ use function json_encode;
  * @package Ecotone\Messaging\Conversion\ArrayToJson
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ArrayToJsonConverter implements Converter
 {
     /**

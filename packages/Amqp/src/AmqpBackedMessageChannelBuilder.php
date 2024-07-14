@@ -10,6 +10,9 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  * @package Ecotone\Amqp
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private function __construct(string $channelName, string $amqpConnectionReferenceName)

@@ -22,6 +22,9 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class DbalParameterTypeTest extends DbalMessagingTestCase
 {
     public function test_using_predefined_parameter_type()

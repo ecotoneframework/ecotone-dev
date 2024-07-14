@@ -13,6 +13,9 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
  * @package Ecotone\Messaging\Conversion
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class UuidToStringConverterBuilder implements CompilableBuilder
 {
     public function compile(MessagingContainerBuilder $builder): Definition

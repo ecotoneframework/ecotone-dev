@@ -16,6 +16,9 @@ use Ecotone\Messaging\Support\Assert;
  * @package Ecotone\Messaging\Conversion
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ReferenceServiceConverterBuilder implements CompilableBuilder
 {
     private function __construct(private string $referenceName, private string $methodName, private Type $sourceType, private Type $targetType)

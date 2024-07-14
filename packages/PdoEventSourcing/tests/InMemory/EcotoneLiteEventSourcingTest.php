@@ -23,6 +23,9 @@ use Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDriven
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
 {
     public function test_registering_in_memory_event_sourcing_repository()

@@ -8,6 +8,9 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 
+/**
+ * licence Apache-2.0
+ */
 final class SymfonyMessengerExecutor
 {
     public function __construct(

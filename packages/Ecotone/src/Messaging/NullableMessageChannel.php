@@ -10,6 +10,9 @@ use Ecotone\Messaging\Config\Container\Definition;
  * @package Ecotone\Messaging
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 final class NullableMessageChannel implements SubscribableChannel, PollableChannel, DefinedObject
 {
     public const CHANNEL_NAME = 'nullChannel';

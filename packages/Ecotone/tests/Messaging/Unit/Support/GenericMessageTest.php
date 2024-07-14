@@ -13,6 +13,9 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class GenericMessageTest extends MessagingTest
 {
     public function test_creating_generic_message_with_headers_as_key_value()

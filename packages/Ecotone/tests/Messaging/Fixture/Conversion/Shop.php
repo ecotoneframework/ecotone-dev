@@ -9,6 +9,9 @@ namespace Test\Ecotone\Messaging\Fixture\Conversion;
  * @package Test\Ecotone\Messaging\Fixture\Conversion
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface Shop
 {
     #[ExampleTestAnnotation]

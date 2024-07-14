@@ -19,6 +19,9 @@ use stdClass;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class MessageHeadersTest extends TestCase
 {
     public function test_creating_with_generated_headers()

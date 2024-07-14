@@ -13,6 +13,9 @@ use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
  * @package Test\Ecotone\Messaging\Fixture\Endpoint
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ConsumerStoppingService implements DefinedObject
 {
     /**

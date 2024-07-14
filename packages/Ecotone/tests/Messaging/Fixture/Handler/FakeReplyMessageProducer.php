@@ -11,6 +11,9 @@ use Ecotone\Messaging\Message;
  * @package Test\Ecotone\Messaging\Fixture\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class FakeReplyMessageProducer implements \Ecotone\Messaging\Handler\MessageProcessor
 {
     private $replyData;

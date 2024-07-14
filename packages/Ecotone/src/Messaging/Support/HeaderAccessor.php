@@ -14,6 +14,9 @@ use Ecotone\Messaging\MessagingException;
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal class intent to be used with {@link Message}
  */
+/**
+ * licence Apache-2.0
+ */
 final class HeaderAccessor
 {
     private array $headers;

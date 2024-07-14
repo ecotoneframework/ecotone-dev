@@ -26,6 +26,9 @@ use Psr\Log\LoggerInterface;
  * @package Ecotone\Messaging\Endpoint
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsumerBuilder, CompilableBuilder
 {
     protected ?string $endpointId = null;

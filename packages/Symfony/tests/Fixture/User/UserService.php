@@ -6,6 +6,9 @@ namespace Fixture\User;
 
 use Ecotone\Modelling\Attribute\CommandHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class UserService
 {
     public function __construct(private UserRepository $userRepository)

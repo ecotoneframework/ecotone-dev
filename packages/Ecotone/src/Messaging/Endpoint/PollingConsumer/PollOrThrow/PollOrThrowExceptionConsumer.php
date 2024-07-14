@@ -13,6 +13,9 @@ use Ecotone\Messaging\PollableChannel;
  * @package Ecotone\Messaging\Endpoint
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class PollOrThrowExceptionConsumer implements EndpointRunner
 {
     public function __construct(private PollableChannel $pollableChannel, private MessageHandler $messageHandler)

@@ -12,6 +12,9 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Psr\Container\ContainerInterface;
 
+/**
+ * licence Apache-2.0
+ */
 class LiteDIContainer implements ContainerInterface
 {
     private Container $container;

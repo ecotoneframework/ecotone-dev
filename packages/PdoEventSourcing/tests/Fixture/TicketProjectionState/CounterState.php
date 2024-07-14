@@ -2,6 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
+/**
+ * licence Apache-2.0
+ */
 final class CounterState
 {
     public function __construct(

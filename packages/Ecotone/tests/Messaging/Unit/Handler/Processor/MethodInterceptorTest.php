@@ -24,6 +24,9 @@ use Test\Ecotone\Messaging\Fixture\Behat\Calculating\PowerCalculation;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class MethodInterceptorTest extends TestCase
 {
     public function test_adding_parameters_when_type_hinting_for_annotation_class()

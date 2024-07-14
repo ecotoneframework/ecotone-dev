@@ -19,6 +19,9 @@ use Throwable;
  * @package Ecotone\Messaging\Handler\Logger
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class LoggingInterceptor
 {
     public function __construct(private LoggingService $loggingService)

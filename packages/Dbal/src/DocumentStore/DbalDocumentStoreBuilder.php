@@ -16,6 +16,9 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 
+/**
+ * licence Apache-2.0
+ */
 final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
 {
     /**

@@ -4,6 +4,9 @@ namespace Ecotone\Amqp\Configuration;
 
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 class AmqpConfiguration
 {
     public const DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS = false;

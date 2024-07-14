@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonRegistered;
 
+/**
+ * licence Apache-2.0
+ */
 final class NotificationService
 {
     private bool $isNotified = false;

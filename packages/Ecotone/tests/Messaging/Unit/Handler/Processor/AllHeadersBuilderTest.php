@@ -16,6 +16,9 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class AllHeadersBuilderTest extends TestCase
 {
     public function test_retrieving_all_headers()

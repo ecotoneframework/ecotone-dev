@@ -11,6 +11,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  * @package Ecotone\Messaging\Config
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface Module
 {
     /**

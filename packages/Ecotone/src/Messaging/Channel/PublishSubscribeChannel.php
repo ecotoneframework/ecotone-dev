@@ -13,6 +13,9 @@ use Ecotone\Messaging\SubscribableChannel;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class PublishSubscribeChannel implements SubscribableChannel, DefinedObject
 {
     /**

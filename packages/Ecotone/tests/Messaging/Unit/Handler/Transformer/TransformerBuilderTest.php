@@ -31,6 +31,9 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class TransformerBuilderTest extends MessagingTest
 {
     public function test_modifying_payload()

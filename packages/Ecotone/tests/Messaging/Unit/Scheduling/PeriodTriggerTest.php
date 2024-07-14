@@ -16,6 +16,9 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class PeriodTriggerTest extends TestCase
 {
     public function test_trigger_at_current_time_when_first_schedule()

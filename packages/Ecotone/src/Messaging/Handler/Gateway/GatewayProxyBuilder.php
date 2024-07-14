@@ -47,6 +47,9 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Config
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, ProxyBuilder
 {
     public const DEFAULT_REPLY_MILLISECONDS_TIMEOUT = -1;

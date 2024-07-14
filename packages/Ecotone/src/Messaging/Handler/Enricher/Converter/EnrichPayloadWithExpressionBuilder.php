@@ -17,6 +17,9 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationService;
  * @package Ecotone\Messaging\Handler\Enricher\Converter
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class EnrichPayloadWithExpressionBuilder implements PropertyEditorBuilder
 {
     private string $propertyPath;

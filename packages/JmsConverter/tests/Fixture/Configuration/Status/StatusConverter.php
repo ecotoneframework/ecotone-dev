@@ -4,6 +4,9 @@ namespace Test\Ecotone\JMSConverter\Fixture\Configuration\Status;
 
 use Ecotone\Messaging\Attribute\Converter;
 
+/**
+ * licence Apache-2.0
+ */
 class StatusConverter
 {
     #[Converter]

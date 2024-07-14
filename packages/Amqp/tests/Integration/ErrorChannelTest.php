@@ -14,6 +14,9 @@ use Test\Ecotone\Amqp\Fixture\ErrorChannel\OrderService;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class ErrorChannelTest extends AmqpMessagingTest
 {
     public function test_exception_handling_with_retries(): void

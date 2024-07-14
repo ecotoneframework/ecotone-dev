@@ -33,6 +33,9 @@ use Ecotone\Modelling\SaveAggregateService;
  * @package Ecotone\Modelling
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
 {
     private InterfaceToCall $interfaceToCall;

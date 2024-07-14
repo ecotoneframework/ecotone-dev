@@ -13,6 +13,9 @@ use Throwable;
  * @package Ecotone\Messaging\Endpoint\Extension
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class TimeLimitInterceptor implements ConsumerInterceptor
 {
     /**

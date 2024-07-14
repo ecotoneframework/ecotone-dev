@@ -7,6 +7,9 @@ namespace Ecotone\JMSConverter;
  * @package Ecotone\JMSConverter\Configuration
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class JMSConverterConfiguration
 {
     public const IDENTICAL_PROPERTY_NAMING_STRATEGY = 'identicalPropertyNamingStrategy';

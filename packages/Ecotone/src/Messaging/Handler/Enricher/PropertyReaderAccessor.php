@@ -14,6 +14,9 @@ use ReflectionException;
  * @package Ecotone\Messaging\Handler\Enricher
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class PropertyReaderAccessor
 {
     /**

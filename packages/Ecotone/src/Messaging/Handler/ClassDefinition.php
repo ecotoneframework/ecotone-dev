@@ -17,6 +17,9 @@ use ReflectionMethod;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ClassDefinition
 {
     private TypeDescriptor $classDescriptor;

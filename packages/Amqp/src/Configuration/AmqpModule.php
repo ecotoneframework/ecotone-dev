@@ -20,6 +20,9 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class AmqpModule implements AnnotationModule
 {
     private AmqpDistributionModule $amqpDistributionModule;

@@ -17,6 +17,9 @@ use Ecotone\Messaging\Message;
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class EnrichPayloadWithExpressionPropertyEditor implements PropertyEditor
 {
     private ExpressionEvaluationService $expressionEvaluationService;

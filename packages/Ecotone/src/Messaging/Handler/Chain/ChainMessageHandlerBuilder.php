@@ -23,6 +23,9 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Handler\Chain
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
 {
     /**

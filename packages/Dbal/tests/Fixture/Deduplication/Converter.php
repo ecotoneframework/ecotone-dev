@@ -10,6 +10,9 @@ use function json_decode;
 use function json_encode;
 
 #[MediaTypeConverter]
+/**
+ * licence Apache-2.0
+ */
 final class Converter implements \Ecotone\Messaging\Conversion\Converter
 {
     /**

@@ -9,6 +9,9 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface MessageChannelBuilder extends CompilableBuilder
 {
     /**

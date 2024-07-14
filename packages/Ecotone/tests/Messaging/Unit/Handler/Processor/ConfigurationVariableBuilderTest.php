@@ -14,6 +14,9 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class ConfigurationVariableBuilderTest extends TestCase
 {
     public function test_retrieving_from_configuration()

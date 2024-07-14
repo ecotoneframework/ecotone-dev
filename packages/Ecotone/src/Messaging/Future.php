@@ -7,6 +7,9 @@ namespace Ecotone\Messaging;
  * @package Ecotone\Messaging\Handler\Gateway
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface Future
 {
     /**

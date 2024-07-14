@@ -12,6 +12,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class ExpressionTransformer
 {
     public function __construct(private string $expression, private ExpressionEvaluationService $expressionEvaluationService)

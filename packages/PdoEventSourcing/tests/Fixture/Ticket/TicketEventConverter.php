@@ -7,6 +7,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\AssignedPersonWasChanged;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 
+/**
+ * licence Apache-2.0
+ */
 class TicketEventConverter
 {
     #[Converter]

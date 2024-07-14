@@ -16,6 +16,9 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
  * Symfony Channel does not implement MessageChannelWithSerializationBuilder to avoid
  * using PollableChannelSerializationModule, as serialization is done on the symfony transport layer instead.
  */
+/**
+ * licence Apache-2.0
+ */
 final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuilder
 {
     private const TRANSPORT_SERVICE_PREFIX = 'messenger.transport.';

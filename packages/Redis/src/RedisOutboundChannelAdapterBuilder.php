@@ -14,6 +14,9 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Enqueue\Redis\RedisConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
     private function __construct(private string $queueName, private string $connectionFactoryReferenceName)

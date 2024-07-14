@@ -12,6 +12,9 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class AutoloadFileNamespaceParserTest extends TestCase
 {
     public function test_retrieve_when_psr_4_namespace_is_equal_to_required()

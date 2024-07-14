@@ -16,6 +16,9 @@ use Interop\Amqp\Impl\AmqpTopic;
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @licence Apache-2.0
  */
+/**
+ * licence Apache-2.0
+ */
 class AmqpOutboundChannelAdapter implements MessageHandler
 {
     /**

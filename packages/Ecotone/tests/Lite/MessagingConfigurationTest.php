@@ -18,6 +18,9 @@ use Test\Ecotone\Messaging\Fixture\Behat\Presend\Shop;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class MessagingConfigurationTest extends TestCase
 {
     public function test_registering_with_gateway_aware_container()

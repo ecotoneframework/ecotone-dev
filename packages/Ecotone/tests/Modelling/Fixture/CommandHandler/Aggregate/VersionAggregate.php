@@ -7,6 +7,9 @@ namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
  * @package Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface VersionAggregate
 {
     /**

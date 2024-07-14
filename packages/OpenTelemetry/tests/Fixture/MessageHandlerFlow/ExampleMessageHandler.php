@@ -8,6 +8,9 @@ use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Attribute\CommandHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class ExampleMessageHandler
 {
     #[CommandHandler('handleCommand', outputChannelName: 'handleMessage')]

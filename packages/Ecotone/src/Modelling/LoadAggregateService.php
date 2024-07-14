@@ -12,6 +12,9 @@ use Ecotone\Messaging\Message;
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 interface LoadAggregateService
 {
     public function load(Message $message): ?Message;

@@ -11,6 +11,9 @@ use Ecotone\Modelling\Event;
 
 use function end;
 
+/**
+ * licence Apache-2.0
+ */
 final class NotificationService
 {
     private array $publishedEvents = [];

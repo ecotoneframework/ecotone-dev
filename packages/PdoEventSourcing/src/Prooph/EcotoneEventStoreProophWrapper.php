@@ -20,6 +20,9 @@ use Prooph\EventStore\Stream;
 use Prooph\EventStore\StreamName;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * licence Apache-2.0
+ */
 class EcotoneEventStoreProophWrapper implements EventStore
 {
     private LazyProophEventStore $eventStore;

@@ -11,6 +11,9 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
  * @package Ecotone\Messaging\Config\Annotation\ModuleConfiguration
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class NoExternalConfigurationModule implements AnnotationModule
 {
     public function getModuleExtensions(array $serviceExtensions): array

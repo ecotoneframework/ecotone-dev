@@ -8,6 +8,9 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use JMS\Serializer\GraphNavigator;
 
+/**
+ * licence Apache-2.0
+ */
 class JMSHandlerAdapter
 {
     /**

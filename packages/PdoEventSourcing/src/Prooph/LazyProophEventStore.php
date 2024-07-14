@@ -32,6 +32,9 @@ use function str_contains;
 
 use Throwable;
 
+/**
+ * licence Apache-2.0
+ */
 class LazyProophEventStore implements EventStore
 {
     public const DEFAULT_ENABLE_WRITE_LOCK_STRATEGY = false;

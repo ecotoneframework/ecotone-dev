@@ -9,6 +9,9 @@ use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 
 #[Attribute(Attribute::TARGET_METHOD)]
+/**
+ * licence Apache-2.0
+ */
 class OnTenantActivation extends ServiceActivator
 {
     public function __construct()

@@ -11,6 +11,9 @@ use Ecotone\Messaging\Config\ConfigurationException;
  * @package Ecotone\Messaging\Attribute
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class EndpointAnnotation extends IdentifiedAnnotation
 {
     private string $inputChannelName = '';

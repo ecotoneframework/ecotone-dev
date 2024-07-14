@@ -9,6 +9,9 @@ use stdClass as SomeClass;
  * @package Test\Ecotone\Messaging\Fixture\Handler\Property
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class OrderPropertyExample
 {
     private ?int $id;

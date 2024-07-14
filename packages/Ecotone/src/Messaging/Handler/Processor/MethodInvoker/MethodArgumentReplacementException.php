@@ -9,6 +9,9 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class MethodArgumentReplacementException extends MethodInvocationException
 {
 }

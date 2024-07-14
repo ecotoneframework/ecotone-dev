@@ -7,6 +7,9 @@ namespace Test\Ecotone\Messaging\Fixture\Dto\WithCustomer;
  * @package Test\Ecotone\Messaging\Fixture\Dto\WithCustomer
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class Customer
 {
     /**

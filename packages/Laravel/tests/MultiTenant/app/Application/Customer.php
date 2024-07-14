@@ -7,6 +7,9 @@ namespace App\MultiTenant\Application;
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * licence Apache-2.0
+ */
 class Customer extends Model
 {
     protected $table = 'persons';

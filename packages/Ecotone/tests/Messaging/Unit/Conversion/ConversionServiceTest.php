@@ -22,6 +22,9 @@ use stdClass;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class ConversionServiceTest extends TestCase
 {
     /**

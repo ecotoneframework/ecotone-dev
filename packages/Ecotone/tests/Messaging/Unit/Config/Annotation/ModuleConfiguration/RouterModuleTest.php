@@ -20,6 +20,9 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Router\RouterWithN
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class RouterModuleTest extends AnnotationConfigurationTest
 {
     /**

@@ -23,6 +23,9 @@ use Throwable;
  * @package Ecotone\Amqp
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class AcknowledgeConfirmationInterceptor implements DefinedObject
 {
     public static function createAroundInterceptorBuilder(InterfaceToCallRegistry $interfaceToCallRegistry): AroundInterceptorBuilder

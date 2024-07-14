@@ -4,6 +4,9 @@ namespace Fixture\Car;
 
 use Ecotone\Messaging\Attribute\ServiceActivator;
 
+/**
+ * licence Apache-2.0
+ */
 class Car
 {
     /**

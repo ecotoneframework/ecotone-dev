@@ -16,6 +16,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  * @package Ecotone\Messaging\Conversion
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 final class MediaType implements DefinedObject
 {
     public const TEXT_XML = 'text/xml';

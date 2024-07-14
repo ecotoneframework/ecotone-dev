@@ -14,6 +14,9 @@ use Symfony\Component\Messenger\Transport\TransportInterface;
  * @package Ecotone\Amqp
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class SymfonyAcknowledgementCallback implements AcknowledgementCallback
 {
     public const AUTO_ACK = 'auto';

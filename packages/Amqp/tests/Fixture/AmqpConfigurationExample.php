@@ -9,6 +9,9 @@ use Ecotone\Messaging\SubscribableChannel;
  * @package Test\Ecotone\Amqp\Fixture
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface AmqpConfigurationExample
 {
     /**

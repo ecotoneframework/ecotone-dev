@@ -39,6 +39,9 @@ use Test\Ecotone\Modelling\Fixture\InterceptedEventAggregate\Logger;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class ClassDefinitionTest extends TestCase
 {
     public function test_retrieving_public_class_property()

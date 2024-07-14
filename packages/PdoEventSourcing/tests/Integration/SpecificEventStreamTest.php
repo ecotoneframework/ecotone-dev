@@ -18,6 +18,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class SpecificEventStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_handling_specific_event_stream_when_stream_per_aggregate_persistence_is_enabled(): void

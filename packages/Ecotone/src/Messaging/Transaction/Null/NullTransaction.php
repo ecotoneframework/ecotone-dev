@@ -9,6 +9,9 @@ use Ecotone\Messaging\Transaction\Transaction;
  * @package Ecotone\Messaging\Transaction\Null
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class NullTransaction implements Transaction
 {
     public const COMMITTED = 'committed';

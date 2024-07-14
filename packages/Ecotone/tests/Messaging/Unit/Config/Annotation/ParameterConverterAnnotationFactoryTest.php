@@ -24,6 +24,9 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class ParameterConverterAnnotationFactoryTest extends MessagingTest
 {
     public function test_creating_with_class_name_as_reference_name_if_no_reference_passed()

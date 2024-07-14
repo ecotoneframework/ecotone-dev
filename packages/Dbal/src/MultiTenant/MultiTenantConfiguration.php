@@ -7,6 +7,9 @@ namespace Ecotone\Dbal\MultiTenant;
 use Ecotone\Messaging\Config\ConnectionReference;
 use Enqueue\Dbal\DbalConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class MultiTenantConfiguration
 {
     /**

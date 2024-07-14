@@ -39,6 +39,9 @@ use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class SaveAggregateServiceBuilderTest extends TestCase
 {
     public function test_saving_aggregate_method_with_only_command_as_parameter()

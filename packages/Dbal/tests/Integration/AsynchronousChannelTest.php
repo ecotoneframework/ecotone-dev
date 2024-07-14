@@ -17,6 +17,9 @@ use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInte
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class AsynchronousChannelTest extends DbalMessagingTestCase
 {
     public function test_it_will_rollback_the_message_when_it_fails_at_second_time_to_add_the_order(): void

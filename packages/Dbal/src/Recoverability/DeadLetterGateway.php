@@ -5,6 +5,9 @@ namespace Ecotone\Dbal\Recoverability;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Message;
 
+/**
+ * licence Apache-2.0
+ */
 interface DeadLetterGateway
 {
     /**

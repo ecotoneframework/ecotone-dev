@@ -17,6 +17,9 @@ use ReflectionException;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 final class TypeDescriptor implements Type, DefinedObject
 {
     public const COLLECTION_TYPE_REGEX = "/[a-zA-Z0-9]*<([\\a-zA-Z0-9,\s]*)>/";

@@ -11,6 +11,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Projection(self::NAME, fromCategories: ['order'])]
+/**
+ * licence Apache-2.0
+ */
 final class OrderProjection
 {
     public const NAME = 'order-projection';

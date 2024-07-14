@@ -11,6 +11,9 @@ use Ecotone\Messaging\Support\Assert;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * licence Apache-2.0
+ */
 final class SymfonyConnectionReference extends ConnectionReference implements DefinedObject
 {
     private function __construct(

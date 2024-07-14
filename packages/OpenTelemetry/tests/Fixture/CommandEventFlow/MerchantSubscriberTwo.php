@@ -7,6 +7,9 @@ namespace Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\CommandBus;
 
+/**
+ * licence Apache-2.0
+ */
 final class MerchantSubscriberTwo
 {
     #[EventHandler]

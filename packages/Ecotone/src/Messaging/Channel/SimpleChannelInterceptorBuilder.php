@@ -14,6 +14,9 @@ use function is_string;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class SimpleChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
     private function __construct(private int $precedence, private string $channelName, private $referenceName)

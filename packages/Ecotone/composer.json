@@ -2,7 +2,7 @@
     "name": "ecotone/ecotone",
     "license": [
         "Apache-2.0",
-        "Proprietary"
+        "proprietary"
     ],
     "homepage": "https://docs.ecotone.tech",
     "forum": "https://discord.gg/CctGMcrYnV",
@@ -74,6 +74,17 @@
             "include": [
                 "../local_packages.json"
             ]
+        },
+        "license-info": {
+            "Apache-2.0": {
+                "name": "Apache License 2.0",
+                "url": "https://github.com/ecotoneframework/ecotone-dev/blob/main/LICENSE",
+                "description": "Allows to use non Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            },
+            "proprietary": {
+                "name": "Enterprise License",
+                "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            }
         }
     },
     "config": {

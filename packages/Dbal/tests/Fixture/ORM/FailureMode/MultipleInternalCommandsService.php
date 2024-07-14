@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\CommandBus;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 
+/**
+ * licence Apache-2.0
+ */
 final class MultipleInternalCommandsService
 {
     #[Asynchronous('async')]

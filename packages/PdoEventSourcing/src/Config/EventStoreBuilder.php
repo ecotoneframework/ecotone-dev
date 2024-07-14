@@ -15,6 +15,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 class EventStoreBuilder extends InputOutputMessageHandlerBuilder
 {
     private function __construct(private string $methodName, private array $parameterConverters, private EventSourcingConfiguration $eventSourcingConfiguration, private Reference $eventStoreReference)

@@ -20,6 +20,9 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 
+/**
+ * licence Apache-2.0
+ */
 class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 {
     public const LIMIT_HEADER  = 'ecotone.dbal.deadletter.limit';

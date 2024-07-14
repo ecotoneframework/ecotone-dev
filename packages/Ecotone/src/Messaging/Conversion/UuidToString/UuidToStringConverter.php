@@ -15,6 +15,9 @@ use Ramsey\Uuid\UuidInterface;
  * @package Ecotone\Messaging\Conversion
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class UuidToStringConverter implements Converter
 {
     /**

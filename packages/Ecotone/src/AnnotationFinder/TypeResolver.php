@@ -10,6 +10,9 @@ use ReflectionMethod;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class TypeResolver
 {
     private function __construct()

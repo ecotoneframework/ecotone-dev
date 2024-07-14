@@ -7,6 +7,9 @@ namespace Ecotone\Laravel\Queue;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Illuminate\Contracts\Queue\Job;
 
+/**
+ * licence Apache-2.0
+ */
 class LaravelQueueAcknowledgementCallback implements AcknowledgementCallback
 {
     public const AUTO_ACK = 'auto';

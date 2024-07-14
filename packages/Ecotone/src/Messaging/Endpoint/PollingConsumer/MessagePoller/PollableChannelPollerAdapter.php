@@ -15,6 +15,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
  * @package Ecotone\Messaging\Endpoint\PollingConsumer
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class PollableChannelPollerAdapter implements MessagePoller
 {
     public function __construct(private string $pollableChannelName, private PollableChannel $pollableChannel)

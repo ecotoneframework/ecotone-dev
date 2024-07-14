@@ -23,6 +23,9 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class LoggingHandlerBuilderTest extends MessagingTest
 {
     public function test_logging_during_sending()

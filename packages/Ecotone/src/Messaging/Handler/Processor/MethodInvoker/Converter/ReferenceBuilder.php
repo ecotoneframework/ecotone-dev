@@ -17,6 +17,9 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ReferenceBuilder implements ParameterConverterBuilder
 {
     private function __construct(

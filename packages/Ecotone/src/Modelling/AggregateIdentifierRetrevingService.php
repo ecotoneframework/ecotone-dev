@@ -17,6 +17,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
  * @package Ecotone\Modelling
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class AggregateIdentifierRetrevingService
 {
     public function __construct(

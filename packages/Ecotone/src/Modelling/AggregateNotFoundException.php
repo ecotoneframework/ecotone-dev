@@ -9,6 +9,9 @@ use Ecotone\Messaging\MessagingException;
  * @package Ecotone\Modelling
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class AggregateNotFoundException extends MessagingException
 {
     public const AGGREGATE_NOT_FOUND_EXCEPTION = 1000;

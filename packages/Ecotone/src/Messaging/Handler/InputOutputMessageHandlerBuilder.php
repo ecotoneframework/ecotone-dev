@@ -13,6 +13,9 @@ use Ecotone\Messaging\Support\Assert;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithOutputChannel
 {
     protected string $inputMessageChannelName = '';

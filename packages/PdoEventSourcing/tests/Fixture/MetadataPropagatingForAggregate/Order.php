@@ -10,6 +10,9 @@ use Ecotone\Modelling\Event;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
+/**
+ * licence Apache-2.0
+ */
 class Order
 {
     use WithAggregateVersioning;

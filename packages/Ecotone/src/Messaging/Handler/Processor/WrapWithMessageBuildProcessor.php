@@ -19,6 +19,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
  * @package Ecotone\Messaging\Handler\Processor
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class WrapWithMessageBuildProcessor implements MessageProcessor
 {
     public function __construct(

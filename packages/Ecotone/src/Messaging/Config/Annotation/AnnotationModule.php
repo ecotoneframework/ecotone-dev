@@ -13,6 +13,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  * @package Ecotone\Messaging\Config\Annotation
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface AnnotationModule extends Module
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static;

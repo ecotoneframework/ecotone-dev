@@ -10,6 +10,9 @@ use Ecotone\Modelling\StandardRepository;
  * @package Test\Ecotone\Modelling\Fixture\Blog
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class InMemoryArticleStandardRepository implements StandardRepository
 {
     /**

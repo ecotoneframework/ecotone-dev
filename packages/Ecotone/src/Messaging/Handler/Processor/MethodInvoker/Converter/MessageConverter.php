@@ -13,6 +13,9 @@ use Ecotone\Messaging\Message;
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class MessageConverter implements ParameterConverter
 {
     public static function create(): self

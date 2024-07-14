@@ -69,6 +69,9 @@ use Test\Ecotone\Modelling\Fixture\Handler\ServiceWithCommandAndQueryHandlersUnd
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class BusRoutingModuleTest extends MessagingTest
 {
     public function test_registering_service_command_handler_with_endpoint_id()

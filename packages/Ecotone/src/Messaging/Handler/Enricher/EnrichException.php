@@ -9,6 +9,9 @@ use Ecotone\Messaging\MessagingException;
  * @package Ecotone\Messaging\Handler\Enricher
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class EnrichException extends MessagingException
 {
     public const ERROR_CODE = 400;

@@ -30,6 +30,9 @@ use Test\Ecotone\Amqp\AmqpMessagingTest;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class AmqpModuleTest extends AmqpMessagingTest
 {
     public function test_registering_amqp_backed_message_channel()

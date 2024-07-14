@@ -19,6 +19,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class PayloadConverter implements ParameterConverter
 {
     public function __construct(private ConversionService $conversionService, private string $interfaceName, private string $parameterName, private Type $targetType)

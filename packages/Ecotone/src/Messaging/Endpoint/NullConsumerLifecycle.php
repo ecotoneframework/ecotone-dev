@@ -9,6 +9,9 @@ namespace Ecotone\Messaging\Endpoint;
  * @package Ecotone\Messaging\Endpoint
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class NullConsumerLifecycle implements ConsumerLifecycle
 {
     private bool $isRunning;

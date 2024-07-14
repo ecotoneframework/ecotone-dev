@@ -16,6 +16,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  * @package Messaging\Handler\ServiceActivator
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 final class MethodInvoker implements MessageProcessor
 {
     private string|object $objectToInvokeOn;

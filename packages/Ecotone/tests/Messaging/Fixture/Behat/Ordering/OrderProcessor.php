@@ -12,6 +12,9 @@ use RuntimeException;
  * @package Test\Ecotone\Messaging\Fixture\Behat\Ordering
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class OrderProcessor
 {
     public function processOrder(Order $order): OrderConfirmation

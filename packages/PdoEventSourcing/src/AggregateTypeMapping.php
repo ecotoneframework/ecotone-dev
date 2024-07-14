@@ -8,6 +8,9 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 final class AggregateTypeMapping implements CompilableBuilder
 {
     private function __construct(private array $aggregateTypeMapping)

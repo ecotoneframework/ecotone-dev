@@ -12,6 +12,9 @@ use Ecotone\Messaging\Conversion\ConversionService;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface HeaderMapper extends DefinedObject
 {
     /**

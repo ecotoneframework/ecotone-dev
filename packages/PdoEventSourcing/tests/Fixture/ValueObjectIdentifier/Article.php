@@ -11,6 +11,9 @@ use Ecotone\Modelling\WithAggregateVersioning;
 use Ramsey\Uuid\UuidInterface;
 
 #[EventSourcingAggregate]
+/**
+ * licence Apache-2.0
+ */
 class Article
 {
     use WithAggregateVersioning;

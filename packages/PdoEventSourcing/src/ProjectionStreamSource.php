@@ -5,6 +5,9 @@ namespace Ecotone\EventSourcing;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
+/**
+ * licence Apache-2.0
+ */
 final class ProjectionStreamSource implements DefinedObject
 {
     /**

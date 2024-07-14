@@ -11,6 +11,9 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
  * @package Ecotone\Messaging\Conversion
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface Converter
 {
     public function convert($source, TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType);

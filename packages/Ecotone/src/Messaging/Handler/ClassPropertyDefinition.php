@@ -9,6 +9,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 final class ClassPropertyDefinition
 {
     private const PUBLIC_VISIBILITY = 'public';

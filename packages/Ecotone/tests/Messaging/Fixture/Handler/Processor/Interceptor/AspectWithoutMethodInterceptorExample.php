@@ -9,6 +9,9 @@ use Ecotone\Messaging\Attribute\Interceptor\Around;
  * @package Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class AspectWithoutMethodInterceptorExample
 {
     #[Around]

@@ -12,6 +12,9 @@ use JMS\Serializer\Serializer;
 use JMS\Serializer\SerializerInterface;
 use RuntimeException;
 
+/**
+ * licence Apache-2.0
+ */
 class JMSConverter implements Converter
 {
     public const SERIALIZE_NULL_PARAMETER = 'serializeNull';

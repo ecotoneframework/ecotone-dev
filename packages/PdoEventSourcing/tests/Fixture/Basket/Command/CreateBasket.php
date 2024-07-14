@@ -2,6 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\Basket\Command;
 
+/**
+ * licence Apache-2.0
+ */
 class CreateBasket
 {
     private string $id;

@@ -18,6 +18,9 @@ use Ecotone\Messaging\MessageHeaders;
  * @package Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class EndpointHeadersInterceptor implements DefinedObject
 {
     public function addMetadata(?AddHeader $addHeader, ?Delayed $delayed, ?Priority $priority, ?TimeToLive $timeToLive, ?RemoveHeader $removeHeader): array

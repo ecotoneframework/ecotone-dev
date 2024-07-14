@@ -6,6 +6,9 @@ use Ecotone\Amqp\Distribution\AmqpDistributedBusConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 
+/**
+ * licence Apache-2.0
+ */
 class TicketServiceMessagingConfiguration
 {
     public const SERVICE_NAME = 'ticket_service';

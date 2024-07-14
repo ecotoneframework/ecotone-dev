@@ -7,6 +7,9 @@ namespace Ecotone\Messaging\Transaction;
  * @package Ecotone\Messaging\Transaction
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface Transaction
 {
     /**

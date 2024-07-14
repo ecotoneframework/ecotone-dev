@@ -2,6 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\Ticket\Event;
 
+/**
+ * licence Apache-2.0
+ */
 class AssignedPersonWasChanged
 {
     private string $ticketId;

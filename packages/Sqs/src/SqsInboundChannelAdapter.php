@@ -8,6 +8,9 @@ use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Enqueue\Sqs\SqsContext;
 use GuzzleHttp\Exception\ConnectException;
 
+/**
+ * licence Apache-2.0
+ */
 final class SqsInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
     public function initialize(): void

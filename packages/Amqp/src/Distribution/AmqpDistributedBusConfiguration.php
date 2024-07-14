@@ -10,6 +10,9 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  * @package Ecotone\Amqp\Configuration
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class AmqpDistributedBusConfiguration
 {
     private const DISTRIBUTION_TYPE_PUBLISHER = 'publisher';

@@ -7,6 +7,9 @@ use Exception;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class AbstractConnectionTest extends TestCase
 {
     private ?SqsConnectionFactory $connectionFactory = null;

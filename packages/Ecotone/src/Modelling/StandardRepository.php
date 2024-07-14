@@ -9,6 +9,9 @@ namespace Ecotone\Modelling;
  * @package Ecotone\Modelling
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface StandardRepository
 {
     /**

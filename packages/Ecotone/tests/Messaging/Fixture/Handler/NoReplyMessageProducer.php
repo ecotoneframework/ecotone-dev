@@ -12,6 +12,9 @@ use Ecotone\Messaging\Message;
  * @package Test\Ecotone\Messaging\Fixture\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class NoReplyMessageProducer implements MessageProcessor
 {
     private $wasCalled = false;

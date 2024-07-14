@@ -9,6 +9,9 @@ namespace Ecotone\AnnotationFinder\FileSystem;
  * @package Ecotone\Messaging\Config\Annotation
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface AutoloadNamespaceParser
 {
     /**

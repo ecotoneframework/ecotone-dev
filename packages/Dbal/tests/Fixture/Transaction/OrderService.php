@@ -9,6 +9,9 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 class OrderService
 {
     public const ORDER_TABLE = 'orders';

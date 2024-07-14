@@ -20,6 +20,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Interop\Queue\ConnectionFactory;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 final class SymfonyConnectionModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public const DOCTRINE_DBAL_CONNECTION_PREFIX = 'ecotone.doctrine.dbal.connection_';

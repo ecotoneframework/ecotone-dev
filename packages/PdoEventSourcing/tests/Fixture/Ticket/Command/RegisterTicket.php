@@ -2,6 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\Ticket\Command;
 
+/**
+ * licence Apache-2.0
+ */
 class RegisterTicket
 {
     private string $ticketId;

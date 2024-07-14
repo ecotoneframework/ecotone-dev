@@ -15,6 +15,9 @@ use function json_encode;
  * @package Ecotone\Messaging\Support
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 final class GenericMessage implements Message
 {
     /**

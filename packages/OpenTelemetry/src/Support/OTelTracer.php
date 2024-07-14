@@ -13,6 +13,9 @@ use OpenTelemetry\SDK\Common\Time\ClockFactory;
 use OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 
+/**
+ * licence Apache-2.0
+ */
 final class OTelTracer
 {
     private function __construct()

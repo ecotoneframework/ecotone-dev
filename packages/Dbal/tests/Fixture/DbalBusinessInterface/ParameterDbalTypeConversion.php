@@ -8,6 +8,9 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Dbal\Attribute\DbalQuery;
 
+/**
+ * licence Apache-2.0
+ */
 interface ParameterDbalTypeConversion
 {
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]

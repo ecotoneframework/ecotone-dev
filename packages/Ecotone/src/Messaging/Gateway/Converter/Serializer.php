@@ -10,6 +10,9 @@ namespace Ecotone\Messaging\Gateway\Converter;
  *
  * @TODO 2.0 change namespace and name to SerializerGateway
  */
+/**
+ * licence Apache-2.0
+ */
 interface Serializer
 {
     public function convertFromPHP($data, string $targetMediaType);

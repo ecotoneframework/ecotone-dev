@@ -7,6 +7,9 @@ namespace Test\Ecotone\Modelling\Fixture\Blog;
  * @package Test\Ecotone\Modelling\Fixture\Blog
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ChangeArticleContentCommand
 {
     /**

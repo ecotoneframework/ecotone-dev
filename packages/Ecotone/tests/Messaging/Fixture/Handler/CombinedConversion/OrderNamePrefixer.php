@@ -7,6 +7,9 @@ namespace Test\Ecotone\Messaging\Fixture\Handler\CombinedConversion;
  * @package Fixture\Handler\CombinedConversion
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class OrderNamePrefixer
 {
     /**

@@ -18,6 +18,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
  * @package Ecotone\Messaging\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class RequestReplyProducer implements MessageHandler
 {
     public const REQUEST_REPLY_METHOD = 1;

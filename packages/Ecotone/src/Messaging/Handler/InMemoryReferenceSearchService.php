@@ -19,6 +19,9 @@ use Psr\Log\NullLogger;
  * @package Ecotone\Messaging\Handler
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class InMemoryReferenceSearchService implements ReferenceSearchService
 {
     /**

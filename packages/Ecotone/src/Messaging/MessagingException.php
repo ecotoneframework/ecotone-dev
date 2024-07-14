@@ -13,6 +13,9 @@ use Throwable;
  * @package Ecotone\Messaging\Exception
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class MessagingException extends Exception
 {
     public const INVALID_MESSAGE_HEADER_EXCEPTION = 100;

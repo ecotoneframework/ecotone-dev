@@ -13,6 +13,9 @@ use Interop\Queue\Message as EnqueueMessage;
  * @package Ecotone\Amqp
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class EnqueueAcknowledgementCallback implements AcknowledgementCallback
 {
     public const AUTO_ACK = 'auto';

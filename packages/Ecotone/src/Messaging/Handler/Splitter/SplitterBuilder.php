@@ -32,6 +32,9 @@ use function is_string;
  * @package Ecotone\Messaging\Handler\Splitter
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class SplitterBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, MessageHandlerBuilderWithOutputChannel
 {
     private array $methodParameterConverterBuilders = [];

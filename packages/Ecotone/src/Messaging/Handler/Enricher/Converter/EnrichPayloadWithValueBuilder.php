@@ -16,6 +16,9 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
  * @package Ecotone\Messaging\Handler\Enricher\Converter
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class EnrichPayloadWithValueBuilder implements PropertyEditorBuilder
 {
     private string $propertyPath;

@@ -25,6 +25,9 @@ use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Sqs\SqsOutboundChannelAdapterBuilder;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 final class SqsMessagePublisherModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static

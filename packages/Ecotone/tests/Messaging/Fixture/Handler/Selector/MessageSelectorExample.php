@@ -10,6 +10,9 @@ use stdClass;
  * @package Test\Ecotone\Messaging\Fixture\Handler\Selector
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class MessageSelectorExample
 {
     private function __construct()

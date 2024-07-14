@@ -23,6 +23,9 @@ use Interop\Queue\Message as EnqueueMessage;
  * @package Ecotone\Amqp
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 {
     private bool $initialized = false;

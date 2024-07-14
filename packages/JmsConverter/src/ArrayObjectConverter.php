@@ -4,6 +4,9 @@ namespace Ecotone\JMSConverter;
 
 use ArrayObject;
 
+/**
+ * licence Apache-2.0
+ */
 final class ArrayObjectConverter
 {
     public function from(ArrayObject $arrayAccess): array

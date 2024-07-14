@@ -15,6 +15,9 @@ use Ecotone\Messaging\Handler\UnionTypeDescriptor;
  * @package Ecotone\Messaging\Endpoint\Mapper
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class DefaultHeaderMapper implements HeaderMapper
 {
     public const FALLBACK_HEADER_CONVERSION_MEDIA_TYPE = MediaType::APPLICATION_JSON;

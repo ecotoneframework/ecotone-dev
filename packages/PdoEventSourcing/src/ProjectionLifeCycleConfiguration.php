@@ -5,6 +5,9 @@ namespace Ecotone\EventSourcing;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
+/**
+ * licence Apache-2.0
+ */
 class ProjectionLifeCycleConfiguration implements DefinedObject
 {
     private function __construct(

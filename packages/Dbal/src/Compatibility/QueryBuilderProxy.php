@@ -19,6 +19,9 @@ use InvalidArgumentException;
  *
  * @see https://github.com/doctrine/dbal/blob/3.6.x/UPGRADE.md#upgrade-to-31
  */
+/**
+ * licence Apache-2.0
+ */
 final class QueryBuilderProxy extends QueryBuilder
 {
     public function __construct(private QueryBuilder $queryBuilder)

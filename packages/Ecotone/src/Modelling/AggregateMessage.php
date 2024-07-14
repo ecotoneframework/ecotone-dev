@@ -7,6 +7,9 @@ namespace Ecotone\Modelling;
  * @package Ecotone\Modelling
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface AggregateMessage
 {
     public const OVERRIDE_AGGREGATE_IDENTIFIER = 'aggregate.id';

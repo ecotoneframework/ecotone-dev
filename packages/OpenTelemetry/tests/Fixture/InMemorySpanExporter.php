@@ -8,6 +8,9 @@ use ArrayObject;
 use OpenTelemetry\SDK\Trace\Behavior\SpanExporterTrait;
 use OpenTelemetry\SDK\Trace\SpanExporterInterface;
 
+/**
+ * licence Apache-2.0
+ */
 class InMemorySpanExporter implements SpanExporterInterface
 {
     use SpanExporterTrait;

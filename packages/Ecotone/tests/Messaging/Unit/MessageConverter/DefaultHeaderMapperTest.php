@@ -20,6 +20,9 @@ use stdClass;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class DefaultHeaderMapperTest extends TestCase
 {
     public function test_mapping_simple_headers()

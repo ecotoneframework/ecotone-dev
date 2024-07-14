@@ -20,6 +20,9 @@ use Test\Ecotone\Messaging\Fixture\Conversion\SuperAdmin;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class EventBusRouterTest extends TestCase
 {
     public function test_routing_by_class()

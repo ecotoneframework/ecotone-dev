@@ -11,6 +11,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class PayloadTypeRouter
 {
     private array $typeToChannelMapping;

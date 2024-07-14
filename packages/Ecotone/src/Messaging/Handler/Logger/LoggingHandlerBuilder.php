@@ -22,6 +22,9 @@ use Psr\Log\LogLevel;
  * @package Ecotone\Messaging\Handler\Logger
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
 {
     public const LOGGER_REFERENCE = 'logger';

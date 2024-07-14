@@ -18,6 +18,9 @@ use Psr\Log\NullLogger;
 
 use ReflectionMethod;
 
+/**
+ * licence Apache-2.0
+ */
 class PhpDiContainerImplementation implements CompilerPass
 {
     public const EXTERNAL_PREFIX = 'external:';

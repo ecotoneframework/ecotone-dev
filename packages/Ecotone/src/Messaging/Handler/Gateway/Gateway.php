@@ -30,6 +30,9 @@ use Throwable;
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class Gateway implements NonProxyGateway
 {
     private MethodCallToMessageConverter $methodCallToMessageConverter;

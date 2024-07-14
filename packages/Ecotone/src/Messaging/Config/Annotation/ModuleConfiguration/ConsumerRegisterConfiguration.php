@@ -19,6 +19,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class ConsumerRegisterConfiguration extends NoExternalConfigurationModule implements AnnotationModule
 {
     private array $messageHandlerBuilders;

@@ -13,6 +13,9 @@ use Throwable;
  * @package Ecotone\Messaging\Channel
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class AbstractChannelInterceptor implements ChannelInterceptor
 {
     /**

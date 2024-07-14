@@ -13,6 +13,9 @@ use Ecotone\Messaging\Message;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class PayloadExpressionConverter implements ParameterConverter
 {
     public function __construct(private ExpressionEvaluationService $expressionEvaluationService, private string $expression)

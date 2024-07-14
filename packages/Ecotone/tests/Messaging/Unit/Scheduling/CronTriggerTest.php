@@ -17,6 +17,9 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class CronTriggerTest extends TestCase
 {
     public function test_trigger_at_next_minute()

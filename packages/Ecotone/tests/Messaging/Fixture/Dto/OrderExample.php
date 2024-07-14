@@ -11,6 +11,9 @@ use Test\Ecotone\Messaging\Fixture\Dto\WithCustomer\Customer;
  * @package Test\Ecotone\Messaging\Fixture\Dto
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class OrderExample
 {
     /**

@@ -24,6 +24,9 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Handler\Transformer
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class EnricherBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithOutputChannel
 {
     private ?string $requestChannelName = null;

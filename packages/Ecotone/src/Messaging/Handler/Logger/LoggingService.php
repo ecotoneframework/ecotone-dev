@@ -22,6 +22,9 @@ use Throwable;
  * @package Ecotone\Messaging\Handler\Logger
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class LoggingService
 {
     public const CONTEXT_MESSAGE_HEADER = 'ecotone.logging.contextMessage';

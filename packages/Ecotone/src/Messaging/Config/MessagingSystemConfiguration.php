@@ -72,6 +72,9 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Config
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 final class MessagingSystemConfiguration implements Configuration
 {
     /**

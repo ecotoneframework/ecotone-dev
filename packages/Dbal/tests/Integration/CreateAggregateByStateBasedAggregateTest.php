@@ -23,6 +23,9 @@ use Test\Ecotone\Dbal\Fixture\StateBasedCalendarWithInternalRecorder\CalendarWit
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCase
 {
     public function test_state_based_aggregate_can_create_another_state_based_aggregate(): void

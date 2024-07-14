@@ -13,6 +13,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class HeaderEnricher implements DefinedObject
 {
     private array $headers;

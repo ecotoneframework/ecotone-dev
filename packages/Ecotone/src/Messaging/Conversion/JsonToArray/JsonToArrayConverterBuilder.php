@@ -13,6 +13,9 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
  * @package Ecotone\Messaging\Conversion\JsonToArray
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class JsonToArrayConverterBuilder implements CompilableBuilder
 {
     public function compile(MessagingContainerBuilder $builder): Definition

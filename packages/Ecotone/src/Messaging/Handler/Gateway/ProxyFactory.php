@@ -27,6 +27,9 @@ use function spl_autoload_unregister;
  * @package Ecotone\Messaging\Handler\Gateway
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ProxyFactory
 {
     private static ?AutoloaderInterface $registeredAutoloader = null;

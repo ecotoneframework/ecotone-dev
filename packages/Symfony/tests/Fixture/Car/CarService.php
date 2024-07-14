@@ -7,6 +7,9 @@ namespace Fixture\Car;
  * @package Fixture\Car
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class CarService
 {
     /**

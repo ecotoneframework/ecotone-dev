@@ -22,6 +22,9 @@ use Ecotone\Modelling\Attribute\IgnorePayload;
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class MessageHandlerRegisterConfiguration extends NoExternalConfigurationModule implements AnnotationModule
 {
     private array $messageHandlerBuilders;

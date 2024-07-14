@@ -10,6 +10,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  * @package Ecotone\Messaging\Config
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ModuleReferenceSearchService
 {
     public const REFERENCE_NAME = 'moduleReferenceSearchService';

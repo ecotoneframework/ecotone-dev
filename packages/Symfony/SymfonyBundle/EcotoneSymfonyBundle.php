@@ -13,6 +13,9 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  * @package Ecotone\SymfonyBundle
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class EcotoneSymfonyBundle extends Bundle
 {
     public function build(ContainerBuilder $container): void

@@ -15,6 +15,9 @@ use stdClass;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class AssertTest extends TestCase
 {
     public function test_throwing_exception_if_empty()
@@ -89,6 +92,9 @@ class AssertTest extends TestCase
     }
 }
 
+/**
+ * licence Apache-2.0
+ */
 class ExtendedStdClass extends stdClass
 {
 }

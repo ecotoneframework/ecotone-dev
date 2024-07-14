@@ -28,6 +28,9 @@ use Ramsey\Uuid\Uuid;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class LoggingServiceTest extends TestCase
 {
     public function test_calling_logger_with_correct_debug_level()

@@ -14,6 +14,9 @@ use RuntimeException;
  * @package Test\Ecotone\Messaging\Fixture\Endpoint
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ConsumerThrowingExceptionService implements DefinedObject
 {
     /**

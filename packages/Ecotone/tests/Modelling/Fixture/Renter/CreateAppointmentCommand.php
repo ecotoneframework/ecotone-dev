@@ -7,6 +7,9 @@ namespace Test\Ecotone\Modelling\Fixture\Renter;
  * @package Test\Ecotone\Modelling\Fixture\Renter
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class CreateAppointmentCommand
 {
     /**

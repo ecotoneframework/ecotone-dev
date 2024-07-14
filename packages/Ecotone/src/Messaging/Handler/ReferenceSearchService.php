@@ -11,6 +11,9 @@ use Psr\Container\ContainerInterface;
  * @package Ecotone\Messaging\Config\Annotation
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface ReferenceSearchService extends ContainerInterface
 {
     /** This is needed for cases where alias must be added for service */

@@ -18,6 +18,9 @@ use Ecotone\Messaging\SubscribableChannel;
  * @package Ecotone\Messaging\Endpoint
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class EventDrivenConsumerBuilder implements MessageHandlerConsumerBuilder
 {
     /**

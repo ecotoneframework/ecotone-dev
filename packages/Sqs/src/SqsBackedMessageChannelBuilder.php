@@ -7,6 +7,9 @@ namespace Ecotone\Sqs;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Enqueue\Sqs\SqsConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private function __construct(string $channelName, string $connectionReferenceName)

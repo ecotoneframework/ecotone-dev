@@ -27,6 +27,9 @@ use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\TransformerInterceptor
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class MethodInterceptorModuleTest extends AnnotationConfigurationTest
 {
     public function test_registering_around_method_level_interceptor_with_parameter_converters()

@@ -11,6 +11,9 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\ProductWasAddedToBasket;
 
 #[Projection(self::PROJECTION_NAME, Basket::BASKET_STREAM)]
+/**
+ * licence Apache-2.0
+ */
 final class Products
 {
     public const PROJECTION_NAME = 'products';

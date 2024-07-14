@@ -12,6 +12,9 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 
+/**
+ * licence Apache-2.0
+ */
 class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
     private const DEFAULT_PERSISTENT_MODE = true;

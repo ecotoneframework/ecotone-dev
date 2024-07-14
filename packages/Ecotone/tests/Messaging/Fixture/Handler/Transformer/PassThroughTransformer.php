@@ -9,6 +9,9 @@ use Ecotone\Messaging\Message;
  * @package Test\Ecotone\Messaging\Fixture\Handler\Transformer
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class PassThroughTransformer
 {
     /**

@@ -10,6 +10,9 @@ use Interop\Amqp\AmqpDestination;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\AmqpTopic;
 
+/**
+ * licence Apache-2.0
+ */
 class HeadersExchangeDelayStrategy implements DelayStrategy
 {
     /**

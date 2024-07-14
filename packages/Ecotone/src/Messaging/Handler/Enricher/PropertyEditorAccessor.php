@@ -16,6 +16,9 @@ use ReflectionException;
  * @package Ecotone\Messaging\Handler\Enricher\Converter
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class PropertyEditorAccessor
 {
     private function __construct(private ExpressionEvaluationService $expressionEvaluationService, private string $mappingExpression)

@@ -23,6 +23,9 @@ use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class RequiredConsumersModuleTest extends AnnotationConfigurationTest
 {
     public function test_throwing_exception_if_consumer_was_not_registered()

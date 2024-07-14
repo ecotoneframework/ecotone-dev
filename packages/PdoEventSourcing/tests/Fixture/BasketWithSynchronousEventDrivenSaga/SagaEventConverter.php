@@ -4,6 +4,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSag
 
 use Ecotone\Messaging\Attribute\Converter;
 
+/**
+ * licence Apache-2.0
+ */
 class SagaEventConverter
 {
     #[Converter]

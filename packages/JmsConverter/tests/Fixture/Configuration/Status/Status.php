@@ -2,6 +2,9 @@
 
 namespace Test\Ecotone\JMSConverter\Fixture\Configuration\Status;
 
+/**
+ * licence Apache-2.0
+ */
 class Status
 {
     private string $type;

@@ -7,6 +7,9 @@ namespace Ecotone\Messaging\Handler;
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface ExpressionEvaluationService
 {
     public const REFERENCE = 'expressionEvaluationService';

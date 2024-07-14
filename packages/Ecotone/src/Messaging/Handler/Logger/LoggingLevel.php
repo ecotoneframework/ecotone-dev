@@ -13,6 +13,9 @@ use Psr\Log\LogLevel;
  * @package Ecotone\Messaging\Handler\Logger
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class LoggingLevel extends LogLevel
 {
     private ?string $level;

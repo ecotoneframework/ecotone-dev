@@ -14,6 +14,9 @@ use Ecotone\Modelling\Attribute\EventSourcingSaga;
  * @package Ecotone\Modelling
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class InMemoryEventSourcedRepository implements EventSourcedRepository
 {
     private array $eventsPerAggregate;

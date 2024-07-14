@@ -7,6 +7,9 @@ use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
+/**
+ * licence Apache-2.0
+ */
 final class ProjectionState extends AggregateIdentifier
 {
     public function __construct()

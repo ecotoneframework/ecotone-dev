@@ -20,6 +20,9 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class MessageBuilderTest extends MessagingTest
 {
     public function test_creating_from_payload()

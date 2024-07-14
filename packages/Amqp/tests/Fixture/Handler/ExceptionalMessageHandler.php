@@ -16,6 +16,9 @@ use RuntimeException;
  * @package Test\Ecotone\Messaging\Fixture\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ExceptionalMessageHandler implements MessageHandler
 {
     private function __construct(private Exception $exception)

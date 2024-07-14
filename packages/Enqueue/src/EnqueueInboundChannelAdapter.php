@@ -14,6 +14,9 @@ use Interop\Queue\Message as EnqueueMessage;
 
 use function spl_object_id;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class EnqueueInboundChannelAdapter implements MessagePoller
 {
     private array $initialized = [];

@@ -13,6 +13,9 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class SymfonyExpressionEvaluationAdapterTest extends TestCase
 {
     public function test_is_array_function()

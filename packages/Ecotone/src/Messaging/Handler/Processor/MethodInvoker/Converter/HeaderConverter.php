@@ -20,6 +20,9 @@ use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class HeaderConverter implements ParameterConverter
 {
     public function __construct(private InterfaceParameter $parameter, private string $headerName, private bool $isRequired, private ConversionService $conversionService)

@@ -10,6 +10,9 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
  * @package Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class CallWithReferenceSearchServiceExample extends BaseInterceptorExample
 {
     #[Around]

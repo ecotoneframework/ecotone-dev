@@ -37,6 +37,9 @@ use OpenTelemetry\API\Trace\TracerProviderInterface;
 use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 final class OpenTelemetryModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static

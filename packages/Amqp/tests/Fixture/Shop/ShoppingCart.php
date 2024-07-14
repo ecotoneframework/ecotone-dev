@@ -7,6 +7,9 @@ use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
+/**
+ * licence Apache-2.0
+ */
 class ShoppingCart
 {
     private $shoppingCart = [];

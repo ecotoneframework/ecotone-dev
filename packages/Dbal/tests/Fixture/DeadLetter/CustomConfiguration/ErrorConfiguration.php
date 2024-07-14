@@ -8,6 +8,9 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 final class ErrorConfiguration
 {
     public const ERROR_CHANNEL = 'errorChannel';

@@ -25,6 +25,9 @@ use Throwable;
  * @package Ecotone\Amqp\DbalTransaction
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class DbalTransactionInterceptor
 {
     /**

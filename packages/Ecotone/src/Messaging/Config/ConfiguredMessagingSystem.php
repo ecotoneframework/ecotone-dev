@@ -20,6 +20,9 @@ use InvalidArgumentException;
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  * @template T
  */
+/**
+ * licence Apache-2.0
+ */
 interface ConfiguredMessagingSystem
 {
     /**

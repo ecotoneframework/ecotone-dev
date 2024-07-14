@@ -13,6 +13,9 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
  * @package Test\Ecotone\Messaging\Unit\Config\Annotation\Annotation
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class AnnotationConfigurationTest extends MessagingTest
 {
     protected function createAnnotationRegistrationService(string $className, string $methodName, $classAnnotationObject, $methodAnnotationObject): AnnotationFinder

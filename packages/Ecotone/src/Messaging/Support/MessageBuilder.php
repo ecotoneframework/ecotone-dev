@@ -15,6 +15,9 @@ use Ramsey\Uuid\Uuid;
  * @package Ecotone\Messaging\Support
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 final class MessageBuilder
 {
     private mixed $payload;

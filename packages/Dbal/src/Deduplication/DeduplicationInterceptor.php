@@ -28,6 +28,9 @@ use Throwable;
  * @package Ecotone\Amqp\DbalTransaction
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class DeduplicationInterceptor
 {
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';

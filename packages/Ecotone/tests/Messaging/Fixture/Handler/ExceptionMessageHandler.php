@@ -13,6 +13,9 @@ use InvalidArgumentException;
  * @package Test\Ecotone\Messaging\Fixture\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class ExceptionMessageHandler implements MessageHandler, DefinedObject
 {
     public static function create(): self

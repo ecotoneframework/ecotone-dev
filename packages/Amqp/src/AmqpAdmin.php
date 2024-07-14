@@ -15,6 +15,9 @@ use Interop\Amqp\AmqpTopic as EnqueueExchange;
  * @package Ecotone\Amqp
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class AmqpAdmin
 {
     public const REFERENCE_NAME = 'amqp_admin';

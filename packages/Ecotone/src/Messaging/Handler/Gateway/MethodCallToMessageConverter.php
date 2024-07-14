@@ -17,6 +17,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
  * @package Ecotone\Messaging\Handler\Gateway\Gateway
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class MethodCallToMessageConverter
 {
     private ?InterfaceToCall $interfaceToCall;

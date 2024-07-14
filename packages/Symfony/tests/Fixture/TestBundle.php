@@ -10,6 +10,9 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  * @package Fixture
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class TestBundle extends Bundle
 {
     public function build(ContainerBuilder $container): void

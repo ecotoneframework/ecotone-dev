@@ -15,6 +15,9 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
  * @package Ecotone\Messaging\Config
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class MethodInterceptor implements InterceptorWithPointCut
 {
     private string $interceptorName;

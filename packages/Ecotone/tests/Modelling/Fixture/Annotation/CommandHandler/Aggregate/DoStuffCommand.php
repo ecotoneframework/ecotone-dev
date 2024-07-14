@@ -13,6 +13,9 @@ namespace Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate;
  * @package Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class DoStuffCommand
 {
     private $id;

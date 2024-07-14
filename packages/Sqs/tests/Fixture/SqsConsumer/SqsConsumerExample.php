@@ -7,6 +7,9 @@ namespace Test\Ecotone\Sqs\Fixture\SqsConsumer;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class SqsConsumerExample
 {
     /** @var string[] */

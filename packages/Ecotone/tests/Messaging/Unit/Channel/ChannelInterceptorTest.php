@@ -18,6 +18,9 @@ use PHPUnit\Framework\TestCase;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class ChannelInterceptorTest extends TestCase
 {
     public function test_intercepting_sending_with_sucess()

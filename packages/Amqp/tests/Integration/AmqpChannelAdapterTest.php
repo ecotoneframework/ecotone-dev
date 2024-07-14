@@ -52,6 +52,9 @@ use Test\Ecotone\Amqp\Fixture\Handler\ExceptionalMessageHandler;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class AmqpChannelAdapterTest extends AmqpMessagingTest
 {
     public function setUp(): void

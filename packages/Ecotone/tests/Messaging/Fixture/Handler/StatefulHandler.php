@@ -10,6 +10,9 @@ use Ecotone\Messaging\MessageHandler;
  * @package Test\Ecotone\Messaging\Fixture\Handler
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class StatefulHandler implements MessageHandler
 {
     /**

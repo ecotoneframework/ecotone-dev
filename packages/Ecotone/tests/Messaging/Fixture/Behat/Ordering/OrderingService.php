@@ -9,6 +9,9 @@ use Ecotone\Messaging\Future;
  * @package Test\Ecotone\Messaging\Fixture\Behat\Ordering
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 interface OrderingService
 {
     /**

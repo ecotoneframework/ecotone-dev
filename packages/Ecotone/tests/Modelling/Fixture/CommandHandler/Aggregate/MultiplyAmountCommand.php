@@ -10,6 +10,9 @@ use Ecotone\Modelling\Attribute\TargetVersion;
  * @package Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
+/**
+ * licence Apache-2.0
+ */
 class MultiplyAmountCommand
 {
     #[TargetIdentifier]

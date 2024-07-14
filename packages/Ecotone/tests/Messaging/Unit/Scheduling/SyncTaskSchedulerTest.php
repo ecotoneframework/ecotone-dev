@@ -18,6 +18,9 @@ use Test\Ecotone\Messaging\Fixture\Scheduling\StubTaskExecutor;
  *
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class SyncTaskSchedulerTest extends TestCase
 {
     public function test_when_first_time_called_then_it_should_trigger_immediately()

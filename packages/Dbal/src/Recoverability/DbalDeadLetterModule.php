@@ -20,6 +20,9 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class DbalDeadLetterModule implements AnnotationModule
 {
     public const HELP_COMMAND_NAME = 'ecotone:deadletter:help';

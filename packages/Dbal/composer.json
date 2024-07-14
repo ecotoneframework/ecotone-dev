@@ -1,6 +1,9 @@
 {
     "name": "ecotone/dbal",
-    "license": "MIT",
+    "license": [
+        "Apache-2.0",
+        "proprietary"
+    ],
     "homepage": "https://docs.ecotone.tech/",
     "forum": "https://discord.gg/CctGMcrYnV",
     "type": "library",
@@ -9,7 +12,7 @@
     "authors": [
         {
             "name": "Dariusz Gafka",
-            "email": "dgafka.mail@gmail.com"
+            "email": "support@simplycodedsoftware.com"
         }
     ],
     "keywords": [
@@ -30,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~1.223.0",
+        "ecotone/enqueue": "~1.224.0",
         "enqueue/dbal": "^0.10.17",
         "doctrine/dbal": "^2.12.0|^3.0"
     },
@@ -43,7 +46,7 @@
         "doctrine/cache": "^1.0.0",
         "doctrine/annotations": "^1.13",
         "wikimedia/composer-merge-plugin": "^2.0",
-        "ecotone/jms-converter": "~1.223.0",
+        "ecotone/jms-converter": "~1.224.0",
         "symfony/expression-language": "^6.0|^7.0"
     },
     "scripts": {
@@ -56,7 +59,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.223.0-dev"
+            "dev-main": "1.224.0-dev"
         },
         "ecotone": {
             "repository": "dbal"
@@ -65,6 +68,17 @@
             "include": [
                 "../local_packages.json"
             ]
+        },
+        "license-info": {
+            "Apache-2.0": {
+                "name": "Apache License 2.0",
+                "url": "https://github.com/ecotoneframework/ecotone-dev/blob/main/LICENSE",
+                "description": "Allows to use non Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            },
+            "proprietary": {
+                "name": "Enterprise License",
+                "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            }
         }
     },
     "config": {

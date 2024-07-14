@@ -19,6 +19,9 @@ use Ecotone\Modelling\CommandBus;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class ObjectManagerModule implements AnnotationModule
 {
     private function __construct()

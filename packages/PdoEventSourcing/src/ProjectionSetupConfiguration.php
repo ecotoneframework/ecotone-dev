@@ -9,6 +9,9 @@ use Ecotone\Messaging\Support\Assert;
 use Prooph\EventStore\Pdo\Projection\GapDetection;
 use Prooph\EventStore\Pdo\Projection\PdoEventStoreReadModelProjector;
 
+/**
+ * licence Apache-2.0
+ */
 final class ProjectionSetupConfiguration implements DefinedObject
 {
     /**

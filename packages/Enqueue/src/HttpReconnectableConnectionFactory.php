@@ -7,6 +7,9 @@ namespace Ecotone\Enqueue;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 
+/**
+ * licence Apache-2.0
+ */
 final class HttpReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
     public function __construct(private ConnectionFactory $connectionFactory)

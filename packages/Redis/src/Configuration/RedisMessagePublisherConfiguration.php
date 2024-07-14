@@ -7,6 +7,9 @@ namespace Ecotone\Redis\Configuration;
 use Ecotone\Messaging\MessagePublisher;
 use Enqueue\Redis\RedisConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class RedisMessagePublisherConfiguration
 {
     private bool $autoDeclareOnSend = true;

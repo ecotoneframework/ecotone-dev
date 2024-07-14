@@ -19,6 +19,9 @@ use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeetingWithEventSourcing
 use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeetingWithInternalRecorder;
 
 #[EventSourcingAggregate]
+/**
+ * licence Apache-2.0
+ */
 final class Calendar
 {
     use WithAggregateVersioning;

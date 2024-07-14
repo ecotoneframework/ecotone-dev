@@ -17,6 +17,9 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
 {
     public function test_when_messaging_configured_in_container_replacing_it_with_test_one()

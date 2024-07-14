@@ -4,12 +4,15 @@
     "homepage": "https://docs.ecotone.tech/",
     "forum": "https://discord.gg/CctGMcrYnV",
     "prefer-stable": true,
-    "license": "MIT",
+    "license": [
+        "Apache-2.0",
+        "proprietary"
+    ],
     "type": "library",
     "authors": [
         {
             "name": "Dariusz Gafka",
-            "email": "dgafka.mail@gmail.com"
+            "email": "support@simplycodedsoftware.com"
         }
     ],
     "keywords": [
@@ -34,7 +37,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.223.0",
+        "ecotone/ecotone": "~1.224.0",
         "laravel/framework": "^9.5.2|^10.0|^11.0"
     },
     "require-dev": {
@@ -47,7 +50,7 @@
         "symfony/expression-language": "^6.0|^7.0",
         "nesbot/carbon": "^2.71",
         "moneyphp/money": "^4.1.0",
-        "ecotone/dbal": "~1.223.0"
+        "ecotone/dbal": "~1.224.0"
     },
     "extra": {
         "laravel": {
@@ -56,7 +59,7 @@
             ]
         },
         "branch-alias": {
-            "dev-main": "1.223.0-dev"
+            "dev-main": "1.224.0-dev"
         },
         "ecotone": {
             "repository": "laravel"
@@ -65,6 +68,17 @@
             "include": [
                 "../local_packages.json"
             ]
+        },
+        "license-info": {
+            "Apache-2.0": {
+                "name": "Apache License 2.0",
+                "url": "https://github.com/ecotoneframework/ecotone-dev/blob/main/LICENSE",
+                "description": "Allows to use non Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            },
+            "proprietary": {
+                "name": "Enterprise License",
+                "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            }
         }
     },
     "scripts": {

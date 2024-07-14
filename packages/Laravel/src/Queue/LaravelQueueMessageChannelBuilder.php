@@ -15,6 +15,9 @@ use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Illuminate\Support\Facades\Config;
 
+/**
+ * licence Apache-2.0
+ */
 final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
     private HeaderMapper $headerMapper;

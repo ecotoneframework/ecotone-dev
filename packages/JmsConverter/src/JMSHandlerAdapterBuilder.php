@@ -8,6 +8,9 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 
+/**
+ * licence Apache-2.0
+ */
 class JMSHandlerAdapterBuilder implements CompilableBuilder
 {
     public function __construct(

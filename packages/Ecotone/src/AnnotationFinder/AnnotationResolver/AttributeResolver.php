@@ -11,6 +11,9 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionProperty;
 
+/**
+ * licence Apache-2.0
+ */
 class AttributeResolver implements AnnotationResolver
 {
     /**

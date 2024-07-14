@@ -8,6 +8,9 @@ use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Dbal\Attribute\DbalWrite;
 use Ecotone\Messaging\Conversion\MediaType;
 
+/**
+ * licence Apache-2.0
+ */
 interface PersonService
 {
     #[DbalWrite('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]

@@ -12,6 +12,9 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 
 #[EventSourcingAggregate]
+/**
+ * licence Apache-2.0
+ */
 class Saga
 {
     use WithAggregateVersioning;

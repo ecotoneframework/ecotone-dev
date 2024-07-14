@@ -26,6 +26,9 @@ use Test\Ecotone\Amqp\Fixture\Support\Logger\LoggerExample;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class AmqpMessageChannelTest extends AmqpMessagingTest
 {
     public function test_sending_and_receiving_message_from_amqp_message_channel()

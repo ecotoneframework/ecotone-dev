@@ -12,6 +12,9 @@ use Prooph\Common\Messaging\Message;
 use Prooph\Common\Messaging\MessageFactory;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * licence Apache-2.0
+ */
 class EventMapper implements MessageFactory, CompilableBuilder
 {
     private array $eventToNameMapping;

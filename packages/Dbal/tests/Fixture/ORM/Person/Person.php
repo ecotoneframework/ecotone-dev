@@ -15,6 +15,9 @@ use RuntimeException;
 #[ORM\Entity]
 #[ORM\Table(name: 'persons')]
 #[Aggregate]
+/**
+ * licence Apache-2.0
+ */
 class Person
 {
     use WithEvents;

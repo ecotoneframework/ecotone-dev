@@ -6,6 +6,9 @@ namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
 use Ecotone\Messaging\Attribute\Converter;
 
+/**
+ * licence Apache-2.0
+ */
 final class PersonRoleConverter
 {
     #[Converter]

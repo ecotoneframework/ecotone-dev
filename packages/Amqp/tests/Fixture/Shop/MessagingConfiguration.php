@@ -8,6 +8,9 @@ use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 
+/**
+ * licence Apache-2.0
+ */
 class MessagingConfiguration
 {
     public const CONSUMER_ID    = 'addToCart';

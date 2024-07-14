@@ -21,6 +21,9 @@ use Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\Sync
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class SynchronousEventDrivenSagaTest extends TestCase
 {
     public function test_product_is_added_by_synchronous_event_driven_saga(): void

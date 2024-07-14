@@ -6,6 +6,9 @@ use Ecotone\Lite\InMemoryContainerImplementation;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 class AliasExternalReferenceForTesting implements CompilerPassInterface
 {
     public function process(ContainerBuilder $container): void

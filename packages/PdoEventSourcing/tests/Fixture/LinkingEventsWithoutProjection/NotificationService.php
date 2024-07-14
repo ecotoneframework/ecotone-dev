@@ -10,6 +10,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\Event;
 
+/**
+ * licence Apache-2.0
+ */
 final class NotificationService
 {
     public const STREAM_NAME = 'stream';

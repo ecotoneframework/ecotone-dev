@@ -5,6 +5,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\Basket\Event;
 use Ecotone\Modelling\Attribute\NamedEvent;
 
 #[NamedEvent(self::EVENT_NAME)]
+/**
+ * licence Apache-2.0
+ */
 class ProductWasAddedToBasket
 {
     public const EVENT_NAME = 'basket.product_was_added';

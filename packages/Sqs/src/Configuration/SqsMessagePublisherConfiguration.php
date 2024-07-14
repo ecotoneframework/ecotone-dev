@@ -7,6 +7,9 @@ namespace Ecotone\Sqs\Configuration;
 use Ecotone\Messaging\MessagePublisher;
 use Enqueue\Sqs\SqsConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class SqsMessagePublisherConfiguration
 {
     private bool $autoDeclareOnSend = true;

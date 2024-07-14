@@ -8,6 +8,12 @@ use Ecotone\Messaging\Attribute\Enterprise;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 
+/**
+ * licence Enterprise
+ *
+ * This class is responsible for deciding whatever enterprise mode is enabled.
+ * To make use of Enterprise features, you need to have Enterprise license.
+ */
 final class EnterpriseModeDecider
 {
     public function __construct(private bool $isEnterpriseModeDefault)

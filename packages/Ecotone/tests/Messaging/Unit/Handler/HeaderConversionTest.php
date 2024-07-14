@@ -16,6 +16,9 @@ use Test\Ecotone\Messaging\Fixture\Handler\HeaderConversion\JsonConverter;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class HeaderConversionTest extends TestCase
 {
     /**

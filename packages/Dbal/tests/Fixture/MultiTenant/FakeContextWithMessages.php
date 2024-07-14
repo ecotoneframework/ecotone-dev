@@ -15,6 +15,9 @@ use Interop\Queue\Queue;
 use Interop\Queue\SubscriptionConsumer;
 use Interop\Queue\Topic;
 
+/**
+ * licence Apache-2.0
+ */
 final class FakeContextWithMessages implements Context, PollableChannel
 {
     private QueueChannel $channel;

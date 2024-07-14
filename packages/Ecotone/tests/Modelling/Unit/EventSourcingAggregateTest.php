@@ -14,13 +14,13 @@ final class EventSourcingAggregateTest extends TestCase
     public function test_registering_and_using_headers_in_event_sourcing_handler(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([
-            Person::class
-        ]);
+            Person::class,
+        ], defaultEnterpriseMode: true);
 
 
-        $person = $ecotoneLite
-            ->sendCommand(new RegisterPerson('123', 'premium'))
-            ->getAggregate(Person::class, '123');
+        $ecotoneLite->sendCommand(new RegisterPerson('123', 'premium'));
+
+        $person = $ecotoneLite->getAggregate(Person::class, '123');
 
         self::assertEquals('123', $person->getPersonId());
         self::assertEquals('premium', $person->getType());

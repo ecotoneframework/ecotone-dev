@@ -11,6 +11,9 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Enqueue\Redis\RedisContext;
 use Enqueue\Redis\RedisDestination;
 
+/**
+ * licence Apache-2.0
+ */
 final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {
     public function __construct(CachedConnectionFactory $connectionFactory, private string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter, ConversionService $conversionService)

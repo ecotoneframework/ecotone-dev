@@ -11,6 +11,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\StandardRepository;
 use Interop\Queue\ConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 class ManagerRegistryRepository implements StandardRepository
 {
     public function __construct(

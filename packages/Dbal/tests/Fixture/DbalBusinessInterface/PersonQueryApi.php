@@ -8,6 +8,9 @@ use Ecotone\Dbal\Attribute\DbalQuery;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 use Ecotone\Messaging\Conversion\MediaType;
 
+/**
+ * licence Apache-2.0
+ */
 interface PersonQueryApi
 {
     /**

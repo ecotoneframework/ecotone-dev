@@ -11,6 +11,9 @@ use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 
 #[EventSourcingAggregate(true)]
+/**
+ * licence Apache-2.0
+ */
 final class MeetingWithEventSourcing
 {
     use WithEvents;

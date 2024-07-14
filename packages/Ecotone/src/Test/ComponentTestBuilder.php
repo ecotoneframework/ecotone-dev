@@ -29,6 +29,9 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 
+/**
+ * licence Apache-2.0
+ */
 class ComponentTestBuilder
 {
     private function __construct(
@@ -41,9 +44,10 @@ class ComponentTestBuilder
      * @param array<string, string> $configurationVariables
      */
     public static function create(
-        array $classesToResolve = [],
+        array                 $classesToResolve = [],
         ?ServiceConfiguration $configuration = null,
-        array $configurationVariables = [],
+        array                 $configurationVariables = [],
+        bool                  $defaultEnterpriseMode = false,
     ): self {
         // This will be used when symlinks to Ecotone packages are used (e.g. Split Testing - Github Actions)
         $debug = debug_backtrace();
@@ -61,7 +65,7 @@ class ComponentTestBuilder
             MessagingSystemConfiguration::prepare(
                 $pathToRootCatalog,
                 $configurationVariableService,
-                $configuration ?? ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                $configuration ?? ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackages())->withDefaultEnterpriseMode($defaultEnterpriseMode),
                 $classesToResolve,
                 true,
             )

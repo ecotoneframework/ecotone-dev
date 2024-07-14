@@ -20,6 +20,9 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Interop\Queue\ConnectionFactory;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 final class LaravelConnectionModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static

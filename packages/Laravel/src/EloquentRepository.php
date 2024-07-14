@@ -5,6 +5,9 @@ namespace Ecotone\Laravel;
 use Ecotone\Modelling\StandardRepository;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * licence Apache-2.0
+ */
 class EloquentRepository implements StandardRepository
 {
     public function canHandle(string $aggregateClassName): bool

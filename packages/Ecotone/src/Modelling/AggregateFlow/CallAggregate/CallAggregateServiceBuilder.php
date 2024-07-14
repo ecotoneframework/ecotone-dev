@@ -26,6 +26,9 @@ use Ecotone\Modelling\EventSourcingHandlerExecutor;
 use Ecotone\Modelling\EventSourcingHandlerExecutorBuilder;
 use Ecotone\Modelling\WithAggregateVersioning;
 
+/**
+ * licence Apache-2.0
+ */
 class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
 {
     private InterfaceToCall $interfaceToCall;

@@ -6,6 +6,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies;
 
 use Ecotone\Messaging\Attribute\Converter;
 
+/**
+ * licence Apache-2.0
+ */
 final class EventsConverter
 {
     #[Converter]

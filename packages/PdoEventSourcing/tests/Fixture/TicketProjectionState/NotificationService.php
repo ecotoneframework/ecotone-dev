@@ -5,6 +5,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class NotificationService
 {
     private int $currentTicketCount = 0;

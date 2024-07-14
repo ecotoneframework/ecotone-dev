@@ -19,6 +19,9 @@ use Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection\Or
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTestCase
 {
     public function test_metadata_propagation_with_synchronous_projection(): void

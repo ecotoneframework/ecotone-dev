@@ -20,6 +20,9 @@ use Test\Ecotone\Dbal\Fixture\DeduplicationEventHandler\DeduplicatedEventHandler
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 {
     public function test_deduplicating_given_command_handler()

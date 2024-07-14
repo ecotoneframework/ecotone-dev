@@ -33,6 +33,9 @@ use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\NotExisting\NotExistin
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class FileSystemAttributeAnnotationFinderTest extends TestCase
 {
     public const ROOT_DIR = __DIR__ . '/../../../';

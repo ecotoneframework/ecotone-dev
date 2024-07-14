@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\DbaBusinessMethod;
 
+/**
+ * licence Apache-2.0
+ */
 final class FetchMode
 {
     public const ASSOCIATIVE = 0;

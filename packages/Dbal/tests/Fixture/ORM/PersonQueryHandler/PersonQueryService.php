@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class PersonQueryService
 {
     /**

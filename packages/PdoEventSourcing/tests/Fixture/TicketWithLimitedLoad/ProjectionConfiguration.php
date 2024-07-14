@@ -8,6 +8,9 @@ use Ecotone\EventSourcing\Prooph\ProophProjectionRunningOption;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList;
 
+/**
+ * licence Apache-2.0
+ */
 class ProjectionConfiguration
 {
     #[ServiceContext]

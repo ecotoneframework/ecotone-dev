@@ -18,6 +18,9 @@ use Throwable;
  *
  * The confirm.select method enables publisher confirms on a channel.Â Â Note that a transactional channel cannot be put into confirm mode and a confirm mode channel cannot be made transactional.
  */
+/**
+ * licence Apache-2.0
+ */
 class AmqpTransactionInterceptor
 {
     private bool $isRunningTransaction = false;

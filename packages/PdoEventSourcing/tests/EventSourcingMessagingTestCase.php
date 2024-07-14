@@ -10,6 +10,9 @@ use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class EventSourcingMessagingTestCase extends TestCase
 {
     private ConnectionFactory $tenantAConnection;
@@ -34,7 +37,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
         }
 
         $connectionFactory = DbalConnection::fromDsn(
-            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'
+            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@127.0.0.1:3306/ecotone'
         );
 
         $this->tenantBConnection = $connectionFactory;
@@ -43,7 +46,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 
     protected function connectionForTenantA(): ConnectionFactory
     {
-        $connectionFactory = $this->getConnectionFactory();
+        $connectionFactory = self::getConnectionFactory();
         if (isset($this->tenantAConnection)) {
             return $this->tenantAConnection;
         }
@@ -54,7 +57,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 
     public static function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
     {
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone';
         if (! $dsn) {
             throw new InvalidArgumentException('Missing env `DATABASE_DSN` pointing to test database');
         }
@@ -66,14 +69,14 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 
     public function getConnection(): Connection
     {
-        return $this->getConnectionFactory()->createContext()->getDbalConnection();
+        return self::getConnectionFactory()->createContext()->getDbalConnection();
     }
 
     protected function getReferenceSearchServiceWithConnection(array $objects = [], bool $connectionAsRegistry = false)
     {
         return InMemoryReferenceSearchService::createWith(
             array_merge(
-                [DbalConnectionFactory::class => $this->getConnectionFactory($connectionAsRegistry)],
+                [DbalConnectionFactory::class => self::getConnectionFactory($connectionAsRegistry)],
                 $objects
             )
         );

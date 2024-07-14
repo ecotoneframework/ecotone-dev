@@ -7,6 +7,9 @@ namespace Test\Ecotone\Laravel\Fixture\Order;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\EventHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class OrderService
 {
     #[Asynchronous('asynchronous_queue')]

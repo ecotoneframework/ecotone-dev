@@ -7,6 +7,9 @@ namespace Fixture\Order;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 
+/**
+ * licence Apache-2.0
+ */
 final class MessagingConfig
 {
     #[ServiceContext]

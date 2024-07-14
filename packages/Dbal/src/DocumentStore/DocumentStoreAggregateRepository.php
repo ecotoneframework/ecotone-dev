@@ -5,6 +5,9 @@ namespace Ecotone\Dbal\DocumentStore;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Modelling\StandardRepository;
 
+/**
+ * licence Apache-2.0
+ */
 final class DocumentStoreAggregateRepository implements StandardRepository
 {
     private const COLLECTION_NAME = 'aggregates_';

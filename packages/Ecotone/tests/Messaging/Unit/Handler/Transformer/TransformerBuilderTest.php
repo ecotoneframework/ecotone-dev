@@ -27,9 +27,12 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
 /**
  * Class TransformerBuilder
  * @package Ecotone\Messaging\Handler\Transformer
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
+ */
+/**
+ * licence Apache-2.0
  */
 class TransformerBuilderTest extends MessagingTest
 {

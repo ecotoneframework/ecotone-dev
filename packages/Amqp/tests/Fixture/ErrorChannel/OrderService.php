@@ -7,6 +7,9 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 class OrderService
 {
     private int $callCount = 0;

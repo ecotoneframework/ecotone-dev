@@ -10,6 +10,9 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\EventBus;
 
 #[Aggregate]
+/**
+ * licence Apache-2.0
+ */
 final class Merchant
 {
     #[AggregateIdentifier]

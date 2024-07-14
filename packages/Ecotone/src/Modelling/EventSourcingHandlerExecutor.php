@@ -16,6 +16,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
 use ReflectionClass;
 
+/**
+ * licence Apache-2.0
+ */
 final class EventSourcingHandlerExecutor
 {
     /**
@@ -36,11 +39,6 @@ final class EventSourcingHandlerExecutor
     {
         $aggregate = $existingAggregate ?? (new $this->aggregateClassName());
         foreach ($events as $event) {
-            if ($event instanceof SnapshotEvent) {
-                $aggregate = $event->getAggregate();
-
-                continue;
-            }
             $eventPayload = null;
             $metadata = [];
             if ($event instanceof Event) {
@@ -50,6 +48,12 @@ final class EventSourcingHandlerExecutor
             }else {
                 $eventType = TypeDescriptor::createFromVariable($event);
                 $eventPayload = $event;
+            }
+
+            if ($eventType->toString() === SnapshotEvent::class) {
+                $aggregate = $event->getPayload()->getAggregate();
+
+                continue;
             }
 
             $message = MessageBuilder::withPayload($eventPayload)

@@ -17,6 +17,9 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\EventSourcingHandlerExecutor;
 use Ecotone\Modelling\EventSourcingHandlerExecutorBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 final class ResolveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder
 {
     private ClassDefinition $aggregateClassDefinition;

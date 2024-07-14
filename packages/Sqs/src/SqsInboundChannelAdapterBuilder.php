@@ -16,6 +16,9 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\Sqs\SqsConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = SqsConnectionFactory::class): self

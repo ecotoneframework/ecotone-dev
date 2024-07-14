@@ -8,6 +8,9 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Message;
 
+/**
+ * licence Apache-2.0
+ */
 final class SuccessServiceActivator
 {
     #[Asynchronous('async_channel')]

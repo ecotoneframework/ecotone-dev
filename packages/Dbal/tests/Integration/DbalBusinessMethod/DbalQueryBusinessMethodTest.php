@@ -25,6 +25,9 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
 {
     public function test_fetching_data_from_database()

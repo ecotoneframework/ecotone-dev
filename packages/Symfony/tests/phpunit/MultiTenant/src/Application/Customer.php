@@ -21,6 +21,9 @@ use Symfony\App\MultiTenant\Application\Event\CustomerWasRegistered;
 #[Aggregate]
 #[Entity]
 #[Table(name: 'persons')]
+/**
+ * licence Apache-2.0
+ */
 class Customer
 {
     use WithEvents;

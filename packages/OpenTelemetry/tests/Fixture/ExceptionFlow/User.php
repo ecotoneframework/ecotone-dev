@@ -11,6 +11,9 @@ use InvalidArgumentException;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 
 #[Aggregate]
+/**
+ * licence Apache-2.0
+ */
 final class User
 {
     #[AggregateIdentifier]

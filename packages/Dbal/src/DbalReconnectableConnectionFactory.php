@@ -12,6 +12,9 @@ use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use ReflectionClass;
 
+/**
+ * licence Apache-2.0
+ */
 class DbalReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
     public const CONNECTION_PROPERTIES = ['connection', '_conn'];

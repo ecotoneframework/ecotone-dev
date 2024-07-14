@@ -18,6 +18,9 @@ use function file_put_contents;
 
 use Ramsey\Uuid\Uuid;
 
+/**
+ * licence Apache-2.0
+ */
 class EcotoneLiteApplication
 {
     public static function bootstrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null, array $classesToRegister = []): ConfiguredMessagingSystem

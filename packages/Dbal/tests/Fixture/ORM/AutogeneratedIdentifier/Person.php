@@ -18,6 +18,9 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 #[ORM\Entity]
 #[ORM\Table(name: 'persons')]
 #[Aggregate]
+/**
+ * licence Apache-2.0
+ */
 class Person
 {
     use WithEvents;

@@ -76,6 +76,9 @@ use Ramsey\Uuid\Uuid;
 use RuntimeException;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class EventSourcingModule extends NoExternalConfigurationModule
 {
     public const ECOTONE_ES_STOP_PROJECTION = 'ecotone:es:stop-projection';

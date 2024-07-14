@@ -11,6 +11,9 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Modelling\RepositoryBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 final class EventSourcingRepositoryBuilder implements RepositoryBuilder
 {
     private array $handledAggregateClassNames = [];

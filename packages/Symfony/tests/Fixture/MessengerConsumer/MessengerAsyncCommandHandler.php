@@ -10,6 +10,9 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 final class MessengerAsyncCommandHandler
 {
     /** @var array<int, array{ExampleCommand, array<string, string>}> */

@@ -46,6 +46,9 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\NullableMessageChannel;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class BasicMessagingModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**

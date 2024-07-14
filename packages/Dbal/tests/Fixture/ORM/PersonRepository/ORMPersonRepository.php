@@ -8,6 +8,9 @@ use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
+/**
+ * licence Apache-2.0
+ */
 final class ORMPersonRepository
 {
     public function __construct(private ManagerRegistry $managerRegistry)

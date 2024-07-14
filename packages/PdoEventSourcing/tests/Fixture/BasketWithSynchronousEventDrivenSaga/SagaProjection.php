@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Projection(self::PROJECTION_NAME, Saga::class)]
+/**
+ * licence Apache-2.0
+ */
 class SagaProjection
 {
     public const PROJECTION_NAME = 'saga_projection';

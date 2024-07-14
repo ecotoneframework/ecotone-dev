@@ -8,7 +8,10 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 /**
  * Class TestBundle
  * @package Fixture
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
+ */
+/**
+ * licence Apache-2.0
  */
 class TestBundle extends Bundle
 {

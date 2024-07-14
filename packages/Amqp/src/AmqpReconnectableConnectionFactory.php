@@ -14,6 +14,9 @@ use Interop\Queue\SubscriptionConsumer;
 use ReflectionClass;
 use ReflectionProperty;
 
+/**
+ * licence Apache-2.0
+ */
 class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
     private string $connectionInstanceId;

@@ -6,6 +6,9 @@ use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ObjectManager;
 use Interop\Queue\ConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 interface MultiTenantConnectionFactory extends ConnectionFactory
 {
     /**

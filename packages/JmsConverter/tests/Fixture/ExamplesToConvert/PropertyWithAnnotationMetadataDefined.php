@@ -4,6 +4,9 @@ namespace Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert;
 
 use JMS\Serializer\Annotation as Serializer;
 
+/**
+ * licence Apache-2.0
+ */
 class PropertyWithAnnotationMetadataDefined
 {
     /**

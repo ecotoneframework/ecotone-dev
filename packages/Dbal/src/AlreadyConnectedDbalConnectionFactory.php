@@ -9,6 +9,9 @@ use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 
+/**
+ * licence Apache-2.0
+ */
 final class AlreadyConnectedDbalConnectionFactory implements ConnectionFactory
 {
     /**

@@ -13,6 +13,9 @@ use Interop\Queue\Destination;
 
 use function spl_object_id;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 {
     private array $initialized = [];

@@ -7,6 +7,9 @@ namespace Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 
+/**
+ * licence Apache-2.0
+ */
 class EcotoneConfiguration
 {
     #[ServiceContext]

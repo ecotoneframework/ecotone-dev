@@ -27,6 +27,9 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class CollectorModuleTest extends DbalMessagingTestCase
 {
     public function test_no_failure_during_sending_should_commit_transaction_and_send_messages()

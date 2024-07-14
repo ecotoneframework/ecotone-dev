@@ -17,6 +17,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 #[Projection(self::IN_PROGRESS_TICKET_PROJECTION, Ticket::class)]
+/**
+ * licence Apache-2.0
+ */
 class InProgressTicketList
 {
     public const IN_PROGRESS_TICKET_PROJECTION = 'inProgressTicketList';

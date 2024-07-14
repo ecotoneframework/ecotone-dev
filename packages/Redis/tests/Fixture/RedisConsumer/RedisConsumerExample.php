@@ -7,6 +7,9 @@ namespace Test\Ecotone\Redis\Fixture\RedisConsumer;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class RedisConsumerExample
 {
     /** @var string[] */

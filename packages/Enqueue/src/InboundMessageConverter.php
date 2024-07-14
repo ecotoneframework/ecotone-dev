@@ -9,6 +9,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Queue\Consumer as EnqueueConsumer;
 use Interop\Queue\Message as EnqueueMessage;
 
+/**
+ * licence Apache-2.0
+ */
 class InboundMessageConverter
 {
     /**

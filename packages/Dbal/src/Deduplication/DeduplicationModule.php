@@ -21,6 +21,9 @@ use Ecotone\Messaging\Scheduling\Clock;
 use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class DeduplicationModule implements AnnotationModule
 {
     public const REMOVE_MESSAGE_AFTER_7_DAYS = 1000 * 60 * 60 * 24 * 7;

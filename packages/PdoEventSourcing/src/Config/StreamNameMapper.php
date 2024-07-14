@@ -9,6 +9,9 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 final class StreamNameMapper implements DefinedObject
 {
     public function map(Message $message): Message

@@ -24,6 +24,9 @@ use Prooph\EventStore\Projection\ReadModelProjector;
 
 use function str_contains;
 
+/**
+ * licence Apache-2.0
+ */
 class LazyProophProjectionManager implements ProjectionManager
 {
     /** @var LazyProophProjectionManager[] */

@@ -30,6 +30,9 @@ use ReflectionException;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class DbalPublisherModuleTest extends TestCase
 {
     public function test_registering_single_amqp_publisher()

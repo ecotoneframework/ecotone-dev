@@ -7,6 +7,9 @@ use Ecotone\Modelling\CommandBus;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonWasRenamed;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 
+/**
+ * licence Apache-2.0
+ */
 class SaveMultipleEntitiesHandler
 {
     #[EventHandler]

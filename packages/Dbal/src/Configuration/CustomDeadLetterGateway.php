@@ -2,6 +2,9 @@
 
 namespace Ecotone\Dbal\Configuration;
 
+/**
+ * licence Apache-2.0
+ */
 final class CustomDeadLetterGateway
 {
     private function __construct(private string $gatewayReferenceName, private string $connectionReferenceName)

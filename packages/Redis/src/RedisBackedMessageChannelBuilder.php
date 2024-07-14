@@ -7,6 +7,9 @@ namespace Ecotone\Redis;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Enqueue\Redis\RedisConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private function __construct(string $channelName, string $connectionReferenceName)

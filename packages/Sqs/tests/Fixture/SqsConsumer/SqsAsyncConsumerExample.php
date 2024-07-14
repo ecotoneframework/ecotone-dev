@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Asynchronous('sqs')]
+/**
+ * licence Apache-2.0
+ */
 final class SqsAsyncConsumerExample
 {
     /** @var string[] */

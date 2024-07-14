@@ -23,6 +23,9 @@ use Ecotone\Modelling\EventSourcingHandlerExecutorBuilder;
 use Ecotone\Modelling\LazyEventSourcedRepository;
 use Ecotone\Modelling\LazyStandardRepository;
 
+/**
+ * licence Apache-2.0
+ */
 class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
 {
     private string $aggregateClassName;

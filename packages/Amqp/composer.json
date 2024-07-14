@@ -1,6 +1,9 @@
 {
     "name": "ecotone/amqp",
-    "license": "MIT",
+    "license": [
+        "Apache-2.0",
+        "proprietary"
+    ],
     "homepage": "https://docs.ecotone.tech/",
     "forum": "https://discord.gg/CctGMcrYnV",
     "type": "library",
@@ -9,7 +12,7 @@
     "authors": [
         {
             "name": "Dariusz Gafka",
-            "email": "dgafka.mail@gmail.com"
+            "email": "support@simplycodedsoftware.com"
         }
     ],
     "keywords": [
@@ -39,7 +42,7 @@
     },
     "require": {
         "ext-amqp": "*",
-        "ecotone/enqueue": "~1.223.0",
+        "ecotone/enqueue": "~1.224.0",
         "enqueue/amqp-ext": "^0.10.18",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0"
@@ -63,7 +66,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.223.0-dev"
+            "dev-main": "1.224.0-dev"
         },
         "ecotone": {
             "repository": "amqp"
@@ -72,6 +75,17 @@
             "include": [
                 "../local_packages.json"
             ]
+        },
+        "license-info": {
+            "Apache-2.0": {
+                "name": "Apache License 2.0",
+                "url": "https://github.com/ecotoneframework/ecotone-dev/blob/main/LICENSE",
+                "description": "Allows to use non Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            },
+            "proprietary": {
+                "name": "Enterprise License",
+                "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            }
         }
     },
     "config": {

@@ -11,6 +11,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 #[Projection(self::NAME, Ticket::class)]
+/**
+ * licence Apache-2.0
+ */
 class TicketCounterProjection
 {
     public const NAME = 'ticketCounter';

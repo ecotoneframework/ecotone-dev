@@ -6,6 +6,9 @@ use Ecotone\Enqueue\EnqueueMessageConsumerConfiguration;
 use Ecotone\Sqs\SqsInboundChannelAdapterBuilder;
 use Enqueue\Sqs\SqsConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class SqsMessageConsumerConfiguration extends EnqueueMessageConsumerConfiguration
 {
     private bool $declareOnStartup = SqsInboundChannelAdapterBuilder::DECLARE_ON_STARTUP_DEFAULT;

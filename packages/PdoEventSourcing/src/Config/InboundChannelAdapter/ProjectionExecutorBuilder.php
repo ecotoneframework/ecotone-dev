@@ -19,6 +19,9 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
 {
     public function __construct(

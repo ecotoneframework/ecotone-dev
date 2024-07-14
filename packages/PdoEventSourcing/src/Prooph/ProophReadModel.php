@@ -4,6 +4,9 @@ namespace Ecotone\EventSourcing\Prooph;
 
 use Prooph\EventStore\Projection\ReadModel;
 
+/**
+ * licence Apache-2.0
+ */
 class ProophReadModel implements ReadModel
 {
     public function __construct()

@@ -10,7 +10,11 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Prooph\EventStore\InMemoryEventStore;
 use Prooph\EventStore\Pdo\PersistenceStrategy;
+use Prooph\EventStore\StreamName;
 
+/**
+ * licence Apache-2.0
+ */
 class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 {
     private bool $initializeEventStoreOnStart = LazyProophEventStore::INITIALIZE_ON_STARTUP;
@@ -182,6 +186,11 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     public function getPersistenceStrategy(): string
     {
         return $this->persistenceStrategy;
+    }
+
+    public function getPersistenceStrategyFor(?StreamName $streamName = null): string
+    {
+        return $this->persistenceStrategies[$streamName?->toString()] ?? $this->persistenceStrategy;
     }
 
     public function getCustomPersistenceStrategy(): PersistenceStrategy

@@ -48,9 +48,12 @@ use Test\Ecotone\Amqp\Fixture\Handler\ExceptionalMessageHandler;
 /**
  * Class InboundAmqpGatewayBuilder
  * @package Test\Amqp
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
+ */
+/**
+ * licence Apache-2.0
  */
 class AmqpChannelAdapterTest extends AmqpMessagingTest
 {

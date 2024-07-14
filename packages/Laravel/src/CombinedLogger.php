@@ -5,6 +5,9 @@ namespace Ecotone\Laravel;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 
+/**
+ * licence Apache-2.0
+ */
 class CombinedLogger extends AbstractLogger implements LoggerInterface
 {
     private LoggerInterface $applicationLogger;

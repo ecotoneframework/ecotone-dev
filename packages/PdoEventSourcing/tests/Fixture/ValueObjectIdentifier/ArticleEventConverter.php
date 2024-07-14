@@ -5,6 +5,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier;
 use Ecotone\Messaging\Attribute\Converter;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * licence Apache-2.0
+ */
 class ArticleEventConverter
 {
     #[Converter]

@@ -30,6 +30,9 @@ use function json_encode;
 
 use Ramsey\Uuid\Uuid;
 
+/**
+ * licence Apache-2.0
+ */
 class DbalDeadLetterHandler
 {
     public const DEFAULT_DEAD_LETTER_TABLE = 'ecotone_error_messages';

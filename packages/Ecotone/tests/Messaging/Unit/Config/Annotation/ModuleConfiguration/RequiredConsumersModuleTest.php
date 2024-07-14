@@ -19,9 +19,12 @@ use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
 /**
  * Class ConverterModuleTest
  * @package Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
+ */
+/**
+ * licence Apache-2.0
  */
 class RequiredConsumersModuleTest extends AnnotationConfigurationTest
 {

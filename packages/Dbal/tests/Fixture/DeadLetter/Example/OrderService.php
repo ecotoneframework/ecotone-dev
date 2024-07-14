@@ -5,6 +5,9 @@ namespace Test\Ecotone\Dbal\Fixture\DeadLetter\Example;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 class OrderService
 {
     private int $callCount = 0;

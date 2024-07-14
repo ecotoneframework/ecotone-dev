@@ -8,6 +8,9 @@ use Ecotone\Modelling\DistributedBus;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceMessagingConfiguration;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceReceiver;
 
+/**
+ * licence Apache-2.0
+ */
 class UserService
 {
     public const CHANGE_BILLING_DETAILS = 'changeBillingDetails';

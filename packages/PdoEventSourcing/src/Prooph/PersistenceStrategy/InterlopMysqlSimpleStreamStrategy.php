@@ -15,6 +15,9 @@ use function sha1;
  * Using Normal Simple Stream Strategy is using different index name.
  * This cause "Key 'ix_query_aggregate' doesn't exist in table" in case strategies are interloped
  */
+/**
+ * licence Apache-2.0
+ */
 final class InterlopMysqlSimpleStreamStrategy implements MySqlPersistenceStrategy
 {
     /**

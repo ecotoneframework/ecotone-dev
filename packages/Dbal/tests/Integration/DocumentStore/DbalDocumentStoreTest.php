@@ -20,6 +20,9 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class DbalDocumentStoreTest extends DbalMessagingTestCase
 {
     private CachedConnectionFactory $cachedConnectionFactory;

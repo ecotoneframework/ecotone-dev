@@ -13,6 +13,9 @@ use JMS\Serializer\Naming\CamelCaseNamingStrategy;
 use JMS\Serializer\Naming\IdenticalPropertyNamingStrategy;
 use JMS\Serializer\SerializerBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 class JMSConverterBuilder implements CompilableBuilder
 {
     /**

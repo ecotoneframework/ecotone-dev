@@ -6,6 +6,9 @@ namespace Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler;
 
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * licence Apache-2.0
+ */
 final class LaravelProvider extends ServiceProvider
 {
     public function register()

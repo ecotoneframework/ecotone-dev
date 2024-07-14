@@ -13,6 +13,9 @@ use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 class OrderService
 {
     private array $orders = [];

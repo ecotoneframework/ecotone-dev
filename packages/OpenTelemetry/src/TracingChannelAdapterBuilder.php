@@ -11,6 +11,9 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Precedence;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 
+/**
+ * licence Apache-2.0
+ */
 final class TracingChannelAdapterBuilder implements ChannelInterceptorBuilder
 {
     public function __construct(private string $channelName)

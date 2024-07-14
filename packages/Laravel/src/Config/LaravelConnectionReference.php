@@ -9,6 +9,9 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Enqueue\Dbal\DbalConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class LaravelConnectionReference extends ConnectionReference implements DefinedObject
 {
     private function __construct(

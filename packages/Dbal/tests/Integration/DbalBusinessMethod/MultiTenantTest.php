@@ -22,6 +22,9 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class MultiTenantTest extends DbalMessagingTestCase
 {
     public function test_write_statement_with_no_return_and_automatic_parameter_binding()

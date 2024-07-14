@@ -7,6 +7,9 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\RepositoryBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 final class EloquentRepositoryBuilder implements RepositoryBuilder
 {
     private EloquentRepository $eloquentRepository;

@@ -16,6 +16,9 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
 {
     /**

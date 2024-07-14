@@ -2,6 +2,9 @@
 
 namespace Ecotone\EventSourcing;
 
+/**
+ * licence Apache-2.0
+ */
 final class ProjectionStatus
 {
     public const RUNNING = 'running';

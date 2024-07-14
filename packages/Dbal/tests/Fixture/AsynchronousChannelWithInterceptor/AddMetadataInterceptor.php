@@ -4,6 +4,9 @@ namespace Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor;
 
 use Ecotone\Messaging\Attribute\Interceptor\Before;
 
+/**
+ * licence Apache-2.0
+ */
 final class AddMetadataInterceptor
 {
     public const SAFE_ORDER = 'safeOrder';

@@ -6,6 +6,9 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 class ProjectionRunningConfiguration implements DefinedObject
 {
     private const EVENT_DRIVEN = 'event-driven';

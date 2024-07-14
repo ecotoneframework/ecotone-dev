@@ -8,6 +8,9 @@ use Enqueue\Redis\RedisConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class AbstractConnectionTest extends TestCase
 {
     private ?RedisConnectionFactory $connectionFactory = null;

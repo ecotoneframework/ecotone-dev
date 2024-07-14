@@ -15,6 +15,9 @@ use Doctrine\Persistence\ObjectRepository;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class ManagerRegistryEmulator implements ManagerRegistry
 {
     /**

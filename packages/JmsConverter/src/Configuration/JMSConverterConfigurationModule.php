@@ -23,6 +23,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class JMSConverterConfigurationModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**

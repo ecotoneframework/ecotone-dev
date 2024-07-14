@@ -12,6 +12,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use InvalidArgumentException;
 
 #[Aggregate]
+/**
+ * licence Apache-2.0
+ */
 final class User
 {
     #[AggregateIdentifier]

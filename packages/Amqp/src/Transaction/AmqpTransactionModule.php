@@ -24,6 +24,9 @@ use Ecotone\Modelling\CommandBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class AmqpTransactionModule implements AnnotationModule
 {
     private function __construct()

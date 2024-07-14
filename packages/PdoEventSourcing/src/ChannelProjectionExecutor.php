@@ -10,6 +10,9 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 
+/**
+ * licence Apache-2.0
+ */
 final class ChannelProjectionExecutor implements ProjectionExecutor
 {
     public function __construct(private ProjectionSetupConfiguration $projectionSetupConfiguration, private ConversionService $conversionService, private MessagingEntrypoint $messagingEntrypoint, private ProjectionStatus $projectionStatus)

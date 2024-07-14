@@ -8,6 +8,9 @@ use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 class TicketServiceReceiver
 {
     public const CREATE_TICKET_ENDPOINT  = 'createTicket';

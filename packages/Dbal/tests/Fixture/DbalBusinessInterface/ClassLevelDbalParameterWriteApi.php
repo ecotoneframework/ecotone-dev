@@ -9,6 +9,9 @@ use Ecotone\Dbal\Attribute\DbalWrite;
 use Ecotone\Messaging\Conversion\MediaType;
 
 #[DbalParameter(name: 'roles', expression: "name === 'Johny' ? ['ROLE_ADMIN'] : []", convertToMediaType: MediaType::APPLICATION_JSON)]
+/**
+ * licence Apache-2.0
+ */
 interface ClassLevelDbalParameterWriteApi
 {
     #[DbalWrite('INSERT INTO persons VALUES (:personId, :name, :roles)')]

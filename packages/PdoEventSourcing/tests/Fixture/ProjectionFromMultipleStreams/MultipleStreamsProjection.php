@@ -11,6 +11,9 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 #[Projection('multiple_stream_projections', [Ticket::class, Basket::BASKET_STREAM])]
+/**
+ * licence Apache-2.0
+ */
 class MultipleStreamsProjection
 {
     private array $actions = [];

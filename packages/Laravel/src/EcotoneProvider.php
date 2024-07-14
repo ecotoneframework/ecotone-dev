@@ -32,6 +32,9 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use ReflectionMethod;
 
+/**
+ * licence Apache-2.0
+ */
 class EcotoneProvider extends ServiceProvider
 {
     public const MESSAGING_SYSTEM_REFERENCE = ConfiguredMessagingSystem::class;

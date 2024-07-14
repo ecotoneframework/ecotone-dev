@@ -23,6 +23,9 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderService;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class DeadLetterTest extends DbalMessagingTestCase
 {
     public function test_exception_handling_with_custom_handling_1_retry(): void

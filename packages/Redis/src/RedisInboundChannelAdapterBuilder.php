@@ -16,6 +16,9 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\Redis\RedisConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class RedisInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
     public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = RedisConnectionFactory::class): self

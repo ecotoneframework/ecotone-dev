@@ -4,6 +4,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
 use Ecotone\Messaging\Attribute\Converter;
 
+/**
+ * licence Apache-2.0
+ */
 final class StateAndEventConverter
 {
     #[Converter]

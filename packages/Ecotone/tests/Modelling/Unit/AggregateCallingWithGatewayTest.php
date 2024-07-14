@@ -16,6 +16,9 @@ use Test\Ecotone\Modelling\Fixture\AggregateWithGateway\BucketGateway;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class AggregateCallingWithGatewayTest extends TestCase
 {
     public function test_aggregate_with_gateway(): void

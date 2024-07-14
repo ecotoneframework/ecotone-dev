@@ -15,6 +15,9 @@ use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class DbalMessagingTestCase extends TestCase
 {
     private ConnectionFactory $tenantAConnection;

@@ -21,6 +21,9 @@ use Ecotone\Messaging\Store\Document\DocumentStoreMessageChannel;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class DbalDocumentStoreModule implements AnnotationModule
 {
     public const ECOTONE_DBAL_DOCUMENT_STORE_COLLECTION_NAME = 'ecotone.dbal.documentStore.collectionName';

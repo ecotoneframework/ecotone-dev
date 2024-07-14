@@ -8,6 +8,9 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\EventHandler;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 final class DoubleEventHandler
 {
     private int $callCount = 0;

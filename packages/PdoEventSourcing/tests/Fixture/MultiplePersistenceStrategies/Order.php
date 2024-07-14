@@ -14,6 +14,9 @@ use Ecotone\Modelling\WithAggregateVersioning;
 #[EventSourcingAggregate]
 #[AggregateType(self::AGGREGATE_TYPE)]
 #[Stream(self::STREAM)]
+/**
+ * licence Apache-2.0
+ */
 final class Order
 {
     use WithAggregateVersioning;

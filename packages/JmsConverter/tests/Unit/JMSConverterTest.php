@@ -38,6 +38,9 @@ use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\TypedProperty;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class JMSConverterTest extends TestCase
 {
     public function test_converting_with_docblock_types()

@@ -16,6 +16,9 @@ use Test\Ecotone\Laravel\Fixture\User\UserRepository;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class ApplicationTest extends TestCase
 {
     public function test_boot_application_with_ecotone()

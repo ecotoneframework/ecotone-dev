@@ -18,6 +18,9 @@ use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\RegisterPerson;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class DocumentStoreAggregateTest extends DbalMessagingTestCase
 {
     public function test_support_for_document_store_aggregate(): void

@@ -8,6 +8,9 @@ use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class EcotoneManagerRegistryConnectionFactory extends ManagerRegistryConnectionFactory
 {
     private ManagerRegistry $registry;

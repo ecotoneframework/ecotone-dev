@@ -13,6 +13,9 @@ use function json_encode;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 #[MediaTypeConverter]
+/**
+ * licence Apache-2.0
+ */
 final class TicketMediaTypeConverter implements Converter
 {
     /**

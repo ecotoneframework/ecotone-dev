@@ -6,6 +6,9 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 
+/**
+ * licence Apache-2.0
+ */
 class CacheWarmer implements CacheWarmerInterface
 {
     public function __construct(

@@ -27,6 +27,9 @@ use Ecotone\Modelling\Config\DistributedGatewayModule;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\DistributionEntrypoint;
 
+/**
+ * licence Apache-2.0
+ */
 class AmqpDistributionModule
 {
     public const AMQP_DISTRIBUTED_EXCHANGE = 'ecotone.distributed';

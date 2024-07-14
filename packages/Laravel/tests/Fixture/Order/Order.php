@@ -16,6 +16,9 @@ use function json_encode;
 use Test\Ecotone\Laravel\Fixture\Product\OrderPriceCalculator;
 
 #[Aggregate]
+/**
+ * licence Apache-2.0
+ */
 final class Order extends Model
 {
     // This provides us with possibility to record Events

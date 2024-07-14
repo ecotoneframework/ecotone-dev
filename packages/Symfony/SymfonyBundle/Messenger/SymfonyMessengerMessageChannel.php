@@ -11,6 +11,9 @@ use Generator;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
+/**
+ * licence Apache-2.0
+ */
 final class SymfonyMessengerMessageChannel implements PollableChannel
 {
     public function __construct(

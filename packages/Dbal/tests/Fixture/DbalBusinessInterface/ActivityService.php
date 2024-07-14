@@ -9,6 +9,9 @@ use Ecotone\Dbal\Attribute\DbalQuery;
 use Ecotone\Dbal\Attribute\DbalWrite;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 
+/**
+ * licence Apache-2.0
+ */
 interface ActivityService
 {
     #[DbalWrite('INSERT INTO activities VALUES (:personId, :activity, :time)')]

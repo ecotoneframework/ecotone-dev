@@ -26,6 +26,9 @@ use OpenTelemetry\Context\ScopeInterface;
 use OpenTelemetry\SDK\Trace\Span;
 use Throwable;
 
+/**
+ * licence Apache-2.0
+ */
 final class TracerInterceptor
 {
     public function __construct(private TracerProviderInterface $tracerProvider)

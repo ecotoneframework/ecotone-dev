@@ -19,6 +19,9 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Event\ProductWasAddedToBasket;
 #[EventSourcingAggregate(true)]
 #[Stream(self::BASKET_STREAM)]
 #[AggregateType(self::AGGREGATE_TYPE)]
+/**
+ * licence Apache-2.0
+ */
 class Basket
 {
     use WithEvents;

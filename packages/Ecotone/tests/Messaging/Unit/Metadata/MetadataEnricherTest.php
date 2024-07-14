@@ -13,6 +13,9 @@ use Test\Ecotone\Messaging\Unit\MessageWithRevision;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class MetadataEnricherTest extends TestCase
 {
     public function test_revision_will_resolved_from_object_attribute(): void

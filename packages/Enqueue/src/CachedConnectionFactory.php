@@ -9,6 +9,9 @@ use Interop\Queue\Context;
 use Interop\Queue\Destination;
 use Interop\Queue\Producer;
 
+/**
+ * licence Apache-2.0
+ */
 class CachedConnectionFactory implements ConnectionFactory
 {
     private static $instances = [];

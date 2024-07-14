@@ -18,6 +18,9 @@ use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class TransactionTest extends DbalMessagingTestCase
 {
     public function test_ordering_with_transaction_a_product_with_failure_so_the_order_should_never_be_committed_to_database(): void

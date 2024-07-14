@@ -17,6 +17,9 @@ use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class PollableChannelSerializationModuleTest extends TestCase
 {
     public function test_serializing_message_using_channel_serialization()

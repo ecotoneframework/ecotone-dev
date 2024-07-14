@@ -2,6 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\Order;
 
+/**
+ * licence Apache-2.0
+ */
 class PlaceOrder
 {
     /**

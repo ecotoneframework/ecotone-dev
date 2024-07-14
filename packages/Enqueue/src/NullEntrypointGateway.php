@@ -6,6 +6,9 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 
+/**
+ * licence Apache-2.0
+ */
 class NullEntrypointGateway implements InboundChannelAdapterEntrypoint, DefinedObject
 {
     private function __construct()

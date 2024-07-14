@@ -9,6 +9,9 @@ use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 
 #[Projection('custom_event_stream_projection', fromStreams: Basket::BASKET_STREAM)]
+/**
+ * licence Apache-2.0
+ */
 class CustomEventStreamProjection
 {
     private array $actions = [];

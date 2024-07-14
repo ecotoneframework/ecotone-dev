@@ -9,6 +9,9 @@ use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\SymfonyBundle\Config\SymfonyConnectionReference;
 
+/**
+ * licence Apache-2.0
+ */
 final class EcotoneConfiguration
 {
     #[ServiceContext]

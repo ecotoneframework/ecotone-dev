@@ -25,6 +25,9 @@ use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class PollableChannelSendRetriesModuleTest extends TestCase
 {
     public function test_retrying_on_failure_with_success()

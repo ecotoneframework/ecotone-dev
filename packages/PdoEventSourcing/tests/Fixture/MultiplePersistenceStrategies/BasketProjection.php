@@ -11,6 +11,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Projection(self::NAME, fromStreams: ['basket'])]
+/**
+ * licence Apache-2.0
+ */
 final class BasketProjection
 {
     public const NAME = 'basket-projection';

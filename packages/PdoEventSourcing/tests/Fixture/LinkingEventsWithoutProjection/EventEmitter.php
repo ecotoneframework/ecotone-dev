@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 
+/**
+ * licence Apache-2.0
+ */
 final class EventEmitter
 {
     #[EventHandler(endpointId: 'inProgressTicketList.addTicket')]

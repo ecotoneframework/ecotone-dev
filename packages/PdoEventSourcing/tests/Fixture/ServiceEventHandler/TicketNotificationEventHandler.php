@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\QueryBus;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 
+/**
+ * licence Apache-2.0
+ */
 final class TicketNotificationEventHandler
 {
     private array $notifications = [];

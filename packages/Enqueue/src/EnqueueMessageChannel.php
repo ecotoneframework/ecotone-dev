@@ -8,6 +8,9 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\PollableChannel;
 
+/**
+ * licence Apache-2.0
+ */
 final class EnqueueMessageChannel implements PollableChannel
 {
     public function __construct(private EnqueueInboundChannelAdapter $inboundChannelAdapter, private MessageHandler $outboundChannelAdapter)

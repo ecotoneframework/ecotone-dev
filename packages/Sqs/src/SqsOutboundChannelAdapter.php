@@ -11,6 +11,9 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Enqueue\Sqs\SqsContext;
 use Enqueue\Sqs\SqsDestination;
 
+/**
+ * licence Apache-2.0
+ */
 final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {
     public function __construct(CachedConnectionFactory $connectionFactory, private string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter, ConversionService $conversionService)

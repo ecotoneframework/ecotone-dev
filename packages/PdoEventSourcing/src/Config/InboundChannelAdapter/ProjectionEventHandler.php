@@ -10,6 +10,9 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Prooph\EventStore\StreamName;
 
+/**
+ * licence Apache-2.0
+ */
 class ProjectionEventHandler
 {
     public const PROJECTION_STATE = 'projection.state';

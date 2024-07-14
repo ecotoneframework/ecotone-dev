@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Prooph;
 
+/**
+ * licence Apache-2.0
+ */
 interface ProophProjectionRunningOption
 {
     /** The cache size is how many stream names are cached in memory, the higher the number the less queries are executed and therefore the projection runs faster, but it consumes more memory.  */

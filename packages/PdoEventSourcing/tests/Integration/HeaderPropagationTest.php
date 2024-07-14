@@ -16,6 +16,9 @@ use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\OrderWasP
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class HeaderPropagationTest extends TestCase
 {
     public function test_will_provide_propagate_correlation_and_parent_id_header_for_aggregate()

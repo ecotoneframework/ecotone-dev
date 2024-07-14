@@ -10,6 +10,9 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use RuntimeException;
 
+/**
+ * licence Apache-2.0
+ */
 final class EmailCommandHandler
 {
     private int $called = 0;

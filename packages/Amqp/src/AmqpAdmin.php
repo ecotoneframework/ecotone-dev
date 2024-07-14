@@ -13,7 +13,10 @@ use Interop\Amqp\AmqpTopic as EnqueueExchange;
 /**
  * Class AmqpAdmin
  * @package Ecotone\Amqp
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
+ */
+/**
+ * licence Apache-2.0
  */
 class AmqpAdmin
 {

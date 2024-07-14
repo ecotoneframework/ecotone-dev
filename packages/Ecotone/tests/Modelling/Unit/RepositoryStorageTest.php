@@ -19,6 +19,9 @@ use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStandardRepository;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class RepositoryStorageTest extends TestCase
 {
     public function test_returning_default_standard_repository_if_there_is_one()

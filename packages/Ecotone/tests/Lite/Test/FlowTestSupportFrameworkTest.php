@@ -13,6 +13,9 @@ use Test\Ecotone\Modelling\Fixture\OrderAggregate\Order;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class FlowTestSupportFrameworkTest extends TestCase
 {
     public function test_collecting_commands_routing(): void

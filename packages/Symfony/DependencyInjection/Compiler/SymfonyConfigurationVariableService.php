@@ -5,6 +5,9 @@ namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ * licence Apache-2.0
+ */
 class SymfonyConfigurationVariableService implements ConfigurationVariableService
 {
     public function __construct(private ContainerInterface $container)

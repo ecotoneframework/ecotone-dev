@@ -36,6 +36,9 @@ use const SORT_STRING;
  * This is copy of Prooph's In Memory Event Store with support for projection reset and delete
  * @link InMemoryEventStore
  */
+/**
+ * licence Apache-2.0
+ */
 final class InMemoryProjectionManager implements ProjectionManager
 {
     /**

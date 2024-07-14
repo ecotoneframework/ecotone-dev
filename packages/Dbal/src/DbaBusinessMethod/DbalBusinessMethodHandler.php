@@ -20,6 +20,9 @@ use Generator;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 final class DbalBusinessMethodHandler
 {
     public const SQL_HEADER = 'ecotone.dbal.business_method.sql';

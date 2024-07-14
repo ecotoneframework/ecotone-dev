@@ -9,6 +9,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Illuminate\Support\Facades\DB;
 use Interop\Queue\ConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class LaravelConnectionResolver
 {
     public static function resolveLaravelConnection(LaravelConnectionReference $connectionReference): ConnectionFactory

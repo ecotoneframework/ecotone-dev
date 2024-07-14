@@ -10,6 +10,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonQueryApi;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonService;
 
+/**
+ * licence Apache-2.0
+ */
 final class PersonCommandService
 {
     #[CommandHandler]

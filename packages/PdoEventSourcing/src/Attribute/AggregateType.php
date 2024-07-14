@@ -8,6 +8,9 @@ use Attribute;
 use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_CLASS)]
+/**
+ * licence Apache-2.0
+ */
 final class AggregateType
 {
     private string $name;

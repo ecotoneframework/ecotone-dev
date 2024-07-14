@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Asynchronous('async_channel')]
+/**
+ * licence Apache-2.0
+ */
 final class AsyncEventHandler
 {
     private array $events = [];

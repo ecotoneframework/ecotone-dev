@@ -7,6 +7,9 @@ use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 
+/**
+ * licence Apache-2.0
+ */
 class ChannelConfiguration
 {
     public const QUEUE_NAME = 'placeOrder';

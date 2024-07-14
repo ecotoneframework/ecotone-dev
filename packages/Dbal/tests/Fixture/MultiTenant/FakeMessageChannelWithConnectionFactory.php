@@ -8,6 +8,9 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
 use Interop\Queue\ConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 final class FakeMessageChannelWithConnectionFactory implements PollableChannel
 {
     public function __construct(

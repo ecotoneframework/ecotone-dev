@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\DB;
 use PDO;
 use RuntimeException;
 
+/**
+ * licence Apache-2.0
+ */
 final class CustomerService
 {
     #[CommandHandler]

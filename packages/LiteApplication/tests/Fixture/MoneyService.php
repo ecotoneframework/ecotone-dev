@@ -10,6 +10,9 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
 
+/**
+ * licence Apache-2.0
+ */
 class MoneyService
 {
     private array $bank = [];

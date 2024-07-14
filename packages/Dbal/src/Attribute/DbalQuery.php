@@ -9,6 +9,9 @@ use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 #[Attribute(Attribute::TARGET_METHOD)]
+/**
+ * licence Apache-2.0
+ */
 class DbalQuery
 {
     public function __construct(

@@ -6,6 +6,9 @@ use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
 
+/**
+ * licence Apache-2.0
+ */
 class DbalDeadLetterConsoleCommand
 {
     public const PAGE_LIMIT = 20;

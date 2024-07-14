@@ -8,6 +8,9 @@ use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[ClassReference(AmqpConsumerExample::class)]
+/**
+ * licence Apache-2.0
+ */
 class AmqpConsumerExample
 {
     /** @var string[] */

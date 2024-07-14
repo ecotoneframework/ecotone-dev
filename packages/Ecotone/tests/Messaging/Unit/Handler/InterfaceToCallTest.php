@@ -35,9 +35,12 @@ use Test\Ecotone\Messaging\Fixture\Handler\ObjectWithConstructorProperties;
 /**
  * Class InterfaceToCallTest
  * @package Test\Ecotone\Messaging\Unit\Handler
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
+ */
+/**
+ * licence Apache-2.0
  */
 class InterfaceToCallTest extends TestCase
 {

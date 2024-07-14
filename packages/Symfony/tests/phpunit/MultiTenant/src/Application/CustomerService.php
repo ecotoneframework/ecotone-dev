@@ -15,6 +15,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Symfony\App\MultiTenant\Application\Event\CustomerWasRegistered;
 
+/**
+ * licence Apache-2.0
+ */
 final class CustomerService
 {
     #[QueryHandler('customer.getAllRegistered')]

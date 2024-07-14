@@ -8,6 +8,9 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;

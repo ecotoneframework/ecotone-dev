@@ -5,6 +5,9 @@ namespace Ecotone\EventSourcing\Prooph;
 use Prooph\Common\Messaging\Message;
 use Prooph\Common\Messaging\MessageConverter;
 
+/**
+ * licence Apache-2.0
+ */
 class FromProophMessageToArrayConverter implements MessageConverter
 {
     public function convertToArray(Message $domainMessage): array

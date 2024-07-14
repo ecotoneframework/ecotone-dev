@@ -15,6 +15,9 @@ use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class InMemoryDocumentStoreTest extends DbalMessagingTestCase
 {
     public function test_support_for_in_memory_document_store(): void

@@ -7,6 +7,9 @@ namespace Ecotone\Laravel\Config;
 use Ecotone\Messaging\Config\ConnectionReference;
 use Illuminate\Support\Facades\Config;
 
+/**
+ * licence Apache-2.0
+ */
 final class LaravelTenantDatabaseSwitcher
 {
     public function __construct(

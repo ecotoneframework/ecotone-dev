@@ -8,6 +8,9 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\Identifier;
 
 #[Aggregate]
+/**
+ * licence Apache-2.0
+ */
 final class User
 {
     private function __construct(#[Identifier] private string $userId)

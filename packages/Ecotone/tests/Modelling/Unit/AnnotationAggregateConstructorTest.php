@@ -14,6 +14,9 @@ use Test\Ecotone\Modelling\Fixture\AnnotatedConstructor\ConstructorAsQueryHandle
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class AnnotationAggregateConstructorTest extends TestCase
 {
     public function test_aggregate_cannot_have_constructor_being_annotated_as_command_handler(): void

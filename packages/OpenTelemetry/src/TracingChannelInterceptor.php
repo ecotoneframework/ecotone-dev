@@ -23,6 +23,9 @@ use OpenTelemetry\Context\Context;
 use OpenTelemetry\SDK\Trace\Span;
 use Throwable;
 
+/**
+ * licence Apache-2.0
+ */
 final class TracingChannelInterceptor implements ChannelInterceptor
 {
     public const TRACING_CARRIER_HEADER = 'ecotoneTracingCarrier';

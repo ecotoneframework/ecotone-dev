@@ -25,6 +25,9 @@ require_once __DIR__ . '/boostrap.php';
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class SingleTenantTest extends TestCase
 {
     private QueryBus $queryBus;

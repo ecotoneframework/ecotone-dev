@@ -20,6 +20,9 @@ use Illuminate\Queue\SyncQueue;
 use function json_decode;
 use function json_encode;
 
+/**
+ * licence Apache-2.0
+ */
 final class LaravelQueueMessageChannel implements PollableChannel
 {
     public const ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER = 'ecotone.laravel.acknowledge';

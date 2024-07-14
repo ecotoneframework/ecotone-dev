@@ -7,6 +7,9 @@ namespace Test\Ecotone\Dbal\Fixture\MultiTenant;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 
+/**
+ * licence Apache-2.0
+ */
 final class FakeConnectionFactory implements ConnectionFactory
 {
     public function __construct(private ?FakeContextWithMessages $context = null)

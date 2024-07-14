@@ -31,6 +31,9 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 final class DbaBusinessMethodModule implements AnnotationModule
 {
     private const BUSINESS_METHOD_HANDLER_REQUEST_CHANNEL_PREFIX = 'ecotone.dbal.business_method.invoke.';

@@ -18,6 +18,9 @@ use Enqueue\Dbal\DbalContext;
 
 use function spl_object_id;
 
+/**
+ * licence Apache-2.0
+ */
 final class DbalDocumentStore implements DocumentStore
 {
     public const ECOTONE_DOCUMENT_STORE = 'ecotone_document_store';

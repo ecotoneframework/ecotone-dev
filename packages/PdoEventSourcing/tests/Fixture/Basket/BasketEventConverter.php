@@ -6,6 +6,9 @@ use Ecotone\Messaging\Attribute\Converter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\ProductWasAddedToBasket;
 
+/**
+ * licence Apache-2.0
+ */
 class BasketEventConverter
 {
     #[Converter]

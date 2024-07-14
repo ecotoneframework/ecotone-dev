@@ -6,6 +6,9 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use stdClass;
 
+/**
+ * licence Apache-2.0
+ */
 class StubMethodInvocation implements MethodInvocation
 {
     private int $calledTimes = 0;

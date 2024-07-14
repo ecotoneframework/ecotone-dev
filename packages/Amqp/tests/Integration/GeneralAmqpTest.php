@@ -17,6 +17,9 @@ use Test\Ecotone\Amqp\Fixture\Shop\ShoppingCart;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class GeneralAmqpTest extends AmqpMessagingTest
 {
     public function test_products_are_on_list_after_being_ordered(): void

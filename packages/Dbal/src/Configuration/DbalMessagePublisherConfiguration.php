@@ -5,6 +5,9 @@ namespace Ecotone\Dbal\Configuration;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 class DbalMessagePublisherConfiguration
 {
     /**

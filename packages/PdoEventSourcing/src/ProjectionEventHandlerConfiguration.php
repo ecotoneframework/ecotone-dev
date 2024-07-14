@@ -5,6 +5,9 @@ namespace Ecotone\EventSourcing;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
+/**
+ * licence Apache-2.0
+ */
 class ProjectionEventHandlerConfiguration implements DefinedObject
 {
     public function __construct(private string $className, private string $methodName, private string $eventBusRoutingKey, private string $eventHandlerSynchronousInputChannel)

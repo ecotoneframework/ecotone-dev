@@ -7,6 +7,9 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Enqueue\Dbal\DbalConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 class DbalConfiguration
 {
     public const DEFAULT_TRANSACTION_ON_ASYNCHRONOUS_ENDPOINTS = true;

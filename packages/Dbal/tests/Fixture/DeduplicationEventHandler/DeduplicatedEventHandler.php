@@ -9,6 +9,9 @@ use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class DeduplicatedEventHandler
 {
     private int $called = 0;

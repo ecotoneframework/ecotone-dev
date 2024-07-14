@@ -23,9 +23,12 @@ use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\MethodIntercept
 /**
  * Class PointcutTest
  * @package Test\Ecotone\Messaging\Unit\Handler\Processor
- * @author Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
+ */
+/**
+ * licence Apache-2.0
  */
 class PointcutTest extends TestCase
 {

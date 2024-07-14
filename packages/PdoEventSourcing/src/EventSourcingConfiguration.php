@@ -12,6 +12,9 @@ use Prooph\EventStore\InMemoryEventStore;
 use Prooph\EventStore\Pdo\PersistenceStrategy;
 use Prooph\EventStore\StreamName;
 
+/**
+ * licence Apache-2.0
+ */
 class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 {
     private bool $initializeEventStoreOnStart = LazyProophEventStore::INITIALIZE_ON_STARTUP;

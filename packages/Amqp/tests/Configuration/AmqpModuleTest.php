@@ -26,9 +26,12 @@ use Test\Ecotone\Amqp\AmqpMessagingTest;
 /**
  * Class AmqpModuleTest
  * @package Test\Ecotone\Amqp
- * @author  Dariusz Gafka <dgafka.mail@gmail.com>
+ * @author  Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
+ */
+/**
+ * licence Apache-2.0
  */
 class AmqpModuleTest extends AmqpMessagingTest
 {

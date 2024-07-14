@@ -13,6 +13,9 @@ use Ecotone\Messaging\Message;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Throwable;
 
+/**
+ * licence Apache-2.0
+ */
 class ObjectManagerInterceptor
 {
     private int $depthCount = 0;

@@ -9,6 +9,9 @@ use Ecotone\Laravel\Config\LaravelConnectionReference;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 
+/**
+ * licence Apache-2.0
+ */
 final class EcotoneConfiguration
 {
     #[ServiceContext]

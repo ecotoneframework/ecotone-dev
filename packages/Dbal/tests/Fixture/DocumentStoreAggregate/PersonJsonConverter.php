@@ -11,6 +11,9 @@ use function json_decode;
 use function json_encode;
 
 #[MediaTypeConverter]
+/**
+ * licence Apache-2.0
+ */
 final class PersonJsonConverter implements Converter
 {
     public function convert($source, TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType)

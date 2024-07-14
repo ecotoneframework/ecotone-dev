@@ -7,6 +7,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies;
 use Ecotone\Modelling\Attribute\NamedEvent;
 
 #[NamedEvent(self::NAME)]
+/**
+ * licence Apache-2.0
+ */
 final class BasketCreated
 {
     public const NAME = 'basket_created';

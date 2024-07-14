@@ -4,6 +4,9 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\Modelling\Event;
 
+/**
+ * licence Apache-2.0
+ */
 interface ProjectionExecutor
 {
     /**

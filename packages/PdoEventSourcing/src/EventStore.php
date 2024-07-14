@@ -5,6 +5,9 @@ namespace Ecotone\EventSourcing;
 use Ecotone\Modelling\Event;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 
+/**
+ * licence Apache-2.0
+ */
 interface EventStore
 {
     /**

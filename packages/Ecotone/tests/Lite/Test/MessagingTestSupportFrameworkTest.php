@@ -34,6 +34,9 @@ use Test\Ecotone\Modelling\Fixture\Order\PlaceOrderConverter;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class MessagingTestSupportFrameworkTest extends TestCase
 {
     public function test_bootstraping_with_given_set_of_classes()

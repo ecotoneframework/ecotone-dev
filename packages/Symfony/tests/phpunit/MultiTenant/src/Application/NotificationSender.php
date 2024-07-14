@@ -8,6 +8,9 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Attribute\MultiTenantConnection;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class NotificationSender
 {
     public function sendWelcomeNotification(Customer $customer, string $tenant, Connection $connection): void

@@ -22,6 +22,9 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 
 #[ModuleAnnotation]
+/**
+ * licence Apache-2.0
+ */
 class AmqpMessagePublisherModule implements AnnotationModule
 {
     /**

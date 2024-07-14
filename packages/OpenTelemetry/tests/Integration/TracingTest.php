@@ -16,6 +16,9 @@ use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class TracingTest extends TestCase
 {
     public static function prepareTracer(SpanExporterInterface $exporter): TracerProviderInterface

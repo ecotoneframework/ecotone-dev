@@ -10,6 +10,9 @@ use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class EventSourcingMessagingTestCase extends TestCase
 {
     private ConnectionFactory $tenantAConnection;

@@ -22,6 +22,9 @@ use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeMessageChannelWithConnectionFactor
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class MultiTenantConnectionFactoryTest extends TestCase
 {
     public function test_using_default_connection_factory_for_sending_when_tenant_not_mapped()

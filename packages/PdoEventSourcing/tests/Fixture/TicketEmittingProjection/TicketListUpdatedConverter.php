@@ -4,6 +4,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
 use Ecotone\Messaging\Attribute\Converter;
 
+/**
+ * licence Apache-2.0
+ */
 final class TicketListUpdatedConverter
 {
     #[Converter]

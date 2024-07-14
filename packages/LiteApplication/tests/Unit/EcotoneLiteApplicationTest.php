@@ -15,6 +15,9 @@ use Test\Ecotone\Lite\Fixture\AddMoney;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class EcotoneLiteApplicationTest extends TestCase
 {
     public function test_running_ecotone_lite_application_without_cache()

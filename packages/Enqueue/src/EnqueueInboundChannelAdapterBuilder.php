@@ -14,6 +14,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 {
     public const DECLARE_ON_STARTUP_DEFAULT = true;

@@ -23,6 +23,9 @@ use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
 use Prooph\EventStore\StreamName;
 
+/**
+ * licence Apache-2.0
+ */
 class EventSourcingRepository implements EventSourcedRepository
 {
     /**

@@ -9,6 +9,9 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 abstract class EnqueueOutboundChannelAdapterBuilder implements MessageHandlerBuilder
 {
     public const         DEFAULT_AUTO_DECLARE = true;

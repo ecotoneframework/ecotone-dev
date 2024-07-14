@@ -7,6 +7,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\Modelling\Attribute\EventHandler;
 
+/**
+ * licence Apache-2.0
+ */
 final class Logger
 {
     public const STREAM = 'log';

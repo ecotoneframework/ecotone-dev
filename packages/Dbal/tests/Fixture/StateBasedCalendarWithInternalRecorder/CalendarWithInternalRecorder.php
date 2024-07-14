@@ -20,6 +20,9 @@ use Test\Ecotone\Dbal\Fixture\Calendar\ScheduleMeetingWithEventSourcing;
 use Test\Ecotone\Dbal\Fixture\Calendar\ScheduleMeetingWithInternalRecorder;
 
 #[Aggregate]
+/**
+ * licence Apache-2.0
+ */
 final class CalendarWithInternalRecorder
 {
     use WithEvents;

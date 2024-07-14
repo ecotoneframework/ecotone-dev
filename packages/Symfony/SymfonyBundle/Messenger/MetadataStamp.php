@@ -6,6 +6,9 @@ namespace Ecotone\SymfonyBundle\Messenger;
 
 use Symfony\Component\Messenger\Stamp\StampInterface;
 
+/**
+ * licence Apache-2.0
+ */
 final class MetadataStamp implements StampInterface
 {
     /**

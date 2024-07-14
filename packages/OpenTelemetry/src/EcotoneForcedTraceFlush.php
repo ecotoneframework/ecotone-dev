@@ -8,6 +8,9 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\TracerProviderInterface as SdkTracerProviderInterface;
 
+/**
+ * licence Apache-2.0
+ */
 final class EcotoneForcedTraceFlush
 {
     /**

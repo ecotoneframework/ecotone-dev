@@ -11,6 +11,9 @@ use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 
+/**
+ * licence Apache-2.0
+ */
 final class EcotoneSpanBuilder
 {
     public const ECOTONE_TRACER_NAME = 'io.opentelemetry.contrib.php.ecotone';

@@ -18,6 +18,9 @@ use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisConsumerExample;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class ConsumerAndPublisherTest extends AbstractConnectionTest
 {
     public function testing_sending_message_using_publisher_and_receiving_using_consumer(): void

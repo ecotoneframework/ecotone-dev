@@ -10,6 +10,9 @@ use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Enqueue\Dbal\DbalConnectionFactory;
 
+/**
+ * licence Apache-2.0
+ */
 class ErrorConfigurationContext
 {
     public const INPUT_CHANNEL = 'inputChannel';

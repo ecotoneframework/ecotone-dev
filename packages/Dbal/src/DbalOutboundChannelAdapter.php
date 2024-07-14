@@ -11,6 +11,9 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Enqueue\Dbal\DbalContext;
 use Enqueue\Dbal\DbalDestination;
 
+/**
+ * licence Apache-2.0
+ */
 class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {
     public function __construct(CachedConnectionFactory $connectionFactory, private string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter, ConversionService $conversionService)

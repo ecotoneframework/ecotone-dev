@@ -20,6 +20,9 @@ use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\TicketCounterProjec
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class AggregateAndProjectionTriggerTest extends EventSourcingMessagingTestCase
 {
     public function test_triggering_projection_with_state_synchronously()

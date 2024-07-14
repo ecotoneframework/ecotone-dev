@@ -23,6 +23,9 @@ use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBu
 use Symfony\Component\DependencyInjection\Definition as SymfonyDefinition;
 use Symfony\Component\DependencyInjection\Reference as SymfonyReference;
 
+/**
+ * licence Apache-2.0
+ */
 class SymfonyContainerAdapter implements CompilerPass
 {
     private static array $invalidBehaviorMap = [

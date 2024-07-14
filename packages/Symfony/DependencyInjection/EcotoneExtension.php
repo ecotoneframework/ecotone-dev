@@ -16,6 +16,9 @@ use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Reference;
 
+/**
+ * licence Apache-2.0
+ */
 class EcotoneExtension extends Extension
 {
     public function load(array $configs, ContainerBuilder $container): void

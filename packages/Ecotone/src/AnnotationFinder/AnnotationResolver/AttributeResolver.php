@@ -84,8 +84,12 @@ class AttributeResolver implements AnnotationResolver
 
                     try {
                         $carry[] = $attribute->newInstance();
-                    } catch (Error) {
-                        // Do nothing: it is an attribute targeting a parameter promoted to a property
+                    } catch (Error $e) {
+                        if (\preg_match("/Attribute \"(.*)\" cannot target property/", $e->getMessage())) {
+                            // Do nothing: it is an attribute targeting a parameter promoted to a property
+                        } else {
+                            throw $e;
+                        }
                     }
 
                     return $carry;

@@ -6,6 +6,7 @@ use Ecotone\AnnotationFinder\AnnotationResolver;
 use Ecotone\AnnotationFinder\ConfigurationException;
 use Ecotone\AnnotationFinder\TypeResolver;
 use Ecotone\Messaging\Attribute\IsAbstract;
+use Error;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionException;
@@ -81,7 +82,15 @@ class AttributeResolver implements AnnotationResolver
                         return $carry;
                     }
 
-                    $carry[] = $attribute->newInstance();
+                    try {
+                        $carry[] = $attribute->newInstance();
+                    } catch (Error $e) {
+                        if (\preg_match("/Attribute \"(.*)\" cannot target property/", $e->getMessage())) {
+                            // Do nothing: it is an attribute targeting a parameter promoted to a property
+                        } else {
+                            throw $e;
+                        }
+                    }
 
                     return $carry;
                 }, []);

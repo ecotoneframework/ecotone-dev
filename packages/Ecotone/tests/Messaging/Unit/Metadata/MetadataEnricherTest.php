@@ -15,6 +15,7 @@ use Test\Ecotone\Messaging\Unit\MessageWithRevision;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class MetadataEnricherTest extends TestCase
 {

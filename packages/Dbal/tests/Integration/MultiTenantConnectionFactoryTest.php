@@ -24,6 +24,7 @@ use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeMessageChannelWithConnectionFactor
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class MultiTenantConnectionFactoryTest extends TestCase
 {

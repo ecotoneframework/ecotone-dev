@@ -41,6 +41,7 @@ use Test\Ecotone\Modelling\Fixture\TwoSagas\Shipment;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class DomainContext extends TestCase implements Context
 {

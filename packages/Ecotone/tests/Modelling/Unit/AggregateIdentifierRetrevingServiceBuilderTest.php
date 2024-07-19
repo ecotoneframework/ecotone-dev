@@ -25,6 +25,7 @@ use Test\Ecotone\Modelling\Fixture\Saga\PaymentWasDoneEvent;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class AggregateIdentifierRetrevingServiceBuilderTest extends TestCase
 {

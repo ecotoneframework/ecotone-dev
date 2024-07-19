@@ -21,6 +21,7 @@ use stdClass;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class MessageHeadersTest extends TestCase
 {

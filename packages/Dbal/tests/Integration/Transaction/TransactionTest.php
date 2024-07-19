@@ -20,6 +20,7 @@ use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class TransactionTest extends DbalMessagingTestCase
 {

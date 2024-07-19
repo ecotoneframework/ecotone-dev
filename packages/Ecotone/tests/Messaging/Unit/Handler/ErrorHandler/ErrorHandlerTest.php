@@ -23,6 +23,7 @@ use Throwable;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class ErrorHandlerTest extends TestCase
 {

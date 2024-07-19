@@ -20,6 +20,7 @@ use Test\Ecotone\Messaging\Fixture\AddHeaders\AddingMultipleHeaders;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class EndpointHeadersInterceptorTest extends TestCase
 {

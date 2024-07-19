@@ -22,6 +22,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Splitter\SplitterE
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class SplitterModuleTest extends AnnotationConfigurationTest
 {

@@ -25,6 +25,7 @@ use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class RequiredConsumersModuleTest extends AnnotationConfigurationTest
 {

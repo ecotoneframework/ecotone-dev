@@ -30,6 +30,7 @@ use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandl
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class ModellingEcotoneLiteTest extends TestCase
 {

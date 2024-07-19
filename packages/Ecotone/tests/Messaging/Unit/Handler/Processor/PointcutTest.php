@@ -29,6 +29,7 @@ use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\MethodIntercept
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class PointcutTest extends TestCase
 {

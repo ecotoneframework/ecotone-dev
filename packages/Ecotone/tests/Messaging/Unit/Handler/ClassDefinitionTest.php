@@ -41,6 +41,7 @@ use Test\Ecotone\Modelling\Fixture\InterceptedEventAggregate\Logger;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class ClassDefinitionTest extends TestCase
 {

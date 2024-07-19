@@ -17,6 +17,7 @@ use Throwable;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class FailureTransactionTest extends AmqpMessagingTest
 {

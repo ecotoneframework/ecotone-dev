@@ -22,6 +22,7 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class DbalDocumentStoreTest extends DbalMessagingTestCase
 {

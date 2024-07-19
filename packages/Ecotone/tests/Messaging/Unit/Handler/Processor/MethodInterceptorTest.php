@@ -26,6 +26,7 @@ use Test\Ecotone\Messaging\Fixture\Behat\Calculating\PowerCalculation;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class MethodInterceptorTest extends TestCase
 {

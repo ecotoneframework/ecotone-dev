@@ -41,6 +41,7 @@ use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class SaveAggregateServiceBuilderTest extends TestCase
 {

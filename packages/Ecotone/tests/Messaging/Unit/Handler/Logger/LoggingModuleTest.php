@@ -18,6 +18,7 @@ use Test\Ecotone\Messaging\Fixture\Handler\FailureHandler\ExampleFailureCommandH
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class LoggingModuleTest extends TestCase
 {

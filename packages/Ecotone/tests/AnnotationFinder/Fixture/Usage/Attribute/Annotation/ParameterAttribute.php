@@ -2,8 +2,9 @@
 
 namespace Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\Annotation;
 
-#[\Attribute(\Attribute::TARGET_PARAMETER)]
+use Attribute;
+
+#[Attribute(Attribute::TARGET_PARAMETER)]
 class ParameterAttribute
 {
-
 }

@@ -11,6 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class SymfonyApplicationTest extends KernelTestCase
 {

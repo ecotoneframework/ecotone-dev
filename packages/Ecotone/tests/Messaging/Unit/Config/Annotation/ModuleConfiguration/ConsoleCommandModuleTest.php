@@ -36,6 +36,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\Std
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class ConsoleCommandModuleTest extends AnnotationConfigurationTest
 {

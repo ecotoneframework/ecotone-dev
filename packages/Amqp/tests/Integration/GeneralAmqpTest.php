@@ -19,6 +19,7 @@ use Test\Ecotone\Amqp\Fixture\Shop\ShoppingCart;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class GeneralAmqpTest extends AmqpMessagingTest
 {

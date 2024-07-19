@@ -17,6 +17,7 @@ use Test\Ecotone\Lite\Fixture\AddMoney;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class EcotoneLiteApplicationTest extends TestCase
 {

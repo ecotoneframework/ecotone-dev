@@ -77,6 +77,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class MessagingSystemConfigurationTest extends MessagingTest
 {

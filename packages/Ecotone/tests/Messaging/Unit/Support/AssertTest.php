@@ -17,6 +17,7 @@ use stdClass;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class AssertTest extends TestCase
 {

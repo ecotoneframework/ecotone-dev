@@ -65,7 +65,7 @@ final class DbalParameter implements DefinedObject
                 $this->type,
                 $this->expression,
                 $this->convertToMediaType,
-                $this->ignored
+                $this->ignored,
             ]
         );
     }

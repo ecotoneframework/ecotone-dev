@@ -43,6 +43,7 @@ use Test\Ecotone\Modelling\Fixture\Ticket\WorkerWasAssignedEvent;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class CallAggregateServiceBuilderTest extends TestCase
 {

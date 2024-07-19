@@ -19,6 +19,7 @@ use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInte
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class AsynchronousChannelTest extends DbalMessagingTestCase
 {

@@ -18,6 +18,7 @@ use Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier\PublishArticle;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class ValueObjectIdentifierTest extends TestCase
 {

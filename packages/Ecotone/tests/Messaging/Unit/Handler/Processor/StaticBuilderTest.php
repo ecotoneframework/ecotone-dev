@@ -20,6 +20,7 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class StaticBuilderTest extends TestCase
 {

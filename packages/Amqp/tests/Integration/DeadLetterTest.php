@@ -16,6 +16,7 @@ use Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class DeadLetterTest extends AmqpMessagingTest
 {

@@ -19,6 +19,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
 {

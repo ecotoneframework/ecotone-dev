@@ -9,9 +9,11 @@ use ReflectionClass;
 use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\Annotation\ParameterAttribute;
 use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\TestingNamespace\Correct\ClassWithPromotedConstructorParameterAttribute;
 
+/**
+ * @internal
+ */
 class TypeResolverTest extends TestCase
 {
-
     public function test_it_can_resolve_promoted_properties(): void
     {
         $typeResolver = TypeResolver::create();

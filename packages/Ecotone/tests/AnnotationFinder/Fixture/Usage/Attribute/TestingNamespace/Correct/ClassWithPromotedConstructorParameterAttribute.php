@@ -9,7 +9,6 @@ class ClassWithPromotedConstructorParameterAttribute
 {
     public function __construct(
         #[ParameterAttribute, PropertyAttribute] public string $aPromotedProperty,
-    )
-    {
+    ) {
     }
 }

@@ -12,6 +12,7 @@ use stdClass;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class InMemoryDocumentStoreTest extends TestCase
 {

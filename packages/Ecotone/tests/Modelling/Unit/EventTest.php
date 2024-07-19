@@ -17,6 +17,7 @@ use stdClass;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class EventTest extends TestCase
 {

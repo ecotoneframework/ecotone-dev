@@ -14,6 +14,7 @@ use Psr\Container\ContainerInterface;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class LiteContainerImplementationTest extends ContainerImplementationTestCase
 {

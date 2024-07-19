@@ -43,6 +43,7 @@ use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class ChainMessageHandlerBuilderTest extends TestCase
 {

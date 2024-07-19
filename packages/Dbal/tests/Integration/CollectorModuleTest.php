@@ -29,6 +29,7 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class CollectorModuleTest extends DbalMessagingTestCase
 {

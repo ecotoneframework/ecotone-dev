@@ -32,6 +32,7 @@ use Test\Ecotone\Amqp\AmqpMessagingTest;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class AmqpModuleTest extends AmqpMessagingTest
 {

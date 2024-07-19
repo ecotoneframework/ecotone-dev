@@ -84,7 +84,7 @@ class TypeResolver
                 try {
                     $parameterAttributes[] = $attribute->newInstance();
                 } catch (Error $e) {
-                    if (\preg_match("/Attribute \"(.*)\" cannot target parameter/", $e->getMessage())) {
+                    if (\preg_match('/Attribute "(.*)" cannot target parameter/', $e->getMessage())) {
                         // Do nothing: it is an attribute targeting a property promoted from a parameter
                     } else {
                         throw $e;

@@ -19,6 +19,7 @@ use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\MessageEndpoint\Splitt
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class InMemoryAttributeAnnotationFinderTest extends TestCase
 {

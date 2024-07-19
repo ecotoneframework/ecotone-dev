@@ -22,6 +22,7 @@ use stdClass;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class DefaultHeaderMapperTest extends TestCase
 {

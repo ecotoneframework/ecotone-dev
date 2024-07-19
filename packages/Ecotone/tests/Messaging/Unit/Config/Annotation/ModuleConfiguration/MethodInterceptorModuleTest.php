@@ -29,6 +29,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\TransformerInterceptor
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class MethodInterceptorModuleTest extends AnnotationConfigurationTest
 {

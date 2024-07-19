@@ -17,6 +17,7 @@ use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class DirectChannelTest extends TestCase
 {

@@ -21,6 +21,7 @@ use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStandardRepository;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class RepositoryStorageTest extends TestCase
 {

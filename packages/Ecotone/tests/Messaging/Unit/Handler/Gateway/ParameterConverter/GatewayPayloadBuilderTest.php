@@ -18,6 +18,7 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceWithMixed;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class GatewayPayloadBuilderTest extends TestCase
 {

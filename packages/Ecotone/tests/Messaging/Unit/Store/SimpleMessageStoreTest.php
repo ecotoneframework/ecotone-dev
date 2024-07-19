@@ -17,6 +17,7 @@ use Ramsey\Uuid\Uuid;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class SimpleMessageStoreTest extends TestCase
 {

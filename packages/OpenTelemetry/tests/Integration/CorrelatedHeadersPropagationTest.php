@@ -29,6 +29,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class CorrelatedHeadersPropagationTest extends TracingTest
 {

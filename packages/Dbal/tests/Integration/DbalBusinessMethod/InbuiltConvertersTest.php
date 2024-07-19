@@ -21,6 +21,7 @@ use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonId;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class InbuiltConvertersTest extends DbalMessagingTestCase
 {

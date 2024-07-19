@@ -17,6 +17,7 @@ use Test\Ecotone\Messaging\Fixture\InterceptedBridge\BridgeExample;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class BridgeTest extends TestCase
 {

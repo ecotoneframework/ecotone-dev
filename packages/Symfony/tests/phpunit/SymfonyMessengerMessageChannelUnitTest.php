@@ -19,6 +19,7 @@ use Symfony\Component\Messenger\Envelope;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class SymfonyMessengerMessageChannelUnitTest extends TestCase
 {

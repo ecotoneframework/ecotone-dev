@@ -24,6 +24,7 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class ReferenceServiceConverterBuilderTest extends TestCase
 {

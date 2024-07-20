@@ -65,7 +65,7 @@ class ComponentTestBuilder
             MessagingSystemConfiguration::prepare(
                 $pathToRootCatalog,
                 $configurationVariableService,
-                $configuration ?? ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackages())->withDefaultEnterpriseMode($defaultEnterpriseMode),
+                $configuration ?? ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackages())->withEnterpriseLicence($defaultEnterpriseMode),
                 $classesToResolve,
                 true,
             )

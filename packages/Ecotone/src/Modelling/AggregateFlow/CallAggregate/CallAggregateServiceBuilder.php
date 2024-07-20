@@ -22,8 +22,7 @@ use Ecotone\Modelling\Attribute\AggregateEvents;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
-use Ecotone\Modelling\EventSourcingHandlerExecutor;
-use Ecotone\Modelling\EventSourcingHandlerExecutorBuilder;
+use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 /**

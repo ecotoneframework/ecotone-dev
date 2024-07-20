@@ -345,7 +345,7 @@ final class EcotoneLite
         }
 
         return $configuration
-                ->withDefaultEnterpriseMode($defaultEnterpriseMode);
+                ->withEnterpriseLicence($defaultEnterpriseMode);
     }
 
     private static function shouldUseAutomaticCache(bool $useCachedVersion, string $pathToRootCatalog): bool

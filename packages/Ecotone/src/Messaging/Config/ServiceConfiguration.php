@@ -45,7 +45,7 @@ class ServiceConfiguration
      */
     private array $pollableEndpointAnnotations = [];
 
-    private bool $isEnterpriseModeDefault = false;
+    private bool $hasEnterpriseLicence = false;
 
     private function __construct()
     {
@@ -224,16 +224,16 @@ class ServiceConfiguration
         return $this;
     }
 
-    public function withDefaultEnterpriseMode(bool $enabled): self
+    public function withEnterpriseLicence(bool $enabled): self
     {
-        $this->isEnterpriseModeDefault = $enabled;
+        $this->hasEnterpriseLicence = $enabled;
 
         return $this;
     }
 
-    public function isEnterpriseModeDefault(): bool
+    public function hasEnterpriseLicence(): bool
     {
-        return $this->isEnterpriseModeDefault;
+        return $this->hasEnterpriseLicence;
     }
 
     /**

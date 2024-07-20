@@ -51,7 +51,7 @@ final class Person
     #[EventSourcingHandler]
     public function applyPersonWasRegistered(
         PersonWasRegistered $event,
-        #[Header(MessageHeaders::REVISION)] $revision
+        #[Header(MessageHeaders::REVISION)] int $revision
     ): void
     {
         $this->personId = $event->getPersonId();

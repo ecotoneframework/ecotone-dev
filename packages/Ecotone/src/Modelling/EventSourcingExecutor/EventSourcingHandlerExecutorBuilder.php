@@ -1,19 +1,17 @@
 <?php
 
-namespace Ecotone\Modelling;
+namespace Ecotone\Modelling\EventSourcingExecutor;
 
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
-use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\EnterpriseModeDecider;
+use Ecotone\Messaging\Config\EnterpriseLicenceDecider;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
+use Ecotone\Modelling\EventSourcingHandlerMethod;
 use ReflectionClass;
 
 final class EventSourcingHandlerExecutorBuilder
@@ -24,7 +22,7 @@ final class EventSourcingHandlerExecutorBuilder
             return new Definition($classDefinition->getClassType()->toString(), [
                 $classDefinition->getClassType()->toString(),
                 [],
-                Reference::to(EnterpriseModeDecider::class),
+                EnterpriseLicenceDecider::prepareDefinition(AggregateMethodInvoker::class, Reference::to(OpenCoreAggregateMethodInvoker::class), Reference::to(EnterpriseAggregateMethodInvoker::class)),
             ]);
         }
 
@@ -75,7 +73,7 @@ final class EventSourcingHandlerExecutorBuilder
         return new Definition(EventSourcingHandlerExecutor::class, [
             $classDefinition->getClassType()->toString(),
             $eventSourcingHandlerMethods,
-            Reference::to(EnterpriseModeDecider::class),
+            EnterpriseLicenceDecider::prepareDefinition(AggregateMethodInvoker::class, Reference::to(OpenCoreAggregateMethodInvoker::class), Reference::to(EnterpriseAggregateMethodInvoker::class)),
         ]);
     }
 }

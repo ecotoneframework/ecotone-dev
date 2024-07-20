@@ -1,20 +1,17 @@
 <?php
 
-namespace Ecotone\Modelling;
+namespace Ecotone\Modelling\EventSourcingExecutor;
 
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
-use Ecotone\Messaging\Config\Container\DefinedObject;
-use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
-use Ecotone\Messaging\Config\EnterpriseModeDecider;
-use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Config\EnterpriseLicenceDecider;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Messaging\Support\GenericMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use ReflectionClass;
+use Ecotone\Modelling\Event;
+use Ecotone\Modelling\EventSourcingHandlerMethod;
+use Ecotone\Modelling\SnapshotEvent;
+use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0
@@ -27,7 +24,7 @@ final class EventSourcingHandlerExecutor
     public function __construct(
         private string $aggregateClassName,
         private array $eventSourcingHandlerMethods,
-        private EnterpriseModeDecider $enterpriseModeDecider,
+        private AggregateMethodInvoker $aggregateMethodInvoker,
     )
     {
     }
@@ -51,7 +48,7 @@ final class EventSourcingHandlerExecutor
             }
 
             if ($eventType->toString() === SnapshotEvent::class) {
-                $aggregate = $event->getPayload()->getAggregate();
+                $aggregate = $eventPayload->getAggregate();
 
                 continue;
             }
@@ -62,12 +59,7 @@ final class EventSourcingHandlerExecutor
             foreach ($this->eventSourcingHandlerMethods as $eventSourcingHandler) {
                 $eventSourcingHandlerInterface = $eventSourcingHandler->getInterfaceToCall();
                 if ($eventSourcingHandlerInterface->getFirstParameter()->canBePassedIn($eventType)) {
-                    (new MethodInvoker(
-                        $aggregate,
-                        $eventSourcingHandlerInterface->getMethodName(),
-                        $eventSourcingHandler->getParameterConverters(),
-                        $eventSourcingHandler->getInterfaceToCall()
-                    ))->executeEndpoint($message);
+                    $this->aggregateMethodInvoker->executeMethod($aggregate, $eventSourcingHandlerInterface, $eventSourcingHandler, $message);
                 }
             }
         }

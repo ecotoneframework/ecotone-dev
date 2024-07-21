@@ -106,7 +106,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTest
                 ArticleRepository::class => $articleRepository,
                 PageRepository::class => $pageRepository,
             ],
-            defaultEnterpriseMode: $isEnterprise,
+            withEnterpriseLicence: $isEnterprise,
         );
 
         // We have provided multiple standard repositories, therefore there is single Event Sourced repository

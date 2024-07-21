@@ -19,7 +19,7 @@ final class EventSourcingAggregateTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([
             Person::class,
-        ], defaultEnterpriseMode: true);
+        ], withEnterpriseLicence: true);
 
 
         $ecotoneLite->sendCommand(new RegisterPerson('123', 'premium'));
@@ -35,7 +35,7 @@ final class EventSourcingAggregateTest extends TestCase
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([
             Person::class,
-        ], defaultEnterpriseMode: false);
+        ], withEnterpriseLicence: false);
 
 
         $this->expectException(InvalidArgumentException::class);

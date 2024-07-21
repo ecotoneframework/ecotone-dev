@@ -58,7 +58,7 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
-            defaultEnterpriseMode: $enableEnterpriseMode
+            withEnterpriseLicence: $enableEnterpriseMode
         );
 
         $ecotone

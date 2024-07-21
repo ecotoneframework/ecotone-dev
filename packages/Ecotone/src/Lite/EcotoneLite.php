@@ -94,7 +94,7 @@ final class EcotoneLite
      * @param array<string,string> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
      * @param MessageChannelBuilder[] $enableAsynchronousProcessing
-     * @param bool $defaultEnterpriseMode bool Forces to use Enterprise mode or not (must be used instead of ServiceConfiguration option)
+     * @param bool $withEnterpriseLicence bool Forces to use Enterprise mode or not (must be used instead of ServiceConfiguration option)
      */
     public static function bootstrapFlowTesting(
         array                    $classesToResolve = [],
@@ -107,9 +107,9 @@ final class EcotoneLite
         bool                     $addInMemoryEventSourcedRepository = true,
         ?array                   $enableAsynchronousProcessing = null,
         TestConfiguration        $testConfiguration = null,
-        bool $defaultEnterpriseMode = false
+        bool $withEnterpriseLicence = false
     ): FlowTestSupport {
-        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $defaultEnterpriseMode);
+        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $withEnterpriseLicence);
 
         if ($addInMemoryEventSourcedRepository) {
             $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createDefaultEventSourcedRepository());
@@ -138,9 +138,9 @@ final class EcotoneLite
         bool                     $runForProductionEventStore = false,
         ?array                   $enableAsynchronousProcessing = null,
         TestConfiguration        $testConfiguration = null,
-        bool                     $defaultEnterpriseMode = false,
+        bool                     $withEnterpriseLicence = false,
     ): FlowTestSupport {
-        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $defaultEnterpriseMode);
+        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $withEnterpriseLicence);
 
         if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && ! $runForProductionEventStore) {
             Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
@@ -295,8 +295,8 @@ final class EcotoneLite
 
     private static function prepareForFlowTesting(
         ?ServiceConfiguration $configuration, array $packagesToSkip, array $classesToResolve,
-        bool $addInMemoryStateStoredRepository, ?array $enableAsynchronousProcessing, ?TestConfiguration $testConfiguration,
-        bool $defaultEnterpriseMode,
+        bool                  $addInMemoryStateStoredRepository, ?array $enableAsynchronousProcessing, ?TestConfiguration $testConfiguration,
+        bool                  $withEnterpriseLicence,
     ): ServiceConfiguration
     {
         if ($enableAsynchronousProcessing !== null) {
@@ -345,7 +345,7 @@ final class EcotoneLite
         }
 
         return $configuration
-                ->withEnterpriseLicence($defaultEnterpriseMode);
+                ->withEnterpriseLicence($withEnterpriseLicence);
     }
 
     private static function shouldUseAutomaticCache(bool $useCachedVersion, string $pathToRootCatalog): bool

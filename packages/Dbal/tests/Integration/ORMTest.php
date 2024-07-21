@@ -33,6 +33,7 @@ use Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler\SaveMultipleEntitiesHa
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class ORMTest extends DbalMessagingTestCase
 {

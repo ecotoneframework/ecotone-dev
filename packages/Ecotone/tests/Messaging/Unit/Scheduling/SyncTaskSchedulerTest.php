@@ -20,6 +20,7 @@ use Test\Ecotone\Messaging\Fixture\Scheduling\StubTaskExecutor;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class SyncTaskSchedulerTest extends TestCase
 {

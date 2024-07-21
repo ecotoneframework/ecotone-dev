@@ -21,6 +21,7 @@ require __DIR__ . '/boostrap.php';
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class MultiTenantTest extends TestCase
 {

@@ -78,6 +78,7 @@ use Test\Ecotone\Modelling\Fixture\TwoSagas\TwoSagasRepository;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class AnnotationBasedMessagingContext extends TestCase implements Context
 {

@@ -21,6 +21,7 @@ use Test\Ecotone\Modelling\Fixture\OrderAggregate\Order;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class MetadataPropagatingTest extends TestCase
 {

@@ -40,6 +40,7 @@ use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\TypedProperty;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class JMSConverterTest extends TestCase
 {

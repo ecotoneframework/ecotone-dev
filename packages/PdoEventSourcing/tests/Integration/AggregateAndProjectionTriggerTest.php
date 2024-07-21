@@ -22,6 +22,7 @@ use Test\Ecotone\EventSourcing\Fixture\TicketProjectionState\TicketCounterProjec
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class AggregateAndProjectionTriggerTest extends EventSourcingMessagingTestCase
 {

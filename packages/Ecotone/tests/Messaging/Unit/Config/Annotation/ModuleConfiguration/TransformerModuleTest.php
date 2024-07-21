@@ -23,6 +23,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Transformer\Transf
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class TransformerModuleTest extends AnnotationConfigurationTest
 {

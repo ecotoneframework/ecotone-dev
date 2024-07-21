@@ -35,6 +35,7 @@ use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\NotExisting\NotExistin
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class FileSystemAttributeAnnotationFinderTest extends TestCase
 {

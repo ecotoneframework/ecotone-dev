@@ -22,6 +22,7 @@ use Test\Ecotone\Dbal\Fixture\Deduplication\OrderSubscriber;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class DeduplicationModuleTest extends DbalMessagingTestCase
 {

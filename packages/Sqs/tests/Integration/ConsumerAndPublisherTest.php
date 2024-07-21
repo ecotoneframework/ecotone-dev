@@ -20,6 +20,7 @@ use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsConsumerExample;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class ConsumerAndPublisherTest extends AbstractConnectionTest
 {

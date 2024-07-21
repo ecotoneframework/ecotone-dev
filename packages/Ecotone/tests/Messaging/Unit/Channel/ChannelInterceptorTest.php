@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class ChannelInterceptorTest extends TestCase
 {

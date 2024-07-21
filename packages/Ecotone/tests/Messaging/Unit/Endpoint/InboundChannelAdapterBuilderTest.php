@@ -37,6 +37,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class InboundChannelAdapterBuilderTest extends MessagingTest
 {

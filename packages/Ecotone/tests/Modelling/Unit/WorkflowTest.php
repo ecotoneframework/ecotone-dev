@@ -18,6 +18,7 @@ use Test\Ecotone\Modelling\Fixture\Workflow\Saga\PaymentHandler;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class WorkflowTest extends TestCase
 {

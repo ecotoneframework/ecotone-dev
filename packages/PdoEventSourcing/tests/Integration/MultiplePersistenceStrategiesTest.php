@@ -25,6 +25,7 @@ use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\OrderProjec
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTestCase
 {

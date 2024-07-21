@@ -16,6 +16,7 @@ use Test\Ecotone\Modelling\Fixture\Order\OrderService;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class EcotoneLiteTest extends TestCase
 {

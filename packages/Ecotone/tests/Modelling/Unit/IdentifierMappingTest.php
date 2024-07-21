@@ -19,6 +19,7 @@ use Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier\OrderStart
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class IdentifierMappingTest extends TestCase
 {

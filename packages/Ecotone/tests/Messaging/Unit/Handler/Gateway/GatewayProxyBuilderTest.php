@@ -68,6 +68,7 @@ use TypeError;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class GatewayProxyBuilderTest extends MessagingTest
 {

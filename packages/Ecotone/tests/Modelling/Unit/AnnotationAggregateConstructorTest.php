@@ -16,6 +16,7 @@ use Test\Ecotone\Modelling\Fixture\AnnotatedConstructor\ConstructorAsQueryHandle
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class AnnotationAggregateConstructorTest extends TestCase
 {

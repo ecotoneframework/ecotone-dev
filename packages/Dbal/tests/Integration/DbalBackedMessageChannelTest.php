@@ -26,6 +26,7 @@ use Test\Ecotone\Dbal\Fixture\Support\Logger\LoggerExample;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 {

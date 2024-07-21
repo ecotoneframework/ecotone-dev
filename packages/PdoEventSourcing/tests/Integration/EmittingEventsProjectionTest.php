@@ -25,6 +25,7 @@ use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdate
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 {

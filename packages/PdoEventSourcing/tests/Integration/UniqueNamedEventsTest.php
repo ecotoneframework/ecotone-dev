@@ -17,6 +17,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class UniqueNamedEventsTest extends TestCase
 {

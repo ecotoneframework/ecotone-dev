@@ -247,6 +247,8 @@ final class MessagingSystemConfiguration implements Configuration
 
     private function prepareAndOptimizeConfiguration(InterfaceToCallRegistry $interfaceToCallRegistry, ServiceConfiguration $applicationConfiguration): void
     {
+        $this->verifyEndpointAndChannelNameUniqueness();
+
         foreach ($this->channelAdapters as $channelAdapter) {
             $channelAdapter->withEndpointAnnotations(array_merge($channelAdapter->getEndpointAnnotations(), [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$channelAdapter->getEndpointId()])]));
         }
@@ -892,7 +894,6 @@ final class MessagingSystemConfiguration implements Configuration
 
         $this->messageHandlerBuilders[$messageHandlerBuilder->getEndpointId()] = $messageHandlerBuilder;
         $this->messageHandlerBuilderToChannel[$messageHandlerBuilder->getInputMessageChannelName()][] = $messageHandlerBuilder->getEndpointId();
-        $this->verifyEndpointAndChannelNameUniqueness();
 
         return $this;
     }
@@ -930,7 +931,6 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->channelBuilders[$messageChannelBuilder->getMessageChannelName()] = $messageChannelBuilder;
-        $this->verifyEndpointAndChannelNameUniqueness();
 
         return $this;
     }
@@ -941,7 +941,6 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerDefaultChannelFor(MessageChannelBuilder $messageChannelBuilder): Configuration
     {
         $this->defaultChannelBuilders[$messageChannelBuilder->getMessageChannelName()] = $messageChannelBuilder;
-        $this->verifyEndpointAndChannelNameUniqueness();
 
         return $this;
     }

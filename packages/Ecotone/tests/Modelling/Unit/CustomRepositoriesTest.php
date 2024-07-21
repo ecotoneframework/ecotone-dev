@@ -23,6 +23,7 @@ use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\RepositoryBusines
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class CustomRepositoriesTest extends BaseEcotoneTest
 {

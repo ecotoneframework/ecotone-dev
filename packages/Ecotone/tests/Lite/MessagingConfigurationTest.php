@@ -20,6 +20,7 @@ use Test\Ecotone\Messaging\Fixture\Behat\Presend\Shop;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class MessagingConfigurationTest extends TestCase
 {

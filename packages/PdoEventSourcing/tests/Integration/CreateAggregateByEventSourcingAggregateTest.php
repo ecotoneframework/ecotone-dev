@@ -26,6 +26,7 @@ use Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendarWithInternalRecorder
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMessagingTestCase
 {

@@ -20,6 +20,7 @@ use Test\Ecotone\Modelling\Fixture\MetadataPropagating\PropagatingOrderService;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class HeaderPropagationTest extends TestCase
 {

@@ -22,6 +22,7 @@ use Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjecti
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class MultiTenantTest extends EventSourcingMessagingTestCase
 {

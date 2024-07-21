@@ -18,6 +18,7 @@ use Throwable;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class DbalDeadLetterTest extends DbalMessagingTestCase
 {

@@ -17,6 +17,7 @@ use Test\Ecotone\Dbal\Fixture\StubMethodInvocation;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 {

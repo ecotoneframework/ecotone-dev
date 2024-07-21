@@ -13,6 +13,7 @@ use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class ErrorHandlerModuleTest extends AnnotationConfigurationTest
 {

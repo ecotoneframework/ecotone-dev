@@ -18,6 +18,7 @@ use Test\Ecotone\Messaging\Fixture\Dto\OrderExample;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class PropertyReaderAccessorTest extends TestCase
 {

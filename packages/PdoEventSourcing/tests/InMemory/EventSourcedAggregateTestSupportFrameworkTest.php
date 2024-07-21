@@ -23,6 +23,7 @@ use Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDriven
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
 {

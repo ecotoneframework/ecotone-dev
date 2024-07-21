@@ -38,6 +38,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\MessageHandlerFlow\ExampleMessageHandler;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class TracingTreeTest extends TracingTest
 {

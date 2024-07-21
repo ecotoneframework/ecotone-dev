@@ -19,6 +19,7 @@ use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectio
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class FlowTestingTest extends EventSourcingMessagingTestCase
 {

@@ -23,6 +23,7 @@ use Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga\Sync
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class SynchronousEventDrivenSagaTest extends TestCase
 {

@@ -16,6 +16,7 @@ use Test\Ecotone\Amqp\Fixture\SuccessTransaction\OrderService;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class SuccessTransactionTest extends AmqpMessagingTest
 {

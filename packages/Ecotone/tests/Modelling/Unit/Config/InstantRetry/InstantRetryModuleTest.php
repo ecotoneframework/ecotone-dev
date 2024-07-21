@@ -20,6 +20,7 @@ use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class InstantRetryModuleTest extends TestCase
 {

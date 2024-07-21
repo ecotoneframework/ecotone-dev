@@ -18,6 +18,7 @@ use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\OrderWasP
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class HeaderPropagationTest extends TestCase
 {

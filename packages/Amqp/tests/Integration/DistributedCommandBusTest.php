@@ -18,6 +18,7 @@ use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceReceiv
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class DistributedCommandBusTest extends AmqpMessagingTest
 {

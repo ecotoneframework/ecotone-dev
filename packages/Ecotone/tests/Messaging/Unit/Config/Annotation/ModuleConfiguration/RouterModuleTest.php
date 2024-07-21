@@ -22,6 +22,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Router\RouterWithN
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class RouterModuleTest extends AnnotationConfigurationTest
 {

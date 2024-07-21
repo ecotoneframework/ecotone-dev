@@ -26,6 +26,7 @@ use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
 {

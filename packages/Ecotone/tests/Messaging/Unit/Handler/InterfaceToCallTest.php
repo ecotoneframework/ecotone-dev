@@ -41,6 +41,7 @@ use Test\Ecotone\Messaging\Fixture\Handler\ObjectWithConstructorProperties;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class InterfaceToCallTest extends TestCase
 {

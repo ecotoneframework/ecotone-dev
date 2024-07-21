@@ -21,6 +21,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTestCase
 {

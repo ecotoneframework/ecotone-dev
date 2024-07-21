@@ -29,6 +29,7 @@ use Test\Ecotone\Messaging\Fixture\Handler\DumbMessageHandlerBuilder;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class TypeDescriptorTest extends TestCase
 {

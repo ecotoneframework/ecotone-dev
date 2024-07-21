@@ -11,6 +11,7 @@ use Psr\Log\LoggerInterface;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class CombinedLoggerTest extends TestCase
 {

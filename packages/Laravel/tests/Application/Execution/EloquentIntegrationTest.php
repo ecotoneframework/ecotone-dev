@@ -20,6 +20,7 @@ use Test\Ecotone\Laravel\Fixture\Product\RegisterProduct;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class EloquentIntegrationTest extends TestCase
 {

@@ -26,6 +26,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\A
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class ServiceActivatorModuleTest extends AnnotationConfigurationTest
 {

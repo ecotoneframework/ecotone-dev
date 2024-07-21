@@ -18,6 +18,7 @@ use Test\Ecotone\Laravel\Fixture\User\UserRepository;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class ApplicationTest extends TestCase
 {

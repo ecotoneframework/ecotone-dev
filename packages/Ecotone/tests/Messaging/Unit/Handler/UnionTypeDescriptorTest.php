@@ -16,6 +16,7 @@ use stdClass;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class UnionTypeDescriptorTest extends TestCase
 {

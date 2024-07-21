@@ -23,6 +23,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class MessengerIntegrationTest extends WebTestCase
 {

@@ -27,6 +27,7 @@ use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class PollableChannelSendRetriesModuleTest extends TestCase
 {

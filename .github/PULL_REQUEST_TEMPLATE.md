@@ -14,5 +14,5 @@ Please delete options that are not relevant.
 - This change requires a documentation update
 
 <!--
-Please note that by submitting this pull request, you agree to the contribution terms defined in [CONTRIBUTING.md](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md). This part of the template must not be removed.
+By submitting this pull request, you agree to the contribution terms defined in [CONTRIBUTING.md](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md).
 -->

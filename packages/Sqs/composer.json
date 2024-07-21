@@ -43,6 +43,9 @@
         "phpstan/phpstan": "^1.8",
         "wikimedia/composer-merge-plugin": "^2.0"
     },
+    "conflict": {
+        "guzzlehttp/promises": "<1.4.0"
+    },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": "vendor/bin/phpunit",

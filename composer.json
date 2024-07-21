@@ -115,7 +115,7 @@
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0",
         "ext-amqp": "*",
-        "friendsofphp/proxy-manager-lts": "^1.0.12",
+        "laminas/laminas-code": "^4",
         "jms/serializer": "^3.17",
         "laminas/laminas-zendframework-bridge": "^1.0.0",
         "laravel/framework": "^9.5.2|^10.0|^11.0",

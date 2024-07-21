@@ -61,7 +61,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
             ->withFailFast(false)
             ->withDefaultErrorChannel('errorChannel')
             ->withNamespaces(['Monorepo\\ExampleApp\\Common\\'])
-            ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true)),
+            ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true) ?? []),
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__.'/../Common',
     );

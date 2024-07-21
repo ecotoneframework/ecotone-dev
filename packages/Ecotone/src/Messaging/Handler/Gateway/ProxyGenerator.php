@@ -10,6 +10,7 @@ use Laminas\Code\Generator\MethodGenerator;
 use Laminas\Code\Generator\ParameterGenerator;
 use Laminas\Code\Generator\PropertyGenerator;
 use Laminas\Code\Reflection\ClassReflection;
+use ReflectionNamedType;
 
 class ProxyGenerator
 {
@@ -45,7 +46,12 @@ class ProxyGenerator
         foreach ($reflectionClass->getMethods() as $method) {
             $methodGenerator = MethodGenerator::fromReflection($method);
             $methodGenerator->setInterface(false);
-            $return = $method->getReturnType()?->getName() === 'void' ? "" : "return ";
+            if ($method->getReturnType() instanceof ReflectionNamedType && $method->getReturnType()->getName() === "void") {
+                // Do not return if method expects void return type
+                $return = "";
+            } else {
+                $return = "return ";
+            }
             $parameterNames = array_map(function(\ReflectionParameter $parameter) {
                 return '$' . $parameter->getName();
             }, $method->getParameters());

@@ -110,7 +110,7 @@ class Pointcut
         return \is_null($this->parsedExpression);
     }
 
-    public function doesItCut(InterfaceToCall $interfaceToCall, array $endpointAnnotations, InterfaceToCallRegistry $interfaceToCallRegistry): bool
+    public function doesItCut(InterfaceToCall $interfaceToCall, array $endpointAnnotations): bool
     {
         if ($this->isEmpty()) {
             return false;

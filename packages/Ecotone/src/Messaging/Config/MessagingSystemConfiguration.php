@@ -137,10 +137,6 @@ final class MessagingSystemConfiguration implements Configuration
     private array $messageConverterReferenceNames = [];
     private ?ModuleReferenceSearchService $moduleReferenceSearchService;
     private array $asynchronousEndpoints = [];
-    /**
-     * @var string[]
-     */
-    private array $gatewayClassesToGenerateProxies = [];
     private ServiceConfiguration $applicationConfiguration;
     /**
      * @var string[]
@@ -240,8 +236,6 @@ final class MessagingSystemConfiguration implements Configuration
             );
         }
 
-        $this->gatewayClassesToGenerateProxies = [];
-
         $this->moduleReferenceSearchService = $moduleReferenceSearchService;
     }
 
@@ -258,7 +252,7 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel) {
                 if ($this->beforeSendInterceptors) {
-                    $interceptorWithPointCuts = $this->getRelatedInterceptors($this->beforeSendInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames(), $interfaceToCallRegistry);
+                    $interceptorWithPointCuts = $this->getRelatedInterceptors($this->beforeSendInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames());
                     foreach ($interceptorWithPointCuts as $interceptorReference) {
                         $beforeSendInterceptors[] = new BeforeSendChannelInterceptorBuilder($messageHandlerBuilder->getInputMessageChannelName(), $interceptorReference);
                     }
@@ -307,7 +301,7 @@ final class MessagingSystemConfiguration implements Configuration
      * @return InterceptorWithPointCut[]|AroundInterceptorBuilder[]|MessageHandlerBuilderWithOutputChannel[]
      * @throws MessagingException
      */
-    private function getRelatedInterceptors(array $interceptors, InterfaceToCall $interceptedInterface, iterable $endpointAnnotations, iterable $requiredInterceptorNames, InterfaceToCallRegistry $interfaceToCallRegistry): iterable
+    private function getRelatedInterceptors(array $interceptors, InterfaceToCall $interceptedInterface, iterable $endpointAnnotations, iterable $requiredInterceptorNames): iterable
     {
         Assert::allInstanceOfType($endpointAnnotations, AttributeDefinition::class);
 
@@ -330,7 +324,7 @@ final class MessagingSystemConfiguration implements Configuration
                 }
             }
 
-            if ($interceptor->doesItCutWith($interceptedInterface, $endpointAnnotationsInstances, $interfaceToCallRegistry)) {
+            if ($interceptor->doesItCutWith($interceptedInterface, $endpointAnnotationsInstances)) {
                 $relatedInterceptors[] = $interceptor->addInterceptedInterfaceToCall($interceptedInterface, $endpointAnnotations);
             }
         }
@@ -478,13 +472,13 @@ final class MessagingSystemConfiguration implements Configuration
                 $afterCallInterceptors = [];
 
                 if ($this->beforeCallMethodInterceptors) {
-                    $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames(), $interfaceRegistry);
+                    $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames());
                 }
                 if ($this->aroundMethodInterceptors) {
-                    $aroundInterceptors = $this->getRelatedInterceptors($this->aroundMethodInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames(), $interfaceRegistry);
+                    $aroundInterceptors = $this->getRelatedInterceptors($this->aroundMethodInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames());
                 }
                 if ($this->afterCallMethodInterceptors) {
-                    $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames(), $interfaceRegistry);
+                    $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames());
                 }
 
                 foreach ($aroundInterceptors as $aroundInterceptorReference) {
@@ -518,13 +512,13 @@ final class MessagingSystemConfiguration implements Configuration
             $beforeCallInterceptors = [];
             $afterCallInterceptors = [];
             if ($this->beforeCallMethodInterceptors) {
-                $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $gatewayBuilder->getInterceptedInterface($interfaceRegistry), $gatewayBuilder->getEndpointAnnotations(), $gatewayBuilder->getRequiredInterceptorNames(), $interfaceRegistry);
+                $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $gatewayBuilder->getInterceptedInterface($interfaceRegistry), $gatewayBuilder->getEndpointAnnotations(), $gatewayBuilder->getRequiredInterceptorNames());
             }
             if ($this->aroundMethodInterceptors) {
-                $aroundInterceptors = $this->getRelatedInterceptors($this->aroundMethodInterceptors, $gatewayBuilder->getInterceptedInterface($interfaceRegistry), $gatewayBuilder->getEndpointAnnotations(), $gatewayBuilder->getRequiredInterceptorNames(), $interfaceRegistry);
+                $aroundInterceptors = $this->getRelatedInterceptors($this->aroundMethodInterceptors, $gatewayBuilder->getInterceptedInterface($interfaceRegistry), $gatewayBuilder->getEndpointAnnotations(), $gatewayBuilder->getRequiredInterceptorNames());
             }
             if ($this->afterCallMethodInterceptors) {
-                $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $gatewayBuilder->getInterceptedInterface($interfaceRegistry), $gatewayBuilder->getEndpointAnnotations(), $gatewayBuilder->getRequiredInterceptorNames(), $interfaceRegistry);
+                $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $gatewayBuilder->getInterceptedInterface($interfaceRegistry), $gatewayBuilder->getEndpointAnnotations(), $gatewayBuilder->getRequiredInterceptorNames());
             }
 
             foreach ($aroundInterceptors as $aroundInterceptor) {
@@ -543,13 +537,13 @@ final class MessagingSystemConfiguration implements Configuration
             $beforeCallInterceptors = [];
             $afterCallInterceptors = [];
             if ($this->beforeCallMethodInterceptors) {
-                $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $channelAdapter->getInterceptedInterface($interfaceRegistry), $channelAdapter->getEndpointAnnotations(), $channelAdapter->getRequiredInterceptorNames(), $interfaceRegistry);
+                $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $channelAdapter->getInterceptedInterface($interfaceRegistry), $channelAdapter->getEndpointAnnotations(), $channelAdapter->getRequiredInterceptorNames());
             }
             if ($this->aroundMethodInterceptors) {
-                $aroundInterceptors = $this->getRelatedInterceptors($this->aroundMethodInterceptors, $channelAdapter->getInterceptedInterface($interfaceRegistry), $channelAdapter->getEndpointAnnotations(), $channelAdapter->getRequiredInterceptorNames(), $interfaceRegistry);
+                $aroundInterceptors = $this->getRelatedInterceptors($this->aroundMethodInterceptors, $channelAdapter->getInterceptedInterface($interfaceRegistry), $channelAdapter->getEndpointAnnotations(), $channelAdapter->getRequiredInterceptorNames());
             }
             if ($this->afterCallMethodInterceptors) {
-                $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $channelAdapter->getInterceptedInterface($interfaceRegistry), $channelAdapter->getEndpointAnnotations(), $channelAdapter->getRequiredInterceptorNames(), $interfaceRegistry);
+                $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $channelAdapter->getInterceptedInterface($interfaceRegistry), $channelAdapter->getEndpointAnnotations(), $channelAdapter->getRequiredInterceptorNames());
             }
 
             foreach ($aroundInterceptors as $aroundInterceptor) {
@@ -576,7 +570,6 @@ final class MessagingSystemConfiguration implements Configuration
                     $consumerFactory->getInterceptedInterface($interfaceRegistry),
                     $endpointAnnotations,
                     $consumerFactory->getRequiredInterceptorNames(),
-                    $interfaceRegistry
                 );
 
                 foreach ($aroundInterceptors as $aroundInterceptor) {
@@ -585,13 +578,13 @@ final class MessagingSystemConfiguration implements Configuration
             }
 
             if ($this->beforeCallMethodInterceptors) {
-                $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $consumerFactory->getInterceptedInterface($interfaceRegistry), $endpointAnnotations, $consumerFactory->getRequiredInterceptorNames(), $interfaceRegistry);
+                $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $consumerFactory->getInterceptedInterface($interfaceRegistry), $endpointAnnotations, $consumerFactory->getRequiredInterceptorNames());
                 foreach ($beforeCallInterceptors as $beforeCallInterceptor) {
                     $consumerFactory->addBeforeInterceptor($beforeCallInterceptor);
                 }
             }
             if ($this->afterCallMethodInterceptors) {
-                $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $consumerFactory->getInterceptedInterface($interfaceRegistry), $endpointAnnotations, $consumerFactory->getRequiredInterceptorNames(), $interfaceRegistry);
+                $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $consumerFactory->getInterceptedInterface($interfaceRegistry), $endpointAnnotations, $consumerFactory->getRequiredInterceptorNames());
                 foreach ($afterCallInterceptors as $afterCallInterceptor) {
                     $consumerFactory->addAfterInterceptor($afterCallInterceptor);
                 }
@@ -976,7 +969,6 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->gatewayBuilders[] = $gatewayBuilder;
-        $this->gatewayClassesToGenerateProxies[] = $gatewayBuilder->getInterfaceName();
 
         return $this;
     }
@@ -997,18 +989,6 @@ final class MessagingSystemConfiguration implements Configuration
     public function getRegisteredGateways(): array
     {
         return $this->gatewayBuilders;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function registerInternalGateway(Type $interfaceName): Configuration
-    {
-        Assert::isTrue($interfaceName->isClassOrInterface(), "Passed internal gateway must be class, passed: {$interfaceName->toString()}");
-
-        $this->gatewayClassesToGenerateProxies[] = $interfaceName->toString();
-
-        return $this;
     }
 
     /**

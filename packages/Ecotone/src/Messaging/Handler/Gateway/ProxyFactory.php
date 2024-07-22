@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
@@ -37,10 +38,10 @@ class ProxyFactory
                 $proxyReference->getInterfaceName()
             ]),
             new Reference(ConfiguredMessagingSystem::class),
-        ], [self::class, "createProxyFor"]);
+        ], [self::class, "createProxyInstance"]);
     }
 
-    public function createProxyFor(GatewayProxyReference $proxyReference, ConfiguredMessagingSystem $messagingSystem): object
+    public function createProxyInstance(GatewayProxyReference $proxyReference, ConfiguredMessagingSystem $messagingSystem): object
     {
         $proxyClassName = self::getFullClassNameFor($proxyReference->getInterfaceName());
         if (! class_exists($proxyClassName, false)) {
@@ -61,7 +62,7 @@ class ProxyFactory
         $file = $this->getFilePathForProxy($proxyReference->getInterfaceName());
         if ($overwrite || ! \file_exists($file)) {
             $code = $this->proxyGenerator->generateProxyFor($proxyClassName, $proxyReference->getInterfaceName());
-            \file_put_contents($file, $code);
+            $this->dumpFile($file, $code);
         }
         return $file;
     }
@@ -80,5 +81,26 @@ class ProxyFactory
     private function getFullClassNameFor(string $interfaceName): string
     {
         return self::PROXY_NAMESPACE . "\\" . $this->getClassNameFor($interfaceName);
+    }
+
+
+    private function dumpFile(string $fileName, string $code): void
+    {
+        // Code adapted from doctrine/orm/src/Proxy/ProxyFactory.php
+        $parentDirectory = dirname($fileName);
+
+        if (! is_dir($parentDirectory) && ! @mkdir($parentDirectory, 0775, true)) {
+            throw ConfigurationException::create("Cannot create cache directory {$parentDirectory}");
+        }
+
+        if (! is_writable($parentDirectory)) {
+            throw ConfigurationException::create("Cache directory is not writable {$parentDirectory}");
+        }
+
+        $tmpFileName = $fileName . '.' . bin2hex(random_bytes(12));
+
+        file_put_contents($tmpFileName, $code);
+        @chmod($tmpFileName, 0664);
+        rename($tmpFileName, $fileName);
     }
 }

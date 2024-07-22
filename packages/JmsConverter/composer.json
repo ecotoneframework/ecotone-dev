@@ -43,10 +43,10 @@
         "symfony/cache": "^5.4|^6.1|^7.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.5",
+        "phpunit/phpunit": "^9.6",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
-        "wikimedia/composer-merge-plugin": "^2.0"
+        "wikimedia/composer-merge-plugin": "^2.1"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

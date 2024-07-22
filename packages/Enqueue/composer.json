@@ -41,7 +41,7 @@
         "phpunit/phpunit": "^9.6",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
-        "wikimedia/composer-merge-plugin": "^2.0",
+        "wikimedia/composer-merge-plugin": "^2.1",
         "enqueue/null": "^0.10.18"
     },
     "scripts": {

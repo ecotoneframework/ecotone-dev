@@ -1,5 +1,3 @@
-<?php
-
 namespace Ecotone\__Proxy__;
 
 class GeneratedClass implements \Test\Ecotone\Messaging\Unit\Handler\Gateway\InterfaceForProxyGeneration
@@ -48,4 +46,3 @@ class GeneratedClass implements \Test\Ecotone\Messaging\Unit\Handler\Gateway\Int
         return $this->messagingSystem->getNonProxyGatewayByName($this->gatewayProxyReference->gatewayReferenceForMethod('unionReturnType'))->execute([$param]);
     }
 }
-

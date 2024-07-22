@@ -60,9 +60,6 @@ class ProxyGenerator
             $classGenerator->addMethodFromGenerator($methodGenerator);
         }
 
-        $file = new FileGenerator();
-        $file->setClass($classGenerator);
-
-        return $file->generate();
+        return $classGenerator->generate();
     }
 }

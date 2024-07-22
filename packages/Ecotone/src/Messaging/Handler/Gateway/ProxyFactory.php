@@ -32,7 +32,7 @@ class ProxyFactory
 
     public static function getGatewayProxyDefinitionFor(GatewayProxyReference $proxyReference): Definition
     {
-        return new Definition(self::getClassNameFor($proxyReference->getInterfaceName()), [
+        return new Definition(self::getClassNameFor($proxyReference), [
             new Definition(GatewayProxyReference::class, [
                 $proxyReference->getReferenceName(),
                 $proxyReference->getInterfaceName()
@@ -43,46 +43,63 @@ class ProxyFactory
 
     public function createProxyInstance(GatewayProxyReference $proxyReference, ConfiguredMessagingSystem $messagingSystem): object
     {
-        $proxyClassName = self::getFullClassNameFor($proxyReference->getInterfaceName());
-        if (! class_exists($proxyClassName, false)) {
-            if ($this->serviceCacheConfiguration->shouldUseCache()) {
-                $file = $this->generateCachedProxyFileFor($proxyReference, false);
-                require $file;
-            } else {
-                $code = $this->proxyGenerator->generateProxyFor($proxyClassName, $proxyReference->getInterfaceName());
-                eval(\substr($code, 5));
-            }
-        }
+        $proxyClassName = $this->loadProxyClass($proxyReference);
+
         return new $proxyClassName($messagingSystem, $proxyReference);
     }
 
     public function generateCachedProxyFileFor(GatewayProxyReference $proxyReference, bool $overwrite): string
     {
-        $proxyClassName = self::getFullClassNameFor($proxyReference->getInterfaceName());
-        $file = $this->getFilePathForProxy($proxyReference->getInterfaceName());
+        $file = $this->getFilePathForProxy($proxyReference);
         if ($overwrite || ! \file_exists($file)) {
-            $code = $this->proxyGenerator->generateProxyFor($proxyClassName, $proxyReference->getInterfaceName());
-            $this->dumpFile($file, $code);
+            $code = $this->generateProxyCode($proxyReference);
+            $this->dumpFile($file, "<?php\n\n" . $code);
         }
         return $file;
     }
 
-    private function getFilePathForProxy(string $interfaceName) : string
+    private function loadProxyClass(GatewayProxyReference $proxyReference): string
     {
-        $className = self::getClassNameFor($interfaceName);
+        if (! self::isLoaded($proxyReference)) {
+            if ($this->serviceCacheConfiguration->shouldUseCache()) {
+                $file = $this->generateCachedProxyFileFor($proxyReference, false);
+                require $file;
+            } else {
+                $code = $this->generateProxyCode($proxyReference);
+                eval($code);
+            }
+        }
+        return self::getFullClassNameFor($proxyReference);
+    }
+
+    private function isLoaded(GatewayProxyReference $proxyReference): bool
+    {
+        return class_exists(self::getFullClassNameFor($proxyReference), false);
+    }
+
+    private function generateProxyCode(GatewayProxyReference $proxyReference): string
+    {
+        return $this->proxyGenerator->generateProxyFor(
+            self::getFullClassNameFor($proxyReference),
+            $proxyReference->getInterfaceName()
+        );
+    }
+
+    private function getFilePathForProxy(GatewayProxyReference $proxyReference) : string
+    {
+        $className = self::getClassNameFor($proxyReference);
         return $this->serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . $className . ".php";
     }
 
-    private static function getClassNameFor(string $interfaceName): string
+    private static function getClassNameFor(GatewayProxyReference $proxyReference): string
     {
-        return \str_replace("\\", "_", $interfaceName);
+        return \str_replace("\\", "_", $proxyReference->getInterfaceName());
     }
 
-    private function getFullClassNameFor(string $interfaceName): string
+    private function getFullClassNameFor(GatewayProxyReference $proxyReference): string
     {
-        return self::PROXY_NAMESPACE . "\\" . $this->getClassNameFor($interfaceName);
+        return self::PROXY_NAMESPACE . "\\" . self::getClassNameFor($proxyReference);
     }
-
 
     private function dumpFile(string $fileName, string $code): void
     {

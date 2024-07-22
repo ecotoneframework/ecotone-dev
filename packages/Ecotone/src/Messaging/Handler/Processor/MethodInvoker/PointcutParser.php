@@ -131,10 +131,9 @@ class PointcutParser
 
     private function getTokens(string $expression): array
     {
-        // Define the pattern to match logical operators and parentheses
+        // Match "||", "&&", "(" or ")"
         $pattern = '/(\|\||&&|\(|\))/';
 
-        // Split the expression based on the pattern
         $parts = preg_split($pattern, $expression, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
 
         $parts = array_filter(
@@ -144,12 +143,12 @@ class PointcutParser
 
         $parts = $this->groupParenthesesAtEndOfExpression($parts);
 
-        // Trim whitespace from each part
         return array_values($parts);
     }
 
     /**
      * It will drop a close parenthese directly following an open parenthesis
+     * allowing to declare a pointcut like "Class::method()" instead of "Class::method"
      * Example:
      * $parts = ["Class::method", "(", ")"]
      * Result: ["Class::method"]

@@ -23,7 +23,10 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class MethodCallToMessageConverter
 {
     private ?InterfaceToCall $interfaceToCall;
-    private ?array $methodArgumentConverters;
+    /**
+     * @var GatewayParameterConverter[]
+     */
+    private array $methodArgumentConverters;
 
     /**
      * MethodCallToMessageConverter constructor.

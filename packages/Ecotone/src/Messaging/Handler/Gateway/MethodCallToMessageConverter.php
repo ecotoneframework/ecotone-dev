@@ -98,7 +98,7 @@ class MethodCallToMessageConverter
         }
 
         if (empty($methodArgumentConverters) && $this->interfaceToCall->hasSingleParameter()) {
-            $methodArgumentConverters = [GatewayPayloadConverter::create($this->interfaceToCall->getFirstParameterName())];
+            $methodArgumentConverters = [GatewayPayloadConverter::create($this->interfaceToCall->getFirstParameter())];
         }
 
         $this->methodArgumentConverters = $methodArgumentConverters;

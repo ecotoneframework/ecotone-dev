@@ -51,6 +51,7 @@ class GatewayPayloadBuilder implements GatewayParameterConverterBuilder
             GatewayPayloadConverter::class,
             [
                 $this->parameterName,
+                GatewayPayloadConverter::getParameterTypeDescriptor($interfaceToCall->getParameterWithName($this->parameterName)),
             ]
         );
     }

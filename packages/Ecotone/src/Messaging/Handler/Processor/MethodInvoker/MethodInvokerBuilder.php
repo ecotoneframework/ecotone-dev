@@ -47,7 +47,7 @@ class MethodInvokerBuilder implements CompilableBuilder
             $reference,
             $interfaceToCall->getMethodName(),
             $compiledMethodParameterConverters,
-            $this->interfaceToCallReference,
+            $interfaceToCall->getInterfaceParametersNames(),
             true,
         ]);
     }

@@ -79,7 +79,7 @@ class AroundMethodInvocation implements MethodInvocation
 
     public function getInterfaceToCall(): InterfaceToCall
     {
-        return $this->interceptedMessageProcessor->getInterfaceToCall();
+        return InterfaceToCall::create($this->getObjectToInvokeOn(), $this->getMethodName());
     }
 
     /**
@@ -90,5 +90,12 @@ class AroundMethodInvocation implements MethodInvocation
     public function replaceArgument(string $parameterName, $value): void
     {
         $this->methodCall->replaceArgument($parameterName, $value);
+    }
+
+    public function getName(): string
+    {
+        $object = $this->getObjectToInvokeOn();
+        $classname = is_string($object) ? $object : get_class($object);
+        return "{$classname}::{$this->getMethodName()}";
     }
 }

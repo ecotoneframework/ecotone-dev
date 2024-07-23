@@ -42,11 +42,6 @@ class NoReplyMessageProducer implements MessageProcessor
         return MethodCall::createWith([], false);
     }
 
-    public function getAroundMethodInterceptors(): array
-    {
-        return [];
-    }
-
     public function getObjectToInvokeOn(): string|object
     {
         return self::class;
@@ -57,17 +52,12 @@ class NoReplyMessageProducer implements MessageProcessor
         return 'executeEndpoint';
     }
 
-    public function getInterfaceToCall(): InterfaceToCall
-    {
-        return InterfaceToCall::create(self::class, 'executeEndpoint');
-    }
-
     public function getEndpointAnnotations(): array
     {
         return [];
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return self::class;
     }

@@ -46,7 +46,7 @@ final class CallStateBasedAggregateService implements CallAggregateService
             objectToInvokeOn: $calledAggregate ?: $this->interfaceToCall->getInterfaceType()->toString(),
             objectMethodName: $this->interfaceToCall->getMethodName(),
             methodParameterConverters: $this->parameterConverters,
-            interfaceToCall: $this->interfaceToCall,
+            methodParameterNames: $this->interfaceToCall->getInterfaceParametersNames(),
             canInterceptorReplaceArguments: false
         );
 

@@ -8,6 +8,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -25,15 +26,11 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class WrapWithMessageBuildProcessor implements MessageProcessor
 {
     public function __construct(
-        private InterfaceToCall $interfaceToCall,
         private MessageProcessor $messageProcessor,
-        private bool $shouldChangeMessageHeaders
+        private bool $shouldChangeMessageHeaders,
+        private string $interfaceToCallName,
+        private Type $returnType,
     ) {
-    }
-
-    public static function createWith(InterfaceToCall $interfaceToCall, MessageProcessor $messageProcessor, bool $shouldChangeMessageHeaders = false)
-    {
-        return new self($interfaceToCall, $messageProcessor, $shouldChangeMessageHeaders);
     }
 
     /**
@@ -48,8 +45,8 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
         }
 
         if ($this->shouldChangeMessageHeaders) {
-            Assert::isFalse($result instanceof Message, 'Message should not be returned when changing headers in ' . $this->interfaceToCall->toString());
-            Assert::isTrue(is_array($result), 'Result should be an array when changing headers in ' . $this->interfaceToCall->toString());
+            Assert::isFalse($result instanceof Message, 'Message should not be returned when changing headers in ' . $this->interfaceToCallName);
+            Assert::isTrue(is_array($result), 'Result should be an array when changing headers in ' . $this->interfaceToCallName);
 
             return MessageBuilder::fromMessage($message)
                 ->setMultipleHeaders($result)
@@ -60,42 +57,43 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
             return $result;
         }
 
-        $returnValueType = TypeDescriptor::createFromVariable($result);
-        /** @var UnionTypeDescriptor $returnType */
-        $returnType = $this->interfaceToCall->getReturnType();
-        if ($returnType->isUnionType()) {
-            $foundUnionType = null;
-            foreach ($returnType->getUnionTypes() as $type) {
-                if ($type->equals($returnValueType)) {
-                    $foundUnionType = $type;
-                    break;
-                }
-            }
-            if (! $foundUnionType) {
-                foreach ($returnType->getUnionTypes() as $type) {
-                    if ($type->isCompatibleWith($returnValueType)) {
-                        if ($type->isCollection()) {
-                            $collectionOf = $type->resolveGenericTypes();
-                            $firstKey = array_key_first($result);
-                            if (count($collectionOf) === 1 && ! is_null($firstKey)) {
-                                if (! $collectionOf[0]->isCompatibleWith(TypeDescriptor::createFromVariable($result[$firstKey]))) {
-                                    continue;
-                                }
-                            }
-                        }
-                        $foundUnionType = $type;
-                        break;
-                    }
-                }
-            }
-
-            $returnType = $foundUnionType ?? $returnValueType;
-        }
+        $returnType = $this->getReturnTypeFromResult($result);
 
         return MessageBuilder::fromMessage($message)
             ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($returnType->toString()))
             ->setPayload($result)
             ->build();
+    }
+
+    private function getReturnTypeFromResult(mixed $result): TypeDescriptor
+    {
+        $returnValueType = TypeDescriptor::createFromVariable($result);
+        $returnType = $this->returnType;
+        if (! $returnType->isUnionType()) {
+            return $returnValueType;
+        }
+
+        /** @var UnionTypeDescriptor $returnType */
+        foreach ($returnType->getUnionTypes() as $type) {
+            if ($type->equals($returnValueType)) {
+                return $type;
+            }
+        }
+        foreach ($returnType->getUnionTypes() as $type) {
+            if ($type->isCompatibleWith($returnValueType)) {
+                if ($type->isCollection()) {
+                    $collectionOf = $type->resolveGenericTypes();
+                    $firstKey = array_key_first($result);
+                    if (count($collectionOf) === 1 && ! is_null($firstKey)) {
+                        if (! $collectionOf[0]->isCompatibleWith(TypeDescriptor::createFromVariable($result[$firstKey]))) {
+                            continue;
+                        }
+                    }
+                }
+                return $type;
+            }
+        }
+        return $returnValueType;
     }
 
     public function getMethodCall(Message $message): MethodCall

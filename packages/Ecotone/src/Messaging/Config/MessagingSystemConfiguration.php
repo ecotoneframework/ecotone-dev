@@ -28,7 +28,6 @@ use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Config\Container\PollingMetadataReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
@@ -274,13 +273,6 @@ final class MessagingSystemConfiguration implements Configuration
         $this->configureDefaultMessageChannels();
         $this->configureAsynchronousEndpoints();
         $this->configureInterceptors($interfaceToCallRegistry);
-
-        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
-            $this->addDefaultPollingConfiguration($messageHandlerBuilder->getEndpointId());
-        }
-        foreach ($this->channelAdapters as $channelAdapter) {
-            $this->addDefaultPollingConfiguration($channelAdapter->getEndpointId());
-        }
 
         foreach ($this->requiredConsumerEndpointIds as $requiredConsumerEndpointId) {
             if (! array_key_exists($requiredConsumerEndpointId, $this->messageHandlerBuilders) && ! array_key_exists($requiredConsumerEndpointId, $this->channelAdapters)) {
@@ -601,29 +593,6 @@ final class MessagingSystemConfiguration implements Configuration
         $this->beforeCallMethodInterceptors = [];
         $this->aroundMethodInterceptors = [];
         $this->afterCallMethodInterceptors = [];
-    }
-
-    private function addDefaultPollingConfiguration($endpointId): void
-    {
-        $pollingMetadata = PollingMetadata::create((string)$endpointId);
-        if (array_key_exists($endpointId, $this->pollingMetadata)) {
-            $pollingMetadata = $this->pollingMetadata[$endpointId];
-        }
-
-        if ($this->applicationConfiguration->getDefaultErrorChannel() && $pollingMetadata->isErrorChannelEnabled() && ! $pollingMetadata->getErrorChannelName()) {
-            $pollingMetadata = $pollingMetadata
-                ->setErrorChannelName($this->applicationConfiguration->getDefaultErrorChannel());
-        }
-        if ($this->applicationConfiguration->getDefaultMemoryLimitInMegabytes() && ! $pollingMetadata->getMemoryLimitInMegabytes()) {
-            $pollingMetadata = $pollingMetadata
-                ->setMemoryLimitInMegaBytes($this->applicationConfiguration->getDefaultMemoryLimitInMegabytes());
-        }
-        if ($this->applicationConfiguration->getConnectionRetryTemplate() && ! $pollingMetadata->getConnectionRetryTemplate()) {
-            $pollingMetadata = $pollingMetadata
-                ->setConnectionRetryTemplate($this->applicationConfiguration->getConnectionRetryTemplate());
-        }
-
-        $this->pollingMetadata[$endpointId] = $pollingMetadata;
     }
 
     private function hasMessageHandlerWithName(PollingMetadata $pollingMetadata): bool
@@ -1058,7 +1027,7 @@ final class MessagingSystemConfiguration implements Configuration
     {
         $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
 
-        $messagingBuilder = new MessagingContainerBuilder($builder, $this->interfaceToCallRegistry, $this->applicationConfiguration);
+        $messagingBuilder = new MessagingContainerBuilder($builder, $this->interfaceToCallRegistry, $this->applicationConfiguration, $this->pollingMetadata);
 
         foreach ($this->serviceDefinitions as $id => $definition) {
             $messagingBuilder->register($id, $definition);
@@ -1080,10 +1049,6 @@ final class MessagingSystemConfiguration implements Configuration
             foreach ($channelInterceptors as $channelInterceptor) {
                 $channelInterceptorsByChannelName[$channelInterceptor->relatedChannelName()][] = $channelInterceptor;
             }
-        }
-
-        foreach ($this->pollingMetadata as $pollingMetadata) {
-            $messagingBuilder->register(new PollingMetadataReference($pollingMetadata->getEndpointId()), $pollingMetadata);
         }
 
         foreach ($this->channelBuilders as $channelsBuilder) {

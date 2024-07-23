@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut\PointcutParser;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -21,16 +21,8 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 class Pointcut
 {
-    private ?PointcutExpression $parsedExpression;
-
-    private function __construct(?string $expression)
+    private function __construct(private ?PointcutExpression $parsedExpression)
     {
-        if (\is_null($expression) || $expression === '') {
-            $this->parsedExpression = null;
-        } else {
-            $parser = new PointcutParser($expression);
-            $this->parsedExpression = $parser->parse();
-        }
     }
 
     /**
@@ -40,7 +32,12 @@ class Pointcut
      */
     public static function createWith(string $expression): self
     {
-        return new self($expression);
+        if (\is_null($expression) || $expression === '') {
+            return new self(null);
+        } else {
+            $parser = new PointcutParser($expression);
+            return new self($parser->parse());
+        }
     }
 
     public static function initializeFrom(InterfaceToCall $interfaceToCall, array $parameterConverters): self

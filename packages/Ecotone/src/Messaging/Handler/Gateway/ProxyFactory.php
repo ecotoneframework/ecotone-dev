@@ -72,7 +72,7 @@ class ProxyFactory
         return self::getFullClassNameFor($proxyReference);
     }
 
-    private function isLoaded(GatewayProxyReference $proxyReference): bool
+    private static function isLoaded(GatewayProxyReference $proxyReference): bool
     {
         return class_exists(self::getFullClassNameFor($proxyReference), false);
     }
@@ -96,7 +96,7 @@ class ProxyFactory
         return \str_replace("\\", "_", $proxyReference->getInterfaceName());
     }
 
-    private function getFullClassNameFor(GatewayProxyReference $proxyReference): string
+    private static function getFullClassNameFor(GatewayProxyReference $proxyReference): string
     {
         return self::PROXY_NAMESPACE . "\\" . self::getClassNameFor($proxyReference);
     }

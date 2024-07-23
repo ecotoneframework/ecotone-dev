@@ -69,31 +69,37 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
     {
         $returnValueType = TypeDescriptor::createFromVariable($result);
         $returnType = $this->returnType;
-        if (! $returnType->isUnionType()) {
-            return $returnValueType;
-        }
-
-        /** @var UnionTypeDescriptor $returnType */
-        foreach ($returnType->getUnionTypes() as $type) {
-            if ($type->equals($returnValueType)) {
-                return $type;
+        if ($returnType->isUnionType()) {
+            /** @var UnionTypeDescriptor $returnType */
+            $foundUnionType = null;
+            foreach ($returnType->getUnionTypes() as $type) {
+                if ($type->equals($returnValueType)) {
+                    $foundUnionType = $type;
+                    break;
+                }
             }
-        }
-        foreach ($returnType->getUnionTypes() as $type) {
-            if ($type->isCompatibleWith($returnValueType)) {
-                if ($type->isCollection()) {
-                    $collectionOf = $type->resolveGenericTypes();
-                    $firstKey = array_key_first($result);
-                    if (count($collectionOf) === 1 && ! is_null($firstKey)) {
-                        if (! $collectionOf[0]->isCompatibleWith(TypeDescriptor::createFromVariable($result[$firstKey]))) {
-                            continue;
+            if (! $foundUnionType) {
+                foreach ($returnType->getUnionTypes() as $type) {
+                    if ($type->isCompatibleWith($returnValueType)) {
+                        if ($type->isCollection()) {
+                            $collectionOf = $type->resolveGenericTypes();
+                            $firstKey = array_key_first($result);
+                            if (count($collectionOf) === 1 && ! is_null($firstKey)) {
+                                if (! $collectionOf[0]->isCompatibleWith(TypeDescriptor::createFromVariable($result[$firstKey]))) {
+                                    continue;
+                                }
+                            }
                         }
+                        $foundUnionType = $type;
+                        break;
                     }
                 }
-                return $type;
             }
+
+            $returnType = $foundUnionType ?? $returnValueType;
         }
-        return $returnValueType;
+
+        return $returnType;
     }
 
     public function getMethodCall(Message $message): MethodCall

@@ -112,7 +112,7 @@ class PointcutParser
             if (TypeDescriptor::isItTypeOfExistingClassOrInterface($token)) {
                 $classDefinition = ClassDefinition::createFor(TypeDescriptor::create($token));
                 if ($classDefinition->isAnnotation()) {
-                    return new PointcutAttributeExpression($classDefinition);
+                    return new PointcutAttributeExpression($classDefinition->getClassType());
                 } else {
                     return new PointcutInterfaceExpression($classDefinition);
                 }

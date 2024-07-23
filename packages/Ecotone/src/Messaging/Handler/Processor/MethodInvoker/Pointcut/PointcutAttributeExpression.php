@@ -10,28 +10,22 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 
 class PointcutAttributeExpression implements PointcutExpression
 {
-
-    public function __construct(private ClassDefinition $classDefinition)
+    public function __construct(private TypeDescriptor $typeDescriptor)
     {
-        if (! $classDefinition->isAnnotation()) {
-            throw InvalidArgumentException::create("Pointcut must be an attribute. Got {$classDefinition->getClassType()->toString()}");
-        }
     }
 
     public function doesItCutWith(array $endpointAnnotations, InterfaceToCall $interfaceToCall): bool
     {
-        $annotationToCheck = $this->classDefinition->getClassType();
-
         foreach ($endpointAnnotations as $endpointAnnotation) {
             $endpointType = TypeDescriptor::createFromVariable($endpointAnnotation);
 
-            if ($endpointType->equals($annotationToCheck)) {
+            if ($endpointType->equals($this->typeDescriptor)) {
                 return true;
             }
         }
 
-        if ($interfaceToCall->hasMethodAnnotation($annotationToCheck)
-            || $interfaceToCall->hasClassAnnotation($annotationToCheck)) {
+        if ($interfaceToCall->hasMethodAnnotation($this->typeDescriptor)
+            || $interfaceToCall->hasClassAnnotation($this->typeDescriptor)) {
             return true;
         }
 

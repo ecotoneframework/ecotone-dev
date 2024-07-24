@@ -117,7 +117,6 @@
         "ext-amqp": "*",
         "laminas/laminas-code": "^4",
         "jms/serializer": "^3.17",
-        "laminas/laminas-zendframework-bridge": "^1.0.0",
         "laravel/framework": "^9.5.2|^10.0|^11.0",
         "prooph/pdo-event-store": "^1.15.1",
         "psr/log": "^2.0|^3.0",

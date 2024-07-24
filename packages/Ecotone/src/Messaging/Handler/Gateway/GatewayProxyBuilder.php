@@ -22,6 +22,7 @@ use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
+use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadConverter;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadExpressionBuilder;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
@@ -71,7 +72,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
      */
     private array $messageConverterReferenceNames = [];
     /**
-     * @var AroundInterceptorReference[]
+     * @var AroundInterceptorBuilder[]
      */
     private array $aroundInterceptors = [];
     /**
@@ -223,7 +224,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     }
 
     /**
-     * @param AroundInterceptorReference $aroundInterceptorReference
      * @return $this
      */
     public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): self
@@ -361,12 +361,19 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             $messageConverters[] = new Reference($messageConverterReferenceName);
         }
 
+        if (empty($methodArgumentConverters) && $interfaceToCall->hasMoreThanOneParameter()) {
+            throw InvalidArgumentException::create("You need to pass method argument converts for {$interfaceToCall}");
+        }
+
+        if (empty($methodArgumentConverters) && $interfaceToCall->hasSingleParameter()) {
+            $methodArgumentConverters = [GatewayPayloadConverter::create($interfaceToCall->getFirstParameter())];
+        }
+
         $internalHandlerReference = $this->compileGatewayInternalHandler($builder);
 
         return new Definition(Gateway::class, [
             $interfaceToCallReference,
             new Definition(MethodCallToMessageConverter::class, [
-                $interfaceToCallReference,
                 $methodArgumentConverters,
             ]),
             $messageConverters,

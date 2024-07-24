@@ -176,10 +176,16 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
 
     private function callStateBasedAggregateServiceDefinition(array $compiledMethodParameterConverters, array $interceptors): Definition
     {
-        return new Definition(CallStateBasedAggregateService::class, [
-            InterfaceToCallReference::fromInstance($this->interfaceToCall),
+        $aggregateMethodInvoker = new Definition(AggregateMethodInvoker::class, [
+            $this->interfaceToCall->getInterfaceName(),
+            $this->interfaceToCall->getMethodName(),
+            $this->interfaceToCall->getInterfaceParametersNames(),
             $compiledMethodParameterConverters,
             $interceptors,
+        ]);
+        return new Definition(CallStateBasedAggregateService::class, [
+            $aggregateMethodInvoker,
+            $this->interfaceToCall->getReturnType(),
             $this->isCommandHandler,
         ]);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use function array_merge;
 
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
@@ -31,7 +32,6 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Precedence;
-use InvalidArgumentException;
 
 /**
  * licence Apache-2.0
@@ -202,12 +202,16 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
                 $converterDefinitions[] = ReferenceBuilder::create($parameter->getName(), $parameter->getTypeHint())->compile($interceptingInterface);
                 continue;
             }
-            throw new InvalidArgumentException("Can't build around interceptor for {$this->interfaceToCall} because can't find converter for parameter {$parameter}");
+            throw InvalidArgumentException::create("Can't build around interceptor for {$this->interfaceToCall} because can't find converter for parameter {$parameter}");
+        }
+
+        if ($this->interfaceToCall->canReturnValue() && ! $hasMethodInvocation) {
+            throw InvalidArgumentException::create("Trying to register {$this->interfaceToCall} as Around Advice which can return value, but doesn't control invocation using " . MethodInvocation::class . '. Have you wanted to register Before/After Advice or forgot to type hint MethodInvocation?');
         }
 
         return new Definition(AroundMethodInterceptor::class, [
             $this->directObject ?: new Reference($this->referenceName),
-            InterfaceToCallReference::fromInstance($this->interfaceToCall),
+            $this->interfaceToCall->getMethodName(),
             $converterDefinitions,
             $hasMethodInvocation,
         ]);

@@ -6,9 +6,7 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\NonProxyGateway;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\MessageConverter;
@@ -68,7 +66,7 @@ class Gateway implements NonProxyGateway
             }
         }
 
-        $canReturnValue = ! $this->returnType->isVoid();
+        $canReturnValue = $this->returnType?->isVoid() === false;
 
         $previousReplyChannel = $requestMessage->containsKey(MessageHeaders::REPLY_CHANNEL) ? $requestMessage->getHeaderWithName(MessageHeaders::REPLY_CHANNEL) : null;
         $replyContentType = $requestMessage->containsKey(MessageHeaders::REPLY_CONTENT_TYPE) ? MediaType::parseMediaType($requestMessage->getHeaderWithName(MessageHeaders::REPLY_CONTENT_TYPE)) : null;
@@ -87,7 +85,7 @@ class Gateway implements NonProxyGateway
         $this->gatewayInternalHandler->handle($requestMessage);
         $replyMessage = $internalReplyBridge ? $internalReplyBridge->receive() : null;
         if (! is_null($replyMessage) && $canReturnValue) {
-            if ($replyContentType !== null || ! ($this->returnType->isAnything() || $this->returnType->isMessage())) {
+            if ($replyContentType !== null || ! ($this->returnType?->isAnything() || $this->returnType?->isMessage())) {
                 $reply = $this->gatewayReplyConverter->convert($replyMessage, $replyContentType);
                 if (! ($reply instanceof Message)) {
                     $replyMessage = MessageBuilder::fromMessage($replyMessage)
@@ -100,7 +98,7 @@ class Gateway implements NonProxyGateway
         }
 
         if ($replyMessage) {
-            if ($this->returnType->isClassOfType(Message::class)) {
+            if ($this->returnType?->isClassOfType(Message::class)) {
                 if ($previousReplyChannel) {
                     return MessageBuilder::fromMessage($replyMessage)
                         ->setReplyChannel($previousReplyChannel)

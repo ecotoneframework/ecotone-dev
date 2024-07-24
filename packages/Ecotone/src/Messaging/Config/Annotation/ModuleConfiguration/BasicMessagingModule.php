@@ -12,7 +12,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\Me
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\EnterpriseLicenceDecider;
+use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -216,7 +216,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         );
 
         $messagingConfiguration->registerServiceDefinition(PollingMetadataConverter::class, new Definition(PollingMetadataConverter::class));
-        $messagingConfiguration->registerServiceDefinition(EnterpriseLicenceDecider::class, new Definition(EnterpriseLicenceDecider::class, [$serviceConfiguration->hasEnterpriseLicence()]));
+        $messagingConfiguration->registerServiceDefinition(LicenceDecider::class, new Definition(LicenceDecider::class, [$serviceConfiguration->hasEnterpriseLicence()]));
     }
 
     /**

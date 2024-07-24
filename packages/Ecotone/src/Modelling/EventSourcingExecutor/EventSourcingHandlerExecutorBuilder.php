@@ -5,7 +5,7 @@ namespace Ecotone\Modelling\EventSourcingExecutor;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\EnterpriseLicenceDecider;
+use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -22,7 +22,7 @@ final class EventSourcingHandlerExecutorBuilder
             return new Definition($classDefinition->getClassType()->toString(), [
                 $classDefinition->getClassType()->toString(),
                 [],
-                EnterpriseLicenceDecider::prepareDefinition(AggregateMethodInvoker::class, Reference::to(OpenCoreAggregateMethodInvoker::class), Reference::to(EnterpriseAggregateMethodInvoker::class)),
+                LicenceDecider::prepareDefinition(AggregateMethodInvoker::class, Reference::to(OpenCoreAggregateMethodInvoker::class), Reference::to(EnterpriseAggregateMethodInvoker::class)),
             ]);
         }
 
@@ -73,7 +73,7 @@ final class EventSourcingHandlerExecutorBuilder
         return new Definition(EventSourcingHandlerExecutor::class, [
             $classDefinition->getClassType()->toString(),
             $eventSourcingHandlerMethods,
-            EnterpriseLicenceDecider::prepareDefinition(AggregateMethodInvoker::class, Reference::to(OpenCoreAggregateMethodInvoker::class), Reference::to(EnterpriseAggregateMethodInvoker::class)),
+            LicenceDecider::prepareDefinition(AggregateMethodInvoker::class, Reference::to(OpenCoreAggregateMethodInvoker::class), Reference::to(EnterpriseAggregateMethodInvoker::class)),
         ]);
     }
 }

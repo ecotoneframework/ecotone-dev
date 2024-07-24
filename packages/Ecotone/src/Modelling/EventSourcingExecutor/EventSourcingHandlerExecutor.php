@@ -2,7 +2,7 @@
 
 namespace Ecotone\Modelling\EventSourcingExecutor;
 
-use Ecotone\Messaging\Config\EnterpriseLicenceDecider;
+use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\TypeDescriptor;

@@ -18,7 +18,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
  * Therefore to make us of those features you've to obtain a licence.
  * For more details contact us at: sales@simplycodedsoftware.com
  */
-final class EnterpriseLicenceDecider
+final class LicenceDecider
 {
     public function __construct(private bool $isOnEnterpriseLicence)
     {
@@ -53,11 +53,11 @@ final class EnterpriseLicenceDecider
                 $openCoreService,
                 $enterpriseService
             ],
-            factory: [self::class, "create"]
+            factory: [self::class, "decide"]
         );
     }
 
-    public static function create(self $enterpriseModeDecider, object $openCoreService, object $enterpriseService): object
+    public static function decide(self $enterpriseModeDecider, object $openCoreService, object $enterpriseService): object
     {
         if ($enterpriseModeDecider->hasEnterpriseLicence()) {
             return $enterpriseService;

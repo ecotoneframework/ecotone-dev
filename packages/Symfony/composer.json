@@ -47,6 +47,9 @@
         "wikimedia/composer-merge-plugin": "^2.1",
         "ecotone/dbal": "~1.225.0"
     },
+    "conflict": {
+        "symfony/proxy-manager-bridge": "<5.4.0"
+    },
     "config": {
         "sort-packages": true,
         "allow-plugins": {

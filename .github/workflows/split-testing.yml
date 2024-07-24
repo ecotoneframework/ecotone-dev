@@ -107,11 +107,6 @@ jobs:
         run: composer global config --no-interaction allow-plugins.wikimedia/composer-merge-plugin true && composer global require wikimedia/composer-merge-plugin
         working-directory: ${{ matrix.package.directory }}
 
-      - name: Install laminas/laminas-zendframework-bridge if necessary
-        working-directory: ${{ matrix.package.directory }}
-        if: "matrix.stability == 'prefer-lowest' &&  matrix.package.name == 'symfony-bundle'"
-        run: composer require laminas/laminas-zendframework-bridge:^1.0.0 --no-interaction --no-update
-
       - name: Install dependencies
         run: composer update  --${{ matrix.stability }} --no-interaction
         working-directory: ${{ matrix.package.directory }}

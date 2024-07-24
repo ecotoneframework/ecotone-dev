@@ -162,7 +162,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
 
         $compiledMethodParameterConverters = [];
         foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
-            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $interfaceToCall, $interfaceToCall->getInterfaceParameters()[$index]);
+            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($interfaceToCall);
         }
 
         $methodInvokerDefinition = new Definition(TransformerMessageProcessor::class, [

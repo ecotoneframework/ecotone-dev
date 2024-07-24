@@ -108,4 +108,14 @@ abstract class EventSourcingMessagingTestCase extends TestCase
             self::getSchemaManager($connection)->dropTable($tableName);
         }
     }
+
+    /**
+     * @dataProvider enterpriseMode
+     * @return iterable<string, array>
+     */
+    public static function enterpriseMode(): iterable
+    {
+        yield 'Open Core' => [false];
+        yield 'Enterprise' => [true];
+    }
 }

@@ -12,8 +12,10 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\Me
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverterBuilder;
 use Ecotone\Messaging\Conversion\SerializedToObject\DeserializingConverterBuilder;
@@ -36,6 +38,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PollingMetadataConverter;
 use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -61,6 +64,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof ChannelInterceptorBuilder) {
                 $messagingConfiguration->registerChannelInterceptor($extensionObject);
@@ -206,6 +210,9 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
                 ]
             )
         );
+
+        $messagingConfiguration->registerServiceDefinition(PollingMetadataConverter::class, new Definition(PollingMetadataConverter::class));
+        $messagingConfiguration->registerServiceDefinition(LicenceDecider::class, new Definition(LicenceDecider::class, [$serviceConfiguration->hasEnterpriseLicence()]));
     }
 
     /**
@@ -224,7 +231,9 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
             ||
             $extensionObject instanceof ChannelAdapterConsumerBuilder
             ||
-            $extensionObject instanceof PollingMetadata;
+            $extensionObject instanceof PollingMetadata
+            ||
+            $extensionObject instanceof ServiceConfiguration;
     }
 
     public function getModulePackageName(): string

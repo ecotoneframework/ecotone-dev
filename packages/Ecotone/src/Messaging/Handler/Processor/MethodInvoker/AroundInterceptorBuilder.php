@@ -152,7 +152,7 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
         foreach ($interceptingInterface->getInterfaceParameters() as $parameter) {
             foreach ($alreadyResolvedParameterConverters as $parameterConverter) {
                 if ($parameterConverter->isHandling($parameter)) {
-                    $converterDefinitions[] = $parameterConverter->compile($builder, $interceptingInterface);
+                    $converterDefinitions[] = $parameterConverter->compile($interceptingInterface);
                     if ($parameterConverter instanceof PayloadConverter) {
                         $hasPayloadConverter = true;
                     }
@@ -169,7 +169,7 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
                 continue;
             }
             if ($attributeBuilder = MethodArgumentsFactory::getAnnotationValueConverter($parameter, $interceptedInterface, $endpointAnnotations)) {
-                $converterDefinitions[] = $attributeBuilder->compile($builder, $interceptingInterface, $parameter);
+                $converterDefinitions[] = $attributeBuilder->compile($interceptingInterface);
                 continue;
             }
             if ($parameter->canBePassedIn(TypeDescriptor::create(Message::class))) {
@@ -183,7 +183,7 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
             }
 
             if ($parameter->canBePassedIn(TypeDescriptor::create(PollingMetadata::class))) {
-                $converterDefinitions[] = (new PollingMetadataConverterBuilder($parameter->getName()))->compile($builder, $interceptingInterface, $parameter);
+                $converterDefinitions[] = (new PollingMetadataConverterBuilder($parameter->getName()))->compile($interceptingInterface);
                 continue;
             }
 
@@ -192,14 +192,14 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
                 continue;
             }
             if (! $hasPayloadConverter) {
-                $converterDefinitions[] = PayloadBuilder::create($parameter->getName())->compile($builder, $interceptingInterface);
+                $converterDefinitions[] = PayloadBuilder::create($parameter->getName())->compile($interceptingInterface);
                 $hasPayloadConverter = true;
                 continue;
             } elseif ($parameter->getTypeDescriptor()->isArrayButNotClassBasedCollection()) {
-                $converterDefinitions[] = AllHeadersBuilder::createWith($parameter->getName())->compile($builder, $interceptingInterface);
+                $converterDefinitions[] = AllHeadersBuilder::createWith($parameter->getName())->compile($interceptingInterface);
                 continue;
             } elseif ($parameter->getTypeDescriptor()->isClassOrInterface()) {
-                $converterDefinitions[] = ReferenceBuilder::create($parameter->getName(), $parameter->getTypeHint())->compile($builder, $interceptingInterface);
+                $converterDefinitions[] = ReferenceBuilder::create($parameter->getName(), $parameter->getTypeHint())->compile($interceptingInterface);
                 continue;
             }
             throw new InvalidArgumentException("Can't build around interceptor for {$this->interfaceToCall} because can't find converter for parameter {$parameter}");

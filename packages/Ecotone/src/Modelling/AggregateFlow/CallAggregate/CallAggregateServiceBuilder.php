@@ -22,7 +22,7 @@ use Ecotone\Modelling\Attribute\AggregateEvents;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
-use Ecotone\Modelling\EventSourcingHandlerExecutor;
+use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 /**
@@ -39,7 +39,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
      * @var bool
      */
     private bool $isCommandHandler;
-    private EventSourcingHandlerExecutor $eventSourcingHandlerExecutor;
+    private Definition $eventSourcingHandlerExecutor;
     private ?string $aggregateMethodWithEvents;
     private ?string $aggregateVersionProperty;
     private bool $isEventSourced = false;
@@ -91,7 +91,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         }
 
         $this->interfaceToCall = $interfaceToCall;
-        $this->eventSourcingHandlerExecutor = EventSourcingHandlerExecutor::createFor($aggregateClassDefinition, $this->isEventSourced, $interfaceToCallRegistry);
+        $this->eventSourcingHandlerExecutor = EventSourcingHandlerExecutorBuilder::createFor($aggregateClassDefinition, $this->isEventSourced, $interfaceToCallRegistry);
         $isFactoryMethod = $this->interfaceToCall->isFactoryMethod();
         if (! $this->isEventSourced && $isFactoryMethod) {
             Assert::isTrue($this->interfaceToCall->getReturnType()->isClassNotInterface(), "Factory method {$this->interfaceToCall} for standard aggregate should return object. Did you wanted to register Event Sourced Aggregate?");
@@ -135,7 +135,7 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
 
         $compiledMethodParameterConverters = [];
         foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
-            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($builder, $this->interfaceToCall, $this->interfaceToCall->getInterfaceParameters()[$index]);
+            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($this->interfaceToCall);
         }
 
         if ($this->isEventSourced) {

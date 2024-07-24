@@ -18,11 +18,8 @@ class PollingMetadataConverterBuilder implements ParameterConverterBuilder
     {
     }
 
-    public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Reference
+    public function compile(InterfaceToCall $interfaceToCall): Reference
     {
-        if (! $builder->has(PollingMetadataConverter::class)) {
-            $builder->register(PollingMetadataConverter::class, new Definition(PollingMetadataConverter::class));
-        }
         return new Reference(PollingMetadataConverter::class);
     }
 

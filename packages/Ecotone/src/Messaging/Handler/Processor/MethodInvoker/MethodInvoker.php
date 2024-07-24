@@ -26,7 +26,7 @@ final class MethodInvoker implements MessageProcessor
      * @throws InvalidArgumentException
      * @throws MessagingException
      */
-    public function __construct(private object|string $objectToInvokeOn, private string $objectMethodName, private array $methodParameterConverters, private array $methodParameterNames, private bool $canInterceptorReplaceArguments)
+    public function __construct(private object|string $objectToInvokeOn, private string $objectMethodName, private array $methodParameterConverters, private array $methodParameterNames, private bool $canInterceptorReplaceArguments = false)
     {
         Assert::allInstanceOfType($methodParameterConverters, ParameterConverter::class);
     }

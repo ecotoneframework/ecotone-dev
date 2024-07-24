@@ -35,7 +35,7 @@ class PayloadBuilder implements ParameterConverterBuilder
         return new self($parameterName);
     }
 
-    public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Definition
+    public function compile(InterfaceToCall $interfaceToCall): Definition
     {
         $interfaceParameter = $interfaceToCall->getParameterWithName($this->parameterName);
         return new Definition(PayloadConverter::class, [

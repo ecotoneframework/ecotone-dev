@@ -44,7 +44,7 @@ class PayloadExpressionBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
-    public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Definition
+    public function compile(InterfaceToCall $interfaceToCall): Definition
     {
         return new Definition(PayloadExpressionConverter::class, [
             new Reference(ExpressionEvaluationService::REFERENCE),

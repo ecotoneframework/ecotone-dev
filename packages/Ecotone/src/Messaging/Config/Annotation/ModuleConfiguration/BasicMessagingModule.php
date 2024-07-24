@@ -88,10 +88,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         $messagingConfiguration->registerConverter(new DeserializingConverterBuilder());
 
         $messagingConfiguration
-            ->registerInternalGateway(TypeDescriptor::create(InboundGatewayEntrypoint::class))
-            ->registerInternalGateway(TypeDescriptor::create(EnrichGateway::class));
-
-        $messagingConfiguration
             ->registerMessageHandler(
                 RouterBuilder::create(
                     new Definition(HeaderRouter::class, [MessagingEntrypoint::ENTRYPOINT]),

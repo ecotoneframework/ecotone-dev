@@ -125,12 +125,6 @@ interface Configuration extends CompilerPass
     public function registerConsoleCommand(ConsoleCommandConfiguration $consoleCommandConfiguration): Configuration;
 
     /**
-     * @param Type $interfaceName
-     * @return Configuration
-     */
-    public function registerInternalGateway(Type $interfaceName): Configuration;
-
-    /**
      * @param CompilableBuilder $converterBuilder
      * @return Configuration
      */

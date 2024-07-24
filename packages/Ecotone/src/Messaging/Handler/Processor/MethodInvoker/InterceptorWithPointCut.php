@@ -24,7 +24,7 @@ interface InterceptorWithPointCut
      */
     public function hasName(string $name): bool;
 
-    public function doesItCutWith(InterfaceToCall $interfaceToCall, iterable $endpointAnnotations, InterfaceToCallRegistry $interfaceToCallRegistry): bool;
+    public function doesItCutWith(InterfaceToCall $interfaceToCall, iterable $endpointAnnotations): bool;
 
     /**
      * @param InterfaceToCall $interceptedInterface

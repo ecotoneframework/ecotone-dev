@@ -305,14 +305,12 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     public function registerProxy(MessagingContainerBuilder $builder): Reference
     {
         $gateway = $this->compile($builder);
-        $builder->register('gateway.'.$this->getReferenceName().'::'.$this->getRelatedMethodName(), $gateway);
+        $builder->register($this->getProxyMethodReference(), $gateway);
         if (! $builder->has($this->getReferenceName())) {
-            $builder->register($this->getReferenceName(), new Definition($this->getInterfaceName(), [
+            $builder->register(
                 $this->getReferenceName(),
-                new Reference(ConfiguredMessagingSystem::class),
-                $this->getInterfaceName(),
-                new Reference(ServiceCacheConfiguration::REFERENCE_NAME),
-            ], [ProxyFactory::class, 'createFor']));
+                ProxyFactory::getGatewayProxyDefinitionFor(new GatewayProxyReference($this->referenceName, $this->interfaceName))
+            );
         }
 
         return new Reference($this->getReferenceName());

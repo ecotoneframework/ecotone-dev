@@ -24,14 +24,11 @@ class CacheWarmer implements CacheWarmerInterface
 
     public function warmUp(string $cacheDir, string $buildDir = null): array
     {
+        $files = [];
         foreach ($this->configuredMessagingSystem->getGatewayList() as $gatewayReference) {
-            $this->proxyFactory->createWithCurrentConfiguration(
-                $gatewayReference->getReferenceName(),
-                $this->configuredMessagingSystem,
-                $gatewayReference->getInterfaceName()
-            );
+            $files[] = $this->proxyFactory->generateCachedProxyFileFor($gatewayReference,true);
         }
 
-        return [];
+        return $files;
     }
 }

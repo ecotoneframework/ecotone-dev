@@ -13,17 +13,15 @@
         }
     },
     "require": {
-        "ecotone/lite-dbal-starter": "^1.0.1",
         "ecotone/laravel-starter": "^1.1.0",
+        "ecotone/lite-dbal-starter": "^1.0.1",
         "laravel/laravel": "^10.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.5",
-        "doctrine/orm": "^2.0|^3.0",
-        "wikimedia/composer-merge-plugin": "^2.0"
+        "doctrine/orm": "^2.11|^3.0",
+        "phpunit/phpunit": "^9.6",
+        "wikimedia/composer-merge-plugin": "^2.1"
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "config": {
         "sort-packages": true,
         "allow-plugins": {
@@ -36,5 +34,7 @@
                 "../../../../packages/local_packages.json"
             ]
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

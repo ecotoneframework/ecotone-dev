@@ -86,7 +86,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     {
         foreach (self::getSchemaManager($connection)->listTableNames() as $tableNames) {
             $sql = 'DROP TABLE ' . $tableNames;
-            $connection->prepare($sql)->executeStatement();
+            $connection->executeQuery($sql);
         }
     }
 
@@ -98,7 +98,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     private static function deleteFromTableExists(string $tableName, Connection $connection): void
     {
         if (self::tableExists($connection, $tableName)) {
-            $connection->executeStatement('DELETE FROM ' . $tableName);
+            $connection->executeQuery('DELETE FROM ' . $tableName);
         }
     }
 

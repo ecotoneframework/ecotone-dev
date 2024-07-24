@@ -16,11 +16,9 @@
         "ecotone/lite-event-sourcing-starter": "^1.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.5",
-        "wikimedia/composer-merge-plugin": "^2.0"
+        "phpunit/phpunit": "^9.6",
+        "wikimedia/composer-merge-plugin": "^2.1"
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "config": {
         "sort-packages": true,
         "allow-plugins": {
@@ -33,5 +31,7 @@
                 "../../packages/local_packages.json"
             ]
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

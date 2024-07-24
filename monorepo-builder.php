@@ -30,7 +30,7 @@ return static function (MBConfig $containerConfigurator): void {
             "friendsofphp/php-cs-fixer" => "^3.9",
             "php-coveralls/php-coveralls" => "^2.5",
             "phpstan/phpstan" => "^1.8",
-            "phpunit/phpunit" => "^9.5",
+            "phpunit/phpunit" => "^9.6",
             "symfony/expression-language" => "^6.0|^7.0",
             "symplify/monorepo-builder" => "11.1.21"
         ],

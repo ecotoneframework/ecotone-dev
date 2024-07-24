@@ -38,10 +38,10 @@
         "open-telemetry/sdk": "^1.0.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.5",
+        "phpunit/phpunit": "^9.6",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
-        "wikimedia/composer-merge-plugin": "^2.0",
+        "wikimedia/composer-merge-plugin": "^2.1",
         "open-telemetry/transport-grpc": "^1.0.0",
         "open-telemetry/exporter-otlp": "^1.0.0",
         "symfony/http-client": "^5.4|^6.2|7.0",

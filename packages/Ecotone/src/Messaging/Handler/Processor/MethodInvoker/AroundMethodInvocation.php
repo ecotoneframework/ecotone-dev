@@ -45,18 +45,26 @@ class AroundMethodInvocation implements MethodInvocation
      */
     public function proceed(): mixed
     {
-        /** @var AroundMethodInterceptor $aroundMethodInterceptor */
-        $aroundMethodInterceptor = $this->aroundMethodInterceptors->current();
-        $this->aroundMethodInterceptors->next();
+        do {
+            /** @var AroundMethodInterceptor $aroundMethodInterceptor */
+            $aroundMethodInterceptor = $this->aroundMethodInterceptors->current();
+            $this->aroundMethodInterceptors->next();
 
-        if (! $aroundMethodInterceptor) {
-            return $this->interceptedMessageProcessor->executeEndpoint($this->requestMessage);
-        }
+            if (! $aroundMethodInterceptor) {
+                return $this->interceptedMessageProcessor->executeEndpoint($this->requestMessage);
+            }
 
-        return $aroundMethodInterceptor->invoke(
-            $this,
-            $this->requestMessage
-        );
+            $arguments = $aroundMethodInterceptor->getArguments(
+                $this,
+                $this->requestMessage
+            );
+            $referenceToCall = $aroundMethodInterceptor->getReferenceToCall();
+            $methodName = $aroundMethodInterceptor->getMethodName();
+
+            $returnValue = $referenceToCall->{$methodName}(...$arguments);
+        } while (! $aroundMethodInterceptor->hasMethodInvocation());
+
+        return $returnValue;
     }
 
     /**

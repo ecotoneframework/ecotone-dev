@@ -3,7 +3,6 @@
 namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -18,11 +17,9 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Attribute\AggregateEvents;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
-use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 /**
@@ -39,11 +36,8 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
      * @var bool
      */
     private bool $isCommandHandler;
-    private Definition $eventSourcingHandlerExecutor;
-    private ?string $aggregateMethodWithEvents;
     private ?string $aggregateVersionProperty;
     private bool $isEventSourced = false;
-    private bool $isReturningAggregate = false;
 
     private function __construct(ClassDefinition $aggregateClassDefinition, string $methodName, bool $isCommandHandler, InterfaceToCallRegistry $interfaceToCallRegistry)
     {
@@ -55,20 +49,6 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     private function initialize(ClassDefinition $aggregateClassDefinition, string $methodName, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $interfaceToCall = $interfaceToCallRegistry->getFor($aggregateClassDefinition->getClassType()->toString(), $methodName);
-
-        $this->isReturningAggregate = $interfaceToCall->isReturningAggregate($interfaceToCallRegistry);
-
-        $aggregateMethodWithEvents    = null;
-        $aggregateEventsAnnotation = TypeDescriptor::create(AggregateEvents::class);
-        foreach ($aggregateClassDefinition->getPublicMethodNames() as $method) {
-            $methodToCheck = $interfaceToCallRegistry->getFor($aggregateClassDefinition->getClassType()->toString(), $method);
-
-            if ($methodToCheck->hasMethodAnnotation($aggregateEventsAnnotation)) {
-                $aggregateMethodWithEvents = $method;
-                break;
-            }
-        }
-        $this->aggregateMethodWithEvents = $aggregateMethodWithEvents;
 
         $eventSourcedAggregateAnnotation = TypeDescriptor::create(EventSourcingAggregate::class);
         $eventSourcedSagaAnnotation = TypeDescriptor::create(EventSourcingSaga::class);
@@ -91,7 +71,6 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         }
 
         $this->interfaceToCall = $interfaceToCall;
-        $this->eventSourcingHandlerExecutor = EventSourcingHandlerExecutorBuilder::createFor($aggregateClassDefinition, $this->isEventSourced, $interfaceToCallRegistry);
         $isFactoryMethod = $this->interfaceToCall->isFactoryMethod();
         if (! $this->isEventSourced && $isFactoryMethod) {
             Assert::isTrue($this->interfaceToCall->getReturnType()->isClassNotInterface(), "Factory method {$this->interfaceToCall} for standard aggregate should return object. Did you wanted to register Event Sourced Aggregate?");
@@ -165,28 +144,30 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     private function callEventSourcedAggregateServiceDefinition(array $compiledMethodParameterConverters, array $interceptors): Definition
     {
         return new Definition(CallEventSourcingAggregateService::class, [
-            InterfaceToCallReference::fromInstance($this->interfaceToCall),
-            $compiledMethodParameterConverters,
-            $interceptors,
+            $this->compileAggregateMethodInvoker($compiledMethodParameterConverters, $interceptors),
             new Reference(PropertyReaderAccessor::class),
-            $this->isCommandHandler,
+            $this->interfaceToCall->isFactoryMethod() ?? false,
             $this->aggregateVersionProperty,
         ]);
     }
 
     private function callStateBasedAggregateServiceDefinition(array $compiledMethodParameterConverters, array $interceptors): Definition
     {
-        $aggregateMethodInvoker = new Definition(AggregateMethodInvoker::class, [
+        return new Definition(CallStateBasedAggregateService::class, [
+            $this->compileAggregateMethodInvoker($compiledMethodParameterConverters, $interceptors),
+        ]);
+    }
+
+    private function compileAggregateMethodInvoker(array $compiledMethodParameterConverters, array $interceptors): Definition
+    {
+        return new Definition(AggregateMethodInvoker::class, [
             $this->interfaceToCall->getInterfaceName(),
             $this->interfaceToCall->getMethodName(),
+            $this->interfaceToCall->getReturnType(),
             $this->interfaceToCall->getInterfaceParametersNames(),
+            $this->isCommandHandler,
             $compiledMethodParameterConverters,
             $interceptors,
-        ]);
-        return new Definition(CallStateBasedAggregateService::class, [
-            $aggregateMethodInvoker,
-            $this->interfaceToCall->getReturnType(),
-            $this->isCommandHandler,
         ]);
     }
 }

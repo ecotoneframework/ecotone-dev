@@ -24,16 +24,27 @@ class MethodCallToMessageConverter
 {
     /**
      * @param array|GatewayParameterConverter[] $methodArgumentConverters
+     * @param string[] $parameterNames
      */
-    public function __construct(private array $methodArgumentConverters)
+    public function __construct(private array $methodArgumentConverters, private array $parameterNames)
     {
         Assert::allInstanceOfType($methodArgumentConverters, GatewayParameterConverter::class);
+    }
+
+    public function convert(array $methodArgumentValues): MessageBuilder
+    {
+        $methodArguments = [];
+        for ($index = 0; $index < count($methodArgumentValues); $index++) {
+            $methodValue = $methodArgumentValues[$index];
+            $methodArguments[] = MethodArgument::createWith($this->parameterNames[$index], $methodValue);
+        }
+        return $this->convertFor($this->getMessageBuilderUsingPayloadConverter($methodArguments), $methodArguments);
     }
 
     /**
      * @param MethodArgument[] $methodArguments
      */
-    public function convertFor(MessageBuilder $messageBuilder, array $methodArguments): MessageBuilder
+    private function convertFor(MessageBuilder $messageBuilder, array $methodArguments): MessageBuilder
     {
         Assert::allInstanceOfType($methodArguments, MethodArgument::class);
 

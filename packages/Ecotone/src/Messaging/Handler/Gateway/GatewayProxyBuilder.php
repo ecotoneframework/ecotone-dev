@@ -372,10 +372,11 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         $internalHandlerReference = $this->compileGatewayInternalHandler($builder);
 
         return new Definition(Gateway::class, [
-            $interfaceToCallReference,
             new Definition(MethodCallToMessageConverter::class, [
                 $methodArgumentConverters,
+                $interfaceToCall->getInterfaceParametersNames(),
             ]),
+            $interfaceToCall->getReturnType(),
             $messageConverters,
             new Definition(GatewayReplyConverter::class, [
                 new Reference(ConversionService::REFERENCE_NAME),

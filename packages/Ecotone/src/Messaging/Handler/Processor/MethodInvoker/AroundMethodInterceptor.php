@@ -40,7 +40,7 @@ class AroundMethodInterceptor
         return new self($referenceToCall, $interfaceToCall, $parameterConverters, $hasMethodInvocation);
     }
 
-    public function invoke(MethodInvocation $methodInvocation, Message $requestMessage)
+    public function getArguments(MethodInvocation $methodInvocation, Message $requestMessage): array
     {
         $argumentsToCall           = [];
 
@@ -52,12 +52,21 @@ class AroundMethodInterceptor
             );
         }
 
-        $returnValue = $this->referenceToCall->{$this->interceptorInterfaceToCall->getMethodName()}(...$argumentsToCall);
+        return $argumentsToCall;
+    }
 
-        if (! $this->hasMethodInvocation) {
-            return $methodInvocation->proceed();
-        }
+    public function getReferenceToCall(): object
+    {
+        return $this->referenceToCall;
+    }
 
-        return $returnValue;
+    public function getMethodName(): string
+    {
+        return $this->interceptorInterfaceToCall->getMethodName();
+    }
+
+    public function hasMethodInvocation(): bool
+    {
+        return $this->hasMethodInvocation;
     }
 }

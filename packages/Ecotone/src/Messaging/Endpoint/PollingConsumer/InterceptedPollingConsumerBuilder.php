@@ -3,7 +3,7 @@
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Channel\InProcessChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
@@ -127,10 +127,10 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
     {
         $endpointId = $messageHandlerBuilder->getEndpointId();
         $requestChannelName = 'internal_inbound_gateway_channel.'.Uuid::uuid4()->toString();
-        $connectionChannel = new Definition(DirectChannel::class, [
+        $connectionChannel = new Definition(InProcessChannel::class, [
             $requestChannelName,
             $messageHandlerBuilder->compile($builder),
-        ]);
+        ], factory: [InProcessChannel::class, 'createDirectChannel']);
         $builder->register(new ChannelReference($requestChannelName), $connectionChannel);
         $gatewayBuilder = GatewayProxyBuilder::create(
             'handler',

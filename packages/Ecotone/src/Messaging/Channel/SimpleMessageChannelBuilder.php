@@ -44,12 +44,12 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
 
     public static function createDirectMessageChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, DirectChannel::create($messageChannelName), null);
+        return self::create($messageChannelName, InProcessChannel::createDirectChannel($messageChannelName));
     }
 
     public static function createPublishSubscribeChannel(string $messageChannelName): self
     {
-        return self::create($messageChannelName, PublishSubscribeChannel::create($messageChannelName), null);
+        return self::create($messageChannelName, InProcessChannel::createPublishSubscribeChannel($messageChannelName));
     }
 
     public static function createQueueChannel(string $messageChannelName, bool $delayable = false, string|MediaType|null $conversionMediaType = null): self

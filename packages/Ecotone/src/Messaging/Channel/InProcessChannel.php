@@ -24,13 +24,22 @@ class InProcessChannel implements SubscribableChannel, DefinedObject
 
     private bool $processing = false;
 
-    public function __construct(private string $messageChannelName)
+    public function __construct(private string $messageChannelName, private bool $isDirectChannel = false)
     {
     }
 
-    public static function create(string $messageChannelName = ''): self
+    public static function createDirectChannel(string $messageChannelName = '', ?MessageHandler $messageHandler = null): self
     {
-        return new self($messageChannelName);
+        $channel = new self($messageChannelName, true);
+        if ($messageHandler) {
+            $channel->subscribe($messageHandler);
+        }
+        return $channel;
+    }
+
+    public static function createPublishSubscribeChannel(string $messageChannelName = ''): self
+    {
+        return new self($messageChannelName, false);
     }
 
     /**
@@ -38,6 +47,10 @@ class InProcessChannel implements SubscribableChannel, DefinedObject
      */
     public function send(Message $message): void
     {
+        if ($this->isDirectChannel && \count($this->messageHandlers) !== 1) {
+            throw MessageDispatchingException::create("There is no message handler registered for dispatching Message {$message}");
+        }
+
         if ($message->getHeaders()->containsKey(MessageHeaders::IN_PROCESS_EXECUTOR_INTERCEPTING)) {
             Assert::isTrue(empty($this->messageStack), "Cannot send message to in process channel when it is already intercepted");
             foreach ($this->messageHandlers as $mainMessageHandler) {
@@ -97,6 +110,9 @@ class InProcessChannel implements SubscribableChannel, DefinedObject
      */
     public function subscribe(MessageHandler $messageHandler): void
     {
+        if ($this->isDirectChannel && \count($this->messageHandlers) === 1) {
+            throw WrongHandlerAmountException::create("Direct channel {$this->messageChannelName} have registered more than one handler. {$messageHandler} can't be registered as second handler for unicasting dispatcher. The first is {$this->messageHandler}");
+        }
         $this->messageHandlers[] = $messageHandler;
     }
 
@@ -119,11 +135,12 @@ class InProcessChannel implements SubscribableChannel, DefinedObject
 
     public function __toString()
     {
-        return 'direct: ' . $this->messageChannelName;
+        $type = $this->isDirectChannel ? "direct" : "publish-subscribe";
+        return "{$type}: {$this->messageChannelName}";
     }
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->messageChannelName]);
+        return new Definition(self::class, [$this->messageChannelName, $this->isDirectChannel]);
     }
 }

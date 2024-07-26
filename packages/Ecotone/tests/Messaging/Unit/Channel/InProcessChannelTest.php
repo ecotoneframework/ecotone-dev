@@ -12,7 +12,7 @@ class InProcessChannelTest extends TestCase
 {
     public function test_publishing_message()
     {
-        $directChannel = InProcessChannel::create();
+        $directChannel = InProcessChannel::createDirectChannel();
 
         $messageHandler = NoReturnMessageHandler::create();
         $directChannel->subscribe($messageHandler);
@@ -24,9 +24,9 @@ class InProcessChannelTest extends TestCase
 
     public function test_it_can_send_message_handler_with_output_channel()
     {
-        $executorChannel = InProcessChannel::create();
-        $inProcessChannel1 = InProcessChannel::create();
-        $inProcessChannel2 = InProcessChannel::create();
+        $executorChannel = InProcessChannel::createDirectChannel();
+        $inProcessChannel1 = InProcessChannel::createDirectChannel();
+        $inProcessChannel2 = InProcessChannel::createDirectChannel();
         $messageHandler1 = new HandlerRedirectingToChannel($inProcessChannel1);
         $messageHandler2 = new HandlerRedirectingToChannel($inProcessChannel2);
         $lastHandler = NoReturnMessageHandler::create();

@@ -7,8 +7,8 @@ namespace Test\Ecotone\Messaging\Unit\Config;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Channel\InProcessChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
-use Ecotone\Messaging\Channel\PublishSubscribeChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -1122,7 +1122,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         $messagingSystem->getMessageChannelByName($inputMessageChannelName)
             ->send(MessageBuilder::withPayload('some')->build());
 
-        $this->assertInstanceOf(PublishSubscribeChannel::class, $messagingSystem->getMessageChannelByName($inputMessageChannelName));
+        $this->assertInstanceOf(InProcessChannel::class, $messagingSystem->getMessageChannelByName($inputMessageChannelName));
     }
 
     /**

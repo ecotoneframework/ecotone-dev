@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Channel\InProcessChannel;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -54,7 +54,7 @@ class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         $messageHandler = $this->methodInterceptor->getInterceptingObject()->compile($builder);
-        $builder->register(new ChannelReference($this->internalRequestChannelName), new Definition(DirectChannel::class, [$this->internalRequestChannelName, $messageHandler]));
+        $builder->register(new ChannelReference($this->internalRequestChannelName), new Definition(InProcessChannel::class, [$this->internalRequestChannelName, $messageHandler], factory: [InProcessChannel::class, 'createDirectChannel']));
         $gateway = $this->gateway->compile($builder);
 
         return new Definition(BeforeSendChannelInterceptor::class, [$gateway]);

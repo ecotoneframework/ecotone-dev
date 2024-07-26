@@ -115,6 +115,8 @@ final class MessageHeaders
 
     public const TEMPORARY_SPAN_CONTEXT_HEADER = 'ecotone.temporarySpanContext';
 
+    const IN_PROCESS_EXECUTOR = "ecotone.in-process-channel.executor";
+
     private array $headers;
 
     /**
@@ -172,6 +174,7 @@ final class MessageHeaders
             self::STREAM_BASED_SOURCED,
             MessagingEntrypoint::ENTRYPOINT,
             self::CHANNEL_SEND_RETRY_NUMBER,
+            self::IN_PROCESS_EXECUTOR,
         ];
     }
 
@@ -246,6 +249,7 @@ final class MessageHeaders
             $metadata[self::POLLED_CHANNEL_NAME],
             $metadata[self::CONSUMER_POLLING_METADATA],
             $metadata[self::REPLY_CHANNEL],
+            $metadata[self::IN_PROCESS_EXECUTOR],
             $metadata[self::TEMPORARY_SPAN_CONTEXT_HEADER]
         );
 

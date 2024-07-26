@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Chain;
 
-use Ecotone\Messaging\Channel\DirectChannel;
+use Ecotone\Messaging\Channel\InProcessChannel;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -126,7 +126,7 @@ class ChainMessageHandlerBuilder extends InputOutputMessageHandlerBuilder
                 // Cant compile
                 throw InvalidArgumentException::create("Can't compile {$messageHandlerBuilder}");
             }
-            $builder->register(new ChannelReference($currentChannelName), new Definition(DirectChannel::class, [
+            $builder->register(new ChannelReference($currentChannelName), new Definition(InProcessChannel::class, [
                 $currentChannelName,
                 $messageHandlerReference,
             ]));

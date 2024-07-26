@@ -164,6 +164,9 @@ final class MessageBuilder
     public function removeHeader(string $headerName): self
     {
         $this->headerAccessor->removeHeader($headerName);
+        if ($headerName === MessageHeaders::REPLY_CHANNEL) {
+            $this->headerAccessor->removeHeader(MessageHeaders::IN_PROCESS_EXECUTOR);
+        }
 
         return $this;
     }

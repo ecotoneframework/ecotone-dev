@@ -116,6 +116,7 @@ final class MessageHeaders
     public const TEMPORARY_SPAN_CONTEXT_HEADER = 'ecotone.temporarySpanContext';
 
     const IN_PROCESS_EXECUTOR = "ecotone.in-process-channel.executor";
+    const IN_PROCESS_EXECUTOR_INTERCEPTING = "ecotone.in-process-channel.intercepting";
 
     private array $headers;
 

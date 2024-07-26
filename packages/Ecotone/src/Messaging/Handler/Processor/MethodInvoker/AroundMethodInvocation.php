@@ -8,6 +8,8 @@ use ArrayIterator;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * Executes endpoint with around interceptors
@@ -37,7 +39,12 @@ class AroundMethodInvocation implements MethodInvocation
         private MessageProcessor $interceptedMessageProcessor,
     ) {
         $this->aroundMethodInterceptors = new ArrayIterator($aroundMethodInterceptors);
-        $this->methodCall = $interceptedMessageProcessor->getMethodCall($requestMessage);
+        // If we are sending an in-process message in an interceptor
+        // send it immediately
+        $this->requestMessage = MessageBuilder::fromMessage($requestMessage)
+            ->setHeader(MessageHeaders::IN_PROCESS_EXECUTOR_INTERCEPTING, true)
+            ->build();
+        $this->methodCall = $interceptedMessageProcessor->getMethodCall($this->requestMessage);
     }
 
     /**
@@ -51,7 +58,11 @@ class AroundMethodInvocation implements MethodInvocation
             $this->aroundMethodInterceptors->next();
 
             if (! $aroundMethodInterceptor) {
-                return $this->interceptedMessageProcessor->executeEndpoint($this->requestMessage);
+                $message = MessageBuilder::fromMessage($this->requestMessage)
+                    ->removeHeader(MessageHeaders::IN_PROCESS_EXECUTOR_INTERCEPTING)
+                    ->removeHeader(MessageHeaders::IN_PROCESS_EXECUTOR)
+                    ->build();
+                return $this->interceptedMessageProcessor->executeEndpoint($message);
             }
 
             $arguments = $aroundMethodInterceptor->getArguments(

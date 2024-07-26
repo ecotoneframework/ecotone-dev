@@ -23,7 +23,10 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class MethodCallToMessageConverter
 {
     private ?InterfaceToCall $interfaceToCall;
-    private ?array $methodArgumentConverters;
+    /**
+     * @var GatewayParameterConverter[]
+     */
+    private array $methodArgumentConverters;
 
     /**
      * MethodCallToMessageConverter constructor.
@@ -95,7 +98,7 @@ class MethodCallToMessageConverter
         }
 
         if (empty($methodArgumentConverters) && $this->interfaceToCall->hasSingleParameter()) {
-            $methodArgumentConverters = [GatewayPayloadConverter::create($this->interfaceToCall->getFirstParameterName())];
+            $methodArgumentConverters = [GatewayPayloadConverter::create($this->interfaceToCall->getFirstParameter())];
         }
 
         $this->methodArgumentConverters = $methodArgumentConverters;

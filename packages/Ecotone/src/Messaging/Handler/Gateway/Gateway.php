@@ -96,7 +96,7 @@ class Gateway implements NonProxyGateway
                     $methodValue = $methodArgumentValues[$index];
                 }
 
-                $methodArguments[] = MethodArgument::createWith($parameter, $methodValue);
+                $methodArguments[] = MethodArgument::createWith($parameter->getName(), $methodValue);
             }
 
             $requestMessage = $this->methodCallToMessageConverter->getMessageBuilderUsingPayloadConverter($methodArguments);

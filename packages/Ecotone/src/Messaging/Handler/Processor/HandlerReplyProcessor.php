@@ -46,9 +46,4 @@ class HandlerReplyProcessor implements MessageProcessor
     {
         return $this->requestReplyProducer->getMessageProcessor()->getMethodName();
     }
-
-    public function getInterfaceToCall(): InterfaceToCall
-    {
-        return $this->requestReplyProducer->getMessageProcessor()->getInterfaceToCall();
-    }
 }

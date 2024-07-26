@@ -88,7 +88,7 @@ final class TracerInterceptor
     public function traceCommandHandler(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
-            'Command Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
+            'Command Handler: ' . $methodInvocation->getName(),
             $methodInvocation,
             $message,
         );
@@ -97,7 +97,7 @@ final class TracerInterceptor
     public function traceQueryHandler(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
-            'Query Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
+            'Query Handler: ' . $methodInvocation->getName(),
             $methodInvocation,
             $message,
         );
@@ -106,7 +106,7 @@ final class TracerInterceptor
     public function traceEventHandler(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
-            'Event Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
+            'Event Handler: ' . $methodInvocation->getName(),
             $methodInvocation,
             $message,
         );
@@ -115,7 +115,7 @@ final class TracerInterceptor
     public function traceMessageHandler(MethodInvocation $methodInvocation, Message $message)
     {
         return $this->trace(
-            'Message Handler: ' . $methodInvocation->getInterfaceToCall()->toString(),
+            'Message Handler: ' . $methodInvocation->getName(),
             $methodInvocation,
             $message,
         );

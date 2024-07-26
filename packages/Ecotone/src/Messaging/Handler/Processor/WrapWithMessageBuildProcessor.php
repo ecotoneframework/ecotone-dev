@@ -8,6 +8,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -25,15 +26,11 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class WrapWithMessageBuildProcessor implements MessageProcessor
 {
     public function __construct(
-        private InterfaceToCall $interfaceToCall,
         private MessageProcessor $messageProcessor,
-        private bool $shouldChangeMessageHeaders
+        private bool $shouldChangeMessageHeaders,
+        private string $interfaceToCallName,
+        private Type $returnType,
     ) {
-    }
-
-    public static function createWith(InterfaceToCall $interfaceToCall, MessageProcessor $messageProcessor, bool $shouldChangeMessageHeaders = false)
-    {
-        return new self($interfaceToCall, $messageProcessor, $shouldChangeMessageHeaders);
     }
 
     /**
@@ -48,8 +45,8 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
         }
 
         if ($this->shouldChangeMessageHeaders) {
-            Assert::isFalse($result instanceof Message, 'Message should not be returned when changing headers in ' . $this->interfaceToCall->toString());
-            Assert::isTrue(is_array($result), 'Result should be an array when changing headers in ' . $this->interfaceToCall->toString());
+            Assert::isFalse($result instanceof Message, 'Message should not be returned when changing headers in ' . $this->interfaceToCallName);
+            Assert::isTrue(is_array($result), 'Result should be an array when changing headers in ' . $this->interfaceToCallName);
 
             return MessageBuilder::fromMessage($message)
                 ->setMultipleHeaders($result)
@@ -60,10 +57,20 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
             return $result;
         }
 
+        $returnType = $this->getReturnTypeFromResult($result);
+
+        return MessageBuilder::fromMessage($message)
+            ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($returnType->toString()))
+            ->setPayload($result)
+            ->build();
+    }
+
+    private function getReturnTypeFromResult(mixed $result): TypeDescriptor
+    {
         $returnValueType = TypeDescriptor::createFromVariable($result);
-        /** @var UnionTypeDescriptor $returnType */
-        $returnType = $this->interfaceToCall->getReturnType();
+        $returnType = $this->returnType;
         if ($returnType->isUnionType()) {
+            /** @var UnionTypeDescriptor $returnType */
             $foundUnionType = null;
             foreach ($returnType->getUnionTypes() as $type) {
                 if ($type->equals($returnValueType)) {
@@ -92,10 +99,7 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
             $returnType = $foundUnionType ?? $returnValueType;
         }
 
-        return MessageBuilder::fromMessage($message)
-            ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($returnType->toString()))
-            ->setPayload($result)
-            ->build();
+        return $returnType;
     }
 
     public function getMethodCall(Message $message): MethodCall
@@ -113,14 +117,6 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
         return $this->messageProcessor->getMethodName();
     }
 
-    public function getInterfaceToCall(): InterfaceToCall
-    {
-        return $this->messageProcessor->getInterfaceToCall();
-    }
-
-    /**
-     * @return string
-     */
     public function __toString(): string
     {
         return (string)$this->messageProcessor;

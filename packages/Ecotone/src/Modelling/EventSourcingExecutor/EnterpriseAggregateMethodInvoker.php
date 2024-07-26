@@ -20,7 +20,7 @@ final class EnterpriseAggregateMethodInvoker implements AggregateMethodInvoker
             $aggregate,
             $eventSourcingHandlerInterface->getMethodName(),
             $eventSourcingHandler->getParameterConverters(),
-            $eventSourcingHandler->getInterfaceToCall()
+            $eventSourcingHandlerInterface->getInterfaceParametersNames(),
         ))->executeEndpoint($message);
     }
 }

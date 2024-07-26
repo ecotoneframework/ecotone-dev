@@ -93,10 +93,6 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $messageHandlerBuilders = [];
     /**
-     * @var array<string, string>
-     */
-    private array $messageHandlerBuilderToChannel = [];
-    /**
      * @var PollingMetadata[]
      */
     private array $pollingMetadata = [];
@@ -855,7 +851,6 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->messageHandlerBuilders[$messageHandlerBuilder->getEndpointId()] = $messageHandlerBuilder;
-        $this->messageHandlerBuilderToChannel[$messageHandlerBuilder->getInputMessageChannelName()][] = $messageHandlerBuilder->getEndpointId();
 
         return $this;
     }

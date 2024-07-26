@@ -242,6 +242,9 @@ final class MessagingSystemConfiguration implements Configuration
     private function prepareAndOptimizeConfiguration(InterfaceToCallRegistry $interfaceToCallRegistry, ServiceConfiguration $applicationConfiguration): void
     {
         $this->verifyEndpointAndChannelNameUniqueness();
+        $this->beforeSendInterceptors = $this->orderMethodInterceptors($this->beforeSendInterceptors);
+        $this->beforeCallMethodInterceptors = $this->orderMethodInterceptors($this->beforeCallMethodInterceptors);
+        $this->afterCallMethodInterceptors = $this->orderMethodInterceptors($this->afterCallMethodInterceptors);
 
         foreach ($this->channelAdapters as $channelAdapter) {
             $channelAdapter->withEndpointAnnotations(array_merge($channelAdapter->getEndpointAnnotations(), [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$channelAdapter->getEndpointId()])]));
@@ -750,7 +753,6 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->beforeSendInterceptors[] = $methodInterceptor;
-        $this->beforeSendInterceptors = $this->orderMethodInterceptors($this->beforeSendInterceptors);
 
         return $this;
     }
@@ -816,7 +818,6 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->beforeCallMethodInterceptors[] = $methodInterceptor;
-        $this->beforeCallMethodInterceptors = $this->orderMethodInterceptors($this->beforeCallMethodInterceptors);
 
         return $this;
     }
@@ -837,7 +838,6 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->afterCallMethodInterceptors[] = $methodInterceptor;
-        $this->afterCallMethodInterceptors = $this->orderMethodInterceptors($this->afterCallMethodInterceptors);
 
         return $this;
     }

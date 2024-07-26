@@ -251,6 +251,7 @@ final class MessageHeaders
             $metadata[self::CONSUMER_POLLING_METADATA],
             $metadata[self::REPLY_CHANNEL],
             $metadata[self::IN_PROCESS_EXECUTOR],
+            $metadata[self::IN_PROCESS_EXECUTOR_INTERCEPTING],
             $metadata[self::TEMPORARY_SPAN_CONTEXT_HEADER]
         );
 

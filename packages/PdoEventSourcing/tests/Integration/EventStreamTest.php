@@ -261,4 +261,41 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
             ]
         );
     }
+
+    public function test_fetching_with_pagination()
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
+        );
+
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotone->getGateway(EventStore::class);
+
+        $streamName = Uuid::uuid4()->toString();
+        $eventStore->create($streamName, streamMetadata: [
+            LazyProophEventStore::PERSISTENCE_STRATEGY_METADATA => 'simple',
+        ]);
+        $eventStore->appendTo(
+            $streamName,
+            [
+                new TicketWasRegistered('123', 'Johnny', 'alert'),
+                new TicketWasClosed('123'),
+            ]
+        );
+
+        $events = $eventStore->load($streamName, fromNumber: 2, count: 1);
+
+        $this->assertEquals(
+            new TicketWasClosed('123'),
+            $events[0]->getPayload()
+        );
+    }
 }

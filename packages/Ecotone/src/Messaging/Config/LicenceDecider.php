@@ -32,7 +32,7 @@ final class LicenceDecider
 
     public function isEnabledSpecificallyFor(InterfaceToCall|ClassDefinition $interfaceToCall): bool
     {
-        if (!$this->hasEnterpriseLicence()) {
+        if (! $this->hasEnterpriseLicence()) {
             return false;
         }
 
@@ -51,9 +51,9 @@ final class LicenceDecider
             [
                 Reference::to(self::class),
                 $openCoreService,
-                $enterpriseService
+                $enterpriseService,
             ],
-            factory: [self::class, "decide"]
+            factory: [self::class, 'decide']
         );
     }
 

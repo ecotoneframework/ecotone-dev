@@ -31,8 +31,8 @@ class GatewayInternalHandler
         private bool $returnTypeAllowsNull,
         private MessageChannel $requestChannel,
         private ?PollableChannel $replyChannel,
-        private int $replyMilliSecondsTimeout)
-    {
+        private int $replyMilliSecondsTimeout
+    ) {
     }
 
     /**

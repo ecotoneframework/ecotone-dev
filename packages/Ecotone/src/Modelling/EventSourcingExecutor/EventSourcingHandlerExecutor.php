@@ -2,16 +2,11 @@
 
 namespace Ecotone\Modelling\EventSourcingExecutor;
 
-use Ecotone\Messaging\Config\LicenceDecider;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Support\GenericMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingHandlerMethod;
 use Ecotone\Modelling\SnapshotEvent;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0
@@ -25,8 +20,7 @@ final class EventSourcingHandlerExecutor
         private string $aggregateClassName,
         private array $eventSourcingHandlerMethods,
         private AggregateMethodInvoker $aggregateMethodInvoker,
-    )
-    {
+    ) {
     }
 
     /**
@@ -42,7 +36,7 @@ final class EventSourcingHandlerExecutor
                 $eventPayload = $event->getPayload();
                 $eventType = TypeDescriptor::createFromVariable($eventPayload);
                 $metadata  = $event->getMetadata();
-            }else {
+            } else {
                 $eventType = TypeDescriptor::createFromVariable($event);
                 $eventPayload = $event;
             }

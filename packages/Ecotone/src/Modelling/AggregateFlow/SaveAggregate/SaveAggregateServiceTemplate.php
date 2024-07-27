@@ -143,7 +143,7 @@ class SaveAggregateServiceTemplate
         Assert::isIterable($events, "Return value Event Sourced Aggregate {$calledInterface} must return array of events");
 
         return array_map(static function ($event) use ($message, $metadata, $calledInterface): Event {
-            if (!is_object($event)) {
+            if (! is_object($event)) {
                 $typeDescriptor = TypeDescriptor::createFromVariable($event);
                 throw InvalidArgumentException::create("Events return by after calling {$calledInterface} must all be objects, {$typeDescriptor->toString()} given");
             }

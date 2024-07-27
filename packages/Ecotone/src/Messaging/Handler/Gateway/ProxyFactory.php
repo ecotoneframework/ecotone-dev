@@ -11,6 +11,9 @@ use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 
+use function file_exists;
+use function str_replace;
+
 /**
  * Class LazyProxyConfiguration
  * @package Ecotone\Messaging\Handler\Gateway
@@ -21,7 +24,7 @@ use Ecotone\Messaging\Config\ServiceCacheConfiguration;
  */
 class ProxyFactory
 {
-    public const PROXY_NAMESPACE = "Ecotone\\__Proxy__";
+    public const PROXY_NAMESPACE = 'Ecotone\\__Proxy__';
 
     private ProxyGenerator $proxyGenerator;
 
@@ -35,10 +38,10 @@ class ProxyFactory
         return new Definition(self::getClassNameFor($proxyReference), [
             new Definition(GatewayProxyReference::class, [
                 $proxyReference->getReferenceName(),
-                $proxyReference->getInterfaceName()
+                $proxyReference->getInterfaceName(),
             ]),
             new Reference(ConfiguredMessagingSystem::class),
-        ], [self::class, "createProxyInstance"]);
+        ], [self::class, 'createProxyInstance']);
     }
 
     public function createProxyInstance(GatewayProxyReference $proxyReference, ConfiguredMessagingSystem $messagingSystem): object
@@ -51,7 +54,7 @@ class ProxyFactory
     public function generateCachedProxyFileFor(GatewayProxyReference $proxyReference, bool $overwrite): string
     {
         $file = $this->getFilePathForProxy($proxyReference);
-        if ($overwrite || ! \file_exists($file)) {
+        if ($overwrite || ! file_exists($file)) {
             $code = $this->generateProxyCode($proxyReference);
             $this->dumpFile($file, "<?php\n\n" . $code);
         }
@@ -85,20 +88,20 @@ class ProxyFactory
         );
     }
 
-    private function getFilePathForProxy(GatewayProxyReference $proxyReference) : string
+    private function getFilePathForProxy(GatewayProxyReference $proxyReference): string
     {
         $className = self::getClassNameFor($proxyReference);
-        return $this->serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . $className . ".php";
+        return $this->serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . $className . '.php';
     }
 
     private static function getClassNameFor(GatewayProxyReference $proxyReference): string
     {
-        return \str_replace("\\", "_", $proxyReference->getInterfaceName());
+        return str_replace('\\', '_', $proxyReference->getInterfaceName());
     }
 
     private static function getFullClassNameFor(GatewayProxyReference $proxyReference): string
     {
-        return self::PROXY_NAMESPACE . "\\" . self::getClassNameFor($proxyReference);
+        return self::PROXY_NAMESPACE . '\\' . self::getClassNameFor($proxyReference);
     }
 
     private function dumpFile(string $fileName, string $code): void

@@ -2,11 +2,9 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut;
 
-use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\PointcutExpression;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 
 class PointcutAttributeExpression implements PointcutExpression
 {

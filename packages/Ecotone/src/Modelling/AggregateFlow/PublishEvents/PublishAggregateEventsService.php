@@ -8,17 +8,11 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
-use Ecotone\Messaging\Support\Assert;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Attribute\NamedEvent;
-use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
-use Ramsey\Uuid\Uuid;
 
 /**
  * licence Apache-2.0

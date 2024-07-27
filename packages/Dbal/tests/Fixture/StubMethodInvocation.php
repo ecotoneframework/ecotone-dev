@@ -53,7 +53,7 @@ class StubMethodInvocation implements MethodInvocation
 
     public function getName(): string
     {
-        return self::class . "::getInterceptedInterface";
+        return self::class . '::getInterceptedInterface';
     }
 
     public function getInterceptedInterface(): InterfaceToCall

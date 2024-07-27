@@ -11,6 +11,8 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
+use function is_null;
+
 /**
  * Class Pointcut
  * @package Ecotone\Messaging\Handler\Processor\MethodInvoker
@@ -32,7 +34,7 @@ class Pointcut
      */
     public static function createWith(string $expression): self
     {
-        if (\is_null($expression) || $expression === '') {
+        if (is_null($expression) || $expression === '') {
             return new self(null);
         } else {
             $parser = new PointcutParser($expression);
@@ -104,7 +106,7 @@ class Pointcut
 
     public function isEmpty(): bool
     {
-        return \is_null($this->parsedExpression);
+        return is_null($this->parsedExpression);
     }
 
     public function doesItCut(InterfaceToCall $interfaceToCall, array $endpointAnnotations): bool

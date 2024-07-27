@@ -28,7 +28,9 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\Config\RegisterAggregateRepositoryChannels;
+
 use function json_decode;
+
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 
@@ -294,11 +296,14 @@ final class EcotoneLite
     }
 
     private static function prepareForFlowTesting(
-        ?ServiceConfiguration $configuration, array $packagesToSkip, array $classesToResolve,
-        bool                  $addInMemoryStateStoredRepository, ?array $enableAsynchronousProcessing, ?TestConfiguration $testConfiguration,
+        ?ServiceConfiguration $configuration,
+        array $packagesToSkip,
+        array $classesToResolve,
+        bool                  $addInMemoryStateStoredRepository,
+        ?array $enableAsynchronousProcessing,
+        ?TestConfiguration $testConfiguration,
         bool                  $withEnterpriseLicence,
-    ): ServiceConfiguration
-    {
+    ): ServiceConfiguration {
         if ($enableAsynchronousProcessing !== null) {
             if ($configuration !== null && in_array(ModulePackageList::ASYNCHRONOUS_PACKAGE, $configuration->getSkippedModulesPackages())) {
                 Assert::isFalse($configuration->areSkippedPackagesDefined(), 'If you use `enableAsynchronousProcessing` configuration, you can\'t use `skippedPackages` amd skip Asynchronous Package. Please allows asynchronous package.');

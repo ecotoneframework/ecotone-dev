@@ -7,8 +7,8 @@ use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvocation;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -16,7 +16,6 @@ use Ecotone\Modelling\AggregateMessage;
 
 class AggregateMethodInvoker
 {
-
     /**
      * @param array<ParameterConverter> $methodParameterConverters
      * @param array<string> $methodParameterNames

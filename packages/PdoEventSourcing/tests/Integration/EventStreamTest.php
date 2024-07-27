@@ -11,16 +11,17 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Modelling\Event;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
-use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
-use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList;
-use Enqueue\Dbal\DbalConnectionFactory;
 
+/**
+ * @internal
+ */
 final class EventStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_storing_and_retrieving_events()
@@ -52,7 +53,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                         '_aggregate_type' => 'ticket',
                         'executor' => 'johnny',
                     ]
-                )
+                ),
             ]
         );
 
@@ -97,7 +98,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
             [
                 Event::create(
                     $eventTwo = new TicketWasClosed('123'),
-                )
+                ),
             ]
         );
 
@@ -139,7 +140,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                         '_aggregate_version' => 1,
                         '_aggregate_type' => 'ticket',
                     ]
-                )
+                ),
             ]
         );
 
@@ -153,7 +154,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                         '_aggregate_version' => 1,
                         '_aggregate_type' => 'ticket',
                     ]
-                )
+                ),
             ]
         );
 
@@ -192,7 +193,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                         '_aggregate_version' => 1,
                         '_aggregate_type' => 'ticket',
                     ]
-                )
+                ),
             ]
         );
 
@@ -208,7 +209,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                         '_aggregate_version' => 1,
                         '_aggregate_type' => 'ticket',
                     ]
-                )
+                ),
             ]
         );
     }
@@ -241,7 +242,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                         '_aggregate_version' => 1,
                         '_aggregate_type' => 'ticket',
                     ]
-                )
+                ),
             ]
         );
 
@@ -257,7 +258,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
                         '_aggregate_version' => 1,
                         '_aggregate_type' => 'ticket',
                     ]
-                )
+                ),
             ]
         );
     }

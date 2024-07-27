@@ -52,7 +52,7 @@ final class EventSourcingHandlerExecutorBuilder
                 if ($methodToCheck->getInterfaceParameterAmount() < 1) {
                     throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should have at least one parameter.");
                 }
-                if (!$methodToCheck->getFirstParameter()->isObjectTypeHint()) {
+                if (! $methodToCheck->getFirstParameter()->isObjectTypeHint()) {
                     throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should have first parameter as Event Class type hint.");
                 }
                 if (! $methodToCheck->hasReturnTypeVoid()) {

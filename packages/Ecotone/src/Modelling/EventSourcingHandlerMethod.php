@@ -19,7 +19,8 @@ final class EventSourcingHandlerMethod
     public function __construct(
         private InterfaceToCall $interfaceToCall,
         private array $parameterConverters,
-    ) {}
+    ) {
+    }
 
     /**
      * @param array<ParameterConverterBuilder> $parameterConverters
@@ -27,14 +28,13 @@ final class EventSourcingHandlerMethod
     public static function prepareDefinition(
         InterfaceToCall $interfaceToCall,
         array $parameterConverters,
-    ): Definition
-    {
+    ): Definition {
         return new Definition(
             EventSourcingHandlerMethod::class,
             [
                 Reference::toInterface($interfaceToCall->getInterfaceName(), $interfaceToCall->getMethodName()),
                 array_map(
-                    fn(ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interfaceToCall),
+                    fn (ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interfaceToCall),
                     $parameterConverters
                 ),
             ]

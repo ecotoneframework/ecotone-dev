@@ -14,7 +14,6 @@ use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use Ecotone\Modelling\SnapshotEvent;
 use Ecotone\Test\ComponentTestBuilder;
-use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\BaseEcotoneTest;
 use Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate\AggregateWithoutMessageClassesExample;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\EventSourcingHandlerMethodWithReturnType;

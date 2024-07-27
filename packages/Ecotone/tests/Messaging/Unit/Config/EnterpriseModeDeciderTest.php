@@ -13,6 +13,9 @@ use Test\Ecotone\Messaging\Fixture\EnterpriseMode\EnterpriseClassInterface;
 use Test\Ecotone\Messaging\Fixture\EnterpriseMode\EnterpriseMethodInterface;
 use Test\Ecotone\Messaging\Fixture\EnterpriseMode\StandardInterface;
 
+/**
+ * @internal
+ */
 final class EnterpriseModeDeciderTest extends TestCase
 {
     public function test_it_should_return_true_when_enterprise_mode_is_default(): void

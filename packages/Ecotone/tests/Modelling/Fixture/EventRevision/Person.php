@@ -29,7 +29,7 @@ final class Person
             new PersonWasRegistered(
                 $command->getPersonId(),
                 $command->getType(),
-            )
+            ),
         ];
     }
 
@@ -52,8 +52,7 @@ final class Person
     public function applyPersonWasRegistered(
         PersonWasRegistered $event,
         #[Header(MessageHeaders::REVISION)] int $revision
-    ): void
-    {
+    ): void {
         $this->personId = $event->getPersonId();
         $this->type = $event->getType();
         $this->registeredWithRevision = $revision;

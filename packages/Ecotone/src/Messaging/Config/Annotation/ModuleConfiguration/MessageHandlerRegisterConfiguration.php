@@ -13,8 +13,6 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Modelling\Attribute\IgnorePayload;
 
 /**
  * Class BaseAnnotationConfiguration

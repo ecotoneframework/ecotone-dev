@@ -12,6 +12,7 @@ use Test\Ecotone\Modelling\Fixture\EventRevision\RegisterPerson;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class EventSourcingAggregateTest extends TestCase
 {

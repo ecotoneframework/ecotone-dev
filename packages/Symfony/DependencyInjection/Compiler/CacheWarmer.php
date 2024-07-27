@@ -26,7 +26,7 @@ class CacheWarmer implements CacheWarmerInterface
     {
         $files = [];
         foreach ($this->configuredMessagingSystem->getGatewayList() as $gatewayReference) {
-            $files[] = $this->proxyFactory->generateCachedProxyFileFor($gatewayReference,true);
+            $files[] = $this->proxyFactory->generateCachedProxyFileFor($gatewayReference, true);
         }
 
         return $files;

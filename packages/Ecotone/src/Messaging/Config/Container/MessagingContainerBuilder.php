@@ -2,7 +2,6 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
-use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;

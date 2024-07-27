@@ -6,6 +6,9 @@ namespace Test\Ecotone\Messaging;
 
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 class BaseEcotoneTest extends TestCase
 {
     /**
@@ -14,7 +17,7 @@ class BaseEcotoneTest extends TestCase
      */
     public static function enterpriseMode(): iterable
     {
-        yield "Open Core" => [false];
-        yield "Enterprise" => [true];
+        yield 'Open Core' => [false];
+        yield 'Enterprise' => [true];
     }
 }

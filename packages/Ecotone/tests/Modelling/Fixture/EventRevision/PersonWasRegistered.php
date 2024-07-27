@@ -12,8 +12,7 @@ final class PersonWasRegistered
     public function __construct(
         private string $personId,
         private string $type
-    )
-    {
+    ) {
     }
 
     public function getPersonId(): string

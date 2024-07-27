@@ -7,7 +7,6 @@ namespace Test\Ecotone\Modelling\Unit;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\BaseEcotoneTest;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\EventSourcing\Comment;
@@ -95,8 +94,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTest
      */
     public function test_default_repository_is_used_when_multiple_repositories_are_registered_for_different_type(
         bool $isEnterprise
-    )
-    {
+    ) {
         $articleRepository = ArticleRepository::createEmpty();
         $pageRepository = PageRepository::createEmpty();
 

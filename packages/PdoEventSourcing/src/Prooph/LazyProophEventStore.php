@@ -67,7 +67,7 @@ class LazyProophEventStore implements EventStore
     public const AGGREGATE_VERSION = '_aggregate_version';
     public const AGGREGATE_TYPE = '_aggregate_type';
     public const AGGREGATE_ID = '_aggregate_id';
-    const PERSISTENCE_STRATEGY_METADATA = '_persistence';
+    public const PERSISTENCE_STRATEGY_METADATA = '_persistence';
 
     /** @var EventStore[] */
     private array $initializedEventStore = [];

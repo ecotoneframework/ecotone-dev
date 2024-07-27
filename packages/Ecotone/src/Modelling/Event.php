@@ -13,8 +13,7 @@ class Event
         private string $eventName,
         private array|object $payload,
         private array $metadata
-    )
-    {
+    ) {
         Assert::notNull($payload, 'Event can not be null for ' . $eventName);
     }
 

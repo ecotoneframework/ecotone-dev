@@ -64,7 +64,7 @@ class EventMapper implements MessageFactory, CompilableBuilder
 
     public function mapEventToName(Event $event): string
     {
-        $type = $event->getEventType();
+        $type = $event->getEventName();
         if (array_key_exists($type, $this->eventToNameMapping)) {
             return $this->eventToNameMapping[$type];
         }

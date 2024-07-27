@@ -9,12 +9,14 @@ use Ecotone\EventSourcing\EventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
+use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Interop\Queue\ConnectionFactory;
 use Iterator;
 use PDO;
 use Prooph\Common\Messaging\MessageConverter;
 use Prooph\EventStore\EventStore;
+use Prooph\EventStore\Exception\ConcurrencyException as ProophConcurrencyException;
 use Prooph\EventStore\Exception\StreamNotFound;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Pdo\MariaDbEventStore;
@@ -49,7 +51,15 @@ class LazyProophEventStore implements EventStore
     public const EVENT_STORE_TYPE_MARIADB = 'mariadb';
     public const EVENT_STORE_TYPE_IN_MEMORY = 'inMemory';
 
+    /**
+     * Partition persistence strategy
+     * @deprecated Ecotone 2.0 will be removed in favour of partition stream persistence strategy
+     */
     public const SINGLE_STREAM_PERSISTENCE = 'single';
+    /**
+     * Same as single stream strategy.
+     */
+    public const PARTITION_STREAM_PERSISTENCE = 'partition';
     public const AGGREGATE_STREAM_PERSISTENCE = 'aggregate';
     public const SIMPLE_STREAM_PERSISTENCE = 'simple';
     public const CUSTOM_STREAM_PERSISTENCE = 'custom';
@@ -57,6 +67,7 @@ class LazyProophEventStore implements EventStore
     public const AGGREGATE_VERSION = '_aggregate_version';
     public const AGGREGATE_TYPE = '_aggregate_type';
     public const AGGREGATE_ID = '_aggregate_id';
+    const PERSISTENCE_STRATEGY_METADATA = '_persistence';
 
     /** @var EventStore[] */
     private array $initializedEventStore = [];
@@ -122,7 +133,11 @@ class LazyProophEventStore implements EventStore
 
     public function create(Stream $stream): void
     {
-        $this->getEventStore($stream->streamName())->create($stream);
+        try {
+            $this->getEventStore($stream->streamName(), $stream->metadata()[self::PERSISTENCE_STRATEGY_METADATA] ?? null)->create($stream);
+        } catch (ProophConcurrencyException $exception) {
+            throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
+        }
         $this->ensuredExistingStreams[$this->getContextName()][$stream->streamName()->toString()] = true;
     }
 
@@ -135,6 +150,8 @@ class LazyProophEventStore implements EventStore
                 $this->getEventStore($streamName)->appendTo($streamName, $streamEvents);
             } catch (StreamNotFound) {
                 $this->create(new Stream($streamName, $streamEvents, []));
+            } catch (ProophConcurrencyException $exception) {
+                throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
             }
         }
     }
@@ -171,7 +188,7 @@ class LazyProophEventStore implements EventStore
         $this->initializated[$connectionName] = true;
     }
 
-    public function getEventStore(?StreamName $streamName = null): EventStore
+    public function getEventStore(?StreamName $streamName = null, string|null $streamStrategy = null): EventStore
     {
         $contextName = $this->getContextName($streamName);
         if (isset($this->initializedEventStore[$contextName])) {
@@ -188,9 +205,9 @@ class LazyProophEventStore implements EventStore
         $eventStoreType =  $this->getEventStoreType();
 
         $persistenceStrategy = match ($eventStoreType) {
-            self::EVENT_STORE_TYPE_MYSQL => $this->getMysqlPersistenceStrategyFor($streamName),
-            self::EVENT_STORE_TYPE_MARIADB => $this->getMariaDbPersistenceStrategyFor($streamName),
-            self::EVENT_STORE_TYPE_POSTGRES => $this->getPostgresPersistenceStrategyFor($streamName),
+            self::EVENT_STORE_TYPE_MYSQL => $this->getMysqlPersistenceStrategyFor($streamName, $streamStrategy),
+            self::EVENT_STORE_TYPE_MARIADB => $this->getMariaDbPersistenceStrategyFor($streamName, $streamStrategy),
+            self::EVENT_STORE_TYPE_POSTGRES => $this->getPostgresPersistenceStrategyFor($streamName, $streamStrategy),
             default => throw InvalidArgumentException::create('Unexpected match value ' . $eventStoreType)
         };
 
@@ -225,31 +242,37 @@ class LazyProophEventStore implements EventStore
         return $eventStore;
     }
 
-    private function getMysqlPersistenceStrategyFor(?StreamName $streamName = null): PersistenceStrategy
+    private function getMysqlPersistenceStrategyFor(?StreamName $streamName = null, ?string $forcedStrategy = null): PersistenceStrategy
     {
-        return match ($this->eventSourcingConfiguration->getPersistenceStrategyFor($streamName)) {
+        $persistenceStrategy = $forcedStrategy ?? $this->eventSourcingConfiguration->getPersistenceStrategyFor($streamName);
+
+        return match ($persistenceStrategy) {
             self::AGGREGATE_STREAM_PERSISTENCE => new PersistenceStrategy\MySqlAggregateStreamStrategy($this->messageConverter),
-            self::SINGLE_STREAM_PERSISTENCE => new PersistenceStrategy\MySqlSingleStreamStrategy($this->messageConverter),
+            self::PARTITION_STREAM_PERSISTENCE, self::SINGLE_STREAM_PERSISTENCE => new PersistenceStrategy\MySqlSingleStreamStrategy($this->messageConverter),
             self::SIMPLE_STREAM_PERSISTENCE => new InterlopMysqlSimpleStreamStrategy($this->messageConverter),
             self::CUSTOM_STREAM_PERSISTENCE => $this->eventSourcingConfiguration->getCustomPersistenceStrategy(),
         };
     }
 
-    private function getMariaDbPersistenceStrategyFor(?StreamName $streamName = null): PersistenceStrategy
+    private function getMariaDbPersistenceStrategyFor(?StreamName $streamName = null, ?string $forcedStrategy = null): PersistenceStrategy
     {
-        return match ($this->eventSourcingConfiguration->getPersistenceStrategyFor($streamName)) {
+        $persistenceStrategy = $forcedStrategy ?? $this->eventSourcingConfiguration->getPersistenceStrategyFor($streamName);
+
+        return match ($persistenceStrategy) {
             self::AGGREGATE_STREAM_PERSISTENCE => new PersistenceStrategy\MariaDbAggregateStreamStrategy($this->messageConverter),
-            self::SINGLE_STREAM_PERSISTENCE => new PersistenceStrategy\MariaDbSingleStreamStrategy($this->messageConverter),
+            self::PARTITION_STREAM_PERSISTENCE, self::SINGLE_STREAM_PERSISTENCE => new PersistenceStrategy\MariaDbSingleStreamStrategy($this->messageConverter),
             self::SIMPLE_STREAM_PERSISTENCE => new InterlopMariaDbSimpleStreamStrategy($this->messageConverter),
             self::CUSTOM_STREAM_PERSISTENCE => $this->eventSourcingConfiguration->getCustomPersistenceStrategy(),
         };
     }
 
-    private function getPostgresPersistenceStrategyFor(?StreamName $streamName = null): PersistenceStrategy
+    private function getPostgresPersistenceStrategyFor(?StreamName $streamName = null, ?string $forcedStrategy = null): PersistenceStrategy
     {
-        return match ($this->eventSourcingConfiguration->getPersistenceStrategyFor($streamName)) {
+        $persistenceStrategy = $forcedStrategy ?? $this->eventSourcingConfiguration->getPersistenceStrategyFor($streamName);
+
+        return match ($persistenceStrategy) {
             self::AGGREGATE_STREAM_PERSISTENCE => new PersistenceStrategy\PostgresAggregateStreamStrategy($this->messageConverter),
-            self::SINGLE_STREAM_PERSISTENCE => new PersistenceStrategy\PostgresSingleStreamStrategy($this->messageConverter),
+            self::PARTITION_STREAM_PERSISTENCE, self::SINGLE_STREAM_PERSISTENCE => new PersistenceStrategy\PostgresSingleStreamStrategy($this->messageConverter),
             self::SIMPLE_STREAM_PERSISTENCE => new PersistenceStrategy\PostgresSimpleStreamStrategy($this->messageConverter),
             self::CUSTOM_STREAM_PERSISTENCE => $this->eventSourcingConfiguration->getCustomPersistenceStrategy(),
         };

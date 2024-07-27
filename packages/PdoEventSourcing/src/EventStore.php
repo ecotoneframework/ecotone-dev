@@ -11,10 +11,14 @@ use Prooph\EventStore\Metadata\MetadataMatcher;
 interface EventStore
 {
     /**
+     * Creates new Stream with Metadata and appends events to it
+     *
      * @param Event[]|object[]|array[] $streamEvents
      */
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void;
     /**
+     * Appends events to existing Stream, or creates one and then appends events if it does not exists
+     *
      * @param Event[]|object[]|array[] $streamEvents
      */
     public function appendTo(string $streamName, array $streamEvents): void;

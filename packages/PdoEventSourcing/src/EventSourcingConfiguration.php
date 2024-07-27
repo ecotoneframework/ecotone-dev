@@ -25,7 +25,7 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     private string $eventStoreReferenceName;
     private string $projectManagerReferenceName;
     private string $connectionReferenceName;
-    private string $persistenceStrategy = LazyProophEventStore::SINGLE_STREAM_PERSISTENCE;
+    private string $persistenceStrategy = LazyProophEventStore::PARTITION_STREAM_PERSISTENCE;
     private ?PersistenceStrategy $customPersistenceStrategyInstance = null;
     private bool $isInMemory = false;
     private ?InMemoryEventStore $inMemoryEventStore = null;
@@ -62,8 +62,16 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 
     /**
      * This work as simple stream strategy, however put constraints on aggregate_id, aggregate_version, aggregate_type being present
+     * @deprecated Ecotone 2.0 will be removed in favour of partition stream persistence strategy
      */
     public function withSingleStreamPersistenceStrategy(): static
+    {
+        $this->persistenceStrategy = LazyProophEventStore::SINGLE_STREAM_PERSISTENCE;
+
+        return $this;
+    }
+
+    public function withPartitionStreamPersistenceStrategy(): static
     {
         $this->persistenceStrategy = LazyProophEventStore::SINGLE_STREAM_PERSISTENCE;
 
@@ -93,7 +101,7 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 
     public function withPersistenceStrategyFor(string $streamName, string $strategy): self
     {
-        $allowedStrategies = [LazyProophEventStore::SIMPLE_STREAM_PERSISTENCE, LazyProophEventStore::SINGLE_STREAM_PERSISTENCE, LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE];
+        $allowedStrategies = [LazyProophEventStore::SIMPLE_STREAM_PERSISTENCE, LazyProophEventStore::SINGLE_STREAM_PERSISTENCE, LazyProophEventStore::AGGREGATE_STREAM_PERSISTENCE, LazyProophEventStore::PARTITION_STREAM_PERSISTENCE];
 
         Assert::oneOf(
             $strategy,
@@ -163,11 +171,6 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     public function isInitializedOnStart(): bool
     {
         return $this->initializeEventStoreOnStart;
-    }
-
-    public function isUsingSingleStreamStrategy(): bool
-    {
-        return $this->getPersistenceStrategy() === LazyProophEventStore::SINGLE_STREAM_PERSISTENCE;
     }
 
     public function isUsingAggregateStreamStrategyFor(string $streamName): bool

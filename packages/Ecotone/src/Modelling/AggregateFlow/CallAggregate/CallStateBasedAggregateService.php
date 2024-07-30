@@ -17,7 +17,7 @@ final class CallStateBasedAggregateService implements CallAggregateService
     ) {
     }
 
-    public function call(Message $message): ?Message
+    public function process(Message $message): ?Message
     {
         return $this->aggregateMethodInvoker->execute($message)?->build();
     }

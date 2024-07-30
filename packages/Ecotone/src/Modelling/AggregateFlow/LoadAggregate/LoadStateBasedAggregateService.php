@@ -35,7 +35,7 @@ final class LoadStateBasedAggregateService implements LoadAggregateService
     ) {
     }
 
-    public function load(Message $message): ?Message
+    public function process(Message $message): ?Message
     {
         $resultMessage = MessageBuilder::fromMessage($message);
 

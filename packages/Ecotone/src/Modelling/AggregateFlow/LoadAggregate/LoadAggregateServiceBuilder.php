@@ -65,14 +65,10 @@ class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         }
 
         if ($this->isEventSourced) {
-            $loadAggregateService = $this->loadEventSourcingAggregateService();
+            return $this->loadEventSourcingAggregateService();
         } else {
-            $loadAggregateService = $this->loadStateBasedAggregateService();
+            return $this->loadStateBasedAggregateService();
         }
-
-        return ServiceActivatorBuilder::createWithDefinition($loadAggregateService, 'load')
-            ->withOutputMessageChannel($this->getOutputMessageChannelName())
-            ->compile($builder);
     }
 
     /**

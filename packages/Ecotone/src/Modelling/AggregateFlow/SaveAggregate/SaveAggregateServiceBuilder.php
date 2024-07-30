@@ -114,9 +114,9 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         if ($this->isReturningAggregate) {
-            $saveAggregateService = $this->saveMultipleAggregatesService();
+            return $this->saveMultipleAggregatesService();
         } elseif ($this->isCalledAggregateEventSourced) {
-            $saveAggregateService = $this->saveEventSourcingAggregateService(
+            return $this->saveEventSourcingAggregateService(
                 $this->calledAggregateClassName,
                 $this->interfaceToCall->isFactoryMethod(),
                 $this->calledAggregateIdentifierMapping,
@@ -125,7 +125,7 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
                 $this->isCalledAggregateVersionAutomaticallyIncreased
             );
         } else {
-            $saveAggregateService = $this->saveStateBasedAggregateService(
+            return $this->saveStateBasedAggregateService(
                 $this->calledAggregateClassName,
                 $this->interfaceToCall->isFactoryMethod(),
                 $this->calledAggregateIdentifierMapping,
@@ -134,10 +134,6 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
                 $this->isCalledAggregateVersionAutomaticallyIncreased
             );
         }
-
-        return ServiceActivatorBuilder::createWithDefinition($saveAggregateService, 'save')
-            ->withOutputMessageChannel($this->outputMessageChannelName)
-            ->compile($builder);
     }
 
     /**

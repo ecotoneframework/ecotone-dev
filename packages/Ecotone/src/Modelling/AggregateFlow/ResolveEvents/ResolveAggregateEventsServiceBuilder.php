@@ -43,28 +43,17 @@ final class ResolveAggregateEventsServiceBuilder extends InputOutputMessageHandl
     {
         if ($this->isFactoryMethod) {
             if ($this->isCalledAggregateEventSourced) {
-                return ServiceActivatorBuilder::createWithDefinition(definition: $this->resolveEventSourcingAggregateEventsService(true, $this->aggregateMethodWithEvents), methodName: 'resolve')
-                    ->withOutputMessageChannel($this->outputMessageChannelName)
-                    ->compile($builder)
-                ;
+                return $this->resolveEventSourcingAggregateEventsService(true, $this->aggregateMethodWithEvents);
             }
-            return ServiceActivatorBuilder::createWithDefinition(definition: $this->resolveStateBasedAggregateEventsService(true, false, $this->aggregateMethodWithEvents), methodName: 'resolve')
-                ->withOutputMessageChannel($this->outputMessageChannelName)
-                ->compile($builder)
-            ;
+            return $this->resolveStateBasedAggregateEventsService(true, false, $this->aggregateMethodWithEvents);
         }
         if ($this->isReturningAggregate) {
-            $resolveAggregateEventsService = $this->resolveMultipleAggregateEventsService();
+            return $this->resolveMultipleAggregateEventsService();
         } elseif ($this->isCalledAggregateEventSourced) {
-            $resolveAggregateEventsService = $this->resolveEventSourcingAggregateEventsService(false, $this->aggregateMethodWithEvents);
+            return $this->resolveEventSourcingAggregateEventsService(false, $this->aggregateMethodWithEvents);
         } else {
-            $resolveAggregateEventsService = $this->resolveStateBasedAggregateEventsService(false, true, $this->aggregateMethodWithEvents);
+            return $this->resolveStateBasedAggregateEventsService(false, true, $this->aggregateMethodWithEvents);
         }
-
-        return ServiceActivatorBuilder::createWithDefinition(definition: $resolveAggregateEventsService, methodName: 'resolve')
-            ->withOutputMessageChannel($this->outputMessageChannelName)
-            ->compile($builder)
-        ;
     }
 
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall

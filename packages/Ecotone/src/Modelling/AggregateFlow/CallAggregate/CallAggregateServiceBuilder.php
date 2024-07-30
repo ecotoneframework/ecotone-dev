@@ -118,14 +118,10 @@ class CallAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
         }
 
         if ($this->isEventSourced) {
-            $callAggregateService = $this->callEventSourcedAggregateServiceDefinition($compiledMethodParameterConverters, $interceptors);
+            return $this->callEventSourcedAggregateServiceDefinition($compiledMethodParameterConverters, $interceptors);
         } else {
-            $callAggregateService = $this->callStateBasedAggregateServiceDefinition($compiledMethodParameterConverters, $interceptors);
+            return $this->callStateBasedAggregateServiceDefinition($compiledMethodParameterConverters, $interceptors);
         }
-
-        return ServiceActivatorBuilder::createWithDefinition($callAggregateService, 'call')
-            ->withOutputMessageChannel($this->outputMessageChannelName)
-            ->compile($builder);
     }
 
     /**

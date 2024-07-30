@@ -23,7 +23,7 @@ final class CallEventSourcingAggregateService implements CallAggregateService
     ) {
     }
 
-    public function call(Message $message): ?Message
+    public function process(Message $message): ?Message
     {
         $resultMessage = $this->aggregateMethodInvoker->execute($message);
 

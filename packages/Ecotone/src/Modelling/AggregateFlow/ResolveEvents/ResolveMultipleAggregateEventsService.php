@@ -19,11 +19,11 @@ final class ResolveMultipleAggregateEventsService implements ResolveAggregateEve
     ) {
     }
 
-    public function resolve(Message $message, array $metadata): Message
+    public function process(Message $message): Message
     {
-        $message = $this->resolveCalledAggregateEventsService->resolve($message, $metadata);
-        $message = $this->resolveResultAggregateEventsService->resolve($message, $metadata);
+        $message = $this->resolveCalledAggregateEventsService->process($message);
+        $message = $this->resolveResultAggregateEventsService->process($message);
 
-        return MessageBuilder::fromMessage($message)->build();
+        return $message;
     }
 }

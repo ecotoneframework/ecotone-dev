@@ -19,11 +19,9 @@ final class ResolveMultipleAggregatesService implements ResolveAggregateService
     ) {
     }
 
-    public function resolve(Message $message, array $metadata): Message
+    public function process(Message $message): Message
     {
-        $message = $this->resolveCalledAggregateService->resolve($message, $metadata);
-        $message = $this->resolveResultAggregateService->resolve($message, $metadata);
-
-        return MessageBuilder::fromMessage($message)->build();
+        $message = $this->resolveCalledAggregateService->process($message);
+        return $this->resolveResultAggregateService->process($message);
     }
 }

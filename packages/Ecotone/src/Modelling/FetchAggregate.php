@@ -24,8 +24,6 @@ class FetchAggregate implements RealMessageProcessor
                 ->setPayload($message->getHeaders()->get(AggregateMessage::RESULT_AGGREGATE_OBJECT))
                 ->build();
         }
-        return MessageBuilder::fromMessage($message)
-            ->setPayload(null)
-            ->build();
+        return null;
     }
 }

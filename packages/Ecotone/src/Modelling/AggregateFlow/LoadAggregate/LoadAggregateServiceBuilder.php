@@ -26,7 +26,7 @@ use Ecotone\Modelling\LazyStandardRepository;
 /**
  * licence Apache-2.0
  */
-class LoadAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
+class LoadAggregateServiceBuilder implements CompilableBuilder
 {
     private string $aggregateClassName;
     private string $methodName;
@@ -50,11 +50,6 @@ class LoadAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
     public static function create(ClassDefinition $aggregateClassDefinition, string $methodName, ?ClassDefinition $handledMessageClass, LoadAggregateMode $loadAggregateMode, InterfaceToCallRegistry $interfaceToCallRegistry): self
     {
         return new self($aggregateClassDefinition, $methodName, $handledMessageClass, $loadAggregateMode, $interfaceToCallRegistry);
-    }
-
-    public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
-    {
-        return $interfaceToCallRegistry->getFor($this->aggregateClassName, $this->methodName);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition

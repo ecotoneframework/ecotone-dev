@@ -22,11 +22,18 @@ class MessagingContainerBuilder
      */
     private array $pollingEndpoints = [];
     private ServiceConfiguration $applicationConfiguration;
+    private MethodInterceptorsConfiguration $methodInterceptorsConfiguration;
 
-    public function __construct(private ContainerBuilder $builder, ?InterfaceToCallRegistry $interfaceToCallRegistry = null, ?ServiceConfiguration $serviceConfiguration = null, private array $pollingMetadata = [])
+    public function __construct(private ContainerBuilder $builder, ?MethodInterceptorsConfiguration $methodInterceptorsConfiguration, ?InterfaceToCallRegistry $interfaceToCallRegistry = null, ?ServiceConfiguration $serviceConfiguration = null, private array $pollingMetadata = [])
     {
         $this->interfaceToCallRegistry = $interfaceToCallRegistry ?? InterfaceToCallRegistry::createEmpty();
         $this->applicationConfiguration = $serviceConfiguration ?? ServiceConfiguration::createWithDefaults();
+        $this->methodInterceptorsConfiguration = $methodInterceptorsConfiguration ?? MethodInterceptorsConfiguration::createEmpty();
+    }
+
+    public function getRelatedInterceptors()
+    {
+
     }
 
     public function getInterfaceToCall(InterfaceToCallReference $interfaceToCallReference): InterfaceToCall

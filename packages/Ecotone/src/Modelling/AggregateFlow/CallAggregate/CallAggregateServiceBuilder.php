@@ -136,7 +136,7 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
 
     public function __toString()
     {
-        return sprintf('Aggregate Handler - %s with name `%s` for input channel `%s`', (string)$this->interfaceToCall, $this->getEndpointId(), $this->getInputMessageChannelName());
+        return sprintf('Call Aggregate Handler - %s', (string)$this->interfaceToCall);
     }
 
     private function callEventSourcedAggregateServiceDefinition(array $compiledMethodParameterConverters, array $interceptors): Definition

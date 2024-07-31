@@ -2,13 +2,14 @@ version: "3.8"
 
 services:
   app:
-    image: simplycodedsoftware/php:8.2.12
+    build:
+        dockerfile: .docker/Dockerfile
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
     command: sleep 99999
     container_name: "ecotone_development"
-    user: "${USER_PID:-1000}:${USER_PID:-1000}"
+    user: root
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # 172.17.0.1

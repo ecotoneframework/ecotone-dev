@@ -526,7 +526,7 @@ class ModellingHandlerModule implements AnnotationModule
                 ChainMessageHandlerBuilder::create()
                     ->withInputChannelName($messageChannelName)
                     ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $factoryIdentifierMetadataMapping, $factoryIdentifierMapping, $factoryHandledPayloadType, $interfaceToCallRegistry))
-                    ->chainInterceptedHandler(
+                    ->chain(
                         LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $factoryHandledPayloadType, LoadAggregateMode::createContinueOnNotFound(), $interfaceToCallRegistry)
                             ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
                     )

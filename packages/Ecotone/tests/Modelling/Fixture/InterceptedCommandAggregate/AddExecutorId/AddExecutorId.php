@@ -12,6 +12,7 @@ use Test\Ecotone\Modelling\Fixture\InterceptedCommandAggregate\Logger;
 class AddExecutorId
 {
     private string $executorId = '';
+    private int $calledCount = 0;
 
     #[CommandHandler('changeExecutorId')]
     public function addExecutorId(string $executorId): void
@@ -22,6 +23,7 @@ class AddExecutorId
     #[Before(pointcut: Logger::class)]
     public function add(array $payload): array
     {
+        $this->calledCount += 1;
         if (isset($payload['executorId'])) {
             return $payload;
         }
@@ -30,5 +32,10 @@ class AddExecutorId
             $payload,
             ['executorId' => $this->executorId]
         );
+    }
+
+    public function getCalledCount(): int
+    {
+        return $this->calledCount;
     }
 }

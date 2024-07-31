@@ -31,24 +31,17 @@ class TransformerMessageProcessor implements MessageProcessor
     public function executeEndpoint(Message $message): ?Message
     {
         $reply = $this->methodInvoker->executeEndpoint($message);
-        $replyBuilder = MessageBuilder::fromMessage($message);
-
-        if (is_null($reply)) {
-            return null;
-        }
-
-        if (is_array($reply)) {
-            $reply = $replyBuilder
+        return match (true) {
+            is_null($reply) => null,
+            $reply instanceof Message => $reply,
+            is_array($reply) => MessageBuilder::fromMessage($message)
                 ->setMultipleHeaders($reply)
-                ->build();
-        } elseif (! ($reply instanceof Message)) {
-            $reply = $replyBuilder
+                ->build(),
+            default => MessageBuilder::fromMessage($message)
                 ->setPayload($reply)
                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($this->returnType->toString()))
-                ->build();
-        }
-
-        return $reply;
+                ->build()
+        };
     }
 
     public function getMethodCall(Message $message): MethodCall

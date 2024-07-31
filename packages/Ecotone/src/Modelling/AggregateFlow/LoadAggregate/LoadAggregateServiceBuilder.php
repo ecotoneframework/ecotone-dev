@@ -13,6 +13,7 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Attribute\AggregateVersion;
@@ -25,7 +26,7 @@ use Ecotone\Modelling\LazyStandardRepository;
 /**
  * licence Apache-2.0
  */
-class LoadAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements CompilableBuilder
+class LoadAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
 {
     private string $aggregateClassName;
     private string $methodName;

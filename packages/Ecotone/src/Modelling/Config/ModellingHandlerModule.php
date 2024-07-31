@@ -582,8 +582,8 @@ class ModellingHandlerModule implements AnnotationModule
                 ->chainInterceptedProcessor(
                     CallAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), true, $interfaceToCallRegistry)
                         ->withMethodParameterConverters($parameterConverters)
-                        ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
-                );
+                )
+                ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames());
 
             $serviceActivatorHandler->chain(
                 ResolveAggregateEventsServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $interfaceToCallRegistry)
@@ -643,10 +643,10 @@ class ModellingHandlerModule implements AnnotationModule
                 )
                 ->chainInterceptedProcessor(
                     CallAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), false, $interfaceToCallRegistry)
-                        ->withEndpointId($annotationForMethod->getEndpointId())
                         ->withMethodParameterConverters($parameterConverters)
-                        ->withRequiredInterceptorNames($annotationForMethod->getRequiredInterceptorNames())
                 )
+                ->withRequiredInterceptorNames($annotationForMethod->getRequiredInterceptorNames())
+                ->withEndpointId($annotationForMethod->getEndpointId())
         );
     }
 
@@ -732,7 +732,7 @@ class ModellingHandlerModule implements AnnotationModule
         );
     }
 
-    private function registerSaveAggregate(ClassDefinition $aggregateClassDefinition, Configuration $configuration, InputOutputMessageHandlerBuilder $chainMessageHandlerBuilder, InterfaceToCallRegistry $interfaceToCallRegistry, BaseEventSourcingConfiguration $baseEventSourcingConfiguration, string $inputChannelName): void
+    private function registerSaveAggregate(ClassDefinition $aggregateClassDefinition, Configuration $configuration, MessageProcessorActivatorBuilder $chainMessageHandlerBuilder, InterfaceToCallRegistry $interfaceToCallRegistry, BaseEventSourcingConfiguration $baseEventSourcingConfiguration, string $inputChannelName): void
     {
         /** @TODO do not require method name in save service */
         $methodName = $aggregateClassDefinition->getPublicMethodNames() ? $aggregateClassDefinition->getPublicMethodNames()[0] : '__construct';

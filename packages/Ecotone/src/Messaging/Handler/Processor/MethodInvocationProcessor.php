@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Handler\Processor;
 
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Handler\Type;
@@ -15,9 +16,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class MethodInvocationProcessor implements RealMessageProcessor
 {
     public function __construct(
-        private MethodInvoker $methodInvoker,
-        private bool $shouldChangeMessageHeaders,
-        private string $interfaceToCallName,
+        private MethodCallProvider $methodCallProvider,
         private Type $returnType,
     )
     {
@@ -25,24 +24,10 @@ class MethodInvocationProcessor implements RealMessageProcessor
 
     public function process(Message $message): ?Message
     {
-        $params = $this->methodInvoker->getMethodCall($message)->getMethodArgumentValues();
-        $objectToInvokeOn = $this->methodInvoker->getObjectToInvokeOn();
-        $result = is_string($objectToInvokeOn)
-            ? $objectToInvokeOn::{$this->methodInvoker->getMethodName()}(...$params)
-            : $objectToInvokeOn->{$this->methodInvoker->getMethodName()}(...$params);
-
+        $result = $this->methodCallProvider->getMethodInvocation($message)->proceed();
 
         if (is_null($result)) {
             return null;
-        }
-
-        if ($this->shouldChangeMessageHeaders) {
-            Assert::isFalse($result instanceof Message, 'Message should not be returned when changing headers in ' . $this->interfaceToCallName);
-            Assert::isTrue(is_array($result), 'Result should be an array when changing headers in ' . $this->interfaceToCallName);
-
-            return MessageBuilder::fromMessage($message)
-                ->setMultipleHeaders($result)
-                ->build();
         }
 
         if ($result instanceof Message) {

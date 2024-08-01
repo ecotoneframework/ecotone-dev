@@ -11,6 +11,7 @@ class Definition
      * @var MethodCall[]
      */
     private array $methodCalls = [];
+    private ?MethodInterceptionConfiguration $interceptionConfiguration = null;
 
     /**
      * @param array<string|int, mixed> $arguments
@@ -55,5 +56,17 @@ class Definition
     public function getMethodCalls(): array
     {
         return $this->methodCalls;
+    }
+
+    public function withInterceptingConfiguration(MethodInterceptionConfiguration $interceptionConfiguration): static
+    {
+        $this->interceptionConfiguration = $interceptionConfiguration;
+
+        return $this;
+    }
+
+    public function getInterceptingConfiguration(): ?MethodInterceptionConfiguration
+    {
+        return $this->interceptionConfiguration;
     }
 }

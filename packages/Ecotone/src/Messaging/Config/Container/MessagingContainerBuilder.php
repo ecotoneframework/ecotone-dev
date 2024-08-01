@@ -2,11 +2,18 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationWithChainedAfterInterceptorsProvider;
+use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
+use Ecotone\Messaging\Support\Assert;
 use InvalidArgumentException;
 
 /**
@@ -24,16 +31,17 @@ class MessagingContainerBuilder
     private ServiceConfiguration $applicationConfiguration;
     private MethodInterceptorsConfiguration $methodInterceptorsConfiguration;
 
-    public function __construct(private ContainerBuilder $builder, ?MethodInterceptorsConfiguration $methodInterceptorsConfiguration, ?InterfaceToCallRegistry $interfaceToCallRegistry = null, ?ServiceConfiguration $serviceConfiguration = null, private array $pollingMetadata = [])
+    public function __construct(
+        private ContainerBuilder $builder,
+        ?InterfaceToCallRegistry $interfaceToCallRegistry = null,
+        ?ServiceConfiguration $serviceConfiguration = null,
+        private array $pollingMetadata = [],
+        ?MethodInterceptorsConfiguration $methodInterceptorsConfiguration = null
+    )
     {
         $this->interfaceToCallRegistry = $interfaceToCallRegistry ?? InterfaceToCallRegistry::createEmpty();
         $this->applicationConfiguration = $serviceConfiguration ?? ServiceConfiguration::createWithDefaults();
         $this->methodInterceptorsConfiguration = $methodInterceptorsConfiguration ?? MethodInterceptorsConfiguration::createEmpty();
-    }
-
-    public function getRelatedInterceptors()
-    {
-
     }
 
     public function getInterfaceToCall(InterfaceToCallReference $interfaceToCallReference): InterfaceToCall
@@ -135,5 +143,57 @@ class MessagingContainerBuilder
         }
 
         return $pollingMetadata;
+    }
+
+    public function interceptMethodCall(InterfaceToCallReference $interceptedInterfaceReference, array $endpointAnnotations, Definition $methodCallProviderDefinition): Definition
+    {
+        $interceptorsConfiguration = $this->getRelatedInterceptors(
+            $interceptedInterfaceReference,
+            $endpointAnnotations,
+        );
+        $afterInterceptors = [];
+        foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
+            $afterInterceptors[] = $afterInterceptor->compileForInterceptedInterface($this, $interceptedInterfaceReference, $endpointAnnotations);
+        }
+        $aroundInterceptors = [];
+        foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptor) {
+            $aroundInterceptors[] = $aroundInterceptor->compileForInterceptedInterface($this, $this->getInterfaceToCall($interceptedInterfaceReference), $endpointAnnotations);
+        }
+        if ($afterInterceptors) {
+            // This is where we hook after interceptors inside around interceptors
+            $afterCallProcessor = new Definition(ChainedMessageProcessor::class, [
+                $afterInterceptors
+            ]);
+            $methodCallProviderDefinition = new Definition(MethodInvocationWithChainedAfterInterceptorsProvider::class, [
+                $methodCallProviderDefinition,
+                $afterCallProcessor
+            ]);
+        }
+        if ($aroundInterceptors) {
+            $methodCallProviderDefinition = new Definition(AroundMethodCallProvider::class, [
+                $methodCallProviderDefinition,
+                $aroundInterceptors
+            ]);
+        }
+        return $methodCallProviderDefinition;
+    }
+
+    public function getRelatedInterceptors(
+        InterfaceToCallReference $getInterceptedInterface,
+        array $endpointAnnotations,
+        array $requiredInterceptorNames = [],
+    ): MethodInterceptorsConfiguration
+    {
+//        foreach ($requiredInterceptorNames as $requiredInterceptorName) {
+//            if (! $this->doesInterceptorWithNameExists($requiredInterceptorName)) {
+//                throw ConfigurationException::create("Can't find interceptor with name {$requiredInterceptorName} for {$interceptedInterface}");
+//            }
+//        }
+        $interfaceToCall = $this->interfaceToCallRegistry->getForReference($getInterceptedInterface);
+        return $this->methodInterceptorsConfiguration->getRelatedInterceptors(
+            $interfaceToCall,
+            $endpointAnnotations,
+            $requiredInterceptorNames
+        );
     }
 }

@@ -4,6 +4,7 @@ namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -13,12 +14,16 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationWithChainedAfterInterceptorsProvider;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Modelling\AggregateMethodCallProvider;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
@@ -106,11 +111,6 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $interceptors = [];
-        foreach (AroundInterceptorBuilder::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
-            $interceptors[] = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $this->interfaceToCall);
-        }
-
         // TODO: code duplication with ServiceActivatorBuilder
         $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($this->interfaceToCall, $this->methodParameterConverterBuilders, $this->getEndpointAnnotations(), null, false);
 
@@ -119,19 +119,30 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
             $compiledMethodParameterConverters[] = $methodParameterConverter->compile($this->interfaceToCall);
         }
 
-        if ($this->isEventSourced) {
-            return $this->callEventSourcedAggregateServiceDefinition($compiledMethodParameterConverters, $interceptors);
-        } else {
-            return $this->callStateBasedAggregateServiceDefinition($compiledMethodParameterConverters, $interceptors);
-        }
+        $aggregateMethodCallProvider = new Definition(AggregateMethodCallProvider::class, [
+            $this->interfaceToCall->getInterfaceName(),
+            $this->interfaceToCall->getMethodName(),
+            $compiledMethodParameterConverters,
+            $this->interfaceToCall->getInterfaceParametersNames(),
+        ]);
+        $aggregateMethodCallProvider = $builder->interceptMethodCall($this->getInterceptedInterface(), $this->getEndpointAnnotations(), $aggregateMethodCallProvider);
+
+        return new Definition(CallAggregateMessageProcessor::class, [
+            $aggregateMethodCallProvider,
+            $this->interfaceToCall->getReturnType(),
+            new Reference(PropertyReaderAccessor::class),
+            $this->isCommandHandler,
+            $this->interfaceToCall->isFactoryMethod() ?? false,
+            $this->aggregateVersionProperty
+        ]);
     }
 
     /**
      * @inheritDoc
      */
-    public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
+    public function getInterceptedInterface(): InterfaceToCallReference
     {
-        return $interfaceToCallRegistry->getFor($this->interfaceToCall->getInterfaceName(), $this->interfaceToCall->getMethodName());
+        return InterfaceToCallReference::fromInstance($this->interfaceToCall);
     }
 
     public function __toString()
@@ -142,7 +153,7 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
     private function callEventSourcedAggregateServiceDefinition(array $compiledMethodParameterConverters, array $interceptors): Definition
     {
         return new Definition(CallEventSourcingAggregateService::class, [
-            $this->compileAggregateMethodInvoker($compiledMethodParameterConverters, $interceptors),
+            $this->compileAggregateMethodCallProvider($compiledMethodParameterConverters, $interceptors),
             new Reference(PropertyReaderAccessor::class),
             $this->interfaceToCall->isFactoryMethod() ?? false,
             $this->aggregateVersionProperty,
@@ -151,12 +162,12 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
 
     private function callStateBasedAggregateServiceDefinition(array $compiledMethodParameterConverters, array $interceptors): Definition
     {
-        return new Definition(CallStateBasedAggregateService::class, [
-            $this->compileAggregateMethodInvoker($compiledMethodParameterConverters, $interceptors),
+        return new Definition(CallAggregateMessageProcessor::class, [
+            $this->compileAggregateMethodCallProvider($compiledMethodParameterConverters, $interceptors),
         ]);
     }
 
-    private function compileAggregateMethodInvoker(array $compiledMethodParameterConverters, array $interceptors): Definition
+    private function compileAggregateMethodCallProvider(array $compiledMethodParameterConverters, array $interceptors): Definition
     {
         return new Definition(AggregateMethodInvoker::class, [
             $this->interfaceToCall->getInterfaceName(),

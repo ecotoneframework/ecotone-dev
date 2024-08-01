@@ -136,7 +136,10 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
     /**
      * @param AttributeDefinition[] $endpointAnnotations
      */
-    public function compile(MessagingContainerBuilder $builder, array $endpointAnnotations, InterfaceToCall $interceptedInterface): Definition|null
+    public function compileForInterceptedInterface(
+        MessagingContainerBuilder $builder,
+        InterfaceToCall $interceptedInterface,
+        array $endpointAnnotations): Definition|null
     {
         $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
         $parameterConvertersFromAttributes = $parameterAnnotationResolver->createParameterConverters($this->interfaceToCall);

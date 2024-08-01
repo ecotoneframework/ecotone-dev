@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 
 /**
  * Class Interceptor
@@ -45,6 +47,17 @@ class MethodInterceptor implements InterceptorWithPointCut
     public static function create(string $interceptorName, InterfaceToCall $interceptorInterfaceToCall, MessageHandlerBuilderWithOutputChannel $messageHandler, int $precedence, string $pointcut): MethodInterceptor
     {
         return new self($interceptorName, $interceptorInterfaceToCall, $messageHandler, $precedence, Pointcut::createWith($pointcut));
+    }
+
+    public function convertToNewImplementation(): NewMethodInterceptorBuilder
+    {
+        return new NewMethodInterceptorBuilder(
+            InterfaceToCallReference::fromInstance($this->interceptorInterfaceToCall),
+            $this->messageHandler instanceof MessageHandlerBuilderWithParameterConverters ? $this->messageHandler->getParameterConverters() : [],
+            $this->precedence,
+            $this->pointcut,
+            $this->messageHandler instanceof TransformerBuilder,
+        );
     }
 
     /**

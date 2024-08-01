@@ -6,6 +6,7 @@ namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
 use Ecotone\Messaging\Message;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\CallAggregateService;
@@ -16,7 +17,7 @@ use Ecotone\Modelling\CallAggregateService;
 final class CallEventSourcingAggregateService implements CallAggregateService
 {
     public function __construct(
-        private AggregateMethodInvoker $aggregateMethodInvoker,
+        private MethodCallProvider $methodCallProvider,
         private PropertyReaderAccessor $propertyReaderAccessor,
         private bool $isFactoryMethod,
         private ?string $aggregateVersionProperty,
@@ -25,7 +26,7 @@ final class CallEventSourcingAggregateService implements CallAggregateService
 
     public function process(Message $message): ?Message
     {
-        $resultMessage = $this->aggregateMethodInvoker->execute($message);
+        $resultMessage = $this->methodCallProvider->getMethodInvocation($message)->proceed();
 
         $calledAggregate = $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT) ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT) : null;
         $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;

@@ -189,7 +189,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         if ($this->orderedAroundInterceptors) {
             $interceptors = [];
             foreach (AroundInterceptorBuilder::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
-                $interceptors[] = $aroundInterceptorReference->compile($builder, $this->getEndpointAnnotations(), $interfaceToCall);
+                $interceptors[] = $aroundInterceptorReference->compileForInterceptedInterface($builder, $interfaceToCall, $this->getEndpointAnnotations());
             }
 
             $handlerDefinition = new Definition(HandlerReplyProcessor::class, [

@@ -13,7 +13,6 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\AroundMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\RealMessageProcessor;
@@ -21,9 +20,6 @@ use Ecotone\Messaging\Handler\RealMessageProcessor;
 class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
 {
     private ?InterceptedMessageProcessorBuilder $interceptedProcessor = null;
-
-    private array $beforeMessageProcessors = [];
-    private array $afterMessageProcessors = [];
 
     public function __construct(
         private array $processors = [],
@@ -123,7 +119,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         $interceptedInterface = $this->interceptedProcessor?->getInterceptedInterface($interfaceToCallRegistry);
-        return $interceptedInterface ?? $interfaceToCallRegistry->getFor(ChainedMessageProcessor::class, "process");
+        return $interfaceToCallRegistry->getForReference($interceptedInterface) ?? $interfaceToCallRegistry->getFor(ChainedMessageProcessor::class, "process");
     }
 
     /**
@@ -133,13 +129,18 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
     private function compileProcessors(MessagingContainerBuilder $builder): array
     {
         $compiledProcessors = [];
-        foreach ($this->processors as $processor) {
-            if ($processor === $this->interceptedProcessor) {
-                // Add around interceptors
-                foreach ($this->orderedAroundInterceptors as $aroundInterceptor) {
-                    $processor = $processor->addAroundMethodInterceptor($aroundInterceptor);
-                }
+        if ($this->interceptedProcessor) {
+            $interceptorsConfiguration = $builder->getRelatedInterceptors(
+                $this->interceptedProcessor->getInterceptedInterface(),
+                $this->getEndpointAnnotations(),
+                $this->getRequiredInterceptorNames()
+            );
+            // register before interceptors
+            foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
+                $compiledProcessors[] = $beforeInterceptor->compileForInterceptedInterface($builder, $this->interceptedProcessor->getInterceptedInterface(), $this->getEndpointAnnotations());
             }
+        }
+        foreach ($this->processors as $processor) {
             $compiledProcessor = $processor->compile($builder);
             if ($compiledProcessor instanceof Definition) {
                 is_a($compiledProcessor->getClassName(), RealMessageProcessor::class, true)

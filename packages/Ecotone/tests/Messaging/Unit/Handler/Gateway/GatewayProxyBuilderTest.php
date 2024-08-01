@@ -797,7 +797,7 @@ class GatewayProxyBuilderTest extends MessagingTest
                             ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'multiply'),
                             0,
                             ''
-                        )
+                        )->convertToNewImplementation()
                     )
                     ->addBeforeInterceptor(
                         MethodInterceptor::create(
@@ -806,7 +806,7 @@ class GatewayProxyBuilderTest extends MessagingTest
                             ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'sum'),
                             1,
                             ''
-                        )
+                        )->convertToNewImplementation()
                     )
                     ->addAfterInterceptor(
                         MethodInterceptor::create(
@@ -815,7 +815,7 @@ class GatewayProxyBuilderTest extends MessagingTest
                             ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result'),
                             1,
                             ''
-                        )
+                        )->convertToNewImplementation()
                     )
                     ->addAfterInterceptor(
                         MethodInterceptor::create(
@@ -824,7 +824,7 @@ class GatewayProxyBuilderTest extends MessagingTest
                             ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'),
                             0,
                             ''
-                        )
+                        )->convertToNewImplementation()
                     )
             )
             ->withMessageHandler(

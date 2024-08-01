@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
+use Ecotone\Messaging\Handler\HandlerTransitionMethodInterceptor;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
  * Class Interceptor
@@ -51,8 +54,12 @@ class MethodInterceptor implements InterceptorWithPointCut
 
     public function convertToNewImplementation(): NewMethodInterceptorBuilder
     {
+        if (! $this->messageHandler instanceof HandlerTransitionMethodInterceptor) {
+            throw InvalidArgumentException::create("Only HandlerTransitionMethodInterceptor are supported for conversion with new implementation, got {$this->messageHandler}");
+        }
         return new NewMethodInterceptorBuilder(
-            InterfaceToCallReference::fromInstance($this->interceptorInterfaceToCall),
+            $this->messageHandler->getObjectToInvokeOn(),
+            $this->interceptorInterfaceToCall->getMethodName(),
             $this->messageHandler instanceof MessageHandlerBuilderWithParameterConverters ? $this->messageHandler->getParameterConverters() : [],
             $this->precedence,
             $this->pointcut,

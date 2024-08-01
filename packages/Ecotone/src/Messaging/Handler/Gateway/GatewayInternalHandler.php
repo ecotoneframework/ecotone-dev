@@ -4,6 +4,7 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Future;
+use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -23,7 +24,7 @@ use Ramsey\Uuid\Uuid;
 /**
  * licence Apache-2.0
  */
-class GatewayInternalHandler
+class GatewayInternalHandler implements RealMessageProcessor
 {
     public function __construct(
         private string $interfaceToCallName,
@@ -41,7 +42,7 @@ class GatewayInternalHandler
      * @throws MessagingException
      * @throws mixed
      */
-    public function handle(Message $requestMessage)
+    public function process(Message $requestMessage): ?Message
     {
         //      Gateway can be called inside service activator. So it means, we need to preserve reply channel in order to reply with it
         $previousReplyChannel = $requestMessage->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL) ? $requestMessage->getHeaders()->getReplyChannel() : null;
@@ -65,7 +66,9 @@ class GatewayInternalHandler
             $replyCallable = $this->getReply($requestMessage->getHeaders()->getReplyChannel());
 
             if ($this->returnType?->isClassOfType(Future::class)) {
-                return FutureReplyReceiver::create($replyCallable);
+                return MessageBuilder::fromMessage($requestMessage)
+                    ->setPayload(FutureReplyReceiver::create($replyCallable))
+                    ->build();
             }
 
             $replyMessage = $replyCallable();

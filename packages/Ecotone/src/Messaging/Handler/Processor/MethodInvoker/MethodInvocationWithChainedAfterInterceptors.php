@@ -28,9 +28,11 @@ class MethodInvocationWithChainedAfterInterceptors implements MethodInvocation
         $result = $this->methodInvocation->proceed();
 
         // This is from AroundInterceptorHandler
-        if (! is_null($result)) {
-            $message = $result instanceof Message ? $result : MessageBuilder::fromMessage($this->message)->setPayload($result)->build();
+        if (\is_null($result)) {
+            return null;
         }
+
+        $message = $result instanceof Message ? $result : MessageBuilder::fromMessage($this->message)->setPayload($result)->build();
 
         $resultMessage = $this->afterMethodMessageProcessor->process($message);
 

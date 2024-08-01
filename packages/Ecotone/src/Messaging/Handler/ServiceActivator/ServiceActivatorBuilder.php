@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\AroundInterceptorHandler;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\HandlerTransitionMethodInterceptor;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -37,7 +38,7 @@ use ReflectionMethod;
 /**
  * licence Apache-2.0
  */
-final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
+final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, HandlerTransitionMethodInterceptor
 {
     private bool $isReplyRequired = false;
     private array $methodParameterConverterBuilders = [];
@@ -227,5 +228,10 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         $this->orderedAroundInterceptors = $orderedAroundInterceptors;
 
         return $this;
+    }
+
+    public function getObjectToInvokeOn(): DefinedObject|Definition|Reference
+    {
+        return $this->objectToInvokeOn;
     }
 }

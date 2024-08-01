@@ -11,10 +11,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationWithChainedAfterInterceptorsProvider;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
-use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
-use Ecotone\Messaging\Support\Assert;
-use InvalidArgumentException;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
  * licence Apache-2.0
@@ -49,6 +46,11 @@ class MessagingContainerBuilder
         return $this->interfaceToCallRegistry->getFor($interfaceToCallReference->getClassName(), $interfaceToCallReference->getMethodName());
     }
 
+    public function getInterfaceToCallForObject(Reference|Definition|DefinedObject $reference, string $methodName): InterfaceToCall
+    {
+        return $this->interfaceToCallRegistry->getFor($this->getClassFor($reference), $methodName);
+    }
+
     public function getInterfaceToCallRegistry(): InterfaceToCallRegistry
     {
         return $this->interfaceToCallRegistry;
@@ -62,12 +64,12 @@ class MessagingContainerBuilder
     public function registerPollingEndpoint(string $endpointId, Definition $definition, bool $withContinuousPolling = false): void
     {
         if (isset($this->pollingEndpoints[$endpointId])) {
-            throw new InvalidArgumentException("Endpoint with id {$endpointId} already exists");
+            throw InvalidArgumentException::create("Endpoint with id {$endpointId} already exists");
         }
         $runnerReference = new EndpointRunnerReference($endpointId);
         $className = $definition->getClassName();
         if (! is_a($className, EndpointRunner::class, true)) {
-            throw new InvalidArgumentException("Endpoint runner {$className} must implement " . EndpointRunner::class);
+            throw InvalidArgumentException::create("Endpoint runner {$className} must implement " . EndpointRunner::class);
         }
 
         $pollingMetadata = $this->getPollingConfigurationForPolledEndpoint($endpointId, $withContinuousPolling);
@@ -94,6 +96,16 @@ class MessagingContainerBuilder
     public function getDefinition(string|Reference $id): Definition
     {
         return $this->builder->getDefinition($id);
+    }
+
+    private function getClassFor(Reference|Definition|DefinedObject $reference): string
+    {
+        return match (true) {
+            $reference instanceof Reference => $this->getDefinition($reference)->getClassName(),
+            $reference instanceof Definition => $reference->getClassName(),
+            $reference instanceof DefinedObject => \get_class($reference),
+            default => throw InvalidArgumentException::create("Unsupported reference type")
+        };
     }
 
     private function registerPollingMetadata(PollingMetadata $pollingMetadata): Reference

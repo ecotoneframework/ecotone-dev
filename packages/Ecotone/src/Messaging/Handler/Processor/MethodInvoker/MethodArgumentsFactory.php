@@ -70,6 +70,11 @@ class MethodArgumentsFactory
         return $orderedMethodArguments;
     }
 
+    /**
+     * @param array<ParameterConverterBuilder> $passedMethodParameterConverters
+     * @param array $endpointAnnotations
+     * @return array<ParameterConverterBuilder>
+     */
     public static function createInterceptedInterfaceAnnotationMethodParameters(
         InterfaceToCall $interfaceToCall,
         array $passedMethodParameterConverters,

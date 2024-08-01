@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -19,7 +20,8 @@ class NewMethodInterceptorBuilder
      * @param array<ParameterConverterBuilder> $defaultParameterConverters
      */
     public function __construct(
-        private InterfaceToCallReference $interceptorInterface,
+        private Reference|Definition|DefinedObject $interceptorDefinition,
+        private string $methodName,
         private array $defaultParameterConverters,
         private int $precedence,
         private Pointcut $pointcut,
@@ -42,17 +44,22 @@ class NewMethodInterceptorBuilder
         array $endpointAnnotations
     ): Definition|Reference
     {
-        $interceptorInterface = $builder->getInterfaceToCall($this->interceptorInterface);
+        $interceptorInterface = $builder->getInterfaceToCallForObject($this->interceptorDefinition, $this->methodName);
         $interceptedInterface = $builder->getInterfaceToCall($interceptedInterfaceToCallReference);
-        $parameterConverters = MethodArgumentsFactory::createInterceptedInterfaceAnnotationMethodParameters(
+        $parameterConvertersBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interceptorInterface, $this->defaultParameterConverters, $endpointAnnotations, null, false);
+        $parameterConvertersBuilders = MethodArgumentsFactory::createInterceptedInterfaceAnnotationMethodParameters(
             $interceptorInterface,
-            $this->defaultParameterConverters,
+            $parameterConvertersBuilders,
             $endpointAnnotations,
             $interceptedInterface,
         );
+        $parameterConverters = \array_map(
+            fn(ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interceptorInterface),
+            $parameterConvertersBuilders
+        );
 
         $methodCallProvider = new Definition(StaticMethodCallProvider::class, [
-            new Reference($interceptorInterface->getInterfaceName()),
+            $this->interceptorDefinition,
             $interceptorInterface->getMethodName(),
             $parameterConverters,
             $interceptorInterface->getInterfaceParametersNames(),

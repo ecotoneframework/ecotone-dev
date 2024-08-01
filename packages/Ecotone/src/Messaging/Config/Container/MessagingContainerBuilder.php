@@ -46,11 +46,6 @@ class MessagingContainerBuilder
         return $this->interfaceToCallRegistry->getFor($interfaceToCallReference->getClassName(), $interfaceToCallReference->getMethodName());
     }
 
-    public function getInterfaceToCallForObject(Reference|Definition|DefinedObject $reference, string $methodName): InterfaceToCall
-    {
-        return $this->interfaceToCallRegistry->getFor($this->getClassFor($reference), $methodName);
-    }
-
     public function getInterfaceToCallRegistry(): InterfaceToCallRegistry
     {
         return $this->interfaceToCallRegistry;
@@ -96,16 +91,6 @@ class MessagingContainerBuilder
     public function getDefinition(string|Reference $id): Definition
     {
         return $this->builder->getDefinition($id);
-    }
-
-    private function getClassFor(Reference|Definition|DefinedObject $reference): string
-    {
-        return match (true) {
-            $reference instanceof Reference => $this->getDefinition($reference)->getClassName(),
-            $reference instanceof Definition => $reference->getClassName(),
-            $reference instanceof DefinedObject => \get_class($reference),
-            default => throw InvalidArgumentException::create("Unsupported reference type")
-        };
     }
 
     private function registerPollingMetadata(PollingMetadata $pollingMetadata): Reference

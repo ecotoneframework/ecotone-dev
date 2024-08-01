@@ -21,11 +21,11 @@ class NewMethodInterceptorBuilder
      */
     public function __construct(
         private Reference|Definition|DefinedObject $interceptorDefinition,
-        private string $methodName,
-        private array $defaultParameterConverters,
-        private int $precedence,
-        private Pointcut $pointcut,
-        private bool $changeHeaders = false,
+        private InterfaceToCallReference           $interceptorInterfaceReference,
+        private array                              $defaultParameterConverters,
+        private int                                $precedence,
+        private Pointcut                           $pointcut,
+        private bool                               $changeHeaders = false,
     )
     {
     }
@@ -44,7 +44,7 @@ class NewMethodInterceptorBuilder
         array $endpointAnnotations = []
     ): Definition|Reference
     {
-        $interceptorInterface = $builder->getInterfaceToCallForObject($this->interceptorDefinition, $this->methodName);
+        $interceptorInterface = $builder->getInterfaceToCall($this->interceptorInterfaceReference);
         $interceptedInterface = $interceptedInterfaceToCallReference ? $builder->getInterfaceToCall($interceptedInterfaceToCallReference) : null;
 
         $methodCallProvider = StaticMethodCallProvider::getDefinition(
@@ -69,6 +69,6 @@ class NewMethodInterceptorBuilder
 
     public function __toString(): string
     {
-        return $this->interceptorDefinition . "::" . $this->methodName;
+        return (string)$this->interceptorInterfaceReference;
     }
 }

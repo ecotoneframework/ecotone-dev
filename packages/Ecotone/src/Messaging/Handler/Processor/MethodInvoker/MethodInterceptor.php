@@ -59,7 +59,7 @@ class MethodInterceptor implements InterceptorWithPointCut
         }
         return new NewMethodInterceptorBuilder(
             $this->messageHandler->getObjectToInvokeOn(),
-            $this->interceptorInterfaceToCall->getMethodName(),
+            InterfaceToCallReference::fromInstance($this->interceptorInterfaceToCall),
             $this->messageHandler instanceof MessageHandlerBuilderWithParameterConverters ? $this->messageHandler->getParameterConverters() : [],
             $this->precedence,
             $this->pointcut,

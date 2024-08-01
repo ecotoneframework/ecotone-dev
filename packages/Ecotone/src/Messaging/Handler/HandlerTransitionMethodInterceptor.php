@@ -9,4 +9,5 @@ use Ecotone\Messaging\Config\Container\Reference;
 interface HandlerTransitionMethodInterceptor
 {
     public function getObjectToInvokeOn(): Reference|Definition|DefinedObject;
+    public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall;
 }

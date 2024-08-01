@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Endpoint;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
 
 /**
  * Interface ConsumerBuilder
@@ -27,13 +28,13 @@ interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder, Interc
      * @param MethodInterceptor $methodInterceptor
      * @return $this
      */
-    public function addBeforeInterceptor(MethodInterceptor $methodInterceptor): self;
+    public function addBeforeInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self;
 
     /**
      * @param MethodInterceptor $methodInterceptor
      * @return $this
      */
-    public function addAfterInterceptor(MethodInterceptor $methodInterceptor): self;
+    public function addAfterInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self;
 
     public function registerConsumer(MessagingContainerBuilder $builder): void;
 }

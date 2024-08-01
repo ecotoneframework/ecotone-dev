@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler;
 
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
 use Ecotone\Messaging\Message;
 
 /**
@@ -28,4 +29,6 @@ interface MessageProcessor
     public function getObjectToInvokeOn(): string|object;
 
     public function getMethodName(): string;
+
+    public function toMethodCallProvider(): MethodCallProvider;
 }

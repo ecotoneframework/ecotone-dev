@@ -4,7 +4,10 @@ namespace Ecotone\Messaging\Handler\Processor;
 
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -44,5 +47,15 @@ class HandlerReplyProcessor implements MessageProcessor
     public function getMethodName(): string
     {
         return $this->requestReplyProducer->getMessageProcessor()->getMethodName();
+    }
+
+    public function toMethodCallProvider(): MethodCallProvider
+    {
+        return new StaticMethodCallProvider(
+            $this,
+            "executeEndpoint",
+            [new MessageConverter()],
+            ["message"],
+        );
     }
 }

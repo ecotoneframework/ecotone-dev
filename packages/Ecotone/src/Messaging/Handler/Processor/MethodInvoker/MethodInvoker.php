@@ -79,4 +79,14 @@ final class MethodInvoker implements MessageProcessor
     {
         return $this->objectMethodName;
     }
+
+    public function toMethodCallProvider(): MethodCallProvider
+    {
+        return new StaticMethodCallProvider(
+            $this->objectToInvokeOn,
+            $this->objectMethodName,
+            $this->methodParameterConverters,
+            $this->methodParameterNames
+        );
+    }
 }

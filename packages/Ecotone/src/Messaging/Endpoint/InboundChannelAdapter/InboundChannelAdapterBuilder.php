@@ -15,6 +15,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -76,7 +77,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
     /**
      * @inheritDoc
      */
-    public function addBeforeInterceptor(MethodInterceptor $methodInterceptor): \Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder
+    public function addBeforeInterceptor(NewMethodInterceptorBuilder $methodInterceptor): \Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder
     {
         $this->inboundGateway->addBeforeInterceptor($methodInterceptor);
 
@@ -86,7 +87,7 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
     /**
      * @inheritDoc
      */
-    public function addAfterInterceptor(MethodInterceptor $methodInterceptor): \Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder
+    public function addAfterInterceptor(NewMethodInterceptorBuilder $methodInterceptor): \Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder
     {
         $this->inboundGateway->addAfterInterceptor($methodInterceptor);
 

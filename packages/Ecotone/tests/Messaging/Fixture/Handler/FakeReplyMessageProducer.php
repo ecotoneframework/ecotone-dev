@@ -2,7 +2,10 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
 use Ecotone\Messaging\Message;
 
 /**
@@ -62,5 +65,15 @@ class FakeReplyMessageProducer implements \Ecotone\Messaging\Handler\MessageProc
     public function __toString(): string
     {
         return self::class;
+    }
+
+    public function toMethodCallProvider(): MethodCallProvider
+    {
+        return new StaticMethodCallProvider(
+            $this,
+            "executeEndpoint",
+            [new MessageConverter()],
+            ["message"],
+        );
     }
 }

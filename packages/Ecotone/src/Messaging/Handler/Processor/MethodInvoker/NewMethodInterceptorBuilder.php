@@ -40,30 +40,20 @@ class NewMethodInterceptorBuilder
      */
     public function compileForInterceptedInterface(
         MessagingContainerBuilder $builder,
-        InterfaceToCallReference $interceptedInterfaceToCallReference,
-        array $endpointAnnotations
+        ?InterfaceToCallReference $interceptedInterfaceToCallReference = null,
+        array $endpointAnnotations = []
     ): Definition|Reference
     {
         $interceptorInterface = $builder->getInterfaceToCallForObject($this->interceptorDefinition, $this->methodName);
-        $interceptedInterface = $builder->getInterfaceToCall($interceptedInterfaceToCallReference);
-        $parameterConvertersBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interceptorInterface, $this->defaultParameterConverters, $endpointAnnotations, null, false);
-        $parameterConvertersBuilders = MethodArgumentsFactory::createInterceptedInterfaceAnnotationMethodParameters(
-            $interceptorInterface,
-            $parameterConvertersBuilders,
-            $endpointAnnotations,
-            $interceptedInterface,
-        );
-        $parameterConverters = \array_map(
-            fn(ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interceptorInterface),
-            $parameterConvertersBuilders
-        );
+        $interceptedInterface = $interceptedInterfaceToCallReference ? $builder->getInterfaceToCall($interceptedInterfaceToCallReference) : null;
 
-        $methodCallProvider = new Definition(StaticMethodCallProvider::class, [
+        $methodCallProvider = StaticMethodCallProvider::getDefinition(
             $this->interceptorDefinition,
-            $interceptorInterface->getMethodName(),
-            $parameterConverters,
-            $interceptorInterface->getInterfaceParametersNames(),
-        ]);
+            $interceptorInterface,
+            $this->defaultParameterConverters,
+            $interceptedInterface,
+            $endpointAnnotations
+        );
 
         return match (true) {
             $interceptorInterface->hasReturnTypeVoid() => new Definition(PasstroughMethodInvocationProcessor::class, [$methodCallProvider]),
@@ -75,5 +65,10 @@ class NewMethodInterceptorBuilder
     public function getPrecedence(): int
     {
         return $this->precedence;
+    }
+
+    public function __toString(): string
+    {
+        return $this->interceptorDefinition . "::" . $this->methodName;
     }
 }

@@ -2,8 +2,10 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Handler\MethodArgument;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
+use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Message;
 
 class StaticMethodCallProvider implements MethodCallProvider
@@ -37,5 +39,28 @@ class StaticMethodCallProvider implements MethodCallProvider
             $this->methodName,
             $methodArguments,
         );
+    }
+
+    public static function getDefinition(string|object $objectDefinition, InterfaceToCall $interfaceToCall, array $methodParameterConverters, ?InterfaceToCall $interceptedInterface = null, array $endpointAnnotations = []): Definition
+    {
+        $parameterConvertersBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $methodParameterConverters);
+        if ($interceptedInterface) {
+            $parameterConvertersBuilders = MethodArgumentsFactory::createInterceptedInterfaceAnnotationMethodParameters(
+                $interfaceToCall,
+                $parameterConvertersBuilders,
+                $endpointAnnotations,
+                $interceptedInterface,
+            );
+        }
+        $parameterConverters = \array_map(
+            fn(ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interfaceToCall),
+            $parameterConvertersBuilders
+        );
+        return new Definition(self::class, [
+            $objectDefinition,
+            $interfaceToCall->getMethodName(),
+            $parameterConverters,
+            $interfaceToCall->getInterfaceParametersNames(),
+        ]);
     }
 }

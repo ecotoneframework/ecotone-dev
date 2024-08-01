@@ -24,14 +24,13 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
     public function __construct(
         private array $processors = [],
         private bool $isReplyRequired = false,
-        private ?InterfaceToCall $interceptedInterface = null,
     )
     {
     }
 
-    public static function create(?InterfaceToCall $interceptedInterface = null): self
+    public static function create(): self
     {
-        return new self(interceptedInterface: $interceptedInterface);
+        return new self();
     }
 
     public function chain(CompilableBuilder $processor): self
@@ -49,51 +48,6 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
         $this->interceptedProcessor = $processor;
 
         return $this->chain($processor);
-    }
-
-    public function registerInterceptors(InterfaceToCallRegistry $interfaceToCallRegistry, array $beforeInterceptors, array $aroundInterceptors, array $afterInterceptors): self
-    {
-        $missingInterceptorsNames = $this->requiredInterceptorReferenceNames;
-        $interceptedInterface = $this->getInterceptedInterface($interfaceToCallRegistry);
-        $endpointAnnotationsInstances = array_map(
-            fn (AttributeDefinition $attributeDefinition) => $attributeDefinition->instance(),
-            $this->getEndpointAnnotations()
-        );
-        foreach ($beforeInterceptors as $interceptor) {
-            if (
-                $interceptor->doesItCutWith($interceptedInterface, $endpointAnnotationsInstances)
-                || in_array($interceptor->getReferenceName(), $this->requiredInterceptorReferenceNames)
-            ) {
-                $this->beforeMessageProcessors[] = $interceptor->addInterceptedInterfaceToCall($interceptedInterface, $endpointAnnotationsInstances);
-                $missingInterceptorsNames = \array_filter($missingInterceptorsNames, fn (string $interceptorName) => $interceptorName !== $interceptor->getReferenceName());
-            }
-        }
-
-        foreach ($afterInterceptors as $interceptor) {
-            if (
-                $interceptor->doesItCutWith($interceptedInterface, $endpointAnnotationsInstances)
-                || in_array($interceptor->getReferenceName(), $this->requiredInterceptorReferenceNames)
-            ) {
-                $this->afterMessageProcessors[] = $interceptor->addInterceptedInterfaceToCall($interceptedInterface, $endpointAnnotationsInstances);
-                $missingInterceptorsNames = \array_filter($missingInterceptorsNames, fn (string $interceptorName) => $interceptorName !== $interceptor->getReferenceName());
-            }
-        }
-
-        foreach ($aroundInterceptors as $interceptor) {
-            if (
-                $interceptor->doesItCutWith($interceptedInterface, $endpointAnnotationsInstances)
-                || in_array($interceptor->getReferenceName(), $this->requiredInterceptorReferenceNames)
-            ) {
-                $this->orderedAroundInterceptors[] = $interceptor->addInterceptedInterfaceToCall($interceptedInterface, $endpointAnnotationsInstances);
-                $missingInterceptorsNames = \array_filter($missingInterceptorsNames, fn (string $interceptorName) => $interceptorName !== $interceptor->getReferenceName());
-            }
-        }
-
-        if ($missingInterceptorsNames) {
-            throw ConfigurationException::create("Missing interceptors: " . \implode(", ", $missingInterceptorsNames));
-        }
-
-        return $this;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
@@ -119,7 +73,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         $interceptedInterface = $this->interceptedProcessor?->getInterceptedInterface($interfaceToCallRegistry);
-        return $interfaceToCallRegistry->getForReference($interceptedInterface) ?? $interfaceToCallRegistry->getFor(ChainedMessageProcessor::class, "process");
+        return $interceptedInterface ? $interfaceToCallRegistry->getForReference($interceptedInterface) : $interfaceToCallRegistry->getFor(ChainedMessageProcessor::class, "process");
     }
 
     /**

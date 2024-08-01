@@ -14,6 +14,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
 use Ecotone\Messaging\Support\Assert;
 
 use function get_class;
@@ -29,6 +30,9 @@ use function get_class;
 class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
 {
     private ?string $inputMessageChannelName = null;
+    /**
+     * @var array<ParameterConverterBuilder>
+     */
     private array $methodParameterConverters = [];
     private bool $resolutionRequired = true;
     /**
@@ -40,13 +44,15 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
     private ?string $endpointId = '';
     private ?DefinedObject $directObjectToInvoke = null;
 
-    private function __construct(private string|Reference|Definition $objectToInvokeReference, private string|InterfaceToCall $methodNameOrInterface)
+    private function __construct(private Reference|Definition $objectToInvokeReference, private string|InterfaceToCall $methodNameOrInterface)
     {
     }
 
     public static function create(string|Reference|Definition $objectToInvokeReference, InterfaceToCall $interfaceToCall): self
     {
-        return new self($objectToInvokeReference, $interfaceToCall);
+        return new self(
+            \is_string($objectToInvokeReference) ? Reference::to($objectToInvokeReference) : $objectToInvokeReference,
+            $interfaceToCall);
     }
 
     public static function createPayloadTypeRouter(array $typeToChannelMapping): self
@@ -132,14 +138,15 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
             $className = $this->objectToInvokeReference instanceof Definition ? $this->objectToInvokeReference->getClassName() : (string) $this->objectToInvokeReference;
             $interfaceToCallReference = new InterfaceToCallReference($className, $this->methodNameOrInterface);
         }
-        $methodInvoker = MethodInvokerBuilder::create(
+        $interface = $builder->getInterfaceToCall($interfaceToCallReference);
+        $methodCallProvider = StaticMethodCallProvider::getDefinition(
             $this->directObjectToInvoke ?: $this->objectToInvokeReference,
-            $interfaceToCallReference,
-            $this->methodParameterConverters
-        )->compile($builder);
+            $interface,
+            $this->methodParameterConverters,
+        );
         return new Definition(Router::class, [
             new Reference(ChannelResolver::class),
-            $methodInvoker,
+            $methodCallProvider,
             $this->resolutionRequired,
             $this->defaultResolution,
             $this->applySequence,

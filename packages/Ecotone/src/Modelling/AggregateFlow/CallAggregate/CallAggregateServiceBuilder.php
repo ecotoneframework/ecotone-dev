@@ -112,7 +112,7 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         // TODO: code duplication with ServiceActivatorBuilder
-        $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($this->interfaceToCall, $this->methodParameterConverterBuilders, $this->getEndpointAnnotations(), null, false);
+        $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($this->interfaceToCall, $this->methodParameterConverterBuilders);
 
         $compiledMethodParameterConverters = [];
         foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {

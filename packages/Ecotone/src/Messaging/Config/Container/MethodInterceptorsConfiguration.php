@@ -35,21 +35,6 @@ class MethodInterceptorsConfiguration
         );
     }
 
-    public static function hookIntoMethodCall(
-        self $configuration,
-        Definition $methodCallProviderDefinition
-    ): Definition
-    {
-        $afterInterceptors = [];
-        foreach ($configuration->getAfterInterceptors() as $afterInterceptor) {
-            $afterInterceptors[] = $afterInterceptor->compileForInterceptedInterface($builder, $configuration->getInterceptedInterface(), $configuration->getEndpointAnnotations());
-        }
-        $aroundInterceptors = [];
-        foreach ($configuration->getAroundInterceptors() as $aroundInterceptor) {
-            $aroundInterceptors[] = $aroundInterceptor->compileForInterceptedInterface($builder, $configuration->interfaceToCall, $configuration->getEndpointAnnotations());
-        }
-    }
-
     /**
      * @template T
      * @param array<T> $interceptors
@@ -78,7 +63,7 @@ class MethodInterceptorsConfiguration
             }
 
             if ($interceptor->doesItCutWith($interceptedInterface, $endpointAnnotationsInstances)) {
-                $relatedInterceptors[] = $interceptor->addInterceptedInterfaceToCall($interceptedInterface, $endpointAnnotations);
+                $relatedInterceptors[] = $interceptor;
             }
         }
 

@@ -22,6 +22,7 @@ use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\Clock;
 use Psr\Log\LoggerInterface;
@@ -47,22 +48,14 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         return $this;
     }
 
-    /**
-     * @param MethodInterceptor $methodInterceptor
-     * @return $this
-     */
-    public function addBeforeInterceptor(MethodInterceptor $methodInterceptor): self
+    public function addBeforeInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self
     {
         $this->beforeInterceptors[] = $methodInterceptor;
 
         return $this;
     }
 
-    /**
-     * @param MethodInterceptor $methodInterceptor
-     * @return $this
-     */
-    public function addAfterInterceptor(MethodInterceptor $methodInterceptor): self
+    public function addAfterInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self
     {
         $this->afterInterceptors[] = $methodInterceptor;
 

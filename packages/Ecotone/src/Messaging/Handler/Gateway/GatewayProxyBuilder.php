@@ -395,6 +395,19 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             $this->replyChannelName ? new ChannelReference($this->replyChannelName) : null,
             $this->replyMilliSecondsTimeout,
         ]);
+        $interceptedInterface = $this->annotatedInterfaceToCall ?? $interfaceToCall;
+        $interceptedInterfaceReference = InterfaceToCallReference::fromInstance($interceptedInterface);
+        // register interceptors
+        $interceptorsConfig = $builder->getRelatedInterceptors($interceptedInterfaceReference, $this->endpointAnnotations, $this->requiredInterceptorNames);
+        foreach ($interceptorsConfig->getBeforeInterceptors() as $beforeInterceptor) {
+            $this->beforeInterceptors[] = $beforeInterceptor;
+        }
+        foreach ($interceptorsConfig->getAfterInterceptors() as $afterInterceptor) {
+            $this->afterInterceptors[] = $afterInterceptor;
+        }
+        foreach ($interceptorsConfig->getAroundInterceptors() as $aroundInterceptor) {
+            $this->aroundInterceptors[] = $aroundInterceptor;
+        }
 
         $aroundInterceptors = $this->aroundInterceptors;
         if ($this->errorChannelName) {
@@ -413,7 +426,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         }
 
         $messageProcessors = [];
-        $interceptedInterface = $this->annotatedInterfaceToCall ?? $interfaceToCall;
         $interceptedInterfaceReference = InterfaceToCallReference::fromInstance($interceptedInterface);
         foreach ($this->getSortedInterceptors($this->beforeInterceptors) as $beforeInterceptor) {
             $messageProcessors[] = $beforeInterceptor->compileForInterceptedInterface($builder, $interceptedInterfaceReference, $this->endpointAnnotations);

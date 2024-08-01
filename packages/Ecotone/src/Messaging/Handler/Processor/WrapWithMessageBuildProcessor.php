@@ -6,7 +6,10 @@ namespace Ecotone\Messaging\Handler\Processor;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
@@ -119,5 +122,15 @@ class WrapWithMessageBuildProcessor implements MessageProcessor
     public function __toString(): string
     {
         return (string)$this->messageProcessor;
+    }
+
+    public function toMethodCallProvider(): MethodCallProvider
+    {
+        return new StaticMethodCallProvider(
+            $this,
+            "executeEndpoint",
+            [new MessageConverter()],
+            ["message"],
+        );
     }
 }

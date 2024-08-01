@@ -154,43 +154,21 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
-
-        $methodInvokerDefinition = MethodInvokerBuilder::create(
-            $this->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,
-            $this->interfaceToCallReference,
-            $this->methodParameterConverterBuilders,
-            $this->getEndpointAnnotations(),
-        )->compile($builder);
-
-        if ($this->shouldWrapResultInMessage || $this->changeHeaders) {
-            $methodInvokerDefinition = new Definition(WrapWithMessageBuildProcessor::class, [
-                $methodInvokerDefinition,
-                $this->changeHeaders,
-                $interfaceToCall->toString(),
-                $interfaceToCall->getReturnType(),
-            ]);
-        }
-        $handlerDefinition = new Definition(RequestReplyProducer::class, [
-            $this->outputMessageChannelName ? new ChannelReference($this->outputMessageChannelName) : null,
-            $methodInvokerDefinition,
-            new Reference(ChannelResolver::class),
-            $this->isReplyRequired,
-            $this->shouldPassThroughMessage && $interfaceToCall->hasReturnTypeVoid(),
-            RequestReplyProducer::REQUEST_REPLY_METHOD,
-        ]);
-        if ($this->orderedAroundInterceptors) {
-            $interceptors = [];
-            foreach (AroundInterceptorBuilder::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
-                $interceptors[] = $aroundInterceptorReference->compileForInterceptedInterface($builder, $this->annotatedInterfaceToCall ?? $interfaceToCall, $this->getEndpointAnnotations());
-            }
-
-            $handlerDefinition = new Definition(AroundInterceptorHandler::class, [
-                $interceptors,
-                new Definition(HandlerReplyProcessor::class, [$handlerDefinition]),
-            ]);
-        }
-        return $handlerDefinition;
+        $newImplementation = MessageProcessorActivatorBuilder::create()
+            ->withInputChannelName($this->inputMessageChannelName)
+            ->withOutputMessageChannel($this->outputMessageChannelName)
+            ->withEndpointId($this->getEndpointId())
+            ->withEndpointAnnotations($this->getEndpointAnnotations())
+            ->withRequiredInterceptorNames($this->requiredInterceptorReferenceNames)
+            ->chainInterceptedProcessor(
+                MethodInvokerBuilder::create(
+                    $this->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,
+                    $this->interfaceToCallReference,
+                    $this->methodParameterConverterBuilders,
+                    $this->getEndpointAnnotations(),
+                )
+            );
+        return $newImplementation->compile($builder);
     }
 
     /**

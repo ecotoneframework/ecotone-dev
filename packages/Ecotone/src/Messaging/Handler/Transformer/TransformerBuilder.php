@@ -236,8 +236,8 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             : $this->methodNameOrInterface;
     }
 
-    public function getObjectToInvokeOn(): Reference
+    public function getObjectToInvokeOn(): Reference|Definition|DefinedObject
     {
-        return Reference::to($this->objectToInvokeReferenceName);
+        return $this->directObject ?? Reference::to($this->objectToInvokeReferenceName);
     }
 }

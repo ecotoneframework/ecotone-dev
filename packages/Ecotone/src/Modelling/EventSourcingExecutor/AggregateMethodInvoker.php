@@ -13,5 +13,5 @@ use Ecotone\Modelling\EventSourcingHandlerMethod;
  */
 interface AggregateMethodInvoker
 {
-    public function executeMethod(mixed $aggregate, InterfaceToCall $eventSourcingHandlerInterface, EventSourcingHandlerMethod $eventSourcingHandler, Message $message): void;
+    public function executeMethod(mixed $aggregate, EventSourcingHandlerMethod $eventSourcingHandler, Message $message): void;
 }

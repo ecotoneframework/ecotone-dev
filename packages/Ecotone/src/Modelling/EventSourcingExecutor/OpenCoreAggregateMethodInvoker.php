@@ -14,12 +14,12 @@ use Ecotone\Modelling\EventSourcingHandlerMethod;
  */
 final class OpenCoreAggregateMethodInvoker implements AggregateMethodInvoker
 {
-    public function executeMethod(mixed $aggregate, InterfaceToCall $eventSourcingHandlerInterface, EventSourcingHandlerMethod $eventSourcingHandler, Message $message): void
+    public function executeMethod(mixed $aggregate, EventSourcingHandlerMethod $eventSourcingHandler, Message $message): void
     {
-        if (count($eventSourcingHandlerInterface->getInterfaceParameters()) > 1) {
-            throw InvalidArgumentException::create("Using multiple parameters for Event Sourcing Handler: {$eventSourcingHandlerInterface} is part of Enterprise features. To use this feature obtain Enterprise.");
+        if ($eventSourcingHandler->parametersCount() > 1) {
+            throw InvalidArgumentException::create("Using multiple parameters for Event Sourcing Handler: {$eventSourcingHandler} is part of Enterprise features. To use this feature obtain Enterprise.");
         }
 
-        $aggregate->{$eventSourcingHandlerInterface->getMethodName()}($message->getPayload());
+        $aggregate->{$eventSourcingHandler->getMethodName()}($message->getPayload());
     }
 }

@@ -99,6 +99,6 @@ class AroundMethodInvocation implements MethodInvocation
 
     public function getName(): string
     {
-        $this->interceptedMethodInvocation->getName();
+        return $this->interceptedMethodInvocation->getName();
     }
 }

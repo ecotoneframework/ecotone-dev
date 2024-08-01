@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\NullableMessageChannel;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -355,9 +356,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private function configureAsynchronousEndpoints(): void
     {
-        $allAsynchronousChannels = [];
         foreach ($this->asynchronousEndpoints as $targetEndpointId => $asynchronousMessageChannels) {
-            $allAsynchronousChannels = array_merge($allAsynchronousChannels, $asynchronousMessageChannels);
             $asynchronousMessageChannel = array_shift($asynchronousMessageChannels);
             if (! isset($this->channelBuilders[$asynchronousMessageChannel]) && ! isset($this->defaultChannelBuilders[$asynchronousMessageChannel])) {
                 throw ConfigurationException::create("Registered asynchronous endpoint `{$targetEndpointId}`, however channel configuration for `{$asynchronousMessageChannel}` was not provided.");
@@ -410,7 +409,15 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
-        foreach (array_unique($allAsynchronousChannels) as $asynchronousChannel) {
+        $asynchronousChannels = array_map(
+            fn (MessageChannelBuilder $channel) => $channel->getMessageChannelName(),
+            array_filter(
+                $this->channelBuilders,
+                fn (MessageChannelBuilder $channel) => $channel->isPollable() && $channel->getMessageChannelName() !== NullableMessageChannel::CHANNEL_NAME
+            )
+        );
+
+        foreach ($asynchronousChannels as $asynchronousChannel) {
             Assert::isTrue($this->channelBuilders[$asynchronousChannel]->isPollable(), "Asynchronous Message Channel {$asynchronousChannel} must be Pollable");
             //        needed for correct around intercepting, otherwise requestReply is outside of around interceptor scope
             /**

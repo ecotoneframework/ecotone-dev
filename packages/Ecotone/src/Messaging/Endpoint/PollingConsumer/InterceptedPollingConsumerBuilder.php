@@ -92,22 +92,9 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
             $this->endpointAnnotations,
             [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$endpointId])]
         ));
-        $interceptorsConfiguration = $builder->getRelatedInterceptors(
-            InterfaceToCallReference::create(InboundChannelAdapterEntrypoint::class, 'executeEntrypoint'),
-            $gatewayBuilder->getEndpointAnnotations(),
-        );
-        foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
-            $gatewayBuilder->addBeforeInterceptor($beforeInterceptor);
-        }
-        foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptorReference) {
-            $gatewayBuilder->addAroundInterceptor($aroundInterceptorReference);
-        }
         $gatewayBuilder
             ->addAroundInterceptor($this->getErrorInterceptorReference($builder))
             ->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptorBuilder($builder->getInterfaceToCallRegistry()));
-        foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
-            $gatewayBuilder->addAfterInterceptor($afterInterceptor);
-        }
 
         $gateway = $gatewayBuilder->compile($builder);
 

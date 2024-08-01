@@ -16,13 +16,11 @@ use Ecotone\Messaging\Config\Container\ProxyBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\Chain\ChainMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadConverter;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadExpressionBuilder;
-use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -31,9 +29,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MessageProcessorInvocationProvider;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
@@ -399,17 +395,10 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         $interceptedInterfaceReference = InterfaceToCallReference::fromInstance($interceptedInterface);
         // register interceptors
         $interceptorsConfig = $builder->getRelatedInterceptors($interceptedInterfaceReference, $this->endpointAnnotations, $this->requiredInterceptorNames);
-        foreach ($interceptorsConfig->getBeforeInterceptors() as $beforeInterceptor) {
-            $this->beforeInterceptors[] = $beforeInterceptor;
-        }
-        foreach ($interceptorsConfig->getAfterInterceptors() as $afterInterceptor) {
-            $this->afterInterceptors[] = $afterInterceptor;
-        }
-        foreach ($interceptorsConfig->getAroundInterceptors() as $aroundInterceptor) {
-            $this->aroundInterceptors[] = $aroundInterceptor;
-        }
+        $beforeInterceptors = \array_merge($this->beforeInterceptors, $interceptorsConfig->getBeforeInterceptors());
+        $afterInterceptors = \array_merge($this->afterInterceptors, $interceptorsConfig->getAfterInterceptors());
+        $aroundInterceptors = \array_merge($this->aroundInterceptors, $interceptorsConfig->getAroundInterceptors());
 
-        $aroundInterceptors = $this->aroundInterceptors;
         if ($this->errorChannelName) {
             $interceptorReference = $builder->register(
                 Uuid::uuid4()->toString(),
@@ -427,7 +416,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
 
         $messageProcessors = [];
         $interceptedInterfaceReference = InterfaceToCallReference::fromInstance($interceptedInterface);
-        foreach ($this->getSortedInterceptors($this->beforeInterceptors) as $beforeInterceptor) {
+        foreach ($this->getSortedInterceptors($beforeInterceptors) as $beforeInterceptor) {
             $messageProcessors[] = $beforeInterceptor->compileForInterceptedInterface($builder, $interceptedInterfaceReference, $this->endpointAnnotations);
         }
 
@@ -454,7 +443,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             $messageProcessors[] = $gatewayInternalHandler;
         }
 
-        foreach ($this->getSortedInterceptors($this->afterInterceptors) as $afterInterceptor) {
+        foreach ($this->getSortedInterceptors($afterInterceptors) as $afterInterceptor) {
             $messageProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, $interceptedInterfaceReference, $this->endpointAnnotations);
         }
 

@@ -154,6 +154,8 @@ final class MessagingSystemConfiguration implements Configuration
 
     private InterfaceToCallRegistry $interfaceToCallRegistry;
 
+    private bool $isRunningForEnterpriseLicence;
+
     /**
      * @param object[] $extensionObjects
      */
@@ -196,6 +198,7 @@ final class MessagingSystemConfiguration implements Configuration
             }
         );
         $extensionObjects[] = $serviceConfiguration;
+        $this->isRunningForEnterpriseLicence = $serviceConfiguration->hasEnterpriseLicence();
         $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $serviceConfiguration);
     }
 
@@ -999,6 +1002,11 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         return $this;
+    }
+
+    public function isRunningForEnterpriseLicence(): bool
+    {
+        return $this->isRunningForEnterpriseLicence;
     }
 
     /**

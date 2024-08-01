@@ -71,16 +71,14 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
 
     public static function createRecipientListRouter(array $recipientLists): self
     {
-        $routerBuilder = new self('', 'route');
-        $routerBuilder->setObjectToInvoke(new RecipientListRouter($recipientLists));
+        $routerBuilder = new self(new Definition(RecipientListRouter::class, [$recipientLists]), 'route');
 
         return $routerBuilder;
     }
 
     public static function createHeaderMappingRouter(string $headerName, array $headerValueToChannelMapping): self
     {
-        $routerBuilder = new self('', 'route');
-        $routerBuilder->setObjectToInvoke(HeaderMappingRouter::create($headerName, $headerValueToChannelMapping));
+        $routerBuilder = new self(HeaderMappingRouter::create($headerName, $headerValueToChannelMapping)->getDefinition(), 'route');
 
         return $routerBuilder;
     }

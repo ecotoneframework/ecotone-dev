@@ -2,12 +2,14 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 
+use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 use function is_string;
@@ -17,6 +19,15 @@ use function is_string;
  */
 class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
 {
+    /**
+     * @var AttributeDefinition[] $endpointAnnotations
+     */
+    private array $endpointAnnotations;
+
+    /**
+     * @param array<ParameterConverterBuilder> $methodParametersConverterBuilders
+     * @param array<AttributeDefinition> $endpointAnnotations
+     */
     private function __construct(
         private object|string $reference,
         private InterfaceToCallReference $interfaceToCallReference,
@@ -46,21 +57,13 @@ class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
             $interfaceToCall,
             $this->methodParametersConverterBuilders,
             $interfaceToCall,
-            $this->getEndpointAnnotations(),
+            $this->endpointAnnotations,
         );
 
         return new Definition(MethodInvocationProcessor::class, [
             $methodCallProvider,
             $interfaceToCall->getReturnType(),
         ]);
-
-//        return new Definition(MethodInvoker::class, [
-//            $reference,
-//            $interfaceToCall->getMethodName(),
-//            $compiledMethodParameterConverters,
-//            $interfaceToCall->getInterfaceParametersNames(),
-//            true,
-//        ]);
     }
 
     function getInterceptedInterface(): InterfaceToCallReference

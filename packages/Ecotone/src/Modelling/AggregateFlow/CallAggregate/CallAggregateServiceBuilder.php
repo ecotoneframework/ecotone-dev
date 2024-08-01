@@ -2,25 +2,17 @@
 
 namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 
-use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationWithChainedAfterInterceptorsProvider;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\AggregateMethodCallProvider;
@@ -125,7 +117,7 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
             $compiledMethodParameterConverters,
             $this->interfaceToCall->getInterfaceParametersNames(),
         ]);
-        $aggregateMethodCallProvider = $builder->interceptMethodCall($this->getInterceptedInterface(), $this->getEndpointAnnotations(), $aggregateMethodCallProvider);
+        $aggregateMethodCallProvider = $this->interceptMethodCall($builder, [], $aggregateMethodCallProvider);
 
         return new Definition(CallAggregateMessageProcessor::class, [
             $aggregateMethodCallProvider,

@@ -46,6 +46,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
             throw ConfigurationException::create("Intercepted processor is already set");
         }
         $this->interceptedProcessor = $processor;
+        $this->interceptedProcessor->enableInterception();
 
         return $this->chain($processor);
     }

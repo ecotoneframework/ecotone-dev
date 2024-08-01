@@ -16,10 +16,4 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
  */
 interface ConsumerLifecycleBuilder
 {
-    /**
-     * @param AroundInterceptorBuilder $aroundInterceptorReference
-     *
-     * @return static
-     */
-    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference);
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
 use function array_map;
@@ -253,7 +254,12 @@ final class MessagingSystemConfiguration implements Configuration
                 if ($this->beforeSendInterceptors) {
                     $interceptorWithPointCuts = $this->getRelatedInterceptors($this->beforeSendInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames());
                     foreach ($interceptorWithPointCuts as $interceptorReference) {
-                        $beforeSendInterceptors[] = new BeforeSendChannelInterceptorBuilder($messageHandlerBuilder->getInputMessageChannelName(), $interceptorReference);
+                        $beforeSendInterceptors[] = new BeforeSendChannelInterceptorBuilder(
+                            $interceptorReference,
+                            $messageHandlerBuilder->getInputMessageChannelName(),
+                            InterfaceToCallReference::fromInstance($messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry)),
+                            $messageHandlerBuilder->getEndpointAnnotations()
+                        );
                     }
                 }
             }
@@ -457,68 +463,6 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private function configureInterceptors(InterfaceToCallRegistry $interfaceRegistry): void
     {
-        foreach ($this->channelAdapters as $channelAdapter) {
-            $aroundInterceptors = [];
-            $beforeCallInterceptors = [];
-            $afterCallInterceptors = [];
-            if ($this->beforeCallMethodInterceptors) {
-                $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $channelAdapter->getInterceptedInterface($interfaceRegistry), $channelAdapter->getEndpointAnnotations(), $channelAdapter->getRequiredInterceptorNames());
-            }
-            if ($this->aroundMethodInterceptors) {
-                $aroundInterceptors = $this->getRelatedInterceptors($this->aroundMethodInterceptors, $channelAdapter->getInterceptedInterface($interfaceRegistry), $channelAdapter->getEndpointAnnotations(), $channelAdapter->getRequiredInterceptorNames());
-            }
-            if ($this->afterCallMethodInterceptors) {
-                $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $channelAdapter->getInterceptedInterface($interfaceRegistry), $channelAdapter->getEndpointAnnotations(), $channelAdapter->getRequiredInterceptorNames());
-            }
-
-            foreach ($aroundInterceptors as $aroundInterceptor) {
-                $channelAdapter->addAroundInterceptor($aroundInterceptor);
-            }
-            foreach ($beforeCallInterceptors as $beforeCallInterceptor) {
-                $channelAdapter->addBeforeInterceptor($beforeCallInterceptor);
-            }
-            foreach ($afterCallInterceptors as $afterCallInterceptor) {
-                $channelAdapter->addAfterInterceptor($afterCallInterceptor);
-            }
-        }
-
-        foreach ($this->consumerFactories as $consumerFactory) {
-            if (! ($consumerFactory instanceof PollingConsumerBuilder)) {
-                continue;
-            }
-
-            /** Name will be provided during build for given Message Handler. Looking in PollingConsumerBuilder. This is only for pointcut lookup */
-            $endpointAnnotations = [new AttributeDefinition(AsynchronousRunningEndpoint::class, [''])];
-            if ($this->aroundMethodInterceptors) {
-                $aroundInterceptors = $this->getRelatedInterceptors(
-                    $this->aroundMethodInterceptors,
-                    $consumerFactory->getInterceptedInterface($interfaceRegistry),
-                    $endpointAnnotations,
-                    $consumerFactory->getRequiredInterceptorNames(),
-                );
-
-                foreach ($aroundInterceptors as $aroundInterceptor) {
-                    $consumerFactory->addAroundInterceptor($aroundInterceptor);
-                }
-            }
-
-            if ($this->beforeCallMethodInterceptors) {
-                $beforeCallInterceptors = $this->getRelatedInterceptors($this->beforeCallMethodInterceptors, $consumerFactory->getInterceptedInterface($interfaceRegistry), $endpointAnnotations, $consumerFactory->getRequiredInterceptorNames());
-                foreach ($beforeCallInterceptors as $beforeCallInterceptor) {
-                    $consumerFactory->addBeforeInterceptor($beforeCallInterceptor);
-                }
-            }
-            if ($this->afterCallMethodInterceptors) {
-                $afterCallInterceptors = $this->getRelatedInterceptors($this->afterCallMethodInterceptors, $consumerFactory->getInterceptedInterface($interfaceRegistry), $endpointAnnotations, $consumerFactory->getRequiredInterceptorNames());
-                foreach ($afterCallInterceptors as $afterCallInterceptor) {
-                    $consumerFactory->addAfterInterceptor($afterCallInterceptor);
-                }
-            }
-        }
-
-        $this->beforeCallMethodInterceptors = [];
-        $this->aroundMethodInterceptors = [];
-        $this->afterCallMethodInterceptors = [];
     }
 
     private function hasMessageHandlerWithName(PollingMetadata $pollingMetadata): bool

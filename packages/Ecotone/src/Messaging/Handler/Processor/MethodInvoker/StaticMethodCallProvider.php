@@ -41,9 +41,8 @@ class StaticMethodCallProvider implements MethodCallProvider
         );
     }
 
-    public static function getDefinition(string|object $objectDefinition, InterfaceToCall $interfaceToCall, array $methodParameterConverters, ?InterfaceToCall $interceptedInterface = null, array $endpointAnnotations = []): Definition
+    public static function getDefinition(string|object $objectDefinition, InterfaceToCall $interfaceToCall, array $parameterConvertersBuilders, ?InterfaceToCall $interceptedInterface = null, array $endpointAnnotations = []): Definition
     {
-        $parameterConvertersBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $methodParameterConverters);
         if ($interceptedInterface) {
             $parameterConvertersBuilders = MethodArgumentsFactory::createInterceptedInterfaceAnnotationMethodParameters(
                 $interfaceToCall,
@@ -52,6 +51,7 @@ class StaticMethodCallProvider implements MethodCallProvider
                 $interceptedInterface,
             );
         }
+        $parameterConvertersBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $parameterConvertersBuilders);
         $parameterConverters = \array_map(
             fn(ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interfaceToCall),
             $parameterConvertersBuilders

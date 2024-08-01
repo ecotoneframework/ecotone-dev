@@ -77,36 +77,6 @@ class InboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
     /**
      * @inheritDoc
      */
-    public function addBeforeInterceptor(NewMethodInterceptorBuilder $methodInterceptor): \Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder
-    {
-        $this->inboundGateway->addBeforeInterceptor($methodInterceptor);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addAfterInterceptor(NewMethodInterceptorBuilder $methodInterceptor): \Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder
-    {
-        $this->inboundGateway->addAfterInterceptor($methodInterceptor);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): self
-    {
-        $this->inboundGateway->addAroundInterceptor($aroundInterceptorReference);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         return $this->interfaceToCall;

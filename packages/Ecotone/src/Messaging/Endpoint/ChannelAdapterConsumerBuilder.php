@@ -17,24 +17,12 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilde
 /**
  * licence Apache-2.0
  */
-interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder, InterceptedEndpoint
+interface ChannelAdapterConsumerBuilder extends ConsumerLifecycleBuilder
 {
     /**
      * @return string
      */
     public function getEndpointId(): string;
-
-    /**
-     * @param MethodInterceptor $methodInterceptor
-     * @return $this
-     */
-    public function addBeforeInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self;
-
-    /**
-     * @param MethodInterceptor $methodInterceptor
-     * @return $this
-     */
-    public function addAfterInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self;
 
     public function registerConsumer(MessagingContainerBuilder $builder): void;
 }

@@ -11,6 +11,8 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
+use Ecotone\Messaging\Handler\MessageHandlerBuilder;
+use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
 use Ecotone\Messaging\MessageChannel;
@@ -21,7 +23,12 @@ use Ramsey\Uuid\Uuid;
  */
 class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
-    public function __construct(private string $inputChannelName, private NewMethodInterceptorBuilder $methodInterceptor)
+    public function __construct(
+        private NewMethodInterceptorBuilder $methodInterceptor,
+        private string $inputChannelName,
+        private InterfaceToCallReference $interceptedInterface,
+        private array $endpointAnnotations,
+    )
     {
     }
 
@@ -48,6 +55,8 @@ class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
     {
         $messageProcessor = $this->methodInterceptor->compileForInterceptedInterface(
             $builder,
+            $this->interceptedInterface,
+            $this->endpointAnnotations,
         );
         return new Definition(BeforeSendChannelInterceptor::class, [$messageProcessor]);
     }

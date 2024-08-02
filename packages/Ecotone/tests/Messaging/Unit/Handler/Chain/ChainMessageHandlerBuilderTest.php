@@ -254,7 +254,7 @@ class ChainMessageHandlerBuilderTest extends TestCase
             CalculatingServiceInterceptorExample::create(1),
             'sumAfterCalling',
             1,
-            ConsumerContinuouslyWorkingService::class
+            CalculatingService::class . '::multiply'
         );
 
         $messaging = ComponentTestBuilder::create()
@@ -267,11 +267,10 @@ class ChainMessageHandlerBuilderTest extends TestCase
                             ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
                             ->chainInterceptedHandler(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
                             ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
-                            ->addAroundInterceptor($aroundAddOneAfterCall)
                     )
                     ->chainInterceptedHandler(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'))
-                    ->addAroundInterceptor($aroundAddOneAfterCall)
             )
+            ->withAroundInterceptor($aroundAddOneAfterCall)
             ->build();
 
         $this->assertEquals(
@@ -287,7 +286,7 @@ class ChainMessageHandlerBuilderTest extends TestCase
             CalculatingServiceInterceptorExample::create(10),
             'sumAfterCalling',
             1,
-            ConsumerContinuouslyWorkingService::class
+            CalculatingService::class . '::multiply'
         );
 
         $messaging = ComponentTestBuilder::create()
@@ -304,10 +303,10 @@ class ChainMessageHandlerBuilderTest extends TestCase
                             ->withOutputMessageChannel($internalOutputChannelName)
                     )
                     ->chain(ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum'))
-                    ->addAroundInterceptor($aroundAddOneAfterCall)
             )
+            ->withAroundInterceptor($aroundAddOneAfterCall)
             ->build();
-
+        // (((0 + 2) * 2) + 1) + 1
         $this->assertEquals(
             16,
             $messaging->sendDirectToChannel($requestChannel, 0)

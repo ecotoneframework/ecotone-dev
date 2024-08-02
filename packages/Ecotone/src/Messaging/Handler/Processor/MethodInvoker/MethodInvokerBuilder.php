@@ -60,6 +60,12 @@ class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
             $this->endpointAnnotations,
         );
 
+        $methodCallProvider = $this->interceptMethodCall(
+            $builder,
+            $this->endpointAnnotations,
+            $methodCallProvider
+        );
+
         return new Definition(MethodInvocationProcessor::class, [
             $methodCallProvider,
             $interfaceToCall->getReturnType(),

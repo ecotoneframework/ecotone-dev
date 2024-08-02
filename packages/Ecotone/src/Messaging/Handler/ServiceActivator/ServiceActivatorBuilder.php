@@ -168,6 +168,8 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                     $this->getEndpointAnnotations(),
                 )
             );
+        $newImplementation->orderedAroundInterceptors = $this->orderedAroundInterceptors;
+
         return $newImplementation->compile($builder);
     }
 

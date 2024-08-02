@@ -2,8 +2,10 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -29,8 +31,12 @@ class MethodInvocationWithChainedAfterInterceptors implements MethodInvocation
             return null;
         }
 
-        $message = $result instanceof Message ? $result : MessageBuilder::fromMessage($this->message)->setPayload($result)->build();
-
+        $message = $result instanceof Message
+            ? $result
+            : MessageBuilder::fromMessage($this->message)
+                ->setPayload($result)
+                ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($result)->toString()))
+                ->build();
         $resultMessage = $this->afterMethodMessageProcessor->process($message);
 
         if (is_null($resultMessage)) {

@@ -73,7 +73,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
 
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
-        $interceptedInterface = $this->interceptedProcessor?->getInterceptedInterface($interfaceToCallRegistry);
+        $interceptedInterface = $this->interceptedProcessor?->getInterceptedInterface();
         return $interceptedInterface ? $interfaceToCallRegistry->getForReference($interceptedInterface) : $interfaceToCallRegistry->getFor(ChainedMessageProcessor::class, "process");
     }
 

@@ -242,6 +242,7 @@ final class MessagingSystemConfiguration implements Configuration
         $this->beforeSendInterceptors = $this->orderMethodInterceptors($this->beforeSendInterceptors);
         $this->beforeCallMethodInterceptors = $this->orderMethodInterceptors($this->beforeCallMethodInterceptors);
         $this->afterCallMethodInterceptors = $this->orderMethodInterceptors($this->afterCallMethodInterceptors);
+        $this->aroundMethodInterceptors = $this->orderMethodInterceptors($this->aroundMethodInterceptors);
 
         foreach ($this->channelAdapters as $channelAdapter) {
             $channelAdapter->withEndpointAnnotations(array_merge($channelAdapter->getEndpointAnnotations(), [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$channelAdapter->getEndpointId()])]));
@@ -623,7 +624,7 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     /**
-     * @param array<NewMethodInterceptorBuilder|MethodInterceptor> $methodInterceptors
+     * @param array<NewMethodInterceptorBuilder|AroundInterceptorBuilder> $methodInterceptors
      *
      * @return array
      */
@@ -631,7 +632,7 @@ final class MessagingSystemConfiguration implements Configuration
     {
         usort(
             $methodInterceptors,
-            function (MethodInterceptor|NewMethodInterceptorBuilder $methodInterceptor, MethodInterceptor|NewMethodInterceptorBuilder $toCompare) {
+            function (NewMethodInterceptorBuilder|AroundInterceptorBuilder $methodInterceptor, NewMethodInterceptorBuilder|AroundInterceptorBuilder $toCompare) {
                 if ($methodInterceptor->getPrecedence() === $toCompare->getPrecedence()) {
                     return 0;
                 }

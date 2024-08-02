@@ -6,6 +6,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 
 class MethodInterceptorsConfiguration
 {
@@ -19,6 +20,20 @@ class MethodInterceptorsConfiguration
         private array $aroundInterceptors,
         private array $afterInterceptors,
     ) {
+        self::checkInterceptorPrecedence($this->beforeInterceptors);
+        self::checkInterceptorPrecedence($this->aroundInterceptors);
+        self::checkInterceptorPrecedence($this->afterInterceptors);
+    }
+
+    private static function checkInterceptorPrecedence(array $interceptors): void
+    {
+        $lastPrecedence = null;
+        foreach ($interceptors as $interceptor) {
+            if ($lastPrecedence !== null && $interceptor->getPrecedence() < $lastPrecedence) {
+                throw InvalidArgumentException::create("Interceptors must be sorted by precedence. Found: " . $interceptor->getPrecedence() . " after " . $lastPrecedence);
+            }
+            $lastPrecedence = $interceptor->getPrecedence();
+        }
     }
 
     public static function createEmpty()

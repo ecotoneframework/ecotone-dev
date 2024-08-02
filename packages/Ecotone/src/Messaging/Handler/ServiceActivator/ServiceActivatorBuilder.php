@@ -167,6 +167,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                     $this->methodParameterConverterBuilders,
                     $this->getEndpointAnnotations(),
                 )
+                ->withPassTroughMessageIfVoid($this->shouldPassThroughMessage)
             );
         $newImplementation->orderedAroundInterceptors = $this->orderedAroundInterceptors;
 

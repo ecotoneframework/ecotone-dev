@@ -63,6 +63,7 @@ class MethodInterceptor implements InterceptorWithPointCut
             $this->messageHandler instanceof MessageHandlerBuilderWithParameterConverters ? $this->messageHandler->getParameterConverters() : [],
             $this->precedence,
             $this->pointcut,
+            $this->interceptorName,
             $this->messageHandler instanceof TransformerBuilder,
         );
     }

@@ -25,6 +25,7 @@ class NewMethodInterceptorBuilder
         private array                              $defaultParameterConverters,
         private int                                $precedence,
         private Pointcut                           $pointcut,
+        private ?string                            $name,
         private bool                               $changeHeaders = false,
     )
     {
@@ -67,8 +68,13 @@ class NewMethodInterceptorBuilder
         return $this->precedence;
     }
 
+    public function hasName(string $name): bool
+    {
+        return $this->name === $name;
+    }
+
     public function __toString(): string
     {
-        return (string)$this->interceptorInterfaceReference;
+        return "{$this->name}.{$this->interceptorInterfaceReference}";
     }
 }

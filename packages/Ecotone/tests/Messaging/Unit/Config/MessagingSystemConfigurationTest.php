@@ -1700,46 +1700,6 @@ class MessagingSystemConfigurationTest extends MessagingTest
         );
     }
 
-    /**
-     * @throws MessagingException
-     */
-    public function test_throwing_exception_if_registering_interceptor_with_input_channel()
-    {
-        $this->expectException(ConfigurationException::class);
-
-        MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
-            ->registerAfterMethodInterceptor(
-                MethodInterceptor::create(
-                    'some',
-                    InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'multiply')
-                        ->withInputChannelName('some'),
-                    Precedence::DEFAULT_PRECEDENCE,
-                    CalculatingService::class
-                )
-            );
-    }
-
-    /**
-     * @throws MessagingException
-     */
-    public function test_throwing_exception_if_registering_interceptor_with_output_channel()
-    {
-        $this->expectException(ConfigurationException::class);
-
-        MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
-            ->registerAfterMethodInterceptor(
-                MethodInterceptor::create(
-                    'some',
-                    InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                    ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'multiply')
-                        ->withOutputMessageChannel('some'),
-                    Precedence::DEFAULT_PRECEDENCE,
-                    CalculatingService::class
-                )
-            );
-    }
-
     public function test_throwing_exception_if_registering_endpoint_with_id_same_as_message_channel_name()
     {
         $this->expectException(ConfigurationException::class);

@@ -29,6 +29,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MessageProcessorInvocationProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationWithChainedAfterInterceptorsProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
@@ -431,6 +432,19 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             $messageProcessorInvocation = new Definition(MessageProcessorInvocationProvider::class, [
                 $gatewayInternalHandler,
             ]);
+            if ($afterInterceptors) {
+                // This is where we hook after interceptors inside around interceptors
+                $afterCallProcessor = new Definition(ChainedMessageProcessor::class, [
+                    \array_map(
+                        fn (NewMethodInterceptorBuilder $afterInterceptor) => $afterInterceptor->compileForInterceptedInterface($builder, $interceptedInterfaceReference, $this->endpointAnnotations),
+                        $this->getSortedInterceptors($afterInterceptors)),
+                ]);
+                $messageProcessorInvocation = new Definition(MethodInvocationWithChainedAfterInterceptorsProvider::class, [
+                    $messageProcessorInvocation,
+                    $afterCallProcessor,
+                    false,
+                ]);
+            }
             $messageProcessorInvocation = new Definition(AroundMethodCallProvider::class, [
                 $messageProcessorInvocation,
                 $compiledAroundInterceptors,
@@ -441,10 +455,9 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             ]);
         } else {
             $messageProcessors[] = $gatewayInternalHandler;
-        }
-
-        foreach ($this->getSortedInterceptors($afterInterceptors) as $afterInterceptor) {
-            $messageProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, $interceptedInterfaceReference, $this->endpointAnnotations);
+            foreach ($this->getSortedInterceptors($afterInterceptors) as $afterInterceptor) {
+                $messageProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, $interceptedInterfaceReference, $this->endpointAnnotations);
+            }
         }
 
         return new Definition(ChainedMessageProcessor::class, [

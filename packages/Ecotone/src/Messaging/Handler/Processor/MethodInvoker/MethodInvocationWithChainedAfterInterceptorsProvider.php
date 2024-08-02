@@ -12,7 +12,7 @@ class MethodInvocationWithChainedAfterInterceptorsProvider implements MethodCall
 {
     public function __construct(
         private MethodCallProvider $methodCallProvider,
-        private RealMessageProcessor $afterMessageProcessor
+        private RealMessageProcessor $afterMessageProcessor,
     ) {
     }
 
@@ -21,7 +21,7 @@ class MethodInvocationWithChainedAfterInterceptorsProvider implements MethodCall
         return new MethodInvocationWithChainedAfterInterceptors(
             $message,
             $this->methodCallProvider->getMethodInvocation($message),
-            $this->afterMessageProcessor
+            $this->afterMessageProcessor,
         );
     }
 }

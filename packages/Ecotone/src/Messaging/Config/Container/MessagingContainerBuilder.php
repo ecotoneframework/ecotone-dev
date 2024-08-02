@@ -163,7 +163,8 @@ class MessagingContainerBuilder
             ]);
             $methodCallProviderDefinition = new Definition(MethodInvocationWithChainedAfterInterceptorsProvider::class, [
                 $methodCallProviderDefinition,
-                $afterCallProcessor
+                $afterCallProcessor,
+                true,
             ]);
         }
         if ($aroundInterceptors) {

@@ -47,23 +47,11 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
     {
         $gatewayBuilder = (clone $this->inboundGateway)
             ->addAroundInterceptor($this->getErrorInterceptorReference($builder))
-            ->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptorBuilder($builder->getInterfaceToCallRegistry()));
-        $interceptedInterface = $this->getInterceptedInterface($builder->getInterfaceToCallRegistry());
-        $interceptedInterfaceReference = InterfaceToCallReference::fromInstance($interceptedInterface);
-        $interceptorsConfiguration = $builder->getRelatedInterceptors(
-            $interceptedInterfaceReference,
-            $this->getEndpointAnnotations(),
-            $this->getRequiredInterceptorNames()
-        );
-        foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
-            $gatewayBuilder->addBeforeInterceptor($beforeInterceptor);
-        }
-        foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptorReference) {
-            $gatewayBuilder->addAroundInterceptor($aroundInterceptorReference);
-        }
-        foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
-            $gatewayBuilder->addAfterInterceptor($afterInterceptor);
-        }
+            ->addAroundInterceptor(AcknowledgeConfirmationInterceptor::createAroundInterceptorBuilder($builder->getInterfaceToCallRegistry()))
+            ->withEndpointAnnotations($this->getEndpointAnnotations())
+            ->withRequiredInterceptorNames($this->getRequiredInterceptorNames())
+        ;
+
         return $gatewayBuilder
             ->compile($builder);
     }

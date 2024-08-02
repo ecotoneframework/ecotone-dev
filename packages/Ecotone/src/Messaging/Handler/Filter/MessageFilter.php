@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Filter;
 
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
@@ -20,22 +21,11 @@ use Ecotone\Messaging\MessageHeaders;
  */
 class MessageFilter
 {
-    private MessageProcessor $messageSelector;
-    private ?MessageChannel $discardChannel;
-    private bool $throwExceptionOnDiscard;
-
-    /**
-     * MessageFilter constructor.
-     *
-     * @param MessageProcessor    $messageSelector
-     * @param null|MessageChannel $discardChannel
-     * @param bool                $throwExceptionOnDiscard
-     */
-    public function __construct(MessageProcessor $messageSelector, ?MessageChannel $discardChannel, bool $throwExceptionOnDiscard)
+    public function __construct(
+        private RealMessageProcessor $messageSelector,
+        private ?MessageChannel $discardChannel,
+        private bool $throwExceptionOnDiscard)
     {
-        $this->messageSelector      = $messageSelector;
-        $this->discardChannel = $discardChannel;
-        $this->throwExceptionOnDiscard = $throwExceptionOnDiscard;
     }
 
     /**
@@ -43,7 +33,7 @@ class MessageFilter
      */
     public function handle(Message $message): ?Message
     {
-        if (! $this->messageSelector->executeEndpoint($message)) {
+        if (! $this->messageSelector->process($message)) {
             return $message;
         }
 

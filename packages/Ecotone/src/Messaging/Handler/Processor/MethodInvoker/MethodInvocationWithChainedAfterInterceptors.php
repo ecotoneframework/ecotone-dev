@@ -12,13 +12,10 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 class MethodInvocationWithChainedAfterInterceptors implements MethodInvocation
 {
-    /**
-     * @param array<RealMessageProcessor> $afterMethodMessageProcessors
-     */
     public function __construct(
         private Message $message,
         private MethodInvocation $methodInvocation,
-        private RealMessageProcessor $afterMethodMessageProcessor
+        private RealMessageProcessor $afterMethodMessageProcessor,
     )
     {
     }
@@ -38,6 +35,8 @@ class MethodInvocationWithChainedAfterInterceptors implements MethodInvocation
 
         if (is_null($resultMessage)) {
             return null;
+        } else if($result instanceof Message) {
+            return $resultMessage;
         } else {
             return $resultMessage->getPayload();
         }
@@ -45,31 +44,31 @@ class MethodInvocationWithChainedAfterInterceptors implements MethodInvocation
 
     public function getObjectToInvokeOn(): string|object
     {
-        // TODO: Implement getObjectToInvokeOn() method.
+        return $this->methodInvocation->getObjectToInvokeOn();
     }
 
     public function getMethodName(): string
     {
-        // TODO: Implement getMethodName() method.
+        return $this->methodInvocation->getMethodName();
     }
 
     public function getInterfaceToCall(): InterfaceToCall
     {
-        // TODO: Implement getInterfaceToCall() method.
+        return $this->methodInvocation->getInterfaceToCall();
     }
 
     public function getName(): string
     {
-        // TODO: Implement getName() method.
+        return $this->methodInvocation->getName();
     }
 
     public function getArguments(): array
     {
-        // TODO: Implement getArguments() method.
+        return $this->methodInvocation->getArguments();
     }
 
     public function replaceArgument(string $parameterName, $value): void
     {
-        // TODO: Implement replaceArgument() method.
+        $this->methodInvocation->replaceArgument($parameterName, $value);
     }
 }

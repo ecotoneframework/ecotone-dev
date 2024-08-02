@@ -254,10 +254,10 @@ class TransformerBuilderTest extends MessagingTest
             ->withMessageHandler(
                 TransformerBuilder::createWithDirectObject(CalculatingService::create(0), 'result')
                     ->withEndpointId('someEndpoint')
-                    ->addAroundInterceptor(AroundInterceptorBuilder::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 2, '', []))
-                    ->addAroundInterceptor(AroundInterceptorBuilder::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 1, '', []))
                     ->withInputChannelName($inputChannel = 'inputChannel')
             )
+            ->withAroundInterceptor(AroundInterceptorBuilder::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 2, CalculatingService::class . '::result', []))
+            ->withAroundInterceptor(AroundInterceptorBuilder::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 1, CalculatingService::class . '::result', []))
             ->build();
 
         $this->assertEquals(

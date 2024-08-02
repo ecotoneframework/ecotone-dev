@@ -6,7 +6,6 @@ namespace Test\Ecotone\Messaging\Fixture\Channel\DynamicChannel;
 
 use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\NullableMessageChannel;
 use InvalidArgumentException;
 

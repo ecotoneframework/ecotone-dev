@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\DynamicChannel;
 
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\CustomReceivingStrategy;
-use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\NullReceivingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\SkippingReceivingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy\CustomSendingStrategy;
@@ -83,8 +82,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         string $headerName,
         array $headerMapping,
         ?string $defaultChannelName = null,
-    ): self
-    {
+    ): self {
         return new self(
             $thisMessageChannelName,
             new Definition(HeaderSendingStrategy::class, [
@@ -111,7 +109,6 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         return new self(
             $thisMessageChannelName,
             new Definition(RoundRobinSendingStrategy::class, [$channelNames]),
-
             new Definition(SkippingReceivingStrategy::class, [
                 Reference::to(MessagingEntrypoint::class),
                 $thisMessageChannelName,

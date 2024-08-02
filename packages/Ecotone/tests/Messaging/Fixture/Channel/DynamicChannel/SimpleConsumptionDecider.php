@@ -18,10 +18,9 @@ final class SimpleConsumptionDecider
     #[InternalHandler('dynamicChannel.decide')]
     public function decide(
         string $channelName,
-        #[Header("dynamicChannelName")] $dynamicChannelName
-    ): bool
-    {
-        Assert::assertSame($this->expectedDynamicChannelName, $dynamicChannelName, "Dynamic channel name is not equal");
+        #[Header('dynamicChannelName')] $dynamicChannelName
+    ): bool {
+        Assert::assertSame($this->expectedDynamicChannelName, $dynamicChannelName, 'Dynamic channel name is not equal');
 
         return $this->results[$channelName];
     }

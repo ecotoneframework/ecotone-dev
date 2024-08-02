@@ -329,7 +329,7 @@ class ModellingHandlerModule implements AnnotationModule
     {
         if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
             $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(EnterpriseAggregateMethodInvoker::class), new Definition(EnterpriseAggregateMethodInvoker::class));
-        }else  {
+        } else {
             $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(OpenCoreAggregateMethodInvoker::class), new Definition(OpenCoreAggregateMethodInvoker::class));
         }
 

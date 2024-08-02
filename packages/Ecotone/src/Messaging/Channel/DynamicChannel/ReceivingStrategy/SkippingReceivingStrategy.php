@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy;
 
 use Ecotone\Messaging\Channel\DynamicChannel\ChannelReceivingStrategy;
-use Ecotone\Messaging\Channel\DynamicChannel\SendingStrategy\RoundRobinSendingStrategy;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\Assert;
@@ -31,7 +30,7 @@ final class SkippingReceivingStrategy implements ChannelReceivingStrategy
             ],
             $this->channelNameToDecideOnTheConsumption
         );
-        Assert::isTrue(is_bool($shouldPoll), "Result decision should be boolean");
+        Assert::isTrue(is_bool($shouldPoll), 'Result decision should be boolean');
 
         if ($shouldPoll) {
             return $decidedChannel;

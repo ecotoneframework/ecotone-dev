@@ -28,8 +28,8 @@ final class DynamicMessageChannelModule extends NoExternalConfigurationModule im
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (!$messagingConfiguration->isRunningForEnterpriseLicence() && !empty($extensionObjects)) {
-            throw LicensingException::create("Dynamic message channels are available only as part of Ecotone Enterprise.");
+        if (! $messagingConfiguration->isRunningForEnterpriseLicence() && ! empty($extensionObjects)) {
+            throw LicensingException::create('Dynamic message channels are available only as part of Ecotone Enterprise.');
         }
     }
 

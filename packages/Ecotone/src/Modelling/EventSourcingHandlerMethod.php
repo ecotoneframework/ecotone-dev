@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Modelling;
 
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;

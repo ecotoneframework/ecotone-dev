@@ -53,7 +53,7 @@ final class LicenceDecider
                 Reference::to(self::class),
                 $openCoreServiceReference,
                 $enterpriseServiceReference,
-                Reference::to(ReferenceSearchService::class)
+                Reference::to(ReferenceSearchService::class),
             ],
             factory: [self::class, 'decide']
         );

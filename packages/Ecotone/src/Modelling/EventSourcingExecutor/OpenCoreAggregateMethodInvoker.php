@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\EventSourcingExecutor;
 
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\EventSourcingHandlerMethod;

@@ -22,6 +22,7 @@ use Test\Ecotone\Messaging\Fixture\Handler\SuccessServiceActivator;
  */
 /**
  * licence Enterprise
+ * @internal
  */
 final class DynamicMessageChannelBuilderTest extends TestCase
 {

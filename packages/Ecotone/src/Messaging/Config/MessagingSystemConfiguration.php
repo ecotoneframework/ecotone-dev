@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Messaging\NullableMessageChannel;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 
+use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
+
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
@@ -56,6 +56,7 @@ use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
+use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;

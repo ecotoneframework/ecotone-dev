@@ -249,11 +249,19 @@ final class MessagingSystemConfiguration implements Configuration
 
         /** @var BeforeSendChannelInterceptorBuilder[] $beforeSendInterceptors */
         $beforeSendInterceptors = [];
+        /** @var array<string, NewMethodInterceptorBuilder[]> $beforeSendInterceptorsByChannel */
+        $beforeSendInterceptorsByChannel = [];
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel) {
                 if ($this->beforeSendInterceptors) {
                     $interceptorWithPointCuts = $this->getRelatedInterceptors($this->beforeSendInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames());
                     foreach ($interceptorWithPointCuts as $interceptorReference) {
+                        if (isset($beforeSendInterceptorsByChannel[$messageHandlerBuilder->getInputMessageChannelName()])) {
+                            if (in_array($interceptorReference, $beforeSendInterceptorsByChannel[$messageHandlerBuilder->getInputMessageChannelName()], true)) {
+                                continue;
+                            }
+                        }
+                        $beforeSendInterceptorsByChannel[$messageHandlerBuilder->getInputMessageChannelName()][] = $interceptorReference;
                         $beforeSendInterceptors[] = new BeforeSendChannelInterceptorBuilder(
                             $interceptorReference,
                             $messageHandlerBuilder->getInputMessageChannelName(),
@@ -265,7 +273,6 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
-        $beforeSendInterceptors = array_unique($beforeSendInterceptors);
         foreach ($beforeSendInterceptors as $beforeSendInterceptor) {
             $this->registerChannelInterceptor($beforeSendInterceptor);
         }
@@ -291,12 +298,13 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     /**
-     * @param array<NewMethodInterceptorBuilder|AroundInterceptorBuilder> $interceptors
+     * @template T of NewMethodInterceptorBuilder|AroundInterceptorBuilder
+     * @param array<T> $interceptors
      * @param InterfaceToCall $interceptedInterface
      * @param AttributeDefinition[] $endpointAnnotations
      * @param string[] $requiredInterceptorNames
      *
-     * @return array<NewMethodInterceptorBuilder|AroundInterceptorBuilder>
+     * @return array<T>
      * @throws MessagingException
      */
     private function getRelatedInterceptors(array $interceptors, InterfaceToCall $interceptedInterface, iterable $endpointAnnotations, iterable $requiredInterceptorNames): iterable

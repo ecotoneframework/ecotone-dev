@@ -161,6 +161,11 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         }
 
         $newImplementation = MessageProcessorActivatorBuilder::create()
+            ->withEndpointId($this->getEndpointId())
+            ->withRequiredInterceptorNames($this->requiredReferenceNames)
+            ->withInputChannelName($this->getInputMessageChannelName())
+            ->withOutputMessageChannel($this->getOutputMessageChannelName())
+            ->withEndpointAnnotations($this->getEndpointAnnotations())
             ->chainInterceptedProcessor(
                 new TransformerMessageProcessorBuilder(
                     $objectToInvokeOn,

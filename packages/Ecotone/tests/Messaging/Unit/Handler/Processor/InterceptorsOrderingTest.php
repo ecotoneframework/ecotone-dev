@@ -8,12 +8,14 @@ use Ecotone\Modelling\CommandBus;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\Gateway;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\GatewayInterceptors;
+use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingAggregate;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingCase;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingServiceActivatorCase;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingStack;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingWithoutAfterCase;
+use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingAggregateInterceptors;
 
-class InterceptorsOrderingTestCase extends TestCase
+class InterceptorsOrderingTest extends TestCase
 {
     public function testInterceptorsAreCalledInOrder(): void
     {
@@ -131,6 +133,32 @@ class InterceptorsOrderingTestCase extends TestCase
                 ["endpoint", ["beforeChangeHeaders" => "header"]],
                 ["around end", ["beforeChangeHeaders" => "header"], GenericMessage::class],
                 ["gateway::around end", []],
+            ],
+            $callStack->getCalls()
+        );
+    }
+
+    public function testInterceptorsAreCalledInOrderWithAggregateFactoryMethod(): void
+    {
+        $callStack = new InterceptorOrderingStack();
+        EcotoneLite::bootstrapFlowTesting(
+            [InterceptorOrderingAggregate::class, InterceptorOrderingAggregateInterceptors::class],
+            [new InterceptorOrderingAggregateInterceptors()],
+        )->sendCommandWithRoutingKey("endpoint", metadata: ['aggregate.id' => 'id', 'stack' => $callStack]);
+
+        self::assertEquals(
+            [
+                ["beforeChangeHeaders", []],
+                ["before", ["beforeChangeHeaders" => "header"]],
+                ["afterChangeHeaders", ["beforeChangeHeaders" => "header"]],
+                ["after", ["beforeChangeHeaders" => "header", "afterChangeHeaders" => "header"]],
+                ["beforeChangeHeaders", ["beforeChangeHeaders" => "header", "afterChangeHeaders" => "header"]],
+                ["before", ["beforeChangeHeaders" => "header", "afterChangeHeaders" => "header"]],
+                ["around begin", ["beforeChangeHeaders" => "header", 'afterChangeHeaders' => 'header']],
+                ["factory", ["beforeChangeHeaders" => "header", 'afterChangeHeaders' => 'header']],
+                ["around end", ["beforeChangeHeaders" => "header", 'afterChangeHeaders' => 'header'], InterceptorOrderingAggregate::class],
+                ["afterChangeHeaders", ["beforeChangeHeaders" => "header", 'afterChangeHeaders' => 'header']],
+                ["after", ["beforeChangeHeaders" => "header", "afterChangeHeaders" => "header"]],
             ],
             $callStack->getCalls()
         );

@@ -10,7 +10,9 @@ class InterceptorOrderingStack
     private array $calls = [];
     public function add(string $name, array $metadata, mixed $result = null): self
     {
-        $call = [$name, MessageHeaders::unsetAllFrameworkHeaders($metadata)];
+        $headers = MessageHeaders::unsetAllFrameworkHeaders($metadata);
+        unset($headers["stack"]);
+        $call = [$name, $headers];
         if ($result) {
             $call[] = \get_class($result);
         }

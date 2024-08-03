@@ -15,7 +15,7 @@ class InterceptorOrderingInterceptors
     {
         $stack = $metadata["stack"];
         $stack->add("afterChangeHeaders", $metadata);
-        return [...$metadata, "afterChangeHeaders" => "header"];
+        return array_merge($metadata, ["afterChangeHeaders" => "header"]);
     }
 
     #[After(pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class )]
@@ -30,7 +30,7 @@ class InterceptorOrderingInterceptors
     {
         $stack = $metadata["stack"];
         $stack->add("beforeChangeHeaders", $metadata);
-        return [...$metadata, "beforeChangeHeaders" => "header"];
+        return array_merge($metadata, ["beforeChangeHeaders" => "header"]);
     }
 
     #[Before(pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class )]

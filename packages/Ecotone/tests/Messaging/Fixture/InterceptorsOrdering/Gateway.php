@@ -3,12 +3,10 @@
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
 use Ecotone\Messaging\Attribute\MessageGateway;
+use Ecotone\Messaging\Attribute\Parameter\Headers;
 
 interface Gateway
 {
     #[MessageGateway(requestChannel: "runEndpoint")]
-    public function runWithReturn(InterceptorOrderingStack $stack): InterceptorOrderingStack;
-
-    #[MessageGateway(requestChannel: "runEndpoint")]
-    public function runWithVoid(InterceptorOrderingStack $stack): void;
+    public function runWithReturn(#[Headers] $metadata = []): InterceptorOrderingStack;
 }

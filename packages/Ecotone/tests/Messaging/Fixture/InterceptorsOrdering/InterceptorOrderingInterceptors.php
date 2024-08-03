@@ -8,9 +8,9 @@ use Ecotone\Messaging\Attribute\Interceptor\Before;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
-class InterceptorOrderingAggregateInterceptors
+class InterceptorOrderingInterceptors
 {
-    #[After(precedence: -1, pointcut: InterceptorOrderingAggregate::class, changeHeaders: true)]
+    #[After(precedence: -1, pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class , changeHeaders: true)]
     public function afterChangeHeaders(#[Headers] array $metadata): array
     {
         $stack = $metadata["stack"];
@@ -18,14 +18,14 @@ class InterceptorOrderingAggregateInterceptors
         return [...$metadata, "afterChangeHeaders" => "header"];
     }
 
-    #[After(pointcut: InterceptorOrderingAggregate::class)]
+    #[After(pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class )]
     public function after(#[Headers] array $metadata): void
     {
         $stack = $metadata["stack"];
         $stack->add("after", $metadata);
     }
 
-    #[Before(precedence: -1, pointcut: InterceptorOrderingAggregate::class, changeHeaders: true)]
+    #[Before(precedence: -1, pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class , changeHeaders: true)]
     public function beforeChangeHeaders(#[Headers] array $metadata): array
     {
         $stack = $metadata["stack"];
@@ -33,14 +33,14 @@ class InterceptorOrderingAggregateInterceptors
         return [...$metadata, "beforeChangeHeaders" => "header"];
     }
 
-    #[Before(pointcut: InterceptorOrderingAggregate::class)]
+    #[Before(pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class )]
     public function before(#[Headers] array $metadata): void
     {
         $stack = $metadata["stack"];
         $stack->add("before", $metadata);
     }
 
-    #[Around(pointcut: InterceptorOrderingAggregate::class)]
+    #[Around(pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class )]
     public function around(MethodInvocation $methodInvocation, #[Headers] array $metadata): mixed
     {
         $stack = $metadata["stack"];

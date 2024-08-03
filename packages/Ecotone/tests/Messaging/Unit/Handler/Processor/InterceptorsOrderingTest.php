@@ -13,20 +13,20 @@ use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingCase;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingServiceActivatorCase;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingStack;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingWithoutAfterCase;
-use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingAggregateInterceptors;
+use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingInterceptors;
 
 class InterceptorsOrderingTest extends TestCase
 {
     public function testInterceptorsAreCalledInOrder(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingCase::class],
-            [new InterceptorOrderingCase()],
+            [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
+            [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors()],
         );
         $callStack = new InterceptorOrderingStack();
         /** @var CommandBus $commandBus */
         $commandBus = $ecotone->getGateway(CommandBus::class);
-        $return = $commandBus->sendWithRouting("endpoint", $callStack);
+        $return = $commandBus->sendWithRouting("endpoint", metadata: ['stack' => $callStack]);
 
         self::assertSame($callStack, $return);
 
@@ -44,39 +44,14 @@ class InterceptorsOrderingTest extends TestCase
         );
     }
 
-    public function testInterceptorsAreCalledInOrderWithoutAfterInterceptors(): void
-    {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingWithoutAfterCase::class],
-            [new InterceptorOrderingWithoutAfterCase()],
-        );
-        $callStack = new InterceptorOrderingStack();
-        /** @var CommandBus $commandBus */
-        $commandBus = $ecotone->getGateway(CommandBus::class);
-        $return = $commandBus->sendWithRouting("endpoint", $callStack);
-
-        self::assertSame($callStack, $return);
-
-        self::assertEquals(
-            [
-                ["beforeChangeHeaders", []],
-                ["before", ["beforeChangeHeaders" => "header"]],
-                ["around begin", ["beforeChangeHeaders" => "header"]],
-                ["endpoint", ["beforeChangeHeaders" => "header"]],
-                ["around end", ["beforeChangeHeaders" => "header"], GenericMessage::class],
-            ],
-            $callStack->getCalls()
-        );
-    }
-
     public function testInterceptorsAreCalledInOrderOnServiceActivator(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingServiceActivatorCase::class],
-            [new InterceptorOrderingServiceActivatorCase()],
+            [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
+            [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors()],
         );
         $callStack = new InterceptorOrderingStack();
-        $ecotone->sendDirectToChannel("runEndpoint", $callStack);
+        $ecotone->sendDirectToChannel("runEndpoint", metadata: ['stack' => $callStack]);
 
         self::assertEquals(
             [
@@ -84,6 +59,8 @@ class InterceptorsOrderingTest extends TestCase
                 ["before", ["beforeChangeHeaders" => "header"]],
                 ["around begin", ["beforeChangeHeaders" => "header"]],
                 ["endpoint", ["beforeChangeHeaders" => "header"]],
+                ["afterChangeHeaders", ["beforeChangeHeaders" => "header"]],
+                ["after", ["beforeChangeHeaders" => "header", "afterChangeHeaders" => "header"]],
                 ["around end", ["beforeChangeHeaders" => "header"], GenericMessage::class],
             ],
             $callStack->getCalls()
@@ -93,46 +70,27 @@ class InterceptorsOrderingTest extends TestCase
     public function testInterceptorsAreCalledInOrderWithGateway(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingServiceActivatorCase::class, Gateway::class, GatewayInterceptors::class],
-            [new InterceptorOrderingServiceActivatorCase(), new GatewayInterceptors()],
+            [InterceptorOrderingCase::class, Gateway::class, InterceptorOrderingInterceptors::class, GatewayInterceptors::class],
+            [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), new GatewayInterceptors()],
         );
         $callStack = new InterceptorOrderingStack();
-        $return = $ecotone->getGateway(Gateway::class)->runWithReturn($callStack);
+        $return = $ecotone->getGateway(Gateway::class)->runWithReturn(['stack' => $callStack]);
 
         self::assertSame($callStack, $return);
 
         self::assertEquals(
             [
+                ["gateway::before", []],
                 ["gateway::around begin", []],
                 ["beforeChangeHeaders", []],
                 ["before", ["beforeChangeHeaders" => "header"]],
                 ["around begin", ["beforeChangeHeaders" => "header"]],
                 ["endpoint", ["beforeChangeHeaders" => "header"]],
+                ["afterChangeHeaders", ["beforeChangeHeaders" => "header"]],
+                ["after", ["beforeChangeHeaders" => "header", "afterChangeHeaders" => "header"]],
                 ["around end", ["beforeChangeHeaders" => "header"], GenericMessage::class],
+                ["gateway::after", ["beforeChangeHeaders" => "header", "afterChangeHeaders" => "header"]],
                 ["gateway::around end", [], GenericMessage::class],
-            ],
-            $callStack->getCalls()
-        );
-    }
-
-    public function testInterceptorsAreCalledInOrderWithGatewayAndVoidReturnType(): void
-    {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingServiceActivatorCase::class, Gateway::class, GatewayInterceptors::class],
-            [new InterceptorOrderingServiceActivatorCase(), new GatewayInterceptors()],
-        );
-        $callStack = new InterceptorOrderingStack();
-        $ecotone->getGateway(Gateway::class)->runWithVoid($callStack);
-
-        self::assertEquals(
-            [
-                ["gateway::around begin", []],
-                ["beforeChangeHeaders", []],
-                ["before", ["beforeChangeHeaders" => "header"]],
-                ["around begin", ["beforeChangeHeaders" => "header"]],
-                ["endpoint", ["beforeChangeHeaders" => "header"]],
-                ["around end", ["beforeChangeHeaders" => "header"], GenericMessage::class],
-                ["gateway::around end", []],
             ],
             $callStack->getCalls()
         );
@@ -142,8 +100,8 @@ class InterceptorsOrderingTest extends TestCase
     {
         $callStack = new InterceptorOrderingStack();
         EcotoneLite::bootstrapFlowTesting(
-            [InterceptorOrderingAggregate::class, InterceptorOrderingAggregateInterceptors::class],
-            [new InterceptorOrderingAggregateInterceptors()],
+            [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class],
+            [new InterceptorOrderingInterceptors()],
         )->sendCommandWithRoutingKey("endpoint", metadata: ['aggregate.id' => 'id', 'stack' => $callStack]);
 
         self::assertEquals(

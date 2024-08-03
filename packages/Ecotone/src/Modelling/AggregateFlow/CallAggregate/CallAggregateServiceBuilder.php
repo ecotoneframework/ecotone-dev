@@ -5,6 +5,7 @@ namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
@@ -101,7 +102,7 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
         return $this;
     }
 
-    public function compile(MessagingContainerBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition
     {
         // TODO: code duplication with ServiceActivatorBuilder
         $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($this->interfaceToCall, $this->methodParameterConverterBuilders);
@@ -117,7 +118,9 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
             $compiledMethodParameterConverters,
             $this->interfaceToCall->getInterfaceParametersNames(),
         ]);
-        $aggregateMethodCallProvider = $this->interceptMethodCall($builder, [], $aggregateMethodCallProvider);
+        if ($interceptorsConfiguration) {
+            $aggregateMethodCallProvider = $builder->interceptMethodCall($this->getInterceptedInterface(), [], $aggregateMethodCallProvider);
+        }
 
         return new Definition(CallAggregateMessageProcessor::class, [
             $aggregateMethodCallProvider,

@@ -6,6 +6,7 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
@@ -20,7 +21,7 @@ class TransformerMessageProcessorBuilder extends InterceptedMessageProcessorBuil
     {
     }
 
-    public function compile(MessagingContainerBuilder $builder): Definition|Reference
+    public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
         $methodCall = StaticMethodCallProvider::getDefinition(
@@ -28,7 +29,6 @@ class TransformerMessageProcessorBuilder extends InterceptedMessageProcessorBuil
             $interfaceToCall,
             $this->methodParameterConverters,
         );
-        $methodCall = $this->interceptMethodCall($builder, [], $methodCall);
         return new Definition(TransformerMessageProcessor::class, [
             $methodCall,
             $interfaceToCall->getReturnType(),

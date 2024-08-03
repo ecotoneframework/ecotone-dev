@@ -46,7 +46,6 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
             throw ConfigurationException::create("Intercepted processor is already set");
         }
         $this->interceptedProcessor = $processor;
-        $this->interceptedProcessor->enableInterception();
 
         return $this->chain($processor);
     }
@@ -96,7 +95,11 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
             }
         }
         foreach ($this->processors as $processor) {
-            $compiledProcessor = $processor->compile($builder);
+            if ($processor === $this->interceptedProcessor) {
+                $compiledProcessor = $processor->compile($builder, $interceptorsConfiguration);
+            } else {
+                $compiledProcessor = $processor->compile($builder);
+            }
             if ($compiledProcessor instanceof Definition) {
                 is_a($compiledProcessor->getClassName(), RealMessageProcessor::class, true)
                 || throw new ConfigurationException("Processor should be instance of " . RealMessageProcessor::class . ". Got " . $compiledProcessor->getClassName());

@@ -7,9 +7,11 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 use Ecotone\Messaging\Handler\Processor\PasstroughMethodInvocationProcessor;
@@ -51,7 +53,7 @@ class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
         return $this;
     }
 
-    public function compile(MessagingContainerBuilder $builder): Definition|Reference
+    public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 
@@ -68,12 +70,10 @@ class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
             $interfaceToCall,
             $this->endpointAnnotations,
         );
+        if ($interceptorsConfiguration) {
+            $methodCallProvider = $builder->interceptMethodCall($this->interfaceToCallReference, $this->endpointAnnotations, $methodCallProvider);
+        }
 
-        $methodCallProvider = $this->interceptMethodCall(
-            $builder,
-            $this->endpointAnnotations,
-            $methodCallProvider
-        );
         if ($this->shouldPassTroughMessageIfVoid && $interfaceToCall->getReturnType()->isVoid()) {
             return new Definition(PasstroughMethodInvocationProcessor::class, [
                 $methodCallProvider,
@@ -81,7 +81,7 @@ class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
         } else {
             return new Definition(MethodInvocationProcessor::class, [
                 $methodCallProvider,
-                $interfaceToCall->getReturnType(),
+                new Definition(MethodResultToMessageConverter::class, [$interfaceToCall->getReturnType()])
             ]);
         }
     }

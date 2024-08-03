@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationWithChainedAfterInterceptorsProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodResultToMessageConverter;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -161,19 +162,14 @@ class MessagingContainerBuilder
             $afterCallProcessor = new Definition(ChainedMessageProcessor::class, [
                 $afterInterceptors
             ]);
-            $methodCallProviderDefinition = new Definition(MethodInvocationWithChainedAfterInterceptorsProvider::class, [
-                $methodCallProviderDefinition,
-                $afterCallProcessor,
-                true,
-            ]);
         }
-        if ($aroundInterceptors) {
-            $methodCallProviderDefinition = new Definition(AroundMethodCallProvider::class, [
-                $methodCallProviderDefinition,
-                $aroundInterceptors
-            ]);
-        }
-        return $methodCallProviderDefinition;
+        $interface = $this->getInterfaceToCall($interceptedInterfaceReference);
+        return new Definition(AroundMethodCallProvider::class, [
+            $methodCallProviderDefinition,
+            $aroundInterceptors,
+            new Definition(MethodResultToMessageConverter::class, [$interface->getReturnType()]),
+            $afterCallProcessor ?? null,
+        ]);
     }
 
     public function getRelatedInterceptors(

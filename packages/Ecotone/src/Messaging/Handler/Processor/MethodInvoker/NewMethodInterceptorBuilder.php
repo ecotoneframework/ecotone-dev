@@ -59,7 +59,12 @@ class NewMethodInterceptorBuilder
         return match (true) {
             $interceptorInterface->hasReturnTypeVoid() => new Definition(PasstroughMethodInvocationProcessor::class, [$methodCallProvider]),
             $this->changeHeaders => new Definition(ChangeHeadersMethodInvocationProcessor::class, [$methodCallProvider, (string) $interceptorInterface]),
-            default => new Definition(MethodInvocationProcessor::class, [$methodCallProvider, $interceptorInterface->getReturnType()]),
+            default => new Definition(MethodInvocationProcessor::class, [
+                $methodCallProvider,
+                new Definition(MethodResultToMessageConverter::class, [
+                    $interceptorInterface->getReturnType(),
+                ])
+            ]),
         };
     }
 

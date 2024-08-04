@@ -149,26 +149,13 @@ class MessagingContainerBuilder
             $interceptedInterfaceReference,
             $endpointAnnotations,
         );
-        $afterInterceptors = [];
-        foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
-            $afterInterceptors[] = $afterInterceptor->compileForInterceptedInterface($this, $interceptedInterfaceReference, $endpointAnnotations);
-        }
         $aroundInterceptors = [];
         foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptor) {
             $aroundInterceptors[] = $aroundInterceptor->compileForInterceptedInterface($this, $this->getInterfaceToCall($interceptedInterfaceReference), $endpointAnnotations);
         }
-        if ($afterInterceptors) {
-            // This is where we hook after interceptors inside around interceptors
-            $afterCallProcessor = new Definition(ChainedMessageProcessor::class, [
-                $afterInterceptors
-            ]);
-        }
-        $interface = $this->getInterfaceToCall($interceptedInterfaceReference);
         return new Definition(AroundMethodCallProvider::class, [
             $methodCallProviderDefinition,
             $aroundInterceptors,
-            new Definition(MethodResultToMessageConverter::class, [$interface->getReturnType()]),
-            $afterCallProcessor ?? null,
         ]);
     }
 

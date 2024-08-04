@@ -33,8 +33,6 @@ class AroundMethodInvocation implements MethodInvocation
         private Message                        $requestMessage,
         array                                  $aroundMethodInterceptors,
         private MethodInvocation               $interceptedMethodInvocation,
-        private ResultToMessageConverter       $resultToMessageConverter,
-        private ?RealMessageProcessor          $afterProcessor = null,
     ) {
         $this->aroundMethodInterceptors = new ArrayIterator($aroundMethodInterceptors);
     }
@@ -50,9 +48,7 @@ class AroundMethodInvocation implements MethodInvocation
             $this->aroundMethodInterceptors->next();
 
             if (! $aroundMethodInterceptor) {
-                $result = $this->interceptedMethodInvocation->proceed();
-                $message = $this->resultToMessageConverter->convertToMessage($this->requestMessage, $result);
-                return $this->afterProcessor ? $this->afterProcessor->process($message) : $message;
+                return $this->interceptedMethodInvocation->proceed();
             }
 
             $arguments = $aroundMethodInterceptor->getArguments(

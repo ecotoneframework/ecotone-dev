@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
@@ -83,28 +84,27 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
     private function compileProcessors(MessagingContainerBuilder $builder): array
     {
         $compiledProcessors = [];
-        if ($this->interceptedProcessor) {
-            $interceptorsConfiguration = $builder->getRelatedInterceptors(
+        $interceptorsConfiguration = $this->interceptedProcessor
+            ? $builder->getRelatedInterceptors(
                 $this->interceptedProcessor->getInterceptedInterface(),
                 $this->getEndpointAnnotations(),
                 $this->getRequiredInterceptorNames()
-            );
-            // register before interceptors
-            foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
-                $compiledProcessors[] = $beforeInterceptor->compileForInterceptedInterface($builder, $this->interceptedProcessor->getInterceptedInterface(), $this->getEndpointAnnotations());
-            }
+             )
+            : MethodInterceptorsConfiguration::createEmpty();
+        // register before interceptors
+        foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
+            $compiledProcessors[] = $beforeInterceptor->compileForInterceptedInterface($builder, $this->interceptedProcessor->getInterceptedInterface(), $this->getEndpointAnnotations());
         }
         foreach ($this->processors as $processor) {
             if ($processor === $this->interceptedProcessor) {
-                $compiledProcessor = $processor->compile($builder, $interceptorsConfiguration);
+                $compiledProcessors[] = $processor->compile($builder, $interceptorsConfiguration);
+                // register after interceptors
+                foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
+                    $compiledProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, $this->interceptedProcessor->getInterceptedInterface(), $this->getEndpointAnnotations());
+                }
             } else {
-                $compiledProcessor = $processor->compile($builder);
+                $compiledProcessors[] = $processor->compile($builder);
             }
-            if ($compiledProcessor instanceof Definition) {
-                is_a($compiledProcessor->getClassName(), RealMessageProcessor::class, true)
-                || throw new ConfigurationException("Processor should be instance of " . RealMessageProcessor::class . ". Got " . $compiledProcessor->getClassName());
-            }
-            $compiledProcessors[] = $compiledProcessor;
         }
         return $compiledProcessors;
     }

@@ -13,8 +13,6 @@ class AroundMethodCallProvider implements MethodCallProvider
     public function __construct(
         private MethodCallProvider             $methodCallProvider,
         private array                          $aroundInterceptors,
-        private ResultToMessageConverter       $resultToMessageConverter,
-        private ?RealMessageProcessor          $afterProcessor = null,
     )
     {
     }
@@ -25,8 +23,6 @@ class AroundMethodCallProvider implements MethodCallProvider
             $message,
             $this->aroundInterceptors,
             $this->methodCallProvider->getMethodInvocation($message),
-            $this->resultToMessageConverter,
-            $this->afterProcessor
         );
     }
 }

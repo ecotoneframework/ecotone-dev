@@ -19,11 +19,7 @@ class MethodResultToMessageConverter implements ResultToMessageConverter
 
     public function convertToMessage(Message $requestMessage, mixed $result): ?Message
     {
-        if (is_null($result)) {
-            return null;
-        }
-
-        if ($result instanceof Message) {
+        if (is_null($result) || $result instanceof Message) {
             return $result;
         }
 

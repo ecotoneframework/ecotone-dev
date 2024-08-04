@@ -2,16 +2,12 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationWithChainedAfterInterceptorsProvider;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodResultToMessageConverter;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -165,11 +161,6 @@ class MessagingContainerBuilder
         array $requiredInterceptorNames = [],
     ): MethodInterceptorsConfiguration
     {
-//        foreach ($requiredInterceptorNames as $requiredInterceptorName) {
-//            if (! $this->doesInterceptorWithNameExists($requiredInterceptorName)) {
-//                throw ConfigurationException::create("Can't find interceptor with name {$requiredInterceptorName} for {$interceptedInterface}");
-//            }
-//        }
         $interfaceToCall = $this->interfaceToCallRegistry->getForReference($getInterceptedInterface);
         return $this->methodInterceptorsConfiguration->getRelatedInterceptors(
             $interfaceToCall,

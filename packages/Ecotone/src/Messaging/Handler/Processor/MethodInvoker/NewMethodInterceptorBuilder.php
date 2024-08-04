@@ -10,9 +10,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\ChangeHeadersMethodInvocationProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
-use Ecotone\Messaging\Handler\Processor\PasstroughMethodInvocationProcessor;
 
 class NewMethodInterceptorBuilder
 {
@@ -56,16 +54,18 @@ class NewMethodInterceptorBuilder
             $endpointAnnotations
         );
 
-        return match (true) {
-            $interceptorInterface->hasReturnTypeVoid() => new Definition(PasstroughMethodInvocationProcessor::class, [$methodCallProvider]),
-            $this->changeHeaders => new Definition(ChangeHeadersMethodInvocationProcessor::class, [$methodCallProvider, (string) $interceptorInterface]),
-            default => new Definition(MethodInvocationProcessor::class, [
-                $methodCallProvider,
-                new Definition(MethodResultToMessageConverter::class, [
+        $messageConverter = match (true) {
+            $interceptorInterface->hasReturnTypeVoid() => new Definition(PassthroughMessageConverter::class),
+            $this->changeHeaders => new Definition(HeaderResultMessageConverter::class, [(string) $interceptedInterface]),
+            default => new Definition(PayloadResultMessageConverter::class, [
                     $interceptorInterface->getReturnType(),
                 ])
-            ]),
         };
+
+        return new Definition(MethodInvocationProcessor::class, [
+            $methodCallProvider,
+            $messageConverter,
+        ]);
     }
 
     public function getPrecedence(): int

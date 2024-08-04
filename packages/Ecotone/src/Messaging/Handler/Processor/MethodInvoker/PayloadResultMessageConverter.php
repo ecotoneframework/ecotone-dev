@@ -9,7 +9,7 @@ use Ecotone\Messaging\Handler\UnionTypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
-class MethodResultToMessageConverter implements ResultToMessageConverter
+class PayloadResultMessageConverter implements ResultToMessageConverter
 {
     public function __construct(
         private Type $returnType,

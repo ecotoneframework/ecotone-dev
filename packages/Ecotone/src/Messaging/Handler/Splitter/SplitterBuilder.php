@@ -11,8 +11,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\AroundInterceptorHandler;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -20,10 +18,7 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
-use Ecotone\Messaging\Handler\Processor\HandlerReplyProcessor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
-use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
@@ -114,7 +109,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
 
         $compiledProcessors = [];
         foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
-            $compiledProcessors[] = $beforeInterceptor->compileForInterceptedInterface($builder, $this->interceptedProcessor->getInterceptedInterface(), $this->getEndpointAnnotations());
+            $compiledProcessors[] = $beforeInterceptor->compileForInterceptedInterface($builder, InterfaceToCallReference::fromInstance($interfaceToCall), $this->getEndpointAnnotations());
         }
         $compiledProcessors[] = MethodInvokerBuilder::create(
             $interfaceToCall->isStaticallyCalled() ? $this->reference->getId() : $this->reference,
@@ -123,12 +118,12 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             $this->getEndpointAnnotations()
         )->compile($builder, $interceptorsConfiguration);
         foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
-            $compiledProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, $this->interceptedProcessor->getInterceptedInterface(), $this->getEndpointAnnotations());
+            $compiledProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, InterfaceToCallReference::fromInstance($interfaceToCall), $this->getEndpointAnnotations());
         }
         $processor = count($compiledProcessors) > 1
             ? new Definition(ChainedMessageProcessor::class, [$compiledProcessors])
             : $compiledProcessors[0];
-        
+
         return new Definition(SplitterHandler::class, [
             new ChannelReference($this->outputMessageChannelName),
             $processor,

@@ -3,7 +3,6 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -11,10 +10,8 @@ use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
-use Ecotone\Messaging\Handler\Processor\PasstroughMethodInvocationProcessor;
 use function is_string;
 
 /**
@@ -27,6 +24,7 @@ class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
      */
     private array $endpointAnnotations;
     private bool $shouldPassTroughMessageIfVoid = false;
+    private bool $changeHeaders = false;
 
     /**
      * @param array<ParameterConverterBuilder> $methodParametersConverterBuilders
@@ -53,6 +51,13 @@ class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
         return $this;
     }
 
+    public function withChangeHeaders(bool $changeHeaders): self
+    {
+        $this->changeHeaders = $changeHeaders;
+
+        return $this;
+    }
+
     public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
@@ -74,16 +79,19 @@ class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
             $methodCallProvider = $builder->interceptMethodCall($this->interfaceToCallReference, $this->endpointAnnotations, $methodCallProvider);
         }
 
-        if ($this->shouldPassTroughMessageIfVoid && $interfaceToCall->getReturnType()->isVoid()) {
-            return new Definition(PasstroughMethodInvocationProcessor::class, [
-                $methodCallProvider,
-            ]);
-        } else {
-            return new Definition(MethodInvocationProcessor::class, [
-                $methodCallProvider,
-                new Definition(MethodResultToMessageConverter::class, [$interfaceToCall->getReturnType()])
-            ]);
-        }
+        // @todo: this is only used for tests, in production it is always payload converter
+        $messageConverter = match (true) {
+            $this->shouldPassTroughMessageIfVoid && $interfaceToCall->getReturnType()->isVoid() => new Definition(PassthroughMessageConverter::class),
+            $this->changeHeaders => new Definition(HeaderResultMessageConverter::class, [(string) $interfaceToCall]),
+            default => new Definition(PayloadResultMessageConverter::class, [
+                $interfaceToCall->getReturnType(),
+            ])
+        };
+
+        return new Definition(MethodInvocationProcessor::class, [
+            $methodCallProvider,
+            $messageConverter,
+        ]);
     }
 
     function getInterceptedInterface(): InterfaceToCallReference

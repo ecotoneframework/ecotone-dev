@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Splitter;
 
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -18,6 +19,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\HandlerReplyProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
@@ -100,35 +102,37 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        $methodInvokerDefinition = MethodInvokerBuilder::create(
+        if (!$this->outputMessageChannelName) {
+            throw ConfigurationException::create("Output channel required for splitter handler");
+        }
+
+        $interceptorsConfiguration = $builder->getRelatedInterceptors(
+            $this->interfaceToCallReference,
+            $this->getEndpointAnnotations(),
+            $this->requiredInterceptorReferenceNames,
+        );
+
+        $compiledProcessors = [];
+        foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
+            $compiledProcessors[] = $beforeInterceptor->compileForInterceptedInterface($builder, $this->interceptedProcessor->getInterceptedInterface(), $this->getEndpointAnnotations());
+        }
+        $compiledProcessors[] = MethodInvokerBuilder::create(
             $interfaceToCall->isStaticallyCalled() ? $this->reference->getId() : $this->reference,
             $this->interfaceToCallReference,
             $this->methodParameterConverterBuilders,
             $this->getEndpointAnnotations()
-        )->compile($builder);
-
-        $handlerDefinition = new Definition(RequestReplyProducer::class, [
-            $this->outputMessageChannelName ? new ChannelReference($this->outputMessageChannelName) : null,
-            $methodInvokerDefinition,
-            new Reference(ChannelResolver::class),
-            true,
-            false,
-            RequestReplyProducer::REQUEST_SPLIT_METHOD,
-        ]);
-
-        if ($this->orderedAroundInterceptors) {
-            $interceptors = [];
-            foreach (AroundInterceptorBuilder::orderedInterceptors($this->orderedAroundInterceptors) as $aroundInterceptorReference) {
-                $interceptors[] = $aroundInterceptorReference->compileForInterceptedInterface($builder, $this->annotatedInterfaceToCall ?? $interfaceToCall, $this->getEndpointAnnotations());
-            }
-
-            $handlerDefinition = new Definition(AroundInterceptorHandler::class, [
-                $interceptors,
-                new Definition(HandlerReplyProcessor::class, [$handlerDefinition]),
-            ]);
+        )->compile($builder, $interceptorsConfiguration);
+        foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
+            $compiledProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, $this->interceptedProcessor->getInterceptedInterface(), $this->getEndpointAnnotations());
         }
-
-        return $handlerDefinition;
+        $processor = count($compiledProcessors) > 1
+            ? new Definition(ChainedMessageProcessor::class, [$compiledProcessors])
+            : $compiledProcessors[0];
+        
+        return new Definition(SplitterHandler::class, [
+            new ChannelReference($this->outputMessageChannelName),
+            $processor,
+        ]);
     }
 
     public function __toString()

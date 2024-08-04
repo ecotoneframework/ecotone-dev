@@ -26,11 +26,10 @@ class MessageProcessorActivator implements MessageHandler
     {
         $replyData = $this->messageProcessor->process($message);
 
-        if ($this->isReplyRequired && !$replyData) {
-            throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $message);
-        }
-
         if (!$replyData) {
+            if ($this->isReplyRequired) {
+                throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $message);
+            }
             return;
         }
 
@@ -52,11 +51,10 @@ class MessageProcessorActivator implements MessageHandler
         }
 
         if (!$replyChannel) {
-            if (!$this->isReplyRequired) {
-                return;
+            if ($this->isReplyRequired) {
+                throw MessageDeliveryException::createWithFailedMessage("Can't process {$message}, no output channel during delivery in {$this->messageProcessor}", $message);
             }
-
-            throw MessageDeliveryException::createWithFailedMessage("Can't process {$message}, no output channel during delivery in {$this->messageProcessor}", $message);
+            return;
         }
 
         $replyChannel->send($replyData);

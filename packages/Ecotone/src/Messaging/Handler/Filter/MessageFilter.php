@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Filter;
 
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
 use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -19,10 +20,10 @@ use Ecotone\Messaging\MessageHeaders;
 /**
  * licence Apache-2.0
  */
-class MessageFilter
+class MessageFilter implements RealMessageProcessor
 {
     public function __construct(
-        private RealMessageProcessor $messageSelector,
+        private MethodCallProvider $messageSelector,
         private ?MessageChannel $discardChannel,
         private bool $throwExceptionOnDiscard)
     {
@@ -31,9 +32,9 @@ class MessageFilter
     /**
      * @inheritDoc
      */
-    public function handle(Message $message): ?Message
+    public function process(Message $message): ?Message
     {
-        if (! $this->messageSelector->process($message)) {
+        if (! $this->messageSelector->getMethodInvocation($message)->proceed()) {
             return $message;
         }
 

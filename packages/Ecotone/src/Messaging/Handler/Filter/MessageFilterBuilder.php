@@ -8,14 +8,19 @@ use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\Transformer\TransformerMessageProcessorBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -26,7 +31,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * licence Apache-2.0
  */
-class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
+class MessageFilterBuilder extends InterceptedMessageProcessorBuilder
 {
     /**
      * @var ParameterConverterBuilder[]
@@ -54,17 +59,17 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
     public static function createBoolHeaderFilter(string $headerName, ?bool $defaultResultWhenHeaderIsMissing = null): self
     {
         return new self(
-            new BoolHeaderBasedFilter($headerName, $defaultResultWhenHeaderIsMissing),
-            InterfaceToCallReference::create(BoolHeaderBasedFilter::class, 'filter')
-        );
+                    new BoolHeaderBasedFilter($headerName, $defaultResultWhenHeaderIsMissing),
+                    InterfaceToCallReference::create(BoolHeaderBasedFilter::class, 'filter')
+                );
     }
 
     /**
      * @inheritDoc
      */
-    public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
+    public function getInterceptedInterface(): InterfaceToCallReference
     {
-        return $interfaceToCallRegistry->getForReference($this->interfaceToCallReference);
+        return $this->interfaceToCallReference;
     }
 
     /**
@@ -109,7 +114,7 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
         return $this;
     }
 
-    public function compile(MessagingContainerBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition
     {
         $messageSelector = is_object($this->referenceNameOrObject) ? $this->referenceNameOrObject : new Reference($this->referenceNameOrObject);
 
@@ -120,36 +125,20 @@ class MessageFilterBuilder extends InputOutputMessageHandlerBuilder implements M
 
         $discardChannel = $this->discardChannelName ? new ChannelReference($this->discardChannelName) : null;
 
-        $methodInvoker = MethodInvokerBuilder::create(
+        $methodCallProvider = StaticMethodCallProvider::getDefinition(
             $messageSelector,
-            $this->interfaceToCallReference,
+            $interfaceToCall,
             $this->parameterConverters,
-            $this->getEndpointAnnotations()
-        )->compile($builder);
+        );
+        if ($interceptorsConfiguration) {
+            $methodCallProvider = $builder->interceptMethodCall($this->interfaceToCallReference, [], $methodCallProvider);
+        }
 
-        $messageFilterReference = new Definition(MessageFilter::class, [
-            $methodInvoker,
+        return new Definition(MessageFilter::class, [
+            $methodCallProvider,
             $discardChannel,
             $this->throwExceptionOnDiscard,
         ]);
-        $serviceActivatorBuilder = ServiceActivatorBuilder::createWithDefinition(
-            $messageFilterReference,
-            'handle',
-        )
-            ->withInputChannelName($this->inputMessageChannelName)
-            ->withOutputMessageChannel($this->outputMessageChannelName);
-
-        $serviceActivatorBuilder->orderedAroundInterceptors = $this->orderedAroundInterceptors;
-
-        return $serviceActivatorBuilder->compile($builder);
-    }
-
-    /**
-     * @return string
-     */
-    public function __toString()
-    {
-        return sprintf('Message filter - %s:%s with name `%s` for input channel `%s`', $this->interfaceToCallReference->getClassName(), $this->interfaceToCallReference->getMethodName(), $this->getEndpointId(), $this->inputMessageChannelName);
     }
 
     private function getMethodName(): string

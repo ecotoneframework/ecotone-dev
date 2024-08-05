@@ -117,6 +117,11 @@ class InterceptorsOrderingTest extends TestCase
                 ["around end", ["beforeChangeHeaders" => "header", 'afterChangeHeaders' => 'header'], InterceptorOrderingAggregate::class],
                 ["afterChangeHeaders", ["beforeChangeHeaders" => "header", 'afterChangeHeaders' => 'header']],
                 ["after", ["beforeChangeHeaders" => "header", "afterChangeHeaders" => "header"]],
+                ["eventHandler", [
+                    'beforeChangeHeaders' => 'header',
+                    'afterChangeHeaders' => 'header',
+                    'revision' => 1,
+                ]],
             ],
             $callStack->getCalls()
         );

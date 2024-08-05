@@ -2,23 +2,24 @@
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
-use Ecotone\Messaging\Attribute\Interceptor\After;
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Attribute\Interceptor\Before;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\Saga;
+use Ecotone\Modelling\EventBus;
+use Ecotone\Modelling\WithEvents;
 
 #[Aggregate]
 class InterceptorOrderingAggregate
 {
+    use WithEvents;
+
     public function __construct(
         #[Identifier] private string $id,
     )
     {
+        $this->recordThat(new CreatedEvent());
     }
 
 

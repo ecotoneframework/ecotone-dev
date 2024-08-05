@@ -7,6 +7,7 @@ use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\Interceptor\Before;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Modelling\Attribute\EventHandler;
 
 class InterceptorOrderingInterceptors
 {
@@ -48,5 +49,12 @@ class InterceptorOrderingInterceptors
         $result = $methodInvocation->proceed();
         $stack->add("around end", $metadata, $result);
         return $result;
+    }
+
+    #[EventHandler]
+    public function eventHandler(CreatedEvent $event, #[Headers] array $metadata): void
+    {
+        $stack = $metadata["stack"];
+        $stack->add("eventHandler", $metadata);
     }
 }

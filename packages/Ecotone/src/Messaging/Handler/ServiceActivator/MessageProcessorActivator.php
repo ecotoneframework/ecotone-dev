@@ -24,9 +24,9 @@ class MessageProcessorActivator implements MessageHandler
 
     public function handle(Message $message): void
     {
-        $replyData = $this->messageProcessor->process($message);
+        $replyMessage = $this->messageProcessor->process($message);
 
-        if (!$replyData) {
+        if (!$replyMessage) {
             if ($this->isReplyRequired) {
                 throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $message);
             }
@@ -37,12 +37,12 @@ class MessageProcessorActivator implements MessageHandler
         if ($this->outputChannel) {
             $replyChannel = $this->outputChannel;
         } else {
-            $routingSlip = $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP) ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP) : '';
+            $routingSlip = $replyMessage->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP) ? $replyMessage->getHeaders()->get(MessageHeaders::ROUTING_SLIP) : '';
             $routingSlipChannels = explode(',', $routingSlip);
             if ($routingSlip) {
                 $replyChannel = $this->channelResolver->resolve(array_shift($routingSlipChannels));
                 $routingSlip = implode(',', $routingSlipChannels);
-                $replyData = MessageBuilder::fromMessage($replyData)
+                $replyMessage = MessageBuilder::fromMessage($replyMessage)
                     ->setHeader(MessageHeaders::ROUTING_SLIP, $routingSlip)
                     ->build();
             } elseif ($message->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {
@@ -57,6 +57,6 @@ class MessageProcessorActivator implements MessageHandler
             return;
         }
 
-        $replyChannel->send($replyData);
+        $replyChannel->send($replyMessage);
     }
 }

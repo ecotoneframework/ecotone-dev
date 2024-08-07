@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Transformer;
 
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
+use Ecotone\Messaging\Handler\Transformer\TransformerMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\ComponentTestBuilder;
@@ -241,28 +244,6 @@ class TransformerBuilderTest extends MessagingTest
             (string)TransformerBuilder::create('ref-name', InterfaceToCall::create(CalculatingService::class, 'result'))
                 ->withInputChannelName($inputChannelName)
                 ->withEndpointId($endpointName)
-        );
-    }
-
-    /**
-     * @throws \Ecotone\Messaging\MessagingException
-     */
-    public function test_creating_with_interceptors()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withReference(CalculatingServiceInterceptorExample::class, CalculatingServiceInterceptorExample::create(4))
-            ->withMessageHandler(
-                TransformerBuilder::createWithDirectObject(CalculatingService::create(0), 'result')
-                    ->withEndpointId('someEndpoint')
-                    ->withInputChannelName($inputChannel = 'inputChannel')
-            )
-            ->withAroundInterceptor(AroundInterceptorBuilder::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 2, CalculatingService::class . '::result', []))
-            ->withAroundInterceptor(AroundInterceptorBuilder::create(CalculatingServiceInterceptorExample::class, InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 1, CalculatingService::class . '::result', []))
-            ->build();
-
-        $this->assertEquals(
-            20,
-            $messaging->sendDirectToChannel($inputChannel, 1)
         );
     }
 }

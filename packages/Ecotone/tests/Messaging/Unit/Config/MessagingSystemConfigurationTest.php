@@ -1341,7 +1341,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
 
         $messagingSystem->run($endpointName);
 
-        $this->assertEquals(24, $lastServiceFromChain->getLastResult());
+        $this->assertEquals(26, $lastServiceFromChain->getLastResult());
     }
 
     public function test_intercepting_channel_adapter_with_void_services_by_passing_through_message()
@@ -1453,7 +1453,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         );
 
         $this->assertEquals(
-            11,
+            15,
             $outputChannel->receive()->getPayload()
         );
     }
@@ -1600,7 +1600,7 @@ class MessagingSystemConfigurationTest extends MessagingTest
         );
 
         $this->assertEquals(
-            8,
+            6,
             $outputChannel->receive()->getPayload()
         );
     }

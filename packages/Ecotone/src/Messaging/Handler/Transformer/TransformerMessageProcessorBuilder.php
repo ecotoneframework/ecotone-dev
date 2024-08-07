@@ -17,8 +17,7 @@ class TransformerMessageProcessorBuilder extends InterceptedMessageProcessorBuil
         private Definition|DefinedObject|Reference $transformerObjectDefinition,
         private InterfaceToCallReference $interfaceToCallReference,
         private array $methodParameterConverters = []
-    )
-    {
+    ) {
     }
 
     public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference
@@ -35,7 +34,7 @@ class TransformerMessageProcessorBuilder extends InterceptedMessageProcessorBuil
         ]);
     }
 
-    function getInterceptedInterface(): InterfaceToCallReference
+    public function getInterceptedInterface(): InterfaceToCallReference
     {
         return $this->interfaceToCallReference;
     }

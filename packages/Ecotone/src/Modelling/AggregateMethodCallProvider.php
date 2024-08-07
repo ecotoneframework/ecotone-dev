@@ -14,8 +14,7 @@ class AggregateMethodCallProvider implements MethodCallProvider
         private string $methodName,
         private array $methodParameterConverters,
         private array $methodParameterNames,
-    )
-    {
+    ) {
     }
 
     public function getMethodInvocation(Message $message): MethodInvocation

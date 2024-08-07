@@ -30,7 +30,7 @@ class MethodInterceptorsConfiguration
         $lastPrecedence = null;
         foreach ($interceptors as $interceptor) {
             if ($lastPrecedence !== null && $interceptor->getPrecedence() < $lastPrecedence) {
-                throw InvalidArgumentException::create("Interceptors must be sorted by precedence. Found: " . $interceptor->getPrecedence() . " after " . $lastPrecedence);
+                throw InvalidArgumentException::create('Interceptors must be sorted by precedence. Found: ' . $interceptor->getPrecedence() . ' after ' . $lastPrecedence);
             }
             $lastPrecedence = $interceptor->getPrecedence();
         }

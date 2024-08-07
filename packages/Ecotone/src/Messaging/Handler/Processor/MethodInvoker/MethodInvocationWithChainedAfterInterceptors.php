@@ -18,8 +18,7 @@ class MethodInvocationWithChainedAfterInterceptors implements MethodInvocation
         private Message $message,
         private MethodInvocation $methodInvocation,
         private RealMessageProcessor $afterMethodMessageProcessor,
-    )
-    {
+    ) {
     }
 
     public function proceed(): mixed
@@ -41,7 +40,7 @@ class MethodInvocationWithChainedAfterInterceptors implements MethodInvocation
 
         if (is_null($resultMessage)) {
             return null;
-        } else if($result instanceof Message) {
+        } elseif($result instanceof Message) {
             return $resultMessage;
         } else {
             return $resultMessage->getPayload();

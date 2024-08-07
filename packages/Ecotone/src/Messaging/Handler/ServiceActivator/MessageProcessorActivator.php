@@ -18,15 +18,14 @@ class MessageProcessorActivator implements MessageHandler
         private RealMessageProcessor $messageProcessor,
         private ChannelResolver $channelResolver,
         private bool $isReplyRequired,
-    )
-    {
+    ) {
     }
 
     public function handle(Message $message): void
     {
         $replyMessage = $this->messageProcessor->process($message);
 
-        if (!$replyMessage) {
+        if (! $replyMessage) {
             if ($this->isReplyRequired) {
                 throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $message);
             }
@@ -50,7 +49,7 @@ class MessageProcessorActivator implements MessageHandler
             }
         }
 
-        if (!$replyChannel) {
+        if (! $replyChannel) {
             if ($this->isReplyRequired) {
                 throw MessageDeliveryException::createWithFailedMessage("Can't process {$message}, no output channel during delivery in {$this->messageProcessor}", $message);
             }

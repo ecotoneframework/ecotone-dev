@@ -10,8 +10,7 @@ class SendToChannelProcessor implements RealMessageProcessor
 {
     public function __construct(
         private MessageChannel $channel,
-    )
-    {
+    ) {
     }
 
     public function process(Message $message): ?Message

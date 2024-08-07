@@ -24,8 +24,8 @@ class TransformerMessageProcessor implements RealMessageProcessor
 {
     public function __construct(
         private MethodCallProvider $methodCallProvider,
-        private Type $returnType)
-    {
+        private Type $returnType
+    ) {
     }
 
     /**
@@ -51,9 +51,9 @@ class TransformerMessageProcessor implements RealMessageProcessor
     {
         return new StaticMethodCallProvider(
             $this,
-            "executeEndpoint",
+            'executeEndpoint',
             [new MessageConverter()],
-            ["message"],
+            ['message'],
         );
     }
 }

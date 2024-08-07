@@ -4,10 +4,6 @@ namespace Ecotone\Messaging\Handler\Router;
 
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
-use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
@@ -29,8 +25,8 @@ final class Router implements MessageHandler
         private RouteSelector   $routeSelector,
         private bool            $isResolutionRequired,
         private ?string         $defaultResolutionChannelName,
-        private bool            $applySequence)
-    {
+        private bool            $applySequence
+    ) {
     }
 
     /**

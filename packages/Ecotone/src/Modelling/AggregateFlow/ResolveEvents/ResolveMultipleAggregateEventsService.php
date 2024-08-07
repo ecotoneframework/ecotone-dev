@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow\ResolveEvents;
 
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\ResolveAggregateEventsService;
 
 /**

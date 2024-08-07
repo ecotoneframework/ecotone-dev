@@ -3,7 +3,6 @@
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -25,8 +24,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
     public function __construct(
         private array $processors = [],
         private bool $isReplyRequired = false,
-    )
-    {
+    ) {
     }
 
     public static function create(): self
@@ -44,7 +42,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
     public function chainInterceptedProcessor(InterceptedMessageProcessorBuilder $processor): self
     {
         if ($this->interceptedProcessor) {
-            throw ConfigurationException::create("Intercepted processor is already set");
+            throw ConfigurationException::create('Intercepted processor is already set');
         }
         $this->interceptedProcessor = $processor;
 
@@ -55,7 +53,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
     {
         $compiledProcessors = $this->compileProcessors($builder);
         $processor = match(count($compiledProcessors)) {
-            0 => throw ConfigurationException::create("At least one processor should be provided"),
+            0 => throw ConfigurationException::create('At least one processor should be provided'),
             1 => $compiledProcessors[0],
             default => new Definition(ChainedMessageProcessor::class, [$compiledProcessors])
         };
@@ -74,7 +72,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         $interceptedInterface = $this->interceptedProcessor?->getInterceptedInterface();
-        return $interceptedInterface ? $interfaceToCallRegistry->getForReference($interceptedInterface) : $interfaceToCallRegistry->getFor(ChainedMessageProcessor::class, "process");
+        return $interceptedInterface ? $interfaceToCallRegistry->getForReference($interceptedInterface) : $interfaceToCallRegistry->getFor(ChainedMessageProcessor::class, 'process');
     }
 
     /**
@@ -89,7 +87,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
                 $this->interceptedProcessor->getInterceptedInterface(),
                 $this->getEndpointAnnotations(),
                 $this->getRequiredInterceptorNames()
-             )
+            )
             : MethodInterceptorsConfiguration::createEmpty();
         // register before interceptors
         foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
@@ -109,7 +107,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
         foreach ($compiledProcessors as $compiledProcessor) {
             if ($compiledProcessor instanceof Definition
                 && ! is_a($compiledProcessor->getClassName(), RealMessageProcessor::class, true)) {
-                throw ConfigurationException::create("Processor should implement " . RealMessageProcessor::class . " interface, but got {$compiledProcessor->getClassName()}");
+                throw ConfigurationException::create('Processor should implement ' . RealMessageProcessor::class . " interface, but got {$compiledProcessor->getClassName()}");
             }
         }
         return $compiledProcessors;

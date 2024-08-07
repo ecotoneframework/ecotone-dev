@@ -2,7 +2,6 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Message;
 
 class AroundMethodCallProvider implements MethodCallProvider
@@ -13,8 +12,7 @@ class AroundMethodCallProvider implements MethodCallProvider
     public function __construct(
         private MethodCallProvider             $methodCallProvider,
         private array                          $aroundInterceptors,
-    )
-    {
+    ) {
     }
 
     public function getMethodInvocation(Message $message): MethodInvocation

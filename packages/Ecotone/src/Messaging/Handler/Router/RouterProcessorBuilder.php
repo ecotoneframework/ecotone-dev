@@ -28,7 +28,7 @@ class RouterProcessorBuilder implements CompilableBuilder
         $sendToChannelMap = [];
         foreach ($recipientList as $channel) {
             $sendToChannelMap[$channel] = new Definition(SendToChannelProcessor::class, [
-                new ChannelReference($channel)
+                new ChannelReference($channel),
             ]);
         }
         return new self(
@@ -52,7 +52,7 @@ class RouterProcessorBuilder implements CompilableBuilder
             $routeMap[$routeName] = $processor->compile($builder);
         }
         $routeResolver = new Definition(InMemoryRouteResolver::class, [
-            $routeMap
+            $routeMap,
         ]);
         return new Definition(RouterProcessor::class, [
             $this->routeSelectorDefinition,

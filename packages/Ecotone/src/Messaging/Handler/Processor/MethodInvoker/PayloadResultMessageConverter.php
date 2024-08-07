@@ -13,8 +13,7 @@ class PayloadResultMessageConverter implements ResultToMessageConverter
 {
     public function __construct(
         private Type $returnType,
-    )
-    {
+    ) {
     }
 
     public function convertToMessage(Message $requestMessage, mixed $result): ?Message

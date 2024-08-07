@@ -10,17 +10,9 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
-use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\Transformer\TransformerMessageProcessorBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -59,9 +51,9 @@ class MessageFilterBuilder extends InterceptedMessageProcessorBuilder
     public static function createBoolHeaderFilter(string $headerName, ?bool $defaultResultWhenHeaderIsMissing = null): self
     {
         return new self(
-                    new BoolHeaderBasedFilter($headerName, $defaultResultWhenHeaderIsMissing),
-                    InterfaceToCallReference::create(BoolHeaderBasedFilter::class, 'filter')
-                );
+            new BoolHeaderBasedFilter($headerName, $defaultResultWhenHeaderIsMissing),
+            InterfaceToCallReference::create(BoolHeaderBasedFilter::class, 'filter')
+        );
     }
 
     /**

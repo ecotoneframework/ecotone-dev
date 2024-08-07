@@ -25,8 +25,7 @@ class NewMethodInterceptorBuilder
         private Pointcut                           $pointcut,
         private ?string                            $name,
         private bool                               $changeHeaders = false,
-    )
-    {
+    ) {
     }
 
     public function doesItCutWith(InterfaceToCall $interfaceToCall, array $endpointAnnotations): bool
@@ -41,8 +40,7 @@ class NewMethodInterceptorBuilder
         MessagingContainerBuilder $builder,
         ?InterfaceToCallReference $interceptedInterfaceToCallReference = null,
         array $endpointAnnotations = []
-    ): Definition|Reference
-    {
+    ): Definition|Reference {
         $interceptorInterface = $builder->getInterfaceToCall($this->interceptorInterfaceReference);
         $interceptedInterface = $interceptedInterfaceToCallReference ? $builder->getInterfaceToCall($interceptedInterfaceToCallReference) : null;
 
@@ -58,8 +56,8 @@ class NewMethodInterceptorBuilder
             $interceptorInterface->hasReturnTypeVoid() => new Definition(PassthroughMessageConverter::class),
             $this->changeHeaders => new Definition(HeaderResultMessageConverter::class, [(string) $interceptedInterface]),
             default => new Definition(PayloadResultMessageConverter::class, [
-                    $interceptorInterface->getReturnType(),
-                ])
+                $interceptorInterface->getReturnType(),
+            ])
         };
 
         return new Definition(MethodInvocationProcessor::class, [

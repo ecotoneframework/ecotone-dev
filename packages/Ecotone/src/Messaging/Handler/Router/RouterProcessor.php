@@ -4,6 +4,7 @@ namespace Ecotone\Messaging\Handler\Router;
 
 use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Message;
+use InvalidArgumentException;
 
 class RouterProcessor implements RealMessageProcessor
 {
@@ -11,8 +12,7 @@ class RouterProcessor implements RealMessageProcessor
         private RouteSelector $routeSelector,
         private RouteResolver $routeResolver,
         private bool $singleRoute = true,
-    )
-    {
+    ) {
     }
 
     public function process(Message $message): ?Message
@@ -22,8 +22,8 @@ class RouterProcessor implements RealMessageProcessor
         if ($this->singleRoute) {
             if (count($routes) === 0) {
                 return null;
-            } else if (count($routes) > 1) {
-                throw new \InvalidArgumentException("Expected only one route to be selected, but got more");
+            } elseif (count($routes) > 1) {
+                throw new InvalidArgumentException('Expected only one route to be selected, but got more');
             }
             $path = $this->routeResolver->resolve($routes[0]);
             return $path->process($message);

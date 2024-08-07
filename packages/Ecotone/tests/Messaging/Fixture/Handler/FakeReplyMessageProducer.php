@@ -71,9 +71,9 @@ class FakeReplyMessageProducer implements \Ecotone\Messaging\Handler\MessageProc
     {
         return new StaticMethodCallProvider(
             $this,
-            "executeEndpoint",
+            'executeEndpoint',
             [new MessageConverter()],
-            ["message"],
+            ['message'],
         );
     }
 }

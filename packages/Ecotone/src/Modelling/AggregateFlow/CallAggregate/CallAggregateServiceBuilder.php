@@ -128,7 +128,7 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
             new Reference(PropertyReaderAccessor::class),
             $this->isCommandHandler,
             $this->interfaceToCall->isFactoryMethod() ?? false,
-            $this->aggregateVersionProperty
+            $this->aggregateVersionProperty,
         ]);
     }
 

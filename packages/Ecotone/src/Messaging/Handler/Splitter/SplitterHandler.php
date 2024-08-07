@@ -3,7 +3,6 @@
 namespace Ecotone\Messaging\Handler\Splitter;
 
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -18,15 +17,14 @@ class SplitterHandler implements MessageHandler
     public function __construct(
         private MessageChannel $outputChannel,
         private RealMessageProcessor $messageProcessor,
-    )
-    {
+    ) {
     }
 
     public function handle(Message $message): void
     {
         $replyMessage = $this->messageProcessor->process($message);
 
-        if (!$replyMessage) {
+        if (! $replyMessage) {
             return;
         }
 

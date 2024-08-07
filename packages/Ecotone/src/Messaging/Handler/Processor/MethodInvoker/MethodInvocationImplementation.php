@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Handler\InterfaceToCall;
+use InvalidArgumentException;
 
 class MethodInvocationImplementation implements MethodInvocation
 {
@@ -13,8 +14,7 @@ class MethodInvocationImplementation implements MethodInvocation
         private string|object $objectToInvokeOn,
         private string $methodName,
         private array $arguments
-    )
-    {
+    ) {
     }
 
     public function proceed(): mixed
@@ -55,7 +55,7 @@ class MethodInvocationImplementation implements MethodInvocation
     public function replaceArgument(string $parameterName, $value): void
     {
         if (! isset($this->arguments[$parameterName])) {
-            throw new \InvalidArgumentException("Parameter with name `{$parameterName}` does not exist");
+            throw new InvalidArgumentException("Parameter with name `{$parameterName}` does not exist");
         }
         $this->arguments[$parameterName] = $value;
     }

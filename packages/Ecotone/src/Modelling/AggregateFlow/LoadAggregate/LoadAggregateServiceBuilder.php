@@ -2,7 +2,6 @@
 
 namespace Ecotone\Modelling\AggregateFlow\LoadAggregate;
 
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -147,7 +146,7 @@ class LoadAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
         ]);
     }
 
-    function getInterceptedInterface(): InterfaceToCallReference
+    public function getInterceptedInterface(): InterfaceToCallReference
     {
         return InterfaceToCallReference::create($this->aggregateClassName, $this->methodName);
     }

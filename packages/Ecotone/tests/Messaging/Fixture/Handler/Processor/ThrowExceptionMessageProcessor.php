@@ -75,9 +75,9 @@ class ThrowExceptionMessageProcessor implements MessageProcessor
     {
         return new StaticMethodCallProvider(
             $this,
-            "executeEndpoint",
+            'executeEndpoint',
             [new MessageConverter()],
-            ["message"],
+            ['message'],
         );
     }
 

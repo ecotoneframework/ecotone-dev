@@ -12,8 +12,7 @@ class MethodInvocationProcessor implements RealMessageProcessor
     public function __construct(
         private MethodCallProvider             $methodCallProvider,
         private ResultToMessageConverter $resultToMessageBuilder,
-    )
-    {
+    ) {
     }
 
     public function process(Message $message): ?Message

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
+use function array_map;
+
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
@@ -37,6 +39,7 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\SubscribableChannel;
 use Ecotone\Messaging\Support\Assert;
+
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 use function is_a;
@@ -424,10 +427,8 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
 
         if ($aroundInterceptors) {
             $aroundInterceptors = $this->getSortedAroundInterceptors($aroundInterceptors);
-            $compiledAroundInterceptors = \array_map(
-                fn (AroundInterceptorBuilder $aroundInterceptor) =>
-                    $aroundInterceptor->compileForInterceptedInterface($builder, $interceptedInterface, $this->endpointAnnotations)
-                ,
+            $compiledAroundInterceptors = array_map(
+                fn (AroundInterceptorBuilder $aroundInterceptor) => $aroundInterceptor->compileForInterceptedInterface($builder, $interceptedInterface, $this->endpointAnnotations),
                 $aroundInterceptors
             );
             $messageProcessorInvocation = new Definition(MessageProcessorInvocationProvider::class, [

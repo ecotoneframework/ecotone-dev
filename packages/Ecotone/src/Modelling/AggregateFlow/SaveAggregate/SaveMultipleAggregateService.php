@@ -7,7 +7,6 @@ namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\GenericMessage;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\SaveAggregateService;
 

@@ -8,8 +8,7 @@ class MethodInterceptionConfiguration
         private InterfaceToCallReference $interceptedInterfaceToCallReference,
         private array $endpointAnnotations = [],
         private array $requiredInterceptorNames = [],
-    )
-    {
+    ) {
     }
 
     public function getInterceptedInterface(): InterfaceToCallReference

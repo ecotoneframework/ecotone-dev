@@ -139,9 +139,9 @@ class ServiceActivatorBuilderTest extends MessagingTest
     public function test_creating_with_interceptors()
     {
         $objectToInvoke = CalculatingService::create(0);
-        $firstInterceptor = AroundInterceptorBuilder::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 1, CalculatingService::class . "::result");
-        $secondInterceptor = AroundInterceptorBuilder::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 2, CalculatingService::class . "::result");
-        $thirdInterceptor = AroundInterceptorBuilder::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 3, CalculatingService::class . "::result");
+        $firstInterceptor = AroundInterceptorBuilder::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 1, CalculatingService::class . '::result');
+        $secondInterceptor = AroundInterceptorBuilder::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'multiply'), 2, CalculatingService::class . '::result');
+        $thirdInterceptor = AroundInterceptorBuilder::create('calculator', InterfaceToCall::create(CalculatingServiceInterceptorExample::class, 'sum'), 3, CalculatingService::class . '::result');
 
         $messaging = ComponentTestBuilder::create()
             ->withReference('calculator', CalculatingServiceInterceptorExample::create(2))

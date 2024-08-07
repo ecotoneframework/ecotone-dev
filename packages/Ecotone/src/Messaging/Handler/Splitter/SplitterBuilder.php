@@ -97,8 +97,8 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        if (!$this->outputMessageChannelName) {
-            throw ConfigurationException::create("Output channel required for splitter handler");
+        if (! $this->outputMessageChannelName) {
+            throw ConfigurationException::create('Output channel required for splitter handler');
         }
 
         $interceptorsConfiguration = $builder->getRelatedInterceptors(

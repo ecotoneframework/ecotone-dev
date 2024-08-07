@@ -31,8 +31,7 @@ class MessagingContainerBuilder
         ?ServiceConfiguration $serviceConfiguration = null,
         private array $pollingMetadata = [],
         ?MethodInterceptorsConfiguration $methodInterceptorsConfiguration = null
-    )
-    {
+    ) {
         $this->interfaceToCallRegistry = $interfaceToCallRegistry ?? InterfaceToCallRegistry::createEmpty();
         $this->applicationConfiguration = $serviceConfiguration ?? ServiceConfiguration::createWithDefaults();
         $this->methodInterceptorsConfiguration = $methodInterceptorsConfiguration ?? MethodInterceptorsConfiguration::createEmpty();
@@ -159,8 +158,7 @@ class MessagingContainerBuilder
         InterfaceToCallReference $getInterceptedInterface,
         array $endpointAnnotations,
         array $requiredInterceptorNames = [],
-    ): MethodInterceptorsConfiguration
-    {
+    ): MethodInterceptorsConfiguration {
         $interfaceToCall = $this->interfaceToCallRegistry->getForReference($getInterceptedInterface);
         return $this->methodInterceptorsConfiguration->getRelatedInterceptors(
             $interfaceToCall,

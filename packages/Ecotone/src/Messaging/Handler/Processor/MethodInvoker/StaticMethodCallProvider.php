@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use function array_map;
+
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverter;
@@ -52,8 +54,8 @@ class StaticMethodCallProvider implements MethodCallProvider
             );
         }
         $parameterConvertersBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $parameterConvertersBuilders);
-        $parameterConverters = \array_map(
-            fn(ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interfaceToCall),
+        $parameterConverters = array_map(
+            fn (ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interfaceToCall),
             $parameterConvertersBuilders
         );
         return new Definition(self::class, [

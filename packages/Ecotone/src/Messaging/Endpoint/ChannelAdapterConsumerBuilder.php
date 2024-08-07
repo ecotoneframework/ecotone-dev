@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint;
 
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Handler\InterceptedEndpoint;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
 
 /**
  * Interface ConsumerBuilder

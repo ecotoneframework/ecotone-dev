@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
+
 use function is_string;
 
 /**
@@ -94,7 +95,7 @@ class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
         ]);
     }
 
-    function getInterceptedInterface(): InterfaceToCallReference
+    public function getInterceptedInterface(): InterfaceToCallReference
     {
         return $this->interfaceToCallReference;
     }

@@ -24,7 +24,6 @@ use Exception;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\CalculatingServiceInterceptorExample;
-use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
 use Test\Ecotone\Messaging\Fixture\Handler\CombinedConversion\Order;
 use Test\Ecotone\Messaging\Fixture\Handler\CombinedConversion\OrderConverter;
 use Test\Ecotone\Messaging\Fixture\Handler\CombinedConversion\OrderIdIncreaser;

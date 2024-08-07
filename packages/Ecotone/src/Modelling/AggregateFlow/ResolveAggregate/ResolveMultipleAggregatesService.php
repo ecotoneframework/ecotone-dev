@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow\ResolveAggregate;
 
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\ResolveAggregateService;
 
 /**

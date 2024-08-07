@@ -6,7 +6,6 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use ArrayIterator;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Message;
 
 /**

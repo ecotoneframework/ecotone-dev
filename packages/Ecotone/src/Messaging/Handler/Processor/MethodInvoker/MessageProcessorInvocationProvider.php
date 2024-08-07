@@ -9,8 +9,7 @@ class MessageProcessorInvocationProvider implements MethodCallProvider
 {
     public function __construct(
         private RealMessageProcessor $messageProcessor,
-    )
-    {
+    ) {
     }
 
     public function getMethodInvocation(Message $message): MethodInvocation

@@ -17,6 +17,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
 use Ecotone\Messaging\Support\Assert;
 
 use function get_class;
+use function is_string;
 
 /**
  * Class RouterBuilder
@@ -50,8 +51,9 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
     public static function create(string|Reference|Definition $objectToInvokeReference, InterfaceToCall $interfaceToCall): self
     {
         return new self(
-            \is_string($objectToInvokeReference) ? Reference::to($objectToInvokeReference) : $objectToInvokeReference,
-            $interfaceToCall);
+            is_string($objectToInvokeReference) ? Reference::to($objectToInvokeReference) : $objectToInvokeReference,
+            $interfaceToCall
+        );
     }
 
     public static function createPayloadTypeRouter(array $typeToChannelMapping): self

@@ -5,14 +5,14 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Message;
+use InvalidArgumentException;
 
 class MessageProcessorInvocation implements MethodInvocation
 {
     public function __construct(
         private RealMessageProcessor $messageProcessor,
         private Message              $message,
-    )
-    {
+    ) {
     }
 
     public function proceed(): ?Message
@@ -27,12 +27,12 @@ class MessageProcessorInvocation implements MethodInvocation
 
     public function getMethodName(): string
     {
-        return "process";
+        return 'process';
     }
 
     public function getInterfaceToCall(): InterfaceToCall
     {
-        throw new \InvalidArgumentException("Not supported");
+        throw new InvalidArgumentException('Not supported');
     }
 
     public function getName(): string
@@ -47,6 +47,6 @@ class MessageProcessorInvocation implements MethodInvocation
 
     public function replaceArgument(string $parameterName, $value): void
     {
-        throw new \InvalidArgumentException("Not supported");
+        throw new InvalidArgumentException('Not supported');
     }
 }

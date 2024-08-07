@@ -50,7 +50,7 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
 use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
@@ -109,11 +109,11 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $channelAdapters = [];
     /**
-     * @var NewMethodInterceptorBuilder[]
+     * @var MethodInterceptorBuilder[]
      */
     private array $beforeSendInterceptors = [];
     /**
-     * @var NewMethodInterceptorBuilder[]
+     * @var MethodInterceptorBuilder[]
      */
     private array $beforeCallMethodInterceptors = [];
     /**
@@ -121,7 +121,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $aroundMethodInterceptors = [];
     /**
-     * @var NewMethodInterceptorBuilder[]
+     * @var MethodInterceptorBuilder[]
      */
     private array $afterCallMethodInterceptors = [];
     /**
@@ -253,7 +253,7 @@ final class MessagingSystemConfiguration implements Configuration
 
         /** @var BeforeSendChannelInterceptorBuilder[] $beforeSendInterceptors */
         $beforeSendInterceptors = [];
-        /** @var array<string, NewMethodInterceptorBuilder[]> $beforeSendInterceptorsByChannel */
+        /** @var array<string, MethodInterceptorBuilder[]> $beforeSendInterceptorsByChannel */
         $beforeSendInterceptorsByChannel = [];
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel) {
@@ -301,7 +301,7 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     /**
-     * @template T of NewMethodInterceptorBuilder|AroundInterceptorBuilder
+     * @template T of MethodInterceptorBuilder|AroundInterceptorBuilder
      * @param array<T> $interceptors
      * @param InterfaceToCall $interceptedInterface
      * @param AttributeDefinition[] $endpointAnnotations
@@ -593,9 +593,9 @@ final class MessagingSystemConfiguration implements Configuration
      * @throws ConfigurationException
      * @throws MessagingException
      */
-    public function registerBeforeSendInterceptor(MethodInterceptor|NewMethodInterceptorBuilder $methodInterceptor): Configuration
+    public function registerBeforeSendInterceptor(MethodInterceptor|MethodInterceptorBuilder $methodInterceptor): Configuration
     {
-        $interceptorBuilder = $methodInterceptor instanceof NewMethodInterceptorBuilder ? $methodInterceptor : $methodInterceptor->convertToNewImplementation();
+        $interceptorBuilder = $methodInterceptor instanceof MethodInterceptorBuilder ? $methodInterceptor : $methodInterceptor->convertToNewImplementation();
 
         $this->beforeSendInterceptors[] = $interceptorBuilder;
 
@@ -622,7 +622,7 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     /**
-     * @param array<NewMethodInterceptorBuilder|AroundInterceptorBuilder> $methodInterceptors
+     * @param array<MethodInterceptorBuilder|AroundInterceptorBuilder> $methodInterceptors
      *
      * @return array
      */
@@ -630,7 +630,7 @@ final class MessagingSystemConfiguration implements Configuration
     {
         usort(
             $methodInterceptors,
-            function (NewMethodInterceptorBuilder|AroundInterceptorBuilder $methodInterceptor, NewMethodInterceptorBuilder|AroundInterceptorBuilder $toCompare) {
+            function (MethodInterceptorBuilder|AroundInterceptorBuilder $methodInterceptor, MethodInterceptorBuilder|AroundInterceptorBuilder $toCompare) {
                 if ($methodInterceptor->getPrecedence() === $toCompare->getPrecedence()) {
                     return 0;
                 }
@@ -646,9 +646,9 @@ final class MessagingSystemConfiguration implements Configuration
         return $methodInterceptors;
     }
 
-    public function registerBeforeMethodInterceptor(MethodInterceptor|NewMethodInterceptorBuilder $methodInterceptor): Configuration
+    public function registerBeforeMethodInterceptor(MethodInterceptor|MethodInterceptorBuilder $methodInterceptor): Configuration
     {
-        $interceptorBuilder = $methodInterceptor instanceof NewMethodInterceptorBuilder ? $methodInterceptor : $methodInterceptor->convertToNewImplementation();
+        $interceptorBuilder = $methodInterceptor instanceof MethodInterceptorBuilder ? $methodInterceptor : $methodInterceptor->convertToNewImplementation();
         $this->beforeCallMethodInterceptors[] = $interceptorBuilder;
 
         return $this;
@@ -661,9 +661,9 @@ final class MessagingSystemConfiguration implements Configuration
      * @throws ConfigurationException
      * @throws MessagingException
      */
-    public function registerAfterMethodInterceptor(MethodInterceptor|NewMethodInterceptorBuilder $methodInterceptor): Configuration
+    public function registerAfterMethodInterceptor(MethodInterceptor|MethodInterceptorBuilder $methodInterceptor): Configuration
     {
-        $interceptorBuilder = $methodInterceptor instanceof NewMethodInterceptorBuilder ? $methodInterceptor : $methodInterceptor->convertToNewImplementation();
+        $interceptorBuilder = $methodInterceptor instanceof MethodInterceptorBuilder ? $methodInterceptor : $methodInterceptor->convertToNewImplementation();
 
         $this->afterCallMethodInterceptors[] = $interceptorBuilder;
 

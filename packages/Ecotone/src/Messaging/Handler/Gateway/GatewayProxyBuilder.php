@@ -31,7 +31,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MessageProcessorInvocationProvider;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\PayloadResultMessageConverter;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
@@ -79,11 +79,11 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
      */
     private array $aroundInterceptors = [];
     /**
-     * @var NewMethodInterceptorBuilder[]
+     * @var MethodInterceptorBuilder[]
      */
     private array $beforeInterceptors = [];
     /**
-     * @var NewMethodInterceptorBuilder[]
+     * @var MethodInterceptorBuilder[]
      */
     private array $afterInterceptors = [];
     /**
@@ -243,14 +243,14 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         return $interfaceToCallRegistry->getFor($this->interfaceName, $this->methodName);
     }
 
-    public function addBeforeInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self
+    public function addBeforeInterceptor(MethodInterceptorBuilder $methodInterceptor): self
     {
         $this->beforeInterceptors[] = $methodInterceptor;
 
         return $this;
     }
 
-    public function addAfterInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self
+    public function addAfterInterceptor(MethodInterceptorBuilder $methodInterceptor): self
     {
         $this->afterInterceptors[] = $methodInterceptor;
 
@@ -471,12 +471,12 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     }
 
     /**
-     * @param NewMethodInterceptorBuilder[] $methodInterceptors
-     * @return NewMethodInterceptorBuilder[]
+     * @param MethodInterceptorBuilder[] $methodInterceptors
+     * @return MethodInterceptorBuilder[]
      */
     private function getSortedInterceptors(iterable $methodInterceptors): iterable
     {
-        usort($methodInterceptors, function (NewMethodInterceptorBuilder $methodInterceptor, NewMethodInterceptorBuilder $toCompare) {
+        usort($methodInterceptors, function (MethodInterceptorBuilder $methodInterceptor, MethodInterceptorBuilder $toCompare) {
             if ($methodInterceptor->getPrecedence() === $toCompare->getPrecedence()) {
                 return 0;
             }

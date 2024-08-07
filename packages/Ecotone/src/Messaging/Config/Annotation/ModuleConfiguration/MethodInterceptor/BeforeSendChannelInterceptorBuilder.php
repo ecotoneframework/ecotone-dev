@@ -8,7 +8,7 @@ use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 
 /**
  * licence Apache-2.0
@@ -16,10 +16,10 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilde
 class BeforeSendChannelInterceptorBuilder implements ChannelInterceptorBuilder
 {
     public function __construct(
-        private NewMethodInterceptorBuilder $methodInterceptor,
-        private string $inputChannelName,
+        private MethodInterceptorBuilder $methodInterceptor,
+        private string                   $inputChannelName,
         private InterfaceToCallReference $interceptedInterface,
-        private array $endpointAnnotations,
+        private array                    $endpointAnnotations,
     ) {
     }
 

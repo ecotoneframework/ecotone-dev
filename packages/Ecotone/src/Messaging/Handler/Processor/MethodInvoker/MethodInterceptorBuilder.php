@@ -12,7 +12,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 
-class NewMethodInterceptorBuilder
+class MethodInterceptorBuilder
 {
     /**
      * @param array<ParameterConverterBuilder> $defaultParameterConverters

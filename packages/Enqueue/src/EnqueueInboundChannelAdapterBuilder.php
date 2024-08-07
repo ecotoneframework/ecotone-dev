@@ -12,7 +12,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 
 /**
  * licence Apache-2.0
@@ -112,7 +112,7 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     /**
      * @inheritDoc
      */
-    public function addBeforeInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self
+    public function addBeforeInterceptor(MethodInterceptorBuilder $methodInterceptor): self
     {
         $this->inboundGateway->addBeforeInterceptor($methodInterceptor);
 
@@ -122,7 +122,7 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     /**
      * @inheritDoc
      */
-    public function addAfterInterceptor(NewMethodInterceptorBuilder $methodInterceptor): self
+    public function addAfterInterceptor(MethodInterceptorBuilder $methodInterceptor): self
     {
         $this->inboundGateway->addAfterInterceptor($methodInterceptor);
 

@@ -4,16 +4,16 @@ namespace Ecotone\Messaging\Config\Container;
 
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 class MethodInterceptorsConfiguration
 {
     /**
-     * @param array<NewMethodInterceptorBuilder> $beforeInterceptors
+     * @param array<MethodInterceptorBuilder> $beforeInterceptors
      * @param array<AroundInterceptorBuilder> $aroundInterceptors
-     * @param array<NewMethodInterceptorBuilder> $afterInterceptors
+     * @param array<MethodInterceptorBuilder> $afterInterceptors
      */
     public function __construct(
         private array $beforeInterceptors,
@@ -86,7 +86,7 @@ class MethodInterceptorsConfiguration
     }
 
     /**
-     * @return NewMethodInterceptorBuilder[]
+     * @return MethodInterceptorBuilder[]
      */
     public function getBeforeInterceptors(): array
     {
@@ -102,7 +102,7 @@ class MethodInterceptorsConfiguration
     }
 
     /**
-     * @return NewMethodInterceptorBuilder[]
+     * @return MethodInterceptorBuilder[]
      */
     public function getAfterInterceptors(): array
     {

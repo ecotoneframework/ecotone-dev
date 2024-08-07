@@ -51,12 +51,12 @@ class MethodInterceptor implements InterceptorWithPointCut
         return new self($interceptorName, $interceptorInterfaceToCall, $messageHandler, $precedence, Pointcut::createWith($pointcut));
     }
 
-    public function convertToNewImplementation(): NewMethodInterceptorBuilder
+    public function convertToNewImplementation(): MethodInterceptorBuilder
     {
         if (! $this->messageHandler instanceof HandlerTransitionMethodInterceptor) {
             throw InvalidArgumentException::create("Only HandlerTransitionMethodInterceptor are supported for conversion with new implementation, got {$this->messageHandler}");
         }
-        return new NewMethodInterceptorBuilder(
+        return new MethodInterceptorBuilder(
             $this->messageHandler->getObjectToInvokeOn(),
             InterfaceToCallReference::fromInstance($this->interceptorInterfaceToCall),
             $this->messageHandler instanceof MessageHandlerBuilderWithParameterConverters ? $this->messageHandler->getParameterConverters() : [],

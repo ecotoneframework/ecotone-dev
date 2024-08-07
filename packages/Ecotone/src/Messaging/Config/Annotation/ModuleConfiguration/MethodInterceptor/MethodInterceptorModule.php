@@ -25,7 +25,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
@@ -94,7 +94,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
             if ($interceptorInterface->hasMethodAnnotation($beforeSendAnnotation)) {
                 /** @var Presend $beforeInterceptor */
                 $beforeSendInterceptor    = $interceptorInterface->getSingleMethodAnnotationOf($beforeSendAnnotation);
-                $beforeSendInterceptors[] = NewMethodInterceptorBuilder::create(
+                $beforeSendInterceptors[] = MethodInterceptorBuilder::create(
                     new Reference(AnnotatedDefinitionReference::getReferenceFor($methodInterceptor)),
                     $interceptorInterface,
                     $parameterConverterFactory->createParameterConverters($interceptorInterface),
@@ -107,7 +107,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
             if ($interceptorInterface->hasMethodAnnotation($beforeAnnotation)) {
                 /** @var Before $beforeInterceptor */
                 $beforeInterceptor     = $interceptorInterface->getSingleMethodAnnotationOf($beforeAnnotation);
-                $preCallInterceptors[] = NewMethodInterceptorBuilder::create(
+                $preCallInterceptors[] = MethodInterceptorBuilder::create(
                     new Reference(AnnotatedDefinitionReference::getReferenceFor($methodInterceptor)),
                     $interceptorInterface,
                     $parameterConverterFactory->createParameterConverters($interceptorInterface),
@@ -120,7 +120,7 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
             if ($interceptorInterface->hasMethodAnnotation($afterAnnotation)) {
                 /** @var After $afterInterceptor */
                 $afterInterceptor       = $interceptorInterface->getSingleMethodAnnotationOf($afterAnnotation);
-                $postCallInterceptors[] = NewMethodInterceptorBuilder::create(
+                $postCallInterceptors[] = MethodInterceptorBuilder::create(
                     new Reference(AnnotatedDefinitionReference::getReferenceFor($methodInterceptor)),
                     $interceptorInterface,
                     $parameterConverterFactory->createParameterConverters($interceptorInterface),

@@ -10,11 +10,12 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\NewMethodInterceptorBuilde
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 
+use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
+
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
@@ -58,6 +59,7 @@ use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
+use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\BusModule;
@@ -156,6 +158,8 @@ final class MessagingSystemConfiguration implements Configuration
 
     private InterfaceToCallRegistry $interfaceToCallRegistry;
 
+    private bool $isRunningForEnterpriseLicence;
+
     /**
      * @param object[] $extensionObjects
      */
@@ -198,6 +202,7 @@ final class MessagingSystemConfiguration implements Configuration
             }
         );
         $extensionObjects[] = $serviceConfiguration;
+        $this->isRunningForEnterpriseLicence = $serviceConfiguration->hasEnterpriseLicence();
         $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $serviceConfiguration);
     }
 
@@ -371,9 +376,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private function configureAsynchronousEndpoints(): void
     {
-        $allAsynchronousChannels = [];
         foreach ($this->asynchronousEndpoints as $targetEndpointId => $asynchronousMessageChannels) {
-            $allAsynchronousChannels = array_merge($allAsynchronousChannels, $asynchronousMessageChannels);
             $asynchronousMessageChannel = array_shift($asynchronousMessageChannels);
             if (! isset($this->channelBuilders[$asynchronousMessageChannel]) && ! isset($this->defaultChannelBuilders[$asynchronousMessageChannel])) {
                 throw ConfigurationException::create("Registered asynchronous endpoint `{$targetEndpointId}`, however channel configuration for `{$asynchronousMessageChannel}` was not provided.");
@@ -426,7 +429,15 @@ final class MessagingSystemConfiguration implements Configuration
             }
         }
 
-        foreach (array_unique($allAsynchronousChannels) as $asynchronousChannel) {
+        $asynchronousChannels = array_map(
+            fn (MessageChannelBuilder $channel) => $channel->getMessageChannelName(),
+            array_filter(
+                $this->channelBuilders,
+                fn (MessageChannelBuilder $channel) => $channel->isPollable() && $channel->getMessageChannelName() !== NullableMessageChannel::CHANNEL_NAME
+            )
+        );
+
+        foreach ($asynchronousChannels as $asynchronousChannel) {
             Assert::isTrue($this->channelBuilders[$asynchronousChannel]->isPollable(), "Asynchronous Message Channel {$asynchronousChannel} must be Pollable");
             //        needed for correct around intercepting, otherwise requestReply is outside of around interceptor scope
             /**
@@ -847,6 +858,11 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         return $this;
+    }
+
+    public function isRunningForEnterpriseLicence(): bool
+    {
+        return $this->isRunningForEnterpriseLicence;
     }
 
     /**

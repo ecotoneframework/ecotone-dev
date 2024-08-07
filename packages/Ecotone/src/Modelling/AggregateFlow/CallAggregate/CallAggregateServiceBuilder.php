@@ -144,34 +144,4 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
     {
         return sprintf('Call Aggregate Handler - %s', (string)$this->interfaceToCall);
     }
-
-    private function callEventSourcedAggregateServiceDefinition(array $compiledMethodParameterConverters, array $interceptors): Definition
-    {
-        return new Definition(CallEventSourcingAggregateService::class, [
-            $this->compileAggregateMethodCallProvider($compiledMethodParameterConverters, $interceptors),
-            new Reference(PropertyReaderAccessor::class),
-            $this->interfaceToCall->isFactoryMethod() ?? false,
-            $this->aggregateVersionProperty,
-        ]);
-    }
-
-    private function callStateBasedAggregateServiceDefinition(array $compiledMethodParameterConverters, array $interceptors): Definition
-    {
-        return new Definition(CallAggregateMessageProcessor::class, [
-            $this->compileAggregateMethodCallProvider($compiledMethodParameterConverters, $interceptors),
-        ]);
-    }
-
-    private function compileAggregateMethodCallProvider(array $compiledMethodParameterConverters, array $interceptors): Definition
-    {
-        return new Definition(AggregateMethodInvoker::class, [
-            $this->interfaceToCall->getInterfaceName(),
-            $this->interfaceToCall->getMethodName(),
-            $this->interfaceToCall->getReturnType(),
-            $this->interfaceToCall->getInterfaceParametersNames(),
-            $this->isCommandHandler,
-            $compiledMethodParameterConverters,
-            $interceptors,
-        ]);
-    }
 }

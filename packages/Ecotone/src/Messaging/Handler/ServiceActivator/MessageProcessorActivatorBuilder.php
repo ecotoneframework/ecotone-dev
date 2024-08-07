@@ -33,6 +33,13 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
         return new self();
     }
 
+    public function withRequiredReply(bool $isReplyRequired): self
+    {
+        $this->isReplyRequired = $isReplyRequired;
+
+        return $this;
+    }
+
     public function chain(CompilableBuilder $processor): self
     {
         $this->processors[] = $processor;

@@ -27,6 +27,7 @@ use ReflectionMethod;
  * Class ServiceActivatorFactory
  * @package Ecotone\Messaging\Handler\ServiceActivator
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
+ * @deprecated Use MessageProcessorActivatorBuilder instead
  */
 /**
  * licence Apache-2.0
@@ -36,7 +37,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     private bool $isReplyRequired = false;
     private array $methodParameterConverterBuilders = [];
     private bool $shouldPassThroughMessage = false;
-    private bool $shouldWrapResultInMessage = true;
     private bool $changeHeaders = false;
 
     private ?InterfaceToCall $annotatedInterfaceToCall = null;
@@ -75,17 +75,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     public function withRequiredReply(bool $isReplyRequired): self
     {
         $this->isReplyRequired = $isReplyRequired;
-
-        return $this;
-    }
-
-    /**
-     * @param bool $shouldWrapInMessage
-     * @return ServiceActivatorBuilder
-     */
-    public function withWrappingResultInMessage(bool $shouldWrapInMessage): self
-    {
-        $this->shouldWrapResultInMessage = $shouldWrapInMessage;
 
         return $this;
     }
@@ -153,6 +142,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             ->withEndpointId($this->getEndpointId())
             ->withEndpointAnnotations($this->getEndpointAnnotations())
             ->withRequiredInterceptorNames($this->requiredInterceptorReferenceNames)
+            ->withRequiredReply($this->isReplyRequired)
             ->chainInterceptedProcessor(
                 MethodInvokerBuilder::create(
                     $this->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,

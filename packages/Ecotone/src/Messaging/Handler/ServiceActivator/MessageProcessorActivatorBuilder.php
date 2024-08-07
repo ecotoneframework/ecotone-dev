@@ -13,9 +13,10 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\RequestReplyProducer;
 
 class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
 {
@@ -61,7 +62,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
         $name = $this->getInterceptedInterface($builder->getInterfaceToCallRegistry())->toString();
 
         return new Definition(
-            MessageProcessorActivator::class,
+            RequestReplyProducer::class,
             [
                 $this->outputMessageChannelName ? new ChannelReference($this->outputMessageChannelName) : null,
                 $processor,

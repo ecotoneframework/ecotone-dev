@@ -6,7 +6,7 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivator;
+use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\Splitter\SplitterHandler;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -45,7 +45,7 @@ class RequestReplyProducerTest extends MessagingTest
     /**
      * @param $requestReplyProducer
      */
-    private function handleReplyWith(MessageProcessorActivator $requestReplyProducer): void
+    private function handleReplyWith(RequestReplyProducer $requestReplyProducer): void
     {
         $this->handleReplyWithMessage(
             MessageBuilder::withPayload('a')->build(),
@@ -53,7 +53,7 @@ class RequestReplyProducerTest extends MessagingTest
         );
     }
 
-    private function handleReplyWithMessage(Message $message, MessageProcessorActivator $requestReplyProducer): void
+    private function handleReplyWithMessage(Message $message, RequestReplyProducer $requestReplyProducer): void
     {
         $requestReplyProducer->handle($message);
     }
@@ -273,14 +273,14 @@ class RequestReplyProducerTest extends MessagingTest
         );
     }
 
-    private function createRequestReplyProducer(MessageProcessor $replyMessageProducer, MessageChannel $outputChannel = null, bool $requireReply = false): MessageProcessorActivator
+    private function createRequestReplyProducer(MessageProcessor $replyMessageProducer, MessageChannel $outputChannel = null, bool $requireReply = false): RequestReplyProducer
     {
         $outputChannelName = $outputChannel ? 'output-channel' : '';
         $channelResolver = $outputChannel ? InMemoryChannelResolver::createFromAssociativeArray([
             $outputChannelName => $outputChannel,
         ]) : InMemoryChannelResolver::createEmpty();
 
-        return new MessageProcessorActivator(
+        return new RequestReplyProducer(
             $outputChannel,
             $replyMessageProducer,
             $channelResolver,
@@ -291,10 +291,10 @@ class RequestReplyProducerTest extends MessagingTest
     /**
      * @param array<string, MessageChannel> $messageChannels
      */
-    private function createRequestReplyProducerWithChannels(MessageProcessor $replyMessageProducer, array $messageChannels, ?string $outputChannelName): MessageProcessorActivator
+    private function createRequestReplyProducerWithChannels(MessageProcessor $replyMessageProducer, array $messageChannels, ?string $outputChannelName): RequestReplyProducer
     {
         $outputChannel = $outputChannelName ? $messageChannels[$outputChannelName] : null;
-        return new MessageProcessorActivator(
+        return new RequestReplyProducer(
             $outputChannel,
             $replyMessageProducer,
             InMemoryChannelResolver::createFromAssociativeArray($messageChannels),

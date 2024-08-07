@@ -1,9 +1,7 @@
 <?php
 
-namespace Ecotone\Messaging\Handler\ServiceActivator;
+namespace Ecotone\Messaging\Handler;
 
-use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageDeliveryException;
@@ -11,7 +9,7 @@ use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
-class MessageProcessorActivator implements MessageHandler
+class RequestReplyProducer implements MessageHandler
 {
     public function __construct(
         private ?MessageChannel  $outputChannel,

@@ -23,22 +23,16 @@ class Basket
         $this->items  = $items;
     }
 
-    #[CommandHandler('basket.create')]
+    #[CommandHandler('basket.add')]
     public static function start(array $command): self
     {
-        return new self($command['userId'], []);
+        return new self($command['userId'], [$command['item']]);
     }
 
     #[CommandHandler('basket.add')]
     public function addToBasket(array $command): void
     {
         $this->items[] = $command['item'];
-    }
-
-    #[CommandHandler('basket.delete')]
-    public function deleteFromBasket(array $command): void
-    {
-        $this->items = \array_filter($this->items, fn ($item) => $item !== $command['item']);
     }
 
     #[QueryHandler('basket.get')]

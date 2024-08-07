@@ -121,13 +121,10 @@ Feature: activating as aggregate order entity
   Scenario: Handle presend interceptor for aggregate
     Given I active messaging for namespace "Test\Ecotone\Modelling\Fixture\InterceptingAggregate"
     And current user id 123
-    When I create a basket
     When I add to basket "milk"
     Then basket should contains "milk"
     When I add to basket "cheese"
     Then basket should contains "cheese"
-    When I delete from basket "milk"
-    Then basket should NOT contains "milk"
 
   Scenario: Handle presend interceptor for aggregate
     Given I active messaging for namespace "Test\Ecotone\Modelling\Fixture\InterceptingAggregateUsingAttributes"

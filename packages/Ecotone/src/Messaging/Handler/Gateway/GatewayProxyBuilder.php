@@ -428,7 +428,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         if ($aroundInterceptors) {
             $aroundInterceptors = $this->getSortedAroundInterceptors($aroundInterceptors);
             $compiledAroundInterceptors = array_map(
-                fn (AroundInterceptorBuilder $aroundInterceptor) => $aroundInterceptor->compileForInterceptedInterface($builder, $interceptedInterface, $this->endpointAnnotations),
+                fn (AroundInterceptorBuilder $aroundInterceptor) => $aroundInterceptor->compileForInterceptedInterface($builder, $interceptedInterfaceReference, $this->endpointAnnotations),
                 $aroundInterceptors
             );
             $messageProcessorInvocation = new Definition(MessageProcessorInvocationProvider::class, [

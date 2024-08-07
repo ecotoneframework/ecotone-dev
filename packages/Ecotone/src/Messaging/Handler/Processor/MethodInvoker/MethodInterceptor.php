@@ -21,7 +21,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * licence Apache-2.0
  */
-class MethodInterceptor implements InterceptorWithPointCut
+class MethodInterceptor
 {
     private string $interceptorName;
     private MessageHandlerBuilderWithOutputChannel $messageHandler;
@@ -78,48 +78,9 @@ class MethodInterceptor implements InterceptorWithPointCut
     /**
      * @inheritDoc
      */
-    public function getInterceptingObject(): object
-    {
-        return $this->messageHandler;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addInterceptedInterfaceToCall(InterfaceToCall $interceptedInterface, array $endpointAnnotations): self
-    {
-        $clone                     = clone $this;
-        $interceptedMessageHandler = clone $clone->messageHandler;
-
-        if ($interceptedMessageHandler instanceof MessageHandlerBuilderWithParameterConverters) {
-            $interceptedMessageHandler->withMethodParameterConverters(
-                MethodArgumentsFactory::createInterceptedInterfaceAnnotationMethodParameters(
-                    $this->interceptorInterfaceToCall,
-                    $interceptedMessageHandler->getParameterConverters(),
-                    $endpointAnnotations,
-                    $interceptedInterface,
-                )
-            );
-        }
-        $clone->messageHandler = $interceptedMessageHandler;
-
-        return $clone;
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function hasName(string $name): bool
     {
         return $this->interceptorName === $name;
-    }
-
-    /**
-     * @return string
-     */
-    public function getInterceptorName(): string
-    {
-        return $this->interceptorName;
     }
 
     /**

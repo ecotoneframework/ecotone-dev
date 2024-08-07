@@ -15,7 +15,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 /**
  * @licence Apache-2.0
  */
-class MethodInterceptorBuilder
+class MethodInterceptorBuilder implements InterceptorWithPointCut
 {
     /**
      * @param array<ParameterConverterBuilder> $defaultParameterConverters
@@ -50,7 +50,7 @@ class MethodInterceptorBuilder
             $changeHeaders);
     }
 
-    public function doesItCutWith(InterfaceToCall $interfaceToCall, array $endpointAnnotations): bool
+    public function doesItCutWith(InterfaceToCall $interfaceToCall, iterable $endpointAnnotations): bool
     {
         return $this->pointcut->doesItCut($interfaceToCall, $endpointAnnotations);
     }
@@ -60,11 +60,11 @@ class MethodInterceptorBuilder
      */
     public function compileForInterceptedInterface(
         MessagingContainerBuilder $builder,
-        ?InterfaceToCallReference $interceptedInterfaceToCallReference = null,
-        array $endpointAnnotations = []
+        InterfaceToCallReference  $interceptedInterfaceToCallReference,
+        array                     $endpointAnnotations = []
     ): Definition|Reference {
         $interceptorInterface = $builder->getInterfaceToCall($this->interceptorInterfaceReference);
-        $interceptedInterface = $interceptedInterfaceToCallReference ? $builder->getInterfaceToCall($interceptedInterfaceToCallReference) : null;
+        $interceptedInterface = $builder->getInterfaceToCall($interceptedInterfaceToCallReference);
 
         $methodCallProvider = StaticMethodInvocationProvider::getDefinition(
             $this->interceptorDefinition,

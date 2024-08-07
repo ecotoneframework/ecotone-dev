@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use function array_merge;
 
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
@@ -138,9 +139,10 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
      */
     public function compileForInterceptedInterface(
         MessagingContainerBuilder $builder,
-        InterfaceToCall $interceptedInterface,
-        array $endpointAnnotations
-    ): Definition|null {
+        InterfaceToCallReference  $interceptedInterfaceToCallReference,
+        array                     $endpointAnnotations = []
+    ): Definition {
+        $interceptedInterface = $builder->getInterfaceToCall($interceptedInterfaceToCallReference);
         $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
         $parameterConvertersFromAttributes = $parameterAnnotationResolver->createParameterConverters($this->interfaceToCall);
 
@@ -239,14 +241,6 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
     public function doesItCutWith(InterfaceToCall $interfaceToCall, iterable $endpointAnnotations): bool
     {
         return $this->pointcut->doesItCut($interfaceToCall, $endpointAnnotations);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addInterceptedInterfaceToCall(InterfaceToCall $interceptedInterface, array $endpointAnnotations): self
-    {
-        return $this;
     }
 
     /**

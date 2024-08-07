@@ -875,11 +875,9 @@ final class MessagingSystemConfiguration implements Configuration
             $this->interfaceToCallRegistry,
             $this->applicationConfiguration,
             $this->pollingMetadata,
-            new MethodInterceptorsConfiguration(
-                $this->beforeCallMethodInterceptors,
-                $this->aroundMethodInterceptors,
-                $this->afterCallMethodInterceptors,
-            )
+            $this->beforeCallMethodInterceptors,
+            $this->aroundMethodInterceptors,
+            $this->afterCallMethodInterceptors,
         );
 
         foreach ($this->serviceDefinitions as $id => $definition) {

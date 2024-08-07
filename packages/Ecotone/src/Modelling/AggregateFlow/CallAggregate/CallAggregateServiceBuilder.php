@@ -16,7 +16,7 @@ use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\AggregateMethodCallProvider;
+use Ecotone\Modelling\AggregateMethodInvocationProvider;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
@@ -112,7 +112,7 @@ class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
             $compiledMethodParameterConverters[] = $methodParameterConverter->compile($this->interfaceToCall);
         }
 
-        $aggregateMethodCallProvider = new Definition(AggregateMethodCallProvider::class, [
+        $aggregateMethodCallProvider = new Definition(AggregateMethodInvocationProvider::class, [
             $this->interfaceToCall->getInterfaceName(),
             $this->interfaceToCall->getMethodName(),
             $compiledMethodParameterConverters,

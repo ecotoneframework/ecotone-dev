@@ -4,8 +4,8 @@ namespace Ecotone\Messaging\Handler\Transformer;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvocationProvider;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
@@ -23,8 +23,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class TransformerMessageProcessor implements MessageProcessor
 {
     public function __construct(
-        private MethodCallProvider $methodCallProvider,
-        private Type $returnType
+        private MethodInvocationProvider $methodCallProvider,
+        private Type                     $returnType
     ) {
     }
 
@@ -47,9 +47,9 @@ class TransformerMessageProcessor implements MessageProcessor
         };
     }
 
-    public function toMethodCallProvider(): MethodCallProvider
+    public function toMethodCallProvider(): MethodInvocationProvider
     {
-        return new StaticMethodCallProvider(
+        return new StaticMethodInvocationProvider(
             $this,
             'executeEndpoint',
             [new MessageConverter()],

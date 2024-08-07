@@ -12,7 +12,7 @@ use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvocationProvider;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -117,7 +117,7 @@ class MessageFilterBuilder extends InterceptedMessageProcessorBuilder
 
         $discardChannel = $this->discardChannelName ? new ChannelReference($this->discardChannelName) : null;
 
-        $methodCallProvider = StaticMethodCallProvider::getDefinition(
+        $methodCallProvider = StaticMethodInvocationProvider::getDefinition(
             $messageSelector,
             $interfaceToCall,
             $this->parameterConverters,

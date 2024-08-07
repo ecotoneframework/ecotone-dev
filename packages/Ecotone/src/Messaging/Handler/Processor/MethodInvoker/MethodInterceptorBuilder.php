@@ -66,7 +66,7 @@ class MethodInterceptorBuilder
         $interceptorInterface = $builder->getInterfaceToCall($this->interceptorInterfaceReference);
         $interceptedInterface = $interceptedInterfaceToCallReference ? $builder->getInterfaceToCall($interceptedInterfaceToCallReference) : null;
 
-        $methodCallProvider = StaticMethodCallProvider::getDefinition(
+        $methodCallProvider = StaticMethodInvocationProvider::getDefinition(
             $this->interceptorDefinition,
             $interceptorInterface,
             $this->defaultParameterConverters,

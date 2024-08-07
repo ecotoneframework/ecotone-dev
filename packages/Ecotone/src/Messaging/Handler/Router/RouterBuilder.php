@@ -13,7 +13,7 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvocationProvider;
 use Ecotone\Messaging\Support\Assert;
 
 use function get_class;
@@ -138,7 +138,7 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
             $interfaceToCallReference = new InterfaceToCallReference($className, $this->methodNameOrInterface);
         }
         $interface = $builder->getInterfaceToCall($interfaceToCallReference);
-        $methodCallProvider = StaticMethodCallProvider::getDefinition(
+        $methodCallProvider = StaticMethodInvocationProvider::getDefinition(
             $this->directObjectToInvoke ?: $this->objectToInvokeReference,
             $interface,
             $this->methodParameterConverters,

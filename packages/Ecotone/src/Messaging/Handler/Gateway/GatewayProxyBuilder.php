@@ -29,7 +29,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvocationProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MessageProcessorInvocationProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\PayloadResultMessageConverter;
@@ -435,7 +435,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
                 $gatewayInternalHandler,
             ]);
             $resultConverter = new Definition(PayloadResultMessageConverter::class, [$interceptedInterface->getReturnType()]);
-            $messageProcessorInvocation = new Definition(AroundMethodCallProvider::class, [
+            $messageProcessorInvocation = new Definition(AroundMethodInvocationProvider::class, [
                 $messageProcessorInvocation,
                 $compiledAroundInterceptors,
             ]);

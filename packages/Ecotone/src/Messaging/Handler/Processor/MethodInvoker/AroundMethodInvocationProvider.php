@@ -7,14 +7,14 @@ use Ecotone\Messaging\Message;
 /**
  * @licence Apache-2.0
  */
-class AroundMethodCallProvider implements MethodCallProvider
+class AroundMethodInvocationProvider implements MethodInvocationProvider
 {
     /**
      * @param AroundMethodInterceptor[] $aroundInterceptors
      */
     public function __construct(
-        private MethodCallProvider             $methodCallProvider,
-        private array                          $aroundInterceptors,
+        private MethodInvocationProvider $methodCallProvider,
+        private array                    $aroundInterceptors,
     ) {
     }
 

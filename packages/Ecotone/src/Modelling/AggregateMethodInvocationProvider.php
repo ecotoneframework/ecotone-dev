@@ -2,12 +2,12 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationImplementation;
 use Ecotone\Messaging\Message;
 
-class AggregateMethodCallProvider implements MethodCallProvider
+class AggregateMethodInvocationProvider implements MethodInvocationProvider
 {
     public function __construct(
         private string $aggregateClass,

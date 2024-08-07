@@ -13,7 +13,7 @@ use Ecotone\Messaging\Message;
 /**
  * @licence Apache-2.0
  */
-class StaticMethodCallProvider implements MethodCallProvider
+class StaticMethodInvocationProvider implements MethodInvocationProvider
 {
     /**
      * @param string $className

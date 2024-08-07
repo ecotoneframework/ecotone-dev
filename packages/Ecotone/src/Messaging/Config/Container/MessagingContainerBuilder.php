@@ -7,7 +7,7 @@ use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvocationProvider;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -148,7 +148,7 @@ class MessagingContainerBuilder
         foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptor) {
             $aroundInterceptors[] = $aroundInterceptor->compileForInterceptedInterface($this, $this->getInterfaceToCall($interceptedInterfaceReference), $endpointAnnotations);
         }
-        return new Definition(AroundMethodCallProvider::class, [
+        return new Definition(AroundMethodInvocationProvider::class, [
             $methodCallProviderDefinition,
             $aroundInterceptors,
         ]);

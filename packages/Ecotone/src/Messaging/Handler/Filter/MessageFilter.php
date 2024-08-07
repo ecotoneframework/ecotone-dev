@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Filter;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -22,9 +22,9 @@ use Ecotone\Messaging\MessageHeaders;
 class MessageFilter implements MessageProcessor
 {
     public function __construct(
-        private MethodCallProvider $messageSelector,
-        private ?MessageChannel $discardChannel,
-        private bool $throwExceptionOnDiscard
+        private MethodInvocationProvider $messageSelector,
+        private ?MessageChannel          $discardChannel,
+        private bool                     $throwExceptionOnDiscard
     ) {
     }
 

@@ -4,14 +4,14 @@ namespace Ecotone\Messaging\Handler\Router;
 
 use function array_unique;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
 use Ecotone\Messaging\Message;
 
 use function is_iterable;
 
 class InvocationRouter implements RouteSelector
 {
-    public function __construct(private MethodCallProvider $methodCallProvider)
+    public function __construct(private MethodInvocationProvider $methodCallProvider)
     {
     }
 

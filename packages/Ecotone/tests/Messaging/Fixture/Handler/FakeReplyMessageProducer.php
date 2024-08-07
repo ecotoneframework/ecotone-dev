@@ -4,8 +4,8 @@ namespace Test\Ecotone\Messaging\Fixture\Handler;
 
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvocationProvider;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;

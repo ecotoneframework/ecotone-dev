@@ -58,18 +58,6 @@ class Definition implements CompilableBuilder
         return $this->methodCalls;
     }
 
-    public function withInterceptingConfiguration(MethodInterceptionConfiguration $interceptionConfiguration): static
-    {
-        $this->interceptionConfiguration = $interceptionConfiguration;
-
-        return $this;
-    }
-
-    public function getInterceptingConfiguration(): ?MethodInterceptionConfiguration
-    {
-        return $this->interceptionConfiguration;
-    }
-
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         return $this;

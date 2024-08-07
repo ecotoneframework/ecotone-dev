@@ -28,6 +28,25 @@ class NewMethodInterceptorBuilder
     ) {
     }
 
+    public static function create(
+        Reference       $interceptorReference,
+        InterfaceToCall $interceptorInterface,
+        array           $defaultParameterConverters,
+        int             $precedence,
+        string          $pointcut,
+        bool            $changeHeaders = false): self
+    {
+        $pointcut = $pointcut ? Pointcut::createWith($pointcut) : Pointcut::initializeFrom($interceptorInterface, $defaultParameterConverters);
+        return new self(
+            $interceptorReference,
+            InterfaceToCallReference::fromInstance($interceptorInterface),
+            $defaultParameterConverters,
+            $precedence,
+            $pointcut,
+            $interceptorReference->getId(),
+            $changeHeaders);
+    }
+
     public function doesItCutWith(InterfaceToCall $interfaceToCall, array $endpointAnnotations): bool
     {
         return $this->pointcut->doesItCut($interfaceToCall, $endpointAnnotations);

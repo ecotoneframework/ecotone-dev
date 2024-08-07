@@ -280,7 +280,6 @@ final class MessagingSystemConfiguration implements Configuration
 
         $this->configureDefaultMessageChannels();
         $this->configureAsynchronousEndpoints();
-        $this->configureInterceptors($this->interfaceToCallRegistry);
 
         foreach ($this->requiredConsumerEndpointIds as $requiredConsumerEndpointId) {
             if (! array_key_exists($requiredConsumerEndpointId, $this->messageHandlerBuilders) && ! array_key_exists($requiredConsumerEndpointId, $this->channelAdapters)) {
@@ -462,16 +461,6 @@ final class MessagingSystemConfiguration implements Configuration
                 $this->channelBuilders[$name] = $defaultChannelBuilder;
             }
         }
-    }
-
-    /**
-     * @param InterfaceToCallRegistry $interfaceRegistry
-     *
-     * @return void
-     * @throws MessagingException
-     */
-    private function configureInterceptors(InterfaceToCallRegistry $interfaceRegistry): void
-    {
     }
 
     private function hasMessageHandlerWithName(PollingMetadata $pollingMetadata): bool

@@ -6,7 +6,7 @@ namespace Ecotone\Modelling\AggregateFlow\PublishEvents;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -18,7 +18,7 @@ use Ecotone\Modelling\EventBus;
 /**
  * licence Apache-2.0
  */
-final class PublishAggregateEventsService implements RealMessageProcessor
+final class PublishAggregateEventsService implements MessageProcessor
 {
     public function __construct(private string $calledInterface, private EventBus $eventBus)
     {

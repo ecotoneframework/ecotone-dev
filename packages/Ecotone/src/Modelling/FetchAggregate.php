@@ -2,14 +2,14 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Apache-2.0
  */
-class FetchAggregate implements RealMessageProcessor
+class FetchAggregate implements MessageProcessor
 {
     public function process(Message $message): ?Message
     {

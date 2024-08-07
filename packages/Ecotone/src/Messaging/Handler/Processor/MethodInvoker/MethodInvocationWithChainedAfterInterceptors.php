@@ -4,7 +4,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -15,9 +15,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class MethodInvocationWithChainedAfterInterceptors implements MethodInvocation
 {
     public function __construct(
-        private Message $message,
+        private Message          $message,
         private MethodInvocation $methodInvocation,
-        private RealMessageProcessor $afterMethodMessageProcessor,
+        private MessageProcessor $afterMethodMessageProcessor,
     ) {
     }
 

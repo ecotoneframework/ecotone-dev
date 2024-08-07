@@ -5,7 +5,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivator;
 use Ecotone\Messaging\Handler\Splitter\SplitterHandler;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -273,7 +273,7 @@ class RequestReplyProducerTest extends MessagingTest
         );
     }
 
-    private function createRequestReplyProducer(RealMessageProcessor $replyMessageProducer, MessageChannel $outputChannel = null, bool $requireReply = false): MessageProcessorActivator
+    private function createRequestReplyProducer(MessageProcessor $replyMessageProducer, MessageChannel $outputChannel = null, bool $requireReply = false): MessageProcessorActivator
     {
         $outputChannelName = $outputChannel ? 'output-channel' : '';
         $channelResolver = $outputChannel ? InMemoryChannelResolver::createFromAssociativeArray([
@@ -291,7 +291,7 @@ class RequestReplyProducerTest extends MessagingTest
     /**
      * @param array<string, MessageChannel> $messageChannels
      */
-    private function createRequestReplyProducerWithChannels(RealMessageProcessor $replyMessageProducer, array $messageChannels, ?string $outputChannelName): MessageProcessorActivator
+    private function createRequestReplyProducerWithChannels(MessageProcessor $replyMessageProducer, array $messageChannels, ?string $outputChannelName): MessageProcessorActivator
     {
         $outputChannel = $outputChannelName ? $messageChannels[$outputChannelName] : null;
         return new MessageProcessorActivator(

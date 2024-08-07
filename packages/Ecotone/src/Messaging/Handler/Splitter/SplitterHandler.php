@@ -3,7 +3,7 @@
 namespace Ecotone\Messaging\Handler\Splitter;
 
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -15,9 +15,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class SplitterHandler implements MessageHandler
 {
     public function __construct(
-        private MessageChannel $outputChannel,
-        private RealMessageProcessor $messageProcessor,
-        private string $name = "",
+        private MessageChannel   $outputChannel,
+        private MessageProcessor $messageProcessor,
+        private string           $name = "",
     ) {
     }
 

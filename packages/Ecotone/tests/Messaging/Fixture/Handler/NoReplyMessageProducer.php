@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 
 /**
@@ -13,7 +13,7 @@ use Ecotone\Messaging\Message;
 /**
  * licence Apache-2.0
  */
-class NoReplyMessageProducer implements RealMessageProcessor
+class NoReplyMessageProducer implements MessageProcessor
 {
     private $wasCalled = false;
 

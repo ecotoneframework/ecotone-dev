@@ -3,7 +3,7 @@
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
 use Ecotone\Messaging\Handler\ChannelResolver;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageDeliveryException;
@@ -14,11 +14,11 @@ use Ecotone\Messaging\Support\MessageBuilder;
 class MessageProcessorActivator implements MessageHandler
 {
     public function __construct(
-        private ?MessageChannel $outputChannel,
-        private RealMessageProcessor $messageProcessor,
-        private ChannelResolver $channelResolver,
-        private bool $isReplyRequired,
-        private string $name = "",
+        private ?MessageChannel  $outputChannel,
+        private MessageProcessor $messageProcessor,
+        private ChannelResolver  $channelResolver,
+        private bool             $isReplyRequired,
+        private string           $name = "",
     ) {
     }
 

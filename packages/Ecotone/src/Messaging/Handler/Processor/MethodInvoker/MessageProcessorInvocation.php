@@ -3,15 +3,15 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use InvalidArgumentException;
 
 class MessageProcessorInvocation implements MethodInvocation
 {
     public function __construct(
-        private RealMessageProcessor $messageProcessor,
-        private Message              $message,
+        private MessageProcessor $messageProcessor,
+        private Message          $message,
     ) {
     }
 
@@ -37,7 +37,7 @@ class MessageProcessorInvocation implements MethodInvocation
 
     public function getName(): string
     {
-        return RealMessageProcessor::class . '::process';
+        return MessageProcessor::class . '::process';
     }
 
     public function getArguments(): array

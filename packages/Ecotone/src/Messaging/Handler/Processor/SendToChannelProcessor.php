@@ -2,11 +2,11 @@
 
 namespace Ecotone\Messaging\Handler\Processor;
 
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 
-class SendToChannelProcessor implements RealMessageProcessor
+class SendToChannelProcessor implements MessageProcessor
 {
     public function __construct(
         private MessageChannel $channel,

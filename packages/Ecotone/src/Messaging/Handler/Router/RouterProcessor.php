@@ -2,11 +2,11 @@
 
 namespace Ecotone\Messaging\Handler\Router;
 
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use InvalidArgumentException;
 
-class RouterProcessor implements RealMessageProcessor
+class RouterProcessor implements MessageProcessor
 {
     public function __construct(
         private RouteSelector $routeSelector,

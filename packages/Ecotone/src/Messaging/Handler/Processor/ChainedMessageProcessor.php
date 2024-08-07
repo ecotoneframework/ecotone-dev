@@ -2,13 +2,13 @@
 
 namespace Ecotone\Messaging\Handler\Processor;
 
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 
-class ChainedMessageProcessor implements RealMessageProcessor
+class ChainedMessageProcessor implements MessageProcessor
 {
     /**
-     * @param RealMessageProcessor[] $messageProcessors
+     * @param MessageProcessor[] $messageProcessors
      */
     public function __construct(private array $messageProcessors)
     {

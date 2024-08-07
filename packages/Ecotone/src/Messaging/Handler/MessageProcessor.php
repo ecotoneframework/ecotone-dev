@@ -4,7 +4,7 @@ namespace Ecotone\Messaging\Handler;
 
 use Ecotone\Messaging\Message;
 
-interface RealMessageProcessor
+interface MessageProcessor
 {
     public function process(Message $message): ?Message;
 }

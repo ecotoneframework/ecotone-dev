@@ -7,7 +7,7 @@ namespace Ecotone\Modelling\AggregateFlow\LoadAggregate;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
@@ -20,7 +20,7 @@ use Ecotone\Modelling\StandardRepository;
 /**
  * licence Apache-2.0
  */
-final class LoadStateBasedAggregateService implements RealMessageProcessor
+final class LoadStateBasedAggregateService implements MessageProcessor
 {
     public function __construct(
         private StandardRepository $repository,

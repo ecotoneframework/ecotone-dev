@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor;
 
 use Ecotone\Messaging\Channel\ChannelInterceptor;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Throwable;
@@ -15,7 +15,7 @@ use Throwable;
  */
 class BeforeSendChannelInterceptor implements ChannelInterceptor
 {
-    public function __construct(private RealMessageProcessor $messageProcessor)
+    public function __construct(private MessageProcessor $messageProcessor)
     {
     }
 

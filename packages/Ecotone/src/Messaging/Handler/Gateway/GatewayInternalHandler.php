@@ -4,7 +4,7 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Future;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -24,7 +24,7 @@ use Ramsey\Uuid\Uuid;
 /**
  * licence Apache-2.0
  */
-class GatewayInternalHandler implements RealMessageProcessor
+class GatewayInternalHandler implements MessageProcessor
 {
     public function __construct(
         private string $interfaceToCallName,

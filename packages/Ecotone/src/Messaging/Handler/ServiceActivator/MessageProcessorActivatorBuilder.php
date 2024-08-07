@@ -15,7 +15,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 
 class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
 {
@@ -109,8 +109,8 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
         }
         foreach ($compiledProcessors as $compiledProcessor) {
             if ($compiledProcessor instanceof Definition
-                && ! is_a($compiledProcessor->getClassName(), RealMessageProcessor::class, true)) {
-                throw ConfigurationException::create('Processor should implement ' . RealMessageProcessor::class . " interface, but got {$compiledProcessor->getClassName()}");
+                && ! is_a($compiledProcessor->getClassName(), MessageProcessor::class, true)) {
+                throw ConfigurationException::create('Processor should implement ' . MessageProcessor::class . " interface, but got {$compiledProcessor->getClassName()}");
             }
         }
         return $compiledProcessors;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Filter;
 
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
@@ -19,7 +19,7 @@ use Ecotone\Messaging\MessageHeaders;
 /**
  * licence Apache-2.0
  */
-class MessageFilter implements RealMessageProcessor
+class MessageFilter implements MessageProcessor
 {
     public function __construct(
         private MethodCallProvider $messageSelector,

@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\NonProxyGateway;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\MessageConverter;
@@ -34,7 +34,7 @@ class Gateway implements NonProxyGateway
         private ?Type $returnType,
         private array $messageConverters,
         private GatewayReplyConverter $gatewayReplyConverter,
-        private RealMessageProcessor $gatewayInternalProcessor
+        private MessageProcessor $gatewayInternalProcessor
     ) {
     }
 

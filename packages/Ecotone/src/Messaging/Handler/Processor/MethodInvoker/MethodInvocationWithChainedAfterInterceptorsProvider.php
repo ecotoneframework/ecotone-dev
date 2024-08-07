@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 
 /**
@@ -12,7 +12,7 @@ class MethodInvocationWithChainedAfterInterceptorsProvider implements MethodCall
 {
     public function __construct(
         private MethodCallProvider $methodCallProvider,
-        private RealMessageProcessor $afterMessageProcessor,
+        private MessageProcessor   $afterMessageProcessor,
     ) {
     }
 

@@ -2,13 +2,13 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 
 class MessageProcessorInvocationProvider implements MethodCallProvider
 {
     public function __construct(
-        private RealMessageProcessor $messageProcessor,
+        private MessageProcessor $messageProcessor,
     ) {
     }
 

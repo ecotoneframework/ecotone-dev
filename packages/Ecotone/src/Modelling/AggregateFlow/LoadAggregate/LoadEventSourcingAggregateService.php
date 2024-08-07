@@ -7,7 +7,7 @@ namespace Ecotone\Modelling\AggregateFlow\LoadAggregate;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
@@ -21,7 +21,7 @@ use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 /**
  * licence Apache-2.0
  */
-final class LoadEventSourcingAggregateService implements RealMessageProcessor
+final class LoadEventSourcingAggregateService implements MessageProcessor
 {
     public function __construct(
         private EventSourcedRepository $repository,

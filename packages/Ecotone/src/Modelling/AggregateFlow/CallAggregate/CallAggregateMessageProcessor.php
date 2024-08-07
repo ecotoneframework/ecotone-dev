@@ -8,7 +8,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -18,7 +18,7 @@ use Ecotone\Modelling\AggregateMessage;
 /**
  * licence Apache-2.0
  */
-final class CallAggregateMessageProcessor implements RealMessageProcessor
+final class CallAggregateMessageProcessor implements MessageProcessor
 {
     public function __construct(
         private MethodCallProvider $methodCallProvider,

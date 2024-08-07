@@ -6,7 +6,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
-use Ecotone\Messaging\Handler\RealMessageProcessor;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -18,7 +18,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * licence Apache-2.0
  */
-class FakeReplyMessageProducer implements RealMessageProcessor
+class FakeReplyMessageProducer implements MessageProcessor
 {
     private $replyData;
 

@@ -24,42 +24,13 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 final class Router implements MessageHandler
 {
-    private ChannelResolver $channelResolver;
-    private MethodCallProvider $methodCallProvider;
-    private bool $isResolutionRequired;
-    private ?string $defaultResolutionChannelName;
-    private bool $applySequence;
-
-    /**
-     * RouterBuilder constructor.
-     *
-     * @param ChannelResolver $channelResolver
-     * @param bool            $isResolutionRequired
-     * @param null|string     $defaultResolutionChannelName
-     * @param bool            $applySequence
-     */
-    public function __construct(ChannelResolver $channelResolver, MethodCallProvider $methodCallProvider, bool $isResolutionRequired, ?string $defaultResolutionChannelName, bool $applySequence)
+    public function __construct(
+        private ChannelResolver $channelResolver,
+        private RouteSelector   $routeSelector,
+        private bool            $isResolutionRequired,
+        private ?string         $defaultResolutionChannelName,
+        private bool            $applySequence)
     {
-        $this->channelResolver = $channelResolver;
-        $this->methodCallProvider = $methodCallProvider;
-        $this->isResolutionRequired = $isResolutionRequired;
-        $this->defaultResolutionChannelName = $defaultResolutionChannelName;
-        $this->applySequence = $applySequence;
-    }
-
-    /**
-     * @param ChannelResolver $channelResolver
-     * @param MessageProcessor $messageProcessor
-     * @param bool $isResolutionRequired
-     * @param null|string $defaultResolutionChannel
-     *
-     * @param bool $applySequence
-     *
-     * @return Router
-     */
-    public static function create(ChannelResolver $channelResolver, MessageProcessor $messageProcessor, bool $isResolutionRequired, ?string $defaultResolutionChannel, bool $applySequence): self
-    {
-        return new self($channelResolver, $messageProcessor->toMethodCallProvider(), $isResolutionRequired, $defaultResolutionChannel, $applySequence);
     }
 
     /**
@@ -67,14 +38,8 @@ final class Router implements MessageHandler
      */
     public function handle(Message $message): void
     {
-        $resolutionChannels = $this->methodCallProvider->getMethodInvocation($message)->proceed();
+        $resolutionChannels = $this->routeSelector->route($message);
 
-        if (is_null($resolutionChannels)) {
-            $resolutionChannels = [];
-        }
-        if (! is_array($resolutionChannels)) {
-            $resolutionChannels = [$resolutionChannels];
-        }
         if (empty($resolutionChannels) && $this->defaultResolutionChannelName) {
             $resolutionChannels[] = $this->defaultResolutionChannelName;
         }
@@ -83,7 +48,6 @@ final class Router implements MessageHandler
             throw DestinationResolutionException::create("Can't resolve destination, because there are no channels to send message to.");
         }
 
-        $resolutionChannels = array_unique($resolutionChannels);
         $sequenceSize = count($resolutionChannels);
         $sequenceNumber = 1;
         foreach ($resolutionChannels as $resolutionChannel) {
@@ -106,6 +70,6 @@ final class Router implements MessageHandler
      */
     public function __toString()
     {
-        return 'Router - ' . $this->methodCallProvider;
+        return 'Router - ' . $this->routeSelector;
     }
 }

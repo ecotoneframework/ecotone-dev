@@ -60,11 +60,10 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
-use Ecotone\Messaging\Handler\Router\RouterBuilder;
+use Ecotone\Messaging\Handler\Router\RouterProcessorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
-use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -513,7 +512,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 ->withInputChannelName(Uuid::uuid4()->toString())
                 /** linkTo can be used outside of Projection, then we should NOT filter events out */
                 ->chain(MessageFilterBuilder::createBoolHeaderFilter(ProjectionEventHandler::PROJECTION_IS_REBUILDING, false))
-                ->chain(RouterBuilder::createRecipientListRouter([
+                ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
                     $eventBusChannelName,
                 ]));
@@ -529,9 +528,9 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $emittingRouterHandler =
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName(Uuid::uuid4()->toString())
-                ->chain(TransformerBuilder::createWithDirectObject(new StreamNameMapper(), 'map'))
+                ->chain(new Definition(StreamNameMapper::class))
                 ->chain(MessageFilterBuilder::createBoolHeaderFilter(ProjectionEventHandler::PROJECTION_IS_REBUILDING))
-                ->chain(RouterBuilder::createRecipientListRouter([
+                ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
                     $eventBusChannelName,
                 ]));

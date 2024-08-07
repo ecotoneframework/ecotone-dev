@@ -720,15 +720,7 @@ class ModellingHandlerModule implements AnnotationModule
                     LoadAggregateServiceBuilder::create($aggregateClassDefinition, $methodName, null, $canReturnNull ? LoadAggregateMode::createContinueOnNotFound() : LoadAggregateMode::createThrowOnNotFound(), $interfaceToCallRegistry)
                         ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
                 )
-                ->chain(
-                    new class implements CompilableBuilder {
-
-                        public function compile(MessagingContainerBuilder $builder): Definition|\Ecotone\Messaging\Config\Container\Reference
-                        {
-                            return new Definition(FetchAggregate::class);
-                        }
-                    }
-                )
+                ->chain(new Definition(FetchAggregate::class))
         );
     }
 

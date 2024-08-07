@@ -106,6 +106,12 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
                 $compiledProcessors[] = $processor->compile($builder);
             }
         }
+        foreach ($compiledProcessors as $compiledProcessor) {
+            if ($compiledProcessor instanceof Definition
+                && ! is_a($compiledProcessor->getClassName(), RealMessageProcessor::class, true)) {
+                throw ConfigurationException::create("Processor should implement " . RealMessageProcessor::class . " interface, but got {$compiledProcessor->getClassName()}");
+            }
+        }
         return $compiledProcessors;
     }
 }

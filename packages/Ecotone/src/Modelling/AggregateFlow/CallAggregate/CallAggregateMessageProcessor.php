@@ -46,24 +46,24 @@ final class CallAggregateMessageProcessor implements CallAggregateService
             $resultType = $this->returnType;
         }
 
-        if (! is_null($result)) {
-            if ($this->isCommandHandler) {
-                $calledAggregate = $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT) ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT) : null;
-                $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;
+        if ($this->isCommandHandler) {
+            $calledAggregate = $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT) ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT) : null;
+            $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;
 
-                if (is_null($versionBeforeHandling) && $this->aggregateVersionProperty) {
-                    if ($this->isFactoryMethod) {
-                        $versionBeforeHandling = 0;
-                    } else {
-                        $versionBeforeHandling = $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($this->aggregateVersionProperty), $calledAggregate);
-                        $versionBeforeHandling = is_null($versionBeforeHandling) ? 0 : $versionBeforeHandling;
-                    }
-
-                    $resultMessage = $resultMessage->setHeader(AggregateMessage::TARGET_VERSION, $versionBeforeHandling);
+            if (is_null($versionBeforeHandling) && $this->aggregateVersionProperty) {
+                if ($this->isFactoryMethod) {
+                    $versionBeforeHandling = 0;
+                } else {
+                    $versionBeforeHandling = $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($this->aggregateVersionProperty), $calledAggregate);
+                    $versionBeforeHandling = is_null($versionBeforeHandling) ? 0 : $versionBeforeHandling;
                 }
-                $resultMessage = $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $calledAggregate);
-            }
 
+                $resultMessage = $resultMessage->setHeader(AggregateMessage::TARGET_VERSION, $versionBeforeHandling);
+            }
+            $resultMessage = $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $calledAggregate);
+        }
+
+        if (! is_null($result)) {
             $resultMessage = $resultMessage
                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($resultType->toString()))
                 ->setPayload($result)

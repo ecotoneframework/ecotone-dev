@@ -5,7 +5,7 @@ namespace Ecotone\Messaging\Config\Container;
 /**
  * licence Apache-2.0
  */
-class Definition
+class Definition implements CompilableBuilder
 {
     /**
      * @var MethodCall[]
@@ -68,5 +68,10 @@ class Definition
     public function getInterceptingConfiguration(): ?MethodInterceptionConfiguration
     {
         return $this->interceptionConfiguration;
+    }
+
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
+    {
+        return $this;
     }
 }

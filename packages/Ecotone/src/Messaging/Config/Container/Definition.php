@@ -11,7 +11,6 @@ class Definition implements CompilableBuilder
      * @var MethodCall[]
      */
     private array $methodCalls = [];
-    private ?MethodInterceptionConfiguration $interceptionConfiguration = null;
 
     /**
      * @param array<string|int, mixed> $arguments

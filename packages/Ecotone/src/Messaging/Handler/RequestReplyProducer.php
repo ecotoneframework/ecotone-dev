@@ -36,30 +36,6 @@ class RequestReplyProducer implements MessageHandler
     ) {
     }
 
-    public static function createRequestAndReply(string|MessageChannel|null $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, bool $isReplyRequired, bool $shouldPassThroughMessage = false, array $aroundInterceptors = []): MessageHandler
-    {
-        $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
-
-        $requestReplyHandler = new self($outputChannel, $messageProcessor, $channelResolver, $isReplyRequired, $shouldPassThroughMessage, self::REQUEST_REPLY_METHOD);
-        if ($aroundInterceptors) {
-            return new AroundInterceptorHandler($aroundInterceptors, new HandlerReplyProcessor($requestReplyHandler));
-        } else {
-            return $requestReplyHandler;
-        }
-    }
-
-    public static function createRequestAndSplit(?string $outputChannelName, MessageProcessor $messageProcessor, ChannelResolver $channelResolver, array $aroundInterceptors = []): MessageHandler
-    {
-        $outputChannel = $outputChannelName ? $channelResolver->resolve($outputChannelName) : null;
-
-        $requestReplyHandler = new self($outputChannel, $messageProcessor, $channelResolver, true, false, self::REQUEST_SPLIT_METHOD);
-        if ($aroundInterceptors) {
-            return new AroundInterceptorHandler($aroundInterceptors, new HandlerReplyProcessor($requestReplyHandler));
-        } else {
-            return $requestReplyHandler;
-        }
-    }
-
     public function handle(Message $requestMessage): void
     {
         $replyData = $this->messageProcessor->executeEndpoint($requestMessage);

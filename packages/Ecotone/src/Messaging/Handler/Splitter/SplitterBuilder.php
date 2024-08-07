@@ -127,6 +127,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
         return new Definition(SplitterHandler::class, [
             new ChannelReference($this->outputMessageChannelName),
             $processor,
+            $interfaceToCall->toString(),
         ]);
     }
 

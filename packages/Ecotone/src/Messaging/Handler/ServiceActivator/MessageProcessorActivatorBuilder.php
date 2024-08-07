@@ -58,6 +58,8 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
             default => new Definition(ChainedMessageProcessor::class, [$compiledProcessors])
         };
 
+        $name = $this->getInterceptedInterface($builder->getInterfaceToCallRegistry())->toString();
+
         return new Definition(
             MessageProcessorActivator::class,
             [
@@ -65,6 +67,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
                 $processor,
                 new Reference(ChannelResolver::class),
                 $this->isReplyRequired,
+                $name,
             ]
         );
     }

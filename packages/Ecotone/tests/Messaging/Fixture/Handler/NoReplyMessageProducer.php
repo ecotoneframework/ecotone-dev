@@ -7,6 +7,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodCallProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
+use Ecotone\Messaging\Handler\RealMessageProcessor;
 use Ecotone\Messaging\Message;
 
 /**
@@ -17,7 +18,7 @@ use Ecotone\Messaging\Message;
 /**
  * licence Apache-2.0
  */
-class NoReplyMessageProducer implements MessageProcessor
+class NoReplyMessageProducer implements RealMessageProcessor
 {
     private $wasCalled = false;
 
@@ -29,48 +30,14 @@ class NoReplyMessageProducer implements MessageProcessor
     /**
      * @inheritDoc
      */
-    public function executeEndpoint(Message $message)
+    public function process(Message $message): ?Message
     {
         $this->wasCalled = true;
+        return null;
     }
 
     public function wasCalled(): bool
     {
         return $this->wasCalled;
-    }
-
-    public function getMethodCall(Message $message): MethodCall
-    {
-        return MethodCall::createWith([], false);
-    }
-
-    public function getObjectToInvokeOn(): string|object
-    {
-        return self::class;
-    }
-
-    public function getMethodName(): string
-    {
-        return 'executeEndpoint';
-    }
-
-    public function getEndpointAnnotations(): array
-    {
-        return [];
-    }
-
-    public function __toString(): string
-    {
-        return self::class;
-    }
-
-    public function toMethodCallProvider(): MethodCallProvider
-    {
-        return new StaticMethodCallProvider(
-            $this,
-            'executeEndpoint',
-            [new MessageConverter()],
-            ['message'],
-        );
     }
 }

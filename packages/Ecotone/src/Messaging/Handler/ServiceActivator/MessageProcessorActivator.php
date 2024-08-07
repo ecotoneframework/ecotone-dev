@@ -18,6 +18,7 @@ class MessageProcessorActivator implements MessageHandler
         private RealMessageProcessor $messageProcessor,
         private ChannelResolver $channelResolver,
         private bool $isReplyRequired,
+        private string $name = "",
     ) {
     }
 
@@ -27,7 +28,7 @@ class MessageProcessorActivator implements MessageHandler
 
         if (! $replyMessage) {
             if ($this->isReplyRequired) {
-                throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this->messageProcessor}", $message);
+                throw MessageDeliveryException::createWithFailedMessage("Requires response but got none. {$this}", $message);
             }
             return;
         }
@@ -41,9 +42,15 @@ class MessageProcessorActivator implements MessageHandler
             if ($routingSlip) {
                 $replyChannel = $this->channelResolver->resolve(array_shift($routingSlipChannels));
                 $routingSlip = implode(',', $routingSlipChannels);
-                $replyMessage = MessageBuilder::fromMessage($replyMessage)
-                    ->setHeader(MessageHeaders::ROUTING_SLIP, $routingSlip)
-                    ->build();
+                if ($routingSlip) {
+                    $replyMessage = MessageBuilder::fromMessage($replyMessage)
+                        ->setHeader(MessageHeaders::ROUTING_SLIP, $routingSlip)
+                        ->build();
+                } else {
+                    $replyMessage = MessageBuilder::fromMessage($replyMessage)
+                        ->removeHeader(MessageHeaders::ROUTING_SLIP)
+                        ->build();
+                }
             } elseif ($message->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {
                 $replyChannel = $message->getHeaders()->getReplyChannel();
             }
@@ -51,11 +58,16 @@ class MessageProcessorActivator implements MessageHandler
 
         if (! $replyChannel) {
             if ($this->isReplyRequired) {
-                throw MessageDeliveryException::createWithFailedMessage("Can't process {$message}, no output channel during delivery in {$this->messageProcessor}", $message);
+                throw MessageDeliveryException::createWithFailedMessage("Can't process {$message}, no output channel during delivery in {$this}", $message);
             }
             return;
         }
 
         $replyChannel->send($replyMessage);
+    }
+
+    public function __toString(): string
+    {
+        return $this->name;
     }
 }

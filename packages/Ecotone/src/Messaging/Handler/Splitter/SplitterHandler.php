@@ -17,6 +17,7 @@ class SplitterHandler implements MessageHandler
     public function __construct(
         private MessageChannel $outputChannel,
         private RealMessageProcessor $messageProcessor,
+        private string $name = "",
     ) {
     }
 
@@ -31,7 +32,7 @@ class SplitterHandler implements MessageHandler
         $replyData = $replyMessage->getPayload();
 
         if (! is_iterable($replyData)) {
-            throw MessageDeliveryException::createWithFailedMessage("Can't split message {$message}, payload to split is not iterable in {$this->messageProcessor}", $message);
+            throw MessageDeliveryException::createWithFailedMessage("Can't split message {$message}, payload to split is not iterable in {$this}", $message);
         }
 
         $sequenceSize = count($replyData);
@@ -57,5 +58,10 @@ class SplitterHandler implements MessageHandler
                 );
             }
         }
+    }
+
+    public function __toString(): string
+    {
+        return $this->name;
     }
 }

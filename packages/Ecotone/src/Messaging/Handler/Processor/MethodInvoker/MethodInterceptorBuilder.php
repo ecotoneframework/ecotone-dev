@@ -12,6 +12,9 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 
+/**
+ * @licence Apache-2.0
+ */
 class MethodInterceptorBuilder
 {
     /**

@@ -9,6 +9,9 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 
+/**
+ * @licence Apache-2.0
+ */
 abstract class InterceptedMessageProcessorBuilder implements CompilableBuilder
 {
     abstract public function getInterceptedInterface(): InterfaceToCallReference;

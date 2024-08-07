@@ -7,6 +7,9 @@ use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use InvalidArgumentException;
 
+/**
+ * @licence Apache-2.0
+ */
 class MessageProcessorInvocation implements MethodInvocation
 {
     public function __construct(

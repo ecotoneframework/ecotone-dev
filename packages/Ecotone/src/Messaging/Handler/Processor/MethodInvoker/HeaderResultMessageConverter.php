@@ -6,6 +6,9 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 
+/**
+ * @licence Apache-2.0
+ */
 class HeaderResultMessageConverter implements ResultToMessageConverter
 {
     public function __construct(private string $interfaceToCallName)

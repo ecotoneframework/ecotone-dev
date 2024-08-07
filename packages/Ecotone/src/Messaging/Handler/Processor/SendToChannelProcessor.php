@@ -6,6 +6,9 @@ use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 
+/**
+ * @licence Apache-2.0
+ */
 class SendToChannelProcessor implements MessageProcessor
 {
     public function __construct(

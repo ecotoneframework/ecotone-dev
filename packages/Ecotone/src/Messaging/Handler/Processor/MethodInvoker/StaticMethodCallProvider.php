@@ -10,6 +10,9 @@ use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Message;
 
+/**
+ * @licence Apache-2.0
+ */
 class StaticMethodCallProvider implements MethodCallProvider
 {
     /**

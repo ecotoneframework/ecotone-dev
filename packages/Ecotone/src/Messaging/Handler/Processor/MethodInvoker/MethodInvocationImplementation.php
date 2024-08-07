@@ -5,6 +5,9 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use InvalidArgumentException;
 
+/**
+ * @licence Apache-2.0
+ */
 class MethodInvocationImplementation implements MethodInvocation
 {
     /**

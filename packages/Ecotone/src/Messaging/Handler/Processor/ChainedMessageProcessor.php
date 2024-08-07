@@ -5,6 +5,9 @@ namespace Ecotone\Messaging\Handler\Processor;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 
+/**
+ * @licence Apache-2.0
+ */
 class ChainedMessageProcessor implements MessageProcessor
 {
     /**

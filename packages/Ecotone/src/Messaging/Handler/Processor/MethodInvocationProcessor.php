@@ -7,6 +7,9 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 
+/**
+ * @licence Apache-2.0
+ */
 class MethodInvocationProcessor implements MessageProcessor
 {
     public function __construct(

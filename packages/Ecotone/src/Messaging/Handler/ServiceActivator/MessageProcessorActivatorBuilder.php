@@ -18,6 +18,9 @@ use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 
+/**
+ * @licence Apache-2.0
+ */
 class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
 {
     private ?InterceptedMessageProcessorBuilder $interceptedProcessor = null;

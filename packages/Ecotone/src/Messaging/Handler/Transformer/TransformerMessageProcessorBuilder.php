@@ -11,6 +11,9 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodCallProvider;
 
+/**
+ * @licence Apache-2.0
+ */
 class TransformerMessageProcessorBuilder extends InterceptedMessageProcessorBuilder
 {
     public function __construct(

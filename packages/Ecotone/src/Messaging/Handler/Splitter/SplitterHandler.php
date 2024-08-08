@@ -20,7 +20,7 @@ class SplitterHandler implements MessageHandler
     public function __construct(
         private MessageChannel   $outputChannel,
         private MessageProcessor $messageProcessor,
-        private string           $name = "",
+        private string           $name = '',
     ) {
     }
 

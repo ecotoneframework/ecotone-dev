@@ -52,7 +52,8 @@ class MethodInterceptorBuilder implements InterceptorWithPointCut
             $precedence,
             $pointcut,
             $name ?: $defaultName,
-            $changeHeaders);
+            $changeHeaders
+        );
     }
 
     public function doesItCutWith(InterfaceToCall $interfaceToCall, iterable $endpointAnnotations): bool

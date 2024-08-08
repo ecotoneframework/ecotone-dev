@@ -2,9 +2,9 @@
 
 namespace Ecotone\Messaging\Handler\Processor;
 
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter;
-use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 
 /**

@@ -18,7 +18,7 @@ class FetchAggregate implements MessageProcessor
             $message->getHeaders()->containsKey(AggregateMessage::RESULT_AGGREGATE_OBJECT) => $message->getHeaders()->get(AggregateMessage::RESULT_AGGREGATE_OBJECT),
             default => null
         };
-        if (!$aggregate) {
+        if (! $aggregate) {
             return null;
         }
         return MessageBuilder::fromMessage($message)

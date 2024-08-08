@@ -19,7 +19,7 @@ class RequestReplyProducer implements MessageHandler
         private MessageProcessor $messageProcessor,
         private ChannelResolver  $channelResolver,
         private bool             $isReplyRequired,
-        private string           $name = "",
+        private string           $name = '',
     ) {
     }
 

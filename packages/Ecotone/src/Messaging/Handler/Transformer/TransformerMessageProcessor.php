@@ -3,10 +3,8 @@
 namespace Ecotone\Messaging\Handler\Transformer;
 
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverter;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvocationProvider;
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;

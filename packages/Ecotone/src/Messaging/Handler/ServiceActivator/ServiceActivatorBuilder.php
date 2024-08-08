@@ -17,6 +17,8 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Support\Assert;
 
+use function get_class;
+
 /**
  * Class ServiceActivatorFactory
  * @package Ecotone\Messaging\Handler\ServiceActivator
@@ -57,7 +59,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
     public static function createWithDirectReference(object $directObjectReference, string $methodName): self
     {
-        return new self($directObjectReference, new InterfaceToCallReference(\get_class($directObjectReference), $methodName));
+        return new self($directObjectReference, new InterfaceToCallReference(get_class($directObjectReference), $methodName));
     }
 
     /**

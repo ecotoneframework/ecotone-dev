@@ -2,9 +2,9 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationImplementation;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
 use Ecotone\Messaging\Message;
 
 /**

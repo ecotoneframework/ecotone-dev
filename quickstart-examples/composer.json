@@ -55,7 +55,6 @@
             "(cd MultiTenant/Symfony/EventSourcing && composer update && php run_example.php)",
             "(cd MultiTenant/General/HookIntoTenantSwitch && composer update && php run_example.php)",
             "(cd MultiTenant/General/MessageBusForMultipleTenants && composer update && php run_example.php)",
-            "(cd MultiTenant/General/RoundRobinWithSingleConsumer && composer update && php run_example.php)",
             "(cd ConsoleCommand/Laravel && composer update && php artisan app:example-command John --types=1 --types=2 --selection=custom)",
             "(cd ConsoleCommand/Symfony && composer update && php bin/console app:example-command John --types=1 --types=2 --selection=custom)",
             "(cd Workflows/SynchronousStateless && composer update && php run_example.php)",
@@ -65,7 +64,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.226.0-dev"
+            "dev-main": "1.227.0-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"

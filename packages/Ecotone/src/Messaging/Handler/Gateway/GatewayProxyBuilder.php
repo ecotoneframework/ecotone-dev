@@ -387,7 +387,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     {
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
-        $gatewayInternalHandler = new Definition(GatewayInternalHandler::class, [
+        $gatewayInternalProcessor = new Definition(GatewayInternalProcessor::class, [
             $interfaceToCall->toString(),
             $interfaceToCall->getReturnType(),
             $interfaceToCall->canItReturnNull(),
@@ -432,7 +432,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
                 $aroundInterceptors
             );
             $messageProcessorInvocation = new Definition(MessageProcessorInvocationProvider::class, [
-                $gatewayInternalHandler,
+                $gatewayInternalProcessor,
             ]);
             $resultConverter = new Definition(PayloadResultMessageConverter::class, [$interceptedInterface->getReturnType()]);
             $messageProcessorInvocation = new Definition(AroundMethodInvocationProvider::class, [
@@ -444,7 +444,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
                 $resultConverter,
             ]);
         } else {
-            $messageProcessors[] = $gatewayInternalHandler;
+            $messageProcessors[] = $gatewayInternalProcessor;
         }
         foreach ($this->getSortedInterceptors($afterInterceptors) as $afterInterceptor) {
             $messageProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, $interceptedInterfaceReference, $this->endpointAnnotations);

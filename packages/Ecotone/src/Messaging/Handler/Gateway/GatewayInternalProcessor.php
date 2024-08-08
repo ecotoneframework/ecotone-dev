@@ -24,7 +24,7 @@ use Ramsey\Uuid\Uuid;
 /**
  * licence Apache-2.0
  */
-class GatewayInternalHandler implements MessageProcessor
+class GatewayInternalProcessor implements MessageProcessor
 {
     public function __construct(
         private string $interfaceToCallName,

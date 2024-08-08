@@ -39,8 +39,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     private bool $shouldPassThroughMessage = false;
     private bool $changeHeaders = false;
 
-    private ?InterfaceToCall $annotatedInterfaceToCall = null;
-
     /**
      * @param Reference|Definition|DefinedObject $objectToInvokeOn
      */
@@ -104,13 +102,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         return $this;
     }
 
-    public function withAnnotatedInterface(InterfaceToCall $interfaceToCall): self
-    {
-        $this->annotatedInterfaceToCall = $interfaceToCall;
-
-        return $this;
-    }
-
     public function withChangingHeaders(bool $changeHeaders): self
     {
         $this->changeHeaders = $changeHeaders;
@@ -136,6 +127,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
+        $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
         $newImplementation = MessageProcessorActivatorBuilder::create()
             ->withInputChannelName($this->inputMessageChannelName)
             ->withOutputMessageChannel($this->outputMessageChannelName)
@@ -145,7 +137,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             ->withRequiredReply($this->isReplyRequired)
             ->chainInterceptedProcessor(
                 MethodInvokerBuilder::create(
-                    $this->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,
+                    $interfaceToCall->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,
                     $this->interfaceToCallReference,
                     $this->methodParameterConverterBuilders,
                     $this->getEndpointAnnotations(),
@@ -153,46 +145,13 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                 ->withPassTroughMessageIfVoid($this->shouldPassThroughMessage)
                 ->withChangeHeaders($this->changeHeaders)
             );
-        $newImplementation->orderedAroundInterceptors = $this->orderedAroundInterceptors;
 
         return $newImplementation->compile($builder);
     }
 
-    /**
-     * @return bool
-     * @throws ReflectionException
-     */
-    private function isStaticallyCalled(): bool
-    {
-        $referenceMethod = new ReflectionMethod($this->interfaceToCallReference->getClassName(), $this->getMethodName());
-
-        if ($referenceMethod->isStatic()) {
-            return true;
-        }
-
-        return false;
-    }
-
     public function __toString()
     {
-        return sprintf('Service Activator - %s:%s', $this->getInterfaceName(), $this->getMethodName());
-    }
-
-    private function getMethodName(): string
-    {
-        return $this->interfaceToCallReference->getMethodName();
-    }
-
-    private function getInterfaceName(): string
-    {
-        return $this->interfaceToCallReference->getClassName();
-    }
-
-    public function withAroundInterceptors(array $orderedAroundInterceptors): self
-    {
-        $this->orderedAroundInterceptors = $orderedAroundInterceptors;
-
-        return $this;
+        return sprintf('Service Activator - %s:%s', $this->interfaceToCallReference->getClassName(), $this->interfaceToCallReference->getMethodName());
     }
 
     public function getObjectToInvokeOn(): DefinedObject|Definition|Reference

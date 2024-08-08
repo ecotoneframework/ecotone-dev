@@ -32,16 +32,6 @@ class BridgeBuilder implements MessageHandlerBuilderWithOutputChannel
     /**
      * @inheritDoc
      */
-    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): ServiceActivatorBuilder
-    {
-        $self = clone $this;
-
-        return $self->bridgeBuilder->addAroundInterceptor($aroundInterceptorReference);
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function withEndpointAnnotations(iterable $endpointAnnotations): ServiceActivatorBuilder
     {
         $self = clone $this;

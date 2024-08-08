@@ -18,12 +18,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 interface InterceptedEndpoint
 {
     /**
-     * @param AroundInterceptorReference $aroundInterceptorReference
-     * @return static
-     */
-    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference);
-
-    /**
      * @param InterfaceToCallRegistry $interfaceToCallRegistry
      * @return InterfaceToCall
      */

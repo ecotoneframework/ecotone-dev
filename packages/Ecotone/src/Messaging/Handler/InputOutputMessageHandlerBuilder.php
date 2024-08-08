@@ -26,10 +26,6 @@ abstract class InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
      */
     protected iterable $requiredInterceptorReferenceNames = [];
     /**
-     * @var AroundInterceptorBuilder[]
-     */
-    protected array $orderedAroundInterceptors = [];
-    /**
      * @var object[]
      */
     private iterable $endpointAnnotations = [];
@@ -90,17 +86,6 @@ abstract class InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
     public function getEndpointAnnotations(): array
     {
         return $this->endpointAnnotations;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): self
-    {
-        $self = clone $this;
-        $self->orderedAroundInterceptors[] = $aroundInterceptorReference;
-
-        return $self;
     }
 
     /**

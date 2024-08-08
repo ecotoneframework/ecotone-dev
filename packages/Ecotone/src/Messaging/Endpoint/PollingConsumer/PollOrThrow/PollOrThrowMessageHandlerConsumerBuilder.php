@@ -26,13 +26,6 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
     /**
      * @inheritDoc
      */
-    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference): void
-    {
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function isSupporting(MessageHandlerBuilder $messageHandlerBuilder, MessageChannelBuilder $relatedMessageChannel): bool
     {
         return $relatedMessageChannel instanceof SimpleMessageChannelBuilder && $relatedMessageChannel->isPollable();

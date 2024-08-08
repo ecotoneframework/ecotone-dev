@@ -46,14 +46,4 @@ class TransformerMessageProcessor implements MessageProcessor
                 ->build()
         };
     }
-
-    public function toMethodCallProvider(): MethodInvocationProvider
-    {
-        return new StaticMethodInvocationProvider(
-            $this,
-            'executeEndpoint',
-            [new MessageConverter()],
-            ['message'],
-        );
-    }
 }

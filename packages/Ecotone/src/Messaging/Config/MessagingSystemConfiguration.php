@@ -905,7 +905,6 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->channelBuilders as $channelsBuilder) {
             $channelReference = new ChannelReference($channelsBuilder->getMessageChannelName());
             $channelDefinition = $channelsBuilder->compile($messagingBuilder);
-            $messagingBuilder->register($channelReference, $channelDefinition);
             $interceptorsForChannel = [];
             foreach ($channelInterceptorsByChannelName as $channelName => $interceptors) {
                 $regexChannel = str_replace('*', '.*', $channelName);
@@ -917,14 +916,13 @@ final class MessagingSystemConfiguration implements Configuration
                 }
             }
             if ($interceptorsForChannel) {
-                $channelDefinition = $messagingBuilder->getDefinition($channelReference);
                 $isPollable = is_a($channelDefinition->getClassName(), PollableChannel::class, true);
                 $channelDefinition = new Definition($isPollable ? PollableChannelInterceptorAdapter::class : EventDrivenChannelInterceptorAdapter::class, [
                     $channelDefinition,
                     $interceptorsForChannel,
                 ]);
-                $messagingBuilder->replace($channelReference, $channelDefinition);
             }
+            $messagingBuilder->register($channelReference, $channelDefinition);
         }
 
         foreach ($this->moduleReferenceSearchService->getAllRegisteredReferences() as $id => $object) {

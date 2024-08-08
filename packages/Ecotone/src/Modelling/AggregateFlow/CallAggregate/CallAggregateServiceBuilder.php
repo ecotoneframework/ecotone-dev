@@ -25,7 +25,7 @@ use Ecotone\Modelling\WithAggregateVersioning;
 /**
  * licence Apache-2.0
  */
-class CallAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
+class CallAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
 {
     private InterfaceToCall $interfaceToCall;
     /**

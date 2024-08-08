@@ -14,7 +14,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvocationProv
 /**
  * @licence Apache-2.0
  */
-class TransformerMessageProcessorBuilder extends InterceptedMessageProcessorBuilder
+class TransformerMessageProcessorBuilder implements InterceptedMessageProcessorBuilder
 {
     public function __construct(
         private Definition|DefinedObject|Reference $transformerObjectDefinition,

@@ -18,7 +18,7 @@ use function is_string;
 /**
  * licence Apache-2.0
  */
-class MethodInvokerBuilder extends InterceptedMessageProcessorBuilder
+class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
 {
     /**
      * @var AttributeDefinition[] $endpointAnnotations

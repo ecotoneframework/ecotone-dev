@@ -12,9 +12,9 @@ use Ecotone\Messaging\Config\Container\Reference;
 /**
  * @licence Apache-2.0
  */
-abstract class InterceptedMessageProcessorBuilder implements CompilableBuilder
+interface InterceptedMessageProcessorBuilder extends CompilableBuilder
 {
-    abstract public function getInterceptedInterface(): InterfaceToCallReference;
+    public function getInterceptedInterface(): InterfaceToCallReference;
 
-    abstract public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference;
+    public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference;
 }

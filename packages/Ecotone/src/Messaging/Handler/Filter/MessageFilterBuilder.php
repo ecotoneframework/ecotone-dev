@@ -23,7 +23,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * licence Apache-2.0
  */
-class MessageFilterBuilder extends InterceptedMessageProcessorBuilder
+class MessageFilterBuilder implements InterceptedMessageProcessorBuilder
 {
     /**
      * @var ParameterConverterBuilder[]
@@ -112,7 +112,7 @@ class MessageFilterBuilder extends InterceptedMessageProcessorBuilder
 
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
         if (! $interfaceToCall->hasReturnValueBoolean()) {
-            throw InvalidArgumentException::create("Object with reference {$interfaceToCall->getInterfaceName()} should return bool for method {$this->getMethodName()} while using Message Filter");
+            throw InvalidArgumentException::create("Object with reference {$interfaceToCall->getInterfaceName()} should return bool for method {$interfaceToCall->getMethodName()} while using Message Filter");
         }
 
         $discardChannel = $this->discardChannelName ? new ChannelReference($this->discardChannelName) : null;
@@ -131,10 +131,5 @@ class MessageFilterBuilder extends InterceptedMessageProcessorBuilder
             $discardChannel,
             $this->throwExceptionOnDiscard,
         ]);
-    }
-
-    private function getMethodName(): string
-    {
-        return $this->interfaceToCallReference->getMethodName();
     }
 }

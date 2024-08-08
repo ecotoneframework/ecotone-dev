@@ -24,7 +24,7 @@ use Ecotone\Modelling\LazyStandardRepository;
 /**
  * licence Apache-2.0
  */
-class LoadAggregateServiceBuilder extends InterceptedMessageProcessorBuilder
+class LoadAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
 {
     private string $aggregateClassName;
     private string $methodName;

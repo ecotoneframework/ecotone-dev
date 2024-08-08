@@ -16,19 +16,12 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 
 #[ModuleAnnotation]
@@ -40,10 +33,10 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
     public const MODULE_NAME = 'methodInterceptorModule';
 
     /**
-     * @param MethodInterceptor[]          $beforeSendInterceptors
-     * @param MethodInterceptor[]          $preCallInterceptors
+     * @param MethodInterceptorBuilder[]          $beforeSendInterceptors
+     * @param MethodInterceptorBuilder[]          $preCallInterceptors
      * @param AroundInterceptorBuilder[] $aroundInterceptors
-     * @param MethodInterceptor[]          $postCallInterceptors
+     * @param MethodInterceptorBuilder[]          $postCallInterceptors
      */
     private function __construct(
         private array $beforeSendInterceptors,
@@ -97,10 +90,10 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
                 $beforeSendInterceptors[] = MethodInterceptorBuilder::create(
                     new Reference(AnnotatedDefinitionReference::getReferenceFor($methodInterceptor)),
                     $interceptorInterface,
-                    $parameterConverterFactory->createParameterConverters($interceptorInterface),
                     $beforeSendInterceptor->precedence,
                     $beforeSendInterceptor->pointcut,
-                    $beforeSendInterceptor->changeHeaders
+                    $beforeSendInterceptor->changeHeaders,
+                    $parameterConverterFactory->createParameterConverters($interceptorInterface),
                 );
             }
 
@@ -110,10 +103,10 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
                 $preCallInterceptors[] = MethodInterceptorBuilder::create(
                     new Reference(AnnotatedDefinitionReference::getReferenceFor($methodInterceptor)),
                     $interceptorInterface,
-                    $parameterConverterFactory->createParameterConverters($interceptorInterface),
                     $beforeInterceptor->precedence,
                     $beforeInterceptor->pointcut,
                     $beforeInterceptor->changeHeaders,
+                    $parameterConverterFactory->createParameterConverters($interceptorInterface),
                 );
             }
 
@@ -123,10 +116,10 @@ class MethodInterceptorModule extends NoExternalConfigurationModule implements A
                 $postCallInterceptors[] = MethodInterceptorBuilder::create(
                     new Reference(AnnotatedDefinitionReference::getReferenceFor($methodInterceptor)),
                     $interceptorInterface,
-                    $parameterConverterFactory->createParameterConverters($interceptorInterface),
                     $afterInterceptor->precedence,
                     $afterInterceptor->pointcut,
                     $afterInterceptor->changeHeaders,
+                    $parameterConverterFactory->createParameterConverters($interceptorInterface),
                 );
             }
         }

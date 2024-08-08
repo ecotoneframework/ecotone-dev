@@ -31,22 +31,27 @@ class MethodInterceptorBuilder implements InterceptorWithPointCut
     ) {
     }
 
+    /**
+     * @param array<ParameterConverterBuilder> $defaultParameterConverters
+     */
     public static function create(
-        Reference       $interceptorReference,
+        Reference|Definition|DefinedObject       $interceptorReference,
         InterfaceToCall $interceptorInterface,
-        array           $defaultParameterConverters,
         int             $precedence,
         string          $pointcut,
-        bool            $changeHeaders = false): self
-    {
+        bool            $changeHeaders = false,
+        array           $defaultParameterConverters = [],
+        string          $name = ''
+    ): self {
         $pointcut = $pointcut ? Pointcut::createWith($pointcut) : Pointcut::initializeFrom($interceptorInterface, $defaultParameterConverters);
+        $defaultName = $interceptorReference instanceof Reference ? $interceptorReference->getId() : $interceptorInterface->toString();
         return new self(
             $interceptorReference,
             InterfaceToCallReference::fromInstance($interceptorInterface),
             $defaultParameterConverters,
             $precedence,
             $pointcut,
-            $interceptorReference->getId(),
+            $name ?: $defaultName,
             $changeHeaders);
     }
 

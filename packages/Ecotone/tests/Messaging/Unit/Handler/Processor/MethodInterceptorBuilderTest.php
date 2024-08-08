@@ -31,22 +31,20 @@ use Test\Ecotone\Messaging\Fixture\Behat\Calculating\PowerCalculation;
  * licence Apache-2.0
  * @internal
  */
-class MethodInterceptorTest extends TestCase
+class MethodInterceptorBuilderTest extends TestCase
 {
     public function test_resolving_pointcut_automatically()
     {
         $this->assertEquals(
-            MethodInterceptor::create(
-                AroundInterceptorExample::class,
+            MethodInterceptorBuilder::create(
+                Reference::to(AroundInterceptorExample::class),
                 InterfaceToCall::create(AroundInterceptorExample::class, 'withNonAnnotationClass'),
-                ServiceActivatorBuilder::create(AroundInterceptorExample::class, InterfaceToCall::create(AroundInterceptorExample::class, 'withNonAnnotationClass')),
                 1,
                 '(' . AttributeOne::class . ')'
             ),
-            MethodInterceptor::create(
-                AroundInterceptorExample::class,
+            MethodInterceptorBuilder::create(
+                Reference::to(AroundInterceptorExample::class),
                 InterfaceToCall::create(AroundInterceptorExample::class, 'withNonAnnotationClass'),
-                ServiceActivatorBuilder::create(AroundInterceptorExample::class, InterfaceToCall::create(AroundInterceptorExample::class, 'withNonAnnotationClass')),
                 1,
                 ''
             )

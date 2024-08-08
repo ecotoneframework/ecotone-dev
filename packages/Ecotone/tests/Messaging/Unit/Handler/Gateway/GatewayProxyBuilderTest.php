@@ -15,7 +15,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -791,40 +791,36 @@ class GatewayProxyBuilderTest extends MessagingTest
                     $inputChannel = 'inputChannel'
                 )
                     ->addBeforeInterceptor(
-                        MethodInterceptor::create(
-                            'interceptor0',
+                        MethodInterceptorBuilder::create(
+                            CalculatingService::create(3),
                             InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                            ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'multiply'),
                             0,
                             ''
-                        )->convertToNewImplementation()
+                        )
                     )
                     ->addBeforeInterceptor(
-                        MethodInterceptor::create(
-                            'interceptor1',
+                        MethodInterceptorBuilder::create(
+                            CalculatingService::create(3),
                             InterfaceToCall::create(CalculatingService::class, 'sum'),
-                            ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(3), 'sum'),
                             1,
                             ''
-                        )->convertToNewImplementation()
+                        )
                     )
                     ->addAfterInterceptor(
-                        MethodInterceptor::create(
-                            'interceptor2',
+                        MethodInterceptorBuilder::create(
+                            CalculatingService::create(0),
                             InterfaceToCall::create(CalculatingService::class, 'result'),
-                            ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result'),
                             1,
                             ''
-                        )->convertToNewImplementation()
+                        )
                     )
                     ->addAfterInterceptor(
-                        MethodInterceptor::create(
-                            'interceptor3',
+                        MethodInterceptorBuilder::create(
+                            CalculatingService::create(2),
                             InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                            ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(2), 'multiply'),
                             0,
                             ''
-                        )->convertToNewImplementation()
+                        )
                     )
             )
             ->withMessageHandler(

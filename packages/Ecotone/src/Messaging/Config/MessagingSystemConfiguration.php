@@ -49,7 +49,6 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
@@ -586,39 +585,11 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    /**
-     * @param MethodInterceptor $methodInterceptor
-     *
-     * @return Configuration
-     * @throws ConfigurationException
-     * @throws MessagingException
-     */
-    public function registerBeforeSendInterceptor(MethodInterceptor|MethodInterceptorBuilder $methodInterceptor): Configuration
+    public function registerBeforeSendInterceptor(MethodInterceptorBuilder $methodInterceptor): Configuration
     {
-        $interceptorBuilder = $methodInterceptor instanceof MethodInterceptorBuilder ? $methodInterceptor : $methodInterceptor->convertToNewImplementation();
-
-        $this->beforeSendInterceptors[] = $interceptorBuilder;
+        $this->beforeSendInterceptors[] = $methodInterceptor;
 
         return $this;
-    }
-
-    /**
-     * @param MethodInterceptor $methodInterceptor
-     *
-     * @throws ConfigurationException
-     * @throws MessagingException
-     */
-    private function checkIfInterceptorIsCorrect(MethodInterceptor $methodInterceptor): void
-    {
-        if ($methodInterceptor->getMessageHandler()->getEndpointId()) {
-            throw ConfigurationException::create("Interceptor {$methodInterceptor} should not contain EndpointId");
-        }
-        if ($methodInterceptor->getMessageHandler()->getInputMessageChannelName()) {
-            throw ConfigurationException::create("Interceptor {$methodInterceptor} should not contain input channel. Interceptor is wired by endpoint id");
-        }
-        if ($methodInterceptor->getMessageHandler()->getOutputMessageChannelName()) {
-            throw ConfigurationException::create("Interceptor {$methodInterceptor} should not contain output channel. Interceptor is wired by endpoint id");
-        }
     }
 
     /**
@@ -646,26 +617,16 @@ final class MessagingSystemConfiguration implements Configuration
         return $methodInterceptors;
     }
 
-    public function registerBeforeMethodInterceptor(MethodInterceptor|MethodInterceptorBuilder $methodInterceptor): Configuration
+    public function registerBeforeMethodInterceptor(MethodInterceptorBuilder $methodInterceptor): Configuration
     {
-        $interceptorBuilder = $methodInterceptor instanceof MethodInterceptorBuilder ? $methodInterceptor : $methodInterceptor->convertToNewImplementation();
-        $this->beforeCallMethodInterceptors[] = $interceptorBuilder;
+        $this->beforeCallMethodInterceptors[] = $methodInterceptor;
 
         return $this;
     }
 
-    /**
-     * @param MethodInterceptor $methodInterceptor
-     *
-     * @return Configuration
-     * @throws ConfigurationException
-     * @throws MessagingException
-     */
-    public function registerAfterMethodInterceptor(MethodInterceptor|MethodInterceptorBuilder $methodInterceptor): Configuration
+    public function registerAfterMethodInterceptor(MethodInterceptorBuilder $methodInterceptor): Configuration
     {
-        $interceptorBuilder = $methodInterceptor instanceof MethodInterceptorBuilder ? $methodInterceptor : $methodInterceptor->convertToNewImplementation();
-
-        $this->afterCallMethodInterceptors[] = $interceptorBuilder;
+        $this->afterCallMethodInterceptors[] = $methodInterceptor;
 
         return $this;
     }

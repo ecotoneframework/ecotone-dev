@@ -465,7 +465,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     {
         usort(
             $interceptors,
-            function (AroundInterceptorBuilder $a, AroundInterceptorBuilder $b) {
+            function (InterceptorWithPointCut $a, InterceptorWithPointCut $b) {
                 return $a->getPrecedence() <=> $b->getPrecedence();
             }
         );

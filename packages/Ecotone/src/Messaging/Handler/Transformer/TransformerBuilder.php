@@ -10,7 +10,6 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\HandlerTransitionMethodInterceptor;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -30,7 +29,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 /**
  * licence Apache-2.0
  */
-class TransformerBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, HandlerTransitionMethodInterceptor
+class TransformerBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
 {
     private string $objectToInvokeReferenceName;
     private ?DefinedObject $directObject = null;
@@ -198,10 +197,5 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
         return $this->methodNameOrInterface instanceof InterfaceToCall
             ? $this->methodNameOrInterface->getMethodName()
             : $this->methodNameOrInterface;
-    }
-
-    public function getObjectToInvokeOn(): Reference|Definition|DefinedObject
-    {
-        return $this->directObject ?? Reference::to($this->objectToInvokeReferenceName);
     }
 }

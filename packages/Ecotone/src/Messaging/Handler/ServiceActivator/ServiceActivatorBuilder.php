@@ -9,7 +9,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\HandlerTransitionMethodInterceptor;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -17,11 +16,6 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Support\Assert;
-
-use function get_class;
-
-use ReflectionException;
-use ReflectionMethod;
 
 /**
  * Class ServiceActivatorFactory
@@ -32,7 +26,7 @@ use ReflectionMethod;
 /**
  * licence Apache-2.0
  */
-final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, HandlerTransitionMethodInterceptor
+final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
 {
     private bool $isReplyRequired = false;
     private array $methodParameterConverterBuilders = [];
@@ -63,7 +57,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
 
     public static function createWithDirectReference(object $directObjectReference, string $methodName): self
     {
-        return new self($directObjectReference, new InterfaceToCallReference(get_class($directObjectReference), $methodName));
+        return new self($directObjectReference, new InterfaceToCallReference(\get_class($directObjectReference), $methodName));
     }
 
     /**
@@ -152,10 +146,5 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     public function __toString()
     {
         return sprintf('Service Activator - %s:%s', $this->interfaceToCallReference->getClassName(), $this->interfaceToCallReference->getMethodName());
-    }
-
-    public function getObjectToInvokeOn(): DefinedObject|Definition|Reference
-    {
-        return $this->objectToInvokeOn;
     }
 }

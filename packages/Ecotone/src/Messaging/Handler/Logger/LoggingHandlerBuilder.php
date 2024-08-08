@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Logger;
 
-use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\HandlerTransitionMethodInterceptor;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -27,7 +25,7 @@ use Psr\Log\LogLevel;
 /**
  * licence Apache-2.0
  */
-class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters, HandlerTransitionMethodInterceptor
+class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
 {
     public const LOGGER_REFERENCE = 'logger';
     public const LOG_FULL_MESSAGE = false;
@@ -134,10 +132,5 @@ class LoggingHandlerBuilder extends InputOutputMessageHandlerBuilder implements 
     private function getMethodName(): string
     {
         return $this->isBefore ? 'logBefore' : 'logAfter';
-    }
-
-    public function getObjectToInvokeOn(): Reference|Definition|DefinedObject
-    {
-        return Reference::to(LoggingInterceptor::class);
     }
 }

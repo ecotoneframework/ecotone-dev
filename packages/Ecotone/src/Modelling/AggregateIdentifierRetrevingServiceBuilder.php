@@ -13,7 +13,6 @@ use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
@@ -53,7 +52,7 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
      */
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $aggregateIdentifierRetrevingService = new Definition(
+        return new Definition(
             AggregateIdentifierRetrevingService::class,
             [
                 $this->aggregateClassName->getClassType()->toString(),
@@ -66,9 +65,6 @@ class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandl
                 Reference::to(ExpressionEvaluationService::REFERENCE),
             ]
         );
-        $serviceActivatorBuilder = ServiceActivatorBuilder::createWithDefinition($aggregateIdentifierRetrevingService, 'convert')
-            ->withOutputMessageChannel($this->getOutputMessageChannelName());
-        return $serviceActivatorBuilder->compile($builder);
     }
 
     /**

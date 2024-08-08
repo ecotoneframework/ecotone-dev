@@ -7,7 +7,12 @@ use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use InvalidArgumentException;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvocationProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
+use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
  * licence Apache-2.0
@@ -23,8 +28,20 @@ class MessagingContainerBuilder
     private array $pollingEndpoints = [];
     private ServiceConfiguration $applicationConfiguration;
 
-    public function __construct(private ContainerBuilder $builder, ?InterfaceToCallRegistry $interfaceToCallRegistry = null, ?ServiceConfiguration $serviceConfiguration = null, private array $pollingMetadata = [])
-    {
+    /**
+     * @param array<MethodInterceptorBuilder> $beforeInterceptors
+     * @param array<AroundInterceptorBuilder> $aroundInterceptors
+     * @param array<MethodInterceptorBuilder> $afterInterceptors
+     */
+    public function __construct(
+        private ContainerBuilder $builder,
+        ?InterfaceToCallRegistry $interfaceToCallRegistry = null,
+        ?ServiceConfiguration $serviceConfiguration = null,
+        private array $pollingMetadata = [],
+        private array $beforeInterceptors = [],
+        private array $aroundInterceptors = [],
+        private array $afterInterceptors = [],
+    ) {
         $this->interfaceToCallRegistry = $interfaceToCallRegistry ?? InterfaceToCallRegistry::createEmpty();
         $this->applicationConfiguration = $serviceConfiguration ?? ServiceConfiguration::createWithDefaults();
     }
@@ -47,12 +64,12 @@ class MessagingContainerBuilder
     public function registerPollingEndpoint(string $endpointId, Definition $definition, bool $withContinuousPolling = false): void
     {
         if (isset($this->pollingEndpoints[$endpointId])) {
-            throw new InvalidArgumentException("Endpoint with id {$endpointId} already exists");
+            throw InvalidArgumentException::create("Endpoint with id {$endpointId} already exists");
         }
         $runnerReference = new EndpointRunnerReference($endpointId);
         $className = $definition->getClassName();
         if (! is_a($className, EndpointRunner::class, true)) {
-            throw new InvalidArgumentException("Endpoint runner {$className} must implement " . EndpointRunner::class);
+            throw InvalidArgumentException::create("Endpoint runner {$className} must implement " . EndpointRunner::class);
         }
 
         $pollingMetadata = $this->getPollingConfigurationForPolledEndpoint($endpointId, $withContinuousPolling);
@@ -128,5 +145,69 @@ class MessagingContainerBuilder
         }
 
         return $pollingMetadata;
+    }
+
+    public function interceptMethodCall(InterfaceToCallReference $interceptedInterfaceReference, array $endpointAnnotations, Definition $methodCallProviderDefinition): Definition
+    {
+        $interceptorsConfiguration = $this->getRelatedInterceptors(
+            $interceptedInterfaceReference,
+            $endpointAnnotations,
+        );
+        $aroundInterceptors = [];
+        foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptor) {
+            $aroundInterceptors[] = $aroundInterceptor->compileForInterceptedInterface($this, $interceptedInterfaceReference, $endpointAnnotations);
+        }
+        return new Definition(AroundMethodInvocationProvider::class, [
+            $methodCallProviderDefinition,
+            $aroundInterceptors,
+        ]);
+    }
+
+    public function getRelatedInterceptors(
+        InterfaceToCallReference $getInterceptedInterface,
+        array $endpointAnnotations,
+        array $requiredInterceptorNames = [],
+    ): MethodInterceptorsConfiguration {
+        $interfaceToCall = $this->interfaceToCallRegistry->getForReference($getInterceptedInterface);
+        return new MethodInterceptorsConfiguration(
+            $this->getRelatedInterceptorsFor($this->beforeInterceptors, $interfaceToCall, $endpointAnnotations, $requiredInterceptorNames),
+            $this->getRelatedInterceptorsFor($this->aroundInterceptors, $interfaceToCall, $endpointAnnotations, $requiredInterceptorNames),
+            $this->getRelatedInterceptorsFor($this->afterInterceptors, $interfaceToCall, $endpointAnnotations, $requiredInterceptorNames),
+        );
+    }
+
+    /**
+     * @template T of InterceptorWithPointCut
+     * @param array<T> $interceptors
+     * @param InterfaceToCall $interceptedInterface
+     * @param array<AttributeDefinition> $endpointAnnotations
+     * @param array<string> $requiredInterceptorNames
+     * @return array<T>
+     * @throws \Ecotone\Messaging\MessagingException
+     */
+    private static function getRelatedInterceptorsFor(array $interceptors, InterfaceToCall $interceptedInterface, array $endpointAnnotations, array $requiredInterceptorNames): iterable
+    {
+        Assert::allInstanceOfType($endpointAnnotations, AttributeDefinition::class);
+
+        $relatedInterceptors = [];
+
+        $endpointAnnotationsInstances = array_map(
+            fn (AttributeDefinition $attributeDefinition) => $attributeDefinition->instance(),
+            $endpointAnnotations
+        );
+        foreach ($interceptors as $interceptor) {
+            foreach ($requiredInterceptorNames as $requiredInterceptorName) {
+                if ($interceptor->hasName($requiredInterceptorName)) {
+                    $relatedInterceptors[] = $interceptor;
+                    break;
+                }
+            }
+
+            if ($interceptor->doesItCutWith($interceptedInterface, $endpointAnnotationsInstances)) {
+                $relatedInterceptors[] = $interceptor;
+            }
+        }
+
+        return $relatedInterceptors;
     }
 }

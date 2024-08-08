@@ -11,7 +11,6 @@ use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Modelling\EventBus;
 
 /**
@@ -33,14 +32,10 @@ final class PublishAggregateEventsServiceBuilder extends InputOutputMessageHandl
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
-        $publishAggregateEventsService = new Definition(PublishAggregateEventsService::class, [
+        return new Definition(PublishAggregateEventsService::class, [
             $this->interfaceToCall->toString(),
             new Reference(EventBus::class),
         ]);
-
-        return ServiceActivatorBuilder::createWithDefinition($publishAggregateEventsService, 'publish')
-            ->withOutputMessageChannel($this->outputMessageChannelName)
-            ->compile($builder);
     }
 
     /**

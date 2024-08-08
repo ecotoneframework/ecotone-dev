@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Filter;
 
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
@@ -18,32 +19,21 @@ use Ecotone\Messaging\MessageHeaders;
 /**
  * licence Apache-2.0
  */
-class MessageFilter
+class MessageFilter implements MessageProcessor
 {
-    private MessageProcessor $messageSelector;
-    private ?MessageChannel $discardChannel;
-    private bool $throwExceptionOnDiscard;
-
-    /**
-     * MessageFilter constructor.
-     *
-     * @param MessageProcessor    $messageSelector
-     * @param null|MessageChannel $discardChannel
-     * @param bool                $throwExceptionOnDiscard
-     */
-    public function __construct(MessageProcessor $messageSelector, ?MessageChannel $discardChannel, bool $throwExceptionOnDiscard)
-    {
-        $this->messageSelector      = $messageSelector;
-        $this->discardChannel = $discardChannel;
-        $this->throwExceptionOnDiscard = $throwExceptionOnDiscard;
+    public function __construct(
+        private MethodInvocationProvider $messageSelector,
+        private ?MessageChannel          $discardChannel,
+        private bool                     $throwExceptionOnDiscard
+    ) {
     }
 
     /**
      * @inheritDoc
      */
-    public function handle(Message $message): ?Message
+    public function process(Message $message): ?Message
     {
-        if (! $this->messageSelector->executeEndpoint($message)) {
+        if (! $this->messageSelector->getMethodInvocation($message)->proceed()) {
             return $message;
         }
 

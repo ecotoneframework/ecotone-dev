@@ -89,12 +89,11 @@ final class TracingTreeTest extends TracingTest
                     'children' => [
                         [
                             'details' => ['name' => 'Command Handler: ' . ExampleMessageHandler::class . '::handleCommand'],
-                            'children' => [
-                                [
-                                    'details' => ['name' => 'Message Handler: ' . ExampleMessageHandler::class . '::handle'],
-                                    'children' => [],
-                                ],
-                            ],
+                            'children' => [],
+                        ],
+                        [
+                            'details' => ['name' => 'Message Handler: ' . ExampleMessageHandler::class . '::handle'],
+                            'children' => [],
                         ],
                     ],
                 ],

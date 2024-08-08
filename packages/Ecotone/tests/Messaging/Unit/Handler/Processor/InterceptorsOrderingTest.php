@@ -27,9 +27,9 @@ class InterceptorsOrderingTest extends TestCase
                 "before",
                 "around begin",
                 "endpoint",
+                "around end",
                 "afterChangeHeaders",
                 "after",
-                "around end",
             ],
             $stack->getCalls()
         );
@@ -69,9 +69,9 @@ class InterceptorsOrderingTest extends TestCase
                 "before",
                 "around begin",
                 "endpoint",
+                "around end",
                 "afterChangeHeaders",
                 "after",
-                "around end",
             ],
             $callStack->getCalls()
         );
@@ -116,11 +116,11 @@ class InterceptorsOrderingTest extends TestCase
                 "before",
                 "around begin",
                 "endpoint",
+                "around end",
                 "afterChangeHeaders",
                 "after",
-                "around end",
-                "gateway::after",
                 "gateway::around end",
+                "gateway::after",
             ],
             $callStack->getCalls()
         );

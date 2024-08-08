@@ -20,8 +20,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -81,15 +80,11 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $this->registerTracerFor('traceDistributedBus', DistributedBus::class, $messagingConfiguration, $interfaceToCallRegistry);
 
         $messagingConfiguration->registerBeforeMethodInterceptor(
-            MethodInterceptor::create(
-                'provideContextForDistributedBus',
+            MethodInterceptorBuilder::create(
+                new Definition(TracerInterceptor::class, [
+                    Reference::to(TracerProviderInterface::class),
+                ]),
                 $interfaceToCallRegistry->getFor(TracerInterceptor::class, 'provideContextForDistributedBus'),
-                ServiceActivatorBuilder::createWithDefinition(
-                    new Definition(TracerInterceptor::class, [
-                        Reference::to(TracerProviderInterface::class),
-                    ]),
-                    'provideContextForDistributedBus'
-                ),
                 0,
                 DistributedBus::class
             )

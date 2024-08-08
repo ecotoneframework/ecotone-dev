@@ -11,7 +11,6 @@ use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
@@ -44,28 +43,17 @@ final class ResolveAggregateServiceBuilder extends InputOutputMessageHandlerBuil
     {
         if ($this->isFactoryMethod) {
             if ($this->isCalledAggregateEventSourced) {
-                return ServiceActivatorBuilder::createWithDefinition(definition: $this->resolveEventSourcingAggregateService(true, $this->aggregateClassDefinition), methodName: 'resolve')
-                    ->withOutputMessageChannel($this->outputMessageChannelName)
-                    ->compile($builder)
-                ;
+                return $this->resolveEventSourcingAggregateService(true, $this->aggregateClassDefinition);
             }
-            return ServiceActivatorBuilder::createWithDefinition(definition: $this->resolveStateBasedAggregateService(true), methodName: 'resolve')
-                ->withOutputMessageChannel($this->outputMessageChannelName)
-                ->compile($builder)
-            ;
+            return $this->resolveStateBasedAggregateService(true);
         }
         if ($this->isReturningAggregate) {
-            $resolveAggregateEventsService = $this->resolveMultipleAggregatesService();
+            return $this->resolveMultipleAggregatesService();
         } elseif ($this->isCalledAggregateEventSourced) {
-            $resolveAggregateEventsService = $this->resolveEventSourcingAggregateService(false, $this->aggregateClassDefinition);
+            return $this->resolveEventSourcingAggregateService(false, $this->aggregateClassDefinition);
         } else {
-            $resolveAggregateEventsService = $this->resolveStateBasedAggregateService(false);
+            return $this->resolveStateBasedAggregateService(false);
         }
-
-        return ServiceActivatorBuilder::createWithDefinition(definition: $resolveAggregateEventsService, methodName: 'resolve')
-            ->withOutputMessageChannel($this->outputMessageChannelName)
-            ->compile($builder)
-        ;
     }
 
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall

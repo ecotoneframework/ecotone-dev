@@ -27,8 +27,7 @@ use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
@@ -88,19 +87,17 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
 
             $interfaceToCall = $interfaceToCallRegistry->getFor(HeaderBasedMultiTenantConnectionFactory::class, 'enablePollingConsumerPropagation');
             /** Register interceptors to enable tenant when polling (no metadata context available) */
-            $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptor::create(
-                $multiTenantConfig->getReferenceName() . '.' . 'enablePollingConsumerPropagation',
+            $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptorBuilder::create(
+                Reference::to($multiTenantConfig->getReferenceName()),
                 $interfaceToCall,
-                ServiceActivatorBuilder::create($multiTenantConfig->getReferenceName(), $interfaceToCall),
                 0,
                 MessageHeadersPropagatorInterceptor::class . '::' . 'enablePollingConsumerPropagation'
             ));
 
             $interfaceToCall = $interfaceToCallRegistry->getFor(HeaderBasedMultiTenantConnectionFactory::class, 'disablePollingConsumerPropagation');
-            $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptor::create(
-                $multiTenantConfig->getReferenceName() . '.' . 'disablePollingConsumerPropagation',
+            $messagingConfiguration->registerBeforeMethodInterceptor(MethodInterceptorBuilder::create(
+                Reference::to($multiTenantConfig->getReferenceName()),
                 $interfaceToCall,
-                ServiceActivatorBuilder::create($multiTenantConfig->getReferenceName(), $interfaceToCall),
                 0,
                 MessageHeadersPropagatorInterceptor::class . '::' . 'disablePollingConsumerPropagation'
             ));

@@ -9,7 +9,9 @@ use function array_merge;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -136,8 +138,12 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
     /**
      * @param AttributeDefinition[] $endpointAnnotations
      */
-    public function compile(MessagingContainerBuilder $builder, array $endpointAnnotations, InterfaceToCall $interceptedInterface): Definition|null
-    {
+    public function compileForInterceptedInterface(
+        MessagingContainerBuilder $builder,
+        InterfaceToCallReference  $interceptedInterfaceToCallReference,
+        array                     $endpointAnnotations = []
+    ): Definition {
+        $interceptedInterface = $builder->getInterfaceToCall($interceptedInterfaceToCallReference);
         $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
         $parameterConvertersFromAttributes = $parameterAnnotationResolver->createParameterConverters($this->interfaceToCall);
 
@@ -236,14 +242,6 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
     public function doesItCutWith(InterfaceToCall $interfaceToCall, iterable $endpointAnnotations): bool
     {
         return $this->pointcut->doesItCut($interfaceToCall, $endpointAnnotations);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addInterceptedInterfaceToCall(InterfaceToCall $interceptedInterface, array $endpointAnnotations): self
-    {
-        return $this;
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use function array_map;
 
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
@@ -426,7 +427,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         }
 
         if ($aroundInterceptors) {
-            $aroundInterceptors = $this->getSortedAroundInterceptors($aroundInterceptors);
+            $aroundInterceptors = $this->getSortedInterceptors($aroundInterceptors);
             $compiledAroundInterceptors = array_map(
                 fn (AroundInterceptorBuilder $aroundInterceptor) => $aroundInterceptor->compileForInterceptedInterface($builder, $interceptedInterfaceReference, $this->endpointAnnotations),
                 $aroundInterceptors
@@ -456,35 +457,20 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     }
 
     /**
-     * @return AroundInterceptorBuilder[]
+     * @template T of InterceptorWithPointCut
+     * @param T[] $interceptors
+     * @return T[]
      */
-    private function getSortedAroundInterceptors(array $aroundInterceptors): array
+    private function getSortedInterceptors(array $interceptors): array
     {
         usort(
-            $aroundInterceptors,
+            $interceptors,
             function (AroundInterceptorBuilder $a, AroundInterceptorBuilder $b) {
                 return $a->getPrecedence() <=> $b->getPrecedence();
             }
         );
 
-        return $aroundInterceptors;
-    }
-
-    /**
-     * @param MethodInterceptorBuilder[] $methodInterceptors
-     * @return MethodInterceptorBuilder[]
-     */
-    private function getSortedInterceptors(iterable $methodInterceptors): iterable
-    {
-        usort($methodInterceptors, function (MethodInterceptorBuilder $methodInterceptor, MethodInterceptorBuilder $toCompare) {
-            if ($methodInterceptor->getPrecedence() === $toCompare->getPrecedence()) {
-                return 0;
-            }
-
-            return $methodInterceptor->getPrecedence() > $toCompare->getPrecedence() ? 1 : -1;
-        });
-
-        return $methodInterceptors;
+        return $interceptors;
     }
 
     public function getProxyMethodReference(): GatewayProxyMethodReference

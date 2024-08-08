@@ -5,6 +5,9 @@ namespace Ecotone\Messaging\Handler\Router;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 class InMemoryRouteResolver implements RouteResolver
 {
     /**

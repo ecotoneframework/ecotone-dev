@@ -5,6 +5,9 @@ namespace Ecotone\Messaging\Config\Container;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 
+/**
+ * licence Apache-2.0
+ */
 class MethodInterceptorsConfiguration
 {
     /**

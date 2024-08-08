@@ -7,6 +7,9 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationImplementation;
 use Ecotone\Messaging\Message;
 
+/**
+ * licence Apache-2.0
+ */
 class AggregateMethodInvocationProvider implements MethodInvocationProvider
 {
     public function __construct(

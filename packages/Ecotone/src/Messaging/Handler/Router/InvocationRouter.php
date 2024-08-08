@@ -9,6 +9,9 @@ use Ecotone\Messaging\Message;
 
 use function is_iterable;
 
+/**
+ * licence Apache-2.0
+ */
 class InvocationRouter implements RouteSelector
 {
     public function __construct(private MethodInvocationProvider $methodCallProvider)

@@ -9,6 +9,9 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Processor\SendToChannelProcessor;
 
+/**
+ * licence Apache-2.0
+ */
 class RouterProcessorBuilder implements CompilableBuilder
 {
     public function __construct(

@@ -6,6 +6,9 @@ use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use InvalidArgumentException;
 
+/**
+ * licence Apache-2.0
+ */
 class RouterProcessor implements MessageProcessor
 {
     public function __construct(

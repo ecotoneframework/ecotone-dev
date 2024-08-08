@@ -2,12 +2,10 @@
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
-use Ecotone\Messaging\Attribute\Parameter\Headers;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\WithEvents;
 
 #[Aggregate]
@@ -24,17 +22,21 @@ class InterceptorOrderingAggregate
 
 
     #[CommandHandler(routingKey: "endpoint")]
-    public static function factory(#[Headers] array $metadata): self
+    public static function factory(#[Reference] InterceptorOrderingStack $stack): self
     {
-        $stack = $metadata["stack"];
-        $stack->add("factory", $metadata);
+        $stack->add("factory");
         return new self($metadata["aggregate.id"] ?? "id");
     }
 
     #[CommandHandler(routingKey: "endpoint")]
-    public function action(#[Headers] array $metadata): void
+    public function action(#[Reference] InterceptorOrderingStack $stack): void
     {
-        $stack = $metadata["stack"];
-        $stack->add("action", $metadata);
+        $stack->add("action");
+    }
+
+    #[CommandHandler(routingKey: "actionVoid")]
+    public function actionVoid(#[Reference] InterceptorOrderingStack $stack): void
+    {
+        $stack->add("action");
     }
 }

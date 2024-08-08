@@ -6,55 +6,50 @@ use Ecotone\Messaging\Attribute\Interceptor\After;
 use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\Interceptor\Before;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Modelling\Attribute\EventHandler;
 
 class InterceptorOrderingInterceptors
 {
     #[After(precedence: -1, pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class , changeHeaders: true)]
-    public function afterChangeHeaders(#[Headers] array $metadata): array
+    public function afterChangeHeaders(#[Headers] array $metadata, #[Reference] InterceptorOrderingStack $stack): array
     {
-        $stack = $metadata["stack"];
-        $stack->add("afterChangeHeaders", $metadata);
+        $stack->add("afterChangeHeaders");
         return array_merge($metadata, ["afterChangeHeaders" => "header"]);
     }
 
     #[After(pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class )]
-    public function after(#[Headers] array $metadata): void
+    public function after(#[Reference] InterceptorOrderingStack $stack): void
     {
-        $stack = $metadata["stack"];
-        $stack->add("after", $metadata);
+        $stack->add("after");
     }
 
     #[Before(precedence: -1, pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class , changeHeaders: true)]
-    public function beforeChangeHeaders(#[Headers] array $metadata): array
+    public function beforeChangeHeaders(#[Headers] array $metadata, #[Reference] InterceptorOrderingStack $stack): array
     {
-        $stack = $metadata["stack"];
-        $stack->add("beforeChangeHeaders", $metadata);
+        $stack->add("beforeChangeHeaders");
         return array_merge($metadata, ["beforeChangeHeaders" => "header"]);
     }
 
     #[Before(pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class )]
-    public function before(#[Headers] array $metadata): void
+    public function before(#[Reference] InterceptorOrderingStack $stack): void
     {
-        $stack = $metadata["stack"];
-        $stack->add("before", $metadata);
+        $stack->add("before");
     }
 
     #[Around(pointcut: InterceptorOrderingAggregate::class . '||' . InterceptorOrderingCase::class )]
-    public function around(MethodInvocation $methodInvocation, #[Headers] array $metadata): mixed
+    public function around(MethodInvocation $methodInvocation, #[Reference] InterceptorOrderingStack $stack): mixed
     {
-        $stack = $metadata["stack"];
-        $stack->add("around begin", $metadata);
+        $stack->add("around begin");
         $result = $methodInvocation->proceed();
-        $stack->add("around end", $metadata, $result);
+        $stack->add("around end");
         return $result;
     }
 
     #[EventHandler]
-    public function eventHandler(CreatedEvent $event, #[Headers] array $metadata): void
+    public function eventHandler(CreatedEvent $event, #[Reference] InterceptorOrderingStack $stack): void
     {
-        $stack = $metadata["stack"];
-        $stack->add("eventHandler", $metadata);
+        $stack->add("eventHandler");
     }
 }

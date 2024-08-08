@@ -7,6 +7,9 @@ use Ecotone\Messaging\Attribute\Parameter\Headers;
 
 interface Gateway
 {
-    #[MessageGateway(requestChannel: "runEndpoint")]
-    public function runWithReturn(#[Headers] $metadata = []): InterceptorOrderingStack;
+    #[MessageGateway(requestChannel: "serviceEndpointReturning")]
+    public function runWithReturn(): string;
+
+    #[MessageGateway(requestChannel: "serviceEndpointVoid")]
+    public function runWithVoid(): void;
 }

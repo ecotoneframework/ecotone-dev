@@ -6,31 +6,29 @@ use Ecotone\Messaging\Attribute\Interceptor\After;
 use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\Interceptor\Before;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 class GatewayInterceptors
 {
     #[Around(pointcut: Gateway::class)]
-    public function around(MethodInvocation $methodInvocation, #[Headers] array $metadata): mixed
+    public function around(MethodInvocation $methodInvocation, #[Reference] InterceptorOrderingStack $stack): mixed
     {
-        $stack = $metadata["stack"];
-        $stack->add("gateway::around begin", $metadata);
+        $stack->add("gateway::around begin");
         $result = $methodInvocation->proceed();
-        $stack->add("gateway::around end", $metadata, $result);
+        $stack->add("gateway::around end");
         return $result;
     }
 
     #[Before(pointcut: Gateway::class)]
-    public function before(#[Headers] array $metadata): void
+    public function before(#[Reference] InterceptorOrderingStack $stack): void
     {
-        $stack = $metadata["stack"];
-        $stack->add("gateway::before", $metadata);
+        $stack->add("gateway::before");
     }
 
     #[After(pointcut: Gateway::class)]
-    public function after(#[Headers] array $metadata): void
+    public function after(#[Reference] InterceptorOrderingStack $stack): void
     {
-        $stack = $metadata["stack"];
-        $stack->add("gateway::after", $metadata);
+        $stack->add("gateway::after");
     }
 }

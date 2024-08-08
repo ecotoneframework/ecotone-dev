@@ -8,20 +8,19 @@ use stdClass;
 class InterceptorOrderingStack
 {
     private array $calls = [];
-    public function add(string $name, array $metadata, mixed $result = null): self
+    public function add(string $name): self
     {
-        $headers = MessageHeaders::unsetAllFrameworkHeaders($metadata);
-        unset($headers["stack"]);
-        $call = [$name, $headers];
-        if ($result) {
-            $call[] = \get_class($result);
-        }
-        $this->calls[] = $call;
+        $this->calls[] = $name;
         return $this;
     }
 
     public function getCalls(): array
     {
         return $this->calls;
+    }
+
+    public function reset(): void
+    {
+        $this->calls = [];
     }
 }

@@ -28,6 +28,13 @@ class InterceptorOrderingAggregate
         return new self($metadata["aggregate.id"] ?? "id");
     }
 
+    #[CommandHandler(routingKey: 'endpointFactoryWithOutput', outputChannelName: 'internal-channel')]
+    public static function factoryWithOutput(#[Reference] InterceptorOrderingStack $stack): self
+    {
+        $stack->add('factory');
+        return new self($metadata['aggregate.id'] ?? 'id');
+    }
+
     #[CommandHandler(routingKey: "endpoint")]
     public function action(#[Reference] InterceptorOrderingStack $stack): void
     {
@@ -38,5 +45,13 @@ class InterceptorOrderingAggregate
     public function actionVoid(#[Reference] InterceptorOrderingStack $stack): void
     {
         $stack->add("action");
+    }
+
+    #[CommandHandler(routingKey: 'endpointWithOutput', outputChannelName: 'internal-channel')]
+    public function actionWithOutputChannel(#[Reference] InterceptorOrderingStack $stack): mixed
+    {
+        $stack->add('action');
+
+        return "something";
     }
 }

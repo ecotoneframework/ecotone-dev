@@ -10,6 +10,7 @@ use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingAggre
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingCase;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingStack;
 use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\InterceptorOrderingInterceptors;
+use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\OutputHandler;
 
 class InterceptorsOrderingTest extends TestCase
 {
@@ -202,6 +203,131 @@ class InterceptorsOrderingTest extends TestCase
                 "around end",
                 "afterChangeHeaders",
                 "after",
+            ],
+            $callStack->getCalls()
+        );
+    }
+
+    public function test_command_without_output_channel(): void
+    {
+        $stack = new InterceptorOrderingStack();
+        EcotoneLite::bootstrapFlowTesting(
+            [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
+            [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), $stack],
+        )->sendCommandWithRoutingKey('commandWithOutputChannel');
+
+        self::assertEquals(
+            [
+                'beforeChangeHeaders',
+                'before',
+                'around begin',
+                'endpoint',
+                'afterChangeHeaders',
+                'after',
+                'around end',
+
+                'beforeChangeHeaders',
+                'before',
+                'around begin',
+                'command-output-channel',
+                'afterChangeHeaders',
+                'after',
+                'around end',
+            ],
+            $stack->getCalls()
+        );
+    }
+
+    public function test_gateway_command_without_output_channel(): void
+    {
+        $callStack = new InterceptorOrderingStack();
+        /** @var Gateway $gateway */
+        $gateway = EcotoneLite::bootstrapFlowTesting(
+            [InterceptorOrderingCase::class, Gateway::class, InterceptorOrderingInterceptors::class, GatewayInterceptors::class],
+            [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), new GatewayInterceptors(), $callStack],
+        )
+            ->getGateway(Gateway::class);
+        $gateway->runWithEndpointOutputChannel();
+
+        self::assertEquals(
+            [
+                'gateway::before',
+                'gateway::around begin',
+
+                'beforeChangeHeaders',
+                'before',
+                'around begin',
+                'endpoint',
+                'afterChangeHeaders',
+                'after',
+                'around end',
+
+                'beforeChangeHeaders',
+                'before',
+                'around begin',
+                'command-output-channel',
+                'afterChangeHeaders',
+                'after',
+                'around end',
+
+                'gateway::after',
+                'gateway::around end',
+            ],
+            $callStack->getCalls()
+        );
+    }
+
+    public function test_aggregate_command_with_output_channel(): void
+    {
+        $callStack = new InterceptorOrderingStack();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class, OutputHandler::class],
+            [new InterceptorOrderingInterceptors(), $callStack, new OutputHandler()],
+        )
+            ->withStateFor(new InterceptorOrderingAggregate('existingAggregateId'));
+        // Remove event handler event from stack
+        $callStack->reset();
+
+        $ecotone
+            ->sendCommandWithRoutingKey('endpointWithOutput', metadata: ['aggregate.id' => 'existingAggregateId']);
+
+        self::assertEquals(
+            [
+                'beforeChangeHeaders',
+                'before',
+                'around begin',
+                'action',
+                'around end',
+                'afterChangeHeaders',
+                'after',
+
+                'command-output-channel',
+            ],
+            $callStack->getCalls()
+        );
+    }
+
+    public function test_aggregate_with_factory_method_and_output_channel(): void
+    {
+        $callStack = new InterceptorOrderingStack();
+        EcotoneLite::bootstrapFlowTesting(
+            [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class, OutputHandler::class],
+            [new InterceptorOrderingInterceptors(), $callStack, new OutputHandler()],
+        )->sendCommandWithRoutingKey('endpointFactoryWithOutput', metadata: ['aggregate.id' => 'id']);
+
+        self::assertEquals(
+            [
+                'beforeChangeHeaders',
+                'before',
+                'around begin',
+                'factory',
+                'around end',
+                'afterChangeHeaders',
+                'after',
+
+                'eventHandler',
+
+                'command-output-channel',
             ],
             $callStack->getCalls()
         );

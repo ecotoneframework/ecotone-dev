@@ -12,4 +12,7 @@ interface Gateway
 
     #[MessageGateway(requestChannel: "serviceEndpointVoid")]
     public function runWithVoid(): void;
+
+    #[MessageGateway(requestChannel: 'commandWithOutputChannel')]
+    public function runWithEndpointOutputChannel(): string;
 }

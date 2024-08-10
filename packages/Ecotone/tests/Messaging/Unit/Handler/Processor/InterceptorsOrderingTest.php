@@ -300,6 +300,33 @@ class InterceptorsOrderingTest extends TestCase
                 'around end',
                 'afterChangeHeaders',
                 'after',
+
+                'command-output-channel',
+            ],
+            $callStack->getCalls()
+        );
+    }
+
+    public function test_aggregate_with_factory_method_and_output_channel(): void
+    {
+        $callStack = new InterceptorOrderingStack();
+        EcotoneLite::bootstrapFlowTesting(
+            [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class, OutputHandler::class],
+            [new InterceptorOrderingInterceptors(), $callStack, new OutputHandler()],
+        )->sendCommandWithRoutingKey('endpointFactoryWithOutput', metadata: ['aggregate.id' => 'id']);
+
+        self::assertEquals(
+            [
+                'beforeChangeHeaders',
+                'before',
+                'around begin',
+                'factory',
+                'around end',
+                'afterChangeHeaders',
+                'after',
+
+                'eventHandler',
+
                 'command-output-channel',
             ],
             $callStack->getCalls()

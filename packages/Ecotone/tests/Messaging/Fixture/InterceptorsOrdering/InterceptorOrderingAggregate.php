@@ -39,4 +39,12 @@ class InterceptorOrderingAggregate
     {
         $stack->add("action");
     }
+
+    #[CommandHandler(routingKey: 'endpointWithOutput', outputChannelName: 'internal-channel')]
+    public function actionWithOutputChannel(#[Reference] InterceptorOrderingStack $stack): mixed
+    {
+        $stack->add('action');
+
+        return "something";
+    }
 }

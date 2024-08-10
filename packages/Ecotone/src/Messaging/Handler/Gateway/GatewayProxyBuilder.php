@@ -402,8 +402,8 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         // register interceptors
         $interceptorsConfig = $builder->getRelatedInterceptors($interceptedInterfaceReference, $this->endpointAnnotations, $this->requiredInterceptorNames);
         $beforeInterceptors = \array_merge($this->beforeInterceptors, $interceptorsConfig->getBeforeInterceptors());
-        $afterInterceptors = \array_merge($this->afterInterceptors, $interceptorsConfig->getAfterInterceptors());
         $aroundInterceptors = \array_merge($this->aroundInterceptors, $interceptorsConfig->getAroundInterceptors());
+        $afterInterceptors = \array_merge($this->afterInterceptors, $interceptorsConfig->getAfterInterceptors());
 
         if ($this->errorChannelName) {
             $interceptorReference = $builder->register(

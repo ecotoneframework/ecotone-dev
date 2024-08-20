@@ -7,7 +7,7 @@ use Ecotone\Messaging\Message;
 /**
  * @licence Apache-2.0
  */
-class AroundMethodInvocationProvider implements MethodInvocationProvider
+class AroundMethodInvoker implements MethodInvoker
 {
     /**
      * @param AroundMethodInterceptor[] $aroundInterceptors

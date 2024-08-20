@@ -13,7 +13,7 @@ use Ecotone\Messaging\Message;
 /**
  * @licence Apache-2.0
  */
-class StaticMethodInvocationProvider implements MethodInvocationProvider, AroundInterceptable
+class StaticMethodInvoker implements MethodInvoker, AroundInterceptable
 {
     /**
      * @param array<ParameterConverter> $methodParameterConverters

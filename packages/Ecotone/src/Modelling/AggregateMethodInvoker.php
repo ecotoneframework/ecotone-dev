@@ -3,13 +3,13 @@
 namespace Ecotone\Modelling;
 
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0
  */
-class AggregateMethodInvocationProvider implements MethodInvocationProvider, AroundInterceptable
+class AggregateMethodInvoker implements MethodInvoker, AroundInterceptable
 {
     public function __construct(
         private string $aggregateClass,

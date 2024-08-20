@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvocationProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvoker;
 
 /**
  * @licence Apache-2.0
@@ -26,7 +26,7 @@ class TransformerMessageProcessorBuilder implements InterceptedMessageProcessorB
     public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
-        $methodCall = StaticMethodInvocationProvider::getDefinition(
+        $methodCall = StaticMethodInvoker::getDefinition(
             $this->transformerObjectDefinition,
             $interfaceToCall,
             $this->methodParameterConverters,

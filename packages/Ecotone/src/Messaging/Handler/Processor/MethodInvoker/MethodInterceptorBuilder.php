@@ -72,7 +72,7 @@ class MethodInterceptorBuilder implements InterceptorWithPointCut
         $interceptorInterface = $builder->getInterfaceToCall($this->interceptorInterfaceReference);
         $interceptedInterface = $builder->getInterfaceToCall($interceptedInterfaceToCallReference);
 
-        $methodCallProvider = StaticMethodInvocationProvider::getDefinition(
+        $methodCallProvider = StaticMethodInvoker::getDefinition(
             $this->interceptorDefinition,
             $interceptorInterface,
             $this->defaultParameterConverters,

@@ -8,7 +8,7 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvocationProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Support\Assert;
@@ -157,7 +157,7 @@ class MessagingContainerBuilder
         foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptor) {
             $aroundInterceptors[] = $aroundInterceptor->compileForInterceptedInterface($this, $interceptedInterfaceReference, $endpointAnnotations);
         }
-        return new Definition(AroundMethodInvocationProvider::class, [
+        return new Definition(AroundMethodInvoker::class, [
             $methodCallProviderDefinition,
             $aroundInterceptors,
         ]);

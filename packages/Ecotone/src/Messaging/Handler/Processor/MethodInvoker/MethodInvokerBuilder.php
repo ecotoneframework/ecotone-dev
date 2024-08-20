@@ -69,7 +69,7 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
             $reference = $this->reference;
         }
 
-        $methodCallProvider = StaticMethodInvocationProvider::getDefinition(
+        $methodCallProvider = StaticMethodInvoker::getDefinition(
             $reference,
             $interfaceToCall,
             $this->methodParametersConverterBuilders,

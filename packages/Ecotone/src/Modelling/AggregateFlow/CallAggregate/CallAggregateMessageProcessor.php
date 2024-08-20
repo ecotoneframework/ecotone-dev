@@ -8,7 +8,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -21,12 +21,12 @@ use Ecotone\Modelling\AggregateMessage;
 final class CallAggregateMessageProcessor implements MessageProcessor
 {
     public function __construct(
-        private MethodInvocationProvider $methodCallProvider,
-        private ?Type                    $returnType,
-        private PropertyReaderAccessor   $propertyReaderAccessor,
-        private bool                     $isCommandHandler,
-        private bool                     $isFactoryMethod,
-        private ?string                  $aggregateVersionProperty,
+        private MethodInvoker          $methodCallProvider,
+        private ?Type                  $returnType,
+        private PropertyReaderAccessor $propertyReaderAccessor,
+        private bool                   $isCommandHandler,
+        private bool                   $isFactoryMethod,
+        private ?string                $aggregateVersionProperty,
     ) {
     }
 

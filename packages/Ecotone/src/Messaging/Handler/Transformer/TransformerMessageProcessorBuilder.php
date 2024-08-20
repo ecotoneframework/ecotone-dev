@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvoker;
 
 /**
@@ -31,9 +32,9 @@ class TransformerMessageProcessorBuilder implements InterceptedMessageProcessorB
             $interfaceToCall,
             $this->methodParameterConverters,
         );
-        return new Definition(TransformerMessageProcessor::class, [
+        return new Definition(MethodInvocationProcessor::class, [
             $methodCall,
-            $interfaceToCall->getReturnType(),
+            new Definition(TransformerResultToMessageConverter::class, [$interfaceToCall->getReturnType()]),
         ]);
     }
 

@@ -5,6 +5,7 @@ namespace Ecotone\Messaging\Handler\Transformer;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -18,10 +19,9 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * licence Apache-2.0
  */
-class TransformerMessageProcessor implements MessageProcessor
+class TransformerResultToMessageConverter implements ResultToMessageConverter
 {
     public function __construct(
-        private MethodInvoker $methodCallProvider,
         private Type          $returnType
     ) {
     }
@@ -29,17 +29,16 @@ class TransformerMessageProcessor implements MessageProcessor
     /**
      * @inheritDoc
      */
-    public function process(Message $message): ?Message
+    public function convertToMessage(Message $requestMessage, mixed $result): ?Message
     {
-        $reply = $this->methodCallProvider->execute($message);
         return match (true) {
-            is_null($reply) => null,
-            $reply instanceof Message => $reply,
-            is_array($reply) => MessageBuilder::fromMessage($message)
-                ->setMultipleHeaders($reply)
+            is_null($result) => null,
+            $result instanceof Message => $result,
+            is_array($result) => MessageBuilder::fromMessage($requestMessage)
+                ->setMultipleHeaders($result)
                 ->build(),
-            default => MessageBuilder::fromMessage($message)
-                ->setPayload($reply)
+            default => MessageBuilder::fromMessage($requestMessage)
+                ->setPayload($result)
                 ->setContentType(MediaType::createApplicationXPHPWithTypeParameter($this->returnType->toString()))
                 ->build()
         };

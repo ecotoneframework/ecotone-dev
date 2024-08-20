@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -26,6 +27,8 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
     private array $endpointAnnotations;
     private bool $shouldPassTroughMessageIfVoid = false;
     private bool $changeHeaders = false;
+
+    private ?CompilableBuilder $resultToMessageConverter = null;
 
     /**
      * @param array<ParameterConverterBuilder> $methodParametersConverterBuilders
@@ -59,6 +62,13 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
         return $this;
     }
 
+    public function withResultToMessageConverter(CompilableBuilder $compilableBuilder): self
+    {
+        $this->resultToMessageConverter = $compilableBuilder;
+
+        return $this;
+    }
+
     public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
@@ -73,8 +83,6 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
             $reference,
             $interfaceToCall,
             $this->methodParametersConverterBuilders,
-            $interfaceToCall,
-            $this->endpointAnnotations,
         );
         if ($interceptorsConfiguration) {
             $methodCallProvider = $builder->interceptMethodCall($this->interfaceToCallReference, $this->endpointAnnotations, $methodCallProvider);
@@ -82,6 +90,7 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
 
         // @todo: this is only used for tests, in production it is always payload converter
         $messageConverter = match (true) {
+            $this->resultToMessageConverter !== null => $this->resultToMessageConverter->compile($builder),
             $this->shouldPassTroughMessageIfVoid && $interfaceToCall->getReturnType()->isVoid() => new Definition(PassthroughMessageConverter::class),
             $this->changeHeaders => new Definition(HeaderResultMessageConverter::class, [(string) $interfaceToCall]),
             default => new Definition(PayloadResultMessageConverter::class, [

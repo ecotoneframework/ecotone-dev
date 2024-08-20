@@ -29,6 +29,7 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
     private bool $changeHeaders = false;
 
     private ?CompilableBuilder $resultToMessageConverter = null;
+    private bool $isInterceptionEnabled = true;
 
     /**
      * @param array<ParameterConverterBuilder> $methodParametersConverterBuilders
@@ -69,7 +70,33 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
         return $this;
     }
 
+    public function withInterceptionDisabled(): self
+    {
+        $this->isInterceptionEnabled = false;
+
+        return $this;
+    }
+
     public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference
+    {
+        $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
+
+        $messageConverter = match (true) {
+            $this->resultToMessageConverter !== null => $this->resultToMessageConverter->compile($builder),
+            $this->shouldPassTroughMessageIfVoid && $interfaceToCall->getReturnType()->isVoid() => new Definition(PassthroughMessageConverter::class),
+            $this->changeHeaders => new Definition(HeaderResultMessageConverter::class, [(string) $interfaceToCall]),
+            default => new Definition(PayloadResultMessageConverter::class, [
+                $interfaceToCall->getReturnType(),
+            ])
+        };
+
+        return new Definition(MethodInvocationProcessor::class, [
+            $this->compileWithoutProcessor($builder),
+            $messageConverter,
+        ]);
+    }
+
+    public function compileWithoutProcessor(MessagingContainerBuilder $builder): Definition
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 
@@ -90,24 +117,11 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
             $parameterConverters,
             $interfaceToCall->getInterfaceParametersNames(),
         ]);
-        if ($interceptorsConfiguration) {
+
+        if ($this->isInterceptionEnabled) {
             $methodCallProvider = $builder->interceptMethodCall($this->interfaceToCallReference, $this->endpointAnnotations, $methodCallProvider);
         }
-
-        // @todo: this is only used for tests, in production it is always payload converter
-        $messageConverter = match (true) {
-            $this->resultToMessageConverter !== null => $this->resultToMessageConverter->compile($builder),
-            $this->shouldPassTroughMessageIfVoid && $interfaceToCall->getReturnType()->isVoid() => new Definition(PassthroughMessageConverter::class),
-            $this->changeHeaders => new Definition(HeaderResultMessageConverter::class, [(string) $interfaceToCall]),
-            default => new Definition(PayloadResultMessageConverter::class, [
-                $interfaceToCall->getReturnType(),
-            ])
-        };
-
-        return new Definition(MethodInvocationProcessor::class, [
-            $methodCallProvider,
-            $messageConverter,
-        ]);
+        return $methodCallProvider;
     }
 
     public function getInterceptedInterface(): InterfaceToCallReference

@@ -9,12 +9,9 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
-use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvoker;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**

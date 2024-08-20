@@ -34,21 +34,6 @@ class StaticMethodInvoker implements MethodInvoker, AroundInterceptable
             : $objectToInvokeOn->{$this->getMethodName()}(...$this->getArguments($message));
     }
 
-    public static function getDefinition(string|object $objectDefinition, InterfaceToCall $interfaceToCall, array $parameterConvertersBuilders): Definition
-    {
-        $parameterConvertersBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $parameterConvertersBuilders);
-        $parameterConverters = array_map(
-            fn (ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interfaceToCall),
-            $parameterConvertersBuilders
-        );
-        return new Definition(self::class, [
-            $objectDefinition,
-            $interfaceToCall->getMethodName(),
-            $parameterConverters,
-            $interfaceToCall->getInterfaceParametersNames(),
-        ]);
-    }
-
     public function getMethodName(): string
     {
         return $this->methodName;

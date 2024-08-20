@@ -7,8 +7,7 @@ namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -18,10 +17,9 @@ use Ecotone\Modelling\AggregateMessage;
 /**
  * licence Apache-2.0
  */
-final class CallAggregateMessageProcessor implements MessageProcessor
+final class CallAggregateResultToMessageConverter implements ResultToMessageConverter
 {
     public function __construct(
-        private MethodInvoker          $methodCallProvider,
         private ?Type                  $returnType,
         private PropertyReaderAccessor $propertyReaderAccessor,
         private bool                   $isCommandHandler,
@@ -30,16 +28,9 @@ final class CallAggregateMessageProcessor implements MessageProcessor
     ) {
     }
 
-    public function process(Message $message): ?Message
+    public function convertToMessage(Message $requestMessage, mixed $result): ?Message
     {
-        $result = $this->methodCallProvider->execute($message);
-
-        return $this->buildMessageFromResult($message, $result);
-    }
-
-    private function buildMessageFromResult(Message $message, mixed $result): ?Message
-    {
-        $resultMessage = MessageBuilder::fromMessage($message);
+        $resultMessage = MessageBuilder::fromMessage($requestMessage);
 
         $resultType = TypeDescriptor::createFromVariable($result);
         if ($resultType->isIterable() && $this->returnType?->isCollection()) {
@@ -47,8 +38,8 @@ final class CallAggregateMessageProcessor implements MessageProcessor
         }
 
         if ($this->isCommandHandler) {
-            $calledAggregate = $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT) ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT) : null;
-            $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;
+            $calledAggregate = $requestMessage->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT) ? $requestMessage->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT) : null;
+            $versionBeforeHandling = $requestMessage->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $requestMessage->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;
 
             if (is_null($versionBeforeHandling) && $this->aggregateVersionProperty) {
                 if ($this->isFactoryMethod) {

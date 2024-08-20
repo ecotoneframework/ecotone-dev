@@ -13,6 +13,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
@@ -122,13 +123,17 @@ class CallAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
             $aggregateMethodCallProvider = $builder->interceptMethodCall($this->getInterceptedInterface(), [], $aggregateMethodCallProvider);
         }
 
-        return new Definition(CallAggregateMessageProcessor::class, [
-            $aggregateMethodCallProvider,
+        $resultToMessageConverter = new Definition(CallAggregateResultToMessageConverter::class, [
             $this->interfaceToCall->getReturnType(),
             new Reference(PropertyReaderAccessor::class),
             $this->isCommandHandler,
             $this->interfaceToCall->isFactoryMethod() ?? false,
             $this->aggregateVersionProperty,
+        ]);
+
+        return new Definition(MethodInvocationProcessor::class, [
+            $aggregateMethodCallProvider,
+            $resultToMessageConverter,
         ]);
     }
 

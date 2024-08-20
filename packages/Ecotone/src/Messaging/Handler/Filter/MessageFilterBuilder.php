@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\StaticMethodInvoker;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
@@ -109,30 +110,20 @@ class MessageFilterBuilder implements InterceptedMessageProcessorBuilder
 
     public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition
     {
-        $messageSelector = is_object($this->referenceNameOrObject) ? $this->referenceNameOrObject : new Reference($this->referenceNameOrObject);
-
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
         if (! $interfaceToCall->hasReturnValueBoolean()) {
             throw InvalidArgumentException::create("Object with reference {$interfaceToCall->getInterfaceName()} should return bool for method {$interfaceToCall->getMethodName()} while using Message Filter");
         }
 
-        $discardChannel = $this->discardChannelName ? new ChannelReference($this->discardChannelName) : null;
-
-        $methodCallProvider = StaticMethodInvoker::getDefinition(
-            $messageSelector,
-            $interfaceToCall,
+        return MethodInvokerBuilder::create(
+            $this->referenceNameOrObject,
+            $this->interfaceToCallReference,
             $this->parameterConverters,
-        );
-        if ($interceptorsConfiguration) {
-            $methodCallProvider = $builder->interceptMethodCall($this->interfaceToCallReference, [], $methodCallProvider);
-        }
-
-        return new Definition(MethodInvocationProcessor::class, [
-            $methodCallProvider,
-            new Definition(MessageFilter::class, [
-                $discardChannel,
+        )
+            ->withResultToMessageConverter(new Definition(MessageFilter::class, [
+                $this->discardChannelName ? new ChannelReference($this->discardChannelName) : null,
                 $this->throwExceptionOnDiscard,
-            ])
-        ]);
+            ]))
+            ->compile($builder, $interceptorsConfiguration);
     }
 }

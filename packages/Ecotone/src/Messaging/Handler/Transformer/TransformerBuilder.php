@@ -16,6 +16,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\Assert;
@@ -158,10 +159,13 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
             ->withOutputMessageChannel($this->getOutputMessageChannelName())
             ->withEndpointAnnotations($this->getEndpointAnnotations())
             ->chainInterceptedProcessor(
-                new TransformerMessageProcessorBuilder(
+                MethodInvokerBuilder::create(
                     $objectToInvokeOn,
                     $interfaceToCallReference,
                     $this->methodParameterConverterBuilders
+                )
+                ->withResultToMessageConverter(
+                    new Definition(TransformerResultToMessageConverter::class, [$interfaceToCall->getReturnType()]),
                 )
             );
 

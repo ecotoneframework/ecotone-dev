@@ -137,14 +137,15 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
             $className = $this->objectToInvokeReference instanceof Definition ? $this->objectToInvokeReference->getClassName() : (string) $this->objectToInvokeReference;
             $interfaceToCallReference = new InterfaceToCallReference($className, $this->methodNameOrInterface);
         }
-        $methodCallProvider = MethodInvokerBuilder::create(
+        $methodInvoker = MethodInvokerBuilder::create(
             $this->directObjectToInvoke ?: $this->objectToInvokeReference,
             $interfaceToCallReference,
             $this->methodParameterConverters,
         )->compileWithoutProcessor($builder);
+
         return new Definition(Router::class, [
             new Reference(ChannelResolver::class),
-            new Definition(InvocationRouter::class, [$methodCallProvider]),
+            new Definition(InvocationRouter::class, [$methodInvoker]),
             $this->resolutionRequired,
             $this->defaultResolution,
             $this->applySequence,

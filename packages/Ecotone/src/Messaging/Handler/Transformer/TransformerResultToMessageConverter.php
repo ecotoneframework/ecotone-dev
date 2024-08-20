@@ -3,8 +3,6 @@
 namespace Ecotone\Messaging\Handler\Transformer;
 
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
@@ -21,9 +19,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 class TransformerResultToMessageConverter implements ResultToMessageConverter
 {
-    public function __construct(
-        private Type          $returnType
-    ) {
+    public function __construct(private Type $returnType)
+    {
     }
 
     /**

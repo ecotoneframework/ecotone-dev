@@ -8,7 +8,6 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInvoker;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Support\Assert;
@@ -145,22 +144,6 @@ class MessagingContainerBuilder
         }
 
         return $pollingMetadata;
-    }
-
-    public function interceptMethodCall(InterfaceToCallReference $interceptedInterfaceReference, array $endpointAnnotations, Definition $methodCallProviderDefinition): Definition
-    {
-        $interceptorsConfiguration = $this->getRelatedInterceptors(
-            $interceptedInterfaceReference,
-            $endpointAnnotations,
-        );
-        $aroundInterceptors = [];
-        foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptor) {
-            $aroundInterceptors[] = $aroundInterceptor->compileForInterceptedInterface($this, $interceptedInterfaceReference, $endpointAnnotations);
-        }
-        return new Definition(AroundMethodInvoker::class, [
-            $methodCallProviderDefinition,
-            $aroundInterceptors,
-        ]);
     }
 
     public function getRelatedInterceptors(

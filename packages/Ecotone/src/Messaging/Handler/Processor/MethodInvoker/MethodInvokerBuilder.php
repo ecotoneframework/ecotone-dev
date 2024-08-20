@@ -12,7 +12,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvokerProcessor;
 
 use function is_string;
 
@@ -90,7 +90,7 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
             ])
         };
 
-        return new Definition(MethodInvocationProcessor::class, [
+        return new Definition(MethodInvokerProcessor::class, [
             $this->compileWithoutProcessor($builder),
             $messageConverter,
         ]);
@@ -100,10 +100,13 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 
-        if (is_string($this->reference)) {
-            $reference = $interfaceToCall->isStaticallyCalled() ? $this->reference : new Reference($this->reference);
+        if ($this->reference instanceof Definition
+            && is_a($this->reference->getClassName(), MethodInvokerObjectResolver::class, true)) {
+            $objectToInvokeOnResolver = $this->reference;
         } else {
-            $reference = $this->reference;
+            $objectToInvokeOnResolver = new Definition(MethodInvokerStaticObjectResolver::class, [
+                is_string($this->reference) && !$interfaceToCall->isStaticallyCalled() ? Reference::to($this->reference) : $this->reference
+            ]);
         }
 
         $parameterConvertersBuilders = MethodArgumentsFactory::createDefaultMethodParameters($interfaceToCall, $this->methodParametersConverterBuilders);
@@ -111,17 +114,24 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
             fn (ParameterConverterBuilder $parameterConverterBuilder) => $parameterConverterBuilder->compile($interfaceToCall),
             $parameterConvertersBuilders
         );
-        $methodCallProvider = new Definition(StaticMethodInvoker::class, [
-            $reference,
+
+        $aroundInterceptors = [];
+        if ($this->isInterceptionEnabled) {
+            $interceptorsConfiguration = $builder->getRelatedInterceptors(
+                $this->interfaceToCallReference,
+                $this->endpointAnnotations,
+            );
+            foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptor) {
+                $aroundInterceptors[] = $aroundInterceptor->compileForInterceptedInterface($builder, $this->interfaceToCallReference, $this->endpointAnnotations);
+            }
+        }
+        return new Definition(MethodInvoker::class, [
+            $objectToInvokeOnResolver,
             $interfaceToCall->getMethodName(),
             $parameterConverters,
             $interfaceToCall->getInterfaceParametersNames(),
+            $aroundInterceptors,
         ]);
-
-        if ($this->isInterceptionEnabled) {
-            $methodCallProvider = $builder->interceptMethodCall($this->interfaceToCallReference, $this->endpointAnnotations, $methodCallProvider);
-        }
-        return $methodCallProvider;
     }
 
     public function getInterceptedInterface(): InterfaceToCallReference

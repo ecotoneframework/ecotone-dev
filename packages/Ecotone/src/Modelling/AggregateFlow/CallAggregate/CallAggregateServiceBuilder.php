@@ -13,11 +13,10 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvocationProcessor;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerAggregateObjectResolver;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\AggregateMethodInvoker;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
@@ -105,36 +104,23 @@ class CallAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
 
     public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition
     {
-        // TODO: code duplication with ServiceActivatorBuilder
-        $methodParameterConverterBuilders = MethodArgumentsFactory::createDefaultMethodParameters($this->interfaceToCall, $this->methodParameterConverterBuilders);
-
-        $compiledMethodParameterConverters = [];
-        foreach ($methodParameterConverterBuilders as $index => $methodParameterConverter) {
-            $compiledMethodParameterConverters[] = $methodParameterConverter->compile($this->interfaceToCall);
-        }
-
-        $aggregateMethodCallProvider = new Definition(AggregateMethodInvoker::class, [
-            $this->interfaceToCall->getInterfaceName(),
-            $this->interfaceToCall->getMethodName(),
-            $compiledMethodParameterConverters,
-            $this->interfaceToCall->getInterfaceParametersNames(),
-        ]);
-        if ($interceptorsConfiguration) {
-            $aggregateMethodCallProvider = $builder->interceptMethodCall($this->getInterceptedInterface(), [], $aggregateMethodCallProvider);
-        }
-
-        $resultToMessageConverter = new Definition(CallAggregateResultToMessageConverter::class, [
-            $this->interfaceToCall->getReturnType(),
-            new Reference(PropertyReaderAccessor::class),
-            $this->isCommandHandler,
-            $this->interfaceToCall->isFactoryMethod() ?? false,
-            $this->aggregateVersionProperty,
-        ]);
-
-        return new Definition(MethodInvocationProcessor::class, [
-            $aggregateMethodCallProvider,
-            $resultToMessageConverter,
-        ]);
+        return MethodInvokerBuilder::create(
+            $this->interfaceToCall->isStaticallyCalled()
+                ? $this->interfaceToCall->getInterfaceName()
+                : new Definition(MethodInvokerAggregateObjectResolver::class),
+            InterfaceToCallReference::fromInstance($this->interfaceToCall),
+            $this->methodParameterConverterBuilders
+        )
+            ->withResultToMessageConverter(
+                new Definition(CallAggregateResultToMessageConverter::class, [
+                    $this->interfaceToCall->getReturnType(),
+                    new Reference(PropertyReaderAccessor::class),
+                    $this->isCommandHandler,
+                    $this->interfaceToCall->isFactoryMethod() ?? false,
+                    $this->aggregateVersionProperty,
+                ])
+            )
+            ->compile($builder);
     }
 
     /**

@@ -2,9 +2,9 @@
 
 namespace Ecotone\Messaging\Handler\Router;
 
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use function array_unique;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Message;
 
 use function is_iterable;
@@ -14,13 +14,13 @@ use function is_iterable;
  */
 class InvocationRouter implements RouteSelector
 {
-    public function __construct(private MethodInvoker $methodCallProvider)
+    public function __construct(private MethodInvoker $methodInvoker)
     {
     }
 
     public function route(Message $message): array
     {
-        $result = $this->methodCallProvider->execute($message);
+        $result = $this->methodInvoker->execute($message);
         if (! is_iterable($result)) {
             $result = [$result];
         }

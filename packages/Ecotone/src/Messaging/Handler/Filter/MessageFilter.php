@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Filter;
 
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
@@ -19,10 +20,9 @@ use Ecotone\Messaging\MessageHeaders;
 /**
  * licence Apache-2.0
  */
-class MessageFilter implements MessageProcessor
+class MessageFilter implements ResultToMessageConverter
 {
     public function __construct(
-        private MethodInvoker   $messageSelector,
         private ?MessageChannel $discardChannel,
         private bool            $throwExceptionOnDiscard
     ) {
@@ -31,18 +31,18 @@ class MessageFilter implements MessageProcessor
     /**
      * @inheritDoc
      */
-    public function process(Message $message): ?Message
+    public function convertToMessage(Message $requestMessage, mixed $result): ?Message
     {
-        if (! $this->messageSelector->execute($message)) {
-            return $message;
+        if (! $result) {
+            return $requestMessage;
         }
 
         if ($this->discardChannel) {
-            $this->discardChannel->send($message);
+            $this->discardChannel->send($requestMessage);
         }
 
         if ($this->throwExceptionOnDiscard) {
-            throw MessageFilterDiscardException::create("Message with id {$message->getHeaders()->get(MessageHeaders::MESSAGE_ID)} was discarded");
+            throw MessageFilterDiscardException::create("Message with id {$requestMessage->getHeaders()->get(MessageHeaders::MESSAGE_ID)} was discarded");
         }
 
         return null;

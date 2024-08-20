@@ -27,7 +27,10 @@ class AroundMessageProcessor implements MessageProcessor
             $this->aroundInterceptors,
             $this->messageProcessor,
         );
-        $result = $invocation->proceed();
-        return $this->resultToMessageConverter->convertToMessage($message, $result);
+
+        return $this->resultToMessageConverter->convertToMessage(
+            $message,
+            $invocation->proceed(),
+        );
     }
 }

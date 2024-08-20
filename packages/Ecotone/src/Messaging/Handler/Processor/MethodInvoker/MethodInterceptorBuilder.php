@@ -69,34 +69,21 @@ class MethodInterceptorBuilder implements InterceptorWithPointCut
         InterfaceToCallReference  $interceptedInterfaceToCallReference,
         array                     $endpointAnnotations = []
     ): Definition|Reference {
-        $interceptorInterface = $builder->getInterfaceToCall($this->interceptorInterfaceReference);
-        $interceptedInterface = $builder->getInterfaceToCall($interceptedInterfaceToCallReference);
-
         $parameterConvertersBuilders = MethodArgumentsFactory::createInterceptedInterfaceAnnotationMethodParameters(
-            $interceptorInterface,
+            $builder->getInterfaceToCall($this->interceptorInterfaceReference),
             $this->defaultParameterConverters,
             $endpointAnnotations,
-            $interceptedInterface,
+            $builder->getInterfaceToCall($interceptedInterfaceToCallReference),
         );
 
-        $methodCallProvider = StaticMethodInvoker::getDefinition(
+        return MethodInvokerBuilder::create(
             $this->interceptorDefinition,
-            $interceptorInterface,
+            $this->interceptorInterfaceReference,
             $parameterConvertersBuilders,
-        );
-
-        $messageConverter = match (true) {
-            $interceptorInterface->hasReturnTypeVoid() => new Definition(PassthroughMessageConverter::class),
-            $this->changeHeaders => new Definition(HeaderResultMessageConverter::class, [(string) $interceptedInterface]),
-            default => new Definition(PayloadResultMessageConverter::class, [
-                $interceptorInterface->getReturnType(),
-            ])
-        };
-
-        return new Definition(MethodInvocationProcessor::class, [
-            $methodCallProvider,
-            $messageConverter,
-        ]);
+        )
+            ->withPassTroughMessageIfVoid(true)
+            ->withChangeHeaders($this->changeHeaders)
+            ->compile($builder);
     }
 
     public function getPrecedence(): int

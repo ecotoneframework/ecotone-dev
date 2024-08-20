@@ -116,7 +116,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             $this->interfaceToCallReference,
             $this->methodParameterConverterBuilders,
             $this->getEndpointAnnotations()
-        )->compile($builder, $interceptorsConfiguration);
+        )->compile($builder);
         foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
             $compiledProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, InterfaceToCallReference::fromInstance($interfaceToCall), $this->getEndpointAnnotations());
         }

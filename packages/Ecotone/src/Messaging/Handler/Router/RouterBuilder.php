@@ -201,11 +201,6 @@ class RouterBuilder implements MessageHandlerBuilderWithParameterConverters
         return $this;
     }
 
-    private function setObjectToInvoke(DefinedObject $objectToInvoke): void
-    {
-        $this->directObjectToInvoke = $objectToInvoke;
-    }
-
     /**
      * @return string
      */

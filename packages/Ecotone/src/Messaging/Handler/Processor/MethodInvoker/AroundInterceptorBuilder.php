@@ -44,14 +44,14 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
     private string $interceptorName;
     private Pointcut $pointcut;
     private ?object $directObject = null;
-    private string $referenceName = '';
+    private string $referenceName;
     /**
      * @var ParameterConverterBuilder[]
      */
     private array $parameterConverters;
 
     /**
-     * @var ParameterConverterBuilder[] $parameterConverters
+     * @param ParameterConverterBuilder[] $parameterConverters
      */
     private function __construct(int $precedence, string $referenceName, private InterfaceToCall $interfaceToCall, Pointcut $pointcut, array $parameterConverters)
     {
@@ -63,7 +63,7 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
     }
 
     /**
-     * @var ParameterConverterBuilder[] $parameterConverters
+     * @param ParameterConverterBuilder[] $parameterConverters
      */
     private function initializePointcut(InterfaceToCall $interfaceToCall, Pointcut $pointcut, array $parameterConverters): Pointcut
     {
@@ -74,22 +74,14 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
         return Pointcut::initializeFrom($interfaceToCall, $parameterConverters);
     }
 
-    public static function createWithNoPointcut(string $referenceName, InterfaceToCall $interfaceToCall): self
-    {
-        return new self(Precedence::DEFAULT_PRECEDENCE, $referenceName, $interfaceToCall, Pointcut::createEmpty(), []);
-    }
-
     /**
-     * @var ParameterConverterBuilder[] $parameterConverters
+     * @param ParameterConverterBuilder[] $parameterConverters
      */
     public static function create(string $referenceName, InterfaceToCall $interfaceToCall, int $precedence, string $pointcut = '', array $parameterConverters = []): self
     {
         return new self($precedence, $referenceName, $interfaceToCall, $pointcut ? Pointcut::createWith($pointcut) : Pointcut::createEmpty(), $parameterConverters);
     }
 
-    /**
-     * @var ParameterConverterBuilder[] $parameterConverters
-     */
     public static function createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry $interfaceToCallRegistry, object $referenceObject, string $methodName, int $precedence, string $pointcut): self
     {
         $parameterAnnotationResolver = ParameterConverterAnnotationFactory::create();
@@ -100,26 +92,6 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
         $aroundInterceptorReference->directObject = $referenceObject;
 
         return $aroundInterceptorReference;
-    }
-
-    /**
-     * @param self[] $interceptorsReferences
-     * @return self[]
-     */
-    public static function orderedInterceptors(array $interceptorsReferences): array
-    {
-        usort(
-            $interceptorsReferences,
-            function (AroundInterceptorBuilder $element, AroundInterceptorBuilder $elementToCompare) {
-                if ($element->getPrecedence() == $elementToCompare->getPrecedence()) {
-                    return 0;
-                }
-
-                return $element->getPrecedence() > $elementToCompare->getPrecedence() ? 1 : -1;
-            }
-        );
-
-        return $interceptorsReferences;
     }
 
     public function getInterceptingInterface(): InterfaceToCall
@@ -221,14 +193,6 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
             $converterDefinitions,
             $hasMethodInvocation,
         ]);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getInterceptingObject(): object
-    {
-        return $this;
     }
 
     /**

@@ -8,7 +8,7 @@ use Ecotone\Messaging\Message;
 /**
  * @licence Apache-2.0
  */
-class MessageProcessorInvocationProvider implements AroundInterceptable
+class InterceptableMessageProcessor implements AroundInterceptable
 {
     public function __construct(
         private MessageProcessor $messageProcessor,

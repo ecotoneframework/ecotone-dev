@@ -75,7 +75,7 @@ class AroundMethodInvocation implements MethodInvocation
      */
     public function getArguments(): array
     {
-        return $this->arguments;
+        return \array_values($this->arguments);
     }
 
     public function getObjectToInvokeOn(): string|object

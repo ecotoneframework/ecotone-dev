@@ -33,7 +33,7 @@ class MessageFilter implements MessageProcessor
      */
     public function process(Message $message): ?Message
     {
-        if (! $this->messageSelector->getMethodInvocation($message)->proceed()) {
+        if (! $this->messageSelector->execute($message)) {
             return $message;
         }
 

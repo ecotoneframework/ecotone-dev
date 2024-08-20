@@ -20,6 +20,11 @@ class AggregateMethodInvocationProvider implements MethodInvocationProvider
     ) {
     }
 
+    public function execute(Message $message): mixed
+    {
+        return $this->getMethodInvocation($message)->proceed();
+    }
+
     public function getMethodInvocation(Message $message): MethodInvocation
     {
         $calledAggregate = $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT) ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT) : null;

@@ -15,6 +15,11 @@ class MessageProcessorInvocationProvider implements MethodInvocationProvider
     ) {
     }
 
+    public function execute(Message $message): mixed
+    {
+        return $this->getMethodInvocation($message)->proceed();
+    }
+
     public function getMethodInvocation(Message $message): MethodInvocation
     {
         return new MessageProcessorInvocation(

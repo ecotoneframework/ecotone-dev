@@ -20,7 +20,7 @@ class InvocationRouter implements RouteSelector
 
     public function route(Message $message): array
     {
-        $result = $this->methodCallProvider->getMethodInvocation($message)->proceed();
+        $result = $this->methodCallProvider->execute($message);
         if (! is_iterable($result)) {
             $result = [$result];
         }

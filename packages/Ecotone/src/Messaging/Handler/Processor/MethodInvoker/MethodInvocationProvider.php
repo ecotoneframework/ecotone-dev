@@ -9,5 +9,6 @@ use Ecotone\Messaging\Message;
  */
 interface MethodInvocationProvider
 {
+    public function execute(Message $message): mixed;
     public function getMethodInvocation(Message $message): MethodInvocation;
 }

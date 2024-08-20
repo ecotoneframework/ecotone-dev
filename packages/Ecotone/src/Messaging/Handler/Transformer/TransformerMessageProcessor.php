@@ -31,7 +31,7 @@ class TransformerMessageProcessor implements MessageProcessor
      */
     public function process(Message $message): ?Message
     {
-        $reply = $this->methodCallProvider->getMethodInvocation($message)->proceed();
+        $reply = $this->methodCallProvider->execute($message);
         return match (true) {
             is_null($reply) => null,
             $reply instanceof Message => $reply,

@@ -16,8 +16,6 @@ use Ecotone\Messaging\Message;
 class StaticMethodInvocationProvider implements MethodInvocationProvider
 {
     /**
-     * @param string $className
-     * @param string $methodName
      * @param array<ParameterConverter> $methodParameterConverters
      */
     public function __construct(
@@ -26,6 +24,11 @@ class StaticMethodInvocationProvider implements MethodInvocationProvider
         private array $methodParameterConverters,
         private array $methodParameterNames,
     ) {
+    }
+
+    public function execute(Message $message): mixed
+    {
+        return $this->getMethodInvocation($message)->proceed();
     }
 
     public function getMethodInvocation(Message $message): MethodInvocation

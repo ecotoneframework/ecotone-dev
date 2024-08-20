@@ -20,7 +20,7 @@ class MethodInvocationProcessor implements MessageProcessor
 
     public function process(Message $message): ?Message
     {
-        $result = $this->methodCallProvider->getMethodInvocation($message)->proceed();
+        $result = $this->methodCallProvider->execute($message);
 
         return $this->resultToMessageBuilder->convertToMessage($message, $result);
     }

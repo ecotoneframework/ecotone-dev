@@ -3,11 +3,7 @@
 namespace Ecotone\Messaging\Handler\Processor;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
-use Ecotone\Messaging\Config\Container\Reference;
 
 /**
  * @licence Apache-2.0
@@ -15,6 +11,4 @@ use Ecotone\Messaging\Config\Container\Reference;
 interface InterceptedMessageProcessorBuilder extends CompilableBuilder
 {
     public function getInterceptedInterface(): InterfaceToCallReference;
-
-    public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference;
 }

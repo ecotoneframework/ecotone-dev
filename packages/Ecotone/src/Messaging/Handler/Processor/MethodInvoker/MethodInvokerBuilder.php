@@ -7,7 +7,6 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -77,7 +76,7 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
         return $this;
     }
 
-    public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition|Reference
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 

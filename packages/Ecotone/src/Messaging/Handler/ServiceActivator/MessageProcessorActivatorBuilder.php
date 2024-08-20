@@ -109,7 +109,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
         }
         foreach ($this->processors as $processor) {
             if ($processor === $this->interceptedProcessor) {
-                $compiledProcessors[] = $processor->compile($builder, $interceptorsConfiguration);
+                $compiledProcessors[] = $processor->compile($builder);
                 // register after interceptors
                 foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
                     $compiledProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, $this->interceptedProcessor->getInterceptedInterface(), $this->getEndpointAnnotations());

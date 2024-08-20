@@ -5,7 +5,6 @@ namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
@@ -102,7 +101,7 @@ class CallAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
         return $this;
     }
 
-    public function compile(MessagingContainerBuilder $builder, ?MethodInterceptorsConfiguration $interceptorsConfiguration = null): Definition
+    public function compile(MessagingContainerBuilder $builder): Definition
     {
         return MethodInvokerBuilder::create(
             $this->interfaceToCall->isStaticallyCalled()

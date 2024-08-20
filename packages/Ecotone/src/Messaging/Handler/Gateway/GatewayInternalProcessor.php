@@ -5,6 +5,7 @@ namespace Ecotone\Messaging\Handler\Gateway;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Future;
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -24,7 +25,7 @@ use Ramsey\Uuid\Uuid;
 /**
  * licence Apache-2.0
  */
-class GatewayInternalProcessor implements MessageProcessor
+class GatewayInternalProcessor implements MessageProcessor, AroundInterceptable
 {
     public function __construct(
         private string $interfaceToCallName,
@@ -101,5 +102,20 @@ class GatewayInternalProcessor implements MessageProcessor
 
             return $replyMessage;
         };
+    }
+
+    public function getObjectToInvokeOn(Message $message): string|object
+    {
+        return $this;
+    }
+
+    public function getMethodName(): string
+    {
+        return 'process';
+    }
+
+    public function getArguments(Message $message): array
+    {
+        return [$message];
     }
 }

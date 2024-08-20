@@ -13,22 +13,18 @@ class AroundMethodInvocationProvider implements MethodInvocationProvider
      * @param AroundMethodInterceptor[] $aroundInterceptors
      */
     public function __construct(
-        private MethodInvocationProvider $methodCallProvider,
+        private AroundInterceptable $methodCallProvider,
         private array                    $aroundInterceptors,
     ) {
     }
 
     public function execute(Message $message): mixed
     {
-        return $this->getMethodInvocation($message)->proceed();
-    }
-
-    public function getMethodInvocation(Message $message): MethodInvocation
-    {
-        return new AroundMethodInvocation(
+        $invocation = new AroundMethodInvocation(
             $message,
             $this->aroundInterceptors,
-            $this->methodCallProvider->getMethodInvocation($message),
+            $this->methodCallProvider,
         );
+        return $invocation->proceed();
     }
 }

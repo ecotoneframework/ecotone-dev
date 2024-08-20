@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 use ArrayIterator;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
  * Executes endpoint with around interceptors
@@ -25,15 +26,18 @@ class AroundMethodInvocation implements MethodInvocation
      */
     private iterable $aroundMethodInterceptors;
 
+    private array $arguments;
+
     /**
      * @param AroundMethodInterceptor[] $aroundMethodInterceptors
      */
     public function __construct(
-        private Message                        $requestMessage,
-        array                                  $aroundMethodInterceptors,
-        private MethodInvocation               $interceptedMethodInvocation,
+        private Message $requestMessage,
+        array $aroundMethodInterceptors,
+        private AroundInterceptable $interceptedMethodInvocation,
     ) {
         $this->aroundMethodInterceptors = new ArrayIterator($aroundMethodInterceptors);
+        $this->arguments = $interceptedMethodInvocation->getArguments($this->requestMessage);
     }
 
     /**
@@ -47,7 +51,10 @@ class AroundMethodInvocation implements MethodInvocation
             $this->aroundMethodInterceptors->next();
 
             if (! $aroundMethodInterceptor) {
-                return $this->interceptedMethodInvocation->proceed();
+                $objectToInvokeOn = $this->getObjectToInvokeOn();
+                return is_string($objectToInvokeOn)
+                    ? $objectToInvokeOn::{$this->getMethodName()}(...$this->arguments)
+                    : $objectToInvokeOn->{$this->getMethodName()}(...$this->arguments);
             }
 
             $arguments = $aroundMethodInterceptor->getArguments(
@@ -68,12 +75,12 @@ class AroundMethodInvocation implements MethodInvocation
      */
     public function getArguments(): array
     {
-        return $this->interceptedMethodInvocation->getArguments();
+        return $this->arguments;
     }
 
     public function getObjectToInvokeOn(): string|object
     {
-        return $this->interceptedMethodInvocation->getObjectToInvokeOn();
+        return $this->interceptedMethodInvocation->getObjectToInvokeOn($this->requestMessage);
     }
 
     public function getMethodName(): string
@@ -83,21 +90,21 @@ class AroundMethodInvocation implements MethodInvocation
 
     public function getInterfaceToCall(): InterfaceToCall
     {
-        return $this->interceptedMethodInvocation->getInterfaceToCall();
+        return InterfaceToCall::create($this->getObjectToInvokeOn(), $this->getMethodName());
     }
 
-    /**
-     * @param string $parameterName
-     * @param mixed $value
-     * @return void
-     */
-    public function replaceArgument(string $parameterName, $value): void
+    public function replaceArgument(string $parameterName, mixed $value): void
     {
-        $this->interceptedMethodInvocation->replaceArgument($parameterName, $value);
+        if (! isset($this->arguments[$parameterName])) {
+            throw InvalidArgumentException::create("Parameter with name `{$parameterName}` does not exist");
+        }
+        $this->arguments[$parameterName] = $value;
     }
 
     public function getName(): string
     {
-        return $this->interceptedMethodInvocation->getName();
+        $object = $this->getObjectToInvokeOn();
+        $classname = is_string($object) ? $object : get_class($object);
+        return "{$classname}::{$this->getMethodName()}";
     }
 }

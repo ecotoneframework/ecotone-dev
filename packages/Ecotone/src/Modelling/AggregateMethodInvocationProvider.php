@@ -2,15 +2,14 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationImplementation;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocationProvider;
 use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0
  */
-class AggregateMethodInvocationProvider implements MethodInvocationProvider
+class AggregateMethodInvocationProvider implements MethodInvocationProvider, AroundInterceptable
 {
     public function __construct(
         private string $aggregateClass,
@@ -22,13 +21,26 @@ class AggregateMethodInvocationProvider implements MethodInvocationProvider
 
     public function execute(Message $message): mixed
     {
-        return $this->getMethodInvocation($message)->proceed();
+        $objectToInvokeOn = $this->getObjectToInvokeOn($message);
+        return is_string($objectToInvokeOn)
+            ? $objectToInvokeOn::{$this->getMethodName()}(...$this->getArguments($message))
+            : $objectToInvokeOn->{$this->getMethodName()}(...$this->getArguments($message));
     }
 
-    public function getMethodInvocation(Message $message): MethodInvocation
+    public function getMethodName(): string
     {
-        $calledAggregate = $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT) ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT) : null;
+        return $this->methodName;
+    }
 
+    public function getObjectToInvokeOn(Message $message): string|object
+    {
+        return $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT)
+            ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT)
+            : $this->aggregateClass;
+    }
+
+    public function getArguments(Message $message): array
+    {
         $methodArguments = [];
         $count = count($this->methodParameterConverters);
 
@@ -38,11 +50,6 @@ class AggregateMethodInvocationProvider implements MethodInvocationProvider
 
             $methodArguments[$parameterName] = $data;
         }
-
-        return new MethodInvocationImplementation(
-            $calledAggregate ?: $this->aggregateClass,
-            $this->methodName,
-            $methodArguments,
-        );
+        return $methodArguments;
     }
 }

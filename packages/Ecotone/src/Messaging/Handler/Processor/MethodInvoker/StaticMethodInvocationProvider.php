@@ -13,7 +13,7 @@ use Ecotone\Messaging\Message;
 /**
  * @licence Apache-2.0
  */
-class StaticMethodInvocationProvider implements MethodInvocationProvider
+class StaticMethodInvocationProvider implements MethodInvocationProvider, AroundInterceptable
 {
     /**
      * @param array<ParameterConverter> $methodParameterConverters
@@ -28,25 +28,10 @@ class StaticMethodInvocationProvider implements MethodInvocationProvider
 
     public function execute(Message $message): mixed
     {
-        return $this->getMethodInvocation($message)->proceed();
-    }
-
-    public function getMethodInvocation(Message $message): MethodInvocation
-    {
-        $methodArguments = [];
-        $count = count($this->methodParameterConverters);
-
-        for ($index = 0; $index < $count; $index++) {
-            $parameterName = $this->methodParameterNames[$index];
-            $data = $this->methodParameterConverters[$index]->getArgumentFrom($message);
-
-            $methodArguments[$parameterName] = $data;
-        }
-        return new MethodInvocationImplementation(
-            $this->objectToInvokeOn,
-            $this->methodName,
-            $methodArguments,
-        );
+        $objectToInvokeOn = $this->getObjectToInvokeOn($message);
+        return is_string($objectToInvokeOn)
+            ? $objectToInvokeOn::{$this->getMethodName()}(...$this->getArguments($message))
+            : $objectToInvokeOn->{$this->getMethodName()}(...$this->getArguments($message));
     }
 
     public static function getDefinition(string|object $objectDefinition, InterfaceToCall $interfaceToCall, array $parameterConvertersBuilders, ?InterfaceToCall $interceptedInterface = null, array $endpointAnnotations = []): Definition
@@ -70,5 +55,29 @@ class StaticMethodInvocationProvider implements MethodInvocationProvider
             $parameterConverters,
             $interfaceToCall->getInterfaceParametersNames(),
         ]);
+    }
+
+    public function getMethodName(): string
+    {
+        return $this->methodName;
+    }
+
+    public function getObjectToInvokeOn(Message $message): string|object
+    {
+        return $this->objectToInvokeOn;
+    }
+
+    public function getArguments(Message $message): array
+    {
+        $methodArguments = [];
+        $count = count($this->methodParameterConverters);
+
+        for ($index = 0; $index < $count; $index++) {
+            $parameterName = $this->methodParameterNames[$index];
+            $data = $this->methodParameterConverters[$index]->getArgumentFrom($message);
+
+            $methodArguments[$parameterName] = $data;
+        }
+        return $methodArguments;
     }
 }

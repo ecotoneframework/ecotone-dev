@@ -35,9 +35,9 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
     ) {
     }
 
-    public static function create(object|string $definition, InterfaceToCallReference $interfaceToCallReference, array $methodParametersConverterBuilders = [], array $endpointAnnotations = []): self
+    public static function create(object|string $definition, InterfaceToCallReference $interfaceToCallReference, array $methodParametersConverterBuilders = []): self
     {
-        return new self($definition, $interfaceToCallReference, $methodParametersConverterBuilders, $endpointAnnotations);
+        return new self($definition, $interfaceToCallReference, $methodParametersConverterBuilders);
     }
 
     public function withPassTroughMessageIfVoid(bool $shouldPassTroughMessageIfVoid): self

@@ -136,7 +136,6 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
                     $interfaceToCall->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,
                     $this->interfaceToCallReference,
                     $this->methodParameterConverterBuilders,
-                    $this->getEndpointAnnotations(),
                 )
                 ->withPassTroughMessageIfVoid($this->shouldPassThroughMessage)
                 ->withChangeHeaders($this->changeHeaders)

@@ -20,27 +20,19 @@ use function is_string;
  */
 class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
 {
-    /**
-     * @var AttributeDefinition[] $endpointAnnotations
-     */
-    private array $endpointAnnotations;
     private bool $shouldPassTroughMessageIfVoid = false;
     private bool $changeHeaders = false;
 
     private ?CompilableBuilder $resultToMessageConverter = null;
-    private bool $isInterceptionEnabled = true;
 
     /**
      * @param array<ParameterConverterBuilder> $methodParametersConverterBuilders
-     * @param array<AttributeDefinition> $endpointAnnotations
      */
     private function __construct(
         private object|string $reference,
         private InterfaceToCallReference $interfaceToCallReference,
         private array $methodParametersConverterBuilders = [],
-        array $endpointAnnotations = []
     ) {
-        $this->endpointAnnotations = $endpointAnnotations;
     }
 
     public static function create(object|string $definition, InterfaceToCallReference $interfaceToCallReference, array $methodParametersConverterBuilders = [], array $endpointAnnotations = []): self
@@ -69,14 +61,7 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
         return $this;
     }
 
-    public function withInterceptionDisabled(): self
-    {
-        $this->isInterceptionEnabled = false;
-
-        return $this;
-    }
-
-    public function compile(MessagingContainerBuilder $builder): Definition|Reference
+    public function compile(MessagingContainerBuilder $builder, array $aroundInterceptors = []): Definition|Reference
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 
@@ -90,12 +75,12 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
         };
 
         return new Definition(MethodInvokerProcessor::class, [
-            $this->compileWithoutProcessor($builder),
+            $this->compileWithoutProcessor($builder, $aroundInterceptors),
             $messageConverter,
         ]);
     }
 
-    public function compileWithoutProcessor(MessagingContainerBuilder $builder): Definition
+    public function compileWithoutProcessor(MessagingContainerBuilder $builder, array $aroundInterceptors = []): Definition
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 
@@ -114,16 +99,6 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
             $parameterConvertersBuilders
         );
 
-        $aroundInterceptors = [];
-        if ($this->isInterceptionEnabled) {
-            $interceptorsConfiguration = $builder->getRelatedInterceptors(
-                $this->interfaceToCallReference,
-                $this->endpointAnnotations,
-            );
-            foreach ($interceptorsConfiguration->getAroundInterceptors() as $aroundInterceptor) {
-                $aroundInterceptors[] = $aroundInterceptor->compileForInterceptedInterface($builder, $this->interfaceToCallReference, $this->endpointAnnotations);
-            }
-        }
         return new Definition(MethodInvoker::class, [
             $objectToInvokeOnResolver,
             $interfaceToCall->getMethodName(),

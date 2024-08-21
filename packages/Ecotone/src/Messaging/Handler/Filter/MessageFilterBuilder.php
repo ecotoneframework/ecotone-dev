@@ -104,7 +104,7 @@ class MessageFilterBuilder implements InterceptedMessageProcessorBuilder
         return $this;
     }
 
-    public function compile(MessagingContainerBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder, array $aroundInterceptors = []): Definition
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
         if (! $interfaceToCall->hasReturnValueBoolean()) {
@@ -120,6 +120,6 @@ class MessageFilterBuilder implements InterceptedMessageProcessorBuilder
                 $this->discardChannelName ? new ChannelReference($this->discardChannelName) : null,
                 $this->throwExceptionOnDiscard,
             ]))
-            ->compile($builder);
+            ->compile($builder, $aroundInterceptors);
     }
 }

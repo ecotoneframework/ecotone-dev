@@ -1578,8 +1578,9 @@ class MessagingSystemConfigurationTest extends MessagingTest
                 ->build()
         );
 
+        // [0 + 2 (before) + 2 (around) + 1 (endpoint)] * 2 (after) = 10
         $this->assertEquals(
-            6,
+            10,
             $outputChannel->receive()->getPayload()
         );
     }

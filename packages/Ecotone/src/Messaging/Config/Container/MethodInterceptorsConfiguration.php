@@ -11,9 +11,9 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 class MethodInterceptorsConfiguration
 {
     /**
-     * @param array<MethodInterceptorBuilder> $beforeInterceptors
-     * @param array<AroundInterceptorBuilder> $aroundInterceptors
-     * @param array<MethodInterceptorBuilder> $afterInterceptors
+     * @param array<Definition|Reference> $beforeInterceptors
+     * @param array<Definition|Reference> $aroundInterceptors
+     * @param array<Definition|Reference> $afterInterceptors
      */
     public function __construct(
         private array $beforeInterceptors,
@@ -28,7 +28,7 @@ class MethodInterceptorsConfiguration
     }
 
     /**
-     * @return MethodInterceptorBuilder[]
+     * @return array<Definition|Reference>
      */
     public function getBeforeInterceptors(): array
     {
@@ -36,7 +36,7 @@ class MethodInterceptorsConfiguration
     }
 
     /**
-     * @return AroundInterceptorBuilder[]
+     * @return array<Definition|Reference>
      */
     public function getAroundInterceptors(): array
     {
@@ -44,7 +44,7 @@ class MethodInterceptorsConfiguration
     }
 
     /**
-     * @return MethodInterceptorBuilder[]
+     * @return array<Definition|Reference>
      */
     public function getAfterInterceptors(): array
     {

@@ -147,28 +147,27 @@ class MessagingContainerBuilder
     }
 
     public function getRelatedInterceptors(
-        InterfaceToCallReference $getInterceptedInterface,
+        InterfaceToCallReference $interceptedInterface,
         array $endpointAnnotations,
         array $requiredInterceptorNames = [],
+        array $customBeforeInterceptors = [],
+        array $customAroundInterceptors = [],
+        array $customAfterInterceptors = []
     ): MethodInterceptorsConfiguration {
-        $interfaceToCall = $this->interfaceToCallRegistry->getForReference($getInterceptedInterface);
         return new MethodInterceptorsConfiguration(
-            $this->getRelatedInterceptorsFor($this->beforeInterceptors, $interfaceToCall, $endpointAnnotations, $requiredInterceptorNames),
-            $this->getRelatedInterceptorsFor($this->aroundInterceptors, $interfaceToCall, $endpointAnnotations, $requiredInterceptorNames),
-            $this->getRelatedInterceptorsFor($this->afterInterceptors, $interfaceToCall, $endpointAnnotations, $requiredInterceptorNames),
+            $this->getRelatedInterceptorsFor($this->beforeInterceptors, $interceptedInterface, $endpointAnnotations, $requiredInterceptorNames, $customBeforeInterceptors),
+            $this->getRelatedInterceptorsFor($this->aroundInterceptors, $interceptedInterface, $endpointAnnotations, $requiredInterceptorNames, $customAroundInterceptors),
+            $this->getRelatedInterceptorsFor($this->afterInterceptors, $interceptedInterface, $endpointAnnotations, $requiredInterceptorNames, $customAfterInterceptors),
         );
     }
 
     /**
-     * @template T of InterceptorWithPointCut
-     * @param array<T> $interceptors
-     * @param InterfaceToCall $interceptedInterface
+     * @param array<InterceptorWithPointCut> $interceptors
      * @param array<AttributeDefinition> $endpointAnnotations
      * @param array<string> $requiredInterceptorNames
-     * @return array<T>
-     * @throws \Ecotone\Messaging\MessagingException
+     * @return array<Definition|Reference>
      */
-    private static function getRelatedInterceptorsFor(array $interceptors, InterfaceToCall $interceptedInterface, array $endpointAnnotations, array $requiredInterceptorNames): iterable
+    private function getRelatedInterceptorsFor(array $interceptors, InterfaceToCallReference $interceptedInterface, array $endpointAnnotations, array $requiredInterceptorNames, array $customInterceptors): iterable
     {
         Assert::allInstanceOfType($endpointAnnotations, AttributeDefinition::class);
 
@@ -186,11 +185,35 @@ class MessagingContainerBuilder
                 }
             }
 
-            if ($interceptor->doesItCutWith($interceptedInterface, $endpointAnnotationsInstances)) {
+            if ($interceptor->doesItCutWith($this->getInterfaceToCall($interceptedInterface), $endpointAnnotationsInstances)) {
                 $relatedInterceptors[] = $interceptor;
             }
         }
 
-        return $relatedInterceptors;
+        if ($customInterceptors) {
+            $relatedInterceptors = $this->getSortedInterceptors(array_merge($relatedInterceptors, $customInterceptors));
+        }
+
+        return array_map(
+            fn ($interceptorBuilder) => $interceptorBuilder->compileForInterceptedInterface($this, $interceptedInterface, $endpointAnnotations),
+            $relatedInterceptors
+        );
+    }
+
+    /**
+     * @template T of InterceptorWithPointCut
+     * @param T[] $interceptors
+     * @return T[]
+     */
+    private function getSortedInterceptors(array $interceptors): array
+    {
+        usort(
+            $interceptors,
+            function (InterceptorWithPointCut $a, InterceptorWithPointCut $b) {
+                return $a->getPrecedence() <=> $b->getPrecedence();
+            }
+        );
+
+        return $interceptors;
     }
 }

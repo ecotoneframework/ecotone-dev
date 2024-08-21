@@ -109,7 +109,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
 
         $compiledProcessors = [];
         foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
-            $compiledProcessors[] = $beforeInterceptor->compileForInterceptedInterface($builder, InterfaceToCallReference::fromInstance($interfaceToCall), $this->getEndpointAnnotations());
+            $compiledProcessors[] = $beforeInterceptor;
         }
         $compiledProcessors[] = MethodInvokerBuilder::create(
             $interfaceToCall->isStaticallyCalled() ? $this->reference->getId() : $this->reference,
@@ -118,7 +118,7 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             $this->getEndpointAnnotations()
         )->compile($builder);
         foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
-            $compiledProcessors[] = $afterInterceptor->compileForInterceptedInterface($builder, InterfaceToCallReference::fromInstance($interfaceToCall), $this->getEndpointAnnotations());
+            $compiledProcessors[] = $afterInterceptor;
         }
         $processor = count($compiledProcessors) > 1
             ? new Definition(ChainedMessageProcessor::class, [$compiledProcessors])

@@ -82,7 +82,6 @@ class MethodInterceptorBuilder implements InterceptorWithPointCut
         )
             ->withPassTroughMessageIfVoid(true)
             ->withChangeHeaders($this->changeHeaders)
-            ->withInterceptionDisabled()
             ->compile($builder);
     }
 

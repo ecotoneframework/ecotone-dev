@@ -49,7 +49,7 @@ class LoadAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
         return new self($aggregateClassDefinition, $methodName, $handledMessageClass, $loadAggregateMode, $interfaceToCallRegistry);
     }
 
-    public function compile(MessagingContainerBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder, array $aroundInterceptors = []): Definition
     {
         if (! $builder->has(PropertyEditorAccessor::class)) {
             $builder->register(PropertyEditorAccessor::class, new Definition(PropertyEditorAccessor::class, [

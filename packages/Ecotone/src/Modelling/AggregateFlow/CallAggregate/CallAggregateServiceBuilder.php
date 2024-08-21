@@ -101,7 +101,7 @@ class CallAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
         return $this;
     }
 
-    public function compile(MessagingContainerBuilder $builder): Definition
+    public function compile(MessagingContainerBuilder $builder, array $aroundInterceptors = []): Definition
     {
         return MethodInvokerBuilder::create(
             $this->interfaceToCall->isStaticallyCalled()
@@ -119,7 +119,7 @@ class CallAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
                     $this->aggregateVersionProperty,
                 ])
             )
-            ->compile($builder);
+            ->compile($builder, $aroundInterceptors);
     }
 
     /**

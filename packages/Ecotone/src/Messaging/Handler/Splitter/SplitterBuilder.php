@@ -17,7 +17,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
+use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder\ChainedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -107,22 +107,13 @@ class SplitterBuilder extends InputOutputMessageHandlerBuilder implements Messag
             $this->requiredInterceptorReferenceNames,
         );
 
-        $compiledProcessors = [];
-        foreach ($interceptorsConfiguration->getBeforeInterceptors() as $beforeInterceptor) {
-            $compiledProcessors[] = $beforeInterceptor;
-        }
-        $compiledProcessors[] = MethodInvokerBuilder::create(
-            $interfaceToCall->isStaticallyCalled() ? $this->reference->getId() : $this->reference,
-            $this->interfaceToCallReference,
-            $this->methodParameterConverterBuilders,
-            $this->getEndpointAnnotations()
-        )->compile($builder);
-        foreach ($interceptorsConfiguration->getAfterInterceptors() as $afterInterceptor) {
-            $compiledProcessors[] = $afterInterceptor;
-        }
-        $processor = count($compiledProcessors) > 1
-            ? new Definition(ChainedMessageProcessor::class, [$compiledProcessors])
-            : $compiledProcessors[0];
+        $processor = ChainedMessageProcessorBuilder::create()
+            ->chainInterceptedProcessor(MethodInvokerBuilder::create(
+                $interfaceToCall->isStaticallyCalled() ? $this->reference->getId() : $this->reference,
+                $this->interfaceToCallReference,
+                $this->methodParameterConverterBuilders,
+            ))
+            ->compileProcessor($builder, $interceptorsConfiguration);
 
         return new Definition(SplitterHandler::class, [
             new ChannelReference($this->outputMessageChannelName),

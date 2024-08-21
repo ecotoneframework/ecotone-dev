@@ -112,7 +112,7 @@ class SaveAggregateServiceBuilder implements CompilableBuilder
 
     public function __toString()
     {
-        return sprintf('Aggregate Handler - %s with name `%s` for input channel `%s`', $this->calledAggregateClassName, $this->getEndpointId(), $this->getInputMessageChannelName());
+        return sprintf('Save Aggregate Processor - %s', $this->calledAggregateClassName);
     }
 
     private function initialize(ClassDefinition $aggregateClassDefinition, string $methodName, InterfaceToCallRegistry $interfaceToCallRegistry): void

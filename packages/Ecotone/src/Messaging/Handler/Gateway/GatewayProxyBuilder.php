@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
-use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder\ChainedMessageProcessorBuilder;
-
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -27,6 +24,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\MessageHeaders;
@@ -35,12 +33,9 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\SubscribableChannel;
 use Ecotone\Messaging\Support\Assert;
-
 use Ecotone\Messaging\Support\InvalidArgumentException;
-
-use function is_a;
-
 use Ramsey\Uuid\Uuid;
+use function is_a;
 
 /**
  * Class GatewayProxySpec

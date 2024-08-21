@@ -2,7 +2,7 @@
 /*
  * licence Apache-2.0
  */
-namespace Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
+namespace Ecotone\Messaging\Handler\Processor;
 
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
@@ -12,8 +12,6 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessor;
-use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 
 class ChainedMessageProcessorBuilder
 {

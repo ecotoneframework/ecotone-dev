@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\ResolveAggregate;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -18,25 +18,41 @@ use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 /**
  * licence Apache-2.0
  */
-final class ResolveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder
+final class ResolveAggregateServiceBuilder implements CompilableBuilder
 {
-    private ClassDefinition $aggregateClassDefinition;
-    private ?ClassDefinition $resultClassDefinition = null;
-    private InterfaceToCallRegistry $interfaceToCallRegistry;
-    private InterfaceToCall $interfaceToCall;
-    private bool $isCalledAggregateEventSourced = false;
-    private bool $isReturningAggregate = false;
-    private ?bool $isFactoryMethod = false;
-    private $isResultAggregateEventSourced = false;
-
-    private function __construct(ClassDefinition $aggregateClassDefinition, string $methodName, InterfaceToCallRegistry $interfaceToCallRegistry)
+    private function __construct(
+        private ClassDefinition $aggregateClassDefinition,
+        private ?ClassDefinition $resultClassDefinition,
+        private InterfaceToCallRegistry $interfaceToCallRegistry,
+        private InterfaceToCall $interfaceToCall,
+        private bool $isCalledAggregateEventSourced,
+        private bool $isReturningAggregate,
+        private ?bool $isFactoryMethod,
+        private bool $isResultAggregateEventSourced,
+    )
     {
-        $this->initialize($aggregateClassDefinition, $methodName, $interfaceToCallRegistry);
     }
 
     public static function create(ClassDefinition $aggregateClassDefinition, string $methodName, InterfaceToCallRegistry $interfaceToCallRegistry): self
     {
-        return new self($aggregateClassDefinition, $methodName, $interfaceToCallRegistry);
+        $interfaceToCall = $interfaceToCallRegistry->getFor($aggregateClassDefinition->getClassType()->toString(), $methodName);
+        $isCalledAggregateEventSourced = $aggregateClassDefinition->hasClassAnnotation(TypeDescriptor::create(EventSourcingAggregate::class));
+        $isReturningAggregate = $interfaceToCall->isReturningAggregate($interfaceToCallRegistry);
+        if ($isReturningAggregate) {
+            $resultClassDefinition = ClassDefinition::createFor($interfaceToCall->getReturnType());
+            $isResultAggregateEventSourced = $resultClassDefinition->hasClassAnnotation(TypeDescriptor::create(EventSourcingAggregate::class));
+        }
+        $isFactoryMethod = $interfaceToCall->isFactoryMethod();
+        return new self(
+            $aggregateClassDefinition,
+            $resultClassDefinition ?? null,
+            $interfaceToCallRegistry,
+            $interfaceToCall,
+            $isCalledAggregateEventSourced,
+            $isReturningAggregate,
+            $isFactoryMethod,
+            $isResultAggregateEventSourced ?? false
+        );
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
@@ -54,25 +70,6 @@ final class ResolveAggregateServiceBuilder extends InputOutputMessageHandlerBuil
         } else {
             return $this->resolveStateBasedAggregateService(false);
         }
-    }
-
-    public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
-    {
-        return $interfaceToCallRegistry->getFor(ResolveEventSourcingAggregateService::class, 'resolve');
-    }
-
-    private function initialize(ClassDefinition $aggregateClassDefinition, string $methodName, InterfaceToCallRegistry $interfaceToCallRegistry): void
-    {
-        $this->aggregateClassDefinition = $aggregateClassDefinition;
-        $this->interfaceToCallRegistry = $interfaceToCallRegistry;
-        $this->interfaceToCall = $this->interfaceToCallRegistry->getFor($this->aggregateClassDefinition->getClassType()->toString(), $methodName);
-        $this->isCalledAggregateEventSourced = $this->aggregateClassDefinition->hasClassAnnotation(TypeDescriptor::create(EventSourcingAggregate::class));
-        $this->isReturningAggregate = $this->interfaceToCall->isReturningAggregate($interfaceToCallRegistry);
-        if ($this->isReturningAggregate) {
-            $this->resultClassDefinition = ClassDefinition::createFor($this->interfaceToCall->getReturnType());
-            $this->isResultAggregateEventSourced = $this->resultClassDefinition->hasClassAnnotation(TypeDescriptor::create(EventSourcingAggregate::class));
-        }
-        $this->isFactoryMethod = $this->interfaceToCall->isFactoryMethod();
     }
 
     private function resolveMultipleAggregatesService(): Definition

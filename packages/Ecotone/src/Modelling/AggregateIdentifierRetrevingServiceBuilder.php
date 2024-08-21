@@ -2,6 +2,7 @@
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -27,7 +28,7 @@ use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
 /**
  * licence Apache-2.0
  */
-class AggregateIdentifierRetrevingServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilder
+class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
 {
     private TypeDescriptor $typeToConvertTo;
     private array $messageIdentifierMapping;

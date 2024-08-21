@@ -2,16 +2,15 @@
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
@@ -35,13 +34,9 @@ use Ecotone\Modelling\SaveAggregateService;
 /**
  * licence Apache-2.0
  */
-class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder implements MessageHandlerBuilderWithParameterConverters
+class SaveAggregateServiceBuilder implements CompilableBuilder
 {
     private InterfaceToCall $interfaceToCall;
-    /**
-     * @var ParameterConverterBuilder[]
-     */
-    private array $methodParameterConverterBuilders = [];
     /**
      * @var string[]
      */
@@ -81,31 +76,11 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
     }
 
     /**
-     * @inheritDoc
-     */
-    public function getParameterConverters(): array
-    {
-        return $this->methodParameterConverterBuilders;
-    }
-
-    /**
      * @param string[] $aggregateRepositoryReferenceNames
      */
     public function withAggregateRepositoryFactories(array $aggregateRepositoryReferenceNames): self
     {
         $this->aggregateRepositoryReferenceNames = $aggregateRepositoryReferenceNames;
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function withMethodParameterConverters(array $methodParameterConverterBuilders): self
-    {
-        Assert::allInstanceOfType($methodParameterConverterBuilders, ParameterConverterBuilder::class);
-
-        $this->methodParameterConverterBuilders = $methodParameterConverterBuilders;
 
         return $this;
     }
@@ -133,14 +108,6 @@ class SaveAggregateServiceBuilder extends InputOutputMessageHandlerBuilder imple
                 $this->isCalledAggregateVersionAutomaticallyIncreased
             );
         }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
-    {
-        return $interfaceToCallRegistry->getFor(SaveAggregateService::class, 'save');
     }
 
     public function __toString()

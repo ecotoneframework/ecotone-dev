@@ -603,7 +603,6 @@ class ModellingHandlerModule implements AnnotationModule
                 PublishAggregateEventsServiceBuilder::create(
                     $aggregateClassDefinition,
                     $registration->getMethodName(),
-                    $interfaceToCallRegistry
                 )
             );
             $configuration->registerMessageHandler($serviceActivatorHandler);
@@ -740,7 +739,7 @@ class ModellingHandlerModule implements AnnotationModule
                     )
                         ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
                 )
-                ->chain(PublishAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName, $interfaceToCallRegistry))
+                ->chain(PublishAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName))
         );
     }
 }

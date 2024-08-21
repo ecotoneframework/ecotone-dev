@@ -4,22 +4,21 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\ResolveEvents;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Attribute\AggregateEvents;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\ResolveAggregateEventsService;
 
 /**
  * licence Apache-2.0
  */
-final class ResolveAggregateEventsServiceBuilder extends InputOutputMessageHandlerBuilder
+final class ResolveAggregateEventsServiceBuilder implements CompilableBuilder
 {
     private InterfaceToCall $interfaceToCall;
     private bool $isCalledAggregateEventSourced = false;
@@ -53,11 +52,6 @@ final class ResolveAggregateEventsServiceBuilder extends InputOutputMessageHandl
         } else {
             return $this->resolveStateBasedAggregateEventsService(false, true, $this->aggregateMethodWithEvents);
         }
-    }
-
-    public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
-    {
-        return $interfaceToCallRegistry->getFor(ResolveAggregateEventsService::class, 'resolve');
     }
 
     private function resolveMultipleAggregateEventsService(): Definition

@@ -237,25 +237,23 @@ final class MessagingSystemConfiguration implements Configuration
         $this->moduleReferenceSearchService = $moduleReferenceSearchService;
     }
 
-    private function prepareAndOptimizeConfiguration(InterfaceToCallRegistry $interfaceToCallRegistry, ServiceConfiguration $applicationConfiguration): void
+    private function prepareAndOptimizeConfiguration(InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $this->verifyEndpointAndChannelNameUniqueness();
         $this->beforeSendInterceptors = $this->orderMethodInterceptors($this->beforeSendInterceptors);
         $this->beforeCallMethodInterceptors = $this->orderMethodInterceptors($this->beforeCallMethodInterceptors);
-        $this->afterCallMethodInterceptors = $this->orderMethodInterceptors($this->afterCallMethodInterceptors);
         $this->aroundMethodInterceptors = $this->orderMethodInterceptors($this->aroundMethodInterceptors);
+        $this->afterCallMethodInterceptors = $this->orderMethodInterceptors($this->afterCallMethodInterceptors);
 
         foreach ($this->channelAdapters as $channelAdapter) {
             $channelAdapter->withEndpointAnnotations(array_merge($channelAdapter->getEndpointAnnotations(), [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$channelAdapter->getEndpointId()])]));
         }
 
-        /** @var BeforeSendChannelInterceptorBuilder[] $beforeSendInterceptors */
-        $beforeSendInterceptors = [];
-        /** @var array<string, MethodInterceptorBuilder[]> $beforeSendInterceptorsByChannel */
-        $beforeSendInterceptorsByChannel = [];
-        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
-            if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel) {
-                if ($this->beforeSendInterceptors) {
+        if ($this->beforeSendInterceptors) {
+            /** @var array<string, MethodInterceptorBuilder[]> $beforeSendInterceptorsByChannel */
+            $beforeSendInterceptorsByChannel = [];
+            foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
+                if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel) {
                     $interceptorWithPointCuts = $this->getRelatedInterceptors($this->beforeSendInterceptors, $messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry), $messageHandlerBuilder->getEndpointAnnotations(), $messageHandlerBuilder->getRequiredInterceptorNames());
                     foreach ($interceptorWithPointCuts as $interceptorReference) {
                         if (isset($beforeSendInterceptorsByChannel[$messageHandlerBuilder->getInputMessageChannelName()])) {
@@ -264,20 +262,17 @@ final class MessagingSystemConfiguration implements Configuration
                             }
                         }
                         $beforeSendInterceptorsByChannel[$messageHandlerBuilder->getInputMessageChannelName()][] = $interceptorReference;
-                        $beforeSendInterceptors[] = new BeforeSendChannelInterceptorBuilder(
+                        $this->registerChannelInterceptor(new BeforeSendChannelInterceptorBuilder(
                             $interceptorReference,
                             $messageHandlerBuilder->getInputMessageChannelName(),
                             InterfaceToCallReference::fromInstance($messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry)),
                             $messageHandlerBuilder->getEndpointAnnotations()
-                        );
+                        ));
                     }
                 }
             }
         }
 
-        foreach ($beforeSendInterceptors as $beforeSendInterceptor) {
-            $this->registerChannelInterceptor($beforeSendInterceptor);
-        }
         krsort($this->channelInterceptorBuilders);
 
         $this->configureDefaultMessageChannels();
@@ -828,7 +823,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     public function process(ContainerBuilder $builder): void
     {
-        $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry, $this->applicationConfiguration);
+        $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry);
 
         $messagingBuilder = new MessagingContainerBuilder(
             $builder,

@@ -24,6 +24,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 
 use Ecotone\Modelling\CommandBus;
@@ -134,6 +135,20 @@ class ComponentTestBuilder
     public function withAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorBuilder): self
     {
         $this->messagingSystemConfiguration->registerAroundMethodInterceptor($aroundInterceptorBuilder);
+
+        return $this;
+    }
+
+    public function withBeforeInterceptor(MethodInterceptorBuilder $methodInterceptorBuilder): self
+    {
+        $this->messagingSystemConfiguration->registerBeforeMethodInterceptor($methodInterceptorBuilder);
+
+        return $this;
+    }
+
+    public function withAfterInterceptor(MethodInterceptorBuilder $methodInterceptorBuilder): self
+    {
+        $this->messagingSystemConfiguration->registerAfterMethodInterceptor($methodInterceptorBuilder);
 
         return $this;
     }

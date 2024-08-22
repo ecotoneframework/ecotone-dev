@@ -70,14 +70,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
      */
     private array $aroundInterceptors = [];
     /**
-     * @var MethodInterceptorBuilder[]
-     */
-    private array $beforeInterceptors = [];
-    /**
-     * @var MethodInterceptorBuilder[]
-     */
-    private array $afterInterceptors = [];
-    /**
      * @var AttributeDefinition[]
      */
     private iterable $endpointAnnotations = [];
@@ -171,9 +163,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         return $this->referenceName;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getInterfaceName(): string
     {
         return $this->interfaceName;
@@ -232,20 +221,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
         return $interfaceToCallRegistry->getFor($this->interfaceName, $this->methodName);
-    }
-
-    public function addBeforeInterceptor(MethodInterceptorBuilder $methodInterceptor): self
-    {
-        $this->beforeInterceptors[] = $methodInterceptor;
-
-        return $this;
-    }
-
-    public function addAfterInterceptor(MethodInterceptorBuilder $methodInterceptor): self
-    {
-        $this->afterInterceptors[] = $methodInterceptor;
-
-        return $this;
     }
 
     /**
@@ -399,9 +374,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             InterfaceToCallReference::fromInstance($this->annotatedInterfaceToCall ?? $interfaceToCall),
             $this->endpointAnnotations,
             $this->requiredInterceptorNames,
-            $this->beforeInterceptors,
             $aroundInterceptors,
-            $this->afterInterceptors,
         );
 
         return ChainedMessageProcessorBuilder::create()

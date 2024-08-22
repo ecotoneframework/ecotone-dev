@@ -150,14 +150,12 @@ class MessagingContainerBuilder
         InterfaceToCallReference $interceptedInterface,
         array $endpointAnnotations,
         array $requiredInterceptorNames = [],
-        array $customBeforeInterceptors = [],
         array $customAroundInterceptors = [],
-        array $customAfterInterceptors = []
     ): MethodInterceptorsConfiguration {
         return new MethodInterceptorsConfiguration(
-            $this->getRelatedInterceptorsFor($this->beforeInterceptors, $interceptedInterface, $endpointAnnotations, $requiredInterceptorNames, $customBeforeInterceptors),
+            $this->getRelatedInterceptorsFor($this->beforeInterceptors, $interceptedInterface, $endpointAnnotations, $requiredInterceptorNames),
             $this->getRelatedInterceptorsFor($this->aroundInterceptors, $interceptedInterface, $endpointAnnotations, $requiredInterceptorNames, $customAroundInterceptors),
-            $this->getRelatedInterceptorsFor($this->afterInterceptors, $interceptedInterface, $endpointAnnotations, $requiredInterceptorNames, $customAfterInterceptors),
+            $this->getRelatedInterceptorsFor($this->afterInterceptors, $interceptedInterface, $endpointAnnotations, $requiredInterceptorNames),
         );
     }
 
@@ -167,7 +165,7 @@ class MessagingContainerBuilder
      * @param array<string> $requiredInterceptorNames
      * @return array<Definition|Reference>
      */
-    private function getRelatedInterceptorsFor(array $interceptors, InterfaceToCallReference $interceptedInterface, array $endpointAnnotations, array $requiredInterceptorNames, array $customInterceptors): iterable
+    private function getRelatedInterceptorsFor(array $interceptors, InterfaceToCallReference $interceptedInterface, array $endpointAnnotations, array $requiredInterceptorNames, array $customInterceptors = []): iterable
     {
         Assert::allInstanceOfType($endpointAnnotations, AttributeDefinition::class);
 

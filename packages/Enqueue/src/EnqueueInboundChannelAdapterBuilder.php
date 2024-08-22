@@ -59,20 +59,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     }
 
     /**
-     * @inheritDoc
-     */
-    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference)
-    {
-        if ($this->isNullableGateway()) {
-            return $this;
-        }
-
-        $this->inboundGateway->addAroundInterceptor($aroundInterceptorReference);
-
-        return $this;
-    }
-
-    /**
      * @return string
      */
     public function getEndpointId(): string
@@ -105,26 +91,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     public function withReceiveTimeout(int $timeoutInMilliseconds): self
     {
         $this->receiveTimeoutInMilliseconds = $timeoutInMilliseconds;
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addBeforeInterceptor(MethodInterceptorBuilder $methodInterceptor): self
-    {
-        $this->inboundGateway->addBeforeInterceptor($methodInterceptor);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addAfterInterceptor(MethodInterceptorBuilder $methodInterceptor): self
-    {
-        $this->inboundGateway->addAfterInterceptor($methodInterceptor);
 
         return $this;
     }

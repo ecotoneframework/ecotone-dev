@@ -790,38 +790,38 @@ class GatewayProxyBuilderTest extends MessagingTest
                     'calculate',
                     $inputChannel = 'inputChannel'
                 )
-                    ->addBeforeInterceptor(
-                        MethodInterceptorBuilder::create(
-                            CalculatingService::create(3),
-                            InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                            0,
-                            ''
-                        )
-                    )
-                    ->addBeforeInterceptor(
-                        MethodInterceptorBuilder::create(
-                            CalculatingService::create(3),
-                            InterfaceToCall::create(CalculatingService::class, 'sum'),
-                            1,
-                            ''
-                        )
-                    )
-                    ->addAfterInterceptor(
-                        MethodInterceptorBuilder::create(
-                            CalculatingService::create(0),
-                            InterfaceToCall::create(CalculatingService::class, 'result'),
-                            1,
-                            ''
-                        )
-                    )
-                    ->addAfterInterceptor(
-                        MethodInterceptorBuilder::create(
-                            CalculatingService::create(2),
-                            InterfaceToCall::create(CalculatingService::class, 'multiply'),
-                            0,
-                            ''
-                        )
-                    )
+            )
+            ->withBeforeInterceptor(
+                MethodInterceptorBuilder::create(
+                    CalculatingService::create(3),
+                    InterfaceToCall::create(CalculatingService::class, 'multiply'),
+                    0,
+                    ServiceInterfaceCalculatingService::class
+                )
+            )
+            ->withBeforeInterceptor(
+                MethodInterceptorBuilder::create(
+                    CalculatingService::create(3),
+                    InterfaceToCall::create(CalculatingService::class, 'sum'),
+                    1,
+                    ServiceInterfaceCalculatingService::class
+                )
+            )
+            ->withAfterInterceptor(
+                MethodInterceptorBuilder::create(
+                    CalculatingService::create(0),
+                    InterfaceToCall::create(CalculatingService::class, 'result'),
+                    1,
+                    ServiceInterfaceCalculatingService::class
+                )
+            )
+            ->withAfterInterceptor(
+                MethodInterceptorBuilder::create(
+                    CalculatingService::create(2),
+                    InterfaceToCall::create(CalculatingService::class, 'multiply'),
+                    0,
+                    ServiceInterfaceCalculatingService::class
+                )
             )
             ->withMessageHandler(
                 ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(1), 'sum')

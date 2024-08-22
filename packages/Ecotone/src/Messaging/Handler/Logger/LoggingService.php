@@ -25,14 +25,8 @@ use Throwable;
 /**
  * licence Apache-2.0
  */
-class LoggingService
+class LoggingService implements LoggingGateway
 {
-    public const CONTEXT_MESSAGE_HEADER = 'ecotone.logging.contextMessage';
-    public const CONTEXT_EXCEPTION_HEADER = 'ecotone.logging.exceptionMessage';
-    public const CONTEXT_DATA_HEADER = 'ecotone.logging.contextData';
-    public const INFO_LOGGING_CHANNEL = 'infoLoggingChannel';
-    public const ERROR_LOGGING_CHANNEL = 'errorLoggingChannel';
-
     private ConversionService $conversionService;
     private LoggerInterface $logger;
 
@@ -47,12 +41,11 @@ class LoggingService
         $this->logger = $logger;
     }
 
-    #[ServiceActivator(self::INFO_LOGGING_CHANNEL)]
     public function info(
-        #[Payload] string $text,
-        #[Header(self::CONTEXT_MESSAGE_HEADER)] ?Message $message,
-        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?Throwable $exception,
-        #[Header(self::CONTEXT_DATA_HEADER)] array $contextData,
+        string $text,
+        ?Message $message = null,
+        ?Throwable $exception = null,
+        array $contextData = [],
     ): void {
         if ($message === null) {
             $this->logger->info($text, $contextData);
@@ -72,12 +65,11 @@ class LoggingService
         );
     }
 
-    #[ServiceActivator(self::ERROR_LOGGING_CHANNEL)]
     public function error(
-        #[Payload] string $text,
-        #[Header(self::CONTEXT_MESSAGE_HEADER)] Message $message,
-        #[Header(self::CONTEXT_EXCEPTION_HEADER)] ?Throwable $exception,
-        #[Header(self::CONTEXT_DATA_HEADER)] array $contextData,
+        string $text,
+        Message $message,
+        ?Throwable $exception = null,
+        array $contextData = [],
     ): void {
         $this->logger->critical(
             $text,

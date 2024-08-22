@@ -16,21 +16,17 @@ use Throwable;
  */
 interface LoggingGateway
 {
-    #[MessageGateway(LoggingService::INFO_LOGGING_CHANNEL)]
-    #[PropagateHeaders(false)]
     public function info(
-        #[Payload] string                                              $text,
-        #[Header(LoggingService::CONTEXT_MESSAGE_HEADER)] ?Message     $message = null,
-        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?Throwable $exception = null,
-        #[Header(LoggingService::CONTEXT_DATA_HEADER)] array           $contextData = [],
+        string $text,
+        ?Message $message = null,
+        ?Throwable $exception = null,
+        array $contextData = [],
     ): void;
 
-    #[MessageGateway(LoggingService::ERROR_LOGGING_CHANNEL)]
-    #[PropagateHeaders(false)]
     public function error(
-        #[Payload] string                                              $text,
-        #[Header(LoggingService::CONTEXT_MESSAGE_HEADER)] Message      $message,
-        #[Header(LoggingService::CONTEXT_EXCEPTION_HEADER)] ?Throwable $exception = null,
-        #[Header(LoggingService::CONTEXT_DATA_HEADER)] array           $contextData = [],
+        string $text,
+        Message $message,
+        ?Throwable $exception = null,
+        array $contextData = [],
     ): void;
 }

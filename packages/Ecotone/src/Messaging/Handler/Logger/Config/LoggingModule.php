@@ -19,6 +19,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\Annotation\LogAfter;
 use Ecotone\Messaging\Handler\Logger\Annotation\LogBefore;
 use Ecotone\Messaging\Handler\Logger\Annotation\LogError;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
@@ -46,9 +47,8 @@ class LoggingModule extends NoExternalConfigurationModule implements AnnotationM
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $messagingConfiguration->registerServiceDefinition(LoggingInterceptor::class, [
-            new Definition(LoggingService::class, [Reference::to(ConversionService::REFERENCE_NAME), Reference::to(LoggerInterface::class)]),
-        ]);
+        $messagingConfiguration->registerServiceDefinition(LoggingGateway::class, new Definition(LoggingService::class, [Reference::to(ConversionService::REFERENCE_NAME), Reference::to(LoggerInterface::class)]));
+        $messagingConfiguration->registerServiceDefinition(LoggingInterceptor::class, [Reference::to(LoggingGateway::class)]);
 
         $messagingConfiguration->registerBeforeMethodInterceptor(
             MethodInterceptor::create(

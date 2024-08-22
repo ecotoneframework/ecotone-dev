@@ -92,8 +92,6 @@ class ModuleClassList
         DynamicMessageChannelModule::class,
 
         /** Attribute based configurations */
-        LoggingGateway::class,
-        LoggingService::class,
         MessageHeadersPropagatorInterceptor::class,
         MessageHandlerLogger::class,
     ];

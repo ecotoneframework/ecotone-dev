@@ -221,7 +221,7 @@ final class TracingTreeTest extends TracingTest
 
         $this->assertSame(
             'exception',
-            $node['details']['events'][1]->getName()
+            $node['details']['events'][0]->getName()
         );
     }
 
@@ -442,57 +442,6 @@ final class TracingTreeTest extends TracingTest
             ],
             self::buildTree($exporter)
         );
-    }
-
-    public function test_adding_logs_as_events_in_span()
-    {
-        $exporter = new InMemoryExporter();
-
-        EcotoneLite::bootstrapFlowTesting(
-            [
-                \Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class,
-                UserNotifier::class,
-            ],
-            [
-                new UserNotifier(),
-                TracerProviderInterface::class => self::prepareTracer($exporter),
-            ],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                ])
-        )
-            ->sendCommand(new RegisterUser('1'))
-            ->run('async_channel');
-
-        $result = self::getNodeAtTargetedSpan(
-            [
-                'details' => ['name' => 'Command Bus'],
-                'child' => [
-                    'details' => ['name' => 'Sending to Channel: async_channel'],
-                    'child' => [
-                        'details' => ['name' => 'Receiving from channel: async_channel'],
-                        'child' => [
-                            'details' => ['name' => 'Event Bus'],
-                        ],
-                    ],
-                ],
-            ],
-            self::buildTree($exporter)
-        );
-
-        /** @var Event $event */
-        $event = $result['details']['events'][0];
-        $this->stringStartsWith(
-            'Publishing Event Message using Class routing',
-        )->evaluate($event->getName());
-
-        /** @var Event $event */
-        $event = $result['details']['events'][2];
-        $this->stringStartsWith(
-            'Collecting message with id',
-        )->evaluate($event->getName());
     }
 
     public function test_two_traces_with_asynchronous_handlers()

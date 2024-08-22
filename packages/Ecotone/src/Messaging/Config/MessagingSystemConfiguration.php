@@ -278,6 +278,7 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($beforeSendInterceptors as $beforeSendInterceptor) {
             $this->registerChannelInterceptor($beforeSendInterceptor);
         }
+        krsort($this->channelInterceptorBuilders);
 
         $this->configureDefaultMessageChannels();
         $this->configureAsynchronousEndpoints();
@@ -362,7 +363,6 @@ final class MessagingSystemConfiguration implements Configuration
     public function registerChannelInterceptor(ChannelInterceptorBuilder $channelInterceptorBuilder): Configuration
     {
         $this->channelInterceptorBuilders[$channelInterceptorBuilder->getPrecedence()][] = $channelInterceptorBuilder;
-        krsort($this->channelInterceptorBuilders);
 
         return $this;
     }

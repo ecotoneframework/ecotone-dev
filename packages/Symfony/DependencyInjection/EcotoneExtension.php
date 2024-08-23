@@ -71,6 +71,8 @@ class EcotoneExtension extends Extension
 
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
 
+        $container->register(\Ecotone\Messaging\ConfigurationVariableService::class, SymfonyConfigurationVariableService::class)->setAutowired(true);
+
         $container->register(ServiceCacheConfiguration::REFERENCE_NAME, ServiceCacheConfiguration::class)
             ->setArguments([
                 '%kernel.cache_dir%',

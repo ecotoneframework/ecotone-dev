@@ -142,4 +142,6 @@ interface Configuration extends CompilerPass
     public function registerServiceAlias(string|Reference $id, Reference $aliasTo): Configuration;
 
     public function isRunningForEnterpriseLicence(): bool;
+
+    public function isRunningForTest(): bool;
 }

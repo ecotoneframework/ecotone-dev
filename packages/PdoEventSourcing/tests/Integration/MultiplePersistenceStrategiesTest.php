@@ -86,6 +86,13 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
                     new BasketCreated('basket-2'),
                 ]
             )
+        ;
+
+        $ecotone
+            ->publishEventWithRoutingKey(OrderCreated::NAME, new OrderCreated('order-1'))
+            ->publishEventWithRoutingKey(OrderCreated::NAME, new OrderCreated('order-2'))
+            ->publishEventWithRoutingKey(BasketCreated::NAME, new BasketCreated('basket-1'))
+            ->publishEventWithRoutingKey(BasketCreated::NAME, new BasketCreated('basket-2'))
             ->triggerProjection(BasketProjection::NAME)
             ->triggerProjection(OrderProjection::NAME)
         ;

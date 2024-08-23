@@ -30,6 +30,11 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
         $this->chainedMessageProcessorBuilder = ChainedMessageProcessorBuilder::create();
     }
 
+    public function __clone(): void
+    {
+        $this->chainedMessageProcessorBuilder = clone $this->chainedMessageProcessorBuilder;
+    }
+
     public static function create(): self
     {
         return new self();

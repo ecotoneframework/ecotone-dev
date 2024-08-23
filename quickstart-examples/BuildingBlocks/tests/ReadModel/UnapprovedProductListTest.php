@@ -32,6 +32,8 @@ final class UnapprovedProductListTest extends TestCase
         $productName = 'Wooden table';
         $productPrice = 1000;
 
+        $productWasAdded = new ProductWasAdded(Uuid::fromString($productId), $productName, Money::EUR($productPrice));
+
         $this->assertEquals(
             [
                 [
@@ -41,9 +43,8 @@ final class UnapprovedProductListTest extends TestCase
                 ]
             ],
             EcotoneLite::bootstrapFlowTestingWithEventStore([UnapprovedProductList::class, Product::class, UuidConverter::class], [new UnapprovedProductList(), new UuidConverter()])
-                ->withEventsFor($productId, Product::class, [
-                    new ProductWasAdded(Uuid::fromString($productId), $productName, Money::EUR($productPrice))
-                ])
+                ->withEventsFor($productId, Product::class, [$productWasAdded])
+                ->publishEvent($productWasAdded)
                 ->sendQueryWithRouting('getUnapprovedProducts')
         );
     }

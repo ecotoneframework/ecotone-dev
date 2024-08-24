@@ -12,7 +12,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptor;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 
 /**
  * licence Apache-2.0
@@ -59,20 +59,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     }
 
     /**
-     * @inheritDoc
-     */
-    public function addAroundInterceptor(AroundInterceptorBuilder $aroundInterceptorReference)
-    {
-        if ($this->isNullableGateway()) {
-            return $this;
-        }
-
-        $this->inboundGateway->addAroundInterceptor($aroundInterceptorReference);
-
-        return $this;
-    }
-
-    /**
      * @return string
      */
     public function getEndpointId(): string
@@ -105,26 +91,6 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     public function withReceiveTimeout(int $timeoutInMilliseconds): self
     {
         $this->receiveTimeoutInMilliseconds = $timeoutInMilliseconds;
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addBeforeInterceptor(MethodInterceptor $methodInterceptor): self
-    {
-        $this->inboundGateway->addBeforeInterceptor($methodInterceptor);
-
-        return $this;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function addAfterInterceptor(MethodInterceptor $methodInterceptor): self
-    {
-        $this->inboundGateway->addAfterInterceptor($methodInterceptor);
 
         return $this;
     }

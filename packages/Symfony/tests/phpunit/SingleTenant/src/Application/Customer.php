@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\Table;
+use Ecotone\Messaging\Attribute\Parameter\ConfigurationVariable;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -37,6 +38,9 @@ class Customer
     #[Column(type: 'string')]
     private string $name;
 
+    #[Column(type: 'boolean', name: 'is_active')]
+    private bool $isActive = false;
+
     private function __construct()
     {
     }
@@ -44,7 +48,8 @@ class Customer
     #[CommandHandler]
     public static function register(
         RegisterCustomer $command,
-        #[Header('shouldThrowException')] bool $shouldThrowException = false
+        #[Header('shouldThrowException')] bool $shouldThrowException = false,
+        #[ConfigurationVariable('app.customer.activate_on_register')] bool $activateOnRegister = false
     ): static {
         $self = new self();
         $self->customerId = $command->customerId;
@@ -53,6 +58,10 @@ class Customer
 
         if ($shouldThrowException) {
             throw new RuntimeException('Rollback transaction');
+        }
+
+        if ($activateOnRegister) {
+            $self->isActive = true;
         }
 
         return $self;

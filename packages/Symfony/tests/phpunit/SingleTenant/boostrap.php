@@ -25,7 +25,7 @@ function migrateSymfonyForSingleTenant(Connection $connection): void
             CREATE TABLE persons (
                 customer_id INTEGER PRIMARY KEY,
                 name VARCHAR(255),
-                is_active bool DEFAULT true
+                is_active bool DEFAULT false
             )
         SQL);
     $connection->executeStatement(<<<SQL

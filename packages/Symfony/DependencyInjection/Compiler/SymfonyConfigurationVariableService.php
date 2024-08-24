@@ -3,7 +3,7 @@
 namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
 use Ecotone\Messaging\ConfigurationVariableService;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
 /**
  * licence Apache-2.0

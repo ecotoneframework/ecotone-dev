@@ -169,10 +169,6 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             new InterfaceToCallReference(DbalDeadLetterHandler::class, $this->methodName),
         );
 
-        foreach ($this->orderedAroundInterceptors as $orderedAroundInterceptor) {
-            $messageHandler->addAroundInterceptor($orderedAroundInterceptor);
-        }
-
         return $messageHandler
             ->withMethodParameterConverters($this->parameterConverters)
             ->withEndpointId($this->getEndpointId())

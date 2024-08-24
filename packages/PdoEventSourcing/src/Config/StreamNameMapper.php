@@ -6,15 +6,16 @@ use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Apache-2.0
  */
-final class StreamNameMapper implements DefinedObject
+final class StreamNameMapper implements MessageProcessor, DefinedObject
 {
-    public function map(Message $message): Message
+    public function process(Message $message): Message
     {
         return MessageBuilder::fromMessage($message)
                 ->setHeader('ecotone.eventSourcing.eventStore.streamName', LazyProophProjectionManager::getProjectionStreamName(

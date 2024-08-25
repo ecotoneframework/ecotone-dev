@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -161,6 +162,10 @@ final class MessagingSystemConfiguration implements Configuration
     private InterfaceToCallRegistry $interfaceToCallRegistry;
 
     private bool $isRunningForEnterpriseLicence;
+    /**
+     * @var CompilerPass[] $compilerPasses
+     */
+    private array $compilerPasses = [];
 
     private bool $isRunningForTest = false;
 
@@ -838,6 +843,13 @@ final class MessagingSystemConfiguration implements Configuration
         return $this->isRunningForTest;
     }
 
+    public function addCompilerPass(CompilerPass $compilerPass): self
+    {
+        $this->compilerPasses[] = $compilerPass;
+
+        return $this;
+    }
+
     /**
      * @inheritDoc
      */
@@ -949,6 +961,9 @@ final class MessagingSystemConfiguration implements Configuration
 
         $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints(), $gatewayListReferences]));
         (new RegisterSingletonMessagingServices())->process($builder);
+        foreach ($this->compilerPasses as $compilerPass) {
+            $compilerPass->process($builder);
+        }
     }
 
     /**

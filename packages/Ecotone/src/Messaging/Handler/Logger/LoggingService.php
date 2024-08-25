@@ -20,11 +20,9 @@ use Stringable;
 /**
  * licence Apache-2.0
  */
-class LoggingService implements LoggingGateway
+class LoggingService implements LoggingGateway, SubscribableLoggingGateway
 {
     use LoggerTrait;
-    public const CONTEXT_MESSAGE_HEADER = 'ecotone.logging.contextMessage';
-    public const CONTEXT_EXCEPTION_HEADER = 'ecotone.logging.exceptionMessage';
 
     /**
      * @var LoggerInterface[] $loggers

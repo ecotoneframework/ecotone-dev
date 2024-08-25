@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheWarmer;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\SymfonyConfigurationVariableService;
@@ -92,6 +93,8 @@ class EcotoneExtension extends Extension
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
         $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
         $containerBuilder->compile();
+
+        $container->getDefinition(LoggingGateway::class)->addTag('monolog.logger', ['channel' => 'ecotone']);
 
         foreach ($messagingConfiguration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
             $definition = new Definition();

@@ -156,7 +156,8 @@
         "open-telemetry/transport-grpc": "^1.0.0",
         "open-telemetry/exporter-otlp": "^1.0.0",
         "nesbot/carbon": "^2.71",
-        "moneyphp/money": "^4.1.0"
+        "moneyphp/money": "^4.1.0",
+        "symfony/monolog-bundle": "^3.10"
     },
     "conflict": {
         "symfony/doctrine-messenger": ">7.0.5 < 7.1.0"

@@ -5,12 +5,14 @@ namespace Ecotone\Lite;
 use DI\ContainerBuilder as PhpDiContainerBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 
+use Psr\Container\ContainerInterface;
 use function is_array;
 
 use ReflectionMethod;
@@ -62,7 +64,13 @@ class PhpDiContainerImplementation implements CompilerPass
             }
             return $resolvedArguments;
         } elseif ($argument instanceof Reference) {
-            return \DI\get($argument->getId());
+            if ($argument->getInvalidBehavior() === ContainerImplementation::NULL_ON_INVALID_REFERENCE) {
+                return \DI\factory(function (ContainerInterface $c, string $id) {
+                    return $c->has($id) ? $c->get($id) : null;
+                })->parameter('id', $argument->getId());
+            } else {
+                return \DI\get($argument->getId());
+            }
         } else {
             return $argument;
         }

@@ -24,7 +24,7 @@ class ProjectionRunningConfiguration implements DefinedObject
     public const DEFAULT_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND = 0;
 
     public const OPTION_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 'persist_block_size';
-    public const DEFAULT_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 1;
+    public const DEFAULT_PERSIST_CHANGES_AFTER_AMOUNT_OF_OPERATIONS = 1000;
 
     public const OPTION_PROJECTION_LOCK_TIMEOUT = 'lock_timeout_ms';
     public const DEFAULT_PROJECTION_LOCK_TIMEOUT = 1000;

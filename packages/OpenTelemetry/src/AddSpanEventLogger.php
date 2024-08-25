@@ -13,7 +13,7 @@ class AddSpanEventLogger implements LoggerInterface
 {
     use LoggerTrait;
 
-    public function log($level, \Stringable|string $message, array $context = [])
+    public function log($level, \Stringable|string $message, array $context = []): void
     {
         $attributes = \array_filter(
             $context,

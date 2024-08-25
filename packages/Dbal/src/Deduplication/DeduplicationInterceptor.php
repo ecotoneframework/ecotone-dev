@@ -10,6 +10,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
@@ -17,7 +18,6 @@ use Ecotone\Messaging\Scheduling\Clock;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
-use Psr\Log\LoggerInterface;
 
 use function spl_object_id;
 
@@ -36,11 +36,11 @@ class DeduplicationInterceptor
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
     private array $initialized = [];
 
-    public function __construct(private ConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private LoggerInterface $logger)
+    public function __construct(private ConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private LoggingGateway $logger)
     {
     }
 
-    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint)
+    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): mixed
     {
         $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connection));
         $contextId = spl_object_id($connectionFactory->createContext());
@@ -77,7 +77,7 @@ class DeduplicationInterceptor
                 'consumer_endpoint_id' => $consumerEndpointId,
                 'routing_slip' => $routingSlip,
             ]);
-            return;
+            return null;
         }
 
         try {

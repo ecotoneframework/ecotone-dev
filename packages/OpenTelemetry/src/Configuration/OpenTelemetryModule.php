@@ -33,7 +33,6 @@ use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
 use Ecotone\OpenTelemetry\TracerInterceptor;
 use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
-use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
 /**
@@ -55,7 +54,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
             TracerInterceptor::class,
             new Definition(TracerInterceptor::class, [
                 new Reference(TracerProviderInterface::class),
-                new Reference(LoggerInterface::class),
+                new Reference(LoggingGateway::class),
             ])
         );
         if ($tracingConfiguration->higherThanOrEqualTo(TracingConfiguration::TRACING_LEVEL_FRAMEWORK)) {

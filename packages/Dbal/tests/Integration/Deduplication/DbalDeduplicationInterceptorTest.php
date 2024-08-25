@@ -4,11 +4,11 @@ namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Handler\Logger\StubLoggingGateway;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Psr\Log\NullLogger;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\StubMethodInvocation;
 
@@ -27,7 +27,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             $this->getConnectionFactory(),
             new EpochBasedClock(),
             1000,
-            new NullLogger()
+            new StubLoggingGateway()
         );
 
         $methodInvocation = StubMethodInvocation::create();
@@ -59,7 +59,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             $this->getConnectionFactory(),
             new EpochBasedClock(),
             1000,
-            new NullLogger()
+            new StubLoggingGateway()
         );
 
         $methodInvocation = StubMethodInvocation::create();
@@ -92,7 +92,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             $this->getConnectionFactory(),
             $clock,
             1000,
-            new NullLogger()
+            new StubLoggingGateway()
         );
 
         $methodInvocation = StubMethodInvocation::create();

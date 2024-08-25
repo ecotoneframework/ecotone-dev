@@ -13,7 +13,6 @@ use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 
@@ -21,11 +20,14 @@ use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
+
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
+
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerConfig;
@@ -46,6 +48,8 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithOutputChannel;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
@@ -854,6 +858,12 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->serviceDefinitions as $id => $definition) {
             $messagingBuilder->register($id, $definition);
         }
+
+        $messagingBuilder->register(
+            LoggingGateway::class,
+            (new Definition(LoggingService::class))
+                ->addMethodCall('registerLogger', [new Reference('logger', ContainerImplementation::NULL_ON_INVALID_REFERENCE)])
+        );
 
         // TODO: some service configuration should be handled at runtime. Here they are all cached in the container
         //        $messagingBuilder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));

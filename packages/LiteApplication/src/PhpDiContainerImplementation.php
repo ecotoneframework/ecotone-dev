@@ -13,9 +13,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 
 use function is_array;
 
-use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
-
 use ReflectionMethod;
 
 /**
@@ -43,15 +40,6 @@ class PhpDiContainerImplementation implements CompilerPass
             if (! isset($phpDiDefinitions[$id])) {
                 $phpDiDefinitions[$id] = \DI\get(self::EXTERNAL_PREFIX . $id);
             }
-        }
-
-        if (isset($phpDiDefinitions['logger']) && ! isset($phpDiDefinitions[LoggerInterface::class])) {
-            $phpDiDefinitions[LoggerInterface::class] = \DI\get('logger');
-        } elseif (! isset($phpDiDefinitions['logger']) && isset($phpDiDefinitions[LoggerInterface::class])) {
-            $phpDiDefinitions['logger'] = \DI\get(LoggerInterface::class);
-        } elseif (! isset($phpDiDefinitions['logger']) && ! isset($phpDiDefinitions[LoggerInterface::class])) {
-            $phpDiDefinitions['logger'] = \DI\create(NullLogger::class);
-            $phpDiDefinitions[LoggerInterface::class] = \DI\get('logger');
         }
 
         $this->containerBuilder->addDefinitions($phpDiDefinitions);

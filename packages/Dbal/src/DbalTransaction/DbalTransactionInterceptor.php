@@ -92,7 +92,7 @@ class DbalTransactionInterceptor
                         $logger->info(
                             'Failure on committing transaction.',
                             $message,
-                            $exception
+                            ['exception' => $exception],
                         );
 
                         throw $exception;
@@ -101,7 +101,7 @@ class DbalTransactionInterceptor
                     $logger->info(
                         'Implicit Commit was detected, skipping manual one.',
                         $message,
-                        $exception
+                        ['exception' => $exception],
                     );
                     /** Doctrine hold the state, so it needs to be cleaned */
                     try {
@@ -116,14 +116,14 @@ class DbalTransactionInterceptor
                     $logger->info(
                         'Exception has been thrown, rolling back transaction.',
                         $message,
-                        $exception
+                        ['exception' => $exception]
                     );
                     $connection->rollBack();
                 } catch (Throwable $rollBackException) {
                     $logger->info(
                         'Exception has been thrown, however could not rollback the transaction.',
                         $message,
-                        $exception
+                        ['exception' => $exception]
                     );
                 }
             }

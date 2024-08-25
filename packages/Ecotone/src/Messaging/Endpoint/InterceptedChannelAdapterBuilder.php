@@ -18,10 +18,10 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\Clock;
-use Psr\Log\LoggerInterface;
 
 /**
  * Class InterceptedConsumerBuilder
@@ -63,7 +63,7 @@ abstract class InterceptedChannelAdapterBuilder implements ChannelAdapterConsume
             $messagePoller,
             new PollingMetadataReference($this->endpointId),
             new Reference(Clock::class),
-            new Reference(LoggerInterface::class),
+            new Reference(LoggingGateway::class),
             new Reference(MessagingEntrypoint::class),
         ]);
         $builder->registerPollingEndpoint($this->endpointId, $consumerRunner);

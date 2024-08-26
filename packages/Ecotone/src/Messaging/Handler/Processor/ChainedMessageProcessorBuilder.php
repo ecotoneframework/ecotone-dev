@@ -2,6 +2,7 @@
 /*
  * licence Apache-2.0
  */
+
 namespace Ecotone\Messaging\Handler\Processor;
 
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -17,7 +18,9 @@ class ChainedMessageProcessorBuilder
 {
     private ?InterceptedMessageProcessorBuilder $interceptedProcessor = null;
 
-    private function __construct(private array $processors = []) {}
+    private function __construct(private array $processors = [])
+    {
+    }
 
     public static function create(): self
     {

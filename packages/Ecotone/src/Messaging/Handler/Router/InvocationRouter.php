@@ -2,8 +2,9 @@
 
 namespace Ecotone\Messaging\Handler\Router;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use function array_unique;
+
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 
 use Ecotone\Messaging\Message;
 

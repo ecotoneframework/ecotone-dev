@@ -9,30 +9,30 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 
 class InterceptorOrderingCase
 {
-    #[CommandHandler(routingKey: "commandEndpointReturning")]
+    #[CommandHandler(routingKey: 'commandEndpointReturning')]
     public function command(#[Reference] InterceptorOrderingStack $stack): string
     {
-        $stack->add("endpoint");
+        $stack->add('endpoint');
         return 'something';
     }
 
-    #[CommandHandler(routingKey: "commandEndpointVoid")]
+    #[CommandHandler(routingKey: 'commandEndpointVoid')]
     public function commandVoid(#[Reference] InterceptorOrderingStack $stack): void
     {
-        $stack->add("endpoint");
+        $stack->add('endpoint');
     }
 
-    #[ServiceActivator(inputChannelName: "serviceEndpointReturning")]
+    #[ServiceActivator(inputChannelName: 'serviceEndpointReturning')]
     public function serviceActivator(#[Reference] InterceptorOrderingStack $stack): string
     {
-        $stack->add("endpoint");
+        $stack->add('endpoint');
         return 'something';
     }
 
-    #[ServiceActivator(inputChannelName: "serviceEndpointVoid")]
+    #[ServiceActivator(inputChannelName: 'serviceEndpointVoid')]
     public function voidEndpoint(#[Reference] InterceptorOrderingStack $stack): void
     {
-        $stack->add("endpoint");
+        $stack->add('endpoint');
     }
 
     #[CommandHandler(routingKey: 'commandWithOutputChannel', outputChannelName: 'internal-channel')]

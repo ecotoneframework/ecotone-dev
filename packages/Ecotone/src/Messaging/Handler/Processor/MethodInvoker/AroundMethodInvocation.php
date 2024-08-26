@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use function array_values;
+
 use ArrayIterator;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Message;
@@ -73,7 +75,7 @@ class AroundMethodInvocation implements MethodInvocation
      */
     public function getArguments(): array
     {
-        return \array_values($this->arguments);
+        return array_values($this->arguments);
     }
 
     public function getObjectToInvokeOn(): string|object

@@ -2,6 +2,7 @@
 /*
  * licence Apache-2.0
  */
+
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Config\Container\ChannelReference;
@@ -20,8 +21,7 @@ class GatewayInternalProcessorBuilder implements InterceptedMessageProcessorBuil
         private string $requestChannelName,
         private ?string $replyChannelName,
         private int $replyMilliSecondsTimeout,
-    )
-    {
+    ) {
     }
 
     public function compile(MessagingContainerBuilder $builder, array $aroundInterceptors = []): Definition|Reference

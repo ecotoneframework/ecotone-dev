@@ -11,9 +11,7 @@ use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
@@ -24,7 +22,6 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\LazyEventSourcedRepository;
 use Ecotone\Modelling\LazyStandardRepository;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
-use Ecotone\Modelling\SaveAggregateService;
 
 /**
  * Class AggregateCallingCommandHandlerBuilder

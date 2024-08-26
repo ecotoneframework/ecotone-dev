@@ -2,9 +2,6 @@
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
-use Ecotone\Messaging\MessageHeaders;
-use stdClass;
-
 class InterceptorOrderingStack
 {
     private array $calls = [];

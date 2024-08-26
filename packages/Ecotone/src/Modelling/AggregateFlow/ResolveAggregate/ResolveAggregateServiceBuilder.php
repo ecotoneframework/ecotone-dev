@@ -29,8 +29,7 @@ final class ResolveAggregateServiceBuilder implements CompilableBuilder
         private bool $isReturningAggregate,
         private ?bool $isFactoryMethod,
         private bool $isResultAggregateEventSourced,
-    )
-    {
+    ) {
     }
 
     public static function create(ClassDefinition $aggregateClassDefinition, string $methodName, InterfaceToCallRegistry $interfaceToCallRegistry): self

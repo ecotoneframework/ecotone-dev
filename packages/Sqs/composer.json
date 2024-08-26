@@ -33,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~1.227.0",
+        "ecotone/enqueue": "~1.228.0",
         "enqueue/sqs": "^0.10.15",
         "aws/aws-sdk-php": "<=3.269.5"
     },
@@ -58,7 +58,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.227.0-dev"
+            "dev-main": "1.228.0-dev"
         },
         "ecotone": {
             "repository": "sqs"

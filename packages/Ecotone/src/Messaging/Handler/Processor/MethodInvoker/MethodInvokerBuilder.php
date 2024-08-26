@@ -2,7 +2,6 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
@@ -89,7 +88,7 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
             $objectToInvokeOnResolver = $this->reference;
         } else {
             $objectToInvokeOnResolver = new Definition(MethodInvokerStaticObjectResolver::class, [
-                is_string($this->reference) && !$interfaceToCall->isStaticallyCalled() ? Reference::to($this->reference) : $this->reference
+                is_string($this->reference) && ! $interfaceToCall->isStaticallyCalled() ? Reference::to($this->reference) : $this->reference,
             ]);
         }
 

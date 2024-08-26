@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Lite\Test\TestConfiguration;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -156,6 +157,8 @@ final class MessagingSystemConfiguration implements Configuration
 
     private bool $isRunningForEnterpriseLicence;
 
+    private bool $isRunningForTest = false;
+
     /**
      * @param object[] $extensionObjects
      */
@@ -197,6 +200,13 @@ final class MessagingSystemConfiguration implements Configuration
                 return ! ($extensionObject instanceof ServiceConfiguration);
             }
         );
+
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof TestConfiguration) {
+                $this->isRunningForTest = true;
+            }
+        }
+
         $extensionObjects[] = $serviceConfiguration;
         $this->isRunningForEnterpriseLicence = $serviceConfiguration->hasEnterpriseLicence();
         $this->initialize($moduleConfigurationRetrievingService, $extensionObjects, $serviceConfiguration);
@@ -816,6 +826,11 @@ final class MessagingSystemConfiguration implements Configuration
     public function isRunningForEnterpriseLicence(): bool
     {
         return $this->isRunningForEnterpriseLicence;
+    }
+
+    public function isRunningForTest(): bool
+    {
+        return $this->isRunningForTest;
     }
 
     /**

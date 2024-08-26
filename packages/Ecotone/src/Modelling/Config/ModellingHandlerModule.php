@@ -727,19 +727,28 @@ class ModellingHandlerModule implements AnnotationModule
         /** @TODO do not require method name in save service */
         $methodName = $aggregateClassDefinition->getPublicMethodNames() ? $aggregateClassDefinition->getPublicMethodNames()[0] : '__construct';
 
-        $configuration->registerMessageHandler(
-            $chainMessageHandlerBuilder
-                ->chain(ResolveAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName, $interfaceToCallRegistry))
-                ->chain(
-                    SaveAggregateServiceBuilder::create(
-                        $aggregateClassDefinition,
-                        $methodName,
-                        $interfaceToCallRegistry,
-                        $baseEventSourcingConfiguration
-                    )
-                        ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
+        $saveAggregateBuilder = $chainMessageHandlerBuilder
+            ->chain(ResolveAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName, $interfaceToCallRegistry))
+            ->chain(
+                SaveAggregateServiceBuilder::create(
+                    $aggregateClassDefinition,
+                    $methodName,
+                    $interfaceToCallRegistry,
+                    $baseEventSourcingConfiguration
                 )
-                ->chain(PublishAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName))
-        );
+                    ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
+            )
+        ;
+
+        if ($configuration->isRunningForTest()) {
+            $saveAggregateBuilderWithTestState = clone $saveAggregateBuilder;
+            $configuration->registerMessageHandler(
+                $saveAggregateBuilderWithTestState
+                    ->withInputChannelName($saveAggregateBuilderWithTestState->getInputMessageChannelName() . '.test_setup_state')
+            );
+        }
+
+        $saveAggregateBuilder = $saveAggregateBuilder->chain(PublishAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName));
+        $configuration->registerMessageHandler($saveAggregateBuilder);
     }
 }

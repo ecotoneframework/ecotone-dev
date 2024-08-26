@@ -8,10 +8,15 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Handler\Logger\EchoLogger;
+use Ecotone\Modelling\DistributedBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher\UserService;
+use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceMessagingConfiguration;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceReceiver;
+use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler\TicketNotificationEventHandler;
 
 /**
  * @internal
@@ -36,10 +41,40 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
     }
 
-    private function bootstrapEcotone(string $serviceName, array $namespaces, array $services): FlowTestSupport
+    public function test_distributing_command_misses_heartbeat_and_reconnects(): void
+    {
+        $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()->withFinishWhenNoMessages(true);
+        $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()], ['heartbeat' => 1]);
+        $delays = [3];
+        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler'], [new TicketServiceReceiver($delays), new TicketNotificationEventHandler($delays),
+            //"logger" => new EchoLogger()
+        ],
+            amqpConfig: ['heartbeat' => 1]
+        );
+
+        $ticketService->run('ticket_service', $executionPollingMetadata);
+        self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
+
+        $distributedBus = $userService->getGateway(DistributedBus::class);
+        $distributedBus->sendCommand(
+            TicketServiceMessagingConfiguration::SERVICE_NAME,
+            TicketServiceReceiver::CREATE_TICKET_WITH_EVENT_ENDPOINT,
+            'User changed billing address',
+        );
+
+        $ticketService->run('ticket_service', $executionPollingMetadata);
+        // Message will fail on acknowledge due to lost heartbeat, yet should stay in queue and be processed after reconnect
+        self::assertEquals(2, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
+
+        $ticketService->run('async', $executionPollingMetadata);
+        // distributed command resulted in two events being published, and first event fails on processing due to heartbeat
+        self::assertEquals(3, $ticketService->sendQueryWithRouting(TicketNotificationEventHandler::GET_TICKETS_NOTIFICATION_COUNT));
+    }
+
+    private function bootstrapEcotone(string $serviceName, array $namespaces, array $services, array $amqpConfig = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: array_merge([AmqpConnectionFactory::class => $this->getCachedConnectionFactory()], $services),
+            containerOrAvailableServices: array_merge([AmqpConnectionFactory::class => $this->getCachedConnectionFactory($amqpConfig)], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use AMQPChannelException;
 use AMQPConnectionException;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
@@ -15,7 +16,6 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\Consumer;
@@ -103,7 +103,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
 
             return $this->queueChannel->receive();
-        } catch (AMQPConnectionException|\AMQPChannelException $exception) {
+        } catch (AMQPConnectionException|AMQPChannelException $exception) {
             $this->connectionFactory->reconnect();
             throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
         }

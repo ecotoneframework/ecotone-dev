@@ -10,7 +10,6 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTest;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler\TicketNotificationSubscriber;
@@ -67,7 +66,7 @@ final class DistributedEventBusTest extends AmqpMessagingTest
     {
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher'], [new UserService()], extensionObjects: [
             GlobalPollableChannelConfiguration::createWithDefaults()
-                ->withCollector(false)
+                ->withCollector(false),
         ]);
         $ticketService = $this->bootstrapEcotone(
             'ticket_service',

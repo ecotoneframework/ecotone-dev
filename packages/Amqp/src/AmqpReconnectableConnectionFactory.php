@@ -8,6 +8,7 @@ use Ecotone\Messaging\Support\Assert;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Enqueue\AmqpExt\AmqpConsumer;
 use Enqueue\AmqpExt\AmqpContext;
+use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Interop\Queue\SubscriptionConsumer;
@@ -72,7 +73,8 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         if ($this->subscriptionConsumer) {
             try {
                 $this->subscriptionConsumer->unsubscribeAll();
-            }catch (\Exception) {}
+            } catch (Exception) {
+            }
         }
         /** @var AMQPConnection $connection */
         $connection = $connectionProperty->getValue($this->connectionFactory);

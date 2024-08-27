@@ -105,11 +105,9 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
     public function getSubscriptionConsumer(string $queueName, callable $subscriptionCallback): SubscriptionConsumer
     {
-        /** @var AmqpContext $context */
-        $context = $this->createContext();
         if ($this->subscriptionConsumer === null) {
-            $channel = $context->getExtChannel();
-            $channel->setGlobalPrefetchCount(0);
+            /** @var AmqpContext $context */
+            $context = $this->createContext();
 
             $this->subscriptionConsumer = $context->createSubscriptionConsumer();
 

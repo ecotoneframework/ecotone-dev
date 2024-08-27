@@ -104,6 +104,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
             return $this->queueChannel->receive();
         } catch (AMQPConnectionException|\AMQPChannelException $exception) {
+            $this->connectionFactory->reconnect();
             throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
         }
     }

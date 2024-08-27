@@ -68,6 +68,7 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
             return $convertedMessage->build();
         } catch (Exception $exception) {
             if ($this->isConnectionException($exception) || ($exception->getPrevious() && $this->isConnectionException($exception->getPrevious()))) {
+                $this->connectionFactory->reconnect();
                 throw new ConnectionException('There was a problem while polling message channel', 0, $exception);
             }
 
@@ -79,7 +80,7 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
 
     private function isConnectionException(Exception $exception): bool
     {
-        return is_subclass_of($exception, $this->connectionException()) || $exception::class === $this->connectionException();
+        return is_subclass_of($exception, $this->connectionException()) || $exception::class === $this->connectionException() || $exception instanceof ConnectionException;
     }
 
     public function getQueueName(): string

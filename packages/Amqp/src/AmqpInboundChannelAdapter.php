@@ -79,7 +79,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         );
     }
 
-    public function receiveMessage(int $timeout = 0): ?Message
+    public function receiveWithTimeout(int $timeout = 0): ?Message
     {
         try {
             if ($this->declareOnStartup && $this->initialized === false) {

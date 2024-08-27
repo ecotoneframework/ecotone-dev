@@ -63,7 +63,12 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     public function reconnect(): void
     {
         $connectionProperty = $this->getConnectionProperty();
-        
+
+        if ($this->subscriptionConsumer) {
+            try {
+                $this->subscriptionConsumer->unsubscribeAll();
+            }catch (\Exception) {}
+        }
         /** @var AMQPConnection $connection */
         $connection = $connectionProperty->getValue($this->connectionFactory);
         if ($connection) {

@@ -71,7 +71,7 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
                 try {
                     $this->connectionFactory->reconnect();
                 }catch (\Exception) {}
-                
+
                 throw new ConnectionException('There was a problem while polling message channel', 0, $exception);
             }
 

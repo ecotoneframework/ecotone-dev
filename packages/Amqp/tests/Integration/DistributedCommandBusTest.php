@@ -44,12 +44,10 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
     public function test_distributing_command_misses_heartbeat_and_reconnects(): void
     {
         $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()->withFinishWhenNoMessages(true);
-        $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()]);
-        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler'], [new TicketServiceReceiver([0, 3, 0]), new TicketNotificationEventHandler([0, 3, 0]),
-//            "logger" => new EchoLogger()
-        ],
-            amqpConfig: ['heartbeat' => 1]
-        );
+        $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()], amqpConfig: ['heartbeat' => 1]);
+        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler'], [new TicketServiceReceiver([0, 6, 0]), new TicketNotificationEventHandler([0, 6, 0]),
+            "logger" => new EchoLogger()
+        ], amqpConfig: ['heartbeat' => 1]);
 
         $ticketService->run('ticket_service', $executionPollingMetadata);
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));

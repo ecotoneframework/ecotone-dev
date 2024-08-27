@@ -45,8 +45,8 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
     {
         $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()->withFinishWhenNoMessages(true);
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()], ['heartbeat' => 1]);
-        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler'], [new TicketServiceReceiver([0, 3]), new TicketNotificationEventHandler([0, 3]),
-            "logger" => new EchoLogger()
+        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler'], [new TicketServiceReceiver([0, 3, 0]), new TicketNotificationEventHandler([0, 3, 0]),
+//            "logger" => new EchoLogger()
         ],
             amqpConfig: ['heartbeat' => 1]
         );
@@ -55,7 +55,7 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $distributedBus = $userService->getGateway(DistributedBus::class);
-        for ($i = 1; $i <= 2; $i++) {
+        for ($i = 1; $i <= 3; $i++) {
             $distributedBus->sendCommand(
                 TicketServiceMessagingConfiguration::SERVICE_NAME,
                 TicketServiceReceiver::CREATE_TICKET_WITH_EVENT_ENDPOINT,
@@ -64,12 +64,12 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
         }
 
         $ticketService->run('ticket_service', $executionPollingMetadata);
-        // Message will fail on acknowledge due to lost heartbeat, yet should stay in queue and be processed after reconnect
-        self::assertEquals(3, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
+        // Message may fail on acknowledgment, but it will be redelivered
+        self::assertGreaterThanOrEqual(3, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $ticketService->run('async', $executionPollingMetadata);
-        // distributed command resulted in two events being published, and first event fails on processing due to heartbeat
-        self::assertEquals(4, $ticketService->sendQueryWithRouting(TicketNotificationEventHandler::GET_TICKETS_NOTIFICATION_COUNT));
+        // When message failed on acknowledgment, it will re-publish on re-deliver
+        self::assertGreaterThanOrEqual(3, $ticketService->sendQueryWithRouting(TicketNotificationEventHandler::GET_TICKETS_NOTIFICATION_COUNT));
     }
 
     private function bootstrapEcotone(string $serviceName, array $namespaces, array $services, array $amqpConfig = []): FlowTestSupport

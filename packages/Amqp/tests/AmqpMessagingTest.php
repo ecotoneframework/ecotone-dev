@@ -64,6 +64,7 @@ abstract class AmqpMessagingTest extends TestCase
         $this->deleteQueue(new AmqpQueue(AmqpDistributionModule::CHANNEL_PREFIX . TicketServiceMessagingConfiguration::SERVICE_NAME));
         $this->deleteQueue(new AmqpQueue('ecotone_1_delay'));
         $this->deleteQueue(new AmqpQueue('async'));
+        $this->deleteQueue(new AmqpQueue('notification_channel'));
     }
 
     private function deleteQueue(AmqpQueue $queue): void

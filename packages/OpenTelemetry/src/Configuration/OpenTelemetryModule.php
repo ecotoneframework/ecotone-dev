@@ -95,7 +95,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
             $pointcut = CommandBus::class . '||' . QueryBus::class . '||' . DistributedBus::class;
         }
         if ($tracingConfiguration->isForceFlushOnAsynchronousMessageHandled()) {
-            $pointcut .= '||' . AsynchronousRunningEndpoint::class;
+            $pointcut .= $pointcut !== '' ? '||' . AsynchronousRunningEndpoint::class : AsynchronousRunningEndpoint::class;
         }
 
         if ($pointcut !== '') {

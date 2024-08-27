@@ -196,14 +196,14 @@ class PointcutTest extends TestCase
 
     public function TODOtest_throwing_exception_on_brackets_inside_brackets()
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(Pointcut\IncorrectPointcutException::class);
 
         Pointcut::createWith("((\stdClass))");
     }
 
     public function test_throwing_exception_when_no_expression_given_between_brackets()
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(Pointcut\IncorrectPointcutException::class);
 
         Pointcut::createWith("(\stdClass)(\stdClass)");
     }

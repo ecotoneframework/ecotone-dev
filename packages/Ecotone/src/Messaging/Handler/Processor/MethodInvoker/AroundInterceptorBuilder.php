@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut\IncorrectPointcutException;
 use function array_merge;
 
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
@@ -12,6 +11,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAn
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 
 use Ecotone\Messaging\Config\Container\Definition;
+
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -28,6 +28,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadConverter
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PollingMetadataConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut\IncorrectPointcutException;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -81,7 +82,7 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
     {
         try {
             $pointcut = $pointcut ? Pointcut::createWith($pointcut) : Pointcut::createEmpty();
-        }catch (IncorrectPointcutException $exception) {
+        } catch (IncorrectPointcutException $exception) {
             throw IncorrectPointcutException::create("Incorrect pointcut for {$interfaceToCall}. {$exception->getMessage()}");
         }
 

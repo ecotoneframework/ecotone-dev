@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut\IncorrectPointcutException;
 use function array_merge;
 
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
@@ -78,7 +79,13 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
      */
     public static function create(string $referenceName, InterfaceToCall $interfaceToCall, int $precedence, string $pointcut = '', array $parameterConverters = []): self
     {
-        return new self($precedence, $referenceName, $interfaceToCall, $pointcut ? Pointcut::createWith($pointcut) : Pointcut::createEmpty(), $parameterConverters);
+        try {
+            $pointcut = $pointcut ? Pointcut::createWith($pointcut) : Pointcut::createEmpty();
+        }catch (IncorrectPointcutException $exception) {
+            throw IncorrectPointcutException::create("Incorrect pointcut for {$interfaceToCall}. {$exception->getMessage()}");
+        }
+
+        return new self($precedence, $referenceName, $interfaceToCall, $pointcut, $parameterConverters);
     }
 
     public static function createWithDirectObjectAndResolveConverters(InterfaceToCallRegistry $interfaceToCallRegistry, object $referenceObject, string $methodName, int $precedence, string $pointcut): self

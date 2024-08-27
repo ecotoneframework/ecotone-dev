@@ -103,7 +103,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
 
             return $this->queueChannel->receive();
-        } catch (AMQPConnectionException $exception) {
+        } catch (AMQPConnectionException|\AMQPChannelException $exception) {
             throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
         }
     }

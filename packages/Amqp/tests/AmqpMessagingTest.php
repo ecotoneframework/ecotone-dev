@@ -27,17 +27,22 @@ abstract class AmqpMessagingTest extends TestCase
     /**
      * @return AmqpConnectionFactory
      */
-    public function getCachedConnectionFactory(): AmqpConnectionFactory
+    public function getCachedConnectionFactory(array $config = []): AmqpConnectionFactory
     {
-        return self::getRabbitConnectionFactory();
+        return self::getRabbitConnectionFactory($config);
     }
 
     /**
      * @return AmqpConnectionFactory
      */
-    public static function getRabbitConnectionFactory(): AmqpConnectionFactory
+    public static function getRabbitConnectionFactory(array $config = []): AmqpConnectionFactory
     {
-        return new AmqpLibConnection(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f']);
+        return new AmqpLibConnection(
+            array_merge(
+                ['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f'],
+                $config,
+            )
+        );
     }
 
     public function setUp(): void
@@ -58,6 +63,8 @@ abstract class AmqpMessagingTest extends TestCase
         $this->deleteQueue(new AmqpQueue('distributed_ticket_service'));
         $this->deleteQueue(new AmqpQueue(AmqpDistributionModule::CHANNEL_PREFIX . TicketServiceMessagingConfiguration::SERVICE_NAME));
         $this->deleteQueue(new AmqpQueue('ecotone_1_delay'));
+        $this->deleteQueue(new AmqpQueue('async'));
+        $this->deleteQueue(new AmqpQueue('notification_channel'));
     }
 
     private function deleteQueue(AmqpQueue $queue): void

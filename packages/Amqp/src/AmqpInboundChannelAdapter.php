@@ -6,13 +6,16 @@ namespace Ecotone\Amqp;
 
 use AMQPConnectionException;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\Consumer;
@@ -32,13 +35,14 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
     private QueueChannel $queueChannel;
 
     public function __construct(
-        CachedConnectionFactory         $cachedConnectionFactory,
+        private CachedConnectionFactory         $cachedConnectionFactory,
         private AmqpAdmin               $amqpAdmin,
         bool                            $declareOnStartup,
         string                          $queueName,
         int                             $receiveTimeoutInMilliseconds,
         InboundMessageConverter         $inboundMessageConverter,
-        ConversionService $conversionService
+        ConversionService $conversionService,
+        private LoggingGateway $loggingGateway,
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -65,10 +69,17 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $targetMessage = $targetMessage->setContentType(MediaType::parseMediaType($sourceMessage->getContentType()));
         }
 
-        return $targetMessage;
+        return $targetMessage->setHeader(
+            EnqueueHeader::HEADER_ACKNOWLEDGE,
+            new AmqpAcknowledgeCallbackWraper(
+                $targetMessage->getHeaderWithName(EnqueueHeader::HEADER_ACKNOWLEDGE),
+                $this->cachedConnectionFactory,
+                $this->loggingGateway,
+            )
+        );
     }
 
-    public function receiveMessage(int $timeout = 0): ?Message
+    public function receiveWithTimeout(int $timeout = 0): ?Message
     {
         try {
             if ($this->declareOnStartup && $this->initialized === false) {
@@ -92,7 +103,8 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
 
             return $this->queueChannel->receive();
-        } catch (AMQPConnectionException $exception) {
+        } catch (AMQPConnectionException|\AMQPChannelException $exception) {
+            $this->connectionFactory->reconnect();
             throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
         }
     }

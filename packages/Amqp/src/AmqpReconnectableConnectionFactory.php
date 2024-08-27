@@ -46,7 +46,12 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
     /**
      * No way to reliable state if amqp is connected: https://github.com/php-amqp/php-amqp/issues/306
-     * So to make it more reliable we check other way around, if is disconnected
+     * So to make it more reliable we check other way around, if is disconnected.
+     *
+     * There are situations where connection to AMQP connections becomes zombies.
+     * In that scenarios triggering an action on the connection will do nothing and will not throw an exception.
+     * It makes the feeling like anything is fine, yet in reality it is not.
+     * In those situations it's better to use this method.
      * @param Context|AmqpContext|null $context
      */
     public function isDisconnected(?Context $context): bool
@@ -64,6 +69,11 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     {
         $connectionProperty = $this->getConnectionProperty();
 
+        if ($this->subscriptionConsumer) {
+            try {
+                $this->subscriptionConsumer->unsubscribeAll();
+            }catch (\Exception) {}
+        }
         /** @var AMQPConnection $connection */
         $connection = $connectionProperty->getValue($this->connectionFactory);
         if ($connection) {
@@ -95,8 +105,10 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
     public function getSubscriptionConsumer(string $queueName, callable $subscriptionCallback): SubscriptionConsumer
     {
-        $context = $this->createContext();
         if ($this->subscriptionConsumer === null) {
+            /** @var AmqpContext $context */
+            $context = $this->createContext();
+
             $this->subscriptionConsumer = $context->createSubscriptionConsumer();
 
             /** @var AmqpConsumer $consumer */

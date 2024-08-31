@@ -100,7 +100,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
             $methodInvocation->proceed();
         } catch (RejectMessageException $exception) {
             if ($amqpAcknowledgementCallback->isAutoAck()) {
-                $retryStrategy->runCallbackWithRetries(function () use ($message, $methodInvocation, $logger, $messageChannelName, $amqpAcknowledgementCallback) {
+                $retryStrategy->runCallbackWithRetries(function () use ($message, $logger, $messageChannelName, $amqpAcknowledgementCallback) {
                     $amqpAcknowledgementCallback->reject();
 
                     $logger->info(
@@ -113,7 +113,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
             throw $exception;
         } catch (Throwable $exception) {
             if ($amqpAcknowledgementCallback->isAutoAck()) {
-                $retryStrategy->runCallbackWithRetries(function () use ($message, $methodInvocation, $logger, $messageChannelName, $amqpAcknowledgementCallback, $exception) {
+                $retryStrategy->runCallbackWithRetries(function () use ($message, $logger, $messageChannelName, $amqpAcknowledgementCallback, $exception) {
                     $amqpAcknowledgementCallback->requeue();
 
                     $logger->info(
@@ -132,7 +132,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
         }
 
         if ($amqpAcknowledgementCallback->isAutoAck()) {
-            $retryStrategy->runCallbackWithRetries(function () use ($message, $methodInvocation, $logger, $messageChannelName, $amqpAcknowledgementCallback) {
+            $retryStrategy->runCallbackWithRetries(function () use ($message, $logger, $messageChannelName, $amqpAcknowledgementCallback) {
                 $amqpAcknowledgementCallback->accept();
 
                 $logger->info(

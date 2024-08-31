@@ -82,7 +82,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function deduplication_table_if_rolled_back_is_handled_correctly_in_next_run()
     {
-        if (!method_exists('executeQuery', Connection::class)) {
+        if (!method_exists(Connection::class, 'executeQuery')) {
             $this->markTestSkipped("Dbal version >= 3.0");
         }
 
@@ -123,7 +123,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_commit()
     {
-        if (!method_exists('executeQuery', Connection::class)) {
+        if (!method_exists(Connection::class, 'executeQuery')) {
             $this->markTestSkipped('Dbal version >= 3.0');
         }
 
@@ -157,7 +157,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_message_acknowledge()
     {
-        if (!method_exists('executeQuery', Connection::class)) {
+        if (!method_exists(Connection::class, 'executeQuery')) {
             $this->markTestSkipped('Dbal version >= 3.0');
         }
 
@@ -187,7 +187,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_dead_letter_storage()
     {
-        if (!method_exists('executeQuery', Connection::class)) {
+        if (!method_exists(Connection::class, 'executeQuery')) {
             $this->markTestSkipped('Dbal version >= 3.0');
         }
 

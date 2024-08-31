@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
@@ -57,7 +58,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
         }
 
         try {
-            return $this->handle($message, $methodInvocation, $logger, $messageChannelName);
+            $this->handle($message, $methodInvocation, $logger, $messageChannelName);
         }catch (Throwable $exception) {
             $pollingMetadata = $message->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA);
             if ($pollingMetadata->isStoppedOnError() === true) {
@@ -76,47 +77,58 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
         return new Definition(self::class);
     }
 
-    private function handle(Message $message, MethodInvocation $methodInvocation, LoggingGateway $logger, mixed $messageChannelName): mixed
+    private function handle(Message $message, MethodInvocation $methodInvocation, LoggingGateway $logger, mixed $messageChannelName): void
     {
+        $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 10, 1000)
+            ->maxRetryAttempts(3)
+            ->build();
+
         /** @var AcknowledgementCallback $amqpAcknowledgementCallback */
         $amqpAcknowledgementCallback = $message->getHeaders()->get($message->getHeaders()->get(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION));
         try {
-            $result = $methodInvocation->proceed();
-
-            if ($amqpAcknowledgementCallback->isAutoAck()) {
-                $logger->info(
-                    sprintf('Acknowledging Message with id `%s` was handled for Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
-                    $message
-                );
-                $amqpAcknowledgementCallback->accept();
-            }
-
-            return $result;
+            $methodInvocation->proceed();
         } catch (RejectMessageException $exception) {
             if ($amqpAcknowledgementCallback->isAutoAck()) {
-                $logger->info(
-                    sprintf('Rejecting Message with id `%s` in Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
-                    $message
-                );
-                $amqpAcknowledgementCallback->reject();
+                $retryStrategy->runCallbackWithRetries(function () use ($message, $methodInvocation, $logger, $messageChannelName, $amqpAcknowledgementCallback) {
+                    $amqpAcknowledgementCallback->reject();
+
+                    $logger->info(
+                        sprintf('Message with id `%s` rejected in Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
+                        $message
+                    );
+                }, $message, \Exception::class, $logger, sprintf('Rejecting Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
             }
 
             throw $exception;
         } catch (Throwable $exception) {
             if ($amqpAcknowledgementCallback->isAutoAck()) {
-                $logger->info(
-                    sprintf(
-                        'Re-queuing Message with id `%s` in Message Channel `%s`. Due to %s',
-                        $message->getHeaders()->getMessageId(),
-                        $messageChannelName,
-                        $exception->getMessage()
-                    ),
-                    $message
-                );
-                $amqpAcknowledgementCallback->requeue();
+                $retryStrategy->runCallbackWithRetries(function () use ($message, $methodInvocation, $logger, $messageChannelName, $amqpAcknowledgementCallback, $exception) {
+                    $amqpAcknowledgementCallback->requeue();
+
+                    $logger->info(
+                        sprintf(
+                            'Message with id `%s` requeued in Message Channel `%s`. Due to %s',
+                            $message->getHeaders()->getMessageId(),
+                            $messageChannelName,
+                            $exception->getMessage()
+                        ),
+                        $message
+                    );
+                }, $message, \Exception::class, $logger, sprintf('Re-queuing Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
             }
 
             throw $exception;
+        }
+
+        if ($amqpAcknowledgementCallback->isAutoAck()) {
+            $retryStrategy->runCallbackWithRetries(function () use ($message, $methodInvocation, $logger, $messageChannelName, $amqpAcknowledgementCallback) {
+                $amqpAcknowledgementCallback->accept();
+
+                $logger->info(
+                    sprintf('Message with id `%s` was acknowledged in Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
+                    $message
+                );
+            }, $message, \Exception::class, $logger, sprintf('Acknowledging Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
         }
     }
 }

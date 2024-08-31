@@ -84,7 +84,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailuresOnCommit: [false, true]),
-                'logger' => new EchoLogger()
+//                'logger' => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -151,7 +151,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailureOnMessageAcknowledge: [true, false]),
-                "logger" => new EchoLogger()
+//                "logger" => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -165,16 +165,11 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             addInMemoryStateStoredRepository: false
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 99, 'personName' => 'Johny', 'exception' => false]);
+        $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 99, 'personName' => 'Johny', 'exception' => false], metadata: ['publish_event' => false]);
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: true));
 
-        // we need to use count because we would not fetch the Message for next 20 minutes (default visibility timeout)
-        $result = $this->getConnection()->executeQuery(<<<SQL
-    SELECT COUNT(*) FROM enqueue
-SQL)->columnCount();
-
-        $this->assertSame(0, $result);
+        $this->assertNull($ecotoneLite->getMessageChannel('async')->receiveWithTimeout(100));
     }
 
     public function test_reconnecting_on_lost_connection_during_dead_letter_storage()

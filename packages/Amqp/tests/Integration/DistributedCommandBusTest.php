@@ -30,14 +30,16 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
     public function test_distributing_command_to_another_service(): void
     {
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()]);
-        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver'], [new TicketServiceReceiver()]);
+        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver'], [new TicketServiceReceiver(),
+//            'logger' => new EchoLogger(),
+        ]);
 
-        $ticketService->run('ticket_service');
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'user_service');
 
-        $ticketService->run('ticket_service');
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
     }
 
@@ -46,7 +48,7 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
         $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(10000)->withStopOnError(false);
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()], amqpConfig: ['heartbeat' => 1]);
         $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler'], [new TicketServiceReceiver([0, 6, 0]), new TicketNotificationEventHandler([0, 6, 0]),
-            'logger' => new EchoLogger(),
+//            'logger' => new EchoLogger(),
         ], amqpConfig: ['heartbeat' => 1]);
 
         $ticketService->run('ticket_service', $executionPollingMetadata);

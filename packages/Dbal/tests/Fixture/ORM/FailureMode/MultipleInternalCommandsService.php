@@ -26,4 +26,15 @@ final class MultipleInternalCommandsService
             ));
         }
     }
+
+    #[Asynchronous('async')]
+    #[CommandHandler('singeInternalCommand', endpointId: 'singleInternalCommandEndpoint', outputChannelName: 'person.register')]
+    public function asyncRegister(array $command)
+    {
+        return new RegisterPerson(
+            $command['personId'],
+            $command['personName'],
+            $command['exception'] ?? false
+        );
+    }
 }

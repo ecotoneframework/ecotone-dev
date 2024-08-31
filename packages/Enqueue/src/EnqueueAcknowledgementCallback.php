@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Interop\Queue\Consumer as EnqueueConsumer;
 use Interop\Queue\Message as EnqueueMessage;
 
@@ -41,7 +42,7 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
      * @param EnqueueConsumer $enqueueConsumer
      * @param EnqueueMessage $enqueueMessage
      */
-    private function __construct(bool $isAutoAck, EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage)
+    private function __construct(bool $isAutoAck, EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, private CachedConnectionFactory $connectionFactory, private LoggingGateway $loggingGateway)
     {
         $this->isAutoAck = $isAutoAck;
         $this->enqueueConsumer = $enqueueConsumer;
@@ -53,9 +54,9 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
      * @param EnqueueMessage $enqueueMessage
      * @return EnqueueAcknowledgementCallback
      */
-    public static function createWithAutoAck(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage): self
+    public static function createWithAutoAck(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, CachedConnectionFactory $connectionFactory, LoggingGateway $loggingGateway): self
     {
-        return new self(true, $enqueueConsumer, $enqueueMessage);
+        return new self(true, $enqueueConsumer, $enqueueMessage, $connectionFactory, $loggingGateway);
     }
 
     /**
@@ -63,9 +64,9 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
      * @param EnqueueMessage $enqueueMessage
      * @return EnqueueAcknowledgementCallback
      */
-    public static function createWithManualAck(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage): self
+    public static function createWithManualAck(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, CachedConnectionFactory $connectionFactory, LoggingGateway $loggingGateway): self
     {
-        return new self(false, $enqueueConsumer, $enqueueMessage);
+        return new self(false, $enqueueConsumer, $enqueueMessage, $connectionFactory, $loggingGateway);
     }
 
     /**
@@ -89,7 +90,15 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
      */
     public function accept(): void
     {
-        $this->enqueueConsumer->acknowledge($this->enqueueMessage);
+        try {
+            $this->enqueueConsumer->acknowledge($this->enqueueMessage);
+        } catch (\Exception $exception) {
+            $this->loggingGateway->info('Failed to acknowledge message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
+
+            $this->connectionFactory->reconnect();
+
+            throw $exception;
+        }
     }
 
     /**
@@ -97,7 +106,15 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
      */
     public function reject(): void
     {
-        $this->enqueueConsumer->reject($this->enqueueMessage);
+        try {
+            $this->enqueueConsumer->reject($this->enqueueMessage);
+        } catch (\Exception $exception) {
+            $this->loggingGateway->info('Failed to reject message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
+
+            $this->connectionFactory->reconnect();
+
+            throw $exception;
+        }
     }
 
     /**
@@ -105,6 +122,14 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
      */
     public function requeue(): void
     {
-        $this->enqueueConsumer->reject($this->enqueueMessage, true);
+        try {
+            $this->enqueueConsumer->reject($this->enqueueMessage, true);
+        } catch (\Exception $exception) {
+            $this->loggingGateway->info('Failed to requeue message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
+
+            $this->connectionFactory->reconnect();
+
+            throw $exception;
+        }
     }
 }

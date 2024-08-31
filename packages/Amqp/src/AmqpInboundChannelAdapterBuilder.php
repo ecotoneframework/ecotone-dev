@@ -34,11 +34,6 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        // There was this code:
-        // if ($pollingMetadata->getExecutionTimeLimitInMilliseconds()) {
-        //     $this->withReceiveTimeout($pollingMetadata->getExecutionTimeLimitInMilliseconds());
-        // }
-
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
@@ -50,6 +45,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $this->acknowledgeMode,
             DefaultHeaderMapper::createWith($this->headerMapper, []),
             EnqueueHeader::HEADER_ACKNOWLEDGE,
+            Reference::to(LoggingGateway::class),
         ]);
 
         return new Definition(AmqpInboundChannelAdapter::class, [

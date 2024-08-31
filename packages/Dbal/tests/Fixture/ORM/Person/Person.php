@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\ORM\Person;
 
 use Doctrine\ORM\Mapping as ORM;
+use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
@@ -38,18 +39,21 @@ class Person
     #[ORM\Column(name: 'roles', type: 'json')]
     public array $roles = [];
 
-    private function __construct(int $personId, string $name)
+    private function __construct(int $personId, string $name, bool $publishEvent)
     {
         $this->personId = $personId;
         $this->name = $name;
 
-        $this->recordThat(new PersonRegistered($personId, $name));
+        if ($publishEvent) {
+            $this->recordThat(new PersonRegistered($personId, $name));
+        }
     }
 
+    #[CommandHandler('person.register')]
     #[CommandHandler]
-    public static function register(RegisterPerson $command): static
+    public static function register(RegisterPerson $command, #[Header('publish_event')] bool $publishEvent = true): static
     {
-        $person = new self($command->getPersonId(), $command->getName());
+        $person = new self($command->getPersonId(), $command->getName(), $publishEvent);
         if ($command->isException()) {
             throw new RuntimeException('Exception');
         }

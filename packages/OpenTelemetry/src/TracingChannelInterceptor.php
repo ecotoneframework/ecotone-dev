@@ -15,10 +15,8 @@ use function json_encode;
 
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\SpanKind;
-
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
-
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\SDK\Trace\Span;
 use Throwable;

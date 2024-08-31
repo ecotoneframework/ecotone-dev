@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace  Test\Ecotone\Dbal\Fixture\Betting;
+namespace Test\Ecotone\Dbal\Fixture\Betting;
 
 /**
  * licence Apache-2.0

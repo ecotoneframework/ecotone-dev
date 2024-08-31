@@ -21,8 +21,7 @@ class InboundMessageConverter
         private HeaderMapper $headerMapper,
         private string $acknowledgeHeaderName,
         private LoggingGateway $loggingGateway,
-    )
-    {
+    ) {
 
     }
 

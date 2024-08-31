@@ -10,7 +10,6 @@ use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -82,14 +81,14 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function deduplication_table_if_rolled_back_is_handled_correctly_in_next_run()
     {
-        if (!method_exists(Connection::class, 'getNativeConnection')) {
-            $this->markTestSkipped("Dbal version >= 3.0");
+        if (! method_exists(Connection::class, 'getNativeConnection')) {
+            $this->markTestSkipped('Dbal version >= 3.0');
         }
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailuresOnCommit: [false, true]),
-//                'logger' => new EchoLogger()
+                //                'logger' => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -123,14 +122,14 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_commit()
     {
-        if (!method_exists(Connection::class, 'getNativeConnection')) {
+        if (! method_exists(Connection::class, 'getNativeConnection')) {
             $this->markTestSkipped('Dbal version >= 3.0');
         }
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailuresOnCommit: [false, false, true]),
-//                "logger" => new EchoLogger()
+                //                "logger" => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -157,14 +156,14 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_message_acknowledge()
     {
-        if (!method_exists(Connection::class, 'getNativeConnection')) {
+        if (! method_exists(Connection::class, 'getNativeConnection')) {
             $this->markTestSkipped('Dbal version >= 3.0');
         }
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailureOnMessageAcknowledge: [true, false]),
-//                "logger" => new EchoLogger()
+                //                "logger" => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -187,14 +186,14 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_dead_letter_storage()
     {
-        if (!method_exists(Connection::class, 'getNativeConnection')) {
+        if (! method_exists(Connection::class, 'getNativeConnection')) {
             $this->markTestSkipped('Dbal version >= 3.0');
         }
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailureOnStoreInDeadLetter: [true, false]),
-//                'logger' => new EchoLogger()
+                //                'logger' => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultErrorChannel('dbal_dead_letter')

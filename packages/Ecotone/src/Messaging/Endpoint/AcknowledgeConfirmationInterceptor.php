@@ -17,6 +17,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Precedence;
+use Exception;
 use Throwable;
 
 /**
@@ -59,7 +60,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
 
         try {
             $this->handle($message, $methodInvocation, $logger, $messageChannelName);
-        }catch (Throwable $exception) {
+        } catch (Throwable $exception) {
             $pollingMetadata = $message->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA);
             if ($pollingMetadata->isStoppedOnError() === true) {
                 $logger->info(
@@ -107,7 +108,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
                         sprintf('Message with id `%s` rejected in Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
                         $message
                     );
-                }, $message, \Exception::class, $logger, sprintf('Rejecting Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
+                }, $message, Exception::class, $logger, sprintf('Rejecting Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
             }
 
             throw $exception;
@@ -125,7 +126,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
                         ),
                         $message
                     );
-                }, $message, \Exception::class, $logger, sprintf('Re-queuing Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
+                }, $message, Exception::class, $logger, sprintf('Re-queuing Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
             }
 
             throw $exception;
@@ -139,7 +140,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
                     sprintf('Message with id `%s` was acknowledged in Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
                     $message
                 );
-            }, $message, \Exception::class, $logger, sprintf('Acknowledging Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
+            }, $message, Exception::class, $logger, sprintf('Acknowledging Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
         }
     }
 }

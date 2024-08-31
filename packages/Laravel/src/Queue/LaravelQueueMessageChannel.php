@@ -14,7 +14,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Illuminate\Contracts\Queue\Factory;
 use Illuminate\Contracts\Queue\Queue;
-
 use Illuminate\Queue\SyncQueue;
 
 use function json_decode;

@@ -77,7 +77,7 @@ class DbalTransactionInterceptor
             $retryStrategy->runCallbackWithRetries(function () use ($connection) {
                 try {
                     $connection->beginTransaction();
-                }catch (\Exception $exception) {
+                } catch (Exception $exception) {
                     $connection->close();
                     throw $exception;
                 }
@@ -102,7 +102,8 @@ class DbalTransactionInterceptor
 
                         try {
                             $connection->rollBack();
-                        } catch (Exception) {};
+                        } catch (Exception) {
+                        };
 
                         continue;
                     }

@@ -7,7 +7,6 @@ namespace Ecotone\Amqp;
 use AMQPChannelException;
 use AMQPConnectionException;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;

@@ -31,7 +31,7 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
     {
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()]);
         $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver'], [new TicketServiceReceiver(),
-//            'logger' => new EchoLogger(),
+            //            'logger' => new EchoLogger(),
         ]);
 
         $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
@@ -48,7 +48,7 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
         $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(10000)->withStopOnError(false);
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()], amqpConfig: ['heartbeat' => 1]);
         $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler'], [new TicketServiceReceiver([0, 6, 0]), new TicketNotificationEventHandler([0, 6, 0]),
-//            'logger' => new EchoLogger(),
+            //            'logger' => new EchoLogger(),
         ], amqpConfig: ['heartbeat' => 1]);
 
         $ticketService->run('ticket_service', $executionPollingMetadata);

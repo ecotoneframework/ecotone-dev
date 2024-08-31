@@ -55,8 +55,7 @@ abstract class DbalMessagingTestCase extends TestCase
         array $connectionFailuresOnCommit = [],
         array $connectionFailureOnStoreInDeadLetter = [],
         array $connectionFailureOnMessageAcknowledge = [],
-    ): ConnectionFactory
-    {
+    ): ConnectionFactory {
         return ManagerRegistryEmulator::create((
                 new FailingConnection(
                     self::prepareConnection()->createContext()->getDbalConnection(),

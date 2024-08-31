@@ -7,9 +7,7 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 use function json_encode;
 
 use OpenTelemetry\API\Trace\TracerProviderInterface;
-
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
-
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanExporterInterface;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;

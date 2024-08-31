@@ -6,7 +6,6 @@ namespace Ecotone\Dbal\Recoverability;
 
 use DateTime;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception\ConnectionException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
@@ -202,7 +201,7 @@ class DbalDeadLetterHandler
         $retryStrategy->runCallbackWithRetries(function () use ($message) {
             try {
                 $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers());
-            }catch (\Exception $exception) {
+            } catch (\Exception $exception) {
                 $this->getConnection()->close();
 
                 throw $exception;

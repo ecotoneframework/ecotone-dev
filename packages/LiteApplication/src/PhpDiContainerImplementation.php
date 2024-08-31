@@ -15,7 +15,6 @@ use function is_array;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-
 use ReflectionMethod;
 
 /**

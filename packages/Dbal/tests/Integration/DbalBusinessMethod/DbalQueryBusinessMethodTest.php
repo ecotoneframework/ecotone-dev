@@ -159,7 +159,7 @@ final class DbalQueryBusinessMethodTest extends DbalMessagingTestCase
         $personWriteGateway->insert(2, 'John2');
 
         $personQueryGateway = $ecotoneLite->getGateway(PersonQueryApi::class);
-        foreach($personQueryGateway->getPersonIdsIterator() as $key => $personDTO) {
+        foreach ($personQueryGateway->getPersonIdsIterator() as $key => $personDTO) {
             $this->assertEquals(
                 $personDTOs[$key],
                 $personDTO

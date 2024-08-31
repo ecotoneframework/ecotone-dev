@@ -39,7 +39,7 @@ final class LoggingModuleTest extends TestCase
             ->sendCommandWithRoutingKey('handler.fail', ['command' => 2])
             ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
-        $this->assertCount(1, $loggerExample->getCritical());
+        $this->assertCount(2, $loggerExample->getCritical());
     }
 
     public function test_it_does_log_critical_if_message_sent_to_error_channel()

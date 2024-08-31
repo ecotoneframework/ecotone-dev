@@ -30,7 +30,9 @@ final class DistributedCommandBusTest extends AmqpMessagingTest
     public function test_distributing_command_to_another_service(): void
     {
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()]);
-        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver'], [new TicketServiceReceiver()]);
+        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver'], [new TicketServiceReceiver(),
+//            'logger' => new EchoLogger(),
+        ]);
 
         $ticketService->run('ticket_service');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));

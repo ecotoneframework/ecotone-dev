@@ -96,6 +96,8 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
             $this->loggingGateway->info('Failed to acknowledge message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
 
             $this->connectionFactory->reconnect();
+
+            throw $exception;
         }
     }
 
@@ -110,6 +112,8 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
             $this->loggingGateway->info('Failed to reject message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
 
             $this->connectionFactory->reconnect();
+
+            throw $exception;
         }
     }
 
@@ -124,6 +128,8 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
             $this->loggingGateway->info('Failed to requeue message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
 
             $this->connectionFactory->reconnect();
+
+            throw $exception;
         }
     }
 }

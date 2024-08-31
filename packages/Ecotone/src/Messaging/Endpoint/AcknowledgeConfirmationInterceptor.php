@@ -85,7 +85,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
 
             if ($amqpAcknowledgementCallback->isAutoAck()) {
                 $logger->info(
-                    sprintf('Acknowledging that message Message with id `%s` was handled for Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
+                    sprintf('Acknowledging Message with id `%s` was handled for Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
                     $message
                 );
                 $amqpAcknowledgementCallback->accept();

@@ -42,11 +42,13 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
      */
     public function ack(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger)
     {
+        $messageChannelName = $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : 'unknown';
+
         $logger->info(
             sprintf(
                 'Message with id `%s` received from Message Channel `%s`',
                 $message->getHeaders()->getMessageId(),
-                $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME) : 'unknown'
+                $messageChannelName
             ),
             $message
         );
@@ -54,8 +56,28 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
             return $methodInvocation->proceed();
         }
 
-        $result = null;
-        $exception = null;
+        try {
+            return $this->handle($message, $methodInvocation, $logger, $messageChannelName);
+        }catch (Throwable $exception) {
+            $pollingMetadata = $message->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA);
+            if ($pollingMetadata->isStoppedOnError() === true) {
+                $logger->info(
+                    'Should stop on error configuration enabled, stopping Message Consumer.',
+                    $message
+                );
+
+                throw $exception;
+            }
+        }
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(self::class);
+    }
+
+    private function handle(Message $message, MethodInvocation $methodInvocation, LoggingGateway $logger, mixed $messageChannelName): mixed
+    {
         /** @var AcknowledgementCallback $amqpAcknowledgementCallback */
         $amqpAcknowledgementCallback = $message->getHeaders()->get($message->getHeaders()->get(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION));
         try {
@@ -63,47 +85,38 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
 
             if ($amqpAcknowledgementCallback->isAutoAck()) {
                 $logger->info(
-                    sprintf('Message with id `%s` acknowledged in Message Channel', $message->getHeaders()->getMessageId()),
+                    sprintf('Acknowledging that message Message with id `%s` was handled for Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
                     $message
                 );
                 $amqpAcknowledgementCallback->accept();
             }
+
+            return $result;
         } catch (RejectMessageException $exception) {
             if ($amqpAcknowledgementCallback->isAutoAck()) {
                 $logger->info(
-                    sprintf('Message with id `%s` rejected in Message Channel', $message->getHeaders()->getMessageId()),
+                    sprintf('Rejecting Message with id `%s` in Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
                     $message
                 );
                 $amqpAcknowledgementCallback->reject();
             }
+
+            throw $exception;
         } catch (Throwable $exception) {
             if ($amqpAcknowledgementCallback->isAutoAck()) {
                 $logger->info(
                     sprintf(
-                        'Message with id `%s` requeued in Message Channel. Due to %s',
+                        'Re-queuing Message with id `%s` in Message Channel `%s`. Due to %s',
                         $message->getHeaders()->getMessageId(),
+                        $messageChannelName,
                         $exception->getMessage()
                     ),
                     $message
                 );
                 $amqpAcknowledgementCallback->requeue();
             }
-        }
 
-        $pollingMetadata = $message->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA);
-        if ($pollingMetadata->isStoppedOnError() === true && $exception !== null) {
-            $logger->info(
-                'Should stop on error configuration enabled, stopping Message Consumer.',
-                $message
-            );
             throw $exception;
         }
-
-        return $result;
-    }
-
-    public function getDefinition(): Definition
-    {
-        return new Definition(self::class);
     }
 }

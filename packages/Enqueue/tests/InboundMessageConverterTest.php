@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone;
 
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueAcknowledgementCallback;
 use Ecotone\Enqueue\InboundMessageConverter;
+use Ecotone\Messaging\Handler\Logger\StubLoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Test\InMemoryConversionService;
@@ -29,7 +31,8 @@ final class InboundMessageConverterTest extends TestCase
             'some',
             EnqueueAcknowledgementCallback::AUTO_ACK,
             DefaultHeaderMapper::createNoMapping(),
-            'ack'
+            'ack',
+            new StubLoggingGateway(),
         );
 
         $message = $inboundMessageConverter->toMessage(
@@ -41,7 +44,8 @@ final class InboundMessageConverterTest extends TestCase
                 ]
             ),
             new NullConsumer(new NullQueue('some')),
-            InMemoryConversionService::createWithoutConversion()
+            InMemoryConversionService::createWithoutConversion(),
+            $this->createMock(CachedConnectionFactory::class),
         )
         ->build();
 

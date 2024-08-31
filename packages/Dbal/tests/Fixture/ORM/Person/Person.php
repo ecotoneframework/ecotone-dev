@@ -46,6 +46,7 @@ class Person
         $this->recordThat(new PersonRegistered($personId, $name));
     }
 
+    #[CommandHandler('person.register')]
     #[CommandHandler]
     public static function register(RegisterPerson $command): static
     {

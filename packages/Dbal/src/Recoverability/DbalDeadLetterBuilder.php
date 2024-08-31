@@ -13,6 +13,7 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
@@ -158,7 +159,8 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                     ]),
                 ], 'createFor'),
                 DefaultHeaderMapper::createAllHeadersMapping(),
-                new Reference(ConversionService::REFERENCE_NAME),
+                Reference::to(ConversionService::REFERENCE_NAME),
+                Reference::to(LoggingGateway::class),
             ]);
 
             $builder->register($deadLetterHandlerReference, $deadLetterHandler);

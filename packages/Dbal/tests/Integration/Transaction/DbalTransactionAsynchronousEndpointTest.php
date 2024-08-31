@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
+use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
@@ -81,6 +82,10 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function deduplication_table_if_rolled_back_is_handled_correctly_in_next_run()
     {
+        if (!method_exists('executeQuery', Connection::class)) {
+            $this->markTestSkipped("Dbal version >= 3.0");
+        }
+
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailuresOnCommit: [false, true]),
@@ -118,6 +123,10 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_commit()
     {
+        if (!method_exists('executeQuery', Connection::class)) {
+            $this->markTestSkipped('Dbal version >= 3.0');
+        }
+
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailuresOnCommit: [false, false, true]),
@@ -148,6 +157,10 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_message_acknowledge()
     {
+        if (!method_exists('executeQuery', Connection::class)) {
+            $this->markTestSkipped('Dbal version >= 3.0');
+        }
+
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailureOnMessageAcknowledge: [true, false]),
@@ -174,6 +187,10 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_dead_letter_storage()
     {
+        if (!method_exists('executeQuery', Connection::class)) {
+            $this->markTestSkipped('Dbal version >= 3.0');
+        }
+
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailureOnStoreInDeadLetter: [true, false]),

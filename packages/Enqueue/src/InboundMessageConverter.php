@@ -57,6 +57,11 @@ class InboundMessageConverter
                 ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, $enqueueMessageHeaders[MessageHeaders::MESSAGE_CORRELATION_ID]);
         }
 
+        if (isset($enqueueMessageHeaders[MessageHeaders::PARENT_MESSAGE_ID])) {
+            $messageBuilder = $messageBuilder
+                ->setHeader(MessageHeaders::PARENT_MESSAGE_ID, $enqueueMessageHeaders[MessageHeaders::PARENT_MESSAGE_ID]);
+        }
+
         return $messageBuilder
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, $this->acknowledgeHeaderName);
     }

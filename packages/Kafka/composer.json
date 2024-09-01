@@ -36,7 +36,8 @@
         "phpunit/phpunit": "^9.5",
         "phpstan/phpstan": "^1.8",
         "psr/container": "^2.0",
-        "wikimedia/composer-merge-plugin": "^2.1"
+        "wikimedia/composer-merge-plugin": "^2.1",
+        "kwn/php-rdkafka-stubs": "^2.2"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

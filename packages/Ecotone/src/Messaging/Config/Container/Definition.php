@@ -19,6 +19,11 @@ class Definition implements CompilableBuilder
     {
     }
 
+    public static function createFor(string $className, array $arguments): self
+    {
+        return new self($className, $arguments);
+    }
+
     public function getClassName(): string
     {
         return $this->className;

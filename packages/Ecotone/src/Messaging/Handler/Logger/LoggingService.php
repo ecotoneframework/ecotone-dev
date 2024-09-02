@@ -39,6 +39,11 @@ class LoggingService implements LoggingGateway, SubscribableLoggingGateway
         $this->log(LogLevel::ERROR, $message, $context ?? [], $additionalContext);
     }
 
+    public function critical(Stringable|string $message, Message|array|null $context = [], array $additionalContext = []): void
+    {
+        $this->log(LogLevel::CRITICAL, $message, $context ?? [], $additionalContext);
+    }
+
     public function log($level, Stringable|string $message, Message|array $context = [], array $additionalContext = []): void
     {
         $resultingContext = array_merge(

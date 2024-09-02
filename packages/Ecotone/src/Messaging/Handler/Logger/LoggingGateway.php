@@ -15,4 +15,5 @@ interface LoggingGateway extends LoggerInterface
 {
     public function info(Stringable|string $message, array|Message|null $context = [], array $additionalContext = []): void;
     public function error(Stringable|string $message, array|Message|null $context = [], array $additionalContext = []): void;
+    public function critical(Stringable|string $message, array|Message|null $context = [], array $additionalContext = []): void;
 }

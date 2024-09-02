@@ -2,6 +2,8 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Handler\Logger\EchoLogger;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use function class_exists;
 
 use const DIRECTORY_SEPARATOR;
@@ -143,6 +145,9 @@ class EcotoneProvider extends ServiceProvider
         );
 
         if ($this->app->runningInConsole()) {
+            $this->callAfterResolving(LoggingGateway::class, function (LoggingGateway $loggingGateway) {
+                $loggingGateway->registerLogger(new EchoLogger());
+            });
             foreach ($definitionHolder->getRegisteredCommands() as $oneTimeCommandConfiguration) {
                 $commandName = $oneTimeCommandConfiguration->getName();
 

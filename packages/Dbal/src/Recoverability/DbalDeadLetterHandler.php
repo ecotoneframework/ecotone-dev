@@ -12,8 +12,10 @@ use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandler;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
@@ -41,7 +43,8 @@ class DbalDeadLetterHandler
     public function __construct(
         private ConnectionFactory $connectionFactory,
         private HeaderMapper $headerMapper,
-        private ConversionService $conversionService
+        private ConversionService $conversionService,
+        private LoggingGateway $loggingGateway,
     ) {
     }
 
@@ -191,7 +194,19 @@ class DbalDeadLetterHandler
                 ->build();
         }
 
-        $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers());
+        $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 3, 1000)
+            ->maxRetryAttempts(3)
+            ->build();
+
+        $retryStrategy->runCallbackWithRetries(function () use ($message) {
+            try {
+                $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers());
+            } catch (\Exception $exception) {
+                $this->getConnection()->close();
+
+                throw $exception;
+            }
+        }, $message, \Exception::class, $this->loggingGateway, 'Storing Error Message in dead letter failed. Trying to self-heal and retry.');
     }
 
     private function insertHandledMessage(string $payload, array $headers): void

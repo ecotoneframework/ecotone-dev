@@ -75,7 +75,12 @@ class DbalTransactionInterceptor
                 ->build();
 
             $retryStrategy->runCallbackWithRetries(function () use ($connection) {
-                $connection->beginTransaction();
+                try {
+                    $connection->beginTransaction();
+                } catch (Exception $exception) {
+                    $connection->close();
+                    throw $exception;
+                }
             }, $message, ConnectionException::class, $logger, 'Starting Database transaction has failed due to network work, retrying in order to self heal.');
             $logger->info('Database Transaction started', $message);
         }
@@ -87,27 +92,23 @@ class DbalTransactionInterceptor
                     $connection->commit();
                     $logger->info('Database Transaction committed', $message);
                 } catch (PDOException $exception) {
-                    /** Handles the case where Mysql did implicit commit, when new creating tables */
-                    if (! str_contains($exception->getMessage(), 'There is no active transaction')) {
+                    if (str_contains($exception->getMessage(), 'There is no active transaction')) {
+                        /** Handles the case where Mysql did implicit commit, when new creating tables */
                         $logger->info(
-                            'Failure on committing transaction.',
+                            'Implicit Commit was detected, skipping manual one.',
                             $message,
                             ['exception' => $exception],
                         );
 
-                        throw $exception;
+                        try {
+                            $connection->rollBack();
+                        } catch (Exception) {
+                        };
+
+                        continue;
                     }
 
-                    $logger->info(
-                        'Implicit Commit was detected, skipping manual one.',
-                        $message,
-                        ['exception' => $exception],
-                    );
-                    /** Doctrine hold the state, so it needs to be cleaned */
-                    try {
-                        $connection->rollBack();
-                    } catch (Exception) {
-                    };
+                    throw $exception;
                 }
             }
         } catch (Throwable $exception) {
@@ -118,13 +119,11 @@ class DbalTransactionInterceptor
                         $message,
                         ['exception' => $exception]
                     );
+
+                    /** Doctrine hold the state, so it needs to be cleaned */
                     $connection->rollBack();
-                } catch (Throwable $rollBackException) {
-                    $logger->info(
-                        'Exception has been thrown, however could not rollback the transaction.',
-                        $message,
-                        ['exception' => $exception]
-                    );
+                } catch (Exception) {
+                    $connection->close();
                 }
             }
 

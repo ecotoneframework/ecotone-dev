@@ -62,7 +62,7 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
                 return null;
             }
 
-            $convertedMessage = $this->inboundMessageConverter->toMessage($message, $consumer, $this->conversionService);
+            $convertedMessage = $this->inboundMessageConverter->toMessage($message, $consumer, $this->conversionService, $this->connectionFactory);
             $convertedMessage = $this->enrichMessage($message, $convertedMessage);
 
             return $convertedMessage->build();

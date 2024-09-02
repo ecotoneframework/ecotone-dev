@@ -10,7 +10,6 @@ use function get_class;
 use function preg_grep;
 
 use Prooph\EventStore\EventStore;
-
 use Prooph\EventStore\EventStoreDecorator;
 use Prooph\EventStore\Exception;
 use Prooph\EventStore\InMemoryEventStore;

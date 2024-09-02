@@ -7,7 +7,6 @@ namespace Ecotone\Amqp;
 use AMQPChannelException;
 use AMQPConnectionException;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
@@ -69,14 +68,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $targetMessage = $targetMessage->setContentType(MediaType::parseMediaType($sourceMessage->getContentType()));
         }
 
-        return $targetMessage->setHeader(
-            EnqueueHeader::HEADER_ACKNOWLEDGE,
-            new AmqpAcknowledgeCallbackWraper(
-                $targetMessage->getHeaderWithName(EnqueueHeader::HEADER_ACKNOWLEDGE),
-                $this->cachedConnectionFactory,
-                $this->loggingGateway,
-            )
-        );
+        return $targetMessage;
     }
 
     public function receiveWithTimeout(int $timeout = 0): ?Message
@@ -92,7 +84,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
             $queueChannel = $this->queueChannel;
             $subscriptionConsumer = $connectionFactory->getSubscriptionConsumer($this->queueName, function (EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
-                $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer, $this->conversionService);
+                $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer, $this->conversionService, $this->cachedConnectionFactory);
                 $message = $this->enrichMessage($receivedMessage, $message);
 
                 $queueChannel->send($message->build());

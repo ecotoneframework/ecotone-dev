@@ -3,6 +3,7 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -14,32 +15,17 @@ use Interop\Queue\Message as EnqueueMessage;
  */
 class InboundMessageConverter
 {
-    /**
-     * @var string
-     */
-    private $acknowledgeMode;
-    /**
-     * @var HeaderMapper
-     */
-    private $headerMapper;
-    /**
-     * @var string
-     */
-    private $acknowledgeHeaderName;
-    /**
-     * @var string
-     */
-    private $inboundEndpointId;
+    public function __construct(
+        private string $inboundEndpointId,
+        private string $acknowledgeMode,
+        private HeaderMapper $headerMapper,
+        private string $acknowledgeHeaderName,
+        private LoggingGateway $loggingGateway,
+    ) {
 
-    public function __construct(string $inboundEndpointId, string $acknowledgeMode, HeaderMapper $headerMapper, string $acknowledgeHeaderName)
-    {
-        $this->acknowledgeMode = $acknowledgeMode;
-        $this->headerMapper = $headerMapper;
-        $this->acknowledgeHeaderName = $acknowledgeHeaderName;
-        $this->inboundEndpointId = $inboundEndpointId;
     }
 
-    public function toMessage(EnqueueMessage $source, EnqueueConsumer $consumer, ConversionService $conversionService): MessageBuilder
+    public function toMessage(EnqueueMessage $source, EnqueueConsumer $consumer, ConversionService $conversionService, CachedConnectionFactory $connectionFactory): MessageBuilder
     {
         $enqueueMessageHeaders = $source->getProperties();
         $messageBuilder = MessageBuilder::withPayload($source->getBody())
@@ -47,9 +33,9 @@ class InboundMessageConverter
 
         if (in_array($this->acknowledgeMode, [EnqueueAcknowledgementCallback::AUTO_ACK, EnqueueAcknowledgementCallback::MANUAL_ACK])) {
             if ($this->acknowledgeMode == EnqueueAcknowledgementCallback::AUTO_ACK) {
-                $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithAutoAck($consumer, $source);
+                $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithAutoAck($consumer, $source, $connectionFactory, $this->loggingGateway);
             } else {
-                $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithManualAck($consumer, $source);
+                $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithManualAck($consumer, $source, $connectionFactory, $this->loggingGateway);
             }
 
             $messageBuilder = $messageBuilder

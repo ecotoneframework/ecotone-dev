@@ -111,6 +111,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         if (! $builder->has(PollingConsumerErrorChannelInterceptor::class)) {
             $builder->register(PollingConsumerErrorChannelInterceptor::class, new Definition(PollingConsumerErrorChannelInterceptor::class, [
                 new Reference(ChannelResolver::class),
+                Reference::to(LoggingGateway::class),
             ]));
         }
         return AroundInterceptorBuilder::create(

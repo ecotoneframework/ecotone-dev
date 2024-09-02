@@ -13,6 +13,7 @@ use Ecotone\Test\ComponentTestBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Dbal\Fixture\FailingConnection;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 /**
@@ -43,6 +44,27 @@ abstract class DbalMessagingTestCase extends TestCase
         self::$defaultConnection = $dbalConnection;
 
         return $dbalConnection;
+    }
+
+    /**
+     * @param array $connectionFailuresOnCommit any true will cause connection to fail on commit
+     * @param array $connectionFailuresOnRollBack any true will cause connection to fail on roll back
+     */
+    public static function prepareFailingConnection(
+        array $connectionFailuresOnRollBack = [],
+        array $connectionFailuresOnCommit = [],
+        array $connectionFailureOnStoreInDeadLetter = [],
+        array $connectionFailureOnMessageAcknowledge = [],
+    ): ConnectionFactory {
+        return ManagerRegistryEmulator::create((
+                new FailingConnection(
+                    self::prepareConnection()->createContext()->getDbalConnection(),
+                    $connectionFailuresOnRollBack,
+                    $connectionFailuresOnCommit,
+                    $connectionFailureOnStoreInDeadLetter,
+                    $connectionFailureOnMessageAcknowledge
+                )
+        ));
     }
 
     /**

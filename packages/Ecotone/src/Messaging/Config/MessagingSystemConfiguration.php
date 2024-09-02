@@ -8,17 +8,13 @@ use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
-
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 

@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\Sqs\SqsConnectionFactory;
 
@@ -38,6 +39,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             $this->acknowledgeMode,
             DefaultHeaderMapper::createWith($this->headerMapper, []),
             EnqueueHeader::HEADER_ACKNOWLEDGE,
+            Reference::to(LoggingGateway::class),
         ]);
 
         return new Definition(SqsInboundChannelAdapter::class, [

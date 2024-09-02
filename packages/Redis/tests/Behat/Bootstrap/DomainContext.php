@@ -3,9 +3,6 @@
 namespace Test\Ecotone\Redis\Behat\Bootstrap;
 
 use Behat\Behat\Context\Context;
-
-
-
 use PHPUnit\Framework\TestCase;
 
 /**

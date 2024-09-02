@@ -5,7 +5,6 @@ namespace Ecotone\Amqp\Transaction;
 use function array_map;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
-
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ConsoleCommand;

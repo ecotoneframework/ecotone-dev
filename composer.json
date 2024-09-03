@@ -157,6 +157,7 @@
         "open-telemetry/exporter-otlp": "^1.0.0",
         "nesbot/carbon": "^2.71",
         "moneyphp/money": "^4.1.0",
+        "timacdonald/log-fake": "^2.0",
         "symfony/monolog-bundle": "^3.10"
     },
     "conflict": {

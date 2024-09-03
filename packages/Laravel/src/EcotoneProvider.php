@@ -4,6 +4,7 @@ namespace Ecotone\Laravel;
 
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Illuminate\Foundation\Application;
 use function class_exists;
 
 use const DIRECTORY_SEPARATOR;
@@ -200,6 +201,15 @@ class EcotoneProvider extends ServiceProvider
             ],
             'ecotone-config'
         );
+
+        if (! $this->app->has('logger')) {
+            $this->app->singleton(
+                'logger',
+                function (Application $app) {
+                    return new LaravelLogger();
+                }
+            );
+        }
     }
 
     private function getCacheDirectoryPath(): string

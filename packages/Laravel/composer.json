@@ -51,7 +51,7 @@
         "nesbot/carbon": "^2.71",
         "moneyphp/money": "^4.1.0",
         "ecotone/dbal": "~1.230.1",
-        "timacdonald/log-fake": "^2.2"
+        "timacdonald/log-fake": "^2.0"
     },
     "extra": {
         "laravel": {

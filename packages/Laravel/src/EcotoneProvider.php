@@ -146,9 +146,6 @@ class EcotoneProvider extends ServiceProvider
         );
 
         if ($this->app->runningInConsole()) {
-            $this->callAfterResolving(LoggingGateway::class, function (LoggingGateway $loggingGateway) {
-                $loggingGateway->registerLogger(new EchoLogger());
-            });
             foreach ($definitionHolder->getRegisteredCommands() as $oneTimeCommandConfiguration) {
                 $commandName = $oneTimeCommandConfiguration->getName();
 
@@ -203,12 +200,7 @@ class EcotoneProvider extends ServiceProvider
         );
 
         if (! $this->app->has('logger')) {
-            $this->app->singleton(
-                'logger',
-                function (Application $app) {
-                    return new LaravelLogger();
-                }
-            );
+            $this->app->singleton('logger', LaravelLogger::class);
         }
     }
 

@@ -17,15 +17,15 @@ final class ConsumerConfiguration implements DefinedObject
     private function __construct(
         private string $endpointId,
         private array $configuration,
+        private string $brokerConfigurationReference
     )
     {
 
     }
 
-    public static function createWithDefaults(string $bootstrapServers, string $endpointId): self
+    public static function createWithDefaults(string $endpointId, string $brokerConfigurationReference = KafkaBrokerConfiguration::class): self
     {
         return new self($endpointId, [
-            'bootstrap.servers' => $bootstrapServers,
             'group.id' => $endpointId,
             /** Ecotone commit automatically after message is consumed */
             'enable.auto.commit' => 'false',
@@ -35,7 +35,7 @@ final class ConsumerConfiguration implements DefinedObject
             'auto.offset.reset' => 'earliest',
             /** In PHP with rdkafka, heartbeats are managed by the underlying librdkafka library, which handles them in the background. Even though PHP is single-threaded, librdkafka uses its own internal threads to manage tasks like sending heartbeats to the Kafka broker. */
             'session.timeout.ms' => '30000',
-        ]);
+        ], $brokerConfigurationReference);
     }
 
     /**

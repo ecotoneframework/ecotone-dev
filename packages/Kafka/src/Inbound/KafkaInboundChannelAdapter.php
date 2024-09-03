@@ -34,6 +34,8 @@ final class KafkaInboundChannelAdapter implements MessagePoller
     {
         $consumer = new KafkaConsumer($this->kafkaAdmin->getConfigurationForConsumer($this->endpointId)->getConfig());
 
+//        @TODO KafkaConsumer reuse it and verify connection
+
         $consumer->subscribe($this->topicsToSubscribe);
 
         $message = $consumer->consume($timeoutInMilliseconds);

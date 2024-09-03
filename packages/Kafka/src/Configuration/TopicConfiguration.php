@@ -15,22 +15,32 @@ final class TopicConfiguration implements DefinedObject
      */
     public function __construct(
         private string $topicName,
-        private array $configuration
+        private array  $configuration,
     )
     {
 
     }
 
-    public static function createWithDefaults(string $bootstrapServers, string $topicName): self
+    public static function createWithDefaults(string $topicName): self
     {
-        return new self($topicName, [
-            'bootstrap.servers' => $bootstrapServers,
-        ]);
+        return new self($topicName,
+            [
+
+            ]
+        );
     }
 
-    public function set(string $key, string $value): self
+    public function setConfiguration(string $key, string $value): self
     {
         $this->configuration[$key] = $value;
+
+        return $this;
+    }
+
+    public function enableKafkaDebugging(): self
+    {
+        $this->configuration['log_level'] = (string) LOG_DEBUG;
+        $this->configuration['debug'] = 'all';
 
         return $this;
     }
@@ -45,14 +55,6 @@ final class TopicConfiguration implements DefinedObject
         return $conf;
     }
 
-    public function enableKafkaDebugging(): self
-    {
-        $this->configuration['log_level'] = (string) LOG_DEBUG;
-        $this->configuration['debug'] = 'all';
-
-        return $this;
-    }
-
     public function getTopicName(): string
     {
         return $this->topicName;
@@ -61,7 +63,8 @@ final class TopicConfiguration implements DefinedObject
     public function getDefinition(): Definition
     {
         return Definition::createFor(static::class, [
-            $this->configuration
+            $this->topicName,
+            $this->configuration,
         ]);
     }
 }

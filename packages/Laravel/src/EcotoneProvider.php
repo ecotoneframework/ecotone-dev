@@ -200,11 +200,7 @@ class EcotoneProvider extends ServiceProvider
             $this->app->singleton(
                 LoggingHandlerBuilder::LOGGER_REFERENCE,
                 function (Application $app) {
-                    if ($app->runningInConsole()) {
-                        return new CombinedLogger($app->get('log'), new EchoLogger());
-                    }
-
-                    return $app->get('log');
+                    return new LaravelLogger();
                 }
             );
         }

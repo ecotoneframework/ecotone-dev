@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -197,11 +198,7 @@ final class MessagingSystemConfiguration implements Configuration
             }
         );
 
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof TestConfiguration) {
-                $this->isRunningForTest = true;
-            }
-        }
+        $this->isRunningForTest = ExtensionObjectResolver::contains(TestConfiguration::class, $extensionObjects);
 
         $extensionObjects[] = $serviceConfiguration;
         $this->isRunningForEnterpriseLicence = $serviceConfiguration->hasEnterpriseLicence();

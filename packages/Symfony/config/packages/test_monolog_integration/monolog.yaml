@@ -1,0 +1,6 @@
+monolog:
+  handlers:
+    testing:
+      type: test
+      level: debug
+      channels: ["ecotone"]

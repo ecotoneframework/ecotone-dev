@@ -33,7 +33,6 @@ use Ecotone\OpenTelemetry\EcotoneForcedTraceFlush;
 use Ecotone\OpenTelemetry\TracerInterceptor;
 use Ecotone\OpenTelemetry\TracingChannelAdapterBuilder;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
-use Psr\Log\LoggerInterface;
 
 #[ModuleAnnotation]
 /**
@@ -51,11 +50,13 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $tracingConfiguration = ExtensionObjectResolver::resolveUnique(TracingConfiguration::class, $extensionObjects, TracingConfiguration::createWithDefaults());
         $messageChannelBuilders = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
 
+        $messagingConfiguration->addCompilerPass(new RegisterAddSpanEventLoggerCompilerPass());
+
         $messagingConfiguration->registerServiceDefinition(
             TracerInterceptor::class,
             new Definition(TracerInterceptor::class, [
                 new Reference(TracerProviderInterface::class),
-                new Reference(LoggerInterface::class),
+                new Reference(LoggingGateway::class),
             ])
         );
         if ($tracingConfiguration->higherThanOrEqualTo(TracingConfiguration::TRACING_LEVEL_FRAMEWORK)) {
@@ -76,7 +77,6 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $this->registerTracerFor('traceQueryBus', QueryBus::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceEventBus', EventBus::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceAsynchronousEndpoint', AsynchronousRunningEndpoint::class, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerTracerFor('traceLogs', LoggingGateway::class, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerTracerFor('traceDistributedBus', DistributedBus::class, $messagingConfiguration, $interfaceToCallRegistry);
 
         $messagingConfiguration->registerBeforeMethodInterceptor(

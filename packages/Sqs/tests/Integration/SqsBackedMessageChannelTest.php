@@ -14,12 +14,12 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Test\LoggerExample;
 use Enqueue\Sqs\SqsConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Sqs\AbstractConnectionTest;
 use Test\Ecotone\Sqs\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsAsyncConsumerExample;
-use Test\Ecotone\Sqs\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal

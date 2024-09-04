@@ -2,10 +2,16 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Handler\Logger\EchoLogger;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Illuminate\Foundation\Application;
+use function class_exists;
+
 use const DIRECTORY_SEPARATOR;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -15,15 +21,13 @@ use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
-use Ecotone\Messaging\Handler\Logger\LoggingHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 use ReflectionMethod;
 
 /**
@@ -31,7 +35,6 @@ use ReflectionMethod;
  */
 class EcotoneProvider extends ServiceProvider
 {
-    public const MESSAGING_SYSTEM_REFERENCE = ConfiguredMessagingSystem::class;
 
     /**
      * Register services.
@@ -196,13 +199,8 @@ class EcotoneProvider extends ServiceProvider
             'ecotone-config'
         );
 
-        if (! $this->app->has(LoggingHandlerBuilder::LOGGER_REFERENCE)) {
-            $this->app->singleton(
-                LoggingHandlerBuilder::LOGGER_REFERENCE,
-                function (Application $app) {
-                    return new LaravelLogger();
-                }
-            );
+        if (! $this->app->has('logger')) {
+            $this->app->singleton('logger', LaravelLogger::class);
         }
     }
 
@@ -241,7 +239,16 @@ class EcotoneProvider extends ServiceProvider
             }
             return $object;
         } elseif ($argument instanceof Reference) {
-            return $this->app->make($argument->getId());
+            if ($this->app->has($argument->getId())) {
+                return $this->app->get($argument->getId());
+            }
+            if ($argument->getInvalidBehavior() === ContainerImplementation::NULL_ON_INVALID_REFERENCE) {
+                return null;
+            }
+            if (class_exists($argument->getId())) {
+                return $this->app->make($argument->getId());
+            }
+            throw new InvalidArgumentException("Reference to {$argument->getId()} is not found");
         } else {
             return $argument;
         }

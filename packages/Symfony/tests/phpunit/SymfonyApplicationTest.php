@@ -4,6 +4,9 @@ namespace Test;
 
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Monolog\Handler\TestHandler;
+use Monolog\LogRecord;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -24,6 +27,33 @@ class SymfonyApplicationTest extends KernelTestCase
             MessagingTestSupport::class,
             self::getMessagingTestSupport()
         );
+    }
+
+    public function test_it_writes_logs_to_ecotone_channel(): void
+    {
+        self::bootKernel([
+            'environment' => 'test_monolog_integration',
+        ]);
+
+        /** @var TestHandler $testHandler */
+        $testHandler = self::getContainer()->get('monolog.handler.testing');
+
+        $ecotoneInternalLogger = self::getContainer()->get(LoggingGateway::class);
+
+        $ecotoneInternalLogger->info('test');
+
+        $logRecord = $testHandler->getRecords()[0];
+        self::assertCount(1, $testHandler->getRecords());
+
+        if ($logRecord instanceof LogRecord) {
+            self::assertEquals('test', $logRecord->message);
+            self::assertEquals('ecotone', $logRecord->channel);
+        } else {
+            // For compatibility with Monolog 2.0
+            self::assertEquals('test', $logRecord['message']);
+            self::assertEquals('ecotone', $logRecord['channel']);
+        }
+
     }
 
     protected static function getMessagingSystem(): ConfiguredMessagingSystem

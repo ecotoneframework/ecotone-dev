@@ -5,16 +5,16 @@ namespace Ecotone\Lite;
 use DI\ContainerBuilder as PhpDiContainerBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 
+use Psr\Container\ContainerInterface;
 use function is_array;
 
-use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 use ReflectionMethod;
 
 /**
@@ -44,15 +44,6 @@ class PhpDiContainerImplementation implements CompilerPass
             }
         }
 
-        if (isset($phpDiDefinitions['logger']) && ! isset($phpDiDefinitions[LoggerInterface::class])) {
-            $phpDiDefinitions[LoggerInterface::class] = \DI\get('logger');
-        } elseif (! isset($phpDiDefinitions['logger']) && isset($phpDiDefinitions[LoggerInterface::class])) {
-            $phpDiDefinitions['logger'] = \DI\get(LoggerInterface::class);
-        } elseif (! isset($phpDiDefinitions['logger']) && ! isset($phpDiDefinitions[LoggerInterface::class])) {
-            $phpDiDefinitions['logger'] = \DI\create(NullLogger::class);
-            $phpDiDefinitions[LoggerInterface::class] = \DI\get('logger');
-        }
-
         $this->containerBuilder->addDefinitions($phpDiDefinitions);
     }
 
@@ -73,7 +64,13 @@ class PhpDiContainerImplementation implements CompilerPass
             }
             return $resolvedArguments;
         } elseif ($argument instanceof Reference) {
-            return \DI\get($argument->getId());
+            if ($argument->getInvalidBehavior() === ContainerImplementation::NULL_ON_INVALID_REFERENCE) {
+                return \DI\factory(function (ContainerInterface $c, string $id) {
+                    return $c->has($id) ? $c->get($id) : null;
+                })->parameter('id', $argument->getId());
+            } else {
+                return \DI\get($argument->getId());
+            }
         } else {
             return $argument;
         }

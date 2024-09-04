@@ -94,7 +94,7 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
         try {
             $this->enqueueConsumer->acknowledge($this->enqueueMessage);
         } catch (Exception $exception) {
-            $this->loggingGateway->info('Failed to acknowledge message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
+            $this->loggingGateway->info('Failed to acknowledge message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 
             $this->connectionFactory->reconnect();
 

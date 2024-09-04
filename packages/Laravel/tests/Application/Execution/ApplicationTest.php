@@ -10,10 +10,8 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Foundation\Testing\TestCase;
-use Illuminate\Support\Facades\Log;
 use Test\Ecotone\Laravel\Fixture\User\User;
 use Test\Ecotone\Laravel\Fixture\User\UserRepository;
-use TiMacDonald\Log\LogEntry;
 use TiMacDonald\Log\LogFake;
 
 /**

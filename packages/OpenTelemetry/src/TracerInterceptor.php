@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
-use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Exception;
 
 use function json_decode;
 

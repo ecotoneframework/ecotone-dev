@@ -12,9 +12,9 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 
-use Psr\Container\ContainerInterface;
 use function is_array;
 
+use Psr\Container\ContainerInterface;
 use ReflectionMethod;
 
 /**

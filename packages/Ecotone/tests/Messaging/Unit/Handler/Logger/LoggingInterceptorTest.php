@@ -20,7 +20,6 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use function json_encode;
 
 use PHPUnit\Framework\TestCase;
-
 use Psr\Log\LogLevel;
 use Ramsey\Uuid\Uuid;
 

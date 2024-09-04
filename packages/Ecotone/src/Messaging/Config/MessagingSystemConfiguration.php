@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -18,13 +16,13 @@ use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
-
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
-
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
+use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;

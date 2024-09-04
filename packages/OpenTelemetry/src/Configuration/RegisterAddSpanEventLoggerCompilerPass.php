@@ -2,6 +2,7 @@
 /*
  * licence Apache-2.0
  */
+
 namespace Ecotone\OpenTelemetry\Configuration;
 
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
@@ -19,7 +20,7 @@ class RegisterAddSpanEventLoggerCompilerPass implements CompilerPass
             $loggingGatewayDefinition = $builder->getDefinition(LoggingGateway::class);
 
             if (is_a($loggingGatewayDefinition->getClassName(), SubscribableLoggingGateway::class, true)) {
-                $loggingGatewayDefinition->addMethodCall("registerLogger", [new Definition(AddSpanEventLogger::class)]);
+                $loggingGatewayDefinition->addMethodCall('registerLogger', [new Definition(AddSpanEventLogger::class)]);
             }
         }
     }

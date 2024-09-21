@@ -13,13 +13,13 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Test\LoggerExample;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisDestination;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Redis\AbstractConnectionTest;
 use Test\Ecotone\Redis\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisAsyncConsumerExample;
-use Test\Ecotone\Redis\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal

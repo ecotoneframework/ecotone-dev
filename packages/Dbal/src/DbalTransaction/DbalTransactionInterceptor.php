@@ -97,7 +97,7 @@ class DbalTransactionInterceptor
                         $logger->info(
                             'Implicit Commit was detected, skipping manual one.',
                             $message,
-                            $exception
+                            ['exception' => $exception],
                         );
 
                         try {
@@ -117,7 +117,7 @@ class DbalTransactionInterceptor
                     $logger->info(
                         'Exception has been thrown, rolling back transaction.',
                         $message,
-                        $exception
+                        ['exception' => $exception]
                     );
 
                     /** Doctrine hold the state, so it needs to be cleaned */

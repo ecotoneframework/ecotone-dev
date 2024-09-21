@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
-use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Exception;
 
 use function json_decode;
 
@@ -143,37 +141,6 @@ final class TracerInterceptor
             $methodInvocation,
             $message,
         );
-    }
-
-    public function traceLogs(MethodInvocation $methodInvocation, Message $message)
-    {
-        $logMessage = $message->getPayload();
-
-        $attributes = [];
-        if ($message->getHeaders()->containsKey(LoggingService::CONTEXT_MESSAGE_HEADER)) {
-            /** @var Message $contextMessage */
-            $contextMessage = $message->getHeaders()->get(LoggingService::CONTEXT_MESSAGE_HEADER);
-            $attributes = [
-                MessageHeaders::MESSAGE_ID => $contextMessage->getHeaders()->getMessageId(),
-                MessageHeaders::MESSAGE_CORRELATION_ID => $contextMessage->getHeaders()->getCorrelationId(),
-                MessageHeaders::PARENT_MESSAGE_ID => $contextMessage->getHeaders()->getParentId(),
-            ];
-        }
-
-        if ($message->getHeaders()->containsKey(LoggingService::CONTEXT_EXCEPTION_HEADER)) {
-            /** @var Exception $exception */
-            $exception = $message->getHeaders()->get(LoggingService::CONTEXT_EXCEPTION_HEADER);
-            $attributes['exceptionMessage'] = $exception->getMessage();
-            $attributes['exceptionClass'] = $exception::class;
-            $attributes['exceptionTrace'] = $exception->getTraceAsString();
-        }
-
-        Span::getCurrent()->addEvent(
-            $logMessage,
-            $attributes
-        );
-
-        return $methodInvocation->proceed();
     }
 
     public function trace(

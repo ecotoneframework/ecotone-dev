@@ -14,12 +14,12 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
+use Ecotone\Test\LoggerExample;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousHandler\OrderService;
-use Test\Ecotone\Dbal\Fixture\Support\Logger\LoggerExample;
 
 /**
  * @internal

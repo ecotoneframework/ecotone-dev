@@ -26,7 +26,7 @@ final class ManagerRegistryEmulator implements ManagerRegistry
     public function __construct(
         private Connection $connection,
         private array $pathsToMapping = [],
-        private ?EntityManager $entityManager = null
+        private ?EntityManagerInterface $entityManager = null
     ) {
     }
 
@@ -50,9 +50,9 @@ final class ManagerRegistryEmulator implements ManagerRegistry
         return new EcotoneManagerRegistryConnectionFactory(new self($connection, $pathsToMapping));
     }
 
-    public static function createEntityManager(EntityManagerInterface $entityManager): EcotoneManagerRegistryConnectionFactory
+    public static function createEntityManager(EntityManagerInterface $entityManager, array $pathsToMapping = []): EcotoneManagerRegistryConnectionFactory
     {
-        return new EcotoneManagerRegistryConnectionFactory(new self($entityManager->getConnection(), $entityManager));
+        return new EcotoneManagerRegistryConnectionFactory(new self($entityManager->getConnection(), $pathsToMapping, $entityManager));
     }
 
     public static function createForManagerRegistry(ManagerRegistry $managerRegistry, string $connectionName): EcotoneManagerRegistryConnectionFactory
@@ -191,7 +191,6 @@ final class ManagerRegistryEmulator implements ManagerRegistry
 
     private function getEntityManagerName(): string
     {
-        $entityManager = '\Doctrine\ORM\EntityManager';
-        return $entityManager;
+        return '\Doctrine\ORM\EntityManager';
     }
 }

@@ -158,7 +158,8 @@
         "nesbot/carbon": "^2.71",
         "moneyphp/money": "^4.1.0",
         "timacdonald/log-fake": "^2.0",
-      "kwn/php-rdkafka-stubs": "^2.2"
+        "symfony/monolog-bundle": "^3.10",
+        "kwn/php-rdkafka-stubs": "^2.2"
     },
     "conflict": {
         "symfony/doctrine-messenger": ">7.0.5 < 7.1.0"

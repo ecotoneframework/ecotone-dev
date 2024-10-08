@@ -37,7 +37,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.231.0",
+        "ecotone/ecotone": "~1.231.1",
         "laravel/framework": "^9.5.2|^10.0|^11.0"
     },
     "require-dev": {
@@ -50,7 +50,7 @@
         "symfony/expression-language": "^6.0|^7.0",
         "nesbot/carbon": "^2.71",
         "moneyphp/money": "^4.1.0",
-        "ecotone/dbal": "~1.231.0",
+        "ecotone/dbal": "~1.231.1",
         "timacdonald/log-fake": "^2.0"
     },
     "extra": {
@@ -60,7 +60,7 @@
             ]
         },
         "branch-alias": {
-            "dev-main": "1.231.0-dev"
+            "dev-main": "1.231.1-dev"
         },
         "ecotone": {
             "repository": "laravel"

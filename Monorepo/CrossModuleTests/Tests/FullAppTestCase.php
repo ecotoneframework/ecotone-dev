@@ -12,9 +12,14 @@ abstract class FullAppTestCase extends FullAppBenchmarkCase
         $this->bench_symfony_prod();
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
     public function test_symfony_dev()
     {
         self::clearSymfonyCache();
+        \ini_set("error_log", "/dev/null");
         $this->bench_symfony_dev();
     }
 

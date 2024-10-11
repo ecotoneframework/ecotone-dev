@@ -16,9 +16,12 @@ try {
             ->withNamespaces(["App"]),
     );
 
-    echo "ERROR: Expected an error to be thrown !";
-    exit(-1);
+    throw new Exception("ERROR: Expected an error to be thrown !");
 } catch (Error $e) {
-    echo "Correctly received an error: \n";
-    echo $e->getMessage();
+    $isExpectedError = 'Class "PHPUnit\Framework\TestCase" not found' === $e->getMessage();
+    if ($isExpectedError) {
+        echo "Correctly received an error: {$e->getMessage()}\n";
+    } else {
+        throw new Exception("Unexpected error", previous: $e);
+    }
 }

@@ -22,6 +22,12 @@
         "phpunit/phpunit": "^9.6",
         "wikimedia/composer-merge-plugin": "^2.1"
     },
+    "scripts": {
+        "tests:ci": [
+            "php run_example_authoritative.php",
+            "php run_example_non_authoritative.php"
+        ]
+    },
     "config": {
         "sort-packages": true,
         "allow-plugins": {

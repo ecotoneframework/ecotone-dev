@@ -9,6 +9,7 @@ use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
@@ -58,7 +59,7 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
-            withEnterpriseLicence: $enableEnterpriseMode
+            enterpriseLicenceKey: $enableEnterpriseMode ? LicenceTesting::VALID_LICENCE : null
         );
 
         $ecotone

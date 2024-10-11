@@ -140,18 +140,6 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         $this->registeredClasses = array_unique($registeredClasses);
     }
 
-    private function getPathsToSearchIn(AutoloadNamespaceParser $autoloadNamespaceParser, string $rootProjectDir, array $namespaces): array
-    {
-        $paths = [];
-
-        $autoloadPsr4 = require($rootProjectDir . '/vendor/composer/autoload_psr4.php');
-        $autoloadPsr0 = require($rootProjectDir . '/vendor/composer/autoload_namespaces.php');
-        $paths = array_merge($paths, $autoloadNamespaceParser->getFor($namespaces, $autoloadPsr4, true));
-        $paths = array_merge($paths, $autoloadNamespaceParser->getFor($namespaces, $autoloadPsr0, false));
-
-        return array_unique($paths);
-    }
-
     private function getDirContents(string $dir, array &$results = []): array
     {
         if (! is_dir($dir)) {

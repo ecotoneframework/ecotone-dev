@@ -25,7 +25,8 @@
     "scripts": {
         "tests:ci": [
             "php run_example_authoritative.php",
-            "php run_example_non_authoritative.php"
+            "php run_example_non_authoritative.php",
+            "php run_example_non_authoritative_with_dev.php"
         ]
     },
     "config": {

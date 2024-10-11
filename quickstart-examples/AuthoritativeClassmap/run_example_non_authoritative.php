@@ -5,7 +5,7 @@ use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 
 echo "Running example with non authoritative classmap (--no-dev)\n";
-exec("composer dump-autoload --no-dev");
+exec("composer update --ignore-platform-reqs --no-dev");
 
 require __DIR__ . "/vendor/autoload.php";
 try {

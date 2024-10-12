@@ -64,10 +64,11 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.231.1-dev"
+            "dev-main": "1.231.2-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"
-        }
+        },
+        "release-time": "2024-10-12 12:35:21"
     }
 }

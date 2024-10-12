@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Lite\Licence;
 
-use Ecotone\LicenceGenerator\Email;
+use DateTimeImmutable;
+use DateTimeZone;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\LicensingException;
+
+use function json_encode;
+
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\EventRevision\Person;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class LicencingTest extends TestCase
 {
@@ -38,13 +43,15 @@ final class LicencingTest extends TestCase
 
     public function test_valid_licence(): void
     {
-        EcotoneLite::bootstrap([
-            Person::class,
-        ],
+        EcotoneLite::bootstrap(
+            [
+                Person::class,
+            ],
             enterpriseLicenceKey: $this->generate(
-                (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->modify('+30 seconds'),
+                (new DateTimeImmutable('now', new DateTimeZone('UTC')))->modify('+30 seconds'),
                 false
-            ));
+            )
+        );
 
         $this->expectNotToPerformAssertions();
     }
@@ -53,27 +60,31 @@ final class LicencingTest extends TestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrap([
-            Person::class,
-        ],
+        EcotoneLite::bootstrap(
+            [
+                Person::class,
+            ],
             enterpriseLicenceKey: $this->generate(
-                (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->modify('-30 seconds'),
+                (new DateTimeImmutable('now', new DateTimeZone('UTC')))->modify('-30 seconds'),
                 false
-            ));
+            )
+        );
     }
 
     public function test_licence_for_enterprise_plus_is_valid_when_expires_after_package_release_time(): void
     {
         $composer = json_decode(file_get_contents(__DIR__ . '/../../../composer.json'), true, JSON_THROW_ON_ERROR);
-        $releaseTime = new \DateTimeImmutable(trim($composer['extra']['release-time']), new \DateTimeZone('UTC'));
+        $releaseTime = new DateTimeImmutable(trim($composer['extra']['release-time']), new DateTimeZone('UTC'));
 
-        EcotoneLite::bootstrap([
-            Person::class,
-        ],
+        EcotoneLite::bootstrap(
+            [
+                Person::class,
+            ],
             enterpriseLicenceKey: $this->generate(
                 $releaseTime->modify('+30 seconds'),
                 true
-            ));
+            )
+        );
 
         $this->expectNotToPerformAssertions();
     }
@@ -83,15 +94,17 @@ final class LicencingTest extends TestCase
         $this->expectException(LicensingException::class);
 
         $composer = json_decode(file_get_contents(__DIR__ . '/../../../composer.json'), true, JSON_THROW_ON_ERROR);
-        $releaseTime = new \DateTimeImmutable(trim($composer['extra']['release-time']), new \DateTimeZone('UTC'));
+        $releaseTime = new DateTimeImmutable(trim($composer['extra']['release-time']), new DateTimeZone('UTC'));
 
-        EcotoneLite::bootstrap([
-            Person::class,
-        ],
+        EcotoneLite::bootstrap(
+            [
+                Person::class,
+            ],
             enterpriseLicenceKey: $this->generate(
                 $releaseTime->modify('-30 seconds'),
                 true
-            ));
+            )
+        );
 
         $this->expectNotToPerformAssertions();
     }
@@ -99,68 +112,67 @@ final class LicencingTest extends TestCase
     public function licenceWithMissingField(): iterable
     {
         yield 'missing email' => [
-            \json_encode([
+            json_encode([
                 'data' => [
                     'expireAt' => '2021-01-01 00:00:00',
                     'isEnterprisePlus' => false,
                 ],
                 'signature' => 'test',
-            ])
+            ]),
         ];
         yield 'missing expire at' => [
-            \json_encode([
+            json_encode([
                 'data' => [
                     'email' => 'test@wp.pl',
                     'isEnterprisePlus' => false,
                 ],
                 'signature' => 'test',
-            ])
+            ]),
         ];
         yield 'missing enterprise plus details' => [
-            \json_encode([
+            json_encode([
                 'data' => [
                     'email' => 'test@wp.pl',
                     'expireAt' => '2021-01-01 00:00:00',
                 ],
                 'signature' => 'test',
-            ])
+            ]),
         ];
         yield 'missing signature' => [
-            \json_encode([
+            json_encode([
                 'data' => [
                     'email' => 'test@wp.pl',
                     'expireAt' => '2021-01-01 00:00:00',
                     'isEnterprisePlus' => false,
                 ],
-            ])
+            ]),
         ];
         yield 'wrong signature without encoding' => [
-            \json_encode([
+            json_encode([
                 'data' => [
                     'email' => 'test@wp.pl',
                     'expireAt' => '2021-01-01 00:00:00',
                     'isEnterprisePlus' => false,
                 ],
                 'signature' => 'test',
-            ])
+            ]),
         ];
         yield 'wrong signature with encoding' => [
-            \json_encode([
+            json_encode([
                 'data' => [
                     'email' => 'test@wp.pl',
                     'expireAt' => '2021-01-01 00:00:00',
                     'isEnterprisePlus' => false,
                 ],
                 'signature' => base64_encode('test'),
-            ])
+            ]),
         ];
     }
 
     public function generate(
-        \DateTimeImmutable $expirationAtTheEndOfDay,
+        DateTimeImmutable $expirationAtTheEndOfDay,
         bool $isEnterprisePlus,
-    ): string
-    {
+    ): string {
         $privateKey = openssl_pkey_get_private(file_get_contents(__DIR__ . '/private_key.pem'));
         $data = [
             'email' => 'test@wp.pl',
@@ -169,13 +181,13 @@ final class LicencingTest extends TestCase
         ];
 
         openssl_sign(
-            data: \json_encode($data, JSON_THROW_ON_ERROR),
+            data: json_encode($data, JSON_THROW_ON_ERROR),
             signature: $signature,
             private_key: $privateKey,
             algorithm: OPENSSL_ALGO_SHA256,
         );
 
-        return base64_encode(\json_encode([
+        return base64_encode(json_encode([
             'signature' => base64_encode($signature),
             'data' => $data,
         ], JSON_THROW_ON_ERROR));

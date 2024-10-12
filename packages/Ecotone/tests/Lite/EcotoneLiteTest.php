@@ -7,10 +7,7 @@ use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Support\LicensingException;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Modelling\Fixture\EventRevision\Person;
-use Test\Ecotone\Modelling\Fixture\EventRevision\RegisterPerson;
 use Test\Ecotone\Modelling\Fixture\Order\ChannelConfiguration;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 

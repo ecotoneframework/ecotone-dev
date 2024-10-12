@@ -70,7 +70,8 @@
             "Fixture\\": "tests/Fixture",
             "Ecotone\\SymfonyBundle\\App\\": "App",
             "Symfony\\App\\MultiTenant\\": "tests/phpunit/MultiTenant/src",
-            "Symfony\\App\\SingleTenant\\": "tests/phpunit/SingleTenant/src"
+            "Symfony\\App\\SingleTenant\\": "tests/phpunit/SingleTenant/src",
+            "Symfony\\App\\Licence\\": "tests/phpunit/Licence/src"
         }
     },
     "scripts": {

@@ -98,8 +98,10 @@
             ],
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
             "App\\MultiTenant\\": "packages/Laravel/tests/MultiTenant/app",
+            "App\\Licence\\Laravel\\": "packages/Laravel/tests/Licence/app",
             "Symfony\\App\\MultiTenant\\": "packages/Symfony/tests/phpunit/MultiTenant/src",
             "Symfony\\App\\SingleTenant\\": "packages/Symfony/tests/phpunit/SingleTenant/src",
+            "Symfony\\App\\Licence\\": "packages/Symfony/tests/phpunit/Licence/src",
             "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
             "Tests\\Ecotone\\": "tests"
         }
@@ -219,7 +221,8 @@
     "config": {
         "allow-plugins": {
             "wikimedia/composer-merge-plugin": true,
-            "php-http/discovery": false
+            "php-http/discovery": false,
+            "tbachert/spi": false
         },
         "process-timeout": 600
     },

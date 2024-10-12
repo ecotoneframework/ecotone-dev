@@ -15,7 +15,7 @@ foreach ($packages as $package) {
     $composerFile = $package['directory'] . DIRECTORY_SEPARATOR . 'composer.json';
     $composer = json_decode(file_get_contents($composerFile), true);
     $composer['extra']['branch-alias']['dev-main'] = $version . '-dev';
-    $releaseTime = (new \DateTimeImmutable('now', new DateTimeZone('UTC')))->modify("+15 min");
+    $releaseTime = (new \DateTimeImmutable('now', new DateTimeZone('UTC')));
     $composer['extra']['release-time'] = $releaseTime->format('Y-m-d H:i:s');
 
     foreach ($composer['require'] as $requiredPackage => $requiredVersion) {

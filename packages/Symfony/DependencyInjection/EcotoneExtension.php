@@ -41,6 +41,10 @@ class EcotoneExtension extends Extension
             ->withSkippedModulePackageNames($skippedModules)
         ;
 
+        if ($config['licenceKey'] !== null) {
+            $serviceConfiguration = $serviceConfiguration->withLicenceKey($config['licenceKey']);
+        }
+
         if (isset($config['serviceName'])) {
             $serviceConfiguration = $serviceConfiguration
                 ->withServiceName($config['serviceName']);

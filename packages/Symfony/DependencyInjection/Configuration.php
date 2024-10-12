@@ -74,6 +74,10 @@ class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
 
+                    ->scalarNode('licenceKey')
+                        ->defaultNull()
+                    ->end()
+
                     ->arrayNode('skippedModulePackageNames')
                         ->scalarPrototype()
                     ->end()

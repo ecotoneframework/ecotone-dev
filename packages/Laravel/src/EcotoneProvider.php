@@ -65,6 +65,10 @@ class EcotoneProvider extends ServiceProvider
             ->withSkippedModulePackageNames($skippedModules)
             ->withCacheDirectoryPath($cacheDirectory);
 
+        if (Config::get('ecotone.licenceKey') !== null) {
+            $applicationConfiguration = $applicationConfiguration->withLicenceKey(Config::get('ecotone.licenceKey'));
+        }
+
         $serializationMediaType = Config::get('ecotone.defaultSerializationMediaType');
         if ($serializationMediaType) {
             $applicationConfiguration = $applicationConfiguration

@@ -119,6 +119,11 @@ jobs:
         run: |
           echo "${{ secrets.ECOTONE_ENTERPRISE_PUBLIC_KEY }}" > ${{ matrix.package.directory }}/src/Messaging/Config/Licence/key.pem
 
+      - name: Replace key.pem with ECOTONE_ENTERPRISE_PUBLIC_KEY
+        if: ${{ matrix.package.name == 'ecotone' }}
+        run: |
+          echo "${{ secrets.ECOTONE_ENTERPRISE_PUBLIC_KEY }}" > ${{ matrix.package.directory }}/src/Messaging/Config/Licence/key.pem
+
       -
         uses: "danharrin/monorepo-split-github-action@v2.3.0"
         if: "startsWith(github.ref, 'refs/tags/')"

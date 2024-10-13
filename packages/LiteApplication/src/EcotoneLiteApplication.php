@@ -24,10 +24,14 @@ use Ramsey\Uuid\Uuid;
 class EcotoneLiteApplication
 {
     public static function bootstrap(
-        array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null, array $classesToRegister = [],
+        array $objectsToRegister = [],
+        array $configurationVariables = [],
+        ?ServiceConfiguration $serviceConfiguration = null,
+        bool $cacheConfiguration = false,
+        ?string $pathToRootCatalog = null,
+        array $classesToRegister = [],
         ?string $licenseKey = null
-    ): ConfiguredMessagingSystem
-    {
+    ): ConfiguredMessagingSystem {
         $pathToRootCatalog = $pathToRootCatalog ?: __DIR__ . '/../../../../';
 
         if (! $serviceConfiguration) {

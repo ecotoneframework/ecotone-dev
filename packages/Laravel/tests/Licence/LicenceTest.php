@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Licence;
 
-use App\MultiTenant\Application\Command\RegisterCustomer;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 /**
  * licence Enterprise

@@ -162,7 +162,7 @@ return [
          * Package Service Providers...
          */
         Ecotone\Laravel\EcotoneProvider::class,
-        \App\Licence\Laravel\Providers\AppServiceProvider::class,
+        App\Licence\Laravel\Providers\AppServiceProvider::class,
     ],
 
     /*

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Licence\Laravel\Application;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 

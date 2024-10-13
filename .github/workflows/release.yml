@@ -113,11 +113,6 @@ jobs:
           branch=${raw##*/}
           echo "checking out branch $branch for tag ${GITHUB_REF#refs/tags/}"
           git checkout $branch
-          
-      - name: Replace key.pem with ECOTONE_ENTERPRISE_PUBLIC_KEY
-        if: ${{ matrix.package.name == 'ecotone' }}
-        run: |
-          echo "${{ secrets.ECOTONE_ENTERPRISE_PUBLIC_KEY }}" > ${{ matrix.package.directory }}/src/Messaging/Config/Licence/key.pem
 
       - name: Replace key.pem with ECOTONE_ENTERPRISE_PUBLIC_KEY
         if: ${{ matrix.package.name == 'ecotone' }}

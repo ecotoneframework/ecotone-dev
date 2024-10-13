@@ -30,7 +30,14 @@ jobs:
         with:
           fetch-depth: '0'
           token: ${{ secrets.ECOTONE_BOT_TOKEN }}
-          
+
+      - name: Ensure ECOTONE_ENTERPRISE_PUBLIC_KEY secret exists
+        run: |
+          if [ -z "${{ secrets.ECOTONE_ENTERPRISE_PUBLIC_KEY }}" ]; then
+            echo "ECOTONE_ENTERPRISE_PUBLIC_KEY secret is missing"
+            exit 1
+          fi
+
       - name: Setup Git
         run: |
           git config user.name "Ecotone Framework Bot"
@@ -106,6 +113,11 @@ jobs:
           branch=${raw##*/}
           echo "checking out branch $branch for tag ${GITHUB_REF#refs/tags/}"
           git checkout $branch
+
+      - name: Replace key.pem with ECOTONE_ENTERPRISE_PUBLIC_KEY
+        if: ${{ matrix.package.name == 'ecotone' }}
+        run: |
+          echo "${{ secrets.ECOTONE_ENTERPRISE_PUBLIC_KEY }}" > ${{ matrix.package.directory }}/src/Messaging/Config/Licence/key.pem
 
       -
         uses: "danharrin/monorepo-split-github-action@v2.3.0"

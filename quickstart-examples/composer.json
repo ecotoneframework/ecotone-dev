@@ -25,6 +25,7 @@
     "scripts": {
         "tests:ci": [
             "(cd Asynchronous && composer update && php run_example.php)",
+            "(cd AuthoritativeClassmap && composer tests:ci)",
             "(cd Conversion && composer update && php run_example.php)",
             "(cd CQRS && composer update && php run_example.php)",
             "(cd EmittingEventsFromProjection && composer update && php run_example.php)",
@@ -64,11 +65,11 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.231.2-dev"
+            "dev-main": "1.231.3-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"
         },
-        "release-time": "2024-10-12 12:35:21"
+        "release-time": "2024-10-12 14:21:28"
     }
 }

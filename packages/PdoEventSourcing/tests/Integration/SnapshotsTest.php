@@ -59,7 +59,7 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
-            enterpriseLicenceKey: $enableEnterpriseMode ? LicenceTesting::VALID_LICENCE : null
+            licenceKey: $enableEnterpriseMode ? LicenceTesting::VALID_LICENCE : null
         );
 
         $ecotone

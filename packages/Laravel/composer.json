@@ -33,7 +33,8 @@
     "autoload-dev": {
         "psr-4": {
             "Test\\Ecotone\\Laravel\\": "tests",
-            "App\\MultiTenant\\": "tests/MultiTenant/app"
+            "App\\MultiTenant\\": "tests/MultiTenant/app",
+            "App\\Licence\\Laravel\\": "tests/Licence/app"
         }
     },
     "require": {

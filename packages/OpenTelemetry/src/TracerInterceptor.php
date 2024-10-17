@@ -41,7 +41,9 @@ final class TracerInterceptor
         $scope = $parentContext->activate();
         try {
             $trace = $this->trace(
-                'Receiving from channel: ' . $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME),
+                $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)
+                    ? 'Receiving from channel: ' . $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME)
+                    : 'Endpoint: ' . $message->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA)->getEndpointId() . ' produced Message',
                 $methodInvocation,
                 $message,
                 spanKind: SpanKind::KIND_CONSUMER,

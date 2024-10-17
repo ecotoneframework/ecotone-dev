@@ -162,7 +162,7 @@ final class TracingTreeTest extends TracingTest
                             'children' => [],
                         ],
                     ],
-                ]
+                ],
             ],
             self::buildTree($exporter)
         );

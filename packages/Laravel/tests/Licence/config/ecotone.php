@@ -7,5 +7,5 @@ return [
         ModulePackageList::LARAVEL_PACKAGE,
         ModulePackageList::ASYNCHRONOUS_PACKAGE,
     ]),
-    'licenceKey' => Ecotone\Test\LicenceTesting::VALID_LICENCE,
+    'licenceKey' => env('LARAVEL_LICENCE_KEY'),
 ];

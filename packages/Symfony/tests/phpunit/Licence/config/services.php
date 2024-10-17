@@ -9,7 +9,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             ModulePackageList::SYMFONY_PACKAGE,
             ModulePackageList::ASYNCHRONOUS_PACKAGE,
         ]),
-        'licenceKey' => Ecotone\Test\LicenceTesting::VALID_LICENCE,
+        'licenceKey' => '%env(SYMFONY_LICENCE_KEY)%',
     ]);
 
     $services = $containerConfigurator->services();

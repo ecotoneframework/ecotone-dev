@@ -8,6 +8,9 @@ use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Attribute\Poller;
 use Ecotone\Messaging\Attribute\Scheduled;
 
+/**
+ * licence Apache-2.0
+ */
 final class WorkflowScheduledHandler
 {
     private int $counter = 0;

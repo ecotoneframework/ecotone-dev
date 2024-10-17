@@ -6,6 +6,7 @@ namespace Test\Licence;
 
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\Licence\Configuration\Kernel;
 
@@ -21,6 +22,7 @@ final class LicenceTest extends TestCase
 
     public function setUp(): void
     {
+        putenv('SYMFONY_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
         $kernel = new Kernel('dev', true);
         $kernel->boot();
         $app = $kernel->getContainer();
@@ -30,7 +32,13 @@ final class LicenceTest extends TestCase
         $this->kernel = $kernel;
     }
 
-    public function test_using_enterprise_feature(): void
+    protected function tearDown(): void
+    {
+        putenv('SYMFONY_LICENCE_KEY');
+    }
+
+
+    public function test_triggering_symfony_with_licence_key(): void
     {
         $this->commandBus->sendWithRouting('sendNotification');
 

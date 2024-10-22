@@ -131,6 +131,7 @@ jobs:
           # ↓ into https://github.com/symplify/easy-coding-standard repository
           repository_organization: '${{ matrix.package.organisation }}'
           repository_name: '${{ matrix.package.repository }}'
+          commit_message: 'Release version ${{ github.ref_name }}'
 
           # ↓ the user signed under the split commit
           user_name: "Ecotone FrameworkBot"

@@ -316,6 +316,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         }
 
         foreach ($this->methodArgumentConverters as $messageConverterBuilder) {
+            /** This need to evaluated first, as other Header Converters may replace given Message Header */
             if ($messageConverterBuilder instanceof GatewayHeadersBuilder) {
                 array_unshift($methodArgumentConverters, $messageConverterBuilder->compile($builder, $interfaceToCall));
             } else {

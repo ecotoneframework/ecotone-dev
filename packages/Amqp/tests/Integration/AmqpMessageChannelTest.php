@@ -96,6 +96,42 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
         $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
     }
 
+    public function test_using_amqp_channel_with_custom_queue_name()
+    {
+        $channelName = 'orders';
+        $queueName = 'orders_queue';
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpBackedMessageChannelBuilder::create(
+                        channelName: $channelName,
+                        queueName: $queueName,
+                    ),
+                ])
+        );
+
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
+        /** Message should be waiting in the queue */
+        $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        /** Message should cosumed from the queue */
+        $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        /** Nothing should change, as we have not sent any new command message */
+        $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+
+        $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
+    }
+
     public function test_failing_to_receive_message_when_not_declared()
     {
         $queueName = Uuid::uuid4()->toString();

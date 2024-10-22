@@ -109,7 +109,7 @@ final class InstantRetryModuleTest extends TestCase
             $this->assertInstanceOf(RuntimeException::class, $e);
         }
 
-        if (!$exceptionThrown) {
+        if (! $exceptionThrown) {
             $this->fail('RuntimeException was not thrown');
         }
 

@@ -54,6 +54,7 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceRece
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceReceiveOnlyWithNull;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnly;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnlyWithTwoArguments;
+use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnlyWithTwoArgumentsAndArray;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceWithFutureReceive;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceWithMixed;
 use Test\Ecotone\Messaging\Unit\MessagingTest;
@@ -219,6 +220,34 @@ class GatewayProxyBuilderTest extends MessagingTest
             $payload,
             $messaging->getGateway(ServiceInterfaceReceiveOnly::class)->sendMail()
         );
+    }
+
+    public function test_specific_headers_always_override_array_of_headers(): void
+    {
+        $messaging = ComponentTestBuilder::create()
+            ->withGateway(
+                GatewayProxyBuilder::create(
+                    ServiceInterfaceSendOnlyWithTwoArgumentsAndArray::class,
+                    ServiceInterfaceSendOnlyWithTwoArgumentsAndArray::class,
+                    'send',
+                    $inputChannel = 'inputChannel'
+                )
+                    ->withParameterConverters(
+                        [
+                            GatewayHeaderBuilder::create('value', 'personId'),
+                            GatewayHeadersBuilder::create('data'),
+                        ]
+                    )
+            )
+            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($inputChannel))
+            ->build();
+
+        $gateway = $messaging->getGateway(ServiceInterfaceSendOnlyWithTwoArgumentsAndArray::class);
+
+        $gateway->send('someValue', ['personId' => '123', 'data' => 'some']);
+
+        $message = $messaging->receiveMessageFrom($inputChannel);
+        $this->assertSame('someValue', $message->getHeaders()->get('personId'));
     }
 
     public function test_executing_with_method_argument_converters()

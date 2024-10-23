@@ -21,8 +21,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         string $channelName,
         string $amqpConnectionReferenceName,
         string $queueName
-    )
-    {
+    ) {
         $this->channelName = $channelName;
 
         parent::__construct(
@@ -41,8 +40,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         string $channelName,
         string $amqpConnectionReferenceName = AmqpConnectionFactory::class,
         ?string $queueName = null
-    )
-    {
+    ) {
         return new self(
             $channelName,
             $amqpConnectionReferenceName,

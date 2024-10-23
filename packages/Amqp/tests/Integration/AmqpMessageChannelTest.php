@@ -121,12 +121,46 @@ final class AmqpMessageChannelTest extends AmqpMessagingTest
         /** Message should be waiting in the queue */
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
-        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
-        /** Message should cosumed from the queue */
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        /** Message should be consumed from the queue */
         $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
-        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
         /** Nothing should change, as we have not sent any new command message */
+        $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+
+        $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
+    }
+
+    /**
+     * @depends test_using_amqp_channel_with_custom_queue_name
+     */
+    public function test_using_amqp_channel_with_duplicated_queue_name()
+    {
+        $channelName = 'orders';
+        $queueName = 'orders_queue';
+        $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpBackedMessageChannelBuilder::create(
+                        channelName: $channelName,
+                        queueName: $queueName,
+                    ),
+                ])
+        );
+
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
+
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
+        /** Message should be consumed from the queue */
         $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
         $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));

@@ -1,0 +1,2 @@
+parameters:
+  test_var: '%env(TEST_VAR)%'

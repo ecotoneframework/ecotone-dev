@@ -4,6 +4,7 @@ namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
 use Ecotone\Messaging\ConfigurationVariableService;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
  * licence Apache-2.0
@@ -16,7 +17,15 @@ class SymfonyConfigurationVariableService implements ConfigurationVariableServic
 
     public function getByName(string $name)
     {
-        return $this->container->getParameter($name);
+        $value = $this->container->getParameter($name);
+        if ($this->container instanceof ContainerBuilder
+            && is_string($value)
+            && str_starts_with($value, '%env(')
+        ) {
+            $value = $this->container->resolveEnvPlaceholders($value, true);
+        }
+
+        return $value;
     }
 
     public function hasName(string $name): bool

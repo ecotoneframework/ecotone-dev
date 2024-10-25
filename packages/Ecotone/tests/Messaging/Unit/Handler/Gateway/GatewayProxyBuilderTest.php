@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendGateway;
@@ -47,6 +48,8 @@ use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalIn
 use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverter;
 use Test\Ecotone\Messaging\Fixture\MessageConverter\FakeMessageConverterGatewayExample;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
+use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketCreator;
+use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingNoArguments;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceCalculatingService;
@@ -73,6 +76,24 @@ use TypeError;
  */
 class GatewayProxyBuilderTest extends MessagingTest
 {
+    public function test_running_gateway(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [TicketCreator::class, TicketService::class],
+            [new TicketService()]
+        );
+
+        /** @var TicketCreator $ticketCreator */
+        $ticketCreator = $ecotoneLite->getGateway(TicketCreator::class);
+
+        $ticketCreator->create("some");
+
+        $this->assertEquals(
+            ["some"],
+            $ecotoneLite->sendQueryWithRouting("getTickets")
+        );
+    }
+
     public function test_creating_gateway_for_send_only_interface()
     {
         $messageHandler = NoReturnMessageHandler::create();

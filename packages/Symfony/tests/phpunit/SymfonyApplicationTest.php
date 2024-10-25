@@ -66,6 +66,7 @@ class SymfonyApplicationTest extends KernelTestCase
 
         $service = new SymfonyConfigurationVariableService($containerBuilder);
         self::assertEquals($testVar, $service->getByName('test_var'));
+        self::assertEquals($testVar, $service->getByName('test_var_alias'));
 
         $kernel = new Kernel('dev', true);
         $kernel->boot();

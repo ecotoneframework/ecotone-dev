@@ -20,7 +20,8 @@ class SymfonyConfigurationVariableService implements ConfigurationVariableServic
         $value = $this->container->getParameter($name);
         if ($this->container instanceof ContainerBuilder
             && is_string($value)
-            && str_starts_with($value, '%env(')
+            && str_starts_with($value, '%')
+            && str_ends_with($value, '%')
         ) {
             $value = $this->container->resolveEnvPlaceholders($value, true);
         }

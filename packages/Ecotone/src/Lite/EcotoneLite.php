@@ -255,6 +255,7 @@ final class EcotoneLite
         );
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
         $definitionHolder = null;
+        $messagingSystemCachePath = null;
 
         if ($serviceCacheConfiguration->shouldUseCache()) {
             $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . self::getFileNameBasedOnConfig($pathToRootCatalog, $useCachedVersion, $classesToResolve, $serviceConfiguration, $configurationVariables, $enableTesting);

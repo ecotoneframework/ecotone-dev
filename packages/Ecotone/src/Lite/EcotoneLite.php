@@ -276,6 +276,8 @@ final class EcotoneLite
             $definitionHolder = ContainerConfig::buildDefinitionHolder($messagingConfiguration);
 
             if ($serviceCacheConfiguration->shouldUseCache()) {
+                Assert::notNull($messagingSystemCachePath, 'Cache path should be defined');
+
                 MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
                 file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
             }

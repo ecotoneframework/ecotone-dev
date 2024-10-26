@@ -12,11 +12,11 @@ use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\AsyncCommandBus;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\AsyncTicketCreator;
-use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketCreator;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketService;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class AsynchronousGatewayTest extends TestCase
 {
@@ -26,7 +26,7 @@ final class AsynchronousGatewayTest extends TestCase
             [AsyncTicketCreator::class, TicketService::class],
             [new TicketService()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel("async")
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -55,7 +55,7 @@ final class AsynchronousGatewayTest extends TestCase
             [AsyncTicketCreator::class, TicketService::class],
             [new TicketService()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel("async")
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -82,7 +82,7 @@ final class AsynchronousGatewayTest extends TestCase
             [AsyncCommandBus::class, TicketService::class],
             [new TicketService()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel("async")
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -108,7 +108,7 @@ final class AsynchronousGatewayTest extends TestCase
             [AsyncTicketCreator::class, TicketService::class],
             [new TicketService()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel("async")
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ],
         );
     }

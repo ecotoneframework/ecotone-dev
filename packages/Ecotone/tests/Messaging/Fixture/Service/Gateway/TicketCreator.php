@@ -11,6 +11,6 @@ use Ecotone\Messaging\Attribute\MessageGateway;
  */
 interface TicketCreator
 {
-    #[MessageGateway("create")]
+    #[MessageGateway('create')]
     public function create($data);
 }

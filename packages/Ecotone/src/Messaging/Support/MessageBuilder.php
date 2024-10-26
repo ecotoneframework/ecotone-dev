@@ -114,7 +114,7 @@ final class MessageBuilder
 
     public function setRoutingSlip(array $routingSlip): self
     {
-        if (!$routingSlip) {
+        if (! $routingSlip) {
             return $this;
         }
 

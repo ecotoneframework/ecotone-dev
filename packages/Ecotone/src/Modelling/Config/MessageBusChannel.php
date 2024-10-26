@@ -2,23 +2,6 @@
 
 namespace Ecotone\Modelling\Config;
 
-use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Config\Annotation\AnnotationModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
-use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\QueryBus;
-
 /**
  * licence Apache-2.0
  */

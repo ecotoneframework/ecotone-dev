@@ -7,8 +7,7 @@ namespace Test\Ecotone\Messaging\Fixture\Service\Gateway;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\CommandBus;
 
-#[Asynchronous("async")]
+#[Asynchronous('async')]
 interface AsyncCommandBus extends CommandBus
 {
-
 }

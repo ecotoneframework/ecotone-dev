@@ -128,7 +128,7 @@ class GatewayModule extends NoExternalConfigurationModule implements AnnotationM
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
             /** @var Asynchronous[] $asynchronous */
             $asynchronous = $interfaceToCallRegistry->getFor($gatewayBuilder->getInterfaceName(), $gatewayBuilder->getRelatedMethodName())->getAnnotationsByImportanceOrder(TypeDescriptor::create(Asynchronous::class));
-            if ($asynchronous && !$messagingConfiguration->isRunningForEnterpriseLicence()) {
+            if ($asynchronous && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
                 throw LicensingException::create("Gateway {$gatewayBuilder->getInterfaceName()}::{$gatewayBuilder->getRelatedMethodName()} is marked as asynchronous. This functionality is available as part of Ecotone Enterprise.");
             }
 

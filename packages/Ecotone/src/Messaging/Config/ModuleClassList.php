@@ -45,7 +45,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
 use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
 use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
 use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\Config\BusRoutingModule;
 use Ecotone\Modelling\Config\DistributedGatewayModule;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryModule;

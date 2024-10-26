@@ -15,25 +15,25 @@ final class TicketService
 {
     private array $tickets = [];
 
-    #[InternalHandler("create")]
+    #[InternalHandler('create')]
     public function createTicket(mixed $data): void
     {
         $this->tickets[] = $data;
     }
 
-    #[CommandHandler("createViaCommand")]
+    #[CommandHandler('createViaCommand')]
     public function createTicketViaCommand(mixed $data): void
     {
         $this->tickets[] = $data;
     }
 
-    #[InternalHandler("proxy")]
+    #[InternalHandler('proxy')]
     public function proxy(mixed $data, AsyncTicketCreator $asyncTicketCreator): void
     {
         $asyncTicketCreator->create($data);
     }
 
-    #[QueryHandler("getTickets")]
+    #[QueryHandler('getTickets')]
     public function getTickets(): array
     {
         return $this->tickets;

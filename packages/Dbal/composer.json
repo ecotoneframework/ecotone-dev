@@ -33,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~1.234.0",
+        "ecotone/enqueue": "~1.235.0",
         "enqueue/dbal": "^0.10.17",
         "doctrine/dbal": "^2.12.0|^3.0"
     },
@@ -45,7 +45,7 @@
         "doctrine/cache": "^1.0.0",
         "doctrine/annotations": "^1.13",
         "wikimedia/composer-merge-plugin": "^2.1",
-        "ecotone/jms-converter": "~1.234.0",
+        "ecotone/jms-converter": "~1.235.0",
         "symfony/expression-language": "^6.0|^7.0"
     },
     "scripts": {
@@ -58,7 +58,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.234.0-dev"
+            "dev-main": "1.235.0-dev"
         },
         "ecotone": {
             "repository": "dbal"
@@ -79,7 +79,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2024-10-23 06:26:35"
+        "release-time": "2024-10-26 13:09:58"
     },
     "config": {
         "allow-plugins": {

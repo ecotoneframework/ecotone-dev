@@ -86,11 +86,11 @@ class GatewayProxyBuilderTest extends MessagingTest
         /** @var TicketCreator $ticketCreator */
         $ticketCreator = $ecotoneLite->getGateway(TicketCreator::class);
 
-        $ticketCreator->create("some");
+        $ticketCreator->create('some');
 
         $this->assertEquals(
-            ["some"],
-            $ecotoneLite->sendQueryWithRouting("getTickets")
+            ['some'],
+            $ecotoneLite->sendQueryWithRouting('getTickets')
         );
     }
 

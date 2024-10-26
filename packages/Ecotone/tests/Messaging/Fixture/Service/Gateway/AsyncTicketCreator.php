@@ -12,11 +12,11 @@ use Ecotone\Messaging\Attribute\MessageGateway;
  */
 interface AsyncTicketCreator
 {
-    #[Asynchronous("async")]
-    #[MessageGateway("create")]
+    #[Asynchronous('async')]
+    #[MessageGateway('create')]
     public function create($data);
 
-    #[Asynchronous("async")]
-    #[MessageGateway("proxy")]
+    #[Asynchronous('async')]
+    #[MessageGateway('proxy')]
     public function proxy($data);
 }

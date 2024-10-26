@@ -425,7 +425,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
             return array_values(
                 \array_filter(
                     array_keys($autoloader->getClassMap()),
-                    fn (string $className) => $this->isInAvailableNamespaces($namespacesToUse, $className)
+                    fn (string $className) => self::isInAvailableNamespaces($namespacesToUse, $className)
                 )
             );
         } else {

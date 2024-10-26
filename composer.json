@@ -50,6 +50,7 @@
             "Ecotone\\Messaging\\": "packages/Ecotone/src/Messaging/",
             "Ecotone\\Modelling\\": "packages/Ecotone/src/Modelling/",
             "Ecotone\\OpenTelemetry\\": "packages/OpenTelemetry/src",
+            "Ecotone\\Kafka\\": "packages/Kafka/src",
             "Ecotone\\SymfonyBundle\\": "packages/Symfony/SymfonyBundle",
             "Ecotone\\SymfonyBundle\\DependencyInjection\\": "packages/Symfony/DependencyInjection",
             "Monorepo\\": "Monorepo"
@@ -95,6 +96,9 @@
             ],
             "Test\\Ecotone\\OpenTelemetry\\": [
                 "packages/OpenTelemetry/tests"
+            ],
+            "Test\\Ecotone\\Kafka\\": [
+                "packages/Kafka/tests"
             ],
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
             "App\\MultiTenant\\": "packages/Laravel/tests/MultiTenant/app",

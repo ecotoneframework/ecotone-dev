@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Kafka\Configuration;
 
 use Ecotone\Messaging\Config\ConfigurationException;
+use RdKafka\TopicConf;
 
 final class KafkaAdmin
 {
@@ -20,6 +21,11 @@ final class KafkaAdmin
 
     }
 
+    public static function createEmpty(): self
+    {
+        return new self([], []);
+    }
+
     public function getConfigurationForConsumer(string $endpointId): ConsumerConfiguration
     {
         if (!array_key_exists($endpointId, $this->consumerConfigurations)) {
@@ -29,12 +35,12 @@ final class KafkaAdmin
         return $this->consumerConfigurations[$endpointId];
     }
 
-    public function getConfigurationForTopic(string $topicName): TopicConfiguration
+    public function getConfigurationForTopic(string $topicName): TopicConf
     {
         if (!array_key_exists($topicName, $this->topicConfigurations)) {
-            throw ConfigurationException::create(sprintf("No configuration for topic with name %s", $topicName));
+            return TopicConfiguration::createWithDefaults($topicName)->getConfig();
         }
 
-        return $this->topicConfigurations[$topicName];
+        return $this->topicConfigurations[$topicName]->getConfig();
     }
 }

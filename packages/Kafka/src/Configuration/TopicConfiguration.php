@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Configuration;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use RdKafka\Conf;
+use RdKafka\TopicConf;
 
 final class TopicConfiguration implements DefinedObject
 {
@@ -45,9 +46,9 @@ final class TopicConfiguration implements DefinedObject
         return $this;
     }
 
-    public function getConfig(): Conf
+    public function getConfig(): TopicConf
     {
-        $conf = new Conf();
+        $conf = new TopicConf();
         foreach ($this->configuration as $key => $value) {
             $conf->set($key, $value);
         }

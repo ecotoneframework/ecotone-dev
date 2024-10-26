@@ -76,10 +76,10 @@ final class ConsumerConfiguration implements DefinedObject
 
     public function getAcknowledgeMode(): string
     {
-        /** Auto commit is autocommit in Kafka, where from Ecotone perspective it's manual ack */
+        /** Auto commit is autocommit in Kafka, then Ecotone should not commit offsets */
         return $this->configuration['enable.auto.commit'] === 'false'
             ? KafkaAcknowledgementCallback::AUTO_ACK
-            : KafkaAcknowledgementCallback::MANUAL_ACK;
+            : KafkaAcknowledgementCallback::NONE;
     }
 
     public function getEndpointId(): string

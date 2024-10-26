@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
+use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
+use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessagePublisher;
 use RdKafka\Conf;
 
-final class PublisherConfiguration implements DefinedObject
+final class KafkaPublisherConfiguration implements DefinedObject
 {
     /**
      * @param array<string, string> $configuration
@@ -19,9 +22,10 @@ final class PublisherConfiguration implements DefinedObject
         private string $referenceName,
         private array  $configuration,
         private string $brokerConfigurationReference,
+        private HeaderMapper $headerMapper,
+        private ?string $outputDefaultConversionMediaType = null,
     )
     {
-
     }
 
     public static function createWithDefaults(string $topicName = '', string $referenceName = MessagePublisher::class, string $brokerConfigurationReference = KafkaBrokerConfiguration::class): self
@@ -49,20 +53,14 @@ final class PublisherConfiguration implements DefinedObject
                 // Backoff time between retries in milliseconds
                 'retry.backoff.ms' => '100',
             ],
-            $brokerConfigurationReference
+            $brokerConfigurationReference,
+            DefaultHeaderMapper::createAllHeadersMapping()
         );
     }
 
-    public function setProducerConfig(string $key, string $value): self
+    public function setConfiguration(string $key, string $value): self
     {
         $this->configuration[$key] = $value;
-
-        return $this;
-    }
-
-    public function setTopicConfiguration(string $key, string $value): self
-    {
-        $this->topicConfiguration[$key] = $value;
 
         return $this;
     }
@@ -75,7 +73,33 @@ final class PublisherConfiguration implements DefinedObject
         return $this;
     }
 
-    public function getConfig(): Conf
+    /**
+     * @param string $headerMapper comma separated list of headers to be mapped.
+     *                             (e.g. "\*" or "thing1*, thing2" or "*thing1")
+     */
+    public function withHeaderMapper(string $headerMapper): self
+    {
+        $this->headerMapper = DefaultHeaderMapper::createWith([], explode(',', $headerMapper));
+
+        return $this;
+    }
+
+    public function getHeaderMapper(): HeaderMapper
+    {
+        return $this->headerMapper;
+    }
+
+    public function getOutputDefaultConversionMediaType(): ?string
+    {
+        return $this->outputDefaultConversionMediaType;
+    }
+
+    public function getBrokerConfigurationReference(): string
+    {
+        return $this->brokerConfigurationReference;
+    }
+
+    public function getAsKafkaConfig(): Conf
     {
         $conf = new Conf();
         foreach ($this->configuration as $key => $value) {
@@ -83,6 +107,11 @@ final class PublisherConfiguration implements DefinedObject
         }
 
         return $conf;
+    }
+
+    public function getDefaultTopicName(): string
+    {
+        return $this->defaultTopicName;
     }
 
     public function getReferenceName(): string

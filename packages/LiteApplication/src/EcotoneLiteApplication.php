@@ -23,12 +23,23 @@ use Ramsey\Uuid\Uuid;
  */
 class EcotoneLiteApplication
 {
-    public static function bootstrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null, array $classesToRegister = []): ConfiguredMessagingSystem
-    {
+    public static function bootstrap(
+        array $objectsToRegister = [],
+        array $configurationVariables = [],
+        ?ServiceConfiguration $serviceConfiguration = null,
+        bool $cacheConfiguration = false,
+        ?string $pathToRootCatalog = null,
+        array $classesToRegister = [],
+        ?string $licenseKey = null
+    ): ConfiguredMessagingSystem {
         $pathToRootCatalog = $pathToRootCatalog ?: __DIR__ . '/../../../../';
 
         if (! $serviceConfiguration) {
             $serviceConfiguration = ServiceConfiguration::createWithDefaults();
+        }
+
+        if ($licenseKey !== null) {
+            $serviceConfiguration = $serviceConfiguration->withLicenceKey($licenseKey);
         }
 
         if ($serviceConfiguration->isLoadingCatalogEnabled() && ! $serviceConfiguration->getLoadedCatalog()) {

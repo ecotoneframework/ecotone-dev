@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
+use Ecotone\AnnotationFinder\FileSystem\AutoloadFileNamespaceParser;
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\AnnotationFinder\FileSystem\RootCatalogNotFound;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
@@ -44,6 +45,7 @@ final class EcotoneLite
      * @param array<string,string> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
      * @param bool $allowGatewaysToBeRegisteredInContainer when enabled will add to the container Command/Query/Event and other gateways. Your container must have 'set' method however
+     * @param string|null $licenceKey licence key for enterprise version
      */
     public static function bootstrap(
         array                    $classesToResolve = [],
@@ -52,9 +54,20 @@ final class EcotoneLite
         array                    $configurationVariables = [],
         bool                     $useCachedVersion = false,
         ?string                  $pathToRootCatalog = null,
-        bool                     $allowGatewaysToBeRegisteredInContainer = false
+        bool                     $allowGatewaysToBeRegisteredInContainer = false,
+        ?string                  $licenceKey = null,
     ): ConfiguredMessagingSystem {
-        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, false, $allowGatewaysToBeRegisteredInContainer, $useCachedVersion);
+        return self::prepareConfiguration(
+            $containerOrAvailableServices,
+            $configuration,
+            $classesToResolve,
+            $configurationVariables,
+            $pathToRootCatalog,
+            false,
+            $allowGatewaysToBeRegisteredInContainer,
+            $useCachedVersion,
+            $licenceKey,
+        );
     }
 
     /**
@@ -96,7 +109,7 @@ final class EcotoneLite
      * @param array<string,string> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
      * @param MessageChannelBuilder[] $enableAsynchronousProcessing
-     * @param bool $withEnterpriseLicence bool Forces to use Enterprise mode or not (must be used instead of ServiceConfiguration option)
+     * @param string|null $licenceKey licence key for enterprise version
      */
     public static function bootstrapFlowTesting(
         array                    $classesToResolve = [],
@@ -109,9 +122,9 @@ final class EcotoneLite
         bool                     $addInMemoryEventSourcedRepository = true,
         ?array                   $enableAsynchronousProcessing = null,
         TestConfiguration        $testConfiguration = null,
-        bool $withEnterpriseLicence = false
+        ?string                  $licenceKey = null
     ): FlowTestSupport {
-        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $withEnterpriseLicence);
+        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $licenceKey);
 
         if ($addInMemoryEventSourcedRepository) {
             $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createDefaultEventSourcedRepository());
@@ -128,6 +141,7 @@ final class EcotoneLite
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
+     * @param string|null $licenceKey licence key for enterprise version
      */
     public static function bootstrapFlowTestingWithEventStore(
         array                    $classesToResolve = [],
@@ -140,9 +154,9 @@ final class EcotoneLite
         bool                     $runForProductionEventStore = false,
         ?array                   $enableAsynchronousProcessing = null,
         TestConfiguration        $testConfiguration = null,
-        bool                     $withEnterpriseLicence = false,
+        ?string                  $licenceKey = null,
     ): FlowTestSupport {
-        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $withEnterpriseLicence);
+        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $licenceKey);
 
         if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && ! $runForProductionEventStore) {
             Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
@@ -176,6 +190,15 @@ final class EcotoneLite
         // get file contents based on class names, configuration and configuration variables
         $fileSha = '';
 
+        if ($serviceConfiguration->getNamespaces()) {
+            $classes = FileSystemAnnotationFinder::getRegisteredClassesForNamespaces($pathToRootCatalog, new AutoloadFileNamespaceParser(), $serviceConfiguration->getNamespaces());
+
+            foreach ($classes as $class) {
+                $filePath = (new ReflectionClass($class))->getFileName();
+                $fileSha .= sha1_file($filePath);
+            }
+        }
+
         if (file_exists($pathToRootCatalog . 'composer.lock')) {
             $fileSha .= sha1_file($pathToRootCatalog . 'composer.lock');
         }
@@ -201,7 +224,7 @@ final class EcotoneLite
      * @param string[] $classesToResolve
      * @param array<string,string> $configurationVariables
      */
-    private static function prepareConfiguration(ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $serviceConfiguration, array $classesToResolve, array $configurationVariables, ?string $originalPathToRootCatalog, bool $enableTesting, bool $allowGatewaysToBeRegisteredInContainer, bool $useCachedVersion): ConfiguredMessagingSystemWithTestSupport|ConfiguredMessagingSystem
+    private static function prepareConfiguration(ContainerInterface|array $containerOrAvailableServices, ?ServiceConfiguration $serviceConfiguration, array $classesToResolve, array $configurationVariables, ?string $originalPathToRootCatalog, bool $enableTesting, bool $allowGatewaysToBeRegisteredInContainer, bool $useCachedVersion, ?string $enterpriseLicenceKey = null): ConfiguredMessagingSystemWithTestSupport|ConfiguredMessagingSystem
     {
         // moving out of vendor catalog
         $pathToRootCatalog = $originalPathToRootCatalog ?: __DIR__ . '/../../../../';
@@ -216,10 +239,12 @@ final class EcotoneLite
             );
         }
 
-
-
         if (is_null($serviceConfiguration)) {
             $serviceConfiguration = ServiceConfiguration::createWithDefaults();
+        }
+
+        if ($enterpriseLicenceKey !== null) {
+            $serviceConfiguration = $serviceConfiguration->withLicenceKey($enterpriseLicenceKey);
         }
 
         $externalContainer = $containerOrAvailableServices instanceof ContainerInterface ? $containerOrAvailableServices : InMemoryPSRContainer::createFromAssociativeArray($containerOrAvailableServices);
@@ -230,11 +255,15 @@ final class EcotoneLite
         );
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
         $definitionHolder = null;
+        $messagingSystemCachePath = null;
 
-        $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . self::getFileNameBasedOnConfig($pathToRootCatalog, $useCachedVersion, $classesToResolve, $serviceConfiguration, $configurationVariables, $enableTesting);
-        if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
-            /** It may fail on deserialization, then return `false` and we can build new one */
-            $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
+        if ($serviceCacheConfiguration->shouldUseCache()) {
+            $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . self::getFileNameBasedOnConfig($pathToRootCatalog, $useCachedVersion, $classesToResolve, $serviceConfiguration, $configurationVariables, $enableTesting);
+
+            if (file_exists($messagingSystemCachePath)) {
+                /** It may fail on deserialization, then return `false` and we can build new one */
+                $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
+            }
         }
 
         if (! $definitionHolder) {
@@ -248,6 +277,8 @@ final class EcotoneLite
             $definitionHolder = ContainerConfig::buildDefinitionHolder($messagingConfiguration);
 
             if ($serviceCacheConfiguration->shouldUseCache()) {
+                Assert::notNull($messagingSystemCachePath, 'Cache path should be defined');
+
                 MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
                 file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
             }
@@ -297,12 +328,12 @@ final class EcotoneLite
 
     private static function prepareForFlowTesting(
         ?ServiceConfiguration $configuration,
-        array $packagesToSkip,
-        array $classesToResolve,
+        array                 $packagesToSkip,
+        array                 $classesToResolve,
         bool                  $addInMemoryStateStoredRepository,
-        ?array $enableAsynchronousProcessing,
-        ?TestConfiguration $testConfiguration,
-        bool                  $withEnterpriseLicence,
+        ?array                $enableAsynchronousProcessing,
+        ?TestConfiguration    $testConfiguration,
+        ?string               $enterpriseLicenceKey,
     ): ServiceConfiguration {
         if ($enableAsynchronousProcessing !== null) {
             if ($configuration !== null && in_array(ModulePackageList::ASYNCHRONOUS_PACKAGE, $configuration->getSkippedModulesPackages())) {
@@ -349,8 +380,12 @@ final class EcotoneLite
                 ->addExtensionObject(InMemoryRepositoryBuilder::createDefaultStateStoredRepository());
         }
 
-        return $configuration
-                ->withEnterpriseLicence($withEnterpriseLicence);
+        if ($enterpriseLicenceKey !== null) {
+            $configuration = $configuration
+                ->withLicenceKey($enterpriseLicenceKey);
+        }
+
+        return $configuration;
     }
 
     private static function shouldUseAutomaticCache(bool $useCachedVersion, string $pathToRootCatalog): bool

@@ -26,6 +26,7 @@ class EcotoneExtension extends Extension
     {
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
+        $config = $container->resolveEnvPlaceholders($config, true);
 
         $skippedModules = $config['skippedModulePackageNames'] ?? [];
         if (! $config['test']) {
@@ -40,6 +41,10 @@ class EcotoneExtension extends Extension
             ->withNamespaces($config['namespaces'])
             ->withSkippedModulePackageNames($skippedModules)
         ;
+
+        if ($config['licenceKey'] !== null) {
+            $serviceConfiguration = $serviceConfiguration->withLicenceKey($config['licenceKey']);
+        }
 
         if (isset($config['serviceName'])) {
             $serviceConfiguration = $serviceConfiguration

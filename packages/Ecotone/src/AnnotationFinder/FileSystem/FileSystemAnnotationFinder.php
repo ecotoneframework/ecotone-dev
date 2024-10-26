@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\AnnotationFinder\FileSystem;
 
+use Composer\Autoload\ClassLoader;
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -133,25 +134,13 @@ class FileSystemAnnotationFinder implements AnnotationFinder
 
         $registeredClasses = array_merge(
             $registeredClasses,
-            $this->getRegisteredClassesForNamespaces($rootProjectDir, $autoloadNamespaceParser, $namespacesToUse)
+            self::getRegisteredClassesForNamespaces($rootProjectDir, $autoloadNamespaceParser, $namespacesToUse)
         );
 
         $this->registeredClasses = array_unique($registeredClasses);
     }
 
-    private function getPathsToSearchIn(AutoloadNamespaceParser $autoloadNamespaceParser, string $rootProjectDir, array $namespaces): array
-    {
-        $paths = [];
-
-        $autoloadPsr4 = require($rootProjectDir . '/vendor/composer/autoload_psr4.php');
-        $autoloadPsr0 = require($rootProjectDir . '/vendor/composer/autoload_namespaces.php');
-        $paths = array_merge($paths, $autoloadNamespaceParser->getFor($namespaces, $autoloadPsr4, true));
-        $paths = array_merge($paths, $autoloadNamespaceParser->getFor($namespaces, $autoloadPsr0, false));
-
-        return array_unique($paths);
-    }
-
-    private function getDirContents(string $dir, array &$results = []): array
+    private static function getDirContents(string $dir, array &$results = []): array
     {
         if (! is_dir($dir)) {
             return [];
@@ -168,7 +157,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
                     $results[] = $fullPath;
                 }
             } elseif ($value != '.' && $value != '..') {
-                $this->getDirContents($fullPath, $results);
+                self::getDirContents($fullPath, $results);
             }
         }
 
@@ -181,7 +170,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
      *
      * @return bool
      */
-    private function isInAvailableNamespaces(array $namespaces, $namespace): bool
+    private static function isInAvailableNamespaces(array $namespaces, $namespace): bool
     {
         foreach ($namespaces as $namespaceToUse) {
             if (strpos($namespace, $namespaceToUse) === 0) {
@@ -396,18 +385,18 @@ class FileSystemAnnotationFinder implements AnnotationFinder
      * @param string[]|null $namespacesToUse
      * @param string[] $classes
      */
-    private function getClassesIn(array $paths, ?array $namespacesToUse): array
+    private static function getClassesIn(array $paths, ?array $namespacesToUse): array
     {
         $classes = [];
         foreach ($paths as $path) {
-            $files = $this->getDirContents($path);
+            $files = self::getDirContents($path);
 
             foreach ($files as $file) {
                 if (preg_match_all(self::CLASS_NAMESPACE_REGEX, file_get_contents($file), $results)) {
                     $namespace = isset($results[1][0]) ? trim($results[1][0]) : '';
                     $namespace = trim($namespace, "\t\n\r\\");
 
-                    if (is_null($namespacesToUse) || $this->isInAvailableNamespaces($namespacesToUse, $namespace)) {
+                    if (is_null($namespacesToUse) || self::isInAvailableNamespaces($namespacesToUse, $namespace)) {
                         $classes[] = $namespace . '\\' . basename($file, '.php');
                     }
                 }
@@ -416,7 +405,11 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         return $classes;
     }
 
-    private function getRegisteredClassesForNamespaces(string $rootProjectDir, AutoloadNamespaceParser $autoloadNamespaceParser, array $namespacesToUse): array
+    public static function getRegisteredClassesForNamespaces(
+        string $rootProjectDir,
+        AutoloadNamespaceParser $autoloadNamespaceParser,
+        array $namespacesToUse
+    ): array
     {
         if ($namespacesToUse === []) {
             return [];
@@ -425,9 +418,28 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         $rootProjectDir = self::getRealRootCatalog($rootProjectDir, $rootProjectDir);
         $namespacesToUse = array_map(fn (string $namespace) => trim($namespace, "\t\n\r\\"), $namespacesToUse);
 
-        $paths = $this->getPathsToSearchIn($autoloadNamespaceParser, $rootProjectDir, $namespacesToUse);
+        /** @var ClassLoader $autoloader */
+        $autoloader = require($rootProjectDir . '/vendor/autoload.php');
 
-        return $this->getClassesIn($paths, $namespacesToUse);
+        if ($autoloader->isClassMapAuthoritative()) {
+            return array_values(
+                \array_filter(
+                    array_keys($autoloader->getClassMap()),
+                    fn (string $className) => self::isInAvailableNamespaces($namespacesToUse, $className)
+                )
+            );
+        } else {
+            $paths = [];
+
+            $autoloadPsr4 = require($rootProjectDir . '/vendor/composer/autoload_psr4.php');
+            $autoloadPsr0 = require($rootProjectDir . '/vendor/composer/autoload_namespaces.php');
+            $paths = array_merge($paths, $autoloadNamespaceParser->getFor($namespacesToUse, $autoloadPsr4, true));
+            $paths = array_merge($paths, $autoloadNamespaceParser->getFor($namespacesToUse, $autoloadPsr0, false));
+
+            $paths = array_unique($paths);
+
+            return self::getClassesIn($paths, $namespacesToUse);
+        }
     }
 
     private function isAbstractClass(array $classAnnotations): bool

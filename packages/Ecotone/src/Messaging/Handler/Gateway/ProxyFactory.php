@@ -35,7 +35,7 @@ class ProxyFactory
 
     public static function getGatewayProxyDefinitionFor(GatewayProxyReference $proxyReference): Definition
     {
-        return new Definition(self::getClassNameFor($proxyReference), [
+        return new Definition(self::getFullClassNameFor($proxyReference), [
             new Definition(GatewayProxyReference::class, [
                 $proxyReference->getReferenceName(),
                 $proxyReference->getInterfaceName(),
@@ -64,14 +64,10 @@ class ProxyFactory
     private function loadProxyClass(GatewayProxyReference $proxyReference): string
     {
         if (! self::isLoaded($proxyReference)) {
-            if ($this->serviceCacheConfiguration->shouldUseCache()) {
-                $file = $this->generateCachedProxyFileFor($proxyReference, false);
-                require $file;
-            } else {
-                $code = $this->generateProxyCode($proxyReference);
-                eval($code);
-            }
+            $file = $this->generateCachedProxyFileFor($proxyReference, ! $this->serviceCacheConfiguration->shouldUseCache());
+            require $file;
         }
+
         return self::getFullClassNameFor($proxyReference);
     }
 

@@ -15,19 +15,46 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  */
 class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 {
-    private function __construct(string $channelName, string $amqpConnectionReferenceName)
-    {
+    private string $channelName;
+
+    private function __construct(
+        string $channelName,
+        string $amqpConnectionReferenceName,
+        string $queueName
+    ) {
+        $this->channelName = $channelName;
+
         parent::__construct(
-            AmqpInboundChannelAdapterBuilder::createWith($channelName, $channelName, null, $amqpConnectionReferenceName),
+            AmqpInboundChannelAdapterBuilder::createWith($channelName, $queueName, null, $amqpConnectionReferenceName),
             AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
-                ->withDefaultRoutingKey($channelName)
+                ->withDefaultRoutingKey($queueName)
                 ->withAutoDeclareOnSend(true)
                 ->withDefaultPersistentMode(true)
         );
     }
 
-    public static function create(string $channelName, string $amqpConnectionReferenceName = AmqpConnectionFactory::class)
+    /**
+     * @param string|null $queueName If null, channel name will be used as queue name
+     */
+    public static function create(
+        string $channelName,
+        string $amqpConnectionReferenceName = AmqpConnectionFactory::class,
+        ?string $queueName = null
+    ) {
+        return new self(
+            $channelName,
+            $amqpConnectionReferenceName,
+            $queueName ?? $channelName
+        );
+    }
+
+    public function getMessageChannelName(): string
     {
-        return new self($channelName, $amqpConnectionReferenceName);
+        return $this->channelName;
+    }
+
+    public function getQueueName()
+    {
+        return $this->getInboundChannelAdapter()->getMessageChannelName();
     }
 }

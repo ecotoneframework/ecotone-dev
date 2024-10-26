@@ -32,6 +32,8 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantSubscriberTwo;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
 use Test\Ecotone\OpenTelemetry\Fixture\MessageHandlerFlow\ExampleMessageHandler;
+use Test\Ecotone\OpenTelemetry\Fixture\ScheduledHandler\ScheduledHandler;
+use Test\Ecotone\OpenTelemetry\Fixture\ScheduledHandler\WorkflowScheduledHandler;
 
 /**
  * @internal
@@ -98,6 +100,88 @@ final class TracingTreeTest extends TracingTest
                     ],
                 ],
             ],
+            self::buildTree($exporter)
+        );
+    }
+
+    public function test_tracing_scheduled_handler()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [ScheduledHandler::class],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), ScheduledHandler::class => new ScheduledHandler()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+        )
+            ->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(2));
+
+        self::compareTreesByDetails(
+            [
+                [
+                    'details' => ['name' => 'Endpoint: scheduled_handler produced Message'],
+                    'children' => [],
+                ],
+                [
+                    'details' => ['name' => 'Endpoint: scheduled_handler produced Message'],
+                    'children' => [],
+                ],
+            ],
+            self::buildTree($exporter)
+        );
+    }
+
+    public function test_tracing_workflow_scheduled_handler()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [WorkflowScheduledHandler::class],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), WorkflowScheduledHandler::class => new WorkflowScheduledHandler()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+        )
+            ->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(2));
+
+        self::compareTreesByDetails(
+            [
+                [
+                    'details' => ['name' => 'Endpoint: scheduled_handler produced Message'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Message Handler: ' . WorkflowScheduledHandler::class . '::add'],
+                            'children' => [],
+                        ],
+                    ],
+                ],
+                [
+                    'details' => ['name' => 'Endpoint: scheduled_handler produced Message'],
+                    'children' => [
+                        [
+                            'details' => ['name' => 'Message Handler: ' . WorkflowScheduledHandler::class . '::add'],
+                            'children' => [],
+                        ],
+                    ],
+                ],
+            ],
+            self::buildTree($exporter)
+        );
+    }
+
+    public function test_no_tracing_when_there_is_nothing_to_trace()
+    {
+        $exporter = new InMemoryExporter(new ArrayObject());
+
+        EcotoneLite::bootstrapFlowTesting(
+            [WorkflowScheduledHandler::class],
+            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), WorkflowScheduledHandler::class => new WorkflowScheduledHandler()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+        )
+            ->run('scheduled_handler_without_result', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1));
+
+        $this->assertEquals(
+            [],
             self::buildTree($exporter)
         );
     }

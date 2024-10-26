@@ -5,6 +5,7 @@ namespace Test;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\SymfonyBundle\DependencyInjection\Compiler\SymfonyConfigurationVariableService;
 use Monolog\Handler\TestHandler;
 use Monolog\LogRecord;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -53,7 +54,26 @@ class SymfonyApplicationTest extends KernelTestCase
             self::assertEquals('test', $logRecord['message']);
             self::assertEquals('ecotone', $logRecord['channel']);
         }
+    }
 
+    public function test_configuration_variable_service(): void
+    {
+        $testVar = 'foo';
+        putenv('TEST_VAR=' . $testVar);
+
+        $kernel = new Kernel('dev', true);
+        $containerBuilder = $kernel->createContainerBuilder();
+
+        $service = new SymfonyConfigurationVariableService($containerBuilder);
+        self::assertEquals($testVar, $service->getByName('test_var'));
+        self::assertEquals($testVar, $service->getByName('test_var_alias'));
+
+        $kernel = new Kernel('dev', true);
+        $kernel->boot();
+        $container = $kernel->getContainer();
+
+        $service = new SymfonyConfigurationVariableService($container);
+        self::assertEquals($testVar, $service->getByName('test_var'));
     }
 
     protected static function getMessagingSystem(): ConfiguredMessagingSystem

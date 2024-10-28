@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Kafka\Inbound;
 
 use Ecotone\Kafka\Configuration\KafkaAdmin;
+use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagePoller;
@@ -21,18 +23,23 @@ final class KafkaInboundChannelAdapter implements MessagePoller
      * @param TopicConf[] $declaredTopicsOnStartup
      */
     public function __construct(
-        private   string                  $endpointId,
-        protected KafkaAdmin              $kafkaAdmin,
-        protected array                   $topicsToSubscribe,
-        protected int                     $receiveTimeoutInMilliseconds,
-        protected InboundMessageConverter $inboundMessageConverter,
-        protected ConversionService       $conversionService,
+        private   string                     $endpointId,
+        protected array                      $topicsToSubscribe,
+        private string $groupId,
+        protected KafkaAdmin                 $kafkaAdmin,
+        protected KafkaConsumerConfiguration $kafkaConsumerConfiguration,
+        private KafkaBrokerConfiguration $kafkaBrokerConfiguration,
+        protected InboundMessageConverter    $inboundMessageConverter,
+        protected ConversionService          $conversionService,
     ) {
     }
 
     public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
     {
-        $consumer = new KafkaConsumer($this->kafkaAdmin->getConfigurationForConsumer($this->endpointId)->getConfig());
+        $conf = $this->kafkaConsumerConfiguration->getConfig();
+        $conf->set('group.id', $this->groupId);
+        $conf->set('bootstrap.servers', implode(',', $this->kafkaBrokerConfiguration->getBootstrapServers()));
+        $consumer = new KafkaConsumer($conf);
 
 //        @TODO KafkaConsumer reuse it and verify connection
 

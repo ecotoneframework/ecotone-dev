@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Kafka\Configuration;
 
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
+use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Kafka\Attribute\KafkaConsumer;
+use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapterBuilder;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -32,9 +35,21 @@ use Ecotone\Messaging\Support\LicensingException;
 #[ModuleAnnotation]
 final class KafkaModule extends NoExternalConfigurationModule implements AnnotationModule
 {
+    /**
+     * @param KafkaConsumer[] $kafkaConsumers
+     */
+    private function __construct(private array $kafkaConsumers)
+    {
+    }
+
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        return new self(
+            array_map(
+                fn(AnnotatedMethod $annotatedMethod) => $annotatedMethod->getAnnotationForMethod(),
+                $annotationRegistrationService->findAnnotatedMethods(KafkaConsumer::class)
+            ),
+        );
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -48,50 +63,12 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         $topicConfigurations = [];
 
         foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof ConsumerConfiguration) {
+            if ($extensionObject instanceof KafkaConsumerConfiguration) {
                 $consumerConfigurations[$extensionObject->getEndpointId()] = $consumerConfigurations;
             } else if ($extensionObject instanceof TopicConfiguration) {
                 $topicConfigurations[$extensionObject->getTopicName()] = $topicConfigurations;
             } else if ($extensionObject instanceof KafkaPublisherConfiguration) {
-                $messagingConfiguration = $messagingConfiguration
-                    ->registerGatewayBuilder(
-                        GatewayProxyBuilder::create($extensionObject->getReferenceName(), MessagePublisher::class, 'send', $extensionObject->getReferenceName())
-                            ->withParameterConverters([
-                                GatewayPayloadBuilder::create('data'),
-                                GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
-                            ])
-                    )
-                    ->registerGatewayBuilder(
-                        GatewayProxyBuilder::create($extensionObject->getReferenceName(), MessagePublisher::class, 'sendWithMetadata', $extensionObject->getReferenceName())
-                            ->withParameterConverters([
-                                GatewayPayloadBuilder::create('data'),
-                                GatewayHeadersBuilder::create('metadata'),
-                                GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
-                            ])
-                    )
-                    ->registerGatewayBuilder(
-                        GatewayProxyBuilder::create($extensionObject->getReferenceName(), MessagePublisher::class, 'convertAndSend', $extensionObject->getReferenceName())
-                            ->withParameterConverters([
-                                GatewayPayloadBuilder::create('data'),
-                                GatewayHeaderValueBuilder::create(MessageHeaders::CONTENT_TYPE, MediaType::APPLICATION_X_PHP),
-                            ])
-                    )
-                    ->registerGatewayBuilder(
-                        GatewayProxyBuilder::create($extensionObject->getReferenceName(), MessagePublisher::class, 'convertAndSendWithMetadata', $extensionObject->getReferenceName())
-                            ->withParameterConverters([
-                                GatewayPayloadBuilder::create('data'),
-                                GatewayHeadersBuilder::create('metadata'),
-                                GatewayHeaderValueBuilder::create(MessageHeaders::CONTENT_TYPE, MediaType::APPLICATION_X_PHP),
-                            ])
-                    )
-                    ->registerMessageHandler(
-                        KafkaOutboundChannelAdapterBuilder::create(
-                            $extensionObject,
-                            $extensionObject->getOutputDefaultConversionMediaType() ?: $applicationConfiguration->getDefaultSerializationMediaType()
-                        )
-                            ->withEndpointId($extensionObject->getReferenceName() . '.handler')
-                            ->withInputChannelName($extensionObject->getReferenceName())
-                    );
+                $this->registerMessagePublisher($messagingConfiguration, $extensionObject, $applicationConfiguration);
             }
         }
 
@@ -102,12 +79,24 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 $topicConfigurations,
             ])
         );
+
+        foreach ($this->kafkaConsumers as $kafkaConsumer) {
+            $messagingConfiguration->registerConsumer(
+                KafkaInboundChannelAdapterBuilder::create(
+                    $kafkaConsumer->getTopics(),
+                    $consumerConfigurations[$kafkaConsumer->getEndpointId()]
+                        ?? KafkaConsumerConfiguration::createWithDefaults($kafkaConsumer->getEndpointId()),
+                    $kafkaConsumer->getEndpointId(),
+                    $kafkaConsumer->getGroupId()
+                )
+            );
+        }
     }
 
     public function canHandle($extensionObject): bool
     {
         return
-            $extensionObject instanceof ConsumerConfiguration
+            $extensionObject instanceof KafkaConsumerConfiguration
             || $extensionObject instanceof TopicConfiguration
             || $extensionObject instanceof KafkaPublisherConfiguration;
     }
@@ -115,5 +104,48 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
     public function getModulePackageName(): string
     {
         return "kafka";
+    }
+
+    private function registerMessagePublisher(Configuration $messagingConfiguration, KafkaPublisherConfiguration $extensionObject, ServiceConfiguration $applicationConfiguration): void
+    {
+        $messagingConfiguration
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create($extensionObject->getReferenceName(), MessagePublisher::class, 'send', $extensionObject->getReferenceName())
+                    ->withParameterConverters([
+                        GatewayPayloadBuilder::create('data'),
+                        GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
+                    ])
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create($extensionObject->getReferenceName(), MessagePublisher::class, 'sendWithMetadata', $extensionObject->getReferenceName())
+                    ->withParameterConverters([
+                        GatewayPayloadBuilder::create('data'),
+                        GatewayHeadersBuilder::create('metadata'),
+                        GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
+                    ])
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create($extensionObject->getReferenceName(), MessagePublisher::class, 'convertAndSend', $extensionObject->getReferenceName())
+                    ->withParameterConverters([
+                        GatewayPayloadBuilder::create('data'),
+                        GatewayHeaderValueBuilder::create(MessageHeaders::CONTENT_TYPE, MediaType::APPLICATION_X_PHP),
+                    ])
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create($extensionObject->getReferenceName(), MessagePublisher::class, 'convertAndSendWithMetadata', $extensionObject->getReferenceName())
+                    ->withParameterConverters([
+                        GatewayPayloadBuilder::create('data'),
+                        GatewayHeadersBuilder::create('metadata'),
+                        GatewayHeaderValueBuilder::create(MessageHeaders::CONTENT_TYPE, MediaType::APPLICATION_X_PHP),
+                    ])
+            )
+            ->registerMessageHandler(
+                KafkaOutboundChannelAdapterBuilder::create(
+                    $extensionObject,
+                    $extensionObject->getOutputDefaultConversionMediaType() ?: $applicationConfiguration->getDefaultSerializationMediaType()
+                )
+                    ->withEndpointId($extensionObject->getReferenceName() . '.handler')
+                    ->withInputChannelName($extensionObject->getReferenceName())
+            );
     }
 }

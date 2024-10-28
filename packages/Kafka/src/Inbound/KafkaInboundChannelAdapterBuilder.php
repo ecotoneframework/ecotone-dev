@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
+use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
+use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Kafka\KafkaHeader;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -22,27 +25,38 @@ use Ecotone\Messaging\Support\Assert;
 final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 {
     public const DECLARE_ON_STARTUP_DEFAULT = true;
-    public const DEFAULT_RECEIVE_TIMEOUT = 10000;
-
-    protected int $receiveTimeoutInMilliseconds = self::DEFAULT_RECEIVE_TIMEOUT;
-
-    protected array $headerMapper = [];
-
-    protected string $acknowledgeMode = KafkaAcknowledgementCallback::AUTO_ACK;
 
     protected bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
-
     public function __construct(
-        string $endpointId,
         private array $topicsToSubscribe,
-        string $requestChannelName
+        private KafkaConsumerConfiguration $consumerConfiguration,
+        string                             $requestChannelName,
+        private ?string $groupId
     )
     {
         Assert::allStrings($topicsToSubscribe, "Topics to subscribe must be an array of strings");
 
-        $this->endpointId = $endpointId;
-        $this->inboundGateway = GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName);
+        $this->inboundGateway = GatewayProxyBuilder::create($this->consumerConfiguration->getEndpointId(), InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName);
+        $this->endpointId = $this->consumerConfiguration->getEndpointId();
+    }
+
+    /**
+     * @param string[] $topicsToSubscribe
+     */
+    public static function create(
+        array $topicsToSubscribe,
+        KafkaConsumerConfiguration $configuration,
+        string $requestChannelName,
+        ?string $groupId = null,
+    ): self
+    {
+        return new self(
+            $topicsToSubscribe,
+            $configuration,
+            $requestChannelName,
+            $groupId
+        );
     }
 
     protected function compileGateway(MessagingContainerBuilder $builder): Definition|Reference|DefinedObject
@@ -55,14 +69,16 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         return new Definition(
             KafkaInboundChannelAdapter::class,
             [
-                $this->endpointId,
-                Reference::to(KafkaAdmin::class),
+                $this->consumerConfiguration->getEndpointId(),
                 $this->topicsToSubscribe,
-                $this->receiveTimeoutInMilliseconds,
+                $this->groupId ?? $this->endpointId,
+                Reference::to(KafkaAdmin::class),
+                $this->consumerConfiguration->getDefinition(),
+                Reference::to($this->consumerConfiguration->getBrokerConfigurationReference()),
                 Definition::createFor(InboundMessageConverter::class, [
                     Reference::to(KafkaAdmin::class),
                     $this->endpointId,
-                    $this->headerMapper,
+                    $this->consumerConfiguration->getHeaderMapper()->getDefinition(),
                     KafkaHeader::ACKNOWLEDGE_HEADER_NAME,
                     Reference::to(LoggingGateway::class),
                 ]),
@@ -77,30 +93,6 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
     public function getEndpointId(): string
     {
         return $this->endpointId;
-    }
-
-    /**
-     * @param string $headerMapper
-     * @return static
-     */
-    public function withHeaderMapper(string $headerMapper): self
-    {
-        $this->headerMapper = explode(',', $headerMapper);
-
-        return $this;
-    }
-
-    /**
-     * How long it should try to receive message
-     *
-     * @param int $timeoutInMilliseconds
-     * @return static
-     */
-    public function withReceiveTimeout(int $timeoutInMilliseconds): self
-    {
-        $this->receiveTimeoutInMilliseconds = $timeoutInMilliseconds;
-
-        return $this;
     }
 
     /**
@@ -145,21 +137,6 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         $this->inboundGateway->withRequiredInterceptorNames($interceptorNames);
 
         return $this;
-    }
-
-    public function withDeclareOnStartup(bool $declareOnStartup): self
-    {
-        $this->declareOnStartup = $declareOnStartup;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getAcknowledgeMode(): string
-    {
-        return $this->acknowledgeMode;
     }
 
     public function __toString()

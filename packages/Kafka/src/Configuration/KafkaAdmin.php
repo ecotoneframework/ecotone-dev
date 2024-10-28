@@ -10,7 +10,7 @@ use RdKafka\TopicConf;
 final class KafkaAdmin
 {
     /**
-     * @param ConsumerConfiguration[] $consumerConfigurations
+     * @param KafkaConsumerConfiguration[] $consumerConfigurations
      * @param TopicConfiguration[] $topicConfigurations
      */
     public function __construct(
@@ -26,10 +26,10 @@ final class KafkaAdmin
         return new self([], []);
     }
 
-    public function getConfigurationForConsumer(string $endpointId): ConsumerConfiguration
+    public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration
     {
         if (!array_key_exists($endpointId, $this->consumerConfigurations)) {
-            return ConsumerConfiguration::createWithDefaults($endpointId);
+            return KafkaConsumerConfiguration::createWithDefaults($endpointId);
         }
 
         return $this->consumerConfigurations[$endpointId];

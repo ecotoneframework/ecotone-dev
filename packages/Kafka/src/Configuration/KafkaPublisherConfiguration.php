@@ -122,8 +122,12 @@ final class KafkaPublisherConfiguration implements DefinedObject
     public function getDefinition(): Definition
     {
         return Definition::createFor(static::class, [
+            $this->defaultTopicName,
+            $this->referenceName,
             $this->configuration,
-            $this->configuration
+            $this->brokerConfigurationReference,
+            $this->headerMapper->getDefinition(),
+            $this->outputDefaultConversionMediaType,
         ]);
     }
 }

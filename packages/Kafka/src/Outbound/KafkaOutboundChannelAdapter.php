@@ -37,8 +37,10 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
     public function handle(Message $message): void
     {
         if (!$this->producer) {
-            $this->producer = new Producer($this->publisherConfiguration->getAsKafkaConfig());
-            $this->producer->addBrokers(implode(",", $this->brokerConfiguration->getBootstrapServers()));
+            $conf = $this->publisherConfiguration->getAsKafkaConfig();
+            $conf->set("bootstrap.servers", implode(",", $this->brokerConfiguration->getBootstrapServers()));
+            $this->producer = new Producer($conf);
+
             $this->topic = $this->producer->newTopic(
                 $this->publisherConfiguration->getDefaultTopicName(),
                 $this->kafkaAdmin->getConfigurationForTopic($this->publisherConfiguration->getDefaultTopicName())

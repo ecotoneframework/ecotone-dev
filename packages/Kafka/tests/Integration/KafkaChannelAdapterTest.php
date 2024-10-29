@@ -22,7 +22,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleKafkaConsumer::class, ExampleKafkaConfiguration::class],
             [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                "kafka:9092"
+                env('KAFKA_DSN') ?? "localhost:9092"
             ]), new ExampleKafkaConsumer()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE])),

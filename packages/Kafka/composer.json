@@ -33,7 +33,7 @@
         "ecotone/ecotone": "~1.230.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.5",
+        "phpunit/phpunit": "^9.6",
         "phpstan/phpstan": "^1.8",
         "psr/container": "^2.0",
         "wikimedia/composer-merge-plugin": "^2.1",

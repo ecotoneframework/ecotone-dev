@@ -19,6 +19,9 @@ class Definition implements CompilableBuilder
     {
     }
 
+    /**
+     * @param array<string|int, mixed> $arguments
+     */
     public static function createFor(string $className, array $arguments): self
     {
         return new self($className, $arguments);

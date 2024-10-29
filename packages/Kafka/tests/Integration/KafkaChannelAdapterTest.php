@@ -35,7 +35,8 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->sendWithMetadata("exampleData", "application/text", ["key" => "value"]);
 
         $ecotoneLite->run("exampleConsumer", ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 10000
+            // waiting for initial repartitioning
+            maxExecutionTimeInMilliseconds: 15000
         ));
 
         $messages = $ecotoneLite->sendQueryWithRouting("getMessages");

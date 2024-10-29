@@ -35,6 +35,10 @@
       {
         "type": "path",
         "url": "LiteApplication"
+      },
+      {
+        "type": "path",
+        "url": "Kafka"
       }
     ]
 }

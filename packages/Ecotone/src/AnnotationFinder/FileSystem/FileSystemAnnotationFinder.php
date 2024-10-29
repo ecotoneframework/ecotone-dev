@@ -409,8 +409,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         string $rootProjectDir,
         AutoloadNamespaceParser $autoloadNamespaceParser,
         array $namespacesToUse
-    ): array
-    {
+    ): array {
         if ($namespacesToUse === []) {
             return [];
         }

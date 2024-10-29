@@ -30,7 +30,7 @@
     },
     "require": {
         "ext-rdkafka": "*",
-        "ecotone/ecotone": "~1.230.0"
+        "ecotone/ecotone": "~1.235.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6",

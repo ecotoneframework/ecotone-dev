@@ -91,7 +91,7 @@ jobs:
           - '6379:6379'
       kafka:
         image: bitnami/kafka:latest
-        environment:
+        env:
           KAFKA_CFG_NODE_ID: '0'
           KAFKA_CFG_PROCESS_ROLES: 'controller,broker'
           KAFKA_CFG_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093'

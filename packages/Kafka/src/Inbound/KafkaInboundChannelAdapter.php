@@ -14,6 +14,9 @@ use RdKafka\Conf;
 use RdKafka\KafkaConsumer;
 use RdKafka\TopicConf;
 
+/**
+ * licence Enterprise
+ */
 final class KafkaInboundChannelAdapter implements MessagePoller
 {
     protected Conf                    $configuration;

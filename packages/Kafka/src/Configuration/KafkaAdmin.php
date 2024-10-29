@@ -7,6 +7,9 @@ namespace Ecotone\Kafka\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use RdKafka\TopicConf;
 
+/**
+ * licence Enterprise
+ */
 final class KafkaAdmin
 {
     /**

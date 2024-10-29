@@ -21,7 +21,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
 {

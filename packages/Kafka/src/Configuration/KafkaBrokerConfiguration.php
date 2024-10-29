@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
+/**
+ * licence Enterprise
+ */
 final class KafkaBrokerConfiguration
 {
     public function __construct(private array $bootstrapServers)

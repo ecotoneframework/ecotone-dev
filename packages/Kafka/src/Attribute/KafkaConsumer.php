@@ -6,6 +6,9 @@ namespace Ecotone\Kafka\Attribute;
 
 use Ecotone\Messaging\Attribute\MessageConsumer;
 
+/**
+ * licence Enterprise
+ */
 #[\Attribute]
 final class KafkaConsumer extends MessageConsumer
 {

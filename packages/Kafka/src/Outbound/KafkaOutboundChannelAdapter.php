@@ -17,6 +17,9 @@ use RdKafka\Metadata\Topic;
 use RdKafka\Producer;
 use RdKafka\ProducerTopic;
 
+/**
+ * licence Enterprise
+ */
 final class KafkaOutboundChannelAdapter implements MessageHandler
 {
     private ?Producer $producer = null;

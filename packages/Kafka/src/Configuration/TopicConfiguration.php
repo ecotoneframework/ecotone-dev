@@ -9,6 +9,9 @@ use Ecotone\Messaging\Config\Container\Definition;
 use RdKafka\Conf;
 use RdKafka\TopicConf;
 
+/**
+ * licence Enterprise
+ */
 final class TopicConfiguration implements DefinedObject
 {
     /**

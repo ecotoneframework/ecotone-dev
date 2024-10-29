@@ -12,6 +12,9 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessagePublisher;
 use RdKafka\Conf;
 
+/**
+ * licence Enterprise
+ */
 final class KafkaPublisherConfiguration implements DefinedObject
 {
     /**

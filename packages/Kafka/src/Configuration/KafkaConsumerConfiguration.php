@@ -12,6 +12,9 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\Support\Assert;
 use RdKafka\Conf;
 
+/**
+ * licence Enterprise
+ */
 final class KafkaConsumerConfiguration implements DefinedObject
 {
     public const DEFAULT_RECEIVE_TIMEOUT = 10000;

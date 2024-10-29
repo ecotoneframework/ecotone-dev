@@ -22,6 +22,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Support\Assert;
 
+/**
+ * licence Enterprise
+ */
 final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterBuilder
 {
     public const DECLARE_ON_STARTUP_DEFAULT = true;

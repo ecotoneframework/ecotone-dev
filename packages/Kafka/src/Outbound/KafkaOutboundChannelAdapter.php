@@ -22,11 +22,8 @@ use RdKafka\ProducerTopic;
  */
 final class KafkaOutboundChannelAdapter implements MessageHandler
 {
-    private ?Producer $producer = null;
-    private ?ProducerTopic $topic = null;
-
     public function __construct(
-        private KafkaPublisherConfiguration $publisherConfiguration,
+        private string $referenceName,
         private KafkaAdmin                  $kafkaAdmin,
         private KafkaBrokerConfiguration    $brokerConfiguration,
         protected OutboundMessageConverter  $outboundMessageConverter,
@@ -39,20 +36,11 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
      */
     public function handle(Message $message): void
     {
-        if (!$this->producer) {
-            $conf = $this->publisherConfiguration->getAsKafkaConfig();
-            $conf->set("bootstrap.servers", implode(",", $this->brokerConfiguration->getBootstrapServers()));
-            $this->producer = new Producer($conf);
-
-            $this->topic = $this->producer->newTopic(
-                $this->publisherConfiguration->getDefaultTopicName(),
-                $this->kafkaAdmin->getConfigurationForTopic($this->publisherConfiguration->getDefaultTopicName())
-            );
-        }
-
+        $producer = $this->kafkaAdmin->getProducer($this->referenceName, $this->brokerConfiguration);
+        $topic = $this->kafkaAdmin->getTopicForProducer($this->referenceName, $this->brokerConfiguration);
         $outboundMessage = $this->outboundMessageConverter->prepare($message, $this->conversionService);
 
-        $this->topic->producev(
+        $topic->producev(
             RD_KAFKA_PARTITION_UA,
             0,
             $outboundMessage->getPayload(),
@@ -60,6 +48,6 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             $outboundMessage->getHeaders(),
         );
 
-        $this->producer->flush(5000);
+        $producer->flush(5000);
     }
 }

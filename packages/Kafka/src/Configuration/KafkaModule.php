@@ -61,6 +61,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consumerConfigurations = [];
         $topicConfigurations = [];
+        $publisherConfigurations = [];
 
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof KafkaConsumerConfiguration) {
@@ -68,6 +69,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             } else if ($extensionObject instanceof TopicConfiguration) {
                 $topicConfigurations[$extensionObject->getTopicName()] = $topicConfigurations;
             } else if ($extensionObject instanceof KafkaPublisherConfiguration) {
+                $publisherConfigurations[$this->getPublisherEndpointId($extensionObject->getReferenceName())] = $extensionObject;
                 $this->registerMessagePublisher($messagingConfiguration, $extensionObject, $applicationConfiguration);
             }
         }
@@ -77,6 +79,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             Definition::createFor(KafkaAdmin::class, [
                 $consumerConfigurations,
                 $topicConfigurations,
+                $publisherConfigurations,
             ])
         );
 
@@ -144,8 +147,13 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     $extensionObject,
                     $extensionObject->getOutputDefaultConversionMediaType() ?: $applicationConfiguration->getDefaultSerializationMediaType()
                 )
-                    ->withEndpointId($extensionObject->getReferenceName() . '.handler')
+                    ->withEndpointId($this->getPublisherEndpointId($extensionObject->getReferenceName()))
                     ->withInputChannelName($extensionObject->getReferenceName())
             );
+    }
+
+    private function getPublisherEndpointId(string $referenceName): string
+    {
+        return $referenceName . '.handler';
     }
 }

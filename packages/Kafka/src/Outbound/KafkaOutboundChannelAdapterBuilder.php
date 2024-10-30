@@ -72,7 +72,7 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
         ]);
 
         return new Definition(KafkaOutboundChannelAdapter::class, [
-            $this->configuration,
+            $this->endpointId,
             new Reference(KafkaAdmin::class),
             Reference::to($this->configuration->getBrokerConfigurationReference()),
             $outboundMessageConverter,

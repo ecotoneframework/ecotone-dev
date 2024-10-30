@@ -6,11 +6,11 @@
       },
       {
         "type": "path",
-        "url": "Ecotone"
+        "url": "Dbal"
       },
       {
         "type": "path",
-        "url": "Dbal"
+        "url": "Ecotone"
       },
       {
         "type": "path",
@@ -18,7 +18,7 @@
       },
       {
         "type": "path",
-        "url": "PdoEventSourcing"
+        "url": "GDPR"
       },
       {
         "type": "path",
@@ -30,11 +30,15 @@
       },
       {
         "type": "path",
-        "url": "Symfony"
+        "url": "LiteApplication"
       },
       {
         "type": "path",
-        "url": "LiteApplication"
+        "url": "PdoEventSourcing"
+      },
+      {
+        "type": "path",
+        "url": "Symfony"
       }
     ]
 }

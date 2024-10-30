@@ -3,6 +3,7 @@
 namespace Test\Ecotone\EventSourcing;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -18,10 +19,9 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     private ConnectionFactory $tenantAConnection;
     private ConnectionFactory $tenantBConnection;
 
-    protected static function getSchemaManager(Connection $connection): \Doctrine\DBAL\Schema\AbstractSchemaManager
+    protected static function getSchemaManager(Connection $connection): AbstractSchemaManager
     {
         return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
-        ;
     }
 
     protected function setUp(): void

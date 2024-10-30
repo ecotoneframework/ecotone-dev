@@ -39,6 +39,7 @@
                 "packages/PdoEventSourcing/src",
                 "packages/PdoEventSourcing/src"
             ],
+            "Ecotone\\GDPR\\": "packages/GDPR/src",
             "Ecotone\\JMSConverter\\": "packages/JmsConverter/src",
             "Ecotone\\Redis\\": "packages/Redis/src",
             "Ecotone\\Sqs\\": "packages/Sqs/src",
@@ -84,6 +85,9 @@
                 "packages/EventSourcing/tests",
                 "packages/PdoEventSourcing/tests"
             ],
+            "Test\\Ecotone\\GDPR\\": [
+                "packages/GDPR/tests"
+            ],
             "Test\\Ecotone\\JMSConverter\\": [
                 "packages/JmsConverter/tests"
             ],
@@ -107,6 +111,8 @@
         }
     },
     "require": {
+        "ext-amqp": "*",
+        "ext-openssl": "*",
         "php": "^8.0",
         "doctrine/dbal": "^2.12.0|^3.0",
         "doctrine/persistence": "^2.5",
@@ -116,7 +122,6 @@
         "enqueue/sqs": "^0.10.15",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0",
-        "ext-amqp": "*",
         "laminas/laminas-code": "^4",
         "jms/serializer": "^3.17",
         "laravel/framework": "^9.5.2|^10.0|^11.0",
@@ -131,7 +136,8 @@
         "wikimedia/composer-merge-plugin": "^2.1",
         "php-di/php-di": "^7.0.1",
         "open-telemetry/sdk": "^1.0.0",
-        "psr/container": "^1.1.1|^2.0.1"
+        "psr/container": "^1.1.1|^2.0.1",
+        "defuse/php-encryption": "^2.4"
     },
     "require-dev": {
         "behat/behat": "^3.10",

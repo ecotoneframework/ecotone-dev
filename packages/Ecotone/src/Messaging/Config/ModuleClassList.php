@@ -15,6 +15,8 @@ use Ecotone\Dbal\MultiTenant\Module\MultiTenantConnectionFactoryModule;
 use Ecotone\Dbal\ObjectManager\ObjectManagerModule;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
+use Ecotone\GDPR\Config\ForgettablePayloadModule;
+use Ecotone\GDPR\Config\PersonalDataModule;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
 use Ecotone\Laravel\Config\LaravelConnectionModule;
@@ -156,5 +158,10 @@ class ModuleClassList
 
     public const SYMFONY_MODULES = [
         SymfonyConnectionModule::class,
+    ];
+
+    public const GDPR_MODULES = [
+        PersonalDataModule::class,
+        ForgettablePayloadModule::class,
     ];
 }

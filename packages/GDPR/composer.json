@@ -1,0 +1,90 @@
+{
+  "name": "ecotone/gdpr",
+  "license": [
+    "Apache-2.0",
+    "proprietary"
+  ],
+  "homepage": "https://docs.ecotone.tech/",
+  "forum": "https://discord.gg/CctGMcrYnV",
+  "type": "library",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "authors": [
+    {
+      "name": "Dariusz Gafka",
+      "email": "support@simplycodedsoftware.com"
+    },
+    {
+      "name": "Piotr Zając",
+      "email": "piotr.zajac@unixslayer.pl"
+    }
+  ],
+  "keywords": [
+    "ecotone",
+    "GDPR",
+    "personal data",
+    "encryption",
+    "event sourcing"
+  ],
+  "description": "Extends Ecotone with encryption of personal data in recorded events",
+  "autoload": {
+    "psr-4": {
+      "Ecotone\\GDPR\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Test\\Ecotone\\GDPR\\": [
+        "tests"
+      ]
+    }
+  },
+  "require": {
+    "ext-openssl": "*",
+    "defuse/php-encryption": "^2.4",
+    "ecotone/pdo-event-sourcing": "~1.235.1"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "phpstan/phpstan": "^1.8",
+    "wikimedia/composer-merge-plugin": "^2.1"
+  },
+  "scripts": {
+    "tests:phpstan": "vendor/bin/phpstan",
+    "tests:phpunit": "vendor/bin/phpunit",
+    "tests:ci": [
+      "@tests:phpstan",
+      "@tests:phpunit"
+    ]
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-main": "1.235.1-dev"
+    },
+    "ecotone": {
+      "repository": "gdpr"
+    },
+    "merge-plugin": {
+      "include": [
+        "../local_packages.json"
+      ]
+    },
+    "license-info": {
+      "Apache-2.0": {
+        "name": "Apache License 2.0",
+        "url": "https://github.com/ecotoneframework/ecotone-dev/blob/main/LICENSE",
+        "description": "Allows to use non Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+      },
+      "proprietary": {
+        "name": "Enterprise License",
+        "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+      }
+    },
+    "release-time": "2024-10-26 14:55:13"
+  },
+  "config": {
+    "allow-plugins": {
+      "wikimedia/composer-merge-plugin": true
+    }
+  }
+}

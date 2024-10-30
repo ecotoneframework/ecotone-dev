@@ -22,7 +22,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleKafkaConsumer::class, ExampleKafkaConfiguration::class],
             [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                env('KAFKA_DSN') ?? "localhost:9092"
+                \getenv('KAFKA_DSN') ?? "localhost:9092"
             ]), new ExampleKafkaConsumer()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE])),
@@ -41,9 +41,8 @@ final class KafkaChannelAdapterTest extends TestCase
 
         $messages = $ecotoneLite->sendQueryWithRouting("getMessages");
 
-// @TODO fails on CI
-//        self::assertCount(1, $messages);
-//        self::assertEquals("exampleData", $messages[0]["payload"]);
-//        self::assertEquals("value", $messages[0]["metadata"]["key"]);
+        self::assertCount(1, $messages);
+        self::assertEquals("exampleData", $messages[0]["payload"]);
+        self::assertEquals("value", $messages[0]["metadata"]["key"]);
     }
 }

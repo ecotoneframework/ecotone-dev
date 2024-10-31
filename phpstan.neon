@@ -11,3 +11,4 @@ parameters:
 		- packages/LiteApplication/src
 		- packages/Symfony/DependencyInjection
 		- packages/OpenTelemetry/src
+		- packages/Kafka/src

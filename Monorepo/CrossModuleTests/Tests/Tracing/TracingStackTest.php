@@ -19,7 +19,7 @@ use Monorepo\ExampleApp\Common\Infrastructure\Output;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use Psr\Container\ContainerInterface;
-use Test\Ecotone\OpenTelemetry\Integration\TracingTest;
+use Test\Ecotone\OpenTelemetry\Integration\TracingTestCase;
 
 final class TracingStackTest extends FullAppTestCase
 {
@@ -117,7 +117,7 @@ final class TracingStackTest extends FullAppTestCase
 
     private function assertTracing(InMemoryExporter $exporter): void
     {
-        TracingTest::compareTreesByDetails(
+        TracingTestCase::compareTreesByDetails(
             [
                 [
                     'details' => ['name' => 'Command Bus'],
@@ -160,7 +160,7 @@ final class TracingStackTest extends FullAppTestCase
                     ]
                 ]
             ],
-            TracingTest::buildTree($exporter)
+            TracingTestCase::buildTree($exporter)
         );
     }
 }

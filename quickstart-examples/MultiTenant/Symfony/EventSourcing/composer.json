@@ -18,7 +18,7 @@
         "symfony/expression-language": "^6.0|^7.0",
         "symfony/framework-bundle": "^5.4|^6.0|^7.0",
         "symfony/orm-pack": "^2.4",
-        "symfony/yaml": "^7.0"
+        "symfony/yaml": "^6.0|^7.0"
     },
     "require-dev": {
         "doctrine/orm": "^2.11|^3.0",

@@ -1,6 +1,5 @@
 <?php
 
-use Doctrine\DBAL\Connection;
 use Illuminate\Database\Connection as LaravelConnection;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -24,20 +23,22 @@ function runMigrationForTenants(LaravelConnection $tenantAConnection, LaravelCon
         });
     }
 
-    migrate($tenantAConnection->getDoctrineConnection());
-    migrate($tenantBConnection->getDoctrineConnection());
+    migrate($tenantAConnection->getPdo());
+    migrate($tenantBConnection->getPdo());
 }
 
-function migrate(Connection $connection): void
+function migrate(PDO $pdo): void
 {
-    $connection->executeStatement(<<<SQL
+    $pdo->exec(<<<'SQL'
         DROP TABLE IF EXISTS persons
-SQL);
-    $connection->executeStatement(<<<SQL
-                CREATE TABLE persons (
-                    customer_id INTEGER PRIMARY KEY,
-                    name VARCHAR(255),
-                    is_active bool DEFAULT true
-                )
-            SQL);
+        SQL
+    );
+    $pdo->exec(<<<'SQL'
+        CREATE TABLE persons (
+            customer_id INTEGER PRIMARY KEY,
+            name VARCHAR(255),
+            is_active bool DEFAULT true
+        )
+        SQL
+    );
 }

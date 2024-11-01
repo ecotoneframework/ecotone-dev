@@ -1,6 +1,5 @@
 <?php
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
 use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
@@ -9,7 +8,7 @@ use Monorepo\ExampleApp\Common\UI\OrderController;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Test\Ecotone\OpenTelemetry\Integration\TracingTest;
+use Test\Ecotone\OpenTelemetry\Integration\TracingTestCase;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
@@ -38,7 +37,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set(InMemoryExporter::class, InMemoryExporter::class)
             ->public();
     $services->set(TracerProviderInterface::class)
-        ->factory([TracingTest::class, 'prepareTracer'])
+        ->factory([TracingTestCase::class, 'prepareTracer'])
         ->args([service(InMemoryExporter::class)])
         ->public();
 };

@@ -26,6 +26,7 @@
   <php>
     <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
     <server name="APP_SECRET" value="test" />
+    <ini name="memory_limit" value="384M" />
   </php>
   <testsuites>
     <testsuite name="Core tests">

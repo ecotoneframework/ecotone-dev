@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: simplycodedsoftware/php:8.2.12
+    image: simplycodedsoftware/php:8.3.10
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
@@ -25,11 +25,12 @@ services:
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379
+      KAFKA_DSN: kafka:9092
       APP_MERGE_PLUGIN: "yes"
     env_file:
       - ".env"
   app8_1:
-    image: simplycodedsoftware/php:8.1.25
+    image: simplycodedsoftware/php:8.1.29
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
@@ -52,11 +53,12 @@ services:
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379
+      KAFKA_DSN: kafka:9092
       APP_MERGE_PLUGIN: "yes"
     env_file:
       - ".env"
   app8_0:
-    image: simplycodedsoftware/php:8.0
+    image: simplycodedsoftware/nginx-php:8.0.30
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
@@ -79,6 +81,7 @@ services:
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379
+      KAFKA_DSN: kafka:9092
       APP_MERGE_PLUGIN: "yes"
     env_file:
       - ".env"
@@ -143,3 +146,24 @@ services:
       - default
     ports:
       - 16686:16686
+  kafka:
+    image: 'bitnami/kafka:latest'
+    ports:
+      - '9092:9092'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    networks:
+      - default
+  kafdrop:
+    image: 'obsidiandynamics/kafdrop:latest'
+    ports:
+      - '9999:9000'
+    environment:
+      - KAFKA_BROKERCONNECT=kafka:9092
+    networks:
+      - default

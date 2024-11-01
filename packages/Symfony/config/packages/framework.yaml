@@ -41,4 +41,4 @@ ecotone:
     defaultErrorChannel: "errorChannel"
     defaultSerializationMediaType: "application/json"
     loadSrcNamespaces: false
-    skippedModulePackageNames: ["dbal","amqp","eventSourcing","jmsConverter","tracing"]
+    skippedModulePackageNames: ["dbal","amqp","eventSourcing","jmsConverter","tracing", "kafka"]

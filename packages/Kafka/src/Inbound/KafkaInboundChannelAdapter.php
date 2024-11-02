@@ -26,7 +26,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
      * @param TopicConf[] $declaredTopicsOnStartup
      */
     public function __construct(
-        private   string                     $endpointId,
+        private string                     $endpointId,
         protected array                      $topicsToSubscribe,
         private string $groupId,
         protected KafkaAdmin                 $kafkaAdmin,
@@ -44,7 +44,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         $conf->set('bootstrap.servers', implode(',', $this->kafkaBrokerConfiguration->getBootstrapServers()));
         $consumer = new KafkaConsumer($conf);
 
-//        @TODO KafkaConsumer reuse it and verify connection
+        //        @TODO KafkaConsumer reuse it and verify connection
 
         $consumer->subscribe($this->topicsToSubscribe);
 

@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
-use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
+use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\KafkaHeader;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -36,9 +34,8 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         private KafkaConsumerConfiguration $consumerConfiguration,
         string                             $requestChannelName,
         private ?string $groupId
-    )
-    {
-        Assert::allStrings($topicsToSubscribe, "Topics to subscribe must be an array of strings");
+    ) {
+        Assert::allStrings($topicsToSubscribe, 'Topics to subscribe must be an array of strings');
 
         $this->inboundGateway = GatewayProxyBuilder::create($this->consumerConfiguration->getEndpointId(), InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName);
         $this->endpointId = $this->consumerConfiguration->getEndpointId();
@@ -52,8 +49,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         KafkaConsumerConfiguration $configuration,
         string $requestChannelName,
         ?string $groupId = null,
-    ): self
-    {
+    ): self {
         return new self(
             $topicsToSubscribe,
             $configuration,

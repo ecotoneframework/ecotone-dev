@@ -9,7 +9,6 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\Support\Assert;
 use RdKafka\Conf;
 
 /**
@@ -28,8 +27,7 @@ final class KafkaConsumerConfiguration implements DefinedObject
         private string $brokerConfigurationReference,
         private HeaderMapper $headerMapper,
         private int $receiveTimeoutInMilliseconds = self::DEFAULT_RECEIVE_TIMEOUT
-    )
-    {
+    ) {
 
     }
 
@@ -39,8 +37,7 @@ final class KafkaConsumerConfiguration implements DefinedObject
     public static function createWithDefaults(
         string $endpointId,
         string $brokerConfigurationReference = KafkaBrokerConfiguration::class
-    ): self
-    {
+    ): self {
         return new self($endpointId, [
             'group.id' => $endpointId,
             /** Ecotone commit automatically after message is consumed */
@@ -138,7 +135,7 @@ final class KafkaConsumerConfiguration implements DefinedObject
             $this->configuration,
             $this->brokerConfigurationReference,
             $this->headerMapper->getDefinition(),
-            $this->receiveTimeoutInMilliseconds
+            $this->receiveTimeoutInMilliseconds,
         ]);
     }
 }

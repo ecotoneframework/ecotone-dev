@@ -28,8 +28,7 @@ final class KafkaAdmin
         private array $consumerConfigurations,
         private array $topicConfigurations,
         private array $publisherConfigurations,
-    )
-    {
+    ) {
 
     }
 
@@ -40,7 +39,7 @@ final class KafkaAdmin
 
     public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration
     {
-        if (!array_key_exists($endpointId, $this->consumerConfigurations)) {
+        if (! array_key_exists($endpointId, $this->consumerConfigurations)) {
             return KafkaConsumerConfiguration::createWithDefaults($endpointId);
         }
 
@@ -49,7 +48,7 @@ final class KafkaAdmin
 
     public function getConfigurationForTopic(string $topicName): TopicConf
     {
-        if (!array_key_exists($topicName, $this->topicConfigurations)) {
+        if (! array_key_exists($topicName, $this->topicConfigurations)) {
             return TopicConfiguration::createWithDefaults($topicName)->getConfig();
         }
 
@@ -63,10 +62,10 @@ final class KafkaAdmin
 
     public function getProducer(string $referenceName, KafkaBrokerConfiguration $kafkaBrokerConfiguration): Producer
     {
-        if (!array_key_exists($referenceName, $this->initializedProducers)) {
+        if (! array_key_exists($referenceName, $this->initializedProducers)) {
             $conf = $this->getConfigurationForPublisher($referenceName);
             $conf = $conf->getAsKafkaConfig();
-            $conf->set("bootstrap.servers", implode(",", $kafkaBrokerConfiguration->getBootstrapServers()));
+            $conf->set('bootstrap.servers', implode(',', $kafkaBrokerConfiguration->getBootstrapServers()));
             $producer = new Producer($conf);
 
             $this->initializedProducers[$referenceName] = $producer;

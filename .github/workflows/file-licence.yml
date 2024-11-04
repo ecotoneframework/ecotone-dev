@@ -20,7 +20,7 @@ jobs:
           php-version: 8.2
 
       - name: Install dependencies
-        run: composer update --prefer-dist --no-interaction
+        run: composer update --prefer-dist --no-interaction --ignore-platform-reqs
 
       - name: Check for Contribution Files
         shell: bash

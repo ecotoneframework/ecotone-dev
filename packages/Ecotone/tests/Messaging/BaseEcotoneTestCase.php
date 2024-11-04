@@ -9,6 +9,9 @@ use PHPUnit\Framework\TestCase;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 abstract class BaseEcotoneTestCase extends TestCase
 {
     /**

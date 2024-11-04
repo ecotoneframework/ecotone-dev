@@ -7,6 +7,9 @@ namespace Test\Ecotone\Kafka\Fixture\ChannelAdapter;
 use Ecotone\Kafka\Attribute\KafkaConsumer;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
+/**
+ * licence Enterprise
+ */
 final class ExampleKafkaConsumer
 {
     /**

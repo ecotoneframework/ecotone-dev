@@ -7,6 +7,9 @@ namespace Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 
+/**
+ * licence Apache-2.0
+ */
 final class TicketNotificationConfig
 {
     #[ServiceContext]

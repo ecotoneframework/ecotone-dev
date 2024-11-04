@@ -7,6 +7,9 @@ namespace Test\Ecotone\Kafka\Fixture\ChannelAdapter;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 
+/**
+ * licence Enterprise
+ */
 final class ExampleKafkaConfiguration
 {
     #[ServiceContext]

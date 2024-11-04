@@ -11,6 +11,9 @@ use PHPUnit\Framework\TestCase;
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class ProxyGeneratorTest extends TestCase
 {
     public function test_proxy_generation(): void

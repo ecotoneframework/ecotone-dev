@@ -24,8 +24,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
         private KafkaConsumer  $consumer,
         private KafkaMessage   $message,
         private LoggingGateway $loggingGateway
-    )
-    {
+    ) {
     }
 
     public static function createWithAutoAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway): self
@@ -88,8 +87,8 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public function requeue(): void
     {
         try {
-//            what to do here?
-//            $this->consumer->pausePartitions([$this->message->partition]);
+            //            what to do here?
+            //            $this->consumer->pausePartitions([$this->message->partition]);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to requeue message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
 

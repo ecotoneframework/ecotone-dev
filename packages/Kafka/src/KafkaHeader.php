@@ -9,5 +9,5 @@ namespace Ecotone\Kafka;
  */
 interface KafkaHeader
 {
-    public const ACKNOWLEDGE_HEADER_NAME = "kafka_acknowledge";
+    public const ACKNOWLEDGE_HEADER_NAME = 'kafka_acknowledge';
 }

@@ -6,7 +6,6 @@ namespace Ecotone\Kafka\Configuration;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use RdKafka\Conf;
 use RdKafka\TopicConf;
 
 /**
@@ -20,14 +19,14 @@ final class TopicConfiguration implements DefinedObject
     public function __construct(
         private string $topicName,
         private array  $configuration,
-    )
-    {
+    ) {
 
     }
 
     public static function createWithDefaults(string $topicName): self
     {
-        return new self($topicName,
+        return new self(
+            $topicName,
             [
 
             ]

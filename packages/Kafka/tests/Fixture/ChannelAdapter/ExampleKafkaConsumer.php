@@ -14,16 +14,16 @@ final class ExampleKafkaConsumer
      */
     private array $messages = [];
 
-    #[KafkaConsumer("exampleConsumer", "exampleTopic")]
+    #[KafkaConsumer('exampleConsumer', 'exampleTopic')]
     public function handle(string $payload, array $metadata): void
     {
-        $this->messages[] = ["payload" => $payload, "metadata" => $metadata];
+        $this->messages[] = ['payload' => $payload, 'metadata' => $metadata];
     }
 
     /**
      * @return array<string>
      */
-    #[QueryHandler("getMessages")]
+    #[QueryHandler('getMessages')]
     public function getMessages(): array
     {
         return $this->messages;

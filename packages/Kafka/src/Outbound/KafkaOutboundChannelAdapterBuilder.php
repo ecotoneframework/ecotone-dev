@@ -4,12 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Outbound;
 
-use Ecotone\Amqp\AmqpAdmin;
-use Ecotone\Amqp\AmqpOutboundChannelAdapter;
-use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
-use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
@@ -28,10 +22,9 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
     private function __construct(
         private KafkaPublisherConfiguration $configuration,
         private ?MediaType $outputConversionMediaType,
-        private string $inputChannelName = "",
+        private string $inputChannelName = '',
         private ?string $endpointId = null
-    )
-    {
+    ) {
 
     }
 

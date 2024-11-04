@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
@@ -27,13 +26,13 @@ final class KafkaPublisherConfiguration implements DefinedObject
         private string $brokerConfigurationReference,
         private HeaderMapper $headerMapper,
         private ?string $outputDefaultConversionMediaType = null,
-    )
-    {
+    ) {
     }
 
     public static function createWithDefaults(string $topicName = '', string $referenceName = MessagePublisher::class, string $brokerConfigurationReference = KafkaBrokerConfiguration::class): self
     {
-        return new self($topicName,
+        return new self(
+            $topicName,
             $referenceName,
             [
                 // By default in the absence of idempotence a producer may inadvertently publish a record in duplicate our of order - if one of the queued records experiences timeout

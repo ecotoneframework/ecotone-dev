@@ -12,6 +12,6 @@ final class ExampleKafkaConfiguration
     #[ServiceContext]
     public function setupPublisher(): KafkaPublisherConfiguration
     {
-        return KafkaPublisherConfiguration::createWithDefaults("exampleTopic");
+        return KafkaPublisherConfiguration::createWithDefaults('exampleTopic');
     }
 }

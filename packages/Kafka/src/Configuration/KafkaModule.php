@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
-use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Kafka\Attribute\KafkaConsumer;
@@ -46,7 +45,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
     {
         return new self(
             array_map(
-                fn(AnnotatedMethod $annotatedMethod) => $annotatedMethod->getAnnotationForMethod(),
+                fn (AnnotatedMethod $annotatedMethod) => $annotatedMethod->getAnnotationForMethod(),
                 $annotationRegistrationService->findAnnotatedMethods(KafkaConsumer::class)
             ),
         );
@@ -54,8 +53,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (!$messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create("Kafka module is available only with Ecotone Enterprise licence.");
+        if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create('Kafka module is available only with Ecotone Enterprise licence.');
         }
 
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
@@ -66,9 +65,9 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof KafkaConsumerConfiguration) {
                 $consumerConfigurations[$extensionObject->getEndpointId()] = $consumerConfigurations;
-            } else if ($extensionObject instanceof TopicConfiguration) {
+            } elseif ($extensionObject instanceof TopicConfiguration) {
                 $topicConfigurations[$extensionObject->getTopicName()] = $topicConfigurations;
-            } else if ($extensionObject instanceof KafkaPublisherConfiguration) {
+            } elseif ($extensionObject instanceof KafkaPublisherConfiguration) {
                 $publisherConfigurations[$this->getPublisherEndpointId($extensionObject->getReferenceName())] = $extensionObject;
                 $this->registerMessagePublisher($messagingConfiguration, $extensionObject, $applicationConfiguration);
             }
@@ -106,7 +105,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
     public function getModulePackageName(): string
     {
-        return "kafka";
+        return 'kafka';
     }
 
     private function registerMessagePublisher(Configuration $messagingConfiguration, KafkaPublisherConfiguration $extensionObject, ServiceConfiguration $applicationConfiguration): void

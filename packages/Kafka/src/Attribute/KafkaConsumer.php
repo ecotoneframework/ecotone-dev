@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Attribute;
 
+use Attribute;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 
 /**
  * licence Enterprise
  */
-#[\Attribute]
+#[Attribute]
 final class KafkaConsumer extends MessageConsumer
 {
     public function __construct(
         string $endpointId,
         private array|string $topics,
         private ?string $groupId = null
-    )
-    {
+    ) {
         parent::__construct($endpointId);
     }
 

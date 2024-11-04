@@ -14,7 +14,10 @@
             "email": "support@simplycodedsoftware.com"
         }
     ],
-    "keywords": ["ecotone", "Kafka"],
+    "keywords": [
+        "ecotone",
+        "Kafka"
+    ],
     "description": "Extends Ecotone with Kafka integration",
     "autoload": {
         "psr-4": {
@@ -30,7 +33,7 @@
     },
     "require": {
         "ext-rdkafka": "*",
-        "ecotone/ecotone": "~1.235.1"
+        "ecotone/ecotone": "~1.236.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6",
@@ -49,7 +52,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.235.1-dev"
+            "dev-main": "1.236.0-dev"
         },
         "ecotone": {
             "repository": "kafka"
@@ -69,7 +72,8 @@
                 "name": "Enterprise License",
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
-        }
+        },
+        "release-time": "2024-11-02 16:23:07"
     },
     "config": {
         "allow-plugins": {

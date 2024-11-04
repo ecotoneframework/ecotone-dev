@@ -13,6 +13,17 @@ use PDO;
 use PDOException;
 use PDOStatement;
 
+/**
+ * This file is a modified version of a class from the Laravel framework.
+ *
+ * Laravel is licensed under the MIT License.
+ * Original authors: Taylor Otwell and the Laravel contributors.
+ *
+ * @license MIT (https://opensource.org/licenses/MIT)
+ *
+ * Modifications were made as part of the Ecotone framework under the Apache 2.0 License.
+ * See LICENSE file for the Apache 2.0 License details.
+ */
 class Connection implements ServerInfoAwareConnection
 {
     /**

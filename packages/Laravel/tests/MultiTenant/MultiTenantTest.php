@@ -41,8 +41,8 @@ final class MultiTenantTest extends TestCase
 
     public function tearDown(): void
     {
-        DB::connection('tenant_a_connection')->getDoctrineConnection()->close();
-        DB::connection('tenant_b_connection')->getDoctrineConnection()->close();
+        DB::connection('tenant_a_connection')->disconnect();
+        DB::connection('tenant_b_connection')->disconnect();
     }
 
     public function test_run_message_handlers_for_multi_tenant_connection(): void

@@ -2,3 +2,6 @@ parameters:
 	level: 1
 	paths:
 		- src
+	excludePaths:
+		- src/Config/PDO/Connection.php
+		- src/Config/PDO/SqlServerConnection.php

@@ -13,6 +13,6 @@ foreach ($files as $file) {
     $fileContent = file_get_contents($file->getRealPath());
 
     if (! preg_match('/\*\s*(@licence|licence)\s+(Enterprise|Apache\-2\.0)\s*/', $fileContent, $matches)) {
-        throw new \RuntimeException("Missing licence in file: " . $file->getRealPath(). "\n. You can add it related licence by triggering `bin/add-apache-licence.php` or if you are changing Enterprise modules `bin/add-enterprise-licence.php`");
+        throw new \RuntimeException("Missing licence in file: " . $file->getRealPath(). "\n. You can add related licence by triggering `bin/add-apache-licence.php` or if you are changing Enterprise modules `bin/add-enterprise-licence.php`");
     }
 }

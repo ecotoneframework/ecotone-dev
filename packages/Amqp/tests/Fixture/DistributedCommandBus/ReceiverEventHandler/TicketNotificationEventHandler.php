@@ -9,6 +9,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\Event\TicketCreated;
 
+/**
+ * licence Apache-2.0
+ */
 final class TicketNotificationEventHandler
 {
     public const GET_TICKETS_NOTIFICATION_COUNT      = 'getTicketsNotificationCount';

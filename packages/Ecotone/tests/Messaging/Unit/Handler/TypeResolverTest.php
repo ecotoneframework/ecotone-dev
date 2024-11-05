@@ -12,6 +12,9 @@ use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\TestingNamespace\Corre
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 class TypeResolverTest extends TestCase
 {
     public function test_it_can_resolve_promoted_properties(): void

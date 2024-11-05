@@ -22,6 +22,9 @@ use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectio
 /**
  * @internal
  */
+/**
+ * licence Apache-2.0
+ */
 final class EventStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_storing_and_retrieving_events()

@@ -9,9 +9,13 @@ use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Test\LicenceTesting;
+use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Test\Ecotone\Kafka\Fixture\Handler\ExampleCommand;
 use Test\Ecotone\Kafka\Fixture\Handler\MessengerAsyncCommandHandler;
 
 /**
@@ -41,7 +45,10 @@ final class KafkaMessageChannelTest extends WebTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(
+            // waiting for initial repartitioning
+            maxExecutionTimeInMilliseconds: 15000
+        ));
 
         $this->assertEquals(
             [],
@@ -49,41 +56,50 @@ final class KafkaMessageChannelTest extends WebTestCase
         );
     }
 
-//    public function test_sending_and_receiving_message_from_channel()
-//    {
-//        $channelName = 'async';
-//        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
-//
-//        $messaging = EcotoneLite::bootstrapFlowTesting(
-//            [MessengerAsyncCommandHandler::class],
-//            $this->bootKernel()->getContainer(),
-//            ServiceConfiguration::createWithAsynchronicityOnly()
-//                ->withExtensionObjects([
-//                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-//                ])
-//        );
-//        $metadata = [
-//            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
-//            MessageHeaders::TIMESTAMP => 123333,
-//        ];
-//
-//        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: $metadata);
-//        /** Consumer not yet run */
-//        $this->assertEquals(
-//            [],
-//            $messaging->sendQueryWithRouting('consumer.getMessages')
-//        );
-//
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
-//
-//        $receivedMessage = $messaging->sendQueryWithRouting('consumer.getMessages');
-//        $this->assertEquals($messagePayload, $receivedMessage[0]['payload']);
-//        $this->assertEquals($metadata[MessageHeaders::MESSAGE_ID], $receivedMessage[0]['headers'][MessageHeaders::MESSAGE_ID]);
-//        $this->assertEquals($metadata[MessageHeaders::TIMESTAMP], $receivedMessage[0]['headers'][MessageHeaders::TIMESTAMP]);
-//        $this->assertEquals($channelName, $receivedMessage[0]['headers'][MessageHeaders::POLLED_CHANNEL_NAME]);
-//        $this->assertEquals(MediaType::createApplicationXPHPWithTypeParameter($messagePayload::class), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
-//    }
-//
+    public function test_sending_and_receiving_message_from_channel()
+    {
+        $channelName = 'async';
+        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncCommandHandler::class],
+            [
+                KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
+                    \getenv('KAFKA_DSN') ?? 'localhost:9092'
+                ]), new MessengerAsyncCommandHandler()
+            ],
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaMessageChannelBuilder::create($channelName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $metadata = [
+            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
+            MessageHeaders::TIMESTAMP => 123333,
+        ];
+
+        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: $metadata);
+        /** Consumer not yet run */
+        $this->assertEquals(
+            [],
+            $messaging->sendQueryWithRouting('consumer.getMessages')
+        );
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(
+            // waiting for initial repartitioning
+            maxExecutionTimeInMilliseconds: 15000
+        ));
+
+        $receivedMessage = $messaging->sendQueryWithRouting('consumer.getMessages');
+        $this->assertEquals($messagePayload, $receivedMessage[0]['payload']);
+        $this->assertEquals($metadata[MessageHeaders::MESSAGE_ID], $receivedMessage[0]['headers'][MessageHeaders::MESSAGE_ID]);
+        $this->assertEquals($metadata[MessageHeaders::TIMESTAMP], $receivedMessage[0]['headers'][MessageHeaders::TIMESTAMP]);
+        $this->assertEquals($channelName, $receivedMessage[0]['headers'][MessageHeaders::POLLED_CHANNEL_NAME]);
+        $this->assertEquals(MediaType::createApplicationXPHPWithTypeParameter($messagePayload::class), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
+    }
+
 //    public function test_acking_messages()
 //    {
 //        $channelName = 'async';

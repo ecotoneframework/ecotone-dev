@@ -20,16 +20,15 @@ use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
 {
     private function __construct(
-        private KafkaPublisherConfiguration $configuration,
-        private string $inputChannelName = '',
-        private ?string $endpointId = null
+        private string $endpointId,
+        private string $inputChannelName = ''
     ) {
 
     }
 
-    public static function create(KafkaPublisherConfiguration $configuration): self
+    public static function create(string $endpointId): self
     {
-        return new self($configuration);
+        return new self(endpointId:  $endpointId);
     }
 
     public function withInputChannelName(string $inputChannelName)
@@ -67,6 +66,6 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
 
     public function __toString(): string
     {
-        return KafkaOutboundChannelAdapter::class . ' for ' . $this->configuration->getReferenceName();
+        return KafkaOutboundChannelAdapter::class;
     }
 }

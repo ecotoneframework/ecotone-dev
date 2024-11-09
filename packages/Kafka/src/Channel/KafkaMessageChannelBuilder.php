@@ -15,31 +15,28 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
+use Ramsey\Uuid\Uuid;
 
 final class KafkaMessageChannelBuilder implements MessageChannelBuilder
 {
     private function __construct(
         private string                      $channelName,
-        private string                      $topicName,
-        private string                      $groupId,
-        private KafkaConsumerConfiguration  $consumerConfiguration,
-        private KafkaPublisherConfiguration $publisherConfiguration,
+        public readonly string                      $topicName,
+        public readonly string                      $groupId,
     )
     {
     }
 
-    /**
-     * @param ?string $topicName If not provided, channel name will be used as topic name
-     * @param ?string $groupId if not provided, channel name will be used as group id
-     */
-    public static function create(string $channelName, ?string $topicName = null, ?string $groupId = null, string $brokerConfigurationReference = KafkaBrokerConfiguration::class): self
+    public static function create(
+        string $channelName,
+        ?string $topicName = null,
+        ?string $groupId = null
+    ): self
     {
         return new self(
             $channelName,
             $topicName ?? $channelName,
             $groupId ?? $channelName,
-            KafkaConsumerConfiguration::createWithDefaults($channelName, brokerConfigurationReference: $brokerConfigurationReference),
-            KafkaPublisherConfiguration::createWithDefaults(brokerConfigurationReference: $brokerConfigurationReference)
         );
     }
 
@@ -50,12 +47,9 @@ final class KafkaMessageChannelBuilder implements MessageChannelBuilder
             [
                 KafkaInboundChannelAdapterBuilder::create(
                     $this->channelName,
-                    [$this->topicName],
-                    $this->channelName,
-                    $this->groupId
                 )->compile($builder),
                 KafkaOutboundChannelAdapterBuilder::create(
-                    $this->publisherConfiguration,
+                    $this->channelName,
                 )->compile($builder)
             ]
         );

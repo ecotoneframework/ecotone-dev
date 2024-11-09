@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
+use Ecotone\Enqueue\NullEntrypointGateway;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\KafkaHeader;
@@ -31,15 +32,17 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
 
     public function __construct(
         string $endpointId,
-        string  $requestChannelName,
+        ?string  $requestChannelName = null,
     ) {
-        $this->inboundGateway = GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName);
+        $this->inboundGateway = $requestChannelName
+            ? GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName)
+            : NullEntrypointGateway::create();
         $this->endpointId = $endpointId;
     }
 
     public static function create(
         string $endpointId,
-        string $requestChannelName,
+        ?string $requestChannelName = null,
     ): self {
         return new self(
             $endpointId,

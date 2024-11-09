@@ -9,15 +9,8 @@ use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
-use Exception;
-use Fixture\MessengerConsumer\ExampleCommand;
-use Fixture\MessengerConsumer\ExampleEvent;
-use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Test\Ecotone\Kafka\Fixture\Handler\MessengerAsyncCommandHandler;
 

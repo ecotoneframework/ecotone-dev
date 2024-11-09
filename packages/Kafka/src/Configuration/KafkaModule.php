@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -37,18 +38,23 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
     /**
      * @param KafkaConsumer[] $kafkaConsumers
      */
-    private function __construct(private array $kafkaConsumers)
+    private function __construct(
+        private array $kafkaConsumers,
+    )
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self(
-            array_map(
-                fn (AnnotatedMethod $annotatedMethod) => $annotatedMethod->getAnnotationForMethod(),
-                $annotationRegistrationService->findAnnotatedMethods(KafkaConsumer::class)
-            ),
-        );
+        $kafkaConsumers = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(KafkaConsumer::class) as $annotatedMethod) {
+            /** @var KafkaConsumer $kafkaConsumer */
+            $kafkaConsumer = $annotatedMethod->getAnnotationForMethod();
+
+            $kafkaConsumers[$kafkaConsumer->getEndpointId()] = $kafkaConsumer;
+        }
+
+        return new self($kafkaConsumers);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -61,14 +67,17 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         $consumerConfigurations = [];
         $topicConfigurations = [];
         $publisherConfigurations = [];
+        $kafkaBrokerConfigurations = [];
 
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof KafkaConsumerConfiguration) {
                 $consumerConfigurations[$extensionObject->getEndpointId()] = $consumerConfigurations;
+                $kafkaBrokerConfigurations[$extensionObject->getBrokerConfigurationReference()] = Reference::to($extensionObject->getBrokerConfigurationReference());
             } elseif ($extensionObject instanceof TopicConfiguration) {
                 $topicConfigurations[$extensionObject->getTopicName()] = $topicConfigurations;
             } elseif ($extensionObject instanceof KafkaPublisherConfiguration) {
                 $publisherConfigurations[$this->getPublisherEndpointId($extensionObject->getReferenceName())] = $extensionObject;
+                $kafkaBrokerConfigurations[$extensionObject->getBrokerConfigurationReference()] = Reference::to($extensionObject->getBrokerConfigurationReference());
                 $this->registerMessagePublisher($messagingConfiguration, $extensionObject, $applicationConfiguration);
             }
         }
@@ -76,20 +85,19 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         $messagingConfiguration->registerServiceDefinition(
             KafkaAdmin::class,
             Definition::createFor(KafkaAdmin::class, [
+                $this->kafkaConsumers,
                 $consumerConfigurations,
                 $topicConfigurations,
                 $publisherConfigurations,
+                $kafkaBrokerConfigurations,
             ])
         );
 
         foreach ($this->kafkaConsumers as $kafkaConsumer) {
             $messagingConfiguration->registerConsumer(
                 KafkaInboundChannelAdapterBuilder::create(
-                    $kafkaConsumer->getTopics(),
-                    $consumerConfigurations[$kafkaConsumer->getEndpointId()]
-                        ?? KafkaConsumerConfiguration::createWithDefaults($kafkaConsumer->getEndpointId()),
-                    $kafkaConsumer->getEndpointId(),
-                    $kafkaConsumer->getGroupId()
+                    endpointId: $kafkaConsumer->getEndpointId(),
+                    requestChannelName: $kafkaConsumer->getEndpointId(),
                 )
             );
         }

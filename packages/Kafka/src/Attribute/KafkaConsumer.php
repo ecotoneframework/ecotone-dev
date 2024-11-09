@@ -6,18 +6,23 @@ namespace Ecotone\Kafka\Attribute;
 
 use Attribute;
 use Ecotone\Messaging\Attribute\MessageConsumer;
+use Ecotone\Messaging\Config\Container\DefinedObject;
+use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Support\Assert;
 
 /**
  * licence Enterprise
  */
 #[Attribute]
-final class KafkaConsumer extends MessageConsumer
+final class KafkaConsumer extends MessageConsumer implements DefinedObject
 {
     public function __construct(
         string $endpointId,
         private array|string $topics,
         private ?string $groupId = null
     ) {
+        Assert::notNullAndEmpty($topics, "Topics can't be empty");
+
         parent::__construct($endpointId);
     }
 
@@ -31,6 +36,18 @@ final class KafkaConsumer extends MessageConsumer
 
     public function getGroupId(): ?string
     {
-        return $this->groupId;
+        return $this->groupId ?? $this->getEndpointId();
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(
+            self::class,
+            [
+                $this->getEndpointId(),
+                $this->topics,
+                $this->groupId
+            ]
+        );
     }
 }

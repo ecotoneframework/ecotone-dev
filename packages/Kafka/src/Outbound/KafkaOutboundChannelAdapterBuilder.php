@@ -21,16 +21,15 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
 {
     private function __construct(
         private KafkaPublisherConfiguration $configuration,
-        private ?MediaType $outputConversionMediaType,
         private string $inputChannelName = '',
         private ?string $endpointId = null
     ) {
 
     }
 
-    public static function create(KafkaPublisherConfiguration $configuration, ?MediaType $outputConversionMediaType): self
+    public static function create(KafkaPublisherConfiguration $configuration): self
     {
-        return new self($configuration, $outputConversionMediaType);
+        return new self($configuration);
     }
 
     public function withInputChannelName(string $inputChannelName)
@@ -59,16 +58,9 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $outboundMessageConverter = new Definition(OutboundMessageConverter::class, [
-            $this->configuration->getHeaderMapper(),
-            $this->outputConversionMediaType,
-        ]);
-
         return new Definition(KafkaOutboundChannelAdapter::class, [
             $this->endpointId,
             new Reference(KafkaAdmin::class),
-            Reference::to($this->configuration->getBrokerConfigurationReference()),
-            $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }

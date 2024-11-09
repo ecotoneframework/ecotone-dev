@@ -19,19 +19,9 @@ use RdKafka\TopicConf;
  */
 final class KafkaInboundChannelAdapter implements MessagePoller
 {
-    protected Conf                    $configuration;
-
-    /**
-     * @param string[] $topicsToSubscribe
-     * @param TopicConf[] $declaredTopicsOnStartup
-     */
     public function __construct(
         private string                     $endpointId,
-        protected array                      $topicsToSubscribe,
-        private string $groupId,
         protected KafkaAdmin                 $kafkaAdmin,
-        protected KafkaConsumerConfiguration $kafkaConsumerConfiguration,
-        private KafkaBrokerConfiguration $kafkaBrokerConfiguration,
         protected InboundMessageConverter    $inboundMessageConverter,
         protected ConversionService          $conversionService,
     ) {
@@ -39,14 +29,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
 
     public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
     {
-        $conf = $this->kafkaConsumerConfiguration->getConfig();
-        $conf->set('group.id', $this->groupId);
-        $conf->set('bootstrap.servers', implode(',', $this->kafkaBrokerConfiguration->getBootstrapServers()));
-        $consumer = new KafkaConsumer($conf);
-
-        //        @TODO KafkaConsumer reuse it and verify connection
-
-        $consumer->subscribe($this->topicsToSubscribe);
+        $consumer = $this->kafkaAdmin->getConsumer($this->endpointId);
 
         $message = $consumer->consume($timeoutInMilliseconds);
 

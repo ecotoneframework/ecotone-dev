@@ -30,31 +30,20 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
     protected bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
     public function __construct(
-        private array $topicsToSubscribe,
-        private KafkaConsumerConfiguration $consumerConfiguration,
-        string                             $requestChannelName,
-        private ?string $groupId
+        string $endpointId,
+        string  $requestChannelName,
     ) {
-        Assert::allStrings($topicsToSubscribe, 'Topics to subscribe must be an array of strings');
-
-        $this->inboundGateway = GatewayProxyBuilder::create($this->consumerConfiguration->getEndpointId(), InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName);
-        $this->endpointId = $this->consumerConfiguration->getEndpointId();
+        $this->inboundGateway = GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName);
+        $this->endpointId = $endpointId;
     }
 
-    /**
-     * @param string[] $topicsToSubscribe
-     */
     public static function create(
-        array $topicsToSubscribe,
-        KafkaConsumerConfiguration $configuration,
+        string $endpointId,
         string $requestChannelName,
-        ?string $groupId = null,
     ): self {
         return new self(
-            $topicsToSubscribe,
-            $configuration,
+            $endpointId,
             $requestChannelName,
-            $groupId
         );
     }
 
@@ -68,16 +57,11 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         return new Definition(
             KafkaInboundChannelAdapter::class,
             [
-                $this->consumerConfiguration->getEndpointId(),
-                $this->topicsToSubscribe,
-                $this->groupId ?? $this->endpointId,
+                $this->endpointId,
                 Reference::to(KafkaAdmin::class),
-                $this->consumerConfiguration->getDefinition(),
-                Reference::to($this->consumerConfiguration->getBrokerConfigurationReference()),
                 Definition::createFor(InboundMessageConverter::class, [
                     Reference::to(KafkaAdmin::class),
                     $this->endpointId,
-                    $this->consumerConfiguration->getHeaderMapper()->getDefinition(),
                     KafkaHeader::ACKNOWLEDGE_HEADER_NAME,
                     Reference::to(LoggingGateway::class),
                 ]),

@@ -54,7 +54,7 @@ final class KafkaAdmin
     public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration
     {
         if (! array_key_exists($endpointId, $this->consumerConfigurations)) {
-            return KafkaConsumerConfiguration::createWithDefaults($endpointId);
+            return KafkaConsumerConfiguration::createWithDefaults($endpointId)->enableKafkaDebugging();
         }
 
         return $this->consumerConfigurations[$endpointId];

@@ -13,8 +13,8 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Test\Ecotone\Kafka\Fixture\Handler\ExampleCommand;
 use Test\Ecotone\Kafka\Fixture\Handler\MessengerAsyncCommandHandler;
 
@@ -24,7 +24,7 @@ use Test\Ecotone\Kafka\Fixture\Handler\MessengerAsyncCommandHandler;
 /**
  * licence Enterprise
  */
-final class KafkaMessageChannelTest extends WebTestCase
+final class KafkaMessageChannelTest extends TestCase
 {
     public function test_no_message_in_the_channel()
     {

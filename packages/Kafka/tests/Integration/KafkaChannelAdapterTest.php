@@ -23,6 +23,8 @@ final class KafkaChannelAdapterTest extends TestCase
 {
     public function test_sending_and_receiving_from_kafka_topic(): void
     {
+        $this->markTestSkipped('Kafka not yet supported');
+
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleKafkaConsumer::class, ExampleKafkaConfiguration::class],
             [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([

@@ -8,6 +8,7 @@ use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagePoller;
 use RdKafka\Conf;
@@ -33,7 +34,10 @@ final class KafkaInboundChannelAdapter implements MessagePoller
 
         $message = $consumer->consume($timeoutInMilliseconds);
 
-        var_dump($message);
+        if ($message->err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
+
+        }
+
         if ($message->err) {
             return null;
         }

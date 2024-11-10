@@ -110,6 +110,11 @@ final class KafkaMessageChannelTest extends TestCase
         $this->assertEquals(MediaType::createApplicationXPHPSerialized()->toString(), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
     }
 
+//    public function test_failing_to_consume_due_to_connection_failure()
+//    {
+//
+//    }
+
 //    public function test_acking_messages()
 //    {
 //        $channelName = 'async';

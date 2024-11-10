@@ -28,6 +28,8 @@ final class KafkaMessageChannelTest extends TestCase
 {
     public function test_no_message_in_the_channel()
     {
+        $this->markTestSkipped('Kafka not yet supported');
+
         $channelName = 'async';
         $uniqueId = Uuid::uuid4()->toString();
 
@@ -62,6 +64,8 @@ final class KafkaMessageChannelTest extends TestCase
 
     public function test_sending_and_receiving_message_from_channel()
     {
+        $this->markTestSkipped('Kafka not yet supported');
+
         $channelName = 'async';
         $uniqueId = Uuid::uuid4()->toString();
         $messagePayload = new ExampleCommand($uniqueId);

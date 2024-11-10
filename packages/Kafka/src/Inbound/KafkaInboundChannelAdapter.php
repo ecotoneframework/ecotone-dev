@@ -33,6 +33,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
 
         $message = $consumer->consume($timeoutInMilliseconds);
 
+        var_dump($message);
         if ($message->err) {
             return null;
         }

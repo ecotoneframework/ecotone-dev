@@ -60,6 +60,9 @@ final class KafkaPublisherConfiguration implements DefinedObject
         );
     }
 
+    /**
+     * @link https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
+     */
     public function setConfiguration(string $key, string $value): self
     {
         $this->configuration[$key] = $value;

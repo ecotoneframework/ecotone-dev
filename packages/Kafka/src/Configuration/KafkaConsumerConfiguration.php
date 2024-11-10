@@ -26,7 +26,7 @@ final class KafkaConsumerConfiguration implements DefinedObject
         private array $configuration,
         private string $brokerConfigurationReference,
         private HeaderMapper $headerMapper,
-        private int $receiveTimeoutInMilliseconds = self::DEFAULT_RECEIVE_TIMEOUT
+        private int $receiveTimeoutInMilliseconds = self::DEFAULT_RECEIVE_TIMEOUT,
     ) {
 
     }
@@ -39,7 +39,6 @@ final class KafkaConsumerConfiguration implements DefinedObject
         string $brokerConfigurationReference = KafkaBrokerConfiguration::class
     ): self {
         return new self($endpointId, [
-            'group.id' => $endpointId,
             /** Ecotone commit automatically after message is consumed */
             'enable.auto.commit' => 'false',
             /** Send message when reached end of topic */
@@ -62,6 +61,9 @@ final class KafkaConsumerConfiguration implements DefinedObject
         return $this;
     }
 
+    /**
+     * @link https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
+     */
     public function set(string $key, string $value): self
     {
         $this->configuration[$key] = $value;

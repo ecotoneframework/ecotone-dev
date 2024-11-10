@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Kafka\Inbound;
 
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\KafkaHeader;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -15,10 +14,10 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
+use Ecotone\Messaging\Handler\Gateway\NullEntrypointGateway;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Support\Assert;
 
 /**
  * licence Enterprise
@@ -30,31 +29,22 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
     protected bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
     public function __construct(
-        private array $topicsToSubscribe,
-        private KafkaConsumerConfiguration $consumerConfiguration,
-        string                             $requestChannelName,
-        private ?string $groupId
+        string $endpointId,
+        ?string  $requestChannelName = null,
     ) {
-        Assert::allStrings($topicsToSubscribe, 'Topics to subscribe must be an array of strings');
-
-        $this->inboundGateway = GatewayProxyBuilder::create($this->consumerConfiguration->getEndpointId(), InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName);
-        $this->endpointId = $this->consumerConfiguration->getEndpointId();
+        $this->inboundGateway = $requestChannelName
+            ? GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName)
+            : NullEntrypointGateway::create();
+        $this->endpointId = $endpointId;
     }
 
-    /**
-     * @param string[] $topicsToSubscribe
-     */
     public static function create(
-        array $topicsToSubscribe,
-        KafkaConsumerConfiguration $configuration,
-        string $requestChannelName,
-        ?string $groupId = null,
+        string $endpointId,
+        ?string $requestChannelName = null,
     ): self {
         return new self(
-            $topicsToSubscribe,
-            $configuration,
+            $endpointId,
             $requestChannelName,
-            $groupId
         );
     }
 
@@ -68,16 +58,11 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         return new Definition(
             KafkaInboundChannelAdapter::class,
             [
-                $this->consumerConfiguration->getEndpointId(),
-                $this->topicsToSubscribe,
-                $this->groupId ?? $this->endpointId,
+                $this->endpointId,
                 Reference::to(KafkaAdmin::class),
-                $this->consumerConfiguration->getDefinition(),
-                Reference::to($this->consumerConfiguration->getBrokerConfigurationReference()),
                 Definition::createFor(InboundMessageConverter::class, [
                     Reference::to(KafkaAdmin::class),
                     $this->endpointId,
-                    $this->consumerConfiguration->getHeaderMapper()->getDefinition(),
                     KafkaHeader::ACKNOWLEDGE_HEADER_NAME,
                     Reference::to(LoggingGateway::class),
                 ]),

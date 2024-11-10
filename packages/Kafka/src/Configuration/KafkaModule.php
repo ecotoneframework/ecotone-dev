@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Configuration;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Kafka\Attribute\KafkaConsumer;
+use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapterBuilder;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -15,6 +16,8 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -37,18 +40,23 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
     /**
      * @param KafkaConsumer[] $kafkaConsumers
      */
-    private function __construct(private array $kafkaConsumers)
+    private function __construct(
+        private array $kafkaConsumers,
+    )
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self(
-            array_map(
-                fn (AnnotatedMethod $annotatedMethod) => $annotatedMethod->getAnnotationForMethod(),
-                $annotationRegistrationService->findAnnotatedMethods(KafkaConsumer::class)
-            ),
-        );
+        $kafkaConsumers = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(KafkaConsumer::class) as $annotatedMethod) {
+            /** @var KafkaConsumer $kafkaConsumer */
+            $kafkaConsumer = $annotatedMethod->getAnnotationForMethod();
+
+            $kafkaConsumers[$kafkaConsumer->getEndpointId()] = $kafkaConsumer;
+        }
+
+        return new self($kafkaConsumers);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -57,10 +65,26 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             throw LicensingException::create('Kafka module is available only with Ecotone Enterprise licence.');
         }
 
-        $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consumerConfigurations = [];
         $topicConfigurations = [];
         $publisherConfigurations = [];
+        $kafkaBrokerConfigurations = [];
+        $kafkaConsumers = $this->kafkaConsumers;
+
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof KafkaMessageChannelBuilder) {
+                $kafkaConsumers[$extensionObject->getMessageChannelName()] = new KafkaConsumer(
+                    $extensionObject->getMessageChannelName(),
+                    $extensionObject->topicName,
+                    $extensionObject->groupId,
+                );
+                $publisherConfigurations[$extensionObject->getMessageChannelName()] = KafkaPublisherConfiguration::createWithDefaults(
+                    $extensionObject->topicName,
+                    MessagePublisher::class . "::" . $extensionObject->getMessageChannelName(),
+                )->enableKafkaDebugging();
+            }
+        }
 
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof KafkaConsumerConfiguration) {
@@ -69,30 +93,37 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 $topicConfigurations[$extensionObject->getTopicName()] = $topicConfigurations;
             } elseif ($extensionObject instanceof KafkaPublisherConfiguration) {
                 $publisherConfigurations[$this->getPublisherEndpointId($extensionObject->getReferenceName())] = $extensionObject;
-                $this->registerMessagePublisher($messagingConfiguration, $extensionObject, $applicationConfiguration);
+                $this->registerMessagePublisher($messagingConfiguration, $extensionObject, $serviceConfiguration);
             }
+        }
+
+        foreach ($consumerConfigurations as $consumerConfiguration) {
+            $kafkaBrokerConfigurations[$consumerConfiguration->getBrokerConfigurationReference()] = Reference::to($consumerConfiguration->getBrokerConfigurationReference());
+        }
+        foreach ($publisherConfigurations as $publisherConfiguration) {
+            $kafkaBrokerConfigurations[$publisherConfiguration->getBrokerConfigurationReference()] = Reference::to($publisherConfiguration->getBrokerConfigurationReference());
+        }
+
+        foreach ($this->kafkaConsumers as $kafkaConsumer) {
+            $messagingConfiguration->registerConsumer(
+                KafkaInboundChannelAdapterBuilder::create(
+                    endpointId: $kafkaConsumer->getEndpointId(),
+                    requestChannelName: $kafkaConsumer->getEndpointId(),
+                )
+            );
         }
 
         $messagingConfiguration->registerServiceDefinition(
             KafkaAdmin::class,
             Definition::createFor(KafkaAdmin::class, [
+                $kafkaConsumers,
                 $consumerConfigurations,
                 $topicConfigurations,
                 $publisherConfigurations,
+                $kafkaBrokerConfigurations,
+                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)
             ])
         );
-
-        foreach ($this->kafkaConsumers as $kafkaConsumer) {
-            $messagingConfiguration->registerConsumer(
-                KafkaInboundChannelAdapterBuilder::create(
-                    $kafkaConsumer->getTopics(),
-                    $consumerConfigurations[$kafkaConsumer->getEndpointId()]
-                        ?? KafkaConsumerConfiguration::createWithDefaults($kafkaConsumer->getEndpointId()),
-                    $kafkaConsumer->getEndpointId(),
-                    $kafkaConsumer->getGroupId()
-                )
-            );
-        }
     }
 
     public function canHandle($extensionObject): bool
@@ -100,7 +131,9 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         return
             $extensionObject instanceof KafkaConsumerConfiguration
             || $extensionObject instanceof TopicConfiguration
-            || $extensionObject instanceof KafkaPublisherConfiguration;
+            || $extensionObject instanceof KafkaPublisherConfiguration
+            || $extensionObject instanceof KafkaMessageChannelBuilder
+            || $extensionObject instanceof ServiceConfiguration;
     }
 
     public function getModulePackageName(): string
@@ -143,10 +176,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             )
             ->registerMessageHandler(
                 KafkaOutboundChannelAdapterBuilder::create(
-                    $extensionObject,
-                    $extensionObject->getOutputDefaultConversionMediaType() ?: $applicationConfiguration->getDefaultSerializationMediaType()
+                    $this->getPublisherEndpointId($extensionObject->getReferenceName())
                 )
-                    ->withEndpointId($this->getPublisherEndpointId($extensionObject->getReferenceName()))
                     ->withInputChannelName($extensionObject->getReferenceName())
             );
     }

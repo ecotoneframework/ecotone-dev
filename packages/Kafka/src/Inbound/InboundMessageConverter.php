@@ -19,18 +19,24 @@ use RdKafka\Message as KafkaMessage;
 final class InboundMessageConverter
 {
     private string $acknowledgeMode;
+    private HeaderMapper $headerMapper;
 
     public function __construct(
         KafkaAdmin $kafkaAdmin,
         string $endpointId,
-        private HeaderMapper $headerMapper,
         private string $acknowledgeHeaderName,
         private LoggingGateway $loggingGateway,
     ) {
-        $this->acknowledgeMode = $kafkaAdmin->getConfigurationForConsumer($endpointId)->getAcknowledgeMode();
+        $kafkaConsumerConfiguration = $kafkaAdmin->getConfigurationForConsumer($endpointId);
+        $this->acknowledgeMode = $kafkaConsumerConfiguration->getAcknowledgeMode();
+        $this->headerMapper = $kafkaConsumerConfiguration->getHeaderMapper();
     }
 
-    public function toMessage(KafkaConsumer $consumer, KafkaMessage $source, ConversionService $conversionService): MessageBuilder
+    public function toMessage(
+        KafkaConsumer $consumer,
+        KafkaMessage $source,
+        ConversionService $conversionService
+    ): MessageBuilder
     {
         $messageHeaders = $source->headers ?? [];
         $messageBuilder = MessageBuilder::withPayload($source->payload)

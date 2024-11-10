@@ -11,6 +11,7 @@ use RdKafka\KafkaConsumer;
 use RdKafka\Producer;
 use RdKafka\ProducerTopic;
 use RdKafka\TopicConf;
+use RdKafka\TopicPartition;
 
 /**
  * licence Enterprise
@@ -39,7 +40,8 @@ final class KafkaAdmin
         private array $consumerConfigurations,
         private array $topicConfigurations,
         private array $publisherConfigurations,
-        private array $kafkaBrokerConfigurations = [],
+        private array $kafkaBrokerConfigurations,
+        private bool $isRunningInTestMode
     ) {
 
     }
@@ -80,10 +82,21 @@ final class KafkaAdmin
             $configuration = $this->getConfigurationForConsumer($endpointId);
             $conf = $configuration->getConfig();
             $conf->set('group.id', $this->kafkaConsumers[$endpointId]->getGroupId());
-            $conf->set('bootstrap.servers', implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
+            $kafkaBrokerConfiguration = $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()];
+            $conf->set('bootstrap.servers', implode(',', $kafkaBrokerConfiguration->getBootstrapServers()));
             $consumer = new KafkaConsumer($conf);
 
-            $consumer->subscribe($this->kafkaConsumers[$endpointId]->getTopics());
+            if ($this->isRunningForTests($kafkaBrokerConfiguration)) {
+                // ensures there is no need for repartitioning
+                $consumer->assign([new TopicPartition($this->kafkaConsumers[$endpointId]->getTopics()[0], 0)]);
+            }else {
+                $consumer->subscribe($this->kafkaConsumers[$endpointId]->getTopics());
+            }
+
+            foreach ($this->kafkaConsumers[$endpointId]->getTopics() as $topic) {
+                $consumer->subscribe([$topic]);
+            }
+            $consumer->assign([new TopicPartition($this->kafkaConsumers[$endpointId]->getTopics()[0], 0)]);
 
             $this->initializedConsumers[$endpointId] = $consumer;
         }
@@ -114,5 +127,10 @@ final class KafkaAdmin
             $topicName,
             $this->getConfigurationForTopic($topicName)
         );
+    }
+
+    private function isRunningForTests(KafkaBrokerConfiguration $kafkaBrokerConfiguration): bool
+    {
+        return ($this->isRunningInTestMode && $kafkaBrokerConfiguration->isSetupForTesting() === null) || $kafkaBrokerConfiguration->isSetupForTesting() === true;
     }
 }

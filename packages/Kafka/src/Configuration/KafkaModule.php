@@ -17,6 +17,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurat
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -64,7 +65,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             throw LicensingException::create('Kafka module is available only with Ecotone Enterprise licence.');
         }
 
-        $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consumerConfigurations = [];
         $topicConfigurations = [];
         $publisherConfigurations = [];
@@ -79,8 +80,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     $extensionObject->groupId,
                 );
                 $publisherConfigurations[$extensionObject->getMessageChannelName()] = KafkaPublisherConfiguration::createWithDefaults(
-                    $extensionObject->getMessageChannelName(),
-                    $extensionObject->getMessageChannelName(),
+                    $extensionObject->topicName,
+                    MessagePublisher::class . "::" . $extensionObject->getMessageChannelName(),
                 );
             }
         }
@@ -92,7 +93,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 $topicConfigurations[$extensionObject->getTopicName()] = $topicConfigurations;
             } elseif ($extensionObject instanceof KafkaPublisherConfiguration) {
                 $publisherConfigurations[$this->getPublisherEndpointId($extensionObject->getReferenceName())] = $extensionObject;
-                $this->registerMessagePublisher($messagingConfiguration, $extensionObject, $applicationConfiguration);
+                $this->registerMessagePublisher($messagingConfiguration, $extensionObject, $serviceConfiguration);
             }
         }
 
@@ -120,6 +121,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 $topicConfigurations,
                 $publisherConfigurations,
                 $kafkaBrokerConfigurations,
+                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)
             ])
         );
     }
@@ -130,7 +132,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             $extensionObject instanceof KafkaConsumerConfiguration
             || $extensionObject instanceof TopicConfiguration
             || $extensionObject instanceof KafkaPublisherConfiguration
-            || $extensionObject instanceof KafkaMessageChannelBuilder;
+            || $extensionObject instanceof KafkaMessageChannelBuilder
+            || $extensionObject instanceof ServiceConfiguration;
     }
 
     public function getModulePackageName(): string

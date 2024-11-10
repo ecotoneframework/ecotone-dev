@@ -29,6 +29,7 @@ final class KafkaMessageChannelTest extends WebTestCase
     public function test_no_message_in_the_channel()
     {
         $channelName = 'async';
+        $uniqueId = Uuid::uuid4()->toString();
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
@@ -40,14 +41,17 @@ final class KafkaMessageChannelTest extends WebTestCase
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create($channelName),
+                    KafkaMessageChannelBuilder::create(
+                        $channelName,
+                        topicName: $uniqueId,
+                        groupId: $uniqueId
+                    ),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(
-            // waiting for initial repartitioning
-            maxExecutionTimeInMilliseconds: 15000
+            maxExecutionTimeInMilliseconds: 5000
         ));
 
         $this->assertEquals(
@@ -59,7 +63,8 @@ final class KafkaMessageChannelTest extends WebTestCase
     public function test_sending_and_receiving_message_from_channel()
     {
         $channelName = 'async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $uniqueId = Uuid::uuid4()->toString();
+        $messagePayload = new ExampleCommand($uniqueId);
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
@@ -71,12 +76,16 @@ final class KafkaMessageChannelTest extends WebTestCase
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create($channelName),
+                    KafkaMessageChannelBuilder::create(
+                        $channelName,
+                        topicName: $uniqueId,
+                        groupId: $uniqueId
+                    ),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $metadata = [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
+            MessageHeaders::MESSAGE_ID => $uniqueId,
             MessageHeaders::TIMESTAMP => 123333,
         ];
 
@@ -87,17 +96,14 @@ final class KafkaMessageChannelTest extends WebTestCase
             $messaging->sendQueryWithRouting('consumer.getMessages')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(
-            // waiting for initial repartitioning
-            maxExecutionTimeInMilliseconds: 15000
-        ));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
 
         $receivedMessage = $messaging->sendQueryWithRouting('consumer.getMessages');
         $this->assertEquals($messagePayload, $receivedMessage[0]['payload']);
         $this->assertEquals($metadata[MessageHeaders::MESSAGE_ID], $receivedMessage[0]['headers'][MessageHeaders::MESSAGE_ID]);
         $this->assertEquals($metadata[MessageHeaders::TIMESTAMP], $receivedMessage[0]['headers'][MessageHeaders::TIMESTAMP]);
         $this->assertEquals($channelName, $receivedMessage[0]['headers'][MessageHeaders::POLLED_CHANNEL_NAME]);
-        $this->assertEquals(MediaType::createApplicationXPHPWithTypeParameter($messagePayload::class), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
+        $this->assertEquals(MediaType::createApplicationXPHPSerialized()->toString(), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
     }
 
 //    public function test_acking_messages()

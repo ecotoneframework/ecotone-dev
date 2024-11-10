@@ -61,7 +61,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
         try {
             $this->consumer->commit($this->message);
         } catch (Exception $exception) {
-            $this->loggingGateway->info('Failed to acknowledge message. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
+            $this->loggingGateway->info('Failed to acknowledge message. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 
             throw $exception;
         }
@@ -75,7 +75,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
         try {
             $this->consumer->commit($this->message);
         } catch (Exception $exception) {
-            $this->loggingGateway->info('Failed to skip message. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
+            $this->loggingGateway->info('Failed to skip message. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 
             throw $exception;
         }
@@ -90,7 +90,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
             //            what to do here?
             //            $this->consumer->pausePartitions([$this->message->partition]);
         } catch (Exception $exception) {
-            $this->loggingGateway->info('Failed to requeue message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), exception: $exception);
+            $this->loggingGateway->info('Failed to requeue message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 
             throw $exception;
         }

@@ -10,6 +10,9 @@ use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapter;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
 
+/**
+ * licence Enterprise
+ */
 final class KafkaMessageChannel implements PollableChannel
 {
     public function __construct(

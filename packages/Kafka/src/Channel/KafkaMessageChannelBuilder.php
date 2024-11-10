@@ -17,6 +17,9 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * licence Enterprise
+ */
 final class KafkaMessageChannelBuilder implements MessageChannelBuilder
 {
     private function __construct(

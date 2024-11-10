@@ -48,7 +48,7 @@ final class KafkaAdmin
 
     public static function createEmpty(): self
     {
-        return new self([], [], [], []);
+        return new self([], [], [], [], [], false);
     }
 
     public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration

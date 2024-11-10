@@ -18,6 +18,7 @@ use Test\Ecotone\Messaging\Fixture\EnterpriseMode\StandardInterface;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class EnterpriseModeDeciderTest extends TestCase
 {

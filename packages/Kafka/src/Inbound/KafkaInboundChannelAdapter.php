@@ -5,15 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Kafka\Inbound;
 
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
-use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagePoller;
-use RdKafka\Conf;
-use RdKafka\KafkaConsumer;
-use RdKafka\TopicConf;
 
 /**
  * licence Enterprise

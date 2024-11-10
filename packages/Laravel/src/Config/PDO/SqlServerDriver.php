@@ -27,7 +27,7 @@ class SqlServerDriver extends AbstractSQLServerDriver
      * @param  string|null  $username
      * @param  string|null  $password
      * @param  mixed[]  $driverOptions
-     * @return \Ecotone\Laravel\Config\PDO\SqlServerConnection
+     * @return SqlServerConnection
      */
     public function connect(array $params, $username = null, $password = null, array $driverOptions = [])
     {

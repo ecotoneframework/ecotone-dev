@@ -18,8 +18,7 @@ final class KafkaMessageChannel implements PollableChannel
     public function __construct(
         private KafkaInboundChannelAdapter $inboundChannelAdapter,
         private KafkaOutboundChannelAdapter $outboundChannelAdapter
-    )
-    {
+    ) {
 
     }
 

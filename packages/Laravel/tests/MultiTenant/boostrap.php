@@ -28,16 +28,18 @@ function runMigrationForTenants(LaravelConnection $tenantAConnection, LaravelCon
 
 function migrate(PDO $pdo): void
 {
-    $pdo->exec(<<<'SQL'
-        DROP TABLE IF EXISTS persons
-        SQL
+    $pdo->exec(
+        <<<'SQL'
+            DROP TABLE IF EXISTS persons
+            SQL
     );
-    $pdo->exec(<<<'SQL'
-        CREATE TABLE persons (
-            customer_id INTEGER PRIMARY KEY,
-            name VARCHAR(255),
-            is_active bool DEFAULT true
-        )
-        SQL
+    $pdo->exec(
+        <<<'SQL'
+            CREATE TABLE persons (
+                customer_id INTEGER PRIMARY KEY,
+                name VARCHAR(255),
+                is_active bool DEFAULT true
+            )
+            SQL
     );
 }

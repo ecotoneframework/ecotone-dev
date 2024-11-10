@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Kafka\Attribute\KafkaConsumer as KafkaConsumerAttribute;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\Assert;
 use RdKafka\KafkaConsumer;
 use RdKafka\Producer;
@@ -89,7 +89,7 @@ final class KafkaAdmin
             if ($this->isRunningForTests($kafkaBrokerConfiguration)) {
                 // ensures there is no need for repartitioning
                 $consumer->assign([new TopicPartition($this->kafkaConsumers[$endpointId]->getTopics()[0], 0)]);
-            }else {
+            } else {
                 $consumer->subscribe($this->kafkaConsumers[$endpointId]->getTopics());
             }
 

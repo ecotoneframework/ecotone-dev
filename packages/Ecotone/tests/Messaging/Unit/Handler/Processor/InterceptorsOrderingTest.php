@@ -17,6 +17,7 @@ use Test\Ecotone\Messaging\Fixture\InterceptorsOrdering\OutputHandler;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class InterceptorsOrderingTest extends TestCase
 {

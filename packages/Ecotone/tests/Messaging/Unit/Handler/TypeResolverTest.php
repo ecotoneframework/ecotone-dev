@@ -14,6 +14,7 @@ use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\TestingNamespace\Corre
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 class TypeResolverTest extends TestCase
 {

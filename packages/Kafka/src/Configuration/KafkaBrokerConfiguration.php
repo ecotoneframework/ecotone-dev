@@ -12,8 +12,7 @@ final class KafkaBrokerConfiguration
     public function __construct(
         private array $bootstrapServers,
         private ?bool $setupForTesting = null
-    )
-    {
+    ) {
 
     }
 

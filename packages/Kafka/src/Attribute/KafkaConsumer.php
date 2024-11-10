@@ -46,7 +46,7 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
             [
                 $this->getEndpointId(),
                 $this->topics,
-                $this->groupId
+                $this->groupId,
             ]
         );
     }

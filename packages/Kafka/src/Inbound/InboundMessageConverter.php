@@ -36,8 +36,7 @@ final class InboundMessageConverter
         KafkaConsumer $consumer,
         KafkaMessage $source,
         ConversionService $conversionService
-    ): MessageBuilder
-    {
+    ): MessageBuilder {
         $messageHeaders = $source->headers ?? [];
         $messageBuilder = MessageBuilder::withPayload($source->payload)
             ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($messageHeaders, $conversionService));

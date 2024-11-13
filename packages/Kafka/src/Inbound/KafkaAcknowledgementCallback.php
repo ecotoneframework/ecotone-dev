@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
+use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Exception;
@@ -23,18 +24,20 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
         private bool           $isAutoAck,
         private KafkaConsumer  $consumer,
         private KafkaMessage   $message,
-        private LoggingGateway $loggingGateway
+        private LoggingGateway $loggingGateway,
+        private KafkaAdmin     $kafkaAdmin,
+        private string         $endpointId
     ) {
     }
 
-    public static function createWithAutoAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway): self
+    public static function createWithAutoAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId): self
     {
-        return new self(true, $consumer, $message, $loggingGateway);
+        return new self(true, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
     }
 
-    public static function createWithManualAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway): self
+    public static function createWithManualAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId): self
     {
-        return new self(false, $consumer, $message, $loggingGateway);
+        return new self(false, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
     }
 
     /**
@@ -58,6 +61,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
      */
     public function accept(): void
     {
+        dump('accept');
         try {
             $this->consumer->commit($this->message);
         } catch (Exception $exception) {
@@ -72,6 +76,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
      */
     public function reject(): void
     {
+        dump('rejected');
         try {
             $this->consumer->commit($this->message);
         } catch (Exception $exception) {
@@ -86,6 +91,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
      */
     public function requeue(): void
     {
+        dump('requeue');
         try {
             //            what to do here?
             //            $this->consumer->pausePartitions([$this->message->partition]);

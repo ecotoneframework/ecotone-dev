@@ -17,6 +17,7 @@ final class TopicConfiguration implements DefinedObject
      * @param array<string, string> $configuration
      */
     public function __construct(
+        public readonly string $referenceName,
         private string $topicName,
         private array  $configuration,
     ) {
@@ -26,6 +27,18 @@ final class TopicConfiguration implements DefinedObject
     public static function createWithDefaults(string $topicName): self
     {
         return new self(
+            $topicName,
+            $topicName,
+            [
+
+            ]
+        );
+    }
+
+    public static function createWithReferenceName(string $referenceName, string $topicName): self
+    {
+        return new self(
+            $referenceName,
             $topicName,
             [
 
@@ -66,6 +79,7 @@ final class TopicConfiguration implements DefinedObject
     public function getDefinition(): Definition
     {
         return Definition::createFor(static::class, [
+            $this->referenceName,
             $this->topicName,
             $this->configuration,
         ]);

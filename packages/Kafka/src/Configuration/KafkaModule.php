@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
+use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Kafka\Attribute\KafkaConsumer;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
@@ -26,6 +27,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaders
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
@@ -41,7 +43,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
      */
     private function __construct(
         private array $kafkaConsumers,
-    ) {
+    )
+    {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
@@ -66,6 +69,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consumerConfigurations = [];
         $topicConfigurations = [];
+        $topicReferenceMapping = [];
         $publisherConfigurations = [];
         $kafkaBrokerConfigurations = [];
         $kafkaConsumers = $this->kafkaConsumers;
@@ -79,8 +83,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 );
                 $publisherConfigurations[$extensionObject->getMessageChannelName()] = KafkaPublisherConfiguration::createWithDefaults(
                     $extensionObject->topicName,
-                    MessagePublisher::class . '::' . $extensionObject->getMessageChannelName(),
-                )->enableKafkaDebugging();
+                    MessagePublisher::class . "::" . $extensionObject->getMessageChannelName(),
+                );
             }
         }
 
@@ -88,7 +92,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             if ($extensionObject instanceof KafkaConsumerConfiguration) {
                 $consumerConfigurations[$extensionObject->getEndpointId()] = $consumerConfigurations;
             } elseif ($extensionObject instanceof TopicConfiguration) {
-                $topicConfigurations[$extensionObject->getTopicName()] = $topicConfigurations;
+                $topicConfigurations[$extensionObject->getTopicName()] = $extensionObject;
+                $topicReferenceMapping[$extensionObject->referenceName] = $extensionObject->getTopicName();
             } elseif ($extensionObject instanceof KafkaPublisherConfiguration) {
                 $publisherConfigurations[$this->getPublisherEndpointId($extensionObject->getReferenceName())] = $extensionObject;
                 $this->registerMessagePublisher($messagingConfiguration, $extensionObject, $serviceConfiguration);
@@ -119,7 +124,9 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 $topicConfigurations,
                 $publisherConfigurations,
                 $kafkaBrokerConfigurations,
-                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE),
+                $topicReferenceMapping,
+                Reference::to(LoggingGateway::class),
+                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)
             ])
         );
     }

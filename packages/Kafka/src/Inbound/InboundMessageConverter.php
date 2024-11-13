@@ -22,8 +22,8 @@ final class InboundMessageConverter
     private HeaderMapper $headerMapper;
 
     public function __construct(
-        KafkaAdmin $kafkaAdmin,
-        string $endpointId,
+        private KafkaAdmin $kafkaAdmin,
+        private string $endpointId,
         private string $acknowledgeHeaderName,
         private LoggingGateway $loggingGateway,
     ) {
@@ -43,9 +43,9 @@ final class InboundMessageConverter
 
         if (in_array($this->acknowledgeMode, [KafkaAcknowledgementCallback::AUTO_ACK, KafkaAcknowledgementCallback::MANUAL_ACK])) {
             if ($this->acknowledgeMode == KafkaAcknowledgementCallback::AUTO_ACK) {
-                $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::createWithAutoAck($consumer, $source, $this->loggingGateway);
+                $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::createWithAutoAck($consumer, $source, $this->loggingGateway, $this->kafkaAdmin, $this->endpointId);
             } else {
-                $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::createWithManualAck($consumer, $source, $this->loggingGateway);
+                $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::createWithManualAck($consumer, $source, $this->loggingGateway, $this->kafkaAdmin, $this->endpointId);
             }
 
             $messageBuilder = $messageBuilder

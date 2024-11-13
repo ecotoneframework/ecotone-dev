@@ -64,6 +64,7 @@ final class KafkaChannelAdapterTest extends TestCase
         self::assertCount(1, $messages);
     }
 
+//    https://github.com/php-enqueue/enqueue-dev/issues/749
 //    public function test_throwing_exception_on_failure_during_sending(): void
 //    {
 //

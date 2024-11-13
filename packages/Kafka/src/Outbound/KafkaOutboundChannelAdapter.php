@@ -44,6 +44,6 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             $outboundMessage->getHeaders(),
         );
 
-        $producer->flush(5000);
+        $producer->flush(20000);
     }
 }

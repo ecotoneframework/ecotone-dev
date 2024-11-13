@@ -61,7 +61,6 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
      */
     public function accept(): void
     {
-        dump('accept');
         try {
             $this->consumer->commit($this->message);
         } catch (Exception $exception) {
@@ -76,7 +75,6 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
      */
     public function reject(): void
     {
-        dump('rejected');
         try {
             $this->consumer->commit($this->message);
         } catch (Exception $exception) {
@@ -91,7 +89,6 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
      */
     public function requeue(): void
     {
-        dump('requeue');
         try {
             //            what to do here?
             //            $this->consumer->pausePartitions([$this->message->partition]);

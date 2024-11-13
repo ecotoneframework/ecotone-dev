@@ -78,7 +78,6 @@ final class KafkaAdmin
         if (! array_key_exists($endpointId, $this->initializedConsumers)) {
             Assert::keyExists($this->kafkaConsumers, $endpointId, "Consumer with endpoint id {$endpointId} not found");
 
-            dump('setupConsumer');
             $configuration = $this->getConfigurationForConsumer($endpointId);
             $conf = $configuration->getConfig();
             $conf->set('group.id', $this->kafkaConsumers[$endpointId]->getGroupId());

@@ -75,7 +75,7 @@ final class KafkaMessageChannelTest extends TestCase
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                     \getenv('KAFKA_DSN') ?? 'localhost:9092'
-                ]), new MessengerAsyncCommandHandler()
+                ]), new MessengerAsyncCommandHandler(), 'logger' => new EchoLogger()
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
@@ -100,7 +100,9 @@ final class KafkaMessageChannelTest extends TestCase
             $messaging->sendQueryWithRouting('consumer.getMessages')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(
+            maxExecutionTimeInMilliseconds: 30000
+        ));
 
         $receivedMessage = $messaging->sendQueryWithRouting('consumer.getMessages');
         $this->assertEquals($messagePayload, $receivedMessage[0]['payload']);

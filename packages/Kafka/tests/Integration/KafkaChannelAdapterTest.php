@@ -63,4 +63,9 @@ final class KafkaChannelAdapterTest extends TestCase
         $messages = $ecotoneLite->sendQueryWithRouting('getMessages');
         self::assertCount(1, $messages);
     }
+
+//    public function test_throwing_exception_on_failure_during_sending(): void
+//    {
+//
+//    }
 }

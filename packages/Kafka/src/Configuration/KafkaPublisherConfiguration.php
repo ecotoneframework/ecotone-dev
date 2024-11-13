@@ -13,6 +13,8 @@ use RdKafka\Conf;
 
 /**
  * licence Enterprise
+ *
+ * @link https://docs.confluent.io/platform/current/installation/configuration/producer-configs.html
  */
 final class KafkaPublisherConfiguration implements DefinedObject
 {
@@ -51,9 +53,9 @@ final class KafkaPublisherConfiguration implements DefinedObject
                 // five is maximum for idempotent producer
                 'max.in.flight.requests.per.connection' => '5',
                 // Enable given set of retries on producing failure
-                'retries' => '5',
+                'retries' => '15',
                 // Backoff time between retries in milliseconds
-                'retry.backoff.ms' => '100',
+                'retry.backoff.ms' => '300',
             ],
             $brokerConfigurationReference,
             DefaultHeaderMapper::createAllHeadersMapping()

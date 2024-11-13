@@ -10,6 +10,8 @@ use RdKafka\TopicConf;
 
 /**
  * licence Enterprise
+ *
+ * @link https://docs.confluent.io/platform/current/installation/configuration/topic-configs.html
  */
 final class TopicConfiguration implements DefinedObject
 {

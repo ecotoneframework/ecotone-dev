@@ -150,7 +150,7 @@ final class KafkaMessageChannelTest extends TestCase
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                     \getenv('KAFKA_DSN') ?? 'localhost:9092'
-                ]), new MessengerAsyncCommandHandler(), "logger" => new EchoLogger()
+                ]), new MessengerAsyncCommandHandler()
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))

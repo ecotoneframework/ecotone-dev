@@ -18,7 +18,6 @@ use Ecotone\Test\LicenceTesting;
 use Ramsey\Uuid\Uuid;
 use function getenv;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Kafka\Fixture\ChannelAdapter\ExampleKafkaConfiguration;
 use Test\Ecotone\Kafka\Fixture\ChannelAdapter\ExampleKafkaConsumer;
 
 /**
@@ -32,7 +31,7 @@ final class KafkaChannelAdapterTest extends TestCase
             [ExampleKafkaConsumer::class],
             [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                 \getenv('KAFKA_DSN') ?? "localhost:9092"
-            ]), new ExampleKafkaConsumer()],
+            ]), new ExampleKafkaConsumer(), 'logger' => new EchoLogger()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([

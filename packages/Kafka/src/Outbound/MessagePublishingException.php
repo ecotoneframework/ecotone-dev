@@ -6,6 +6,9 @@ namespace Ecotone\Kafka\Outbound;
 
 use Ecotone\Messaging\MessagingException;
 
+/**
+ * licence Enterprise
+ */
 final class MessagePublishingException extends MessagingException
 {
     protected static function errorCode(): int

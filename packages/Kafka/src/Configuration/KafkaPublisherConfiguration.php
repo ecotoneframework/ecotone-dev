@@ -18,6 +18,8 @@ use RdKafka\Conf;
  */
 final class KafkaPublisherConfiguration implements DefinedObject
 {
+    const ACKNOWLEDGE_TIMEOUT = '8000';
+
     /**
      * @param array<string, string> $configuration
      */
@@ -40,7 +42,7 @@ final class KafkaPublisherConfiguration implements DefinedObject
                 // By default in the absence of idempotence a producer may inadvertently publish a record in duplicate our of order - if one of the queued records experiences timeout
                 'enable.idempotence' => 'true',
                 // This configuration sets the maximum amount of time (in milliseconds) that the producer will wait for an acknowledgment from the broker before considering the message send to have failed.
-                'message.timeout.ms' => '15000',
+                'message.timeout.ms' => self::ACKNOWLEDGE_TIMEOUT,
                 // This configuration sets the maximum amount of time (in milliseconds) that the producer will wait for a response from the broker for a request
                 'request.timeout.ms' => '15000',
                 /**
@@ -53,7 +55,7 @@ final class KafkaPublisherConfiguration implements DefinedObject
                 // five is maximum for idempotent producer
                 'max.in.flight.requests.per.connection' => '5',
                 // Enable given set of retries on producing failure
-                'retries' => '15',
+                'retries' => '5',
                 // Backoff time between retries in milliseconds
                 'retry.backoff.ms' => '300',
             ],

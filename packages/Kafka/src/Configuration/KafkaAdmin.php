@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Kafka\Attribute\KafkaConsumer as KafkaConsumerAttribute;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use RdKafka\KafkaConsumer;
 use RdKafka\Producer;
@@ -83,7 +84,7 @@ final class KafkaAdmin
             $conf->set('group.id', $this->kafkaConsumers[$endpointId]->getGroupId());
             $kafkaBrokerConfiguration = $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()];
             $conf->set('bootstrap.servers', implode(',', $kafkaBrokerConfiguration->getBootstrapServers()));
-            $this->setLoggers($conf, $endpointId);
+            $this->setLoggerCallbacks($conf, $endpointId);
             $consumer = new KafkaConsumer($conf);
 
             $topics = $this->getMappedTopicNames($this->kafkaConsumers[$endpointId]->getTopics());
@@ -122,7 +123,7 @@ final class KafkaAdmin
             $configuration = $this->getConfigurationForPublisher($referenceName);
             $conf = $configuration->getAsKafkaConfig();
             $conf->set('bootstrap.servers', implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
-            $this->setLoggers($conf, $referenceName);
+            $this->setLoggerCallbacks($conf, $referenceName);
             $producer = new Producer($conf);
 
             $this->initializedProducers[$referenceName] = $producer;
@@ -159,7 +160,7 @@ final class KafkaAdmin
         return $this->topicReferenceMapping[$topicName] ?? $topicName;
     }
 
-    private function setLoggers(\RdKafka\Conf $conf, string $endpointId): void
+    private function setLoggerCallbacks(\RdKafka\Conf $conf, string $endpointId): void
     {
         $conf->setLogCb(
             function ($producerOrConsumer, int $level, string $facility, string $message) use ($endpointId): void {

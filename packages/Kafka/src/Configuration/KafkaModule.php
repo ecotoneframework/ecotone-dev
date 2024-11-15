@@ -35,7 +35,8 @@ use Ecotone\Messaging\Support\LicensingException;
 /**
  * licence Enterprise
  *
- * @link https://www.confluent.io/blog/how-to-send-messages-with-librdkafka/
+ * @link https://www.confluent.io/blog/how-to-send-messages-with-librdkafka/  Details about producing messages
+ * @link https://github.com/confluentinc/librdkafka/wiki/FAQ#why-is-there-no-sync-produce-interface general faq on librdkafka
  */
 #[ModuleAnnotation]
 final class KafkaModule extends NoExternalConfigurationModule implements AnnotationModule

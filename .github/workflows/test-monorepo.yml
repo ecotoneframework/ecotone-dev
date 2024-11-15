@@ -79,7 +79,7 @@ jobs:
       RABBIT_HOST: amqp://127.0.0.1:5672
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest
       REDIS_DSN: redis://127.0.0.1:6379
-      KAFKA_DSN: 127.0.0.1:9094
+      KAFKA_DSN: localhost:9094
     steps:
     - name: PHP ${{ matrix.php-versions }} - ${{ matrix.stability }}
       uses: shivammathur/setup-php@v2

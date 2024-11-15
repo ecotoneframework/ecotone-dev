@@ -94,18 +94,18 @@ jobs:
         env:
           KAFKA_CFG_NODE_ID: '0'
           KAFKA_CFG_PROCESS_ROLES: 'controller,broker'
-          KAFKA_CFG_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093'
-          KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
           KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: '0@kafka:9093'
           KAFKA_CFG_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9092
+          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+          KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
         ports:
           - 9092:9092
     env:
       RABBIT_HOST: amqp://127.0.0.1:5672
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest
       REDIS_DSN: redis://127.0.0.1:6379
-      KAFKA_DSN: 127.0.0.1:9092
+      KAFKA_DSN: 127.0.0.1:9094
     steps:
       - uses: actions/checkout@v2
 
@@ -128,12 +128,6 @@ jobs:
         working-directory: ${{ matrix.package.directory }}
         env:
           COMPOSER_ROOT_VERSION: 'dev-main'
-
-      - name: Wait for Kafka to be ready
-        run: |
-          while ! nc -z localhost 9092; do
-            sleep 1
-          done
 
       - name: Run tests on Postgres
         run: composer tests:ci

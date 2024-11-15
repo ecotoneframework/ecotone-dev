@@ -41,7 +41,7 @@ final class KafkaMessageChannelTest extends TestCase
             [MessengerAsyncCommandHandler::class],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    \getenv('KAFKA_DSN') ?? 'localhost:9092'
+                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
                 ]), new MessengerAsyncCommandHandler()
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
@@ -74,7 +74,7 @@ final class KafkaMessageChannelTest extends TestCase
             [MessengerAsyncCommandHandler::class],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    \getenv('KAFKA_DSN') ?? 'localhost:9092'
+                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
                 ]), new MessengerAsyncCommandHandler(), 'logger' => new EchoLogger()
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
@@ -151,7 +151,7 @@ final class KafkaMessageChannelTest extends TestCase
             [MessengerAsyncCommandHandler::class],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    \getenv('KAFKA_DSN') ?? 'localhost:9092'
+                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
                 ]), new MessengerAsyncCommandHandler()
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()

@@ -101,6 +101,7 @@ jobs:
           KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
         ports:
           - 9092:9092
+          - 9092:9092
     env:
       RABBIT_HOST: amqp://127.0.0.1:5672
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest

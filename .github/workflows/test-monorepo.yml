@@ -25,6 +25,8 @@ jobs:
         options: >-
           --env ALLOW_PLAINTEXT_LISTENER=yes
           --env KAFKA_ENABLE_KRAFT=yes
+          --env KAFKA_CFG_NODE_ID=0
+          --env KAFKA_CFG_PROCESS_ROLES=controller,broker
           --env KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
           --env KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093
           --env KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER

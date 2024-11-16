@@ -20,8 +20,6 @@ jobs:
     services:
       kafka:
         image: bitnami/kafka:latest
-        env:
-          KAFKA_ENABLE_KRAFT: yes
         options: >-
           --env ALLOW_PLAINTEXT_LISTENER=yes
           --env KAFKA_ENABLE_KRAFT=yes

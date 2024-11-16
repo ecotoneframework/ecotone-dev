@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
-use Ecotone\Kafka\Attribute\KafkaConsumer as KafkaConsumerAttribute;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Kafka\Attribute\KafkaConsumer as KafkaConsumerAttribute;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
 use RdKafka\KafkaConsumer;
 use RdKafka\Producer;
@@ -33,6 +35,7 @@ final class KafkaAdmin
      * @param KafkaConsumerConfiguration[] $consumerConfigurations
      * @param TopicConfiguration[] $topicConfigurations
      * @param KafkaPublisherConfiguration[] $publisherConfigurations
+     * @param array<string, string> $topicReferenceMapping
      * @param array<string, KafkaBrokerConfiguration> $kafkaBrokerConfigurations
      */
     public function __construct(
@@ -41,32 +44,29 @@ final class KafkaAdmin
         private array $topicConfigurations,
         private array $publisherConfigurations,
         private array $kafkaBrokerConfigurations,
+        private array $topicReferenceMapping,
+        private LoggingGateway $loggingGateway,
         private bool $isRunningInTestMode
     ) {
 
     }
 
-    public static function createEmpty(): self
-    {
-        return new self([], [], [], [], [], false);
-    }
-
     public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration
     {
         if (! array_key_exists($endpointId, $this->consumerConfigurations)) {
-            return KafkaConsumerConfiguration::createWithDefaults($endpointId)->enableKafkaDebugging();
+            return KafkaConsumerConfiguration::createWithDefaults($endpointId);
         }
 
         return $this->consumerConfigurations[$endpointId];
     }
 
-    public function getConfigurationForTopic(string $topicName): TopicConf
+    public function getConfigurationForTopic(string $referenceName): TopicConf
     {
-        if (! array_key_exists($topicName, $this->topicConfigurations)) {
-            return TopicConfiguration::createWithDefaults($topicName)->getConfig();
+        if (! array_key_exists($referenceName, $this->topicConfigurations)) {
+            return TopicConfiguration::createWithDefaults($referenceName)->getConfig();
         }
 
-        return $this->topicConfigurations[$topicName]->getConfig();
+        return $this->topicConfigurations[$referenceName]->getConfig();
     }
 
     public function getConfigurationForPublisher(string $referenceName): KafkaPublisherConfiguration
@@ -84,24 +84,37 @@ final class KafkaAdmin
             $conf->set('group.id', $this->kafkaConsumers[$endpointId]->getGroupId());
             $kafkaBrokerConfiguration = $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()];
             $conf->set('bootstrap.servers', implode(',', $kafkaBrokerConfiguration->getBootstrapServers()));
+            $this->setLoggerCallbacks($conf, $endpointId);
             $consumer = new KafkaConsumer($conf);
 
+            $topics = $this->getMappedTopicNames($this->kafkaConsumers[$endpointId]->getTopics());
             if ($this->isRunningForTests($kafkaBrokerConfiguration)) {
                 // ensures there is no need for repartitioning
-                $consumer->assign([new TopicPartition($this->kafkaConsumers[$endpointId]->getTopics()[0], 0)]);
-            } else {
-                $consumer->subscribe($this->kafkaConsumers[$endpointId]->getTopics());
+                $conf->set('group.instance.id', $endpointId);
+                $consumer->assign([new TopicPartition($topics[0], 0)]);
+            }else {
+                $consumer->subscribe($topics);
             }
-
-            foreach ($this->kafkaConsumers[$endpointId]->getTopics() as $topic) {
-                $consumer->subscribe([$topic]);
-            }
-            $consumer->assign([new TopicPartition($this->kafkaConsumers[$endpointId]->getTopics()[0], 0)]);
 
             $this->initializedConsumers[$endpointId] = $consumer;
         }
 
         return $this->initializedConsumers[$endpointId];
+    }
+
+    public function closeConsumer(string $endpointId): void
+    {
+        if (! array_key_exists($endpointId, $this->initializedConsumers)) {
+            return;
+        }
+
+        try {
+            $this->initializedConsumers[$endpointId]->close();
+        }catch (\Exception) {
+
+        } finally {
+            unset($this->initializedConsumers[$endpointId]);
+        }
     }
 
     public function getProducer(string $referenceName): Producer
@@ -110,6 +123,7 @@ final class KafkaAdmin
             $configuration = $this->getConfigurationForPublisher($referenceName);
             $conf = $configuration->getAsKafkaConfig();
             $conf->set('bootstrap.servers', implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
+            $this->setLoggerCallbacks($conf, $referenceName);
             $producer = new Producer($conf);
 
             $this->initializedProducers[$referenceName] = $producer;
@@ -121,7 +135,7 @@ final class KafkaAdmin
     public function getTopicForProducer(string $referenceName): ProducerTopic
     {
         $producer = $this->getProducer($referenceName);
-        $topicName = $this->getConfigurationForPublisher($referenceName)->getDefaultTopicName();
+        $topicName = $this->getMappedTopicNames($this->getConfigurationForPublisher($referenceName)->getDefaultTopicName());
 
         return $producer->newTopic(
             $topicName,
@@ -132,5 +146,31 @@ final class KafkaAdmin
     private function isRunningForTests(KafkaBrokerConfiguration $kafkaBrokerConfiguration): bool
     {
         return ($this->isRunningInTestMode && $kafkaBrokerConfiguration->isSetupForTesting() === null) || $kafkaBrokerConfiguration->isSetupForTesting() === true;
+    }
+
+    private function getMappedTopicNames(string|array $topicName): string|array
+    {
+        if (is_array($topicName)) {
+            return array_map(
+                fn(string $topicName) => $this->getMappedTopicNames($topicName),
+                $topicName
+            );
+        }
+
+        return $this->topicReferenceMapping[$topicName] ?? $topicName;
+    }
+
+    private function setLoggerCallbacks(\RdKafka\Conf $conf, string $endpointId): void
+    {
+        $conf->setLogCb(
+            function ($producerOrConsumer, int $level, string $facility, string $message) use ($endpointId): void {
+                $this->loggingGateway->info("Kafka log in {$endpointId}: {$message}");
+            }
+        );
+        $conf->setErrorCb(
+            function ($producerOrConsumer, int $err, string $reason) use ($endpointId): void {
+                $this->loggingGateway->error("Kafka error in {$endpointId}: {$reason}", ['error' => $err]);
+            }
+        );
     }
 }

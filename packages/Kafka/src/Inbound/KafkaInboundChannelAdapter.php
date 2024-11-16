@@ -29,7 +29,8 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         $message = $consumer->consume($timeoutInMilliseconds);
 
         if ($message->err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
-
+            // This does happen when there is no topic, can't connect to broker, or simply consumer poll has reach time out
+            return null;
         }
 
         if ($message->err) {

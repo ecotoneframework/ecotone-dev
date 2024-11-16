@@ -24,6 +24,10 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
         Assert::notNullAndEmpty($topics, "Topics can't be empty");
 
         parent::__construct($endpointId);
+
+        if (!$this->groupId) {
+            $this->groupId = $this->getEndpointId();
+        }
     }
 
     /**
@@ -34,9 +38,9 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
         return is_string($this->topics) ? [$this->topics] : $this->topics;
     }
 
-    public function getGroupId(): ?string
+    public function getGroupId(): string
     {
-        return $this->groupId ?? $this->getEndpointId();
+        return $this->groupId;
     }
 
     public function getDefinition(): Definition

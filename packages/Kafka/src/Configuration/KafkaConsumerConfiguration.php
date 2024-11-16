@@ -13,6 +13,8 @@ use RdKafka\Conf;
 
 /**
  * licence Enterprise
+ *
+ * @link https://docs.confluent.io/platform/current/installation/configuration/consumer-configs.html
  */
 final class KafkaConsumerConfiguration implements DefinedObject
 {

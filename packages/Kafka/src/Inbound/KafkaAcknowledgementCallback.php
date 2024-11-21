@@ -90,10 +90,19 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public function requeue(): void
     {
         try {
-            //            what to do here?
-            //            $this->consumer->pausePartitions([$this->message->partition]);
+            $this->kafkaAdmin->getProducer($this->endpointId);
+            $topic = $this->kafkaAdmin->getTopicForProducer($this->endpointId);
+            $topic->producev(
+                $this->message->partition,
+                0,
+                $this->message->payload,
+                $this->message->key,
+                $this->message->headers,
+            );
+
+            $this->consumer->commit($this->message);
         } catch (Exception $exception) {
-            $this->loggingGateway->info('Failed to requeue message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
+            $this->loggingGateway->info('Failed to requeue message. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 
             throw $exception;
         }

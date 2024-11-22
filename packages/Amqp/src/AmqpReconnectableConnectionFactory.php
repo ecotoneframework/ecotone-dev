@@ -111,7 +111,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
             /** @var AmqpContext $context */
             $context = $this->createContext();
 
-            $this->subscriptionConsumer = $context->createSubscriptionConsumer();
+            $this->subscriptionConsumer = new AmqpSubscriptionConsumer($context);
 
             /** @var AmqpConsumer $consumer */
             $consumer = $context->createConsumer(

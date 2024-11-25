@@ -121,7 +121,7 @@ jobs:
         with:
           php-version: 8.2
           extensions: grpc, rdkafka
-          coverage: pcov
+          coverage: none
 
       - name: Install OpenSSH (For Kafka)
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client

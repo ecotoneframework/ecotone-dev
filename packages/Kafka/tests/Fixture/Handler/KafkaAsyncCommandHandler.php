@@ -11,12 +11,14 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use InvalidArgumentException;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
-final class MessengerAsyncCommandHandler
+final class KafkaAsyncCommandHandler
 {
     /** @var array<int, array{ExampleCommand, array<string, string>}> */
     private array $commands = [];
+
+    private int $failCount = 0;
 
     #[Asynchronous('async')]
     #[CommandHandler('execute.example_command', 'messenger_async_endpoint')]
@@ -30,6 +32,12 @@ final class MessengerAsyncCommandHandler
     public function fail(ExampleCommand $command, array $headers): void
     {
         $this->commands[] = ['payload' => $command, 'headers' => $headers];
+
+        $this->failCount++;
+        if (isset($headers['failCount']) && $headers['failCount'] < $this->failCount) {
+            return;
+        }
+
         throw new InvalidArgumentException('failed');
     }
 

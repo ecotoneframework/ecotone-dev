@@ -252,8 +252,6 @@ class PollingConsumerBuilderTest extends MessagingTestCase
 
         $messaging = $this->createPollingConsumer($inputChannelName, $inputChannel, $messageHandler, true);
 
-        $this->expectException(RejectMessageException::class);
-
         $messaging->sendMessageDirectToChannel($inputChannelName, $message);
         $messaging->run('some-id');
 

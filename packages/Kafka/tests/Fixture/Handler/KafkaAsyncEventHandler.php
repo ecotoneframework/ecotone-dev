@@ -10,9 +10,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Asynchronous('async')]
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
-final class MessengerAsyncEventHandler
+final class KafkaAsyncEventHandler
 {
     private array $events = [];
 

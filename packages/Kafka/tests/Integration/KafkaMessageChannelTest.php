@@ -21,7 +21,9 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Kafka\Fixture\ChannelAdapter\ExampleKafkaConfiguration;
 use Test\Ecotone\Kafka\Fixture\Handler\ExampleCommand;
-use Test\Ecotone\Kafka\Fixture\Handler\MessengerAsyncCommandHandler;
+use Test\Ecotone\Kafka\Fixture\Handler\ExampleEvent;
+use Test\Ecotone\Kafka\Fixture\Handler\KafkaAsyncCommandHandler;
+use Test\Ecotone\Kafka\Fixture\Handler\KafkaAsyncEventHandler;
 
 /**
  * @internal
@@ -35,26 +37,8 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_connecting_to_non_existing_topic()
     {
         $channelName = 'async';
-        $uniqueId = Uuid::uuid4()->toString();
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncCommandHandler::class],
-            [
-                KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
-                ]), new MessengerAsyncCommandHandler()
-            ],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        $channelName,
-                        topicName: $uniqueId,
-                        groupId: $uniqueId
-                    ),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $messaging = $this->prepareAsyncCommandHandler($channelName);
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 3000));
 
@@ -67,29 +51,12 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_sending_and_receiving_message_from_channel()
     {
         $channelName = 'async';
-        $uniqueId = Uuid::uuid4()->toString();
-        $messagePayload = new ExampleCommand($uniqueId);
+        $messageId = Uuid::uuid4()->toString();
+        $messagePayload = new ExampleCommand($messageId);
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncCommandHandler::class],
-            [
-                KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
-                ]), new MessengerAsyncCommandHandler(), 'logger' => new EchoLogger()
-            ],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        $channelName,
-                        topicName: $uniqueId,
-                        groupId: $uniqueId
-                    ),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $messaging = $this->prepareAsyncCommandHandler($channelName);
         $metadata = [
-            MessageHeaders::MESSAGE_ID => $uniqueId,
+            MessageHeaders::MESSAGE_ID => $messageId,
             MessageHeaders::TIMESTAMP => 123333,
         ];
 
@@ -115,21 +82,20 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_failing_to_consume_due_to_connection_failure()
     {
         $channelName = 'async';
-        $uniqueId = Uuid::uuid4()->toString();
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncCommandHandler::class],
+            [KafkaAsyncCommandHandler::class],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                     'wronghost:9092'
-                ]), new MessengerAsyncCommandHandler(), 'logger' => $logger = LoggerExample::create(),
+                ]), new KafkaAsyncCommandHandler(), 'logger' => $logger = LoggerExample::create(),
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
-                        topicName: $uniqueId,
+                        topicName: $uniqueId = Uuid::uuid4()->toString(),
                         groupId: $uniqueId
                     ),
                 ]),
@@ -144,27 +110,9 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_acking_messages()
     {
         $channelName = 'async';
-        $uniqueId = Uuid::uuid4()->toString();
         $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
-            [MessengerAsyncCommandHandler::class],
-            [
-                KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
-                ]), new MessengerAsyncCommandHandler()
-            ],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(
-                        $channelName,
-                        topicName: $uniqueId,
-                        groupId: $uniqueId
-                    ),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $messaging = $this->prepareAsyncCommandHandler($channelName);
 
         $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload);
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
@@ -176,172 +124,158 @@ final class KafkaMessageChannelTest extends TestCase
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
-//    public function test_requeing_message_when_fails()
-//    {
-//        $channelName = 'async';
-//        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
-//
-//        $messaging = EcotoneLite::bootstrapFlowTesting(
-//            [MessengerAsyncCommandHandler::class],
-//            $this->bootKernel()->getContainer(),
-//            ServiceConfiguration::createWithAsynchronicityOnly()
-//                ->withExtensionObjects([
-//                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-//                ])
-//        );
-//
-//        $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload);
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
-//        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
-//
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
-//        $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
-//    }
-//
-//    public function test_sending_via_routing_without_payload()
-//    {
-//        $channelName = 'async';
-//
-//        $messaging = EcotoneLite::bootstrapFlowTesting(
-//            [MessengerAsyncCommandHandler::class],
-//            $this->bootKernel()->getContainer(),
-//            ServiceConfiguration::createWithAsynchronicityOnly()
-//                ->withExtensionObjects([
-//                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-//                ])
-//        );
-//
-//        $messaging->sendCommandWithRoutingKey('execute.noPayload');
-//        $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
-//
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
-//
-//        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
-//    }
-//
-//    public function test_sending_via_routing_with_array_payload()
-//    {
-//        $channelName = 'async';
-//        $payload = ['token' => 'test'];
-//
-//        $messaging = EcotoneLite::bootstrapFlowTesting(
-//            [MessengerAsyncCommandHandler::class],
-//            $this->bootKernel()->getContainer(),
-//            ServiceConfiguration::createWithAsynchronicityOnly()
-//                ->withExtensionObjects([
-//                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-//                ])
-//        );
-//
-//        $messaging->sendCommandWithRoutingKey('execute.arrayPayload', $payload);
-//        $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
-//
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
-//
-//        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
-//        $this->assertEquals($payload, $messaging->sendQueryWithRouting('consumer.getMessages')[0]['payload']);
-//    }
-//
-//    public function test_keeping_content_type_when_non_object_payload()
-//    {
-//        $channelName = 'async';
-//        $payload = '{"name":"johny"}';
-//
-//        $messaging = EcotoneLite::bootstrapFlowTesting(
-//            [MessengerAsyncCommandHandler::class],
-//            $this->bootKernel()->getContainer(),
-//            ServiceConfiguration::createWithAsynchronicityOnly()
-//                ->withExtensionObjects([
-//                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-//                ])
-//        );
-//
-//        $messaging->sendCommandWithRoutingKey('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
-//
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
-//
-//        $headers = $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'];
-//        $this->assertEquals(
-//            $headers[MessageHeaders::CONTENT_TYPE],
-//            MediaType::APPLICATION_JSON
-//        );
-//    }
-//
-//    public function test_adding_type_id_header()
-//    {
-//        $channelName = 'async';
-//        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
-//
-//        $messaging = EcotoneLite::bootstrapFlowTesting(
-//            [MessengerAsyncCommandHandler::class],
-//            $this->bootKernel()->getContainer(),
-//            ServiceConfiguration::createWithAsynchronicityOnly()
-//                ->withExtensionObjects([
-//                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-//                ])
-//        );
-//
-//        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload);
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
-//
-//        $this->assertEquals(
-//            ExampleCommand::class,
-//            $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'][MessageHeaders::TYPE_ID]
-//        );
-//    }
-//
-//    public function test_sending_and_receiving_events()
-//    {
-//        $channelName = 'async';
-//        $messagePayload = new ExampleEvent(Uuid::uuid4()->toString());
-//
-//        $messaging = EcotoneLite::bootstrapFlowTesting(
-//            [MessengerAsyncEventHandler::class],
-//            $this->bootKernel()->getContainer(),
-//            ServiceConfiguration::createWithAsynchronicityOnly()
-//                ->withExtensionObjects([
-//                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-//                ])
-//        );
-//
-//        $messaging->publishEvent($messagePayload);
-//        /** Consumer not yet run */
-//        $this->assertEquals(
-//            [],
-//            $messaging->sendQueryWithRouting('consumer.getEvents')
-//        );
-//
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
-//        $this->assertEquals(
-//            [$messagePayload],
-//            $messaging->sendQueryWithRouting('consumer.getEvents')
-//        );
-//
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
-//        $this->assertEquals(
-//            [$messagePayload, $messagePayload],
-//            $messaging->sendQueryWithRouting('consumer.getEvents')
-//        );
-//    }
-//
-//    public function test_sending_with_delay()
-//    {
-//        $channelName = 'async';
-//        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
-//
-//        $messaging = EcotoneLite::bootstrapFlowTesting(
-//            [MessengerAsyncCommandHandler::class],
-//            $this->bootKernel()->getContainer(),
-//            ServiceConfiguration::createWithAsynchronicityOnly()
-//                ->withExtensionObjects([
-//                    SymfonyMessengerMessageChannelBuilder::create($channelName),
-//                ])
-//        );
-//
-//        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: [
-//            MessageHeaders::DELIVERY_DELAY => 1000,
-//        ]);
-//        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000));
-//        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
-//    }
+    public function test_requeing_message_when_fails()
+    {
+        $channelName = 'async';
+        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+
+        $messaging = $this->prepareAsyncCommandHandler($channelName);
+
+        $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload, metadata: [
+            'failCount' => 1,
+        ]);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000, failAtError: false));
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000, failAtError: false));
+        $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000, failAtError: false));
+        $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
+    }
+
+    public function test_sending_via_routing_without_payload()
+    {
+        $channelName = 'async';
+
+        $messaging = $this->prepareAsyncCommandHandler($channelName);
+
+        $messaging->sendCommandWithRoutingKey('execute.noPayload');
+        $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+    }
+
+    public function test_sending_via_routing_with_array_payload()
+    {
+        $channelName = 'async';
+        $payload = ['token' => 'test'];
+
+        $messaging = $this->prepareAsyncCommandHandler($channelName);
+
+        $messaging->sendCommandWithRoutingKey('execute.arrayPayload', $payload);
+        $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+        $this->assertEquals($payload, $messaging->sendQueryWithRouting('consumer.getMessages')[0]['payload']);
+    }
+
+    public function test_keeping_content_type_when_non_object_payload()
+    {
+        $channelName = 'async';
+        $payload = '{"name":"johny"}';
+
+        $messaging = $this->prepareAsyncCommandHandler($channelName);
+
+        $messaging->sendCommandWithRoutingKey('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $headers = $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'];
+        $this->assertEquals(
+            $headers[MessageHeaders::CONTENT_TYPE],
+            MediaType::APPLICATION_JSON
+        );
+    }
+
+    public function test_adding_type_id_header()
+    {
+        $channelName = 'async';
+        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+
+        $messaging = $this->prepareAsyncCommandHandler($channelName);
+
+        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertEquals(
+            ExampleCommand::class,
+            $messaging->sendQueryWithRouting('consumer.getMessages')[0]['headers'][MessageHeaders::TYPE_ID]
+        );
+    }
+
+    public function test_sending_and_receiving_events()
+    {
+        $channelName = 'async';
+        $messagePayload = new ExampleEvent(Uuid::uuid4()->toString());
+
+        $messaging = $this->prepareAsyncEventHandler($channelName);
+
+        $messaging->publishEvent($messagePayload);
+        /** Consumer not yet run */
+        $this->assertEquals(
+            [],
+            $messaging->sendQueryWithRouting('consumer.getEvents')
+        );
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertEquals(
+            [$messagePayload],
+            $messaging->sendQueryWithRouting('consumer.getEvents')
+        );
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertEquals(
+            [$messagePayload, $messagePayload],
+            $messaging->sendQueryWithRouting('consumer.getEvents')
+        );
+    }
+
+    public function prepareAsyncCommandHandler(string $channelName): \Ecotone\Lite\Test\FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            [KafkaAsyncCommandHandler::class],
+            [
+                KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
+                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
+                ]), new KafkaAsyncCommandHandler(), 'logger' => new EchoLogger()
+            ],
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaMessageChannelBuilder::create(
+                        $channelName,
+                        topicName: $uniqueId = Uuid::uuid4()->toString(),
+                        groupId: $uniqueId
+                    ),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function prepareAsyncEventHandler(string $channelName): \Ecotone\Lite\Test\FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            [KafkaAsyncEventHandler::class],
+            [
+                KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
+                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
+                ]), new KafkaAsyncEventHandler(), 'logger' => new EchoLogger()
+            ],
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaMessageChannelBuilder::create(
+                        $channelName,
+                        topicName: $uniqueId = Uuid::uuid4()->toString(),
+                        groupId: $uniqueId
+                    ),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
 }

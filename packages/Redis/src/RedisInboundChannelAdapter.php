@@ -20,8 +20,8 @@ final class RedisInboundChannelAdapter extends EnqueueInboundChannelAdapter
         $context->createQueue($this->queueName);
     }
 
-    public function connectionException(): string
+    public function connectionException(): array
     {
-        return ConnectionException::class;
+        return [ConnectionException::class];
     }
 }

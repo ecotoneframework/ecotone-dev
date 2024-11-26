@@ -80,11 +80,17 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
         }
     }
 
-    abstract public function connectionException(): string;
+    abstract public function connectionException(): array;
 
     private function isConnectionException(Exception $exception): bool
     {
-        return is_subclass_of($exception, $this->connectionException()) || $exception::class === $this->connectionException();
+        foreach ($this->connectionException() as $connectionException) {
+            if (is_subclass_of($exception, $connectionException) || $exception::class === $connectionException) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getQueueName(): string

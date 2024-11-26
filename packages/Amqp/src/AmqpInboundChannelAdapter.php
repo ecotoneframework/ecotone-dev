@@ -16,6 +16,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Enqueue\AmqpExt\AmqpContext;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
@@ -72,7 +73,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
     }
 
     /**
-     * @inheritDoc This provides consume instead of get, which does not work well with pnctl extensions (signals are executored)
+     * @inheritDoc This provides consume instead of get, which does not work well with pnctl extensions (signals are not executored)
      */
     public function receiveWithTimeoutOff(int $timeout = 0): ?Message
     {
@@ -104,8 +105,8 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         }
     }
 
-    public function connectionException(): string
+    public function connectionException(): array
     {
-        return AMQPConnectionException::class;
+        return [AMQPConnectionException::class, AMQPChannelException::class];
     }
 }

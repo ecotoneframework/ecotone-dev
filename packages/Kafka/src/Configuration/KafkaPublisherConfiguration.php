@@ -18,7 +18,7 @@ use RdKafka\Conf;
  */
 final class KafkaPublisherConfiguration implements DefinedObject
 {
-    const ACKNOWLEDGE_TIMEOUT = '8000';
+    public const ACKNOWLEDGE_TIMEOUT = '8000';
 
     /**
      * @param array<string, string> $configuration

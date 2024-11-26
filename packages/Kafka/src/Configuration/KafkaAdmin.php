@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Kafka\Attribute\KafkaConsumer as KafkaConsumerAttribute;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\Assert;
+use Exception;
 use RdKafka\KafkaConsumer;
 use RdKafka\Producer;
 use RdKafka\ProducerTopic;
@@ -92,7 +92,7 @@ final class KafkaAdmin
                 // ensures there is no need for repartitioning
                 $conf->set('group.instance.id', $endpointId);
                 $consumer->assign([new TopicPartition($topics[0], 0)]);
-            }else {
+            } else {
                 $consumer->subscribe($topics);
             }
 
@@ -110,7 +110,7 @@ final class KafkaAdmin
 
         try {
             $this->initializedConsumers[$endpointId]->close();
-        }catch (\Exception) {
+        } catch (Exception) {
 
         } finally {
             unset($this->initializedConsumers[$endpointId]);
@@ -152,7 +152,7 @@ final class KafkaAdmin
     {
         if (is_array($topicName)) {
             return array_map(
-                fn(string $topicName) => $this->getMappedTopicNames($topicName),
+                fn (string $topicName) => $this->getMappedTopicNames($topicName),
                 $topicName
             );
         }

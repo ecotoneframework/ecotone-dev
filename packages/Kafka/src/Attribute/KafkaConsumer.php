@@ -25,7 +25,7 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
 
         parent::__construct($endpointId);
 
-        if (!$this->groupId) {
+        if (! $this->groupId) {
             $this->groupId = $this->getEndpointId();
         }
     }

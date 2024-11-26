@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
-use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Kafka\Attribute\KafkaConsumer;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
@@ -46,8 +45,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
      */
     private function __construct(
         private array $kafkaConsumers,
-    )
-    {
+    ) {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
@@ -86,7 +84,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 );
                 $publisherConfigurations[$extensionObject->getMessageChannelName()] = KafkaPublisherConfiguration::createWithDefaults(
                     $extensionObject->topicName,
-                    MessagePublisher::class . "::" . $extensionObject->getMessageChannelName(),
+                    MessagePublisher::class . '::' . $extensionObject->getMessageChannelName(),
                 );
             }
         }
@@ -129,7 +127,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 $kafkaBrokerConfigurations,
                 $topicReferenceMapping,
                 Reference::to(LoggingGateway::class),
-                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)
+                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE),
             ])
         );
     }

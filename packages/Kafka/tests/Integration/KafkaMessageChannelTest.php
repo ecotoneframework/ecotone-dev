@@ -11,15 +11,15 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\LoggerExample;
+
+use function getenv;
+
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Kafka\Fixture\ChannelAdapter\ExampleKafkaConfiguration;
 use Test\Ecotone\Kafka\Fixture\Handler\ExampleCommand;
 use Test\Ecotone\Kafka\Fixture\Handler\ExampleEvent;
 use Test\Ecotone\Kafka\Fixture\Handler\KafkaAsyncCommandHandler;
@@ -30,10 +30,10 @@ use Test\Ecotone\Kafka\Fixture\Handler\KafkaAsyncEventHandler;
  */
 /**
  * licence Enterprise
+ * @internal
  */
 final class KafkaMessageChannelTest extends TestCase
 {
-    
     public function test_connecting_to_non_existing_topic()
     {
         $channelName = 'async';
@@ -87,7 +87,7 @@ final class KafkaMessageChannelTest extends TestCase
             [KafkaAsyncCommandHandler::class],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    'wronghost:9092'
+                    'wronghost:9092',
                 ]), new KafkaAsyncCommandHandler(), 'logger' => $logger = LoggerExample::create(),
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
@@ -241,8 +241,8 @@ final class KafkaMessageChannelTest extends TestCase
             [KafkaAsyncCommandHandler::class],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
-                ]), new KafkaAsyncCommandHandler(), 'logger' => new EchoLogger()
+                    getenv('KAFKA_DSN') ?? 'localhost:9094',
+                ]), new KafkaAsyncCommandHandler(), 'logger' => new EchoLogger(),
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
@@ -263,8 +263,8 @@ final class KafkaMessageChannelTest extends TestCase
             [KafkaAsyncEventHandler::class],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    \getenv('KAFKA_DSN') ?? 'localhost:9094'
-                ]), new KafkaAsyncEventHandler(), 'logger' => new EchoLogger()
+                    getenv('KAFKA_DSN') ?? 'localhost:9094',
+                ]), new KafkaAsyncEventHandler(), 'logger' => new EchoLogger(),
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))

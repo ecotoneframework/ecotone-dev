@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 final class MessagingTestCase
@@ -26,7 +26,7 @@ final class MessagingTestCase
     public static function cleanRabbitMQ(): void
     {
         self::cleanUpDbal();
-        $context = AmqpMessagingTest::getRabbitConnectionFactory()->createContext();
+        $context = AmqpMessagingTestCase::getRabbitConnectionFactory()->createContext();
 
         foreach (['async'] as $queue) {
             try {
@@ -38,7 +38,7 @@ final class MessagingTestCase
     public static function cleanUpSqs(): void
     {
         self::cleanUpDbal();
-        $context = \Test\Ecotone\Sqs\AbstractConnectionTest::getConnection()->createContext();
+        $context = \Test\Ecotone\Sqs\ConnectionTestCase::getConnection()->createContext();
 
         foreach (['async'] as $queue) {
             try {
@@ -50,7 +50,7 @@ final class MessagingTestCase
     public static function cleanUpRedis(): void
     {
         self::cleanUpDbal();
-        $context = \Test\Ecotone\Redis\AbstractConnectionTest::getConnection()->createContext();
+        $context = \Test\Ecotone\Redis\ConnectionTestCase::getConnection()->createContext();
 
         foreach (['async'] as $queue) {
             try {

@@ -7,17 +7,17 @@ require __DIR__ . "/../vendor/autoload.php";
 
 $finder = new \Symfony\Component\Finder\Finder();
 
-$files = $finder->files()->in(__DIR__ . "/../packages")->name("*.php");
+$files = $finder->files()->in(__DIR__ . "/../packages/*/src")->name("*.php");
 
 function addLicenceToFile(string $file)
 {
     $lines = file($file);
     foreach ($lines as $index => $line) {
-        if (preg_match('/^\s*(abstract class|final class|class|interface)\s+/', $line)) {
+        if (preg_match('/^\s*(abstract class|final class|class|interface|trait)\s+/', $line)) {
             array_splice($lines, $index, 0, [
                 <<<LICENCE
                 /**
-                 * licence Apache-2.0
+                 * licence Enterprise
                  */
                 
                 LICENCE

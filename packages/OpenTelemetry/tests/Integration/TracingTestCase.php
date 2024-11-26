@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * licence Apache-2.0
  */
-abstract class TracingTest extends TestCase
+abstract class TracingTestCase extends TestCase
 {
     public static function prepareTracer(SpanExporterInterface $exporter): TracerProviderInterface
     {

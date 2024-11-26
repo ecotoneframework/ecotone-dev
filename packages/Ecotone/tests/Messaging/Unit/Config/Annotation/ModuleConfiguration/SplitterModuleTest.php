@@ -14,8 +14,8 @@ use ReflectionException;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Splitter\SplitterExample;
 
 /**
- * Class AnnotationTransformerConfigurationTest
- * @package Test\Ecotone\Messaging\Unit\Config\Annotation\Annotation
+ * Class SplitterModuleTest
+ * @package Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
@@ -24,7 +24,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Splitter\SplitterE
  * licence Apache-2.0
  * @internal
  */
-class SplitterModuleTest extends AnnotationConfigurationTest
+final class SplitterModuleTest extends AnnotationConfigurationTestCase
 {
     /**
      * @throws \Doctrine\Common\Annotations\AnnotationException

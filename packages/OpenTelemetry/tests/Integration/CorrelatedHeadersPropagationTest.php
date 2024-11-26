@@ -31,7 +31,7 @@ use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\User;
  * licence Apache-2.0
  * @internal
  */
-final class CorrelatedHeadersPropagationTest extends TracingTest
+final class CorrelatedHeadersPropagationTest extends TracingTestCase
 {
     public function test_tracing_with_single_levels_of_nesting()
     {
@@ -43,7 +43,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [User::class],
-            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
+            [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -72,7 +72,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [User::class, MerchantSubscriberOne::class],
-            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), new MerchantSubscriberOne()],
+            [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -104,7 +104,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [Merchant::class, User::class, MerchantSubscriberOne::class],
-            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter), new MerchantSubscriberOne()],
+            [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
         )
@@ -139,7 +139,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTest
 
         EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
-            [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
+            [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -195,7 +195,7 @@ final class CorrelatedHeadersPropagationTest extends TracingTest
         try {
             EcotoneLite::bootstrapFlowTesting(
                 [\Test\Ecotone\OpenTelemetry\Fixture\ExceptionFlow\User::class],
-                [TracerProviderInterface::class => TracingTest::prepareTracer($exporter)],
+                [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
                 ServiceConfiguration::createWithDefaults()
                     ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
             )

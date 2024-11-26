@@ -8,7 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\SuccessTransaction\OrderService;
 
 /**
@@ -18,7 +18,7 @@ use Test\Ecotone\Amqp\Fixture\SuccessTransaction\OrderService;
  * licence Apache-2.0
  * @internal
  */
-final class SuccessTransactionTest extends AmqpMessagingTest
+final class SuccessTransactionTest extends AmqpMessagingTestCase
 {
     public function test_order_is_placed_when_transaction_is_successful(): void
     {

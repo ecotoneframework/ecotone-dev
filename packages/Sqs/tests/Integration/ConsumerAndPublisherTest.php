@@ -12,7 +12,7 @@ use Ecotone\Sqs\Configuration\SqsMessageConsumerConfiguration;
 use Ecotone\Sqs\Configuration\SqsMessagePublisherConfiguration;
 use Enqueue\Sqs\SqsConnectionFactory;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Sqs\AbstractConnectionTest;
+use Test\Ecotone\Sqs\ConnectionTestCase;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsConsumerExample;
 
 /**
@@ -22,7 +22,7 @@ use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsConsumerExample;
  * licence Apache-2.0
  * @internal
  */
-final class ConsumerAndPublisherTest extends AbstractConnectionTest
+final class ConsumerAndPublisherTest extends ConnectionTestCase
 {
     public function testing_sending_message_using_publisher_and_receiving_using_consumer()
     {

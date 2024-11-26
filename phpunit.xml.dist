@@ -17,6 +17,7 @@
       <directory suffix=".php">packages/Amqp/src</directory>
       <directory suffix=".php">packages/Sqs/src</directory>
       <directory suffix=".php">packages/Redis/src</directory>
+      <directory suffix=".php">packages/Kafka/src</directory>
     </include>
     <report>
       <text outputFile="php://stdout" showOnlySummary="true" />
@@ -25,6 +26,7 @@
   <php>
     <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
     <server name="APP_SECRET" value="test" />
+    <ini name="memory_limit" value="384M" />
   </php>
   <testsuites>
     <testsuite name="Core tests">
@@ -65,6 +67,9 @@
     </testsuite>
     <testsuite name="OpenTelemetry tests">
       <directory>packages/OpenTelemetry/tests</directory>
+    </testsuite>
+    <testsuite name="Kafka tests">
+      <directory>packages/Kafka/tests</directory>
     </testsuite>
   </testsuites>
 </phpunit>

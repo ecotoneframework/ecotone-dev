@@ -13,7 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 
 /**
@@ -23,7 +23,7 @@ use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
  * licence Apache-2.0
  * @internal
  */
-final class ConsumerAndPublisherTest extends AmqpMessagingTest
+final class ConsumerAndPublisherTest extends AmqpMessagingTestCase
 {
     public function testing_sending_message_using_publisher_and_receiving_using_consumer()
     {

@@ -9,7 +9,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedMessage\Publisher\UserService;
 use Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver\TicketServiceReceiver;
 
@@ -20,7 +20,7 @@ use Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver\TicketServiceReceiver;
  * licence Apache-2.0
  * @internal
  */
-final class DistributedMessageTest extends AmqpMessagingTest
+final class DistributedMessageTest extends AmqpMessagingTestCase
 {
     public function test_distributing_message_to_another_service(): void
     {

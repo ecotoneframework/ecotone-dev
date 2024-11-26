@@ -68,7 +68,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
-use Ecotone\Modelling\Config\BusModule;
+use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
@@ -504,7 +504,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $configuration->registerMessageHandler(
             SplitterBuilder::createMessagePayloadSplitter()
                 ->withInputChannelName($eventBusChannelName)
-                ->withOutputMessageChannel(BusModule::EVENT_CHANNEL_NAME_BY_OBJECT)
+                ->withOutputMessageChannel(MessageBusChannel::EVENT_CHANNEL_NAME_BY_OBJECT)
         );
 
         $linkingRouterHandler =

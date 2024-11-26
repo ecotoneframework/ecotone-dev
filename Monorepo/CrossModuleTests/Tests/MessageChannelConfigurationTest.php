@@ -23,9 +23,9 @@ use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use Monorepo\ExampleApp\Symfony\Kernel;
 use PHPUnit\Framework\TestCase;
 use Monorepo\CrossModuleTests\Fixture\FailureHandler\ExampleFailureCommandHandler;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
-use Test\Ecotone\Sqs\AbstractConnectionTest;
+use Test\Ecotone\Sqs\ConnectionTestCase;
 
 final class MessageChannelConfigurationTest extends TestCase
 {
@@ -146,7 +146,7 @@ final class MessageChannelConfigurationTest extends TestCase
         yield "amqp" => [
             AmqpBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(100),
-            [AmqpConnectionFactory::class => AmqpMessagingTest::getRabbitConnectionFactory()],
+            [AmqpConnectionFactory::class => AmqpMessagingTestCase::getRabbitConnectionFactory()],
             ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]),
             function() {
                 MessagingTestCase::cleanRabbitMQ();
@@ -155,7 +155,7 @@ final class MessageChannelConfigurationTest extends TestCase
         yield "redis" => [
             RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(100),
-            [RedisConnectionFactory::class => \Test\Ecotone\Redis\AbstractConnectionTest::getConnection()],
+            [RedisConnectionFactory::class => \Test\Ecotone\Redis\ConnectionTestCase::getConnection()],
             ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]),
             function() {
                 MessagingTestCase::cleanUpRedis();
@@ -164,7 +164,7 @@ final class MessageChannelConfigurationTest extends TestCase
         yield "sqs" => [
             SqsBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(100),
-            [SqsConnectionFactory::class => AbstractConnectionTest::getConnection()],
+            [SqsConnectionFactory::class => ConnectionTestCase::getConnection()],
             ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]),
             function() {
                 MessagingTestCase::cleanUpSqs();

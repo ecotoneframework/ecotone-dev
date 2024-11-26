@@ -12,7 +12,7 @@ use Ecotone\Redis\Configuration\RedisMessageConsumerConfiguration;
 use Ecotone\Redis\Configuration\RedisMessagePublisherConfiguration;
 use Enqueue\Redis\RedisConnectionFactory;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Redis\AbstractConnectionTest;
+use Test\Ecotone\Redis\ConnectionTestCase;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisConsumerExample;
 
 /**
@@ -22,7 +22,7 @@ use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisConsumerExample;
  * licence Apache-2.0
  * @internal
  */
-final class ConsumerAndPublisherTest extends AbstractConnectionTest
+final class ConsumerAndPublisherTest extends ConnectionTestCase
 {
     public function testing_sending_message_using_publisher_and_receiving_using_consumer(): void
     {

@@ -15,6 +15,9 @@ use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Statement;
 use Traversable;
 
+/**
+ * licence Apache-2.0
+ */
 final class FailingConnection extends Connection
 {
     /**

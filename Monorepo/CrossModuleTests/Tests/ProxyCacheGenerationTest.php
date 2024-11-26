@@ -15,7 +15,7 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
-    public function TODO_test_symfony_prod()
+    public function test_symfony_prod()
     {
         $this->markTestSkipped('grpc warning to be solved: https://github.com/google-ai-edge/mediapipe/issues/5371#issuecomment-2219871932');
 
@@ -27,7 +27,7 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
-    public function TODO_test_laravel_prod(): void
+    public function test_laravel_prod(): void
     {
         $this->markTestSkipped('grpc warning to be solved: https://github.com/google-ai-edge/mediapipe/issues/5371#issuecomment-2219871932');
 
@@ -39,7 +39,7 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
-    public function TODO_test_lite_application_prod()
+    public function test_lite_application_prod()
     {
         $this->markTestSkipped('grpc warning to be solved: https://github.com/google-ai-edge/mediapipe/issues/5371#issuecomment-2219871932');
 
@@ -51,7 +51,7 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
-    public function TODO_test_lite_prod()
+    public function test_lite_prod()
     {
         $this->markTestSkipped('grpc warning to be solved: https://github.com/google-ai-edge/mediapipe/issues/5371#issuecomment-2219871932');
 

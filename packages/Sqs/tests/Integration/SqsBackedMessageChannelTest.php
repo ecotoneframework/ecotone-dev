@@ -17,7 +17,7 @@ use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Test\LoggerExample;
 use Enqueue\Sqs\SqsConnectionFactory;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Sqs\AbstractConnectionTest;
+use Test\Ecotone\Sqs\ConnectionTestCase;
 use Test\Ecotone\Sqs\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsAsyncConsumerExample;
 
@@ -28,7 +28,7 @@ use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsAsyncConsumerExample;
  * licence Apache-2.0
  * @internal
  */
-final class SqsBackedMessageChannelTest extends AbstractConnectionTest
+final class SqsBackedMessageChannelTest extends ConnectionTestCase
 {
     public function test_sending_and_receiving_message()
     {

@@ -21,7 +21,7 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
 /**
  * Class AmqpModuleTest
@@ -34,7 +34,7 @@ use Test\Ecotone\Amqp\AmqpMessagingTest;
  * licence Apache-2.0
  * @internal
  */
-class AmqpModuleTest extends AmqpMessagingTest
+final class AmqpModuleTest extends AmqpMessagingTestCase
 {
     public function test_registering_amqp_backed_message_channel()
     {

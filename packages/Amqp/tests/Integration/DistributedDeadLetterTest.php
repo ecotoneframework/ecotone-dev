@@ -9,7 +9,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Publisher\UserService;
 use Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver\TicketServiceReceiver;
 
@@ -20,7 +20,7 @@ use Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver\TicketServiceReceiv
  * licence Apache-2.0
  * @internal
  */
-final class DistributedDeadLetterTest extends AmqpMessagingTest
+final class DistributedDeadLetterTest extends AmqpMessagingTestCase
 {
     public function test_exception_handling_with_retry_dead_letter_when_using_distribution(): void
     {

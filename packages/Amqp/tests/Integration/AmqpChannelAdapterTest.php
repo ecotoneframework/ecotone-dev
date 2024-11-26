@@ -41,7 +41,7 @@ use Exception;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use stdClass;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 use Test\Ecotone\Amqp\Fixture\Handler\ExceptionalMessageHandler;
 
@@ -56,7 +56,7 @@ use Test\Ecotone\Amqp\Fixture\Handler\ExceptionalMessageHandler;
  * licence Apache-2.0
  * @internal
  */
-class AmqpChannelAdapterTest extends AmqpMessagingTest
+final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
 {
     public function setUp(): void
     {

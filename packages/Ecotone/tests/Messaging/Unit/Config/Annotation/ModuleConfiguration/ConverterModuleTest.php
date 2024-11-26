@@ -25,7 +25,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleMediaTypeConverte
  * licence Apache-2.0
  * @internal
  */
-class ConverterModuleTest extends AnnotationConfigurationTest
+final class ConverterModuleTest extends AnnotationConfigurationTestCase
 {
     public function test_registering_converters()
     {

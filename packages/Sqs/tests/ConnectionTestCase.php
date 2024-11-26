@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * licence Apache-2.0
  */
-abstract class AbstractConnectionTest extends TestCase
+abstract class ConnectionTestCase extends TestCase
 {
     private ?SqsConnectionFactory $connectionFactory = null;
 
@@ -38,7 +38,7 @@ abstract class AbstractConnectionTest extends TestCase
 
     public static function cleanUpSqs(): void
     {
-        $context = AbstractConnectionTest::getConnection()->createContext();
+        $context = ConnectionTestCase::getConnection()->createContext();
 
         foreach (['async', 'sqs'] as $queue) {
             try {

@@ -8,7 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService;
 
 /**
@@ -18,7 +18,7 @@ use Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService;
  * licence Apache-2.0
  * @internal
  */
-final class DeadLetterTest extends AmqpMessagingTest
+final class DeadLetterTest extends AmqpMessagingTestCase
 {
     public function test_exception_handling_with_retries_and_dead_letter(): void
     {

@@ -9,7 +9,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Order\OrderErrorHandler;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
 use Test\Ecotone\Amqp\Fixture\Shop\ShoppingCart;
@@ -21,7 +21,7 @@ use Test\Ecotone\Amqp\Fixture\Shop\ShoppingCart;
  * licence Apache-2.0
  * @internal
  */
-final class GeneralAmqpTest extends AmqpMessagingTest
+final class GeneralAmqpTest extends AmqpMessagingTestCase
 {
     public function test_products_are_on_list_after_being_ordered(): void
     {

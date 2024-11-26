@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * licence Apache-2.0
  */
-abstract class AbstractConnectionTest extends TestCase
+abstract class ConnectionTestCase extends TestCase
 {
     private ?RedisConnectionFactory $connectionFactory = null;
 

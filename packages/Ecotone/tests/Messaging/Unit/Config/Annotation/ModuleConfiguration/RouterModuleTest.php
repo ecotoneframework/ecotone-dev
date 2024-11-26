@@ -14,8 +14,8 @@ use ReflectionException;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Router\RouterWithNoResolutionRequiredExample;
 
 /**
- * Class AnnotationRouterConfigurationTest
- * @package Test\Ecotone\Messaging\Unit\Config\Annotation\Annotation
+ * Class RouterModuleTest
+ * @package Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @internal
@@ -24,7 +24,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Router\RouterWithN
  * licence Apache-2.0
  * @internal
  */
-class RouterModuleTest extends AnnotationConfigurationTest
+final class RouterModuleTest extends AnnotationConfigurationTestCase
 {
     /**
      * @throws \Doctrine\Common\Annotations\AnnotationException

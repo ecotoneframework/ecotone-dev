@@ -10,7 +10,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\AggregateMessage;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Calendar\Calendar;
 use Test\Ecotone\Amqp\Fixture\Calendar\ScheduleMeeting;
 
@@ -21,7 +21,7 @@ use Test\Ecotone\Amqp\Fixture\Calendar\ScheduleMeeting;
  * licence Apache-2.0
  * @internal
  */
-final class CallAggregateAsynchronousEndpointTest extends AmqpMessagingTest
+final class CallAggregateAsynchronousEndpointTest extends AmqpMessagingTestCase
 {
     public function test_sending_command_to_aggregate(): void
     {

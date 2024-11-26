@@ -17,7 +17,7 @@ use Ecotone\Test\LoggerExample;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisDestination;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Redis\AbstractConnectionTest;
+use Test\Ecotone\Redis\ConnectionTestCase;
 use Test\Ecotone\Redis\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisAsyncConsumerExample;
 
@@ -28,7 +28,7 @@ use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisAsyncConsumerExample;
  * licence Apache-2.0
  * @internal
  */
-final class RedisBackedMessageChannelTest extends AbstractConnectionTest
+final class RedisBackedMessageChannelTest extends ConnectionTestCase
 {
     public function test_sending_and_receiving_message(): void
     {

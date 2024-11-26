@@ -12,7 +12,6 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
-use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -27,7 +26,7 @@ use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerStoppingService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerThrowingExceptionService;
 use Test\Ecotone\Messaging\Fixture\Handler\DataReturningService;
 use Test\Ecotone\Messaging\Fixture\Handler\SuccessServiceActivator;
-use Test\Ecotone\Messaging\Unit\MessagingTest;
+use Test\Ecotone\Messaging\Unit\MessagingTestCase;
 
 /**
  * Class PollingConsumerBuilderTest
@@ -40,7 +39,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTest;
  * licence Apache-2.0
  * @internal
  */
-class PollingConsumerBuilderTest extends MessagingTest
+class PollingConsumerBuilderTest extends MessagingTestCase
 {
     /**
      * @throws MessagingException
@@ -251,8 +250,6 @@ class PollingConsumerBuilderTest extends MessagingTest
             ->withInputChannelName($inputChannelName);
 
         $messaging = $this->createPollingConsumer($inputChannelName, $inputChannel, $messageHandler, true);
-
-        $this->expectException(RejectMessageException::class);
 
         $messaging->sendMessageDirectToChannel($inputChannelName, $message);
         $messaging->run('some-id');

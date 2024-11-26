@@ -8,7 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\ErrorChannel\OrderService;
 
 /**
@@ -18,7 +18,7 @@ use Test\Ecotone\Amqp\Fixture\ErrorChannel\OrderService;
  * licence Apache-2.0
  * @internal
  */
-final class ErrorChannelTest extends AmqpMessagingTest
+final class ErrorChannelTest extends AmqpMessagingTestCase
 {
     public function test_exception_handling_with_retries(): void
     {

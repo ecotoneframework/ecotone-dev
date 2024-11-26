@@ -1,0 +1,83 @@
+{
+    "name": "ecotone/kafka",
+    "license": [
+        "proprietary"
+    ],
+    "homepage": "https://docs.ecotone.tech/",
+    "forum": "https://discord.gg/CctGMcrYnV",
+    "type": "library",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "support@simplycodedsoftware.com"
+        }
+    ],
+    "keywords": [
+        "ecotone",
+        "Kafka"
+    ],
+    "description": "Extends Ecotone with Kafka integration",
+    "autoload": {
+        "psr-4": {
+            "Ecotone\\Kafka\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\Ecotone\\Kafka\\": [
+                "tests"
+            ]
+        }
+    },
+    "require": {
+        "ext-rdkafka": "*",
+        "ecotone/ecotone": "~1.238.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "phpstan/phpstan": "^1.8",
+        "psr/container": "^1.1.1|^2.0.1",
+        "wikimedia/composer-merge-plugin": "^2.1",
+        "kwn/php-rdkafka-stubs": "^2.2"
+    },
+    "scripts": {
+        "tests:phpstan": "vendor/bin/phpstan",
+        "tests:phpunit": "vendor/bin/phpunit",
+        "tests:ci": [
+            "@tests:phpstan",
+            "@tests:phpunit"
+        ]
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.238.0-dev"
+        },
+        "ecotone": {
+            "repository": "kafka"
+        },
+        "merge-plugin": {
+            "include": [
+                "../local_packages.json"
+            ]
+        },
+        "license-info": {
+            "Apache-2.0": {
+                "name": "Apache License 2.0",
+                "url": "https://github.com/ecotoneframework/ecotone-dev/blob/main/LICENSE",
+                "description": "Allows to use non Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            },
+            "proprietary": {
+                "name": "Enterprise License",
+                "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            }
+        },
+        "release-time": "2024-11-26 19:43:45"
+    },
+    "config": {
+        "allow-plugins": {
+            "wikimedia/composer-merge-plugin": true
+        }
+    }
+}

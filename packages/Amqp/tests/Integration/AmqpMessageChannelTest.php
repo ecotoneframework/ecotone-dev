@@ -19,7 +19,7 @@ use Ecotone\Test\LoggerExample;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
 
@@ -30,7 +30,7 @@ use Test\Ecotone\Amqp\Fixture\Order\OrderService;
  * licence Apache-2.0
  * @internal
  */
-final class AmqpMessageChannelTest extends AmqpMessagingTest
+final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 {
     public function test_sending_and_receiving_message_from_amqp_message_channel()
     {

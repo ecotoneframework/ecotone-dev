@@ -16,7 +16,7 @@ use Test\Ecotone\Amqp\Fixture\Shop\MessagingConfiguration;
 /**
  * licence Apache-2.0
  */
-abstract class AmqpMessagingTest extends TestCase
+abstract class AmqpMessagingTestCase extends TestCase
 {
     public const RABBITMQ_HOST = 'localhost';
 

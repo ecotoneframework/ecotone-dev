@@ -11,7 +11,7 @@ use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler\TicketNotificationSubscriber;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher\UserService;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver\TicketServiceReceiver;
@@ -23,7 +23,7 @@ use Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver\TicketServiceReceiver
  * licence Apache-2.0
  * @internal
  */
-final class DistributedEventBusTest extends AmqpMessagingTest
+final class DistributedEventBusTest extends AmqpMessagingTestCase
 {
     public function test_distributing_event_to_another_service(): void
     {

@@ -179,13 +179,15 @@ final class ManagerRegistryEmulator implements ManagerRegistry
             /** To fake phpstan as in version 2.0, constructor is protected */
             $entityManager = $this->getEntityManagerName();
             $this->entityManager = new $entityManager($this->getConnection(), $config, null);
-        } else {
+        } elseif (class_exists(Setup::class)) {
             $config = Setup::createAttributeMetadataConfiguration(
                 $this->pathsToMapping,
                 true
             );
 
-            $this->entityManager = EntityManager::create($this->getConnection(), $config);
+            /** To fake phpstan */
+            $entityManager = $this->getEntityManagerName();
+            $this->entityManager = $entityManager::create($this->getConnection(), $config);
         }
     }
 

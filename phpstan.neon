@@ -11,3 +11,7 @@ parameters:
 		- packages/LiteApplication/src
 		- packages/Symfony/DependencyInjection
 		- packages/OpenTelemetry/src
+		- packages/Kafka/src
+	excludePaths:
+		- packages/Laravel/src/Config/PDO/Connection.php
+		- packages/Laravel/src/Config/PDO/SqlServerConnection.php

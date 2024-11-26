@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Enqueue;
+namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;

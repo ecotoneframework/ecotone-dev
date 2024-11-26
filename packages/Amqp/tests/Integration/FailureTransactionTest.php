@@ -9,7 +9,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Test\Ecotone\Amqp\AmqpMessagingTest;
+use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Throwable;
 
 /**
@@ -19,7 +19,7 @@ use Throwable;
  * licence Apache-2.0
  * @internal
  */
-final class FailureTransactionTest extends AmqpMessagingTest
+final class FailureTransactionTest extends AmqpMessagingTestCase
 {
     public function test_order_is_never_placed_when_transaction_is_failed(): void
     {

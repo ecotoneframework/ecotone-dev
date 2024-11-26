@@ -19,8 +19,8 @@ class DbalInboundChannelAdapter extends EnqueueInboundChannelAdapter
         $context->createDataBaseTable();
     }
 
-    public function connectionException(): string
+    public function connectionException(): array
     {
-        return ConnectionException::class;
+        return [ConnectionException::class];
     }
 }

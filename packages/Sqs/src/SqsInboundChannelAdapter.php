@@ -21,8 +21,8 @@ final class SqsInboundChannelAdapter extends EnqueueInboundChannelAdapter
         $context->declareQueue($context->createQueue($this->queueName));
     }
 
-    public function connectionException(): string
+    public function connectionException(): array
     {
-        return ConnectException::class;
+        return [ConnectException::class];
     }
 }

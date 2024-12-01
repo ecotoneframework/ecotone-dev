@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
+use DateTimeImmutable;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Scheduling\EpochBasedClock;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 use Test\Ecotone\Messaging\Fixture\AddHeaders\AddingMultipleHeaders;
 
 /**
@@ -70,12 +71,13 @@ class EndpointHeadersInterceptorTest extends TestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async')
         );
 
-        $command = new \stdClass();
-        $command->delay = (new \DateTimeImmutable())->modify('+1 day');
+        $command = new stdClass();
+        $command->delay = (new DateTimeImmutable())->modify('+1 day');
         $command->timeToLive = 1001;
 
         $headers = $ecotoneLite
-            ->sendCommandWithRoutingKey('addHeadersWithExpression',
+            ->sendCommandWithRoutingKey(
+                'addHeadersWithExpression',
                 command: $command,
                 metadata: [
                     'token' => 123,
@@ -103,14 +105,15 @@ class EndpointHeadersInterceptorTest extends TestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async')
         );
 
-        $command = new \stdClass();
-        $command->delay = new \stdClass();
+        $command = new stdClass();
+        $command->delay = new stdClass();
         $command->timeToLive = 1001;
 
         $this->expectException(ConfigurationException::class);
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('addHeadersWithExpression',
+            ->sendCommandWithRoutingKey(
+                'addHeadersWithExpression',
                 command: $command,
                 metadata: [
                     'token' => 123,
@@ -133,14 +136,15 @@ class EndpointHeadersInterceptorTest extends TestCase
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async')
         );
 
-        $command = new \stdClass();
+        $command = new stdClass();
         $command->delay = TimeSpan::withSeconds(1);
-        $command->timeToLive = new \stdClass();
+        $command->timeToLive = new stdClass();
 
         $this->expectException(ConfigurationException::class);
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('addHeadersWithExpression',
+            ->sendCommandWithRoutingKey(
+                'addHeadersWithExpression',
                 command: $command,
                 metadata: [
                     'token' => 123,

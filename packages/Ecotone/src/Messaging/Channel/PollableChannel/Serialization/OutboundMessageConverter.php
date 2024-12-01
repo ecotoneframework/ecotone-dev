@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Channel\PollableChannel\Serialization;
 
+use DateTimeInterface;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -10,7 +11,6 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
 
 /**
@@ -95,7 +95,7 @@ class OutboundMessageConverter
 
         $deliveryDelay = $messageToConvert->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) ? $messageToConvert->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) : $this->defaultDeliveryDelay;
 
-        if ($deliveryDelay instanceof \DateTimeInterface) {
+        if ($deliveryDelay instanceof DateTimeInterface) {
             $deliveryDelay = EpochBasedClock::getTimestampWithMillisecondsFor($deliveryDelay) - ($messageToConvert->getHeaders()->getTimestamp() * 1000);
 
             if ($deliveryDelay < 0) {

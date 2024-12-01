@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Lite\Test;
 
+use DateTimeImmutable;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
@@ -500,7 +501,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
-            MessageHeaders::DELIVERY_DELAY => $delayTime = new \DateTimeImmutable('+1 hour'),
+            MessageHeaders::DELIVERY_DELAY => $delayTime = new DateTimeImmutable('+1 hour'),
         ]);
 
         $ecotoneTestSupport->run('orders');
@@ -525,7 +526,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
-            MessageHeaders::TIMESTAMP => EpochBasedClock::getTimestampFor($time = new \DateTimeImmutable('2020-01-01 12:00:00')),
+            MessageHeaders::TIMESTAMP => EpochBasedClock::getTimestampFor($time = new DateTimeImmutable('2020-01-01 12:00:00')),
             MessageHeaders::DELIVERY_DELAY => $time->modify('-1 hour'),
         ]);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test;
 
+use DateTimeInterface;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 
@@ -60,5 +61,5 @@ interface MessagingTestSupport
 
     public function discardRecordedMessages(): void;
 
-    public function releaseMessagesAwaitingFor(string $channelName, int|TimeSpan|\DateTimeInterface $timeInMillisecondsOrDateTime): void;
+    public function releaseMessagesAwaitingFor(string $channelName, int|TimeSpan|DateTimeInterface $timeInMillisecondsOrDateTime): void;
 }

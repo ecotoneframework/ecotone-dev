@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Scheduling;
 
 use DateTime;
+use DateTimeInterface;
 use DateTimeZone;
 
 /**
@@ -19,8 +20,7 @@ class StubUTCClock implements Clock
 {
     public function __construct(
         private ?int $currentTime = null
-    )
-    {
+    ) {
 
     }
 
@@ -56,7 +56,7 @@ class StubUTCClock implements Clock
         $this->currentTime += (int)round($microseconds / 1000);
     }
 
-    public function changeCurrentTime(string|\DateTimeInterface $newCurrentTime): void
+    public function changeCurrentTime(string|DateTimeInterface $newCurrentTime): void
     {
         $this->currentTime = self::createEpochTimeInMilliseconds($newCurrentTime);
     }
@@ -80,7 +80,7 @@ class StubUTCClock implements Clock
         return $this->currentTime !== null;
     }
 
-    private static function createEpochTimeInMilliseconds(string|\DateTimeInterface $dateTime): int
+    private static function createEpochTimeInMilliseconds(string|DateTimeInterface $dateTime): int
     {
         if ($dateTime === 'now') {
             return EpochBasedClock::getCurrentTimeInMilliseconds();

@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
+use DateTimeInterface;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
-use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\EpochBasedClock;
-use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -24,7 +22,7 @@ final class DelayableQueueChannel implements PollableChannel, DefinedObject
     /**
      * @param Message[] $queue
      */
-    public function __construct(private string $name, private array $queue = [], private int|\DateTimeInterface $releaseMessagesAwaitingFor = 0)
+    public function __construct(private string $name, private array $queue = [], private int|DateTimeInterface $releaseMessagesAwaitingFor = 0)
     {
     }
 
@@ -76,7 +74,7 @@ final class DelayableQueueChannel implements PollableChannel, DefinedObject
         return $this->receive();
     }
 
-    public function releaseMessagesAwaitingFor(int|TimeSpan|\DateTimeInterface $time): void
+    public function releaseMessagesAwaitingFor(int|TimeSpan|DateTimeInterface $time): void
     {
         $this->releaseMessagesAwaitingFor = $time instanceof TimeSpan ? $time->toMilliseconds() : $time;
     }
@@ -93,7 +91,7 @@ final class DelayableQueueChannel implements PollableChannel, DefinedObject
 
     public function getCurrentDeliveryTimeShift(Message $message): int
     {
-        if ($this->releaseMessagesAwaitingFor instanceof \DateTimeInterface) {
+        if ($this->releaseMessagesAwaitingFor instanceof DateTimeInterface) {
             return EpochBasedClock::getTimestampWithMillisecondsFor($this->releaseMessagesAwaitingFor) - ($message->getHeaders()->getTimestamp() * 1000);
         }
 

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Attribute\Endpoint;
 
 use Attribute;
+use DateTimeInterface;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\TimeSpan;
-use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 /**
@@ -16,9 +16,9 @@ use Ecotone\Messaging\Support\Assert;
 class Delayed extends AddHeader
 {
     /**
-     * @param int|TimeSpan|\DateTimeInterface $time if integer is provided it is treated as milliseconds
+     * @param int|TimeSpan|DateTimeInterface $time if integer is provided it is treated as milliseconds
      */
-    public function __construct(int|TimeSpan|\DateTimeInterface|null $time = null, ?string $expression = null)
+    public function __construct(int|TimeSpan|DateTimeInterface|null $time = null, ?string $expression = null)
     {
         parent::__construct(MessageHeaders::DELIVERY_DELAY, $time, $expression);
     }

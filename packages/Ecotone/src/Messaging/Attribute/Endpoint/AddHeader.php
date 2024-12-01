@@ -20,7 +20,7 @@ class AddHeader
         Assert::isTrue(
             ($value === null && $expression !== null)
             || ($value !== null && $expression === null),
-            'Either value or expression should be provided for attribute ' . static ::class
+            'Either value or expression should be provided for attribute ' . static::class
         );
 
         $this->headerName  = $name;

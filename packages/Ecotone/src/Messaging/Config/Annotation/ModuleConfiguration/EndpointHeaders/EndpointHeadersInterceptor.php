@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders;
 
+use DateTimeInterface;
 use Ecotone\Messaging\Attribute\Endpoint\AddHeader;
 use Ecotone\Messaging\Attribute\Endpoint\Delayed;
 use Ecotone\Messaging\Attribute\Endpoint\Priority;
@@ -16,11 +17,9 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessagingException;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\TimeSpan;
-use Nette\Utils\Type;
 
 /**
  * Class EndpointHeadersInterceptor
@@ -47,7 +46,7 @@ class EndpointHeadersInterceptor implements DefinedObject
             if ($addHeader->getExpression()) {
                 $metadata[$addHeader->getHeaderName()] = $this->expressionEvaluationService->evaluate($addHeader->getExpression(), [
                     'payload' => $message->getPayload(),
-                    'headers' => $message->getHeaders()->headers()
+                    'headers' => $message->getHeaders()->headers(),
                 ]);
             }
         }
@@ -58,15 +57,15 @@ class EndpointHeadersInterceptor implements DefinedObject
             if ($delayed->getExpression()) {
                 $metadata[MessageHeaders::DELIVERY_DELAY] = $this->expressionEvaluationService->evaluate($delayed->getExpression(), [
                     'payload' => $message->getPayload(),
-                    'headers' => $message->getHeaders()->headers()
+                    'headers' => $message->getHeaders()->headers(),
                 ]);
             }
 
             $type = TypeDescriptor::createFromVariable($metadata[MessageHeaders::DELIVERY_DELAY]);
-            if (!$type->isCompatibleWith(UnionTypeDescriptor::createWith([
+            if (! $type->isCompatibleWith(UnionTypeDescriptor::createWith([
                 TypeDescriptor::createIntegerType(),
                 TypeDescriptor::create(TimeSpan::class),
-                TypeDescriptor::create(\DateTimeInterface::class)
+                TypeDescriptor::create(DateTimeInterface::class),
             ]))) {
                 throw ConfigurationException::create("Delivery delay should be either integer, TimeSpan or DateTimeInterface, but got {$type->toString()}");
             }
@@ -78,7 +77,7 @@ class EndpointHeadersInterceptor implements DefinedObject
             if ($priority->getExpression()) {
                 $metadata[MessageHeaders::PRIORITY] = $this->expressionEvaluationService->evaluate($priority->getExpression(), [
                     'payload' => $message->getPayload(),
-                    'headers' => $message->getHeaders()->headers()
+                    'headers' => $message->getHeaders()->headers(),
                 ]);
             }
         }
@@ -89,14 +88,14 @@ class EndpointHeadersInterceptor implements DefinedObject
             if ($timeToLive->getExpression()) {
                 $metadata[MessageHeaders::TIME_TO_LIVE] = $this->expressionEvaluationService->evaluate($timeToLive->getExpression(), [
                     'payload' => $message->getPayload(),
-                    'headers' => $message->getHeaders()->headers()
+                    'headers' => $message->getHeaders()->headers(),
                 ]);
             }
 
             $type = TypeDescriptor::createFromVariable($metadata[MessageHeaders::TIME_TO_LIVE]);
-            if (!$type->isCompatibleWith(UnionTypeDescriptor::createWith([
+            if (! $type->isCompatibleWith(UnionTypeDescriptor::createWith([
                 TypeDescriptor::createIntegerType(),
-                TypeDescriptor::create(TimeSpan::class)
+                TypeDescriptor::create(TimeSpan::class),
             ]))) {
                 throw ConfigurationException::create("Delivery delay should be either integer or TimeSpan, but got {$type->toString()}");
             }
@@ -112,7 +111,7 @@ class EndpointHeadersInterceptor implements DefinedObject
     public function getDefinition(): Definition
     {
         return new Definition(self::class, [
-            Reference::to(ExpressionEvaluationService::REFERENCE)
+            Reference::to(ExpressionEvaluationService::REFERENCE),
         ]);
     }
 }

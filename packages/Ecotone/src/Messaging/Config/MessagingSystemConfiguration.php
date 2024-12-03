@@ -261,7 +261,7 @@ final class MessagingSystemConfiguration implements Configuration
             $modulesClasses = array_merge($modulesClasses, ModulePackageList::getModuleClassesForPackage($availablePackage));
         }
 
-        return array_filter($modulesClasses, fn(string $moduleClassName): bool => class_exists($moduleClassName) || interface_exists($moduleClassName));
+        return array_filter($modulesClasses, fn (string $moduleClassName): bool => class_exists($moduleClassName) || interface_exists($moduleClassName));
     }
 
     public static function addCorePackage(ServiceConfiguration $serviceConfiguration, bool $enableTestPackage): ServiceConfiguration
@@ -270,7 +270,7 @@ final class MessagingSystemConfiguration implements Configuration
         $skippedPackages = $serviceConfiguration->getSkippedModulesPackages();
         if ($enableTestPackage) {
             $requiredModules[] = ModulePackageList::TEST_PACKAGE;
-        }else {
+        } else {
             $skippedPackages[] = ModulePackageList::TEST_PACKAGE;
         }
 

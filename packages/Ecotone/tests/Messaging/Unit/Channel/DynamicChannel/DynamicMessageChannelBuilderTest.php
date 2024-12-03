@@ -536,7 +536,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     DynamicMessageChannelBuilder::createRoundRobin('dynamic_channel', ['async_channel'])
                         ->withInternalChannels([
                             SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-                        ])
+                        ]),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE])),
             licenceKey: LicenceTesting::VALID_LICENCE,

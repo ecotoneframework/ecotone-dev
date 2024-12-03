@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Lite;
 
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
-use Ecotone\AnnotationFinder\FileSystem\AutoloadFileNamespaceParser;
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\AnnotationFinder\FileSystem\RootCatalogNotFound;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
@@ -14,7 +13,6 @@ use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\ContainerConfig;

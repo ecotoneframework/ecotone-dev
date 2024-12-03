@@ -4,7 +4,6 @@ namespace Ecotone\SymfonyBundle\DependencyInjection;
 
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;

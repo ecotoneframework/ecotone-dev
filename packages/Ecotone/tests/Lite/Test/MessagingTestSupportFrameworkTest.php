@@ -563,7 +563,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders', false)
+                SimpleMessageChannelBuilder::createQueueChannel('orders', false),
             ],
         );
 

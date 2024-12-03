@@ -52,10 +52,6 @@ class EcotoneProvider extends ServiceProvider
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
         $skippedModules = Config::get('ecotone.skippedModulePackageNames');
-        if (! Config::get('ecotone.test')) {
-            $skippedModules[] = ModulePackageList::TEST_PACKAGE;
-        }
-
         /** @TODO Ecotone 2.0 use ServiceContext to configure Laravel */
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
@@ -113,6 +109,7 @@ class EcotoneProvider extends ServiceProvider
                 $rootCatalog,
                 new LaravelConfigurationVariableService(),
                 $applicationConfiguration,
+                enableTestPackage: Config::get('ecotone.test')
             );
             $definitionHolder = ContainerConfig::buildDefinitionHolder($configuration);
 

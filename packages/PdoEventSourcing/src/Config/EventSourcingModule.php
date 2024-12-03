@@ -297,7 +297,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             || $extensionObject instanceof ServiceConfiguration;
     }
 
-    public function getModuleExtensions(array $serviceExtensions): array
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         foreach ($serviceExtensions as $serviceExtension) {
             if ($serviceExtension instanceof EventSourcingRepositoryBuilder) {

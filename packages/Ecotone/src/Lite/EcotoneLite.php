@@ -179,7 +179,7 @@ final class EcotoneLite
     private static function getFileNameBasedOnConfig(
         string $pathToRootCatalog,
         bool $useCachedVersion,
-        array $classesToResolve,
+        FileSystemAnnotationFinder $annotationFinder,
         ServiceConfiguration $serviceConfiguration,
         array $configurationVariables,
         bool $enableTesting
@@ -192,25 +192,13 @@ final class EcotoneLite
         // get file contents based on class names, configuration and configuration variables
         $fileSha = '';
 
-        if ($serviceConfiguration->getNamespaces()) {
-            $classes = FileSystemAnnotationFinder::getRegisteredClassesForNamespaces($pathToRootCatalog, new AutoloadFileNamespaceParser(), $serviceConfiguration->getNamespaces());
-
-            foreach ($classes as $class) {
-                $filePath = (new ReflectionClass($class))->getFileName();
-                $fileSha .= sha1_file($filePath);
-            }
+        foreach ($annotationFinder->registeredClasses() as $class) {
+            $filePath = (new ReflectionClass($class))->getFileName();
+            $fileSha .= sha1_file($filePath);
         }
 
         if (file_exists($pathToRootCatalog . 'composer.lock')) {
             $fileSha .= sha1_file($pathToRootCatalog . 'composer.lock');
-        }
-
-        foreach ($classesToResolve as $class) {
-            $filePath = (new ReflectionClass($class))->getFileName();
-
-            if ($filePath) {
-                $fileSha .= sha1_file($filePath);
-            }
         }
 
         $fileSha .= sha1(serialize($serviceConfiguration));
@@ -259,8 +247,18 @@ final class EcotoneLite
         $definitionHolder = null;
         $messagingSystemCachePath = null;
 
+        $serviceConfiguration = MessagingSystemConfiguration::addCorePackage($serviceConfiguration, $enableTesting);
+        $annotationFinder = AnnotationFinderFactory::createForAttributes(
+            realpath($pathToRootCatalog),
+            $serviceConfiguration->getNamespaces(),
+            $serviceConfiguration->getEnvironment(),
+            $serviceConfiguration->getLoadedCatalog() ?? '',
+            MessagingSystemConfiguration::getModuleClassesFor($serviceConfiguration),
+            $classesToResolve,
+            $enableTesting
+        );
         if ($serviceCacheConfiguration->shouldUseCache()) {
-            $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . self::getFileNameBasedOnConfig($pathToRootCatalog, $useCachedVersion, $classesToResolve, $serviceConfiguration, $configurationVariables, $enableTesting);
+            $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . self::getFileNameBasedOnConfig($pathToRootCatalog, $useCachedVersion, $annotationFinder, $serviceConfiguration, $configurationVariables, $enableTesting);
 
             if (file_exists($messagingSystemCachePath)) {
                 /** It may fail on deserialization, then return `false` and we can build new one */
@@ -269,17 +267,6 @@ final class EcotoneLite
         }
 
         if (! $definitionHolder) {
-            $serviceConfiguration = MessagingSystemConfiguration::addCorePackage($serviceConfiguration, $enableTesting);
-            $annotationFinder = AnnotationFinderFactory::createForAttributes(
-                realpath($pathToRootCatalog),
-                $serviceConfiguration->getNamespaces(),
-                $serviceConfiguration->getEnvironment(),
-                $serviceConfiguration->getLoadedCatalog() ?? '',
-                MessagingSystemConfiguration::getModuleClassesFor($serviceConfiguration),
-                $classesToResolve,
-                $enableTesting
-            );
-
             $messagingConfiguration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
                 $annotationFinder,
                 $configurationVariableService,

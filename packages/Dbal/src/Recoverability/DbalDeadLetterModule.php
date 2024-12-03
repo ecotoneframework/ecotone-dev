@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -76,7 +77,7 @@ class DbalDeadLetterModule implements AnnotationModule
         return $extensionObject instanceof DbalConfiguration || $extensionObject instanceof CustomDeadLetterGateway;
     }
 
-    public function getModuleExtensions(array $serviceExtensions): array
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];
     }

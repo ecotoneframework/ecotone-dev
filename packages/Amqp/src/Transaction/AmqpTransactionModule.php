@@ -2,6 +2,7 @@
 
 namespace Ecotone\Amqp\Transaction;
 
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use function array_map;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
@@ -83,7 +84,7 @@ class AmqpTransactionModule implements AnnotationModule
             );
     }
 
-    public function getModuleExtensions(array $serviceExtensions): array
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];
     }

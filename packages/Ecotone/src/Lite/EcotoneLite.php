@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
+use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\AnnotationFinder\FileSystem\AutoloadFileNamespaceParser;
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\AnnotationFinder\FileSystem\RootCatalogNotFound;
@@ -13,6 +14,7 @@ use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\ContainerConfig;
@@ -120,7 +122,7 @@ final class EcotoneLite
         bool                     $allowGatewaysToBeRegisteredInContainer = false,
         bool                     $addInMemoryStateStoredRepository = true,
         bool                     $addInMemoryEventSourcedRepository = true,
-        ?array                   $enableAsynchronousProcessing = null,
+        array|bool|null          $enableAsynchronousProcessing = null,
         TestConfiguration        $testConfiguration = null,
         ?string                  $licenceKey = null
     ): FlowTestSupport {
@@ -152,7 +154,7 @@ final class EcotoneLite
         bool                     $allowGatewaysToBeRegisteredInContainer = false,
         bool                     $addInMemoryStateStoredRepository = true,
         bool                     $runForProductionEventStore = false,
-        ?array                   $enableAsynchronousProcessing = null,
+        array|bool|null          $enableAsynchronousProcessing = null,
         TestConfiguration        $testConfiguration = null,
         ?string                  $licenceKey = null,
     ): FlowTestSupport {
@@ -267,11 +269,21 @@ final class EcotoneLite
         }
 
         if (! $definitionHolder) {
-            $messagingConfiguration = MessagingSystemConfiguration::prepare(
-                $pathToRootCatalog,
+            $serviceConfiguration = MessagingSystemConfiguration::addCorePackage($serviceConfiguration, $enableTesting);
+            $annotationFinder = AnnotationFinderFactory::createForAttributes(
+                realpath($pathToRootCatalog),
+                $serviceConfiguration->getNamespaces(),
+                $serviceConfiguration->getEnvironment(),
+                $serviceConfiguration->getLoadedCatalog() ?? '',
+                MessagingSystemConfiguration::getModuleClassesFor($serviceConfiguration),
+                $classesToResolve,
+                $enableTesting
+            );
+
+            $messagingConfiguration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
+                $annotationFinder,
                 $configurationVariableService,
                 $serviceConfiguration,
-                $classesToResolve,
                 $enableTesting
             );
             $definitionHolder = ContainerConfig::buildDefinitionHolder($messagingConfiguration);
@@ -331,15 +343,15 @@ final class EcotoneLite
         array                 $packagesToSkip,
         array                 $classesToResolve,
         bool                  $addInMemoryStateStoredRepository,
-        ?array                $enableAsynchronousProcessing,
+        array|bool|null       $enableAsynchronousProcessing,
         ?TestConfiguration    $testConfiguration,
         ?string               $enterpriseLicenceKey,
     ): ServiceConfiguration {
-        if ($enableAsynchronousProcessing !== null) {
+        if (is_array($enableAsynchronousProcessing)) {
             if ($configuration !== null && in_array(ModulePackageList::ASYNCHRONOUS_PACKAGE, $configuration->getSkippedModulesPackages())) {
-                Assert::isFalse($configuration->areSkippedPackagesDefined(), 'If you use `enableAsynchronousProcessing` configuration, you can\'t use `skippedPackages` amd skip Asynchronous Package. Please allows asynchronous package.');
+                Assert::isFalse($configuration->areSkippedPackagesDefined(), 'If you use `enableAsynchronousProcessing` configuration, you can\'t use `skippedPackages` with skip `Asynchronous Package`. Please allows asynchronous package.');
             }
-            Assert::isTrue($enableAsynchronousProcessing !== [], 'For enabled asynchronous processing you must provide Message Channel');
+            Assert::isTrue($enableAsynchronousProcessing !== [], 'For enabled asynchronous processing you must provide Message Channel. If you want to rely completely on default channels, use `true` instead of `array`.');
         }
         if ($enableAsynchronousProcessing) {
             $packagesToSkip = array_diff($packagesToSkip, [ModulePackageList::ASYNCHRONOUS_PACKAGE]);
@@ -353,7 +365,7 @@ final class EcotoneLite
                 ->withSkippedModulePackageNames($packagesToSkip);
         }
 
-        if ($enableAsynchronousProcessing !== null) {
+        if (is_array($enableAsynchronousProcessing)) {
             foreach ($enableAsynchronousProcessing as $channelBuilder) {
                 Assert::isTrue($channelBuilder instanceof MessageChannelBuilder, 'You can only provide MessageChannelBuilder as asynchronous processing channel, under `enableAsynchronousProcessing`');
                 $configuration = $configuration->addExtensionObject($channelBuilder);

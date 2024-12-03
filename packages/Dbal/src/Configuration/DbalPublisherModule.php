@@ -112,7 +112,7 @@ class DbalPublisherModule implements AnnotationModule
             || $extensionObject instanceof ServiceConfiguration;
     }
 
-    public function getModuleExtensions(array $serviceExtensions): array
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];
     }

@@ -52,4 +52,18 @@ final class EventsConverter
     {
         return new MeetingCreated($payload['meetingId'], $payload['calendarId']);
     }
+
+    #[Converter]
+    public function convertCalendarClosed(CalendarClosed $event): array
+    {
+        return [
+            'calendarId' => $event->calendarId,
+        ];
+    }
+
+    #[Converter]
+    public function convertToCalendarClosed(array $payload): CalendarClosed
+    {
+        return new CalendarClosed($payload['calendarId']);
+    }
 }

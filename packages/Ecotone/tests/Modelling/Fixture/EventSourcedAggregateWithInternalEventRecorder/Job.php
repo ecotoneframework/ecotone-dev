@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder;
 
+use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
@@ -9,6 +10,7 @@ use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateEvents;
 use Ecotone\Modelling\WithAggregateVersioning;
+use Ramsey\Uuid\Uuid;
 
 #[EventSourcingAggregate(true)]
 /**
@@ -36,6 +38,14 @@ class Job
     public function finish(FinishJob $command): void
     {
         $this->recordThat(JobWasFinished::recordWith($command->getId()));
+    }
+
+    #[CommandHandler('job.finish_and_start')]
+    public function finishAndStartNewJob(FinishJob $command, #[Header('newJobId')] string $newJobId): Job
+    {
+        $this->recordThat(JobWasFinished::recordWith($command->getId()));
+
+        return self::start(new StartJob($newJobId));
     }
 
     #[QueryHandler('job.isInProgress')]

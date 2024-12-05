@@ -125,7 +125,6 @@ class SaveAggregateServiceBuilder implements CompilableBuilder
             $returnTypeInterface = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($interfaceToCall->getReturnType()->toString()));
             if (
                 $returnTypeInterface->hasClassAnnotation(TypeDescriptor::create(Aggregate::class))
-                && $returnTypeInterface->getClassType() !== $aggregateClassDefinition->getClassType()
             ) {
                 $resultClassDefinition = ClassDefinition::createFor($interfaceToCall->getReturnType());
                 $this->isReturningAggregate = true;

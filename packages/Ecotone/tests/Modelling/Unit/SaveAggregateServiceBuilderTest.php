@@ -2,7 +2,10 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
@@ -20,6 +23,7 @@ use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use Ecotone\Modelling\StandardRepository;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
+use Ramsey\Uuid\Uuid;
 use stdClass;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;
@@ -27,9 +31,15 @@ use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Order;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\OrderWithManualVersioning;
+use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\FinishJob;
+use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\Job;
+use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasFinished;
+use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasStarted;
+use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\StartJob;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\NoIdDefinedAfterRecordingEvents;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodForEventSourcedAggregate;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodWithParameters;
+use Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod\Aggregate;
 use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
 use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
 
@@ -436,5 +446,29 @@ class SaveAggregateServiceBuilderTest extends TestCase
             )
             ->build()
         ;
+    }
+
+    public function test_result_aggregate_are_published_in_order(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [Job::class]
+        );
+
+        $jobId = Uuid::uuid4()->toString();
+        $newJobId = Uuid::uuid4()->toString();
+
+        self::assertEquals(
+            [
+                JobWasFinished::recordWith($jobId),
+                JobWasStarted::recordWith($newJobId)
+            ],
+            $ecotoneLite
+                ->sendCommand(new StartJob($jobId))
+                ->discardRecordedMessages()
+                ->sendCommandWithRoutingKey('job.finish_and_start', new FinishJob($jobId), metadata: [
+                    'newJobId' => $newJobId
+                ])
+                ->getRecordedEvents(),
+        );
     }
 }

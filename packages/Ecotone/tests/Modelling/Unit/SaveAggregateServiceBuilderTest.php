@@ -4,8 +4,6 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
@@ -39,7 +37,6 @@ use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorde
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\NoIdDefinedAfterRecordingEvents;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodForEventSourcedAggregate;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodWithParameters;
-use Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod\Aggregate;
 use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
 use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
 
@@ -460,13 +457,13 @@ class SaveAggregateServiceBuilderTest extends TestCase
         self::assertEquals(
             [
                 JobWasFinished::recordWith($jobId),
-                JobWasStarted::recordWith($newJobId)
+                JobWasStarted::recordWith($newJobId),
             ],
             $ecotoneLite
                 ->sendCommand(new StartJob($jobId))
                 ->discardRecordedMessages()
                 ->sendCommandWithRoutingKey('job.finish_and_start', new FinishJob($jobId), metadata: [
-                    'newJobId' => $newJobId
+                    'newJobId' => $newJobId,
                 ])
                 ->getRecordedEvents(),
         );

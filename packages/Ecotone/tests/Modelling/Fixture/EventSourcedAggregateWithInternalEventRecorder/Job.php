@@ -10,7 +10,6 @@ use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateEvents;
 use Ecotone\Modelling\WithAggregateVersioning;
-use Ramsey\Uuid\Uuid;
 
 #[EventSourcingAggregate(true)]
 /**

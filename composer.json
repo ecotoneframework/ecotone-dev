@@ -35,10 +35,8 @@
                 "packages/Ecotone/src/Enqueue/",
                 "packages/Enqueue/src"
             ],
-            "Ecotone\\EventSourcing\\": [
-                "packages/PdoEventSourcing/src",
-                "packages/PdoEventSourcing/src"
-            ],
+            "Ecotone\\EventSourcing\\": "packages/PdoEventSourcing/src",
+            "Ecotone\\EventSourcingV2\\": "packages/EventSourcingV2/src",
             "Ecotone\\JMSConverter\\": "packages/JmsConverter/src",
             "Ecotone\\Redis\\": "packages/Redis/src",
             "Ecotone\\Sqs\\": "packages/Sqs/src",
@@ -82,8 +80,10 @@
                 "packages/LiteApplication/tests"
             ],
             "Test\\Ecotone\\EventSourcing\\": [
-                "packages/EventSourcing/tests",
                 "packages/PdoEventSourcing/tests"
+            ],
+            "Test\\Ecotone\\EventSourcingV2\\": [
+                "packages/EventSourcingV2/tests"
             ],
             "Test\\Ecotone\\JMSConverter\\": [
                 "packages/JmsConverter/tests"
@@ -200,6 +200,7 @@
         "ecotone/jms-converter": "1.82.0",
         "ecotone/laravel": "1.82.0",
         "ecotone/pdo-event-sourcing": "1.82.0",
+        "ecotone/event-sourcing": "1.82.0",
         "ecotone/symfony-bundle": "1.82.0"
     },
     "scripts": {

@@ -39,6 +39,10 @@
       {
         "type": "path",
         "url": "packages/Kafka"
+      },
+      {
+        "type": "path",
+        "url": "packages/EventSourcingV2"
       }
     ]
 }

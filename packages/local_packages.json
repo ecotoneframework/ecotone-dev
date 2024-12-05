@@ -22,6 +22,10 @@
       },
       {
         "type": "path",
+        "url": "EventSourcingV2"
+      },
+      {
+        "type": "path",
         "url": "JmsConverter"
       },
       {

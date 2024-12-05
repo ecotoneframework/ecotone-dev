@@ -18,6 +18,7 @@
       <directory suffix=".php">packages/Sqs/src</directory>
       <directory suffix=".php">packages/Redis/src</directory>
       <directory suffix=".php">packages/Kafka/src</directory>
+      <directory suffix=".php">packages/EventSourcing/src</directory>
     </include>
     <report>
       <text outputFile="php://stdout" showOnlySummary="true" />
@@ -35,8 +36,11 @@
     <testsuite name="Dbal tests">
       <directory>packages/Dbal/tests</directory>
     </testsuite>
-    <testsuite name="Event Sourcing tests">
+    <testsuite name="Pdo Event Sourcing tests">
       <directory>packages/PdoEventSourcing/tests</directory>
+    </testsuite>
+    <testsuite name="Event Sourcing tests">
+      <directory>packages/EventSourcingV2/tests</directory>
     </testsuite>
     <testsuite name="Jms Converter tests">
       <directory>packages/JmsConverter/tests</directory>

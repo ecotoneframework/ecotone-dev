@@ -8,12 +8,12 @@ use Ecotone\EventSourcingV2\EventStore\Event;
 use Ecotone\EventSourcingV2\EventStore\LogEventId;
 use Ecotone\EventSourcingV2\EventStore\StreamEventId;
 
-readonly class PersistedEvent
+class PersistedEvent
 {
     public function __construct(
-        public StreamEventId $streamEventId,
-        public LogEventId    $logEventId,
-        public Event         $event,
+        public readonly StreamEventId $streamEventId,
+        public readonly LogEventId    $logEventId,
+        public readonly Event         $event,
     ) {
     }
 }

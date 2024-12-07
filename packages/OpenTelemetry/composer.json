@@ -34,7 +34,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.240.0",
+        "ecotone/ecotone": "~1.240.1",
         "open-telemetry/sdk": "^1.0.0"
     },
     "require-dev": {
@@ -64,7 +64,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.240.0-dev"
+            "dev-main": "1.240.1-dev"
         },
         "ecotone": {
             "repository": "open-telemetry"
@@ -85,7 +85,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2024-12-05 17:31:45"
+        "release-time": "2024-12-07 13:28:31"
     },
     "config": {
         "allow-plugins": {

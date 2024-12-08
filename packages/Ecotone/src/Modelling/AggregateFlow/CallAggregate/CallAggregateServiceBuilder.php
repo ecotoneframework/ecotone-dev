@@ -72,7 +72,7 @@ class CallAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
         $this->interfaceToCall = $interfaceToCall;
         $isFactoryMethod = $this->interfaceToCall->isFactoryMethod();
         if (! $this->isEventSourced && $isFactoryMethod) {
-            Assert::isTrue($this->interfaceToCall->getReturnType()->isClassNotInterface(), "Factory method {$this->interfaceToCall} for standard aggregate should return object. Did you wanted to register Event Sourced Aggregate?");
+//            Assert::isTrue($this->interfaceToCall->getReturnType()->isClassNotInterface(), "Factory method {$this->interfaceToCall} for standard aggregate should return object. Did you wanted to register Event Sourced Aggregate?");
         }
     }
 

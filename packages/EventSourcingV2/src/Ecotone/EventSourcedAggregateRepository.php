@@ -8,6 +8,7 @@ namespace Ecotone\EventSourcingV2\Ecotone;
 
 use Ecotone\EventSourcingV2\Ecotone\Attribute\EventSourced;
 use Ecotone\EventSourcingV2\Ecotone\Attribute\MutatingEvents;
+use Ecotone\EventSourcingV2\Ecotone\Config\EventStream;
 use Ecotone\EventSourcingV2\EventStore\Event;
 use Ecotone\EventSourcingV2\EventStore\EventStore;
 use Ecotone\EventSourcingV2\EventStore\StreamEventId;
@@ -18,15 +19,11 @@ use RuntimeException;
 #[Repository]
 class EventSourcedAggregateRepository implements StandardRepository
 {
+    use EventSourcedAggregateRepositoryTrait;
+
     public function __construct(
         private EventStore $eventStore,
     ) {
-    }
-
-    public function canHandle(string $aggregateClassName): bool
-    {
-        // todo: Just for the POC, should be optimized by Ecotone
-        return $this->getEventSourcedAttribute($aggregateClassName) !== null;
     }
 
     /**
@@ -66,16 +63,6 @@ class EventSourcedAggregateRepository implements StandardRepository
         $this->eventStore->append(new StreamEventId($streamId), $events);
     }
 
-    private function getEventSourcedAttribute(string|object $objectOrClass): ?EventSourced
-    {
-        $reflectionClass = new \ReflectionClass($objectOrClass);
-        $eventSourcedAttributes = $reflectionClass->getAttributes(EventSourced::class);
-        if (count($eventSourcedAttributes) === 0) {
-            return null;
-        }
-        return reset($eventSourcedAttributes)->newInstance();
-    }
-
     private function getMutatingEvents(string|object $objectOrClass): ?array
     {
         $reflectionClass = new \ReflectionClass($objectOrClass);
@@ -88,10 +75,5 @@ class EventSourcedAggregateRepository implements StandardRepository
             }
         }
         return null;
-    }
-
-    private function getStreamId(EventSourced $eventSourcedOptions, array $identifiers)
-    {
-        return $eventSourcedOptions->name . '-' . implode('-', $identifiers);
     }
 }

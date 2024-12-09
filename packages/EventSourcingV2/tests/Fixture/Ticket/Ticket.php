@@ -8,7 +8,7 @@ namespace Test\Ecotone\EventSourcingV2\Fixture\Ticket;
 
 use Ecotone\EventSourcingV2\Ecotone\Attribute\EventSourced;
 use Ecotone\EventSourcingV2\Ecotone\Attribute\EventSourcingHandler;
-use Ecotone\EventSourcingV2\Ecotone\WithEventSourcingAttributes;
+use Ecotone\EventSourcingV2\Ecotone\StandaloneAggregate\WithEventSourcingAttributes;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;

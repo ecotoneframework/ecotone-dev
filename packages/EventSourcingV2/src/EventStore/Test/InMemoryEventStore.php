@@ -11,9 +11,11 @@ use Ecotone\EventSourcingV2\EventStore\Projection\InlineProjectionManager;
 use Ecotone\EventSourcingV2\EventStore\Projection\Projector;
 use Ecotone\EventSourcingV2\EventStore\StreamEventId;
 use Ecotone\EventSourcingV2\EventStore\Subscription\EventLoader;
+use Ecotone\EventSourcingV2\EventStore\Subscription\EventPage;
+use Ecotone\EventSourcingV2\EventStore\Subscription\PersistentSubscriptions;
 use Ecotone\EventSourcingV2\EventStore\Subscription\SubscriptionQuery;
 
-class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionManager
+class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionManager, PersistentSubscriptions
 {
     private int $nextEventId = 1;
 
@@ -29,10 +31,17 @@ class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionMan
     private array $projections = [];
 
     /**
-     * @param array<string, Projector> $projectors
+     * @var array<string, SubscriptionQuery>
+     */
+    private array $subscriptions = [];
+
+    /**
+     * @param array<string, Projector> $dynamicProjectors
+     * @param array<Projector> $permanentProjectors
      */
     public function __construct(
-        private array $projectors = [],
+        private array $dynamicProjectors = [],
+        private array $permanentProjectors = [],
     ) {
     }
 
@@ -93,13 +102,18 @@ class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionMan
     {
         foreach ($this->projections as $projectorName => $state) {
             if ($state === "inline") {
-                $projector = $this->projectors[$projectorName] ?? null;
+                $projector = $this->dynamicProjectors[$projectorName] ?? null;
                 if ($projector === null) {
                     throw new \InvalidArgumentException("Projector not found");
                 }
                 foreach ($events as $event) {
                     $projector->project($event);
                 }
+            }
+        }
+        foreach ($this->permanentProjectors as $projector) {
+            foreach ($events as $event) {
+                $projector->project($event);
             }
         }
     }
@@ -122,7 +136,7 @@ class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionMan
         if ($this->projections[$projectorName] !== "catchup") {
             throw new \InvalidArgumentException("Projection is not in catchup state");
         }
-        $projector = $this->projectors[$projectorName] ?? null;
+        $projector = $this->dynamicProjectors[$projectorName] ?? null;
         if ($projector === null) {
             throw new \InvalidArgumentException("Projector not found");
         }
@@ -131,6 +145,48 @@ class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionMan
             $projector->project($event);
         }
         $this->projections[$projectorName] = "inline";
+    }
+
+    public function createSubscription(string $subscriptionName, SubscriptionQuery $subscriptionQuery): void
+    {
+        $this->subscriptions[$subscriptionName] = $subscriptionQuery;
+    }
+
+    public function deleteSubscription(string $subscriptionName): void
+    {
+        unset($this->subscriptions[$subscriptionName]);
+    }
+
+    public function readFromSubscription(string $subscriptionName): EventPage
+    {
+        $subscriptionQuery = $this->subscriptions[$subscriptionName] ?? null;
+        if ($subscriptionQuery === null) {
+            throw new \InvalidArgumentException("Subscription not found");
+        }
+        /** @var array<PersistedEvent> $persistedEvents */
+        $persistedEvents = \iterator_to_array($this->query($subscriptionQuery));
+        $lastEvent = end($persistedEvents);
+        $firstEvent = reset($persistedEvents);
+        return new EventPage(
+            $subscriptionName,
+            $persistedEvents,
+            $firstEvent ? $firstEvent->logEventId : $subscriptionQuery->from,
+            $lastEvent ? $lastEvent->logEventId : $subscriptionQuery->from,
+            $subscriptionQuery->limit ?? 0,
+        );
+    }
+
+    public function ack(EventPage $page): void
+    {
+        $subscriptionQuery = $this->subscriptions[$page->subscriptionName] ?? null;
+        if ($subscriptionQuery === null) {
+            throw new \InvalidArgumentException("Subscription not found");
+        }
+        if (!$page->events) {
+            return;
+        }
+        $lastEvent = $page->events[\array_key_last($page->events)];
+        $this->subscriptions[$page->subscriptionName] = $subscriptionQuery->withFromPosition($lastEvent->logEventId);
     }
 }
 

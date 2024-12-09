@@ -21,7 +21,7 @@ class EventSourcingAggregateRepositoryBuilder implements RepositoryBuilder
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         return new Definition(
-            \Ecotone\EventSourcingV2\Ecotone\EventSourcedAggregateRepository::class,
+            \Ecotone\EventSourcingV2\Ecotone\StandaloneAggregate\EventSourcedAggregateRepository::class,
             [
                 new Reference(EventStore::class),
             ]

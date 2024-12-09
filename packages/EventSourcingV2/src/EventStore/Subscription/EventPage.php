@@ -7,17 +7,17 @@ namespace Ecotone\EventSourcingV2\EventStore\Subscription;
 use Ecotone\EventSourcingV2\EventStore\LogEventId;
 use Ecotone\EventSourcingV2\EventStore\PersistedEvent;
 
-readonly class EventPage
+class EventPage
 {
     /**
      * @param array<PersistedEvent> $events
      */
     public function __construct(
-        public string     $subscriptionName,
-        public array      $events,
-        public LogEventId $startPosition,
-        public LogEventId $endPosition,
-        public int        $requestedBatchSize,
+        public readonly string     $subscriptionName,
+        public readonly array      $events,
+        public readonly LogEventId $startPosition,
+        public readonly LogEventId $endPosition,
+        public readonly int        $requestedBatchSize,
     ) {
     }
 }

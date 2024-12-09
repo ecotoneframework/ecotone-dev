@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcingV2\Ecotone;
+namespace Ecotone\EventSourcingV2\Ecotone\StandaloneAggregate;
 
 use Ecotone\EventSourcingV2\Ecotone\Attribute\EventSourcingHandler;
 use Ecotone\EventSourcingV2\Ecotone\Attribute\EventSourcingInitializer;

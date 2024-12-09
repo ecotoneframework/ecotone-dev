@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcingV2\Integration;
 
+use Ecotone\EventSourcingV2\EventStore\EventStore;
+use Ecotone\EventSourcingV2\EventStore\Projection\InlineProjectionManager;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -79,9 +81,24 @@ class TicketAggregateTest extends TestCase
     public function test_projection(string $aggregateClass): void
     {
         $ecotone = self::bootstrapFlowTesting([$aggregateClass, CounterProjection::class], [$counterProjection = new CounterProjection()]);
+        $eventStore = $ecotone->getGateway(EventStore::class);
 
         $ecotone->sendCommand(new CreateTicket("1"));
 
         self::assertEquals(0, $counterProjection->count(), "Projection should not be run before initialization");
+
+        assert($eventStore instanceof InlineProjectionManager);
+
+        $eventStore->addProjection('counter');
+
+        self::assertEquals(0, $counterProjection->count(), "Projection should not run without a catchup");
+
+        $eventStore->catchupProjection('counter');
+
+        self::assertEquals(1, $counterProjection->count(), "Projection should catchup existing events");
+
+        $ecotone->sendCommand(new CreateTicket("1"));
+
+        self::assertEquals(2, $counterProjection->count(), "Projection should run new events");
     }
 }

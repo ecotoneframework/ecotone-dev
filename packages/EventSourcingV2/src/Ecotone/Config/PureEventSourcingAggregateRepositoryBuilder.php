@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcingV2\Ecotone\Config;
 
+use Ecotone\EventSourcingV2\EventStore\EventStore;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -22,7 +23,7 @@ class PureEventSourcingAggregateRepositoryBuilder implements RepositoryBuilder
         return new Definition(
             \Ecotone\EventSourcingV2\Ecotone\PureEventSourcedAggregateRepository::class,
             [
-                new Reference("eventStoreV2")
+                new Reference(EventStore::class),
             ]
         );
     }

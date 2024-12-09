@@ -20,6 +20,9 @@ use Ecotone\EventSourcingV2\EventStore\Subscription\SubscriptionQuery;
 
 class PostgresEventStore implements EventStore, EventLoader, PersistentSubscriptions, InlineProjectionManager
 {
+    /**
+     * @param array<string, Projector> $projectors
+     */
     public function __construct(
         protected Connection $connection,
         protected array $projectors = [],

@@ -17,7 +17,13 @@ class CounterProjection
     private $counters = [];
 
     #[EventHandler]
-    public function on(object $event): void
+    public function onTicketWasCreated(TicketWasCreated $event): void
+    {
+        $this->counters[\get_class($event)] = ($this->counters[\get_class($event)] ?? 0) + 1;
+    }
+
+    #[EventHandler]
+    public function onTicketWasAssigned(TicketWasAssigned $event): void
     {
         $this->counters[\get_class($event)] = ($this->counters[\get_class($event)] ?? 0) + 1;
     }

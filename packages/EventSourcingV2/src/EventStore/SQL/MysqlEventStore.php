@@ -23,6 +23,9 @@ use Ecotone\EventSourcingV2\EventStore\Subscription\SubscriptionQuery;
 
 class MysqlEventStore implements EventStore, EventLoader, PersistentSubscriptions, InlineProjectionManager
 {
+    /**
+     * @param array<string, Projector> $projectors
+     */
     public function __construct(
         private Connection $connection,
         protected array $projectors = [],

@@ -6,7 +6,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcingV2\Integration;
 
-use Ecotone\EventSourcingV2\Ecotone\EcotoneAsyncProjectionRunner;
+use Ecotone\EventSourcingV2\Ecotone\EcotoneAsynchronousProjectionRunner;
+use Ecotone\EventSourcingV2\Ecotone\EcotoneAsynchronousProjectionRunnerCommand;
 use Ecotone\EventSourcingV2\EventStore\EventStore;
 use Ecotone\EventSourcingV2\EventStore\Projection\InlineProjectionManager;
 use Ecotone\EventSourcingV2\EventStore\Subscription\PersistentSubscriptions;
@@ -113,20 +114,23 @@ class TicketAggregateTest extends TestCase
     {
         $ecotone = self::bootstrapFlowTesting([$aggregateClass, AsyncCounterProjection::class], [$counterProjection = new AsyncCounterProjection()]);
         $eventStore = $ecotone->getGateway(EventStore::class);
-        /** @var EcotoneAsyncProjectionRunner $projectionRunner */
-        $projectionRunner = $ecotone->getGateway(EcotoneAsyncProjectionRunner::class);
+        /** @var EcotoneAsynchronousProjectionRunner $projectionRunner */
+        $projectionRunner = $ecotone->getGateway(EcotoneAsynchronousProjectionRunner::class);
 
         $ecotone->sendCommand(new CreateTicket("1"));
 
         self::assertEquals(0, $counterProjection->count(), "Projection should not be run before initialization");
 
         assert($eventStore instanceof PersistentSubscriptions);
+        assert($eventStore instanceof InlineProjectionManager);
 
         $eventStore->createSubscription('counter_async', new SubscriptionQuery());
 
         self::assertEquals(0, $counterProjection->count(), "Projection should not run without a catchup");
 
-        $projectionRunner->run('counter_async');
+        $ecotone->run("async_channel");
+
+//        $projectionRunner->run(new EcotoneAsynchronousProjectionRunnerCommand('counter_async'));
 
         self::assertEquals(1, $counterProjection->count(), "Projection should catchup existing events");
 

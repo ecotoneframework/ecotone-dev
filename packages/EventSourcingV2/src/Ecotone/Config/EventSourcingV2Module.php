@@ -10,10 +10,13 @@ use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcingV2\Ecotone\Attribute\EventSourced;
 use Ecotone\EventSourcingV2\Ecotone\Attribute\Projection;
-use Ecotone\EventSourcingV2\Ecotone\EcotoneAsyncProjectionRunner;
+use Ecotone\EventSourcingV2\Ecotone\EcotoneAsynchronousProjectionRunner;
+use Ecotone\EventSourcingV2\Ecotone\EcotoneAsynchronousProjectionTrigger;
 use Ecotone\EventSourcingV2\Ecotone\EcotoneProjector;
 use Ecotone\EventSourcingV2\EventStore\EventStore;
 use Ecotone\EventSourcingV2\EventStore\Test\InMemoryEventStore;
+use Ecotone\Lite\InMemoryContainerImplementation;
+use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -30,6 +33,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Config\ModellingHandlerModule;
@@ -85,6 +89,7 @@ final class EventSourcingV2Module implements AnnotationModule
     {
         /** @var array<array<string>> $projectionConfigurations */
         $projectionConfigurations = [];
+        $eventToAsyncProjectionTrigger = [];
         foreach ($this->eventHandlers as $eventHandler) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $eventHandler->getAnnotationForClass();
@@ -107,6 +112,12 @@ final class EventSourcingV2Module implements AnnotationModule
             );
 
             $projectionConfigurations[$projectionAttribute->name][$eventName] = $inputChannelName;
+            if (isset($this->asynchronousProjections[$projectionAttribute->name])) {
+                $eventToAsyncProjectionTrigger[$eventName] ??= [];
+                if (!in_array($projectionAttribute->name, $eventToAsyncProjectionTrigger[$eventName])) {
+                    $eventToAsyncProjectionTrigger[$eventName][] = $projectionAttribute->name;
+                }
+            }
         }
 
         /** @var array<string, Reference> $projectors */
@@ -120,13 +131,45 @@ final class EventSourcingV2Module implements AnnotationModule
                 ],
             );
         }
+        $projectorsReference = new Reference(self::class . ".projectors");
+        $messagingConfiguration->registerServiceDefinition($projectorsReference, new Definition(InMemoryPSRContainer::class, [$projectors], "createFromAssociativeArray"));
+
+        $permanentProjectors = [];
+
+        // Asynchronous projections
+        if ($this->asynchronousProjections) {
+            $messagingConfiguration->registerServiceDefinition(EcotoneAsynchronousProjectionRunner::class, new Definition(EcotoneAsynchronousProjectionRunner::class, [
+                new Reference(EventStore::class),
+                $projectorsReference,
+            ]));
+            $messagingConfiguration->registerServiceDefinition(EcotoneAsynchronousProjectionTrigger::class, new Definition(EcotoneAsynchronousProjectionTrigger::class, [
+                new Reference(MessagingEntrypoint::class),
+                $eventToAsyncProjectionTrigger,
+            ]));
+            $permanentProjectors[] = new Reference(EcotoneAsynchronousProjectionTrigger::class);
+            $messagingConfiguration->registerMessageHandler(
+                ServiceActivatorBuilder::create(
+                    EcotoneAsynchronousProjectionRunner::class,
+                    "run"
+                )
+                    ->withEndpointId(EcotoneAsynchronousProjectionRunner::PROJECTION_RUNNER_CHANNEL . ".endpoint")
+                    ->withInputChannelName(EcotoneAsynchronousProjectionRunner::PROJECTION_RUNNER_CHANNEL)
+            );
+
+            foreach ($this->asynchronousProjections as $projectionName => $asynchronousAttribute) {
+                $messagingConfiguration->registerAsynchronousEndpoint(
+                    $asynchronousAttribute->getChannelName(),
+                    EcotoneAsynchronousProjectionRunner::PROJECTION_RUNNER_CHANNEL . ".endpoint"
+                );
+            }
+        }
 
         // todo: use a real event store from configuration
-        $messagingConfiguration->registerServiceDefinition(EventStore::class, new Definition(InMemoryEventStore::class, [$projectors]));
-        $messagingConfiguration->registerServiceDefinition(EcotoneAsyncProjectionRunner::class, new Definition(EcotoneAsyncProjectionRunner::class, [
-            new Reference(EventStore::class),
-            $projectors,
+        $messagingConfiguration->registerServiceDefinition(EventStore::class, new Definition(InMemoryEventStore::class, [
+            $projectorsReference,
+            $permanentProjectors,
         ]));
+
     }
 
     public static function getNamedMessageChannelFor(string $projectionName, string $eventName): string
@@ -148,7 +191,7 @@ final class EventSourcingV2Module implements AnnotationModule
     {
         return [
             new EventSourcingAggregateRepositoryBuilder($this->eventSourcedAggregates),
-            new PureEventSourcingAggregateRepositoryBuilder($this->eventSourcedAggregates)
+            new PureEventSourcingAggregateRepositoryBuilder($this->eventSourcedAggregates),
         ];
     }
 }

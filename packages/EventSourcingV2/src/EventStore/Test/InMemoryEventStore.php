@@ -8,15 +8,20 @@ use Ecotone\EventSourcingV2\EventStore\EventStore;
 use Ecotone\EventSourcingV2\EventStore\LogEventId;
 use Ecotone\EventSourcingV2\EventStore\PersistedEvent;
 use Ecotone\EventSourcingV2\EventStore\Projection\InlineProjectionManager;
+use Ecotone\EventSourcingV2\EventStore\Projection\ProjectionRunnerTrait;
 use Ecotone\EventSourcingV2\EventStore\Projection\Projector;
 use Ecotone\EventSourcingV2\EventStore\StreamEventId;
 use Ecotone\EventSourcingV2\EventStore\Subscription\EventLoader;
 use Ecotone\EventSourcingV2\EventStore\Subscription\EventPage;
 use Ecotone\EventSourcingV2\EventStore\Subscription\PersistentSubscriptions;
 use Ecotone\EventSourcingV2\EventStore\Subscription\SubscriptionQuery;
+use Ecotone\Lite\InMemoryPSRContainer;
+use Psr\Container\ContainerInterface;
 
 class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionManager, PersistentSubscriptions
 {
+    use ProjectionRunnerTrait;
+
     private int $nextEventId = 1;
 
     /** @var array<PersistedEvent>  */
@@ -34,15 +39,16 @@ class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionMan
      * @var array<string, SubscriptionQuery>
      */
     private array $subscriptions = [];
+    private ContainerInterface $dynamicProjectors;
 
     /**
-     * @param array<string, Projector> $dynamicProjectors
      * @param array<Projector> $permanentProjectors
      */
     public function __construct(
-        private array $dynamicProjectors = [],
+        ContainerInterface $dynamicProjectors = null,
         private array $permanentProjectors = [],
     ) {
+        $this->dynamicProjectors = $dynamicProjectors ?? InMemoryPSRContainer::createEmpty();
     }
 
     public function append(StreamEventId $eventStreamId, array $events): array
@@ -102,19 +108,12 @@ class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionMan
     {
         foreach ($this->projections as $projectorName => $state) {
             if ($state === "inline") {
-                $projector = $this->dynamicProjectors[$projectorName] ?? null;
-                if ($projector === null) {
-                    throw new \InvalidArgumentException("Projector not found");
-                }
-                foreach ($events as $event) {
-                    $projector->project($event);
-                }
+                $projector = $this->dynamicProjectors->get($projectorName);
+                $this->projectEvents($projector, $events);
             }
         }
         foreach ($this->permanentProjectors as $projector) {
-            foreach ($events as $event) {
-                $projector->project($event);
-            }
+            $this->projectEvents($projector, $events);
         }
     }
 
@@ -136,14 +135,10 @@ class InMemoryEventStore implements EventStore, EventLoader, InlineProjectionMan
         if ($this->projections[$projectorName] !== "catchup") {
             throw new \InvalidArgumentException("Projection is not in catchup state");
         }
-        $projector = $this->dynamicProjectors[$projectorName] ?? null;
-        if ($projector === null) {
-            throw new \InvalidArgumentException("Projector not found");
-        }
+        $projector = $this->dynamicProjectors->get($projectorName);
 
-        foreach ($this->query(new SubscriptionQuery()) as $event) {
-            $projector->project($event);
-        }
+        $this->projectEvents($projector, $this->query(new SubscriptionQuery()));
+
         $this->projections[$projectorName] = "inline";
     }
 

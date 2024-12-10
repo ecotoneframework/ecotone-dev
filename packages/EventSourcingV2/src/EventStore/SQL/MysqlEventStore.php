@@ -23,6 +23,7 @@ use Ecotone\EventSourcingV2\EventStore\Subscription\SubscriptionQuery;
 
 class MysqlEventStore implements EventStore, EventLoader, PersistentSubscriptions, InlineProjectionManager
 {
+    private const MYSQL_ER_LOCK_NOWAIT = 3572;
     /**
      * @param array<string, Projector> $projectors
      */
@@ -138,14 +139,14 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
             $where = $whereParts ? 'WHERE ' . implode(' AND ', $whereParts) : '';
             $limit = $query->limit ? "LIMIT {$query->limit}" : '';
 
-            $query = <<<SQL
+            $sqlQuery = <<<SQL
                 SELECT e.id, e.stream_id, e.version, e.event_type, e.data
                 FROM {$this->eventTableName} e 
                 {$where}
                 ORDER BY e.id
                 SQL;
 
-            $statement = $this->connection->prepare("$query $limit $lock");
+            $statement = $this->connection->prepare("$sqlQuery $limit $lock");
             $statement->execute($params);
 
             while ($row = $statement->fetch()) {
@@ -156,9 +157,9 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
                 );
             }
         } catch (DriverException $e) {
-            if ($e->getCode() === 3572) {
+            if ($e->getCode() === self::MYSQL_ER_LOCK_NOWAIT && isset($sqlQuery)) {
                 // query row one by one in case of NOWAIT exception
-                $statement = $this->connection->prepare("$query LIMIT 1 OFFSET ? $lock");
+                $statement = $this->connection->prepare("$sqlQuery LIMIT 1 OFFSET ? $lock");
                 $offset = 0;
                 $offsetParamPosition = count($params);
                 while (true) {
@@ -176,7 +177,7 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
                             new Event($row['event_type'], $row['data']),
                         );
                     } catch (DriverException $e) {
-                        if ($e->getCode() === 3572) {
+                        if ($e->getCode() === self::MYSQL_ER_LOCK_NOWAIT) {
                             return;
                         } else {
                             throw $e;
@@ -184,7 +185,6 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
                     }
 
                     $offset++;
-
                 }
             } else {
                 throw $e;

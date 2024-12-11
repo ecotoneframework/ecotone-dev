@@ -13,7 +13,6 @@ class EcotoneAsynchronousProjectionRunnerCommand
     public function __construct(
         public readonly string $subscription,
         public readonly ?LogEventId $until = null
-    )
-    {
+    ) {
     }
 }

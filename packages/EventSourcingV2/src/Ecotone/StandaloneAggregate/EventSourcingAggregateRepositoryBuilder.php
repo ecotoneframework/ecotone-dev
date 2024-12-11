@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcingV2\Ecotone\Config;
+namespace Ecotone\EventSourcingV2\Ecotone\StandaloneAggregate;
 
 use Ecotone\EventSourcingV2\EventStore\EventStore;
 use Ecotone\Messaging\Config\Container\Definition;

@@ -41,7 +41,9 @@ trait CatchupProjectionTransactionalTestTrait
             usleep(1000);
             $maxSleep--;
             if ($maxSleep === 0) {
-                self::fail('Projection did not catch up');
+                $catchupProcess->stop();
+                $longRunningProcess->stop();
+                self::assertEquals($counterBaseProjection->getState(), $counterCatchupProjection->getState(),'Projection did not catch up');
             }
         }
 

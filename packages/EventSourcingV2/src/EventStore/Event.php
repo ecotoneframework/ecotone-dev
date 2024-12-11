@@ -7,14 +7,15 @@ namespace Ecotone\EventSourcingV2\EventStore;
 /**
  * @template EventData
  */
-readonly class Event
+class Event
 {
     /**
-     * @param EventData $data
+     * @param EventData $payload
      */
     public function __construct(
-        public string $type,
-        public mixed $data
+        public readonly string $type,
+        public readonly mixed $payload,
+        public readonly array $metadata = [],
     ) {
     }
 }

@@ -21,7 +21,8 @@ class PostgresTableProjector implements ProjectorWithSetup
         $this->connection->prepare(<<<SQL
             INSERT INTO {$this->tableName} (event_id)
             VALUES (?)
-            SQL)->execute([$event->logEventId->sequenceNumber]);
+            SQL)
+            ->execute([$event->logEventId->sequenceNumber]);
     }
 
     /**

@@ -39,7 +39,7 @@ class PureEventSourcedAggregateRepository implements EventSourcedRepository
         $ecotoneEvents = [];
         $version = 0;
         foreach ($persistedEvents as $persistedEvent) {
-            $ecotoneEvents[] = \Ecotone\Modelling\Event::createWithType($persistedEvent->event->type, $persistedEvent->event->data);
+            $ecotoneEvents[] = \Ecotone\Modelling\Event::createWithType($persistedEvent->event->type, $persistedEvent->event->payload);
             $version = $persistedEvent->streamEventId->version;
         }
 

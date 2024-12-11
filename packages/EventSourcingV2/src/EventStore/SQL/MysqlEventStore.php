@@ -23,7 +23,10 @@ use Ecotone\EventSourcingV2\EventStore\Subscription\SubscriptionQuery;
 
 class MysqlEventStore implements EventStore, EventLoader, PersistentSubscriptions, InlineProjectionManager
 {
+    protected bool $schemaIsKnownToExists = false;
+
     private const MYSQL_ER_LOCK_NOWAIT = 3572;
+    private const MYSQL_ER_NO_SUCH_TABLE = 1146;
     /**
      * @param array<string, Projector> $projectors
      */
@@ -35,12 +38,15 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
         protected string $streamTableName = 'es_stream',
         protected string $subscriptionTableName = 'es_subscription',
         protected string $projectionTableName = 'es_projection',
+        protected bool $createSchema = true,
     )
     {
     }
 
     public function append(StreamEventId $eventStreamId, array $events): array
     {
+        $this->ensureSchemaExists();
+
         $transaction = $this->connection->beginTransaction();
         try {
             $lastInsertIdStatement = $this->connection->prepare("SELECT LAST_INSERT_ID()");
@@ -53,8 +59,8 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
             }
             $version = $actualStreamVersion ?? 0;
             $statement = $this->connection->prepare(<<<SQL
-                INSERT INTO {$this->eventTableName} (stream_id, version, event_type, data)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO {$this->eventTableName} (stream_id, version, event_type, payload, metadata)
+                VALUES (?, ?, ?, ?, ?)
                 SQL);
             $persistedEvents = [];
             foreach ($events as $event) {
@@ -62,7 +68,8 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
                     $eventStreamId->streamId,
                     $version++,
                     $event->type,
-                    json_encode($event->data),
+                    json_encode($event->payload, JSON_FORCE_OBJECT),
+                    json_encode($event->metadata, JSON_FORCE_OBJECT),
                 ]);
                 $lastInsertIdStatement->execute();
                 $lastInsertId = $lastInsertIdStatement->fetchColumn();
@@ -90,7 +97,7 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
 
     public function load(StreamEventId $eventStreamId): iterable
     {
-        $statement = $this->connection->prepare("SELECT id, version, event_type, data FROM {$this->eventTableName} WHERE stream_id = ? ORDER BY id");
+        $statement = $this->connection->prepare("SELECT id, version, event_type, payload FROM {$this->eventTableName} WHERE stream_id = ? ORDER BY id");
         $statement->execute([$eventStreamId->streamId]);
 
         $events = [];
@@ -98,7 +105,7 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
             $events[] = new PersistedEvent(
                 new StreamEventId($eventStreamId->streamId, (int) $row['version']),
                 new LogEventId(0, (int) $row['id']),
-                new Event($row['event_type'], $row['data']),
+                new Event($row['event_type'], $row['payload']),
             );
         }
 
@@ -140,7 +147,7 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
             $limit = $query->limit ? "LIMIT {$query->limit}" : '';
 
             $sqlQuery = <<<SQL
-                SELECT e.id, e.stream_id, e.version, e.event_type, e.data
+                SELECT e.id, e.stream_id, e.version, e.event_type, e.payload
                 FROM {$this->eventTableName} e 
                 {$where}
                 ORDER BY e.id
@@ -153,7 +160,7 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
                 yield new PersistedEvent(
                     new StreamEventId($row['stream_id'], (int) $row['version']),
                     new LogEventId(0, (int) $row['id']),
-                    new Event($row['event_type'], $row['data']),
+                    new Event($row['event_type'], $row['payload']),
                 );
             }
         } catch (DriverException $e) {
@@ -174,7 +181,7 @@ class MysqlEventStore implements EventStore, EventLoader, PersistentSubscription
                         yield new PersistedEvent(
                             new StreamEventId($row['stream_id'], (int) $row['version']),
                             new LogEventId(0, (int) $row['id']),
-                            new Event($row['event_type'], $row['data']),
+                            new Event($row['event_type'], $row['payload']),
                         );
                     } catch (DriverException $e) {
                         if ($e->getCode() === self::MYSQL_ER_LOCK_NOWAIT) {
@@ -219,6 +226,8 @@ SQL);
 
     public function addProjection(string $projectorName, string $state = "catchup"): void
     {
+        $this->ensureSchemaExists();
+
         $projector = $this->getProjector($projectorName);
 
         $this->connection->prepare(<<<SQL
@@ -234,6 +243,8 @@ SQL);
 
     public function removeProjection(string $projectorName): void
     {
+        $this->ensureSchemaExists();
+
         $this->connection->prepare(<<<SQL
             DELETE FROM {$this->projectionTableName}
             WHERE name = ?
@@ -252,6 +263,8 @@ SQL);
 
     public function catchupProjection(string $projectorName, int $missingEventsMaxLoops = 100): void
     {
+        $this->ensureSchemaExists();
+
         $projector = $this->getProjector($projectorName);
         $transaction = $this->connection->beginTransaction();
         if ($transaction instanceof NoOpTransaction) {
@@ -367,6 +380,8 @@ SQL);
 
     public function createSubscription(string $subscriptionName, SubscriptionQuery $subscriptionQuery): void
     {
+        $this->ensureSchemaExists();
+
         $position = $subscriptionQuery->from ?? LogEventId::start();
         $this->connection->prepare(<<<SQL
             INSERT INTO {$this->subscriptionTableName} (event_id, name, query)
@@ -379,6 +394,8 @@ SQL);
 
     public function deleteSubscription(string $subscriptionName): void
     {
+        $this->ensureSchemaExists();
+
         $this->connection->prepare(<<<SQL
             DELETE FROM {$this->subscriptionTableName}
             WHERE name = ?
@@ -448,7 +465,8 @@ CREATE TABLE IF NOT EXISTS es_event
     stream_id      VARCHAR(255)    NOT NULL,
     version        INTEGER UNSIGNED NOT NULL,
     event_type     TEXT    NOT NULL,
-    data           JSON    NOT NULL,
+    payload        JSON    NOT NULL,
+    metadata       JSON    NOT NULL,
     UNIQUE (stream_id, version),
     INDEX (stream_id)
 );
@@ -501,5 +519,28 @@ SQL);
             throw new \RuntimeException('Unknown projector ' . $projectorName);
         }
         return $projector;
+    }
+
+    protected function ensureSchemaExists(): void
+    {
+        if (!$this->schemaIsKnownToExists && $this->createSchema) {
+            $transaction = $this->connection->beginTransaction();
+            try {
+                $wasInTransaction = $transaction instanceof NoOpTransaction;
+                $statement = $this->connection->prepare("SELECT 1 FROM {$this->eventTableName} LIMIT 1");
+                $statement->execute();
+                $transaction->commit();
+            } catch (DriverException $e) {
+                $transaction->rollBack();
+                if ($e->getCode() === self::MYSQL_ER_NO_SUCH_TABLE) {
+                    if ($wasInTransaction) {
+                        throw new \RuntimeException('ensureSchemaExists would have created the event store tables but it should not be called inside a transaction: the transaction would have been commited by DDL changes');
+                    }
+                    $this->schemaUp();
+                }
+            }
+
+            $this->schemaIsKnownToExists = true;
+        }
     }
 }

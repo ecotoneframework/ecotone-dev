@@ -25,7 +25,7 @@ class EcotoneProjector implements Projector
             return;
         }
         $this->messagingEntrypoint->send(
-            $event->event->data,
+            $event->event->payload,
             $route,
         );
     }

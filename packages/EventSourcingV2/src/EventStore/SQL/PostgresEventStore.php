@@ -20,6 +20,8 @@ use Ecotone\EventSourcingV2\EventStore\Subscription\SubscriptionQuery;
 
 class PostgresEventStore implements EventStore, EventLoader, PersistentSubscriptions, InlineProjectionManager
 {
+    protected bool $schemaIsKnownToExists = false;
+
     /**
      * @param array<string, Projector> $projectors
      */
@@ -31,6 +33,7 @@ class PostgresEventStore implements EventStore, EventLoader, PersistentSubscript
         protected string $streamTableName = 'es_stream',
         protected string $subscriptionTableName = 'es_subscription',
         protected string $projectionTableName = 'es_projection',
+        protected bool $createSchema = true,
     ) {
     }
 
@@ -39,6 +42,7 @@ class PostgresEventStore implements EventStore, EventLoader, PersistentSubscript
      */
     public function append(StreamEventId $eventStreamId, array $events): array
     {
+        $this->ensureSchemaExists();
         $transaction = $this->connection->beginTransaction();
         try {
             $streamVersionStatement = $this->connection->prepare("SELECT version FROM {$this->streamTableName} WHERE stream_id = ?");
@@ -50,7 +54,7 @@ class PostgresEventStore implements EventStore, EventLoader, PersistentSubscript
             }
             $version = $actualStreamVersion ?? 0;
             $statement = $this->connection->prepare(<<<SQL
-                INSERT INTO {$this->eventTableName} (stream_id, version, event_type, data)
+                INSERT INTO {$this->eventTableName} (stream_id, version, event_type, payload)
                 VALUES (?, ?, ?, ?)
                 RETURNING id, transaction_id
                 SQL);
@@ -60,7 +64,7 @@ class PostgresEventStore implements EventStore, EventLoader, PersistentSubscript
                     $eventStreamId->streamId,
                     $version++,
                     $event->type,
-                    json_encode($event->data),
+                    json_encode($event->payload),
                 ]);
                 $row = $statement->fetch();
                 $persistedEvents[] = new PersistedEvent(
@@ -90,7 +94,7 @@ class PostgresEventStore implements EventStore, EventLoader, PersistentSubscript
      */
     public function load(StreamEventId $eventStreamId): iterable
     {
-        $statement = $this->connection->prepare("SELECT id, transaction_id, version, event_type, data FROM {$this->eventTableName} WHERE stream_id = ? ORDER BY id");
+        $statement = $this->connection->prepare("SELECT id, transaction_id, version, event_type, payload FROM {$this->eventTableName} WHERE stream_id = ? ORDER BY id");
         $statement->execute([$eventStreamId->streamId]);
 
         $events = [];
@@ -98,7 +102,7 @@ class PostgresEventStore implements EventStore, EventLoader, PersistentSubscript
             $events[] = new PersistedEvent(
                 new StreamEventId($eventStreamId->streamId, (int) $row['version']),
                 new LogEventId((int) $row['transaction_id'], (int) $row['id']),
-                new Event($row['event_type'], $row['data']),
+                new Event($row['event_type'], $row['payload']),
             );
         }
 
@@ -129,7 +133,7 @@ class PostgresEventStore implements EventStore, EventLoader, PersistentSubscript
         $limit = $query->limit ? "LIMIT {$query->limit}" : '';
 
         $query = <<<SQL
-SELECT e.id, e.transaction_id, e.stream_id, e.version, e.event_type, e.data
+SELECT e.id, e.transaction_id, e.stream_id, e.version, e.event_type, e.payload
 FROM {$this->eventTableName} e 
 {$where}
 ORDER BY e.transaction_id, e.id
@@ -143,7 +147,7 @@ SQL;
             yield new PersistedEvent(
                 new StreamEventId($row['stream_id'], (int) $row['version']),
                 new LogEventId((int) $row['transaction_id'], (int) $row['id']),
-                new Event($row['event_type'], $row['data']),
+                new Event($row['event_type'], $row['payload']),
             );
         }
     }
@@ -158,6 +162,8 @@ SQL;
      */
     public function createSubscription(string $subscriptionName, SubscriptionQuery $subscriptionQuery): void
     {
+        $this->ensureSchemaExists();
+
         $position = $subscriptionQuery->from ?? LogEventId::start();
         $this->connection->prepare(<<<SQL
             INSERT INTO {$this->subscriptionTableName} (transaction_id, event_id, name, query)
@@ -170,6 +176,8 @@ SQL;
 
     public function deleteSubscription(string $subscriptionName): void
     {
+        $this->ensureSchemaExists();
+
         $this->connection->prepare(<<<SQL
             DELETE FROM {$this->subscriptionTableName}
             WHERE name = ?
@@ -261,6 +269,8 @@ SQL);
 
     public function addProjection(string $projectorName, string $state = "catchup"): void
     {
+        $this->ensureSchemaExists();
+
         $projector = $this->getProjector($projectorName);
 
         $this->connection->prepare(<<<SQL
@@ -276,6 +286,8 @@ SQL);
 
     public function removeProjection(string $projectorName): void
     {
+        $this->ensureSchemaExists();
+
         $this->connection->prepare(<<<SQL
             DELETE FROM {$this->projectionTableName}
             WHERE name = ?
@@ -294,6 +306,8 @@ SQL);
 
     public function catchupProjection(string $projectorName, int $missingEventsMaxLoops = 100): void
     {
+        $this->ensureSchemaExists();
+
         $transaction = $this->connection->beginTransaction();
         try {
             $statement = $this->connection->prepare(<<<SQL
@@ -307,24 +321,25 @@ SQL);
             if (!$projection) {
                 throw new \RuntimeException('Projection not found');
             }
-            if ($projection['state'] !== 'catchup') {
-                throw new \RuntimeException('Projection is not in catchup state');
+            if ($projection['state'] === 'catchup') {
+                $statement = $this->connection->prepare(<<<SQL
+                    UPDATE {$this->projectionTableName}
+                    SET state = 'catching_up'
+                    WHERE name = ?
+                    SQL);
+                $statement->execute([$projectorName]);
+                $this->createSubscription($projectorName, new SubscriptionQuery(limit: 1000));
+            } elseif ($projection['state'] !== 'catching_up') {
+                throw new \RuntimeException('Cannot catchup projection in state ' . $projection['state']);
             }
             $projector = $this->getProjector($projectorName);
 
-            $statement = $this->connection->prepare(<<<SQL
-                UPDATE {$this->projectionTableName}
-                SET state = 'catching_up'
-                WHERE name = ?
-                SQL);
-            $statement->execute([$projectorName]);
            $transaction->commit();
         } catch (\Throwable $e) {
            $transaction->rollBack();
             throw $e;
         }
 
-        $this->createSubscription($projectorName, new SubscriptionQuery(limit: 1000));
         do {
             $page = $this->readFromSubscription($projectorName);
             if ($page->events === []) {
@@ -417,7 +432,8 @@ CREATE TABLE IF NOT EXISTS {$this->eventTableName}
     stream_id      UUID    NOT NULL,
     version        INTEGER NOT NULL,
     event_type     TEXT    NOT NULL,
-    data           JSON    NOT NULL,
+    payload        JSON    NOT NULL,
+    metadata       JSON    NOT NULL DEFAULT '{}',
     UNIQUE (stream_id, version)
 );
 
@@ -460,5 +476,17 @@ DROP TABLE IF EXISTS {$this->projectionTableName};
 
 DROP TABLE IF EXISTS {$this->subscriptionTableName};
 SQL);
+    }
+
+    protected function ensureSchemaExists(): void
+    {
+        if (!$this->schemaIsKnownToExists && $this->createSchema) {
+            $statement = $this->connection->prepare("SELECT to_regclass(?)");
+            $statement->execute([$this->eventTableName]);
+            if ($statement->fetchColumn() === null) {
+                $this->schemaUp();
+            }
+            $this->schemaIsKnownToExists = true;
+        }
     }
 }

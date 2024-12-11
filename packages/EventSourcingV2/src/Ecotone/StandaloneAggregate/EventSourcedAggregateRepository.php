@@ -40,7 +40,7 @@ class EventSourcedAggregateRepository implements StandardRepository
 
         $businessEvents = [];
         foreach ($persistedEvents as $persistedEvent) {
-            $businessEvents[] = $persistedEvent->event->data;
+            $businessEvents[] = $persistedEvent->event->payload;
         }
 
         return $aggregateClassName::fromEvents($businessEvents);

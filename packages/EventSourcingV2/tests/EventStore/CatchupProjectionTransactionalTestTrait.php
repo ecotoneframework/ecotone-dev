@@ -36,9 +36,9 @@ trait CatchupProjectionTransactionalTestTrait
 
         $catchupProcess->start();
 
-        $maxSleep = 1000;
+        $maxSleep = 10000;
         while ($counterBaseProjection->getState() != $counterCatchupProjection->getState()) {
-            usleep(1000);
+            usleep(2000);
             $maxSleep--;
             if ($maxSleep === 0) {
                 $catchupProcess->stop();

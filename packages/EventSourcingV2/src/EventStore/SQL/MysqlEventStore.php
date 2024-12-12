@@ -251,6 +251,8 @@ SQL);
             SQL)
             ->execute([$projectorName]);
 
+        $this->deleteSubscription($projectorName);
+
         try {
             $projector = $this->getProjector($projectorName);
             if ($projector instanceof ProjectorWithSetup) {

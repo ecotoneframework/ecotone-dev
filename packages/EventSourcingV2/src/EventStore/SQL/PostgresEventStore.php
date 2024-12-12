@@ -294,6 +294,8 @@ SQL);
             SQL)
             ->execute([$projectorName]);
 
+        $this->deleteSubscription($projectorName);
+
         try {
             $projector = $this->getProjector($projectorName);
             if ($projector instanceof ProjectorWithSetup) {
@@ -384,13 +386,14 @@ SQL);
             try {
                 $currentXminStatement->execute();
                 $currentXmin = $currentXminStatement->fetchColumn();
-                $page = $this->persistentSubscriptions()->readFromSubscription($projectorName);
+                $page = $this->readFromSubscription($projectorName);
                 foreach ($page->events as $event) {
                     if ($event->logEventId->transactionId > $lastTransactionId) {
                         break;
                     }
                     $projector->project($event);
                 }
+                $this->ack($page);
 
                 $transaction->commit();
             } catch (\Throwable $e) {
@@ -399,13 +402,13 @@ SQL);
             }
 
             if ($currentXmin > $lastTransactionId) {
+                $this->persistentSubscriptions()->deleteSubscription($projectorName);
                 break;
             }
 
             $missingEventsLoop++;
             \usleep(1000);
         }
-        $this->persistentSubscriptions()->deleteSubscription($projectorName);
     }
 
     protected function getProjector(string $projectorName): Projector

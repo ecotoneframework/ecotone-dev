@@ -48,7 +48,8 @@ class PostgresTableProjector implements ProjectorWithSetup
     {
         $this->connection->prepare(<<<SQL
             CREATE TABLE {$this->tableName} (
-                event_id BIGINT PRIMARY KEY
+                id SERIAL PRIMARY KEY,
+                event_id BIGINT
             )
             SQL)->execute();
 

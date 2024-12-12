@@ -362,6 +362,9 @@ SQL);
 
         $transaction = $this->connection->beginTransaction();
         try {
+            // @todo: check that there is no concurrency issue here, where a transaction open
+            //      after the last transaction id is updated, but before this transaction is committed
+            //      This could make the projector miss some events, because it won't see the projection as 'inline'
             $lastTransactionIdStatement = $this->connection->prepare(<<<SQL
                 UPDATE {$this->projectionTableName}
                 SET state = 'inline', after_transaction_id = pg_snapshot_xmax(pg_current_snapshot())

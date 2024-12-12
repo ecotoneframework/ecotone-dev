@@ -250,6 +250,7 @@ WHERE state = 'inline' AND (
         OR 
     after_transaction_id < pg_current_xact_id_if_assigned())
 ORDER BY name
+FOR SHARE
 SQL);
         $statement->execute();
 
@@ -362,9 +363,6 @@ SQL);
 
         $transaction = $this->connection->beginTransaction();
         try {
-            // @todo: check that there is no concurrency issue here, where a transaction open
-            //      after the last transaction id is updated, but before this transaction is committed
-            //      This could make the projector miss some events, because it won't see the projection as 'inline'
             $lastTransactionIdStatement = $this->connection->prepare(<<<SQL
                 UPDATE {$this->projectionTableName}
                 SET state = 'inline', after_transaction_id = pg_snapshot_xmax(pg_current_snapshot())
@@ -458,6 +456,7 @@ CREATE TABLE IF NOT EXISTS {$this->projectionTableName}
     name                 TEXT NOT NULL PRIMARY KEY,
     state                TEXT NOT NULL,
     after_transaction_id XID8,
+    before_transaction_id XID8,
     metadata             JSONB DEFAULT NULL
 );
 

@@ -54,8 +54,8 @@ class PostgresEventStore implements EventStore, EventLoader, PersistentSubscript
             }
             $version = $actualStreamVersion ?? 0;
             $statement = $this->connection->prepare(<<<SQL
-                INSERT INTO {$this->eventTableName} (stream_id, version, event_type, payload)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO {$this->eventTableName} (stream_id, version, event_type, payload, metadata)
+                VALUES (?, ?, ?, ?, ?)
                 RETURNING id, transaction_id
                 SQL);
             $persistedEvents = [];
@@ -64,7 +64,8 @@ class PostgresEventStore implements EventStore, EventLoader, PersistentSubscript
                     $eventStreamId->streamId,
                     $version++,
                     $event->type,
-                    json_encode($event->payload),
+                    json_encode($event->payload, JSON_FORCE_OBJECT),
+                    json_encode($event->metadata, JSON_FORCE_OBJECT),
                 ]);
                 $row = $statement->fetch();
                 $persistedEvents[] = new PersistedEvent(
@@ -246,9 +247,11 @@ SELECT name FROM {$this->projectionTableName}
 WHERE state = 'inline' AND (
     after_transaction_id IS NULL 
         OR 
-    pg_current_xact_id_if_assigned() IS NULL
+    after_transaction_id < pg_current_xact_id())
+AND (
+    before_transaction_id IS NULL 
         OR 
-    after_transaction_id < pg_current_xact_id_if_assigned())
+    before_transaction_id < pg_current_xact_id())
 ORDER BY name
 FOR SHARE
 SQL);
@@ -365,7 +368,7 @@ SQL);
         try {
             $lastTransactionIdStatement = $this->connection->prepare(<<<SQL
                 UPDATE {$this->projectionTableName}
-                SET state = 'inline', after_transaction_id = pg_snapshot_xmax(pg_current_snapshot())
+                SET state = 'inline', after_transaction_id = pg_snapshot_xmax(pg_current_snapshot()), before_transaction_id = NULL
                 WHERE name = ?
                 RETURNING after_transaction_id
                 SQL);
@@ -409,6 +412,43 @@ SQL);
 
             $missingEventsLoop++;
             \usleep(1000);
+        }
+    }
+
+    public function switchProjectionToSubscription(string $projectionName): void
+    {
+        $this->ensureSchemaExists();
+
+        $transaction = $this->connection->beginTransaction();
+        try {
+            $statement = $this->connection->prepare(<<<SQL
+                SELECT name, state
+                FROM {$this->projectionTableName}
+                WHERE name = ?
+                FOR UPDATE
+                SQL);
+            $statement->execute([$projectionName]);
+            $projection = $statement->fetch();
+            if (!$projection) {
+                throw new \RuntimeException('Projection not found');
+            }
+            if ($projection['state'] !== 'inline') {
+                throw new \RuntimeException('Cannot switch projection in state ' . $projection['state']);
+            }
+            $statement = $this->connection->prepare(<<<SQL
+                UPDATE {$this->projectionTableName}
+                SET before_transaction_id = pg_snapshot_xmax(pg_current_snapshot())
+                WHERE name = ?
+                RETURNING before_transaction_id
+                SQL);
+            $statement->execute([$projectionName]);
+            $beforeTransactionId = $statement->fetchColumn();
+            $this->createSubscription($projectionName, new SubscriptionQuery(from: new LogEventId($beforeTransactionId, 0)));
+
+            $transaction->commit();
+        } catch (\Throwable $e) {
+            $transaction->rollBack();
+            throw $e;
         }
     }
 
@@ -459,6 +499,9 @@ CREATE TABLE IF NOT EXISTS {$this->projectionTableName}
     before_transaction_id XID8,
     metadata             JSONB DEFAULT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_{$this->projectionTableName}_state ON {$this->projectionTableName} (state);
+CREATE INDEX IF NOT EXISTS idx_{$this->projectionTableName}_after_transaction_id ON {$this->projectionTableName} (after_transaction_id);
+CREATE INDEX IF NOT EXISTS idx_{$this->projectionTableName}_before_transaction_id ON {$this->projectionTableName} (before_transaction_id);
 
 CREATE TABLE IF NOT EXISTS {$this->subscriptionTableName}
 (

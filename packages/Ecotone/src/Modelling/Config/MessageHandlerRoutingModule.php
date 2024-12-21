@@ -86,7 +86,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
     {
         $objectCommandHandlers = [];
         foreach ($annotationRegistrationService->findCombined(Aggregate::class, CommandHandler::class) as $registration) {
-            if (AggregrateHandlerModule::hasMessageNameDefined($registration)) {
+            if (self::hasMessageNameDefined($registration)) {
                 continue;
             }
             if ($hasToBeDistributed && (! $registration->hasMethodAnnotation(Distributed::class) && ! $registration->hasClassAnnotation(Distributed::class))) {
@@ -104,7 +104,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             if ($registration->hasClassAnnotation(Aggregate::class)) {
                 continue;
             }
-            if (AggregrateHandlerModule::hasMessageNameDefined($registration)) {
+            if (self::hasMessageNameDefined($registration)) {
                 continue;
             }
             if ($hasToBeDistributed && (! $registration->hasMethodAnnotation(Distributed::class) && ! $registration->hasClassAnnotation(Distributed::class))) {
@@ -172,7 +172,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
     {
         $objectQueryHandlers = [];
         foreach ($annotationRegistrationService->findCombined(Aggregate::class, QueryHandler::class) as $registration) {
-            if (AggregrateHandlerModule::hasMessageNameDefined($registration)) {
+            if (self::hasMessageNameDefined($registration)) {
                 continue;
             }
 
@@ -187,7 +187,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             if ($registration->hasClassAnnotation(Aggregate::class)) {
                 continue;
             }
-            if (AggregrateHandlerModule::hasMessageNameDefined($registration)) {
+            if (self::hasMessageNameDefined($registration)) {
                 continue;
             }
 
@@ -233,7 +233,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
     {
         $objectEventHandlers = [];
         foreach ($annotationRegistrationService->findCombined(Aggregate::class, EventHandler::class) as $registration) {
-            if (AggregrateHandlerModule::hasMessageNameDefined($registration)) {
+            if (self::hasMessageNameDefined($registration)) {
                 continue;
             }
             if ($hasToBeDistributed && (! $registration->hasMethodAnnotation(Distributed::class) || ! $registration->hasClassAnnotation(Distributed::class))) {
@@ -260,7 +260,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             if ($registration->hasClassAnnotation(Aggregate::class)) {
                 continue;
             }
-            if (AggregrateHandlerModule::hasMessageNameDefined($registration)) {
+            if (self::hasMessageNameDefined($registration)) {
                 continue;
             }
 
@@ -413,6 +413,20 @@ class MessageHandlerRoutingModule implements AnnotationModule
         }
 
         return $inputChannelName;
+    }
+
+    public static function hasMessageNameDefined(AnnotatedFinding $registration): bool
+    {
+        /** @var InputOutputEndpointAnnotation $annotationForMethod */
+        $annotationForMethod = $registration->getAnnotationForMethod();
+
+        if ($annotationForMethod instanceof EventHandler) {
+            $inputChannelName = $annotationForMethod->getListenTo();
+        } else {
+            $inputChannelName = $annotationForMethod->getInputChannelName();
+        }
+
+        return $inputChannelName ? true : false;
     }
 
     /**

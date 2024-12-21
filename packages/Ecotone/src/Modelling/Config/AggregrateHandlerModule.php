@@ -183,20 +183,6 @@ class AggregrateHandlerModule implements AnnotationModule
         return [];
     }
 
-    public static function hasMessageNameDefined(AnnotatedFinding $registration): bool
-    {
-        /** @var InputOutputEndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        if ($annotationForMethod instanceof EventHandler) {
-            $inputChannelName = $annotationForMethod->getListenTo();
-        } else {
-            $inputChannelName = $annotationForMethod->getInputChannelName();
-        }
-
-        return $inputChannelName ? true : false;
-    }
-
     /**
      * @inheritDoc
      */

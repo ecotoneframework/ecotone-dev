@@ -89,31 +89,6 @@ final class ServiceHandlerModule implements AnnotationModule
         return $annotationForMethod->getEndpointId() . '.target';
     }
 
-    public static function getNamedMessageChannelFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
-    {
-        /** @var InputOutputEndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        if ($annotationForMethod instanceof EventHandler) {
-            $inputChannelName = $annotationForMethod->getListenTo();
-        } else {
-            $inputChannelName = $annotationForMethod->getInputChannelName();
-        }
-
-        if (!$inputChannelName) {
-            $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
-            if ($interfaceToCall->hasNoParameters()) {
-                throw ConfigurationException::create("Missing class type hint or routing key for {$registration}.");
-            }
-            if ($interfaceToCall->getFirstParameter()->getTypeDescriptor()->isUnionType()) {
-                throw ConfigurationException::create("Query and Command handlers can not be registered with union Command type in {$registration}");
-            }
-            $inputChannelName = $interfaceToCall->getFirstParameterTypeHint();
-        }
-
-        return $inputChannelName;
-    }
-
     /**
      * @inheritDoc
      */
@@ -132,17 +107,11 @@ final class ServiceHandlerModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $moduleExtensions, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
-            $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(EnterpriseAggregateMethodInvoker::class), new Definition(EnterpriseAggregateMethodInvoker::class));
-        } else {
-            $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(OpenCoreAggregateMethodInvoker::class), new Definition(OpenCoreAggregateMethodInvoker::class));
-        }
-
         foreach ($this->serviceCommandHandlers as $registration) {
-            $this->registerServiceHandler(self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
+            $this->registerServiceHandler(MessageHandlerRoutingModule::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
         foreach ($this->serviceQueryHandlers as $registration) {
-            $this->registerServiceHandler(self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
+            $this->registerServiceHandler(MessageHandlerRoutingModule::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
         foreach ($this->serviceEventHandlers as $registration) {
             $this->registerServiceHandler(MessageHandlerRoutingModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));

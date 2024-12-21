@@ -40,27 +40,16 @@ use Ecotone\Modelling\EventSourcingExecutor\OpenCoreAggregateMethodInvoker;
 final class ServiceHandlerModule implements AnnotationModule
 {
     /**
-     * @var AnnotatedFinding[]
+     * @param AnnotatedFinding[] $serviceCommandHandlers
+     * @param AnnotatedFinding[] $serviceQueryHandlers
+     * @param AnnotatedFinding[] $serviceEventHandlers
      */
-    private array $serviceCommandHandlers;
-    /**
-     * @var AnnotatedFinding[]
-     */
-    private array $serviceQueryHandlers;
-    /**
-     * @var AnnotatedFinding[]
-     */
-    private array $serviceEventHandlers;
-
     private function __construct(
-        array                               $serviceCommandHandlersRegistrations,
-        array                               $serviceQueryHandlerRegistrations,
-        array                               $serviceEventHandlers,
+        private array $serviceCommandHandlers,
+        private array $serviceQueryHandlers,
+        private array $serviceEventHandlers,
     )
     {
-        $this->serviceCommandHandlers = $serviceCommandHandlersRegistrations;
-        $this->serviceQueryHandlers = $serviceQueryHandlerRegistrations;
-        $this->serviceEventHandlers = $serviceEventHandlers;
     }
 
     /**

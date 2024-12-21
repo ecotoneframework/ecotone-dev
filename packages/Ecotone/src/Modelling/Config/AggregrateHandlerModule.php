@@ -72,43 +72,20 @@ use ReflectionParameter;
  */
 class AggregrateHandlerModule implements AnnotationModule
 {
-    private ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory;
     /**
-     * @var AnnotatedFinding[]
+     * @param AnnotatedFinding[] $aggregateCommandHandlers
+     * @param AnnotatedFinding[] $aggregateQueryHandlers
+     * @param AnnotatedFinding[] $aggregateEventHandlers
+     * @param string[] $aggregateRepositoryReferenceNames
+     * @param AnnotatedFinding[] $gatewayRepositoryMethods
      */
-    private array $aggregateCommandHandlers;
-    /**
-     * @var AnnotatedFinding[]
-     */
-    private array $aggregateQueryHandlers;
-    /**
-     * @var AnnotatedFinding[]
-     */
-    private array $aggregateEventHandlers;
-    /**
-     * @var AnnotatedFinding[]
-     */
-    private array $gatewayRepositoryMethods;
-    /**
-     * @var string[]
-     */
-    private array $aggregateRepositoryReferenceNames;
-
     private function __construct(
-        ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory,
-        array $aggregateCommandHandlerRegistrations,
-        array $aggregateQueryHandlerRegistrations,
-        array $aggregateEventHandlers,
-        array $aggregateRepositoryReferenceNames,
-        array $gatewayRepositoryMethods
-    ) {
-        $this->parameterConverterAnnotationFactory = $parameterConverterAnnotationFactory;
-        $this->aggregateCommandHandlers            = $aggregateCommandHandlerRegistrations;
-        $this->aggregateQueryHandlers              = $aggregateQueryHandlerRegistrations;
-        $this->aggregateEventHandlers               = $aggregateEventHandlers;
-        $this->aggregateRepositoryReferenceNames    = $aggregateRepositoryReferenceNames;
-        $this->gatewayRepositoryMethods = $gatewayRepositoryMethods;
-    }
+        private array $aggregateCommandHandlers,
+        private array $aggregateQueryHandlers,
+        private array $aggregateEventHandlers,
+        private array $aggregateRepositoryReferenceNames,
+        private array $gatewayRepositoryMethods
+    ) {}
 
     /**
      * In here we should provide messaging component for module
@@ -125,7 +102,6 @@ class AggregrateHandlerModule implements AnnotationModule
         }
 
         return new self(
-            ParameterConverterAnnotationFactory::create(),
             array_filter(
                 $annotationRegistrationService->findAnnotatedMethods(CommandHandler::class),
                 function (AnnotatedFinding $annotatedFinding) {

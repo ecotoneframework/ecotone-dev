@@ -49,7 +49,7 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\BusRoutingModule;
 use Ecotone\Modelling\Config\DistributedGatewayModule;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryModule;
-use Ecotone\Modelling\Config\ModellingHandlerModule;
+use Ecotone\Modelling\Config\AggregrateAndServiceHandlerModule;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\QueryBus;
@@ -67,7 +67,7 @@ class ModuleClassList
 {
     public const CORE_MODULES = [
         DistributedGatewayModule::class,
-        ModellingHandlerModule::class,
+        AggregrateAndServiceHandlerModule::class,
         BusRoutingModule::class,
         MethodInterceptorModule::class,
         MessagingCommandsModule::class,

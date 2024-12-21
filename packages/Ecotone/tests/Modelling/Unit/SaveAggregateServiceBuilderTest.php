@@ -31,6 +31,7 @@ use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Order;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\OrderWithManualVersioning;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\FinishJob;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\Job;
+use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobRepositoryInterface;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasFinished;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasStarted;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\StartJob;
@@ -467,5 +468,25 @@ class SaveAggregateServiceBuilderTest extends TestCase
                 ])
                 ->getRecordedEvents(),
         );
+    }
+
+    /**@
+     * @TODO
+     */
+    public function test_storing_event_sourced_with_internal_using_interface_repository(): void
+    {
+        $this->markTestSkipped(true);
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [Job::class, JobRepositoryInterface::class]
+        );
+
+        $jobId = Uuid::uuid4()->toString();
+
+        /** @var JobRepositoryInterface $job */
+        $jobRepository = $ecotoneLite->getServiceFromContainer(JobRepositoryInterface::class);
+
+        $this->assertNull($jobRepository->findBy($jobId));
+        $jobRepository->save(Job::start(new StartJob($jobId)));
+        $this->assertNotNull($jobRepository->findBy($jobId));
     }
 }

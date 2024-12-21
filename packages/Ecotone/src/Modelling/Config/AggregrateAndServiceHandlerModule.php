@@ -70,7 +70,7 @@ use ReflectionParameter;
 /**
  * licence Apache-2.0
  */
-class ModellingHandlerModule implements AnnotationModule
+class AggregrateAndServiceHandlerModule implements AnnotationModule
 {
     private ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory;
     /**
@@ -220,7 +220,7 @@ class ModellingHandlerModule implements AnnotationModule
 
     public static function getPayloadClassIfAny(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): ?string
     {
-        $type = TypeDescriptor::create(ModellingHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
+        $type = TypeDescriptor::create(AggregrateAndServiceHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
 
         if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
             return $type->toString();
@@ -231,7 +231,7 @@ class ModellingHandlerModule implements AnnotationModule
 
     public static function getEventPayloadClasses(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
-        $type = TypeDescriptor::create(ModellingHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
+        $type = TypeDescriptor::create(AggregrateAndServiceHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
         if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
             if ($type->isUnionType()) {
                 return array_map(fn (TypeDescriptor $type) => $type->toString(), $type->getUnionTypes());

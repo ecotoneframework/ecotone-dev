@@ -7,6 +7,7 @@ use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
 use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -96,7 +97,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
 
             $classChannel = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
             if ($classChannel) {
-                $objectCommandHandlers[$classChannel][] = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+                $objectCommandHandlers[$classChannel][] = self::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
                 $objectCommandHandlers[$classChannel]   = array_unique($objectCommandHandlers[$classChannel]);
                 $uniqueChannels[$classChannel][]        = $registration;
             }
@@ -114,7 +115,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
 
             $classChannel = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
             if ($classChannel) {
-                $objectCommandHandlers[$classChannel][] = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+                $objectCommandHandlers[$classChannel][] = self::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
                 $objectCommandHandlers[$classChannel]   = array_unique($objectCommandHandlers[$classChannel]);
                 $uniqueChannels[$classChannel][]        = $registration;
             }
@@ -133,7 +134,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
                 continue;
             }
 
-            $namedChannel = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+            $namedChannel = self::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
             if ($namedChannel) {
                 $namedCommandHandlers[$namedChannel][] = $namedChannel;
                 $namedCommandHandlers[$namedChannel]   = array_unique($namedCommandHandlers[$namedChannel]);
@@ -156,7 +157,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
                 continue;
             }
 
-            $namedChannel = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+            $namedChannel = self::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
             if ($namedChannel) {
                 $namedCommandHandlers[$namedChannel][] = $namedChannel;
                 $namedCommandHandlers[$namedChannel]   = array_unique($namedCommandHandlers[$namedChannel]);
@@ -179,7 +180,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
 
             $classChannel = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
             if ($classChannel) {
-                $objectQueryHandlers[$classChannel][] = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+                $objectQueryHandlers[$classChannel][] = self::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
                 $objectQueryHandlers[$classChannel]   = array_unique($objectQueryHandlers[$classChannel]);
                 $uniqueChannels[$classChannel][]      = $registration;
             }
@@ -194,7 +195,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
 
             $classChannel = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
             if ($classChannel) {
-                $objectQueryHandlers[$classChannel][] = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+                $objectQueryHandlers[$classChannel][] = self::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
                 $objectQueryHandlers[$classChannel]   = array_unique($objectQueryHandlers[$classChannel]);
                 $uniqueChannels[$classChannel][]      = $registration;
             }
@@ -234,7 +235,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
     {
         $namedQueryHandlers = [];
         foreach ($annotationRegistrationService->findCombined(Aggregate::class, QueryHandler::class) as $registration) {
-            $namedChannel                        = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+            $namedChannel                        = self::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
             $namedQueryHandlers[$namedChannel][] = $namedChannel;
             $namedQueryHandlers[$namedChannel]   = array_unique($namedQueryHandlers[$namedChannel]);
             $uniqueChannels[$namedChannel][]     = $registration;
@@ -244,7 +245,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
                 continue;
             }
 
-            $namedChannel                        = self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+            $namedChannel                        = self::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
             $namedQueryHandlers[$namedChannel][] = $namedChannel;
             $namedQueryHandlers[$namedChannel]   = array_unique($namedQueryHandlers[$namedChannel]);
             $uniqueChannels[$namedChannel][]     = $registration;
@@ -267,7 +268,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             }
 
             $unionEventClasses           = self::getFirstParameterEventPayloadClasses($registration, $interfaceToCallRegistry);
-            $namedMessageChannelFor = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $namedMessageChannelFor = self::getInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
 
             foreach ($unionEventClasses as $classChannel) {
                 $objectEventHandlers[$classChannel][] = $namedMessageChannelFor;
@@ -295,7 +296,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             }
 
             $unionEventClasses           = self::getFirstParameterEventPayloadClasses($registration, $interfaceToCallRegistry);
-            $namedMessageChannelFor = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $namedMessageChannelFor = self::getInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             foreach ($unionEventClasses as $classChannel) {
                 if (! EventBusRouter::isRegexBasedRoute($namedMessageChannelFor)) {
                     $objectEventHandlers[$classChannel][] = $namedMessageChannelFor;
@@ -321,13 +322,13 @@ class MessageHandlerRoutingModule implements AnnotationModule
             }
 
             if ($annotation->getListenTo()) {
-                $chanelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+                $chanelName = self::getInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
                 $namedEventHandlers[$chanelName][] = $chanelName;
                 $namedEventHandlers[$chanelName]   = array_unique($namedEventHandlers[$chanelName]);
             }
         }
         foreach ($annotationRegistrationService->findCombined(Aggregate::class, EventHandler::class) as $registration) {
-            $channelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $channelName = self::getInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             if (EventBusRouter::isRegexBasedRoute($channelName)) {
                 throw ConfigurationException::create("Can not registered regex listen to channel for aggregates in {$registration}");
             }
@@ -395,7 +396,19 @@ class MessageHandlerRoutingModule implements AnnotationModule
         }
     }
 
-    public static function getNamedMessageChannelForEventHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
+    /**
+     * This allows to decouple input channel for routing from specific channel that executes the Handler.
+     * This way each handler can be treated separately (e.g. for async processing)
+     */
+    public static function getExecutionMessageHandlerChannel(AnnotatedFinding $registration): string
+    {
+        /** @var EndpointAnnotation $annotationForMethod */
+        $annotationForMethod = $registration->getAnnotationForMethod();
+
+        return $annotationForMethod->getEndpointId() . '.target';
+    }
+
+    public static function getInputMessageChannelForEventHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
     {
         /** @var InputOutputEndpointAnnotation $annotationForMethod */
         $annotationForMethod = $registration->getAnnotationForMethod();
@@ -416,7 +429,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
         return $inputChannelName;
     }
 
-    public static function getNamedMessageChannelFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
+    public static function getInputMessageChannelFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
     {
         /** @var InputOutputEndpointAnnotation $annotationForMethod */
         $annotationForMethod = $registration->getAnnotationForMethod();

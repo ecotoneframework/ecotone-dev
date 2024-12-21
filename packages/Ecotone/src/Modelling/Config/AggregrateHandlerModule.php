@@ -150,14 +150,6 @@ class AggregrateHandlerModule implements AnnotationModule
         return TypeDescriptor::ARRAY;
     }
 
-    public static function getHandlerChannel(AnnotatedFinding $registration): string
-    {
-        /** @var EndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        return $annotationForMethod->getEndpointId() . '.target';
-    }
-
     /**
      * @inheritDoc
      */
@@ -304,13 +296,13 @@ class AggregrateHandlerModule implements AnnotationModule
 
         $aggregateCommandOrEventHandlers = [];
         foreach ($this->aggregateCommandHandlers as $registration) {
-            $channelName = MessageHandlerRoutingModule::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+            $channelName = MessageHandlerRoutingModule::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
 
         foreach ($this->aggregateEventHandlers as $registration) {
-            $channelName = MessageHandlerRoutingModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $channelName = MessageHandlerRoutingModule::getInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
@@ -329,7 +321,7 @@ class AggregrateHandlerModule implements AnnotationModule
     /**
      * @var AnnotatedDefinition[] $registrations
      */
-    private function registerAggregateCommandHandler(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, array $aggregateRepositoryReferenceNames, array $registrations, string $messageChannelName, BaseEventSourcingConfiguration $baseEventSourcingConfiguration): void
+    private function registerAggregateCommandHandler(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, array $aggregateRepositoryReferenceNames, array $registrations, string $inputChannelNameForRouting, BaseEventSourcingConfiguration $baseEventSourcingConfiguration): void
     {
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 
@@ -346,9 +338,9 @@ class AggregrateHandlerModule implements AnnotationModule
         $factoryIdentifierMetadataMapping = [];
         $factoryIdentifierMapping = [];
         foreach ($registrations as $registration) {
-            $channel = self::getHandlerChannel($registration);
+            $channel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
             if ((new ReflectionMethod($registration->getClassName(), $registration->getMethodName()))->isStatic()) {
-                Assert::null($factoryChannel, "Trying to register factory method for {$aggregateClassDefinition->getClassType()->toString()} twice under same channel {$messageChannelName}");
+                Assert::null($factoryChannel, "Trying to register factory method for {$aggregateClassDefinition->getClassType()->toString()} twice under same channel {$inputChannelNameForRouting}");
                 $factoryChannel                   = $channel;
                 $factoryHandledPayloadType        = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
                 $factoryHandledPayloadType        = $factoryHandledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($factoryHandledPayloadType)) : null;
@@ -356,7 +348,7 @@ class AggregrateHandlerModule implements AnnotationModule
                 $factoryIdentifierMapping = $registration->getAnnotationForMethod()->identifierMapping;
             } else {
                 if ($actionChannels !== [] && $registration->getAnnotationForMethod() instanceof CommandHandler) {
-                    throw \Ecotone\Messaging\Support\InvalidArgumentException::create("Trying to register action method for {$aggregateClassDefinition->getClassType()->toString()} twice under same channel {$messageChannelName}");
+                    throw \Ecotone\Messaging\Support\InvalidArgumentException::create("Trying to register action method for {$aggregateClassDefinition->getClassType()->toString()} twice under same channel {$inputChannelNameForRouting}");
                 }
 
                 $actionChannels[] = $channel;
@@ -370,7 +362,7 @@ class AggregrateHandlerModule implements AnnotationModule
             $messageChannelNameRouter = Uuid::uuid4()->toString();
             $configuration->registerMessageHandler(
                 MessageProcessorActivatorBuilder::create()
-                    ->withInputChannelName($messageChannelName)
+                    ->withInputChannelName($inputChannelNameForRouting)
                     ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $factoryIdentifierMetadataMapping, $factoryIdentifierMapping, $factoryHandledPayloadType, $interfaceToCallRegistry))
                     ->chainInterceptedProcessor(
                         LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $factoryHandledPayloadType, LoadAggregateMode::createContinueOnNotFound(), $interfaceToCallRegistry)
@@ -397,11 +389,11 @@ class AggregrateHandlerModule implements AnnotationModule
             $parameterConverters   = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
             $connectionChannel     = $hasFactoryAndActionRedirect
                 ? ($isFactoryMethod ? $factoryChannel : $actionChannels[0])
-                : self::getHandlerChannel($registration);
+                : MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
             if (! $hasFactoryAndActionRedirect) {
                 $configuration->registerMessageHandler(
                     BridgeBuilder::create()
-                        ->withInputChannelName($messageChannelName)
+                        ->withInputChannelName($inputChannelNameForRouting)
                         ->withOutputMessageChannel($connectionChannel)
                         ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
                 );
@@ -462,13 +454,13 @@ class AggregrateHandlerModule implements AnnotationModule
 
         $relatedClassInterface    = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
         $parameterConverters      = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
-        $endpointChannelName      = self::getHandlerChannel($registration);
+        $endpointChannelName      = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
         $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($registration->getClassName()));
         $handledPayloadType       = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
         $handledPayloadType       = $handledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($handledPayloadType)) : null;
 
 
-        $inputChannelName = MessageHandlerRoutingModule::getNamedMessageChannelFor($registration, $interfaceToCallRegistry);
+        $inputChannelName = MessageHandlerRoutingModule::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
         $configuration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($inputChannelName));
         $configuration->registerMessageHandler(
             BridgeBuilder::create()

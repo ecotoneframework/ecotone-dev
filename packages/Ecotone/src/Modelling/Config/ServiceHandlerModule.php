@@ -108,27 +108,27 @@ final class ServiceHandlerModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $moduleExtensions, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         foreach ($this->serviceCommandHandlers as $registration) {
-            $this->registerServiceHandler(MessageHandlerRoutingModule::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
+            $this->registerServiceHandler(MessageHandlerRoutingModule::getInputMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
         foreach ($this->serviceQueryHandlers as $registration) {
-            $this->registerServiceHandler(MessageHandlerRoutingModule::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
+            $this->registerServiceHandler(MessageHandlerRoutingModule::getInputMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
         foreach ($this->serviceEventHandlers as $registration) {
-            $this->registerServiceHandler(MessageHandlerRoutingModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
+            $this->registerServiceHandler(MessageHandlerRoutingModule::getInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
         }
     }
 
-    private function registerServiceHandler(string $inputChannelName, Configuration $configuration, AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, bool $isStreamBasedSource): void
+    private function registerServiceHandler(string $inputChannelNameForRouting, Configuration $configuration, AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, bool $isStreamBasedSource): void
     {
         /** @var QueryHandler|CommandHandler|EventHandler $methodAnnotation */
         $methodAnnotation = $registration->getAnnotationForMethod();
-        $endpointInputChannel = self::getHandlerChannel($registration);
+        $endpointInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 
         $relatedClassInterface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
         $parameterConverters = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
 
-        $configuration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($inputChannelName));
+        $configuration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($inputChannelNameForRouting));
         /**
          * We want to connect Event Handler directly to Event Bus channel only if it's not fetched from Stream Based Source.
          * This allows to connecting Event Handlers via Projection Event Handler that lead the way.
@@ -136,7 +136,7 @@ final class ServiceHandlerModule implements AnnotationModule
         if (!$isStreamBasedSource) {
             $configuration->registerMessageHandler(
                 BridgeBuilder::create()
-                    ->withInputChannelName($inputChannelName)
+                    ->withInputChannelName($inputChannelNameForRouting)
                     ->withOutputMessageChannel($endpointInputChannel)
                     ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
             );

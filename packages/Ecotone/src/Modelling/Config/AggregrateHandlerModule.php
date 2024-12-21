@@ -158,17 +158,6 @@ class AggregrateHandlerModule implements AnnotationModule
         return $annotationForMethod->getEndpointId() . '.target';
     }
 
-    public static function getPayloadClassIfAny(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): ?string
-    {
-        $type = TypeDescriptor::create(AggregrateHandlerModule::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
-
-        if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
-            return $type->toString();
-        }
-
-        return null;
-    }
-
     /**
      * @inheritDoc
      */
@@ -361,7 +350,7 @@ class AggregrateHandlerModule implements AnnotationModule
             if ((new ReflectionMethod($registration->getClassName(), $registration->getMethodName()))->isStatic()) {
                 Assert::null($factoryChannel, "Trying to register factory method for {$aggregateClassDefinition->getClassType()->toString()} twice under same channel {$messageChannelName}");
                 $factoryChannel                   = $channel;
-                $factoryHandledPayloadType        = self::getPayloadClassIfAny($registration, $interfaceToCallRegistry);
+                $factoryHandledPayloadType        = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
                 $factoryHandledPayloadType        = $factoryHandledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($factoryHandledPayloadType)) : null;
                 $factoryIdentifierMetadataMapping = $registration->getAnnotationForMethod()->identifierMetadataMapping;
                 $factoryIdentifierMapping = $registration->getAnnotationForMethod()->identifierMapping;
@@ -424,7 +413,7 @@ class AggregrateHandlerModule implements AnnotationModule
                 ->withOutputMessageChannel($annotation->getOutputChannelName());
 
             if (! $isFactoryMethod) {
-                $handledPayloadType = self::getPayloadClassIfAny($registration, $interfaceToCallRegistry);
+                $handledPayloadType = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
                 $handledPayloadType = $handledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($handledPayloadType)) : null;
                 $serviceActivatorHandler
                     ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getIdentifierMapping(), $handledPayloadType, $interfaceToCallRegistry))
@@ -475,7 +464,7 @@ class AggregrateHandlerModule implements AnnotationModule
         $parameterConverters      = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
         $endpointChannelName      = self::getHandlerChannel($registration);
         $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($registration->getClassName()));
-        $handledPayloadType       = self::getPayloadClassIfAny($registration, $interfaceToCallRegistry);
+        $handledPayloadType       = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
         $handledPayloadType       = $handledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($handledPayloadType)) : null;
 
 

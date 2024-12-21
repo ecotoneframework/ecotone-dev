@@ -39,7 +39,6 @@ use Ecotone\Modelling\EventSourcingExecutor\OpenCoreAggregateMethodInvoker;
  */
 final class ServiceHandlerModule implements AnnotationModule
 {
-    private ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory;
     /**
      * @var AnnotatedFinding[]
      */

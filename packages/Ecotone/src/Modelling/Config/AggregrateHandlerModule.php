@@ -148,23 +148,7 @@ class AggregrateHandlerModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $moduleExtensions, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
-            $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(EnterpriseAggregateMethodInvoker::class), new Definition(EnterpriseAggregateMethodInvoker::class));
-        } else {
-            $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(OpenCoreAggregateMethodInvoker::class), new Definition(OpenCoreAggregateMethodInvoker::class));
-        }
-
-        foreach ($this->aggregateCommandHandlers as $registration) {
-            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as command handler', $registration->getClassName(), $registration->getMethodName()));
-        }
-
-        foreach ($this->aggregateEventHandlers as $registration) {
-            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as event handler', $registration->getClassName(), $registration->getMethodName()));
-        }
-
-        foreach ($this->aggregateQueryHandlers as $registration) {
-            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as query handler', $registration->getClassName(), $registration->getMethodName()));
-        }
+        $this->initialization($messagingConfiguration);
 
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
         foreach ($moduleExtensions as $aggregateRepositoryBuilder) {
@@ -280,6 +264,11 @@ class AggregrateHandlerModule implements AnnotationModule
             $channelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
+        }
+
+        $aggregateClasses = array_merge(array_keys($aggregateCommandOrEventHandlers), array_map(fn(AnnotatedFinding $annotatedFinding) => $annotatedFinding->getClassName(), $this->aggregateQueryHandlers));
+        foreach ($aggregateClasses as $aggregateClass) {
+            $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($aggregateClass));
         }
 
         foreach ($aggregateCommandOrEventHandlers as $channelNameRegistrations) {
@@ -525,5 +514,26 @@ class AggregrateHandlerModule implements AnnotationModule
 
         $saveAggregateBuilder = $saveAggregateBuilder->chain(PublishAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName));
         $configuration->registerMessageHandler($saveAggregateBuilder);
+    }
+
+    private function initialization(Configuration $messagingConfiguration): void
+    {
+        if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
+            $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(EnterpriseAggregateMethodInvoker::class), new Definition(EnterpriseAggregateMethodInvoker::class));
+        } else {
+            $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(OpenCoreAggregateMethodInvoker::class), new Definition(OpenCoreAggregateMethodInvoker::class));
+        }
+
+        foreach ($this->aggregateCommandHandlers as $registration) {
+            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as command handler', $registration->getClassName(), $registration->getMethodName()));
+        }
+
+        foreach ($this->aggregateEventHandlers as $registration) {
+            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as event handler', $registration->getClassName(), $registration->getMethodName()));
+        }
+
+        foreach ($this->aggregateQueryHandlers as $registration) {
+            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as query handler', $registration->getClassName(), $registration->getMethodName()));
+        }
     }
 }

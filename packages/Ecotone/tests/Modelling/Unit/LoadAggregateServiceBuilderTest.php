@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
@@ -162,39 +163,19 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         );
     }
 
-    public function test_enriching_command_with_aggregate_if_found_using_repository_builder()
+    public function test_calling_aggregate_via_query_handler()
     {
         $appointment = Appointment::create(new CreateAppointmentCommand(123, 1000));
-        $aggregateCommandHandler = ComponentTestBuilder::create()
-            ->withReference('repository', AppointmentRepositoryBuilder::createWith([
-                $appointment,
-            ]))
-            ->withMessageHandler(
-                MessageProcessorActivatorBuilder::create()
-                    ->chain(
-                        LoadAggregateServiceBuilder::create(
-                            ClassDefinition::createFor(TypeDescriptor::create(Appointment::class)),
-                            'getAppointmentId',
-                            null,
-                            LoadAggregateMode::createThrowOnNotFound(),
-                            InterfaceToCallRegistry::createEmpty()
-                        )
-                            ->withAggregateRepositoryFactories(['repository'])
-                    )
-                    ->withInputChannelName($inputChannel = 'inputChannel')
-            )
-            ->build();
-
-        $replyMessage = $aggregateCommandHandler->sendDirectToChannelWithMessageReply(
-            $inputChannel,
-            MessageBuilder::withPayload([])
-                ->setHeader(AggregateMessage::AGGREGATE_ID, ['appointmentId' => 123])
-                ->build()
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Appointment::class, AppointmentStandardRepository::class],
+            [
+                AppointmentStandardRepository::class => AppointmentStandardRepository::createWith([$appointment]),
+            ]
         );
 
         $this->assertEquals(
-            $appointment,
-            $replyMessage->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT)
+            1000,
+            $ecotoneLite->sendQueryWithRouting('getDuration', metadata: ['aggregate.id' => 123])
         );
     }
 

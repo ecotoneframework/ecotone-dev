@@ -11,6 +11,9 @@ use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
 use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Attribute\Parameter\ConfigurationVariable;
+use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
@@ -36,6 +39,7 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\IgnorePayload;
 use Ecotone\Modelling\Attribute\NotUniqueHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
@@ -208,7 +212,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
 
     public static function getFirstParameterClassIfAny(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): ?string
     {
-        $type = TypeDescriptor::create(AggregrateHandlerModule::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
+        $type = TypeDescriptor::create(self::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
 
         if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
             return $type->toString();
@@ -219,7 +223,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
 
     public static function getFirstParameterEventPayloadClasses(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
-        $type = TypeDescriptor::create(AggregrateHandlerModule::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
+        $type = TypeDescriptor::create(self::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
         if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
             if ($type->isUnionType()) {
                 return array_map(fn (TypeDescriptor $type) => $type->toString(), $type->getUnionTypes());
@@ -229,6 +233,31 @@ class MessageHandlerRoutingModule implements AnnotationModule
         }
 
         return [];
+    }
+
+    public static function getFirstParameterTypeFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
+    {
+        $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
+
+        if ($interfaceToCall->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class)) || $interfaceToCall->hasNoParameters()) {
+            return TypeDescriptor::ARRAY;
+        }
+
+        $firstParameterType = $interfaceToCall->getFirstParameter()->getTypeDescriptor();
+
+        if ($firstParameterType->isClassOrInterface() && ! $firstParameterType->isClassOfType(TypeDescriptor::create(Message::class))) {
+            $reflectionParameter = new \ReflectionParameter([$registration->getClassName(), $registration->getMethodName()], 0);
+
+            foreach ($reflectionParameter->getAttributes() as $attribute) {
+                if (in_array($attribute->getName(), [ConfigurationVariable::class, Header::class, Headers::class, \Ecotone\Messaging\Attribute\Parameter\Reference::class])) {
+                    return TypeDescriptor::ARRAY;
+                }
+            }
+
+            return $firstParameterType;
+        }
+
+        return TypeDescriptor::ARRAY;
     }
 
     public static function getQueryBusByNamesMapping(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry, array &$uniqueChannels = []): array

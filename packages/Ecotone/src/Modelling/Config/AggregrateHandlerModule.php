@@ -125,31 +125,6 @@ class AggregrateHandlerModule implements AnnotationModule
         );
     }
 
-    public static function getFirstParameterTypeFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
-    {
-        $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
-
-        if ($interfaceToCall->hasMethodAnnotation(TypeDescriptor::create(IgnorePayload::class)) || $interfaceToCall->hasNoParameters()) {
-            return TypeDescriptor::ARRAY;
-        }
-
-        $firstParameterType = $interfaceToCall->getFirstParameter()->getTypeDescriptor();
-
-        if ($firstParameterType->isClassOrInterface() && ! $firstParameterType->isClassOfType(TypeDescriptor::create(Message::class))) {
-            $reflectionParameter = new ReflectionParameter([$registration->getClassName(), $registration->getMethodName()], 0);
-
-            foreach ($reflectionParameter->getAttributes() as $attribute) {
-                if (in_array($attribute->getName(), [ConfigurationVariable::class, Header::class, Headers::class, Reference::class])) {
-                    return TypeDescriptor::ARRAY;
-                }
-            }
-
-            return $firstParameterType;
-        }
-
-        return TypeDescriptor::ARRAY;
-    }
-
     /**
      * @inheritDoc
      */

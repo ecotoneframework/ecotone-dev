@@ -122,7 +122,7 @@ final class ServiceHandlerModule implements AnnotationModule
     {
         /** @var QueryHandler|CommandHandler|EventHandler $methodAnnotation */
         $methodAnnotation = $registration->getAnnotationForMethod();
-        $endpointInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
+        $executionInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 
         $relatedClassInterface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
@@ -137,7 +137,7 @@ final class ServiceHandlerModule implements AnnotationModule
             $configuration->registerMessageHandler(
                 BridgeBuilder::create()
                     ->withInputChannelName($inputChannelNameForRouting)
-                    ->withOutputMessageChannel($endpointInputChannel)
+                    ->withOutputMessageChannel($executionInputChannel)
                     ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
             );
         }
@@ -148,7 +148,7 @@ final class ServiceHandlerModule implements AnnotationModule
 
         $configuration->registerMessageHandler(
             $handler
-                ->withInputChannelName($endpointInputChannel)
+                ->withInputChannelName($executionInputChannel)
                 ->withOutputMessageChannel($methodAnnotation->getOutputChannelName())
                 ->withEndpointId($methodAnnotation->getEndpointId())
                 ->withMethodParameterConverters($parameterConverters)

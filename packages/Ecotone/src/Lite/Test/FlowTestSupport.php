@@ -339,7 +339,7 @@ final class FlowTestSupport
             [
                 AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER => is_object($identifiers) ? (string)$identifiers : $identifiers,
             ],
-            AggregrateHandlerModule::getRegisterAggregateLoadRepositoryInputChannel($className)
+            AggregrateHandlerModule::getRegisterAggregateLoadRepositoryInputChannel($className, false)
         );
     }
 

@@ -73,6 +73,7 @@ use ReflectionParameter;
 class AggregrateHandlerModule implements AnnotationModule
 {
     /**
+     * @param string[] $aggregateClasses
      * @param AnnotatedFinding[] $aggregateCommandHandlers
      * @param AnnotatedFinding[] $aggregateQueryHandlers
      * @param AnnotatedFinding[] $aggregateEventHandlers
@@ -80,6 +81,7 @@ class AggregrateHandlerModule implements AnnotationModule
      * @param AnnotatedFinding[] $gatewayRepositoryMethods
      */
     private function __construct(
+        private array $aggregateClasses,
         private array $aggregateCommandHandlers,
         private array $aggregateQueryHandlers,
         private array $aggregateEventHandlers,
@@ -102,6 +104,7 @@ class AggregrateHandlerModule implements AnnotationModule
         }
 
         return new self(
+            $annotationRegistrationService->findAnnotatedClasses(Aggregate::class),
             array_filter(
                 $annotationRegistrationService->findAnnotatedMethods(CommandHandler::class),
                 function (AnnotatedFinding $annotatedFinding) {
@@ -133,9 +136,7 @@ class AggregrateHandlerModule implements AnnotationModule
         return
             $extensionObject instanceof RepositoryBuilder
             ||
-            $extensionObject instanceof BaseEventSourcingConfiguration
-            ||
-            $extensionObject instanceof RegisterAggregateRepositoryChannels;
+            $extensionObject instanceof BaseEventSourcingConfiguration;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
@@ -165,120 +166,18 @@ class AggregrateHandlerModule implements AnnotationModule
             }
         }
 
-        foreach ($this->gatewayRepositoryMethods as $repositoryGateway) {
-            $interface = $interfaceToCallRegistry->getFor($repositoryGateway->getClassName(), $repositoryGateway->getMethodName());
-            Assert::isTrue($interface->getReturnType()->isClassNotInterface() || $interface->getReturnType()->isVoid(), 'Repository should have return type of Aggregate class or void if is save method: ' . $repositoryGateway);
+        $aggregateCommandOrEventHandlers = $this->getCombinedCommandAndEventHandlers($interfaceToCallRegistry, $messagingConfiguration);
+        $this->registerForDirectLoadAndSaveOfAggregate($interfaceToCallRegistry, $messagingConfiguration, $baseEventSourcingConfiguration);
+        $this->registerBusinessRepositories($interfaceToCallRegistry, $messagingConfiguration);
 
-            $inputChannelName = self::getAggregateRepositoryInputChannel($repositoryGateway->getClassName(), $repositoryGateway->getMethodName(), $interface->getReturnType()->isVoid(), $interface->canItReturnNull());
-
-            $chainMessageHandlerBuilder = MessageProcessorActivatorBuilder::create()
-                ->withInputChannelName($inputChannelName);
-            if ($interface->getReturnType()->isVoid()) {
-                Assert::isTrue($interface->hasFirstParameter(), 'Saving repository should have at least one parameter for aggregate: ' . $repositoryGateway);
-
-                if ($interface->hasMethodAnnotation(TypeDescriptor::create(RelatedAggregate::class))) {
-                    Assert::isTrue($interface->hasSecondParameter(), 'Saving repository should have first parameter as identifier and second as array of events in: ' . $repositoryGateway);
-
-                    /** @var RelatedAggregate $relatedAggregate */
-                    $relatedAggregate = $interface->getSingleMethodAnnotationOf(TypeDescriptor::create(RelatedAggregate::class));
-
-                    $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($relatedAggregate->getClassName()));
-
-                    $gatewayParameterConverters = [
-                        GatewayHeaderBuilder::create($interface->getFirstParameterName(), AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER),
-                        GatewayHeaderBuilder::create($interface->getSecondParameter()->getName(), AggregateMessage::TARGET_VERSION),
-                        GatewayPayloadBuilder::create($interface->getThirdParameter()),
-                        GatewayHeaderValueBuilder::create(AggregateMessage::CALLED_AGGREGATE_OBJECT, $aggregateClassDefinition->getClassType()->toString()),
-                        GatewayHeaderValueBuilder::create(AggregateMessage::RESULT_AGGREGATE_OBJECT, $aggregateClassDefinition->getClassType()->toString()),
-                    ];
-
-                    $chainMessageHandlerBuilder = $chainMessageHandlerBuilder
-                        ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], null, $interfaceToCallRegistry));
-                } else {
-                    Assert::isTrue($interface->getFirstParameter()->getTypeDescriptor()->isClassNotInterface(), 'Saving repository should type hint for Aggregate or if is Event Sourcing make use of RelatedAggregate attribute in: ' . $repositoryGateway);
-                    $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor($interface->getFirstParameter()->getTypeDescriptor());
-
-                    $gatewayParameterConverters = [
-                        GatewayHeaderBuilder::create($interface->getFirstParameter()->getName(), AggregateMessage::CALLED_AGGREGATE_OBJECT),
-                        GatewayHeaderBuilder::create($interface->getFirstParameter()->getName(), AggregateMessage::RESULT_AGGREGATE_OBJECT),
-                    ];
-                }
-
-                $this->registerSaveAggregate($aggregateClassDefinition, $messagingConfiguration, $chainMessageHandlerBuilder, $interfaceToCallRegistry, $baseEventSourcingConfiguration, $inputChannelName);
-            } else {
-                Assert::isTrue($interface->hasFirstParameter(), 'Fetching repository should have at least one parameter for identifiers: ' . $repositoryGateway);
-                $this->registerLoadAggregate(
-                    $interfaceToCallRegistry->getClassDefinitionFor($interface->getReturnType()),
-                    $interface->canItReturnNull(),
-                    $messagingConfiguration,
-                    $chainMessageHandlerBuilder,
-                    $interfaceToCallRegistry
-                );
-
-                $gatewayParameterConverters = [GatewayHeaderBuilder::create($interface->getFirstParameter()->getName(), AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER)];
-            }
-
-            $messagingConfiguration->registerGatewayBuilder(
-                GatewayProxyBuilder::create(
-                    $repositoryGateway->getClassName(),
-                    $repositoryGateway->getClassName(),
-                    $repositoryGateway->getMethodName(),
-                    $inputChannelName
-                )->withParameterConverters($gatewayParameterConverters)
-            );
-        }
-
-        /** @var RegisterAggregateRepositoryChannels $registerAggregateChannel */
-        foreach (ExtensionObjectResolver::resolve(RegisterAggregateRepositoryChannels::class, $moduleExtensions) as $registerAggregateChannel) {
-            $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($registerAggregateChannel->getClassName()));
-
-            $this->registerLoadAggregate(
-                $aggregateClassDefinition,
-                false,
-                $messagingConfiguration,
-                MessageProcessorActivatorBuilder::create()
-                    ->withInputChannelName(self::getRegisterAggregateLoadRepositoryInputChannel($registerAggregateChannel->getClassName())),
-                $interfaceToCallRegistry
-            );
-
-            $this->registerSaveAggregate(
-                $aggregateClassDefinition,
-                $messagingConfiguration,
-                MessageProcessorActivatorBuilder::create()
-                    ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($registerAggregateChannel->getClassName()))
-                    ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], null, $interfaceToCallRegistry)),
-                $interfaceToCallRegistry,
-                $baseEventSourcingConfiguration,
-                self::getRegisterAggregateSaveRepositoryInputChannel($registerAggregateChannel->getClassName())
-            );
-        }
-
-        $aggregateCommandOrEventHandlers = [];
-        foreach ($this->aggregateCommandHandlers as $registration) {
-            $channelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
-            $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
-            $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
-        }
-
-        foreach ($this->aggregateEventHandlers as $registration) {
-            $channelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
-            $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
-            $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
-        }
-
-        $aggregateClasses = array_merge(array_keys($aggregateCommandOrEventHandlers), array_map(fn(AnnotatedFinding $annotatedFinding) => $annotatedFinding->getClassName(), $this->aggregateQueryHandlers));
-        foreach ($aggregateClasses as $aggregateClass) {
-            $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($aggregateClass));
+        foreach ($this->aggregateQueryHandlers as $registration) {
+            $this->registerAggregateQueryHandler($registration, $interfaceToCallRegistry, $parameterConverterAnnotationFactory, $messagingConfiguration);
         }
 
         foreach ($aggregateCommandOrEventHandlers as $channelNameRegistrations) {
             foreach ($channelNameRegistrations as $channelName => $registrations) {
                 $this->registerAggregateCommandHandler($messagingConfiguration, $interfaceToCallRegistry, $this->aggregateRepositoryReferenceNames, $registrations, $channelName, $baseEventSourcingConfiguration);
             }
-        }
-
-        foreach ($this->aggregateQueryHandlers as $registration) {
-            $this->registerAggregateQueryHandler($registration, $interfaceToCallRegistry, $parameterConverterAnnotationFactory, $messagingConfiguration);
         }
     }
 
@@ -455,14 +354,14 @@ class AggregrateHandlerModule implements AnnotationModule
         return ModulePackageList::CORE_PACKAGE;
     }
 
-    public static function getRegisterAggregateLoadRepositoryInputChannel(string $className): string
+    public static function getRegisterAggregateLoadRepositoryInputChannel(string $className, bool $allowNulls): string
     {
-        return self::getAggregateRepositoryInputChannel($className, 'will_load' . $className, false, false);
+        return self::getAggregateRepositoryInputChannel($className, '.will_load', false, $allowNulls);
     }
 
     public static function getRegisterAggregateSaveRepositoryInputChannel(string $className): string
     {
-        return self::getAggregateRepositoryInputChannel($className, 'will_save' . $className, true, false);
+        return self::getAggregateRepositoryInputChannel($className, '.will_save', true, false);
     }
 
     public static function getAggregateRepositoryInputChannel(string $className, string $methodName1, bool $isSave, bool $canReturnNull): string
@@ -534,6 +433,116 @@ class AggregrateHandlerModule implements AnnotationModule
 
         foreach ($this->aggregateQueryHandlers as $registration) {
             Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as query handler', $registration->getClassName(), $registration->getMethodName()));
+        }
+    }
+
+    /**
+     * @return array<string, array<string, AnnotatedFinding[]>>
+     */
+    public function getCombinedCommandAndEventHandlers(InterfaceToCallRegistry $interfaceToCallRegistry, Configuration $messagingConfiguration): array
+    {
+        $aggregateCommandOrEventHandlers = [];
+        foreach ($this->aggregateCommandHandlers as $registration) {
+            $channelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
+            $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
+            $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
+        }
+
+        foreach ($this->aggregateEventHandlers as $registration) {
+            $channelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
+            $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
+        }
+
+        return $aggregateCommandOrEventHandlers;
+    }
+
+    public function registerForDirectLoadAndSaveOfAggregate(InterfaceToCallRegistry $interfaceToCallRegistry, Configuration $messagingConfiguration, BaseEventSourcingConfiguration $baseEventSourcingConfiguration): void
+    {
+        foreach ($this->aggregateClasses as $aggregateClass) {
+            $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($aggregateClass));
+
+            $this->registerLoadAggregate(
+                $aggregateClassDefinition,
+                true,
+                $messagingConfiguration,
+                MessageProcessorActivatorBuilder::create()
+                    ->withInputChannelName(self::getRegisterAggregateLoadRepositoryInputChannel($aggregateClass, true)),
+                $interfaceToCallRegistry
+            );
+
+            $this->registerLoadAggregate(
+                $aggregateClassDefinition,
+                false,
+                $messagingConfiguration,
+                MessageProcessorActivatorBuilder::create()
+                    ->withInputChannelName(self::getRegisterAggregateLoadRepositoryInputChannel($aggregateClass, false)),
+                $interfaceToCallRegistry
+            );
+
+            $this->registerSaveAggregate(
+                $aggregateClassDefinition,
+                $messagingConfiguration,
+                MessageProcessorActivatorBuilder::create()
+                    ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass))
+                    ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], null, $interfaceToCallRegistry)),
+                $interfaceToCallRegistry,
+                $baseEventSourcingConfiguration,
+                self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass)
+            );
+        }
+    }
+
+    public function registerBusinessRepositories(InterfaceToCallRegistry $interfaceToCallRegistry, Configuration $messagingConfiguration): void
+    {
+        foreach ($this->gatewayRepositoryMethods as $repositoryGateway) {
+            $interface = $interfaceToCallRegistry->getFor($repositoryGateway->getClassName(), $repositoryGateway->getMethodName());
+            Assert::isTrue($interface->getReturnType()->isClassNotInterface() || $interface->getReturnType()->isVoid(), 'Repository should have return type of Aggregate class or void if is save method: ' . $repositoryGateway);
+
+            if ($interface->getReturnType()->isVoid()) {
+                Assert::isTrue($interface->hasFirstParameter(), 'Saving repository should have at least one parameter for aggregate: ' . $repositoryGateway);
+
+                if ($interface->hasMethodAnnotation(TypeDescriptor::create(RelatedAggregate::class))) {
+                    Assert::isTrue($interface->hasSecondParameter(), 'Saving repository should have first parameter as identifier and second as array of events in: ' . $repositoryGateway);
+
+                    /** @var RelatedAggregate $relatedAggregate */
+                    $relatedAggregate = $interface->getSingleMethodAnnotationOf(TypeDescriptor::create(RelatedAggregate::class));
+                    Assert::isTrue(in_array($relatedAggregate, $this->aggregateClasses), sprintf('Repository for aggregate %s:%s is registered for unknown Aggregate: %s. Have you forgot to add Class or register specific Namespaces?', $repositoryGateway->getClassName(), $repositoryGateway->getMethodName(), $relatedAggregate));
+
+                    $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($relatedAggregate->getClassName()));
+
+                    $gatewayParameterConverters = [
+                        GatewayHeaderBuilder::create($interface->getFirstParameterName(), AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER),
+                        GatewayHeaderBuilder::create($interface->getSecondParameter()->getName(), AggregateMessage::TARGET_VERSION),
+                        GatewayPayloadBuilder::create($interface->getThirdParameter()),
+                        GatewayHeaderValueBuilder::create(AggregateMessage::CALLED_AGGREGATE_OBJECT, $aggregateClassDefinition->getClassType()->toString()),
+                        GatewayHeaderValueBuilder::create(AggregateMessage::RESULT_AGGREGATE_OBJECT, $aggregateClassDefinition->getClassType()->toString()),
+                    ];
+                } else {
+                    Assert::isTrue($interface->getFirstParameter()->getTypeDescriptor()->isClassNotInterface(), 'Saving repository should type hint for Aggregate or if is Event Sourcing make use of RelatedAggregate attribute in: ' . $repositoryGateway);
+                    Assert::isTrue(in_array($interface->getFirstParameter()->getTypeDescriptor()->toString(), $this->aggregateClasses), sprintf('Repository for aggregate %s:%s is registered for unknown Aggregate: %s. Have you forgot to add Class or register specific Namespaces?', $repositoryGateway->getClassName(), $repositoryGateway->getMethodName(), $interface->getFirstParameter()->getTypeDescriptor()->toString()));
+
+                    $gatewayParameterConverters = [
+                        GatewayHeaderBuilder::create($interface->getFirstParameter()->getName(), AggregateMessage::CALLED_AGGREGATE_OBJECT),
+                        GatewayHeaderBuilder::create($interface->getFirstParameter()->getName(), AggregateMessage::RESULT_AGGREGATE_OBJECT),
+                    ];
+                }
+            } else {
+                Assert::isTrue($interface->hasFirstParameter(), 'Fetching repository should have at least one parameter for identifiers: ' . $repositoryGateway);
+                Assert::isTrue(in_array($interface->getReturnType()->toString(), $this->aggregateClasses), sprintf('Repository for aggregate %s:%s is registered for unknown Aggregate: %s. Have you forgot to add Class or register specific Namespaces?', $repositoryGateway->getClassName(), $repositoryGateway->getMethodName(), $interface->hasFirstParameter()));
+                $gatewayParameterConverters = [GatewayHeaderBuilder::create($interface->getFirstParameter()->getName(), AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER)];
+            }
+
+            $messagingConfiguration->registerGatewayBuilder(
+                GatewayProxyBuilder::create(
+                    $repositoryGateway->getClassName(),
+                    $repositoryGateway->getClassName(),
+                    $repositoryGateway->getMethodName(),
+                    $interface->getReturnType()->isVoid() ?
+                        self::getRegisterAggregateSaveRepositoryInputChannel($interface->getFirstParameter()->getTypeDescriptor()->toString()) :
+                        self::getRegisterAggregateLoadRepositoryInputChannel($interface->getReturnType()->toString(), $interface->canItReturnNull())
+                )->withParameterConverters($gatewayParameterConverters)
+            );
         }
     }
 }

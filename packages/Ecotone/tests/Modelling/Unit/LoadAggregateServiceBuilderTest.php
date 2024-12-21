@@ -26,6 +26,7 @@ use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\WithConstructo
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\WithPrivateConstructor;
 use Test\Ecotone\Modelling\Fixture\Renter\Appointment;
 use Test\Ecotone\Modelling\Fixture\Renter\AppointmentRepositoryBuilder;
+use Test\Ecotone\Modelling\Fixture\Renter\AppointmentRepositoryInterface;
 use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStandardRepository;
 use Test\Ecotone\Modelling\Fixture\Renter\CreateAppointmentCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\AssignWorkerCommand;
@@ -176,6 +177,77 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         $this->assertEquals(
             1000,
             $ecotoneLite->sendQueryWithRouting('getDuration', metadata: ['aggregate.id' => 123])
+        );
+    }
+
+    public function test_fetch_aggregate_via_business_repository()
+    {
+        $appointment = Appointment::create(new CreateAppointmentCommand(123, 1000));
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Appointment::class, AppointmentStandardRepository::class, AppointmentRepositoryInterface::class],
+            [
+                AppointmentStandardRepository::class => AppointmentStandardRepository::createWith([$appointment]),
+            ]
+        );
+
+        /** @var AppointmentRepositoryInterface $repository */
+        $repository = $ecotoneLite->getServiceFromContainer(AppointmentRepositoryInterface::class);
+        $this->assertEquals(
+            1000,
+            $repository->get(123)->getDuration()
+        );
+    }
+
+    public function test_fetch_aggregate_via_business_repository_with_nulls()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Appointment::class, AppointmentStandardRepository::class, AppointmentRepositoryInterface::class],
+            [
+                AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
+            ]
+        );
+
+        /** @var AppointmentRepositoryInterface $repository */
+        $repository = $ecotoneLite->getServiceFromContainer(AppointmentRepositoryInterface::class);
+        $this->assertNull($repository->find(123));
+    }
+
+    public function test_fetch_nulls_on_non_null_business_repository()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Appointment::class, AppointmentStandardRepository::class, AppointmentRepositoryInterface::class],
+            [
+                AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
+            ]
+        );
+
+        /** @var AppointmentRepositoryInterface $repository */
+        $repository = $ecotoneLite->getServiceFromContainer(AppointmentRepositoryInterface::class);
+
+        $this->expectException(AggregateNotFoundException::class);
+        $repository->get(123);
+    }
+
+    /**
+     * @TODO
+     */
+    public function todo_test_storing_standard_aggregate_via_business_repository(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Appointment::class, AppointmentStandardRepository::class, AppointmentRepositoryInterface::class],
+            [
+                AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
+            ]
+        );
+
+        /** @var AppointmentRepositoryInterface $repository */
+        $repository = $ecotoneLite->getServiceFromContainer(AppointmentRepositoryInterface::class);
+
+        $repository->save(Appointment::create(new CreateAppointmentCommand(123, 1000)));
+
+        $this->assertEquals(
+            1000,
+            $repository->get(123)->getDuration()
         );
     }
 

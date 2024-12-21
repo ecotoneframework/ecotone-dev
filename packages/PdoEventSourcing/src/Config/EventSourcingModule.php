@@ -569,7 +569,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventHandlerSynchronousInputChannel = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) ? $this->asynchronousModule->getSynchronousChannelFor($eventHandlerTriggeringInputChannel, $handlerAttribute->getEndpointId()) : $eventHandlerTriggeringInputChannel;
 
             $this->projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration->withProjectionEventHandler(
-                AggregrateHandlerModule::getNamedMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry),
+                MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry),
                 $projectionEventHandler->getClassName(),
                 $projectionEventHandler->getMethodName(),
                 $eventHandlerSynchronousInputChannel

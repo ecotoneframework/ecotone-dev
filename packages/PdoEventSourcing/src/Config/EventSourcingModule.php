@@ -69,7 +69,7 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Ecotone\Modelling\Config\AggregrateAndServiceHandlerModule;
+use Ecotone\Modelling\Config\AggregrateHandlerModule;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 
@@ -564,11 +564,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionConfiguration = $this->projectionSetupConfigurations[$projectionAttribute->getName()];
 
             /** @TODO in case of Projection Event Handlers we don't need to register them asynchronously, so this can be simplified to assume always synchronous */
-            $eventHandlerTriggeringInputChannel = AggregrateAndServiceHandlerModule::getHandlerChannel($projectionEventHandler);
+            $eventHandlerTriggeringInputChannel = AggregrateHandlerModule::getHandlerChannel($projectionEventHandler);
             $eventHandlerSynchronousInputChannel = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) ? $this->asynchronousModule->getSynchronousChannelFor($eventHandlerTriggeringInputChannel, $handlerAttribute->getEndpointId()) : $eventHandlerTriggeringInputChannel;
 
             $this->projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration->withProjectionEventHandler(
-                AggregrateAndServiceHandlerModule::getNamedMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry),
+                AggregrateHandlerModule::getNamedMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry),
                 $projectionEventHandler->getClassName(),
                 $projectionEventHandler->getMethodName(),
                 $eventHandlerSynchronousInputChannel

@@ -70,7 +70,7 @@ use ReflectionParameter;
 /**
  * licence Apache-2.0
  */
-class AggregrateAndServiceHandlerModule implements AnnotationModule
+class AggregrateHandlerModule implements AnnotationModule
 {
     private ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory;
     /**
@@ -80,23 +80,11 @@ class AggregrateAndServiceHandlerModule implements AnnotationModule
     /**
      * @var AnnotatedFinding[]
      */
-    private array $serviceCommandHandlers;
-    /**
-     * @var AnnotatedFinding[]
-     */
     private array $aggregateQueryHandlers;
     /**
      * @var AnnotatedFinding[]
      */
-    private array $serviceQueryHandlers;
-    /**
-     * @var AnnotatedFinding[]
-     */
     private array $aggregateEventHandlers;
-    /**
-     * @var AnnotatedFinding[]
-     */
-    private array $serviceEventHandlers;
     /**
      * @var AnnotatedFinding[]
      */
@@ -109,21 +97,15 @@ class AggregrateAndServiceHandlerModule implements AnnotationModule
     private function __construct(
         ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory,
         array $aggregateCommandHandlerRegistrations,
-        array $serviceCommandHandlersRegistrations,
         array $aggregateQueryHandlerRegistrations,
-        array $serviceQueryHandlerRegistrations,
         array $aggregateEventHandlers,
-        array $serviceEventHandlers,
         array $aggregateRepositoryReferenceNames,
         array $gatewayRepositoryMethods
     ) {
         $this->parameterConverterAnnotationFactory = $parameterConverterAnnotationFactory;
         $this->aggregateCommandHandlers            = $aggregateCommandHandlerRegistrations;
         $this->aggregateQueryHandlers              = $aggregateQueryHandlerRegistrations;
-        $this->serviceCommandHandlers  = $serviceCommandHandlersRegistrations;
-        $this->serviceQueryHandlers     = $serviceQueryHandlerRegistrations;
         $this->aggregateEventHandlers               = $aggregateEventHandlers;
-        $this->serviceEventHandlers                 = $serviceEventHandlers;
         $this->aggregateRepositoryReferenceNames    = $aggregateRepositoryReferenceNames;
         $this->gatewayRepositoryMethods = $gatewayRepositoryMethods;
     }
@@ -151,25 +133,7 @@ class AggregrateAndServiceHandlerModule implements AnnotationModule
                 }
             ),
             array_filter(
-                $annotationRegistrationService->findAnnotatedMethods(CommandHandler::class),
-                function (AnnotatedFinding $annotatedFinding) {
-                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
-                }
-            ),
-            array_filter(
                 $annotationRegistrationService->findAnnotatedMethods(QueryHandler::class),
-                function (AnnotatedFinding $annotatedFinding) {
-                    return $annotatedFinding->hasClassAnnotation(Aggregate::class);
-                }
-            ),
-            array_filter(
-                $annotationRegistrationService->findAnnotatedMethods(QueryHandler::class),
-                function (AnnotatedFinding $annotatedFinding) {
-                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
-                }
-            ),
-            array_filter(
-                $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
                 function (AnnotatedFinding $annotatedFinding) {
                     return $annotatedFinding->hasClassAnnotation(Aggregate::class);
                 }
@@ -177,7 +141,7 @@ class AggregrateAndServiceHandlerModule implements AnnotationModule
             array_filter(
                 $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
                 function (AnnotatedFinding $annotatedFinding) {
-                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
+                    return $annotatedFinding->hasClassAnnotation(Aggregate::class);
                 }
             ),
             $aggregateRepositoryReferenceNames,
@@ -220,7 +184,7 @@ class AggregrateAndServiceHandlerModule implements AnnotationModule
 
     public static function getPayloadClassIfAny(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): ?string
     {
-        $type = TypeDescriptor::create(AggregrateAndServiceHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
+        $type = TypeDescriptor::create(AggregrateHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
 
         if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
             return $type->toString();
@@ -231,7 +195,7 @@ class AggregrateAndServiceHandlerModule implements AnnotationModule
 
     public static function getEventPayloadClasses(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
-        $type = TypeDescriptor::create(AggregrateAndServiceHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
+        $type = TypeDescriptor::create(AggregrateHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
         if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
             if ($type->isUnionType()) {
                 return array_map(fn (TypeDescriptor $type) => $type->toString(), $type->getUnionTypes());
@@ -469,16 +433,6 @@ class AggregrateAndServiceHandlerModule implements AnnotationModule
         foreach ($this->aggregateQueryHandlers as $registration) {
             $this->registerAggregateQueryHandler($registration, $interfaceToCallRegistry, $parameterConverterAnnotationFactory, $messagingConfiguration);
         }
-
-        foreach ($this->serviceCommandHandlers as $registration) {
-            $this->registerServiceHandler(self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
-        }
-        foreach ($this->serviceQueryHandlers as $registration) {
-            $this->registerServiceHandler(self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
-        }
-        foreach ($this->serviceEventHandlers as $registration) {
-            $this->registerServiceHandler(self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
-        }
     }
 
     /**
@@ -646,44 +600,6 @@ class AggregrateAndServiceHandlerModule implements AnnotationModule
                 )
                 ->withRequiredInterceptorNames($annotationForMethod->getRequiredInterceptorNames())
                 ->withEndpointId($annotationForMethod->getEndpointId())
-        );
-    }
-
-    private function registerServiceHandler(string $inputChannelName, Configuration $configuration, AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, bool $isStreamBasedSource): void
-    {
-        /** @var QueryHandler|CommandHandler|EventHandler $methodAnnotation */
-        $methodAnnotation                    = $registration->getAnnotationForMethod();
-        $endpointInputChannel                = self::getHandlerChannel($registration);
-        $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
-
-        $relatedClassInterface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
-        $parameterConverters   = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
-
-        $configuration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($inputChannelName));
-        /**
-         * We want to connect Event Handler directly to Event Bus channel only if it's not fetched from Stream Based Source.
-         * This allows to connecting Event Handlers via Projection Event Handler that lead the way.
-         */
-        if (! $isStreamBasedSource) {
-            $configuration->registerMessageHandler(
-                BridgeBuilder::create()
-                    ->withInputChannelName($inputChannelName)
-                    ->withOutputMessageChannel($endpointInputChannel)
-                    ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
-            );
-        }
-
-        $handler = $registration->hasMethodAnnotation(ChangingHeaders::class)
-            ? TransformerBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()))
-            : ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()));
-
-        $configuration->registerMessageHandler(
-            $handler
-                ->withInputChannelName($endpointInputChannel)
-                ->withOutputMessageChannel($methodAnnotation->getOutputChannelName())
-                ->withEndpointId($methodAnnotation->getEndpointId())
-                ->withMethodParameterConverters($parameterConverters)
-                ->withRequiredInterceptorNames($methodAnnotation->getRequiredInterceptorNames())
         );
     }
 

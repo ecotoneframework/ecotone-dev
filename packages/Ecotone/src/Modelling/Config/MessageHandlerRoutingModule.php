@@ -45,7 +45,7 @@ use ReflectionMethod;
 /**
  * licence Apache-2.0
  */
-class BusRoutingModule implements AnnotationModule
+class MessageHandlerRoutingModule implements AnnotationModule
 {
     private BusRouterBuilder $commandBusByObject;
     private BusRouterBuilder $queryBusByObject;

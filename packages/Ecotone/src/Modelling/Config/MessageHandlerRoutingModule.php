@@ -7,6 +7,7 @@ use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
 use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\PropagateHeaders;
@@ -240,7 +241,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             }
 
             $unionEventClasses           = AggregrateHandlerModule::getEventPayloadClasses($registration, $interfaceToCallRegistry);
-            $namedMessageChannelFor = AggregrateHandlerModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $namedMessageChannelFor = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
 
             foreach ($unionEventClasses as $classChannel) {
                 $objectEventHandlers[$classChannel][] = $namedMessageChannelFor;
@@ -268,7 +269,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             }
 
             $unionEventClasses           = AggregrateHandlerModule::getEventPayloadClasses($registration, $interfaceToCallRegistry);
-            $namedMessageChannelFor = AggregrateHandlerModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $namedMessageChannelFor = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             foreach ($unionEventClasses as $classChannel) {
                 if (! EventBusRouter::isRegexBasedRoute($namedMessageChannelFor)) {
                     $objectEventHandlers[$classChannel][] = $namedMessageChannelFor;
@@ -294,13 +295,13 @@ class MessageHandlerRoutingModule implements AnnotationModule
             }
 
             if ($annotation->getListenTo()) {
-                $chanelName = AggregrateHandlerModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+                $chanelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
                 $namedEventHandlers[$chanelName][] = $chanelName;
                 $namedEventHandlers[$chanelName]   = array_unique($namedEventHandlers[$chanelName]);
             }
         }
         foreach ($annotationRegistrationService->findCombined(Aggregate::class, EventHandler::class) as $registration) {
-            $channelName = AggregrateHandlerModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $channelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             if (EventBusRouter::isRegexBasedRoute($channelName)) {
                 throw ConfigurationException::create("Can not registered regex listen to channel for aggregates in {$registration}");
             }
@@ -366,6 +367,27 @@ class MessageHandlerRoutingModule implements AnnotationModule
 
             throw ConfigurationException::create("Channel name `{$uniqueChannelName}` should be unique, but is used in multiple handlers:{$combinedRegistrationNames}");
         }
+    }
+
+    public static function getNamedMessageChannelForEventHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
+    {
+        /** @var InputOutputEndpointAnnotation $annotationForMethod */
+        $annotationForMethod = $registration->getAnnotationForMethod();
+
+        $inputChannelName = null;
+        if ($annotationForMethod instanceof EventHandler) {
+            $inputChannelName = $annotationForMethod->getListenTo();
+        }
+
+        if (!$inputChannelName) {
+            $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
+            if ($interfaceToCall->hasNoParameters()) {
+                throw ConfigurationException::create("Missing command class or listen routing for {$registration}.");
+            }
+            $inputChannelName = $interfaceToCall->getFirstParameterTypeHint();
+        }
+
+        return $inputChannelName;
     }
 
     /**

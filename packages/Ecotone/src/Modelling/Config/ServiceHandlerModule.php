@@ -89,66 +89,6 @@ final class ServiceHandlerModule implements AnnotationModule
         return $annotationForMethod->getEndpointId() . '.target';
     }
 
-    public static function getPayloadClassIfAny(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): ?string
-    {
-        $type = TypeDescriptor::create(AggregrateHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
-
-        if ($type->isClassOrInterface() && !$type->isClassOfType(TypeDescriptor::create(Message::class))) {
-            return $type->toString();
-        }
-
-        return null;
-    }
-
-    public static function getEventPayloadClasses(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): array
-    {
-        $type = TypeDescriptor::create(AggregrateHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
-        if ($type->isClassOrInterface() && !$type->isClassOfType(TypeDescriptor::create(Message::class))) {
-            if ($type->isUnionType()) {
-                return array_map(fn(TypeDescriptor $type) => $type->toString(), $type->getUnionTypes());
-            }
-
-            return [$type->toString()];
-        }
-
-        return [];
-    }
-
-    public static function hasMessageNameDefined(AnnotatedFinding $registration): bool
-    {
-        /** @var InputOutputEndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        if ($annotationForMethod instanceof EventHandler) {
-            $inputChannelName = $annotationForMethod->getListenTo();
-        } else {
-            $inputChannelName = $annotationForMethod->getInputChannelName();
-        }
-
-        return $inputChannelName ? true : false;
-    }
-
-    public static function getNamedMessageChannelForEventHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
-    {
-        /** @var InputOutputEndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        $inputChannelName = null;
-        if ($annotationForMethod instanceof EventHandler) {
-            $inputChannelName = $annotationForMethod->getListenTo();
-        }
-
-        if (!$inputChannelName) {
-            $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
-            if ($interfaceToCall->hasNoParameters()) {
-                throw ConfigurationException::create("Missing command class or listen routing for {$registration}.");
-            }
-            $inputChannelName = $interfaceToCall->getFirstParameterTypeHint();
-        }
-
-        return $inputChannelName;
-    }
-
     public static function getNamedMessageChannelFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
     {
         /** @var InputOutputEndpointAnnotation $annotationForMethod */
@@ -205,7 +145,7 @@ final class ServiceHandlerModule implements AnnotationModule
             $this->registerServiceHandler(self::getNamedMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
         foreach ($this->serviceEventHandlers as $registration) {
-            $this->registerServiceHandler(self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
+            $this->registerServiceHandler(MessageHandlerRoutingModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
         }
     }
 

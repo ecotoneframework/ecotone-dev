@@ -197,27 +197,6 @@ class AggregrateHandlerModule implements AnnotationModule
         return $inputChannelName ? true : false;
     }
 
-    public static function getNamedMessageChannelForEventHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
-    {
-        /** @var InputOutputEndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        $inputChannelName = null;
-        if ($annotationForMethod instanceof EventHandler) {
-            $inputChannelName = $annotationForMethod->getListenTo();
-        }
-
-        if (! $inputChannelName) {
-            $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
-            if ($interfaceToCall->hasNoParameters()) {
-                throw ConfigurationException::create("Missing command class or listen routing for {$registration}.");
-            }
-            $inputChannelName = $interfaceToCall->getFirstParameterTypeHint();
-        }
-
-        return $inputChannelName;
-    }
-
     public static function getNamedMessageChannelFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
     {
         /** @var InputOutputEndpointAnnotation $annotationForMethod */
@@ -395,7 +374,7 @@ class AggregrateHandlerModule implements AnnotationModule
         }
 
         foreach ($this->aggregateEventHandlers as $registration) {
-            $channelName = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $channelName = MessageHandlerRoutingModule::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }

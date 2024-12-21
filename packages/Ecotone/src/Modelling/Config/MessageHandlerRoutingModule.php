@@ -27,6 +27,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Support\Assert;
@@ -204,6 +205,20 @@ class MessageHandlerRoutingModule implements AnnotationModule
         return $objectQueryHandlers;
     }
 
+    public static function getEventPayloadClasses(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    {
+        $type = TypeDescriptor::create(AggregrateHandlerModule::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
+        if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
+            if ($type->isUnionType()) {
+                return array_map(fn (TypeDescriptor $type) => $type->toString(), $type->getUnionTypes());
+            }
+
+            return [$type->toString()];
+        }
+
+        return [];
+    }
+
     public static function getQueryBusByNamesMapping(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry, array &$uniqueChannels = []): array
     {
         $namedQueryHandlers = [];
@@ -240,7 +255,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
                 continue;
             }
 
-            $unionEventClasses           = AggregrateHandlerModule::getEventPayloadClasses($registration, $interfaceToCallRegistry);
+            $unionEventClasses           = self::getEventPayloadClasses($registration, $interfaceToCallRegistry);
             $namedMessageChannelFor = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
 
             foreach ($unionEventClasses as $classChannel) {
@@ -268,7 +283,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
                 continue;
             }
 
-            $unionEventClasses           = AggregrateHandlerModule::getEventPayloadClasses($registration, $interfaceToCallRegistry);
+            $unionEventClasses           = self::getEventPayloadClasses($registration, $interfaceToCallRegistry);
             $namedMessageChannelFor = self::getNamedMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             foreach ($unionEventClasses as $classChannel) {
                 if (! EventBusRouter::isRegexBasedRoute($namedMessageChannelFor)) {

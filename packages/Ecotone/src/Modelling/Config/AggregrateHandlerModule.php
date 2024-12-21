@@ -125,7 +125,7 @@ class AggregrateHandlerModule implements AnnotationModule
         );
     }
 
-    public static function getMessagePayloadTypeFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
+    public static function getFirstParameterTypeFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
     {
         $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
 
@@ -160,27 +160,13 @@ class AggregrateHandlerModule implements AnnotationModule
 
     public static function getPayloadClassIfAny(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): ?string
     {
-        $type = TypeDescriptor::create(AggregrateHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
+        $type = TypeDescriptor::create(AggregrateHandlerModule::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
 
         if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
             return $type->toString();
         }
 
         return null;
-    }
-
-    public static function getEventPayloadClasses(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): array
-    {
-        $type = TypeDescriptor::create(AggregrateHandlerModule::getMessagePayloadTypeFor($registration, $interfaceToCallRegistry));
-        if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
-            if ($type->isUnionType()) {
-                return array_map(fn (TypeDescriptor $type) => $type->toString(), $type->getUnionTypes());
-            }
-
-            return [$type->toString()];
-        }
-
-        return [];
     }
 
     /**

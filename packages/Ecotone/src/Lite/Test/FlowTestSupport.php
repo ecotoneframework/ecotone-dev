@@ -22,7 +22,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Ecotone\Modelling\Config\ModellingHandlerModule;
+use Ecotone\Modelling\Config\AggregrateHandlerModule;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
@@ -187,7 +187,7 @@ final class FlowTestSupport
                 AggregateMessage::RESULT_AGGREGATE_OBJECT => $aggregateClass,
                 AggregateMessage::RESULT_AGGREGATE_EVENTS => $events,
             ],
-            ModellingHandlerModule::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass). '.test_setup_state'
+            AggregrateHandlerModule::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass). '.test_setup_state'
         );
 
         return $this;
@@ -200,7 +200,7 @@ final class FlowTestSupport
             [
                 AggregateMessage::RESULT_AGGREGATE_OBJECT => $aggregate,
             ],
-            ModellingHandlerModule::getRegisterAggregateSaveRepositoryInputChannel($aggregate::class). '.test_setup_state'
+            AggregrateHandlerModule::getRegisterAggregateSaveRepositoryInputChannel($aggregate::class). '.test_setup_state'
         );
 
         return $this;
@@ -339,7 +339,7 @@ final class FlowTestSupport
             [
                 AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER => is_object($identifiers) ? (string)$identifiers : $identifiers,
             ],
-            ModellingHandlerModule::getRegisterAggregateLoadRepositoryInputChannel($className)
+            AggregrateHandlerModule::getRegisterAggregateLoadRepositoryInputChannel($className, false)
         );
     }
 

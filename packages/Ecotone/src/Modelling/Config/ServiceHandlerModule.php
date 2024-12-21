@@ -108,13 +108,13 @@ final class ServiceHandlerModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $moduleExtensions, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         foreach ($this->serviceCommandHandlers as $registration) {
-            $this->registerServiceHandler(MessageHandlerRoutingModule::getInputMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
+            $this->registerServiceHandler(MessageHandlerRoutingModule::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
         foreach ($this->serviceQueryHandlers as $registration) {
-            $this->registerServiceHandler(MessageHandlerRoutingModule::getInputMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
+            $this->registerServiceHandler(MessageHandlerRoutingModule::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
         foreach ($this->serviceEventHandlers as $registration) {
-            $this->registerServiceHandler(MessageHandlerRoutingModule::getInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
+            $this->registerServiceHandler(MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
         }
     }
 

@@ -271,13 +271,13 @@ class AggregrateHandlerModule implements AnnotationModule
 
         $aggregateCommandOrEventHandlers = [];
         foreach ($this->aggregateCommandHandlers as $registration) {
-            $channelName = MessageHandlerRoutingModule::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
+            $channelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
 
         foreach ($this->aggregateEventHandlers as $registration) {
-            $channelName = MessageHandlerRoutingModule::getInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $channelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
@@ -435,7 +435,7 @@ class AggregrateHandlerModule implements AnnotationModule
         $handledPayloadType       = $handledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($handledPayloadType)) : null;
 
 
-        $inputChannelName = MessageHandlerRoutingModule::getInputMessageChannelFor($registration, $interfaceToCallRegistry);
+        $inputChannelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
         $configuration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($inputChannelName));
         $configuration->registerMessageHandler(
             BridgeBuilder::create()

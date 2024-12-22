@@ -228,10 +228,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         $repository->get(123);
     }
 
-    /**
-     * @TODO
-     */
-    public function todo_test_storing_standard_aggregate_via_business_repository(): void
+    public function test_storing_standard_aggregate_via_business_repository(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Appointment::class, AppointmentStandardRepository::class, AppointmentRepositoryInterface::class],

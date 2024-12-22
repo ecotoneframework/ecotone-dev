@@ -316,7 +316,6 @@ class AggregrateHandlerModule implements AnnotationModule
 
         $saveAggregateBuilder = $chainMessageHandlerBuilder
             ->chain(ResolveAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName, $interfaceToCallRegistry))
-            ->chain(ResolveAggregateServiceBuilder::create($aggregateClassDefinition, $methodName, $interfaceToCallRegistry))
             ->chain(
                 SaveAggregateServiceBuilder::create(
                     $aggregateClassDefinition,

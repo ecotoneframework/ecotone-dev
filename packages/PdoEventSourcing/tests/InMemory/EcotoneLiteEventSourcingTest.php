@@ -17,6 +17,7 @@ use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
+use Test\Ecotone\EventSourcing\Fixture\TicketWithCounterProjection\CounterProjection;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDrivenProjection\InProgressTicketList;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDrivenProjection\ProjectionConfiguration;
 
@@ -226,5 +227,25 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         // initialize projection again and check its state was recreated
         $projectionManager->initializeProjection('inProgressTicketList');
         self::assertCount(5, $connection->fetchAllAssociative('select * from in_progress_tickets'), 'Read model table should be rebuild after second initialization');
+    }
+
+    public function test_it_CANNOT_project_object_type_event_handler(): void
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+            [Ticket::class, TicketEventConverter::class, CounterProjection::class],
+            [new TicketEventConverter(), $counter = new CounterProjection()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withEnvironment('test')
+                ->withExtensionObjects([
+                    EventSourcingConfiguration::createInMemory(),
+                ]),
+        );
+
+        $this->assertSame(0, $counter->getCounter());
+
+        $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
+
+        $this->assertSame(0, $counter->getCounter(), "Projection should not be triggered");
     }
 }

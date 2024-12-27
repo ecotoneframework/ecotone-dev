@@ -15,6 +15,7 @@ interface AggregateMessage
     public const OVERRIDE_AGGREGATE_IDENTIFIER = 'aggregate.id';
     public const AGGREGATE_OBJECT_EXISTS = 'ecotone.modelling.aggregate_exists';
     public const CALLED_AGGREGATE_OBJECT = 'ecotone.modelling.called_aggregate';
+    public const CALLED_AGGREGATE_CLASS = 'ecotone.modelling.called_aggregate_class';
     public const RESULT_AGGREGATE_OBJECT = 'ecotone.modelling.result_aggregate';
     public const AGGREGATE_ID = 'ecotone.modelling.aggregate.id';
     public const TARGET_VERSION = 'ecotone.modelling.aggregate.target_version';

@@ -51,7 +51,6 @@ final class CallAggregateResultToMessageConverter implements ResultToMessageConv
 
                 $resultMessage = $resultMessage->setHeader(AggregateMessage::TARGET_VERSION, $versionBeforeHandling);
             }
-            $resultMessage = $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $calledAggregate);
         }
 
         if (! is_null($result)) {
@@ -68,6 +67,7 @@ final class CallAggregateResultToMessageConverter implements ResultToMessageConv
         if ($this->isCommandHandler || ! is_null($result)) {
             return $resultMessage->build();
         }
+
         return null;
     }
 }

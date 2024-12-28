@@ -13,7 +13,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 /**
  * licence Apache-2.0
  */
-final class StreamNameMapper implements MessageProcessor, DefinedObject
+final class StreamNameMapper implements MessageProcessor
 {
     public function process(Message $message): Message
     {
@@ -21,10 +21,5 @@ final class StreamNameMapper implements MessageProcessor, DefinedObject
                 ->setHeader('ecotone.eventSourcing.eventStore.streamName', LazyProophProjectionManager::getProjectionStreamName(
                     $message->getHeaders()->get(ProjectionEventHandler::PROJECTION_NAME)
                 ))->build();
-    }
-
-    public function getDefinition(): Definition
-    {
-        return new Definition(self::class);
     }
 }

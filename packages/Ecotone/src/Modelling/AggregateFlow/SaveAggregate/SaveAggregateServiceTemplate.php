@@ -121,7 +121,13 @@ class SaveAggregateServiceTemplate
         bool $isFactoryMethod,
         array $aggregateIds,
         Message $message
-    ): \Ecotone\Messaging\Support\GenericMessage {
+    ): Message|null {
+        if ($message->getHeaders()->containsKey(AggregateMessage::NULL_EXECUTION_RESULT)) {
+            if ($message->getHeaders()->get(AggregateMessage::NULL_EXECUTION_RESULT)) {
+                return null;
+            }
+        }
+
         if ($isFactoryMethod) {
             if (count($aggregateIds) === 1) {
                 $aggregateIds = reset($aggregateIds);

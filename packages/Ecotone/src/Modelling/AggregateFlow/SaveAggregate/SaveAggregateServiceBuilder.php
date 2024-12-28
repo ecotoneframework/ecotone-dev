@@ -48,7 +48,8 @@ class SaveAggregateServiceBuilder implements CompilableBuilder
         ClassDefinition $aggregateClassDefinition,
         InterfaceToCallRegistry $interfaceToCallRegistry,
         private BaseEventSourcingConfiguration $eventSourcingConfiguration,
-        private bool $publishEvents = true
+        private bool $publishEvents = true,
+        private bool $passThroughResult = false,
     ) {
     }
 

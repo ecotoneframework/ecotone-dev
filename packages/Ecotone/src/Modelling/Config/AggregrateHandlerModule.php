@@ -295,12 +295,6 @@ class AggregrateHandlerModule implements AnnotationModule
                 )
                 ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames());
 
-//            $serviceActivatorHandler->chain(
-//                ResolveAggregateEventsServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $interfaceToCallRegistry)
-//            );
-//            $serviceActivatorHandler->chain(
-//                ResolveAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $interfaceToCallRegistry)
-//            );
             $serviceActivatorHandler->chain(
                 SaveAggregateServiceBuilder::create(
                     $aggregateClassDefinition,
@@ -309,51 +303,9 @@ class AggregrateHandlerModule implements AnnotationModule
                 )
                     ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
             );
-//            $serviceActivatorHandler->chain(
-//                PublishAggregateEventsServiceBuilder::create(
-//                    $aggregateClassDefinition,
-//                    $registration->getMethodName(),
-//                )
-//            );
+
             $configuration->registerMessageHandler($serviceActivatorHandler);
         }
-    }
-
-    private function registerSaveAggregate(ClassDefinition $aggregateClassDefinition, Configuration $configuration, MessageProcessorActivatorBuilder $chainMessageHandlerBuilder, InterfaceToCallRegistry $interfaceToCallRegistry, BaseEventSourcingConfiguration $baseEventSourcingConfiguration, string $inputChannelName): void
-    {
-        /** @TODO do not require method name in save service */
-        $methodName = $aggregateClassDefinition->getPublicMethodNames() ? $aggregateClassDefinition->getPublicMethodNames()[0] : '__construct';
-
-        $saveAggregateBuilder = $chainMessageHandlerBuilder
-//            ->chain(ResolveAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName, $interfaceToCallRegistry))
-            ->chain(
-                SaveAggregateServiceBuilder::create(
-                    $aggregateClassDefinition,
-                    $interfaceToCallRegistry,
-                    $baseEventSourcingConfiguration
-                )
-                    ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
-            )
-        ;
-
-        if ($configuration->isRunningForTest()) {
-            $configuration->registerMessageHandler(
-                MessageProcessorActivatorBuilder::create()
-                    ->withInputChannelName($saveAggregateBuilder->getInputMessageChannelName() . '.test_setup_state')
-                    ->chain(
-                        SaveAggregateServiceBuilder::create(
-                            $aggregateClassDefinition,
-                            $interfaceToCallRegistry,
-                            $baseEventSourcingConfiguration
-                        )
-                            ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
-                            ->withPublishEvents(false)
-                    )
-            );
-        }
-
-//        $saveAggregateBuilder = $saveAggregateBuilder->chain(PublishAggregateEventsServiceBuilder::create($aggregateClassDefinition, $methodName));
-        $configuration->registerMessageHandler($saveAggregateBuilder);
     }
 
     private function registerAggregateQueryHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory, Configuration $configuration): void
@@ -524,16 +476,35 @@ class AggregrateHandlerModule implements AnnotationModule
                 $interfaceToCallRegistry
             );
 
-            $this->registerSaveAggregate(
-                $aggregateClassDefinition,
-                $messagingConfiguration,
+            $messagingConfiguration->registerMessageHandler(
                 MessageProcessorActivatorBuilder::create()
                     ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass))
-                    ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], null, $interfaceToCallRegistry)),
-                $interfaceToCallRegistry,
-                $baseEventSourcingConfiguration,
-                self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass)
+                    ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], null, $interfaceToCallRegistry))
+                    ->chain(
+                        SaveAggregateServiceBuilder::create(
+                            $aggregateClassDefinition,
+                            $interfaceToCallRegistry,
+                            $baseEventSourcingConfiguration
+                        )
+                            ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
+                    )
             );
+
+            if ($messagingConfiguration->isRunningForTest()) {
+                $messagingConfiguration->registerMessageHandler(
+                    MessageProcessorActivatorBuilder::create()
+                        ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass) . '.test_setup_state')
+                        ->chain(
+                            SaveAggregateServiceBuilder::create(
+                                $aggregateClassDefinition,
+                                $interfaceToCallRegistry,
+                                $baseEventSourcingConfiguration
+                            )
+                                ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
+                                ->withPublishEvents(false)
+                        )
+                );
+            }
         }
     }
 

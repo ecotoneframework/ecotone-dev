@@ -47,7 +47,7 @@ final class SaveAggregateService implements MessageProcessor
 
     }
 
-    public function process(Message $message): Message
+    public function process(Message $message): Message|null
     {
         $resolvedAggregates = $this->aggregateResolver->resolve($message, true);
         $metadata = MessageHeaders::unsetNonUserKeys($message->getHeaders()->headers());

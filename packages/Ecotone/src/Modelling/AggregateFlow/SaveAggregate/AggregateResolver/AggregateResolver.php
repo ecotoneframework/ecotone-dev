@@ -59,6 +59,12 @@ final class AggregateResolver
     {
         /** Pure Event Sourced Aggregates returns events directly, therefore it lands as message payload */
         if ($aggregateDefinition->isPureEventSourcedAggregate()) {
+            $returnType = TypeDescriptor::createFromVariable($message->getPayload());
+            if ($this->isNewAggregateInstanceReturned($returnType)) {
+                return [];
+            }
+
+            Assert::isTrue($returnType->isIterable(), "Pure event sourced aggregate should return iterable of events, but got {$returnType->toString()}");
             return $message->getPayload();
         }
 
@@ -91,14 +97,14 @@ final class AggregateResolver
         }
 
         $returnType = TypeDescriptor::createFromVariable($message->getPayload());
-        if ($returnType->isClassNotInterface() && isset($this->aggregateDefinitions[$returnType->getTypeHint()])) {
+        if ($this->isNewAggregateInstanceReturned($returnType)) {
             $returnedResolvedAggregates = $this->resolveInternally(
                 MessageBuilder::fromMessage($message)
                     ->setPayload([])
                     ->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $message->getPayload())
                     ->setHeader(AggregateMessage::CALLED_AGGREGATE_CLASS, $returnType->getTypeHint())
-                    ->removeHeader(AggregateMessage::AGGREGATE_ID)
                     ->setHeader(AggregateMessage::TARGET_VERSION, 0)
+                    ->removeHeaders([AggregateMessage::AGGREGATE_ID, AggregateMessage::NULL_EXECUTION_RESULT])
                     ->build(),
                 true,
                 true,
@@ -155,5 +161,11 @@ final class AggregateResolver
             $identifiers,
             $events
         );
+    }
+
+    public function isNewAggregateInstanceReturned(TypeDescriptor|\Ecotone\Messaging\Handler\Type $returnType): bool
+    {
+        $isNewAggregateInstanceReturned = $returnType->isClassNotInterface() && isset($this->aggregateDefinitions[$returnType->getTypeHint()]);
+        return $isNewAggregateInstanceReturned;
     }
 }

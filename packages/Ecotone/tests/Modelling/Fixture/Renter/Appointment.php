@@ -39,7 +39,7 @@ class Appointment
         return new self($command);
     }
 
-    #[QueryHandler("getDuration")]
+    #[QueryHandler('getDuration')]
     public function getDuration(): int
     {
         return $this->duration;

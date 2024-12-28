@@ -21,14 +21,9 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
-use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
-use Ecotone\Modelling\Config\RegisterAggregateRepositoryChannels;
 
 use function json_decode;
 

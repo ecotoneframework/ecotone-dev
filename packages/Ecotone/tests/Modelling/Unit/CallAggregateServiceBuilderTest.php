@@ -3,28 +3,14 @@
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Handler\UnionTypeDescriptor;
-use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\AggregateFlow\CallAggregate\CallAggregateServiceBuilder;
-use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\InMemoryEventSourcedRepository;
-use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\AggregateCreated;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateAggregate;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateSomething;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\DoSomething;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\EventSourcingAggregateWithInternalRecorder;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\Something;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\SomethingWasCreated;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\SomethingWasDone;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\StateBasedAggregateWithInternalRecorder;
 use Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate\AggregateWithoutMessageClassesExample;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
@@ -40,7 +26,6 @@ use Test\Ecotone\Modelling\Fixture\QueryHandlerAggregate\StorageService;
 use Test\Ecotone\Modelling\Fixture\Ticket\AssignWorkerCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\StartTicketCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
-use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
 use Test\Ecotone\Modelling\Fixture\Ticket\WorkerWasAssignedEvent;
 
 /**

@@ -23,8 +23,7 @@ final class ResolvedAggregate
         private ?int                     $versionBeforeHandling,
         private array                    $identifiers,
         private array                    $events,
-    )
-    {
+    ) {
     }
 
     public function getAggregateClassName(): string

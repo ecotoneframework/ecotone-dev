@@ -24,7 +24,7 @@ class InMemoryStandardRepository implements StandardRepository
     {
         foreach ($aggregates as $aggregate) {
             $this->save([
-                'id' => $aggregate->getId()
+                'id' => $aggregate->getId(),
             ], $aggregate, [], null);
         }
     }

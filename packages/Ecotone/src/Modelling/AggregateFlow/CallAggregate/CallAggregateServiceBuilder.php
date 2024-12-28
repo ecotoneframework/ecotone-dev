@@ -75,7 +75,7 @@ class CallAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
         $this->interfaceToCall = $interfaceToCall;
         $isFactoryMethod = $this->interfaceToCall->isFactoryMethod();
         if ($isFactoryMethod) {
-            if ($this->isEventSourced && !$eventSourcingAttribute->hasInternalEventRecorder()) {
+            if ($this->isEventSourced && ! $eventSourcingAttribute->hasInternalEventRecorder()) {
                 return;
             }
 

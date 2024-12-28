@@ -66,7 +66,7 @@ class Article
     {
     }
 
-    #[CommandHandler(routingKey: "close")]
+    #[CommandHandler(routingKey: 'close')]
     public function closeArticle(): void
     {
         $this->isPublished = false;

@@ -6,19 +6,14 @@ namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Store\Document\DocumentStore;
-use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateClassDefinition;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
-use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\Event;
@@ -53,14 +48,14 @@ final class SaveAggregateService implements MessageProcessor
         $resolvedAggregates = $this->aggregateResolver->resolve($message);
         $metadata = MessageHeaders::unsetNonUserKeys($message->getHeaders()->headers());
 
-        if (!$resolvedAggregates) {
+        if (! $resolvedAggregates) {
             return MessageBuilder::fromMessage($message)->build();
         }
 
         foreach ($resolvedAggregates as $key => $resolvedAggregate) {
             $version = $resolvedAggregate->getVersionBeforeHandling();
 
-            if (!$resolvedAggregate->getAggregateClassDefinition()->isEventSourced()) {
+            if (! $resolvedAggregate->getAggregateClassDefinition()->isEventSourced()) {
                 $this->standardRepository->save(
                     $resolvedAggregate->getIdentifiers(),
                     $resolvedAggregate->getAggregateInstance(),

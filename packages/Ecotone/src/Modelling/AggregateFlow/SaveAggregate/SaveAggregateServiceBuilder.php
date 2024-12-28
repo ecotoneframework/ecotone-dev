@@ -6,25 +6,12 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateClassDefinitionProvider;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
-use Ecotone\Modelling\Attribute\AggregateVersion;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\LazyEventSourcedRepository;
 use Ecotone\Modelling\LazyStandardRepository;
-use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -94,7 +81,7 @@ class SaveAggregateServiceBuilder implements CompilableBuilder
             $this->eventSourcingConfiguration,
             $this->publishEvents,
             Reference::to(EventBus::class),
-            Reference::to(ContainerInterface::class)
+            Reference::to(ContainerInterface::class),
         ]);
     }
 

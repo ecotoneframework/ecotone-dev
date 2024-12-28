@@ -4,27 +4,12 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateMode;
-use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateServiceBuilder;
-use Ecotone\Modelling\AggregateIdentifierRetrevingServiceBuilder;
-use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\AggregateNotFoundException;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\InMemoryEventSourcedRepository;
-use Ecotone\Modelling\SnapshotEvent;
-use Ecotone\Test\ComponentTestBuilder;
 use Test\Ecotone\Messaging\BaseEcotoneTestCase;
 use Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate\AggregateWithoutMessageClassesExample;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
-use Test\Ecotone\Modelling\Fixture\Blog\ChangeArticleContentCommand;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;
-use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\EventSourcingHandlerMethodWithReturnType;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\EventSourcingHandlerMethodWithWrongParameterCountExample;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoFactoryMethodAggregateExample;
@@ -33,19 +18,13 @@ use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifi
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\StaticEventSourcingHandlerMethodExample;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\WithConstructorHavingParameters;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\WithPrivateConstructor;
-use Test\Ecotone\Modelling\Fixture\InterceptingAggregate\Basket;
 use Test\Ecotone\Modelling\Fixture\NoIdentifierAggregate\Product;
 use Test\Ecotone\Modelling\Fixture\Renter\Appointment;
-use Test\Ecotone\Modelling\Fixture\Renter\AppointmentRepositoryBuilder;
 use Test\Ecotone\Modelling\Fixture\Renter\AppointmentRepositoryInterface;
 use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStandardRepository;
 use Test\Ecotone\Modelling\Fixture\Renter\CreateAppointmentCommand;
 use Test\Ecotone\Modelling\Fixture\Saga\OrderFulfilment;
 use Test\Ecotone\Modelling\Fixture\Saga\PaymentWasDoneEvent;
-use Test\Ecotone\Modelling\Fixture\Ticket\AssignWorkerCommand;
-use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
-use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
-use Test\Ecotone\Modelling\Fixture\Ticket\WorkerWasAssignedEvent;
 
 /**
  * @internal

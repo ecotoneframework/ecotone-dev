@@ -149,7 +149,7 @@ final class KafkaMessageChannelTest extends TestCase
      */
     public function test_sending_via_routing_without_payload()
     {
-        $this->markTestSkipped("unstable");
+        $this->markTestSkipped('unstable');
 
         $channelName = 'async';
 

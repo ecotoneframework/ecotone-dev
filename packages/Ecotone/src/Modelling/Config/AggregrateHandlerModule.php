@@ -26,11 +26,8 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\Router\RouterProcessorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
-use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerProcessorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -38,9 +35,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\AggregateFlow\CallAggregate\CallAggregateServiceBuilder;
 use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateMode;
 use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateServiceBuilder;
-use Ecotone\Modelling\AggregateFlow\PublishEvents\PublishAggregateEventsServiceBuilder;
-use Ecotone\Modelling\AggregateFlow\ResolveAggregate\ResolveAggregateServiceBuilder;
-use Ecotone\Modelling\AggregateFlow\ResolveEvents\ResolveAggregateEventsServiceBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateClassDefinition;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
@@ -88,7 +82,8 @@ class AggregrateHandlerModule implements AnnotationModule
         private array $aggregateEventHandlers,
         private array $aggregateRepositoryReferenceNames,
         private array $gatewayRepositoryMethods
-    ) {}
+    ) {
+    }
 
     /**
      * In here we should provide messaging component for module
@@ -380,9 +375,9 @@ class AggregrateHandlerModule implements AnnotationModule
     private function initialization(Configuration $messagingConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
-            $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(EnterpriseAggregateMethodInvoker::class), new Definition(EnterpriseAggregateMethodInvoker::class));
+            $messagingConfiguration->registerServiceDefinition(Reference::to(EnterpriseAggregateMethodInvoker::class), new Definition(EnterpriseAggregateMethodInvoker::class));
         } else {
-            $messagingConfiguration->registerServiceDefinition(\Ecotone\Messaging\Config\Container\Reference::to(OpenCoreAggregateMethodInvoker::class), new Definition(OpenCoreAggregateMethodInvoker::class));
+            $messagingConfiguration->registerServiceDefinition(Reference::to(OpenCoreAggregateMethodInvoker::class), new Definition(OpenCoreAggregateMethodInvoker::class));
         }
 
         foreach ($this->aggregateCommandHandlers as $registration) {
@@ -410,7 +405,7 @@ class AggregrateHandlerModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             GroupedEventSourcingExecutor::class,
             Definition::createFor(GroupedEventSourcingExecutor::class, [
-                $eventSourcingExecutors
+                $eventSourcingExecutors,
             ])
         );
 
@@ -418,7 +413,7 @@ class AggregrateHandlerModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             AggregateDefinitionRegistry::class,
             [
-                $this->aggregateClassDefinitions
+                $this->aggregateClassDefinitions,
             ],
         );
 

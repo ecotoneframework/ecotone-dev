@@ -10,9 +10,9 @@ use Ecotone\Modelling\Attribute\Identifier;
 
 interface StorageService
 {
-    #[BusinessMethod("storage.getSmallBoxes")]
+    #[BusinessMethod('storage.getSmallBoxes')]
     public function getSmallBoxes(#[Identifier] $storageId): Message;
 
-    #[BusinessMethod("storage.getBoxes")]
+    #[BusinessMethod('storage.getBoxes')]
     public function getBoxes(#[Identifier] $storageId): Message;
 }

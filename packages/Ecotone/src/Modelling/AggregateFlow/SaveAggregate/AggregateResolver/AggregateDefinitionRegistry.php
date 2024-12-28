@@ -6,7 +6,6 @@ namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Modelling\AggregateMessage;
 
 /**
  * licence Apache-2.0
@@ -18,8 +17,7 @@ final class AggregateDefinitionRegistry
      */
     public function __construct(
         private array $aggregateDefinitions,
-    )
-    {
+    ) {
 
     }
 

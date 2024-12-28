@@ -47,6 +47,7 @@ use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\QueryBus;
 use ReflectionMethod;
+use ReflectionParameter;
 
 #[ModuleAnnotation]
 /**
@@ -246,7 +247,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
         $firstParameterType = $interfaceToCall->getFirstParameter()->getTypeDescriptor();
 
         if ($firstParameterType->isClassOrInterface() && ! $firstParameterType->isClassOfType(TypeDescriptor::create(Message::class))) {
-            $reflectionParameter = new \ReflectionParameter([$registration->getClassName(), $registration->getMethodName()], 0);
+            $reflectionParameter = new ReflectionParameter([$registration->getClassName(), $registration->getMethodName()], 0);
 
             foreach ($reflectionParameter->getAttributes() as $attribute) {
                 if (in_array($attribute->getName(), [ConfigurationVariable::class, Header::class, Headers::class, \Ecotone\Messaging\Attribute\Parameter\Reference::class])) {
@@ -447,7 +448,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             $inputChannelName = $annotationForMethod->getListenTo();
         }
 
-        if (!$inputChannelName) {
+        if (! $inputChannelName) {
             $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
             if ($interfaceToCall->hasNoParameters()) {
                 throw ConfigurationException::create("Missing command class or listen routing for {$registration}.");

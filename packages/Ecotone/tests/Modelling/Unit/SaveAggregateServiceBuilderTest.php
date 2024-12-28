@@ -74,7 +74,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 1)
+                    (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 1),
                 ])
         )
             ->sendCommand(new StartTicketCommand($ticketId = 1))
@@ -95,7 +95,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    (new BaseEventSourcingConfiguration())
+                    (new BaseEventSourcingConfiguration()),
                 ])
         )
             ->sendCommand(new StartTicketCommand($ticketId = 1));
@@ -112,7 +112,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 2)
+                    (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 2),
                 ])
         )
             ->sendCommand(new StartTicketCommand(1));

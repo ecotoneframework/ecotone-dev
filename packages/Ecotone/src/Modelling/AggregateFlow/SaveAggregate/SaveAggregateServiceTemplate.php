@@ -15,11 +15,9 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateClassDefinition;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;
 use Ecotone\Modelling\AggregateIdResolver;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Event;
-use Ecotone\Modelling\NoAggregateFoundToBeSaved;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use Ramsey\Uuid\Uuid;
 
@@ -66,9 +64,9 @@ class SaveAggregateServiceTemplate
     ): array {
         $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
         if ($aggregateIds) {
-            if (!is_array($aggregateIds)) {
+            if (! is_array($aggregateIds)) {
                 return [
-                    array_key_first($aggregateDefinition->getAggregateIdentifierMapping()) => (string)$aggregateIds
+                    array_key_first($aggregateDefinition->getAggregateIdentifierMapping()) => (string)$aggregateIds,
                 ];
             }
 

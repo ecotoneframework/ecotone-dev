@@ -42,7 +42,7 @@ class PropertyEditorAccessor
         return new Definition(
             self::class,
             [
-                Reference::to(ExpressionEvaluationService::REFERENCE)
+                Reference::to(ExpressionEvaluationService::REFERENCE),
             ],
             [self::class, 'create']
         );

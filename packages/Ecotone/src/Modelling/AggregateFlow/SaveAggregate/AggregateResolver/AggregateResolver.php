@@ -9,13 +9,11 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Event;
-use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 
 /**
@@ -28,8 +26,7 @@ final class AggregateResolver
         private GroupedEventSourcingExecutor $eventSourcingExecutor,
         private PropertyEditorAccessor $propertyEditorAccessor,
         private PropertyReaderAccessor $propertyReaderAccessor,
-    )
-    {
+    ) {
 
     }
 
@@ -38,7 +35,7 @@ final class AggregateResolver
      */
     public function resolve(Message $message): array
     {
-        return $this->resolveMultipleAggregates($message, !$message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE));
+        return $this->resolveMultipleAggregates($message, ! $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE));
     }
 
     /**
@@ -89,7 +86,7 @@ final class AggregateResolver
         /** This will be null for factory methods */
         $calledAggregateInstance = $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE) ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE) : null;
 
-        Assert::isTrue($message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_CLASS), "No aggregate class name was found in headers");
+        Assert::isTrue($message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_CLASS), 'No aggregate class name was found in headers');
         $aggregateDefinition = $this->aggregateDefinitionRegistry->getFor(TypeDescriptor::create($message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_CLASS)));
 
         if ($calledAggregateInstance || (is_null($calledAggregateInstance) && $aggregateDefinition->isPureEventSourcedAggregate())) {

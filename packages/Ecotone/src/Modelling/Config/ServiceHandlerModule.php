@@ -5,7 +5,6 @@ namespace Ecotone\Modelling\Config;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
-use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -13,8 +12,6 @@ use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
@@ -23,15 +20,11 @@ use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\ChangingHeaders;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\EventSourcingExecutor\EnterpriseAggregateMethodInvoker;
-use Ecotone\Modelling\EventSourcingExecutor\OpenCoreAggregateMethodInvoker;
 
 #[ModuleAnnotation]
 /**
@@ -48,8 +41,7 @@ final class ServiceHandlerModule implements AnnotationModule
         private array $serviceCommandHandlers,
         private array $serviceQueryHandlers,
         private array $serviceEventHandlers,
-    )
-    {
+    ) {
     }
 
     /**
@@ -63,19 +55,19 @@ final class ServiceHandlerModule implements AnnotationModule
             array_filter(
                 $annotationRegistrationService->findAnnotatedMethods(CommandHandler::class),
                 function (AnnotatedFinding $annotatedFinding) {
-                    return !$annotatedFinding->hasClassAnnotation(Aggregate::class);
+                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
                 }
             ),
             array_filter(
                 $annotationRegistrationService->findAnnotatedMethods(QueryHandler::class),
                 function (AnnotatedFinding $annotatedFinding) {
-                    return !$annotatedFinding->hasClassAnnotation(Aggregate::class);
+                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
                 }
             ),
             array_filter(
                 $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
                 function (AnnotatedFinding $annotatedFinding) {
-                    return !$annotatedFinding->hasClassAnnotation(Aggregate::class);
+                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
                 }
             ),
         );
@@ -133,7 +125,7 @@ final class ServiceHandlerModule implements AnnotationModule
          * We want to connect Event Handler directly to Event Bus channel only if it's not fetched from Stream Based Source.
          * This allows to connecting Event Handlers via Projection Event Handler that lead the way.
          */
-        if (!$isStreamBasedSource) {
+        if (! $isStreamBasedSource) {
             $configuration->registerMessageHandler(
                 BridgeBuilder::create()
                     ->withInputChannelName($inputChannelNameForRouting)

@@ -133,7 +133,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        list($objectToInvokeOn, $interfaceToCallReference, $interfaceToCall) = $this->prepare($builder);
+        [$objectToInvokeOn, $interfaceToCallReference, $interfaceToCall] = $this->prepare($builder);
 
         $newImplementation = MessageProcessorActivatorBuilder::create()
             ->withEndpointId($this->getEndpointId())
@@ -157,7 +157,7 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
 
     public function compileProcessor(MessagingContainerBuilder $builder): Definition
     {
-        list($objectToInvokeOn, $interfaceToCallReference, $interfaceToCall) = $this->prepare($builder);
+        [$objectToInvokeOn, $interfaceToCallReference, $interfaceToCall] = $this->prepare($builder);
 
         return MethodInvokerBuilder::create(
             $objectToInvokeOn,
@@ -214,10 +214,10 @@ class TransformerBuilder extends InputOutputMessageHandlerBuilder implements Mes
 
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
 
-        if (!$interfaceToCall->canReturnValue()) {
+        if (! $interfaceToCall->canReturnValue()) {
             throw InvalidArgumentException::create("Can't create transformer for {$interfaceToCall}, because method has no return value");
         }
 
-        return array($objectToInvokeOn, $interfaceToCallReference, $interfaceToCall);
+        return [$objectToInvokeOn, $interfaceToCallReference, $interfaceToCall];
     }
 }

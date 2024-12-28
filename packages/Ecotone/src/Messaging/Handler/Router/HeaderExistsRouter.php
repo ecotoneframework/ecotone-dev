@@ -17,7 +17,6 @@ use Ecotone\Messaging\Message;
  */
 final class HeaderExistsRouter implements RouteSelector, DefinedObject
 {
-
     private function __construct(private string $headerName, private string $routeToChannel, private string $fallbackRoute)
     {
     }
@@ -43,7 +42,7 @@ final class HeaderExistsRouter implements RouteSelector, DefinedObject
         return new Definition(self::class, [
             $this->headerName,
             $this->routeToChannel,
-            $this->fallbackRoute
+            $this->fallbackRoute,
         ], 'create');
     }
 }

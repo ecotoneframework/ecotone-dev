@@ -23,13 +23,11 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\Config\AggregrateHandlerModule;
+use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 use Ecotone\Modelling\QueryBus;
-use Ecotone\Test\StubEventSourcedAggregate;
 
 /**
  * @template T

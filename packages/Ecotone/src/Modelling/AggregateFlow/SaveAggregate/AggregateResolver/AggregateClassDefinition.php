@@ -24,8 +24,7 @@ final class AggregateClassDefinition implements DefinedObject
         private bool    $isAggregateVersionAutomaticallyIncreased,
         private array $aggregateIdentifierMapping,
         private array $aggregateIdentifierGetMethods,
-    )
-    {
+    ) {
 
     }
 
@@ -41,7 +40,7 @@ final class AggregateClassDefinition implements DefinedObject
 
     public function isStateStored(): bool
     {
-        return !$this->isEventSourced;
+        return ! $this->isEventSourced;
     }
 
     public function isPureEventSourcedAggregate(): bool

@@ -66,7 +66,7 @@ class BaseEventSourcingConfiguration implements DefinedObject
         return new Definition(
             self::class,
             [
-                $this->snapshotsAggregateClasses
+                $this->snapshotsAggregateClasses,
             ]
         );
     }

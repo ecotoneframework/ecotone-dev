@@ -20,7 +20,7 @@ final class Something
     {
     }
 
-    public function getVersion():int
+    public function getVersion(): int
     {
         return $this->version;
     }

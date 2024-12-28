@@ -5,9 +5,7 @@ namespace Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\WithEvents;
-use stdClass;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\CreateNoIdDefinedAggregate;
 
 #[Aggregate]

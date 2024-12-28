@@ -69,7 +69,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Ecotone\Modelling\Config\AggregrateHandlerModule;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;

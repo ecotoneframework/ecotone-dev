@@ -133,6 +133,25 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
         );
     }
 
+    public function test_initial_state_is_split_into_two()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Ticket::class]);
+
+        $ticketId = Uuid::uuid4()->toString();
+
+        $this->assertEquals(
+            [],
+            $ecotoneTestSupport
+                ->withEventsFor($ticketId, Ticket::class, [
+                    new TicketWasRegistered($ticketId, 'Johny', 'alert'),
+                ])
+                ->withEventsFor($ticketId, Ticket::class, [
+                    new AssignedPersonWasChanged($ticketId, 'Elvis'),
+                ], 1)
+                ->getRecordedEvents()
+        );
+    }
+
     public function test_providing_initial_state_in_form_of_events_with_event_store()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(

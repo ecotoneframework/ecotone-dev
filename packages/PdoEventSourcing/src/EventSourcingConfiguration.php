@@ -38,6 +38,8 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         $this->eventStoreReferenceName = $eventStoreReferenceName;
         $this->projectManagerReferenceName = $projectManagerReferenceName;
         $this->connectionReferenceName = $connectionReferenceName;
+
+        parent::__construct();
     }
 
     public static function create(string $connectionReferenceName = DbalConnectionFactory::class, string $eventStoreReferenceName = EventStore::class, string $projectManagerReferenceName = ProjectionManager::class): static

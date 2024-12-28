@@ -11,9 +11,11 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\EventBus;
+use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 use Ecotone\Modelling\QueryBus;
 
 /**
@@ -84,12 +86,18 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
             $this->getCommandBus(),
             $this->getEventBus(),
             $this->getQueryBus(),
+            $this->getServiceFromContainer(AggregateDefinitionRegistry::class),
             $this->getMessagingTestSupport(),
             $this->getGatewayByName(MessagingEntrypoint::class),
             $this->configuredMessagingSystem
         );
     }
 
+    /**
+     * @template T
+     * @param class-string<T> $referenceName
+     * @return T
+     */
     public function getServiceFromContainer(string $referenceName): object
     {
         return $this->configuredMessagingSystem->getServiceFromContainer($referenceName);

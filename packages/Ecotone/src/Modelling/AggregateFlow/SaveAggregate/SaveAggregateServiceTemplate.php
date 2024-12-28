@@ -14,6 +14,8 @@ use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateClassDefinition;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;
 use Ecotone\Modelling\AggregateIdResolver;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Event;
@@ -26,22 +28,6 @@ use Ramsey\Uuid\Uuid;
  */
 class SaveAggregateServiceTemplate
 {
-    public static function resolveAggregate(
-        string  $calledClass,
-        Message $message,
-        bool    $isFactoryMethod
-    ): object|string {
-        $messageHeaders = $message->getHeaders();
-        if ($isFactoryMethod && $messageHeaders->containsKey(AggregateMessage::RESULT_AGGREGATE_OBJECT)) {
-            return $messageHeaders->get(AggregateMessage::RESULT_AGGREGATE_OBJECT);
-        }
-        if ($messageHeaders->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT)) {
-            return $messageHeaders->get(AggregateMessage::CALLED_AGGREGATE_OBJECT);
-        }
-
-        throw NoAggregateFoundToBeSaved::create("After calling {$calledClass} no aggregate was found to be saved.");
-    }
-
     public static function resolveVersionBeforeHandling(
         Message $message
     ): int {
@@ -74,20 +60,24 @@ class SaveAggregateServiceTemplate
     public static function getAggregateIds(
         PropertyReaderAccessor $propertyReaderAccessor,
         array $metadata,
-        string $calledClass,
-        array $aggregateIdentifierMapping,
-        array $aggregateIdentifierGetMethods,
-        object|string $aggregate,
+        object $aggregate,
+        AggregateClassDefinition $aggregateDefinition,
         bool $throwOnNoIdentifier
     ): array {
         $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
         if ($aggregateIds) {
+            if (!is_array($aggregateIds)) {
+                return [
+                    array_key_first($aggregateDefinition->getAggregateIdentifierMapping()) => (string)$aggregateIds
+                ];
+            }
+
             return $aggregateIds;
         }
 
-        foreach ($aggregateIdentifierMapping as $aggregateIdName => $aggregateIdValue) {
-            if (isset($aggregateIdentifierGetMethods[$aggregateIdName])) {
-                $id = call_user_func([$aggregate, $aggregateIdentifierGetMethods[$aggregateIdName]]);
+        foreach ($aggregateDefinition->getAggregateIdentifierMapping() as $aggregateIdName => $aggregateIdValue) {
+            if (isset($aggregateDefinition->getAggregateIdentifierGetMethods()[$aggregateIdName])) {
+                $id = call_user_func([$aggregate, $aggregateDefinition->getAggregateIdentifierGetMethods()[$aggregateIdName]]);
 
                 if (! is_null($id)) {
                     $aggregateIds[$aggregateIdName] = $id;
@@ -105,7 +95,7 @@ class SaveAggregateServiceTemplate
                     continue;
                 }
 
-                throw NoCorrectIdentifierDefinedException::create("After calling {$calledClass} has no identifier assigned. If you're using Event Sourcing Aggregate, please set up #[EventSourcingHandler] that will assign the id after first event");
+                throw NoCorrectIdentifierDefinedException::create("After calling {$aggregateDefinition->getClassName()} has no identifier assigned. If you're using Event Sourcing Aggregate, please set up #[EventSourcingHandler] that will assign the id after first event");
             }
 
             $aggregateIds[$aggregateIdName] = $id;
@@ -121,7 +111,13 @@ class SaveAggregateServiceTemplate
         bool $isFactoryMethod,
         array $aggregateIds,
         Message $message
-    ): \Ecotone\Messaging\Support\GenericMessage {
+    ): Message|null {
+        if ($message->getHeaders()->containsKey(AggregateMessage::NULL_EXECUTION_RESULT)) {
+            if ($message->getHeaders()->get(AggregateMessage::NULL_EXECUTION_RESULT)) {
+                return null;
+            }
+        }
+
         if ($isFactoryMethod) {
             if (count($aggregateIds) === 1) {
                 $aggregateIds = reset($aggregateIds);

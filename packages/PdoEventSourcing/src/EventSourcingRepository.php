@@ -12,7 +12,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveEventSourcingAggregateService;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
@@ -57,7 +57,7 @@ class EventSourcingRepository implements EventSourcedRepository
         $snapshotEvent = [];
 
         if (array_key_exists($aggregateClassName, $this->documentStoreReferences)) {
-            $aggregate = $this->documentStoreReferences[$aggregateClassName]->findDocument(SaveEventSourcingAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
+            $aggregate = $this->documentStoreReferences[$aggregateClassName]->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
 
             if (! is_null($aggregate)) {
                 $aggregateVersion = $this->getAggregateVersion($aggregate);

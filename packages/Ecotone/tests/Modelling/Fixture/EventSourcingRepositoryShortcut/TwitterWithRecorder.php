@@ -25,7 +25,6 @@ class TwitterWithRecorder
     private string $twitId;
     private string $content;
 
-    #[QueryHandler('getContent')]
     public function getContent(): string
     {
         return $this->content;
@@ -37,12 +36,6 @@ class TwitterWithRecorder
         $self->recordThat(new TwitWasCreated($twitId, $content));
 
         return $self;
-    }
-
-    #[CommandHandler('changeContent')]
-    public function changeContent(string $content): void
-    {
-        $this->recordThat(new TwitContentWasChanged($this->twitId, $content));
     }
 
     #[EventSourcingHandler]

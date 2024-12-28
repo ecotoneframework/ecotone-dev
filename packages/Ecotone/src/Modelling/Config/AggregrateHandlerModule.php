@@ -293,8 +293,6 @@ class AggregrateHandlerModule implements AnnotationModule
 
             $serviceActivatorHandler->chain(
                 SaveAggregateServiceBuilder::create(
-                    $aggregateClassDefinition,
-                    $interfaceToCallRegistry,
                     $baseEventSourcingConfiguration
                 )
                     ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
@@ -483,11 +481,7 @@ class AggregrateHandlerModule implements AnnotationModule
                 MessageProcessorActivatorBuilder::create()
                     ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass))
                     ->chain(
-                        SaveAggregateServiceBuilder::create(
-                            $aggregateClassDefinition,
-                            $interfaceToCallRegistry,
-                            $baseEventSourcingConfiguration
-                        )
+                        SaveAggregateServiceBuilder::create($baseEventSourcingConfiguration)
                             ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
                     )
             );
@@ -497,11 +491,7 @@ class AggregrateHandlerModule implements AnnotationModule
                     MessageProcessorActivatorBuilder::create()
                         ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass) . '.test_setup_state')
                         ->chain(
-                            SaveAggregateServiceBuilder::create(
-                                $aggregateClassDefinition,
-                                $interfaceToCallRegistry,
-                                $baseEventSourcingConfiguration
-                            )
+                            SaveAggregateServiceBuilder::create($baseEventSourcingConfiguration)
                                 ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
                                 ->withPublishEvents(false)
                         )

@@ -45,11 +45,8 @@ class SaveAggregateServiceBuilder implements CompilableBuilder
     private ?string $calledAggregateClassName = null;
 
     private function __construct(
-        ClassDefinition $aggregateClassDefinition,
-        InterfaceToCallRegistry $interfaceToCallRegistry,
         private BaseEventSourcingConfiguration $eventSourcingConfiguration,
         private bool $publishEvents = true,
-        private bool $passThroughResult = false,
     ) {
     }
 
@@ -57,11 +54,9 @@ class SaveAggregateServiceBuilder implements CompilableBuilder
      * @param string[] $aggregateClasses
      */
     public static function create(
-        ClassDefinition $aggregateClassDefinition,
-        InterfaceToCallRegistry $interfaceToCallRegistry,
         BaseEventSourcingConfiguration $eventSourcingConfiguration,
     ): self {
-        return new self($aggregateClassDefinition, $interfaceToCallRegistry, $eventSourcingConfiguration);
+        return new self($eventSourcingConfiguration);
     }
 
     /**

@@ -209,6 +209,6 @@ class CallAggregateServiceBuilderTest extends TestCase
             ->send($commandToRun);
 
 
-        $this->assertEquals($commandToRun, $reply);
+        $this->assertNull($reply);
     }
 }

@@ -27,6 +27,7 @@ use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorde
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasFinished;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasStarted;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\StartJob;
+use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitContentWasChanged;
 use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\Twitter;
 use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitterRepository;
 use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitterWithRecorder;
@@ -224,7 +225,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
         );
     }
 
-    public function test_storing_pure_event_sourced_aggregate_via_business_repository(): void
+    public function test_storing_pure_event_sourced_aggregate_via_business_repository_for_first_time(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Twitter::class, TwitterRepository::class],
@@ -248,7 +249,26 @@ class SaveAggregateServiceBuilderTest extends TestCase
         );
     }
 
-    public function test_storing_non_pure_event_sourced_aggregate_via_business_repository(): void
+    public function test_storing_pure_event_sourced_aggregate_via_business_repository_for_update(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Twitter::class, TwitterRepository::class],
+        );
+
+        /** @var TwitterRepository $twitterRepository */
+        $twitterRepository = $ecotoneLite->getGateway(TwitterRepository::class);
+
+        $twitterRepository->save('1', 0, [new TwitWasCreated('1', 'Hello world')]);
+        $twitterRepository->save('1', 1, [new TwitContentWasChanged('1', 'Hello world 2')]);
+
+        $this->assertSame(
+            'Hello world 2',
+            $twitterRepository->getTwitter('1')
+                ->getContent()
+        );
+    }
+
+    public function test_storing_non_pure_event_sourced_aggregate_via_business_repository_for_first_time(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [TwitterWithRecorder::class, TwitterWithRecorderRepository::class],
@@ -263,6 +283,28 @@ class SaveAggregateServiceBuilderTest extends TestCase
 
         $this->assertSame(
             'Hello world',
+            $twitterRepository->getTwitter('1')
+                ->getContent()
+        );
+    }
+
+    public function test_storing_non_pure_event_sourced_aggregate_via_business_repository_for_update(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [TwitterWithRecorder::class, TwitterWithRecorderRepository::class],
+        );
+
+        /** @var TwitterWithRecorderRepository $twitterRepository */
+        $twitterRepository = $ecotoneLite->getGateway(TwitterWithRecorderRepository::class);
+
+        $twitterRepository->save(TwitterWithRecorder::create('1', 'Hello world'));
+
+        $twitter = $twitterRepository->getTwitter('1');
+        $twitter->changeContent('Hello world 2');
+        $twitterRepository->save($twitter);
+
+        $this->assertSame(
+            'Hello world 2',
             $twitterRepository->getTwitter('1')
                 ->getContent()
         );

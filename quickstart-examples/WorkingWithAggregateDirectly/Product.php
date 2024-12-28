@@ -16,7 +16,7 @@ use Ecotone\Modelling\WithAggregateVersioning;
 class Product
 {
     #[AggregateIdentifier]
-    private int $productId;
+    private string $productId;
     use WithAggregateVersioning;
 
     private float $price;

@@ -66,6 +66,12 @@ class SaveAggregateServiceTemplate
     ): array {
         $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
         if ($aggregateIds) {
+            if (!is_array($aggregateIds)) {
+                return [
+                    array_key_first($aggregateDefinition->getAggregateIdentifierMapping()) => (string)$aggregateIds
+                ];
+            }
+
             return $aggregateIds;
         }
 

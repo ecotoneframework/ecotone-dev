@@ -38,6 +38,11 @@ class TwitterWithRecorder
         return $self;
     }
 
+    public function changeContent(string $content): void
+    {
+        $this->recordThat(new TwitContentWasChanged($this->twitId, $content));
+    }
+
     #[EventSourcingHandler]
     public function whenTwitWasCreated(TwitWasCreated $event): void
     {

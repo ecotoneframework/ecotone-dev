@@ -37,8 +37,8 @@ class SaveAggregateServiceTemplate
         if ($isFactoryMethod && $messageHeaders->containsKey(AggregateMessage::RESULT_AGGREGATE_OBJECT)) {
             return $messageHeaders->get(AggregateMessage::RESULT_AGGREGATE_OBJECT);
         }
-        if ($messageHeaders->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT)) {
-            return $messageHeaders->get(AggregateMessage::CALLED_AGGREGATE_OBJECT);
+        if ($messageHeaders->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)) {
+            return $messageHeaders->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE);
         }
 
         throw NoAggregateFoundToBeSaved::create("After calling {$calledClass} no aggregate was found to be saved.");

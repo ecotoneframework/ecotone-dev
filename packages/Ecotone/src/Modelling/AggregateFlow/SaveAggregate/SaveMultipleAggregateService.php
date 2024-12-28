@@ -23,7 +23,7 @@ final class SaveMultipleAggregateService implements SaveAggregateService
 
     public function process(Message $message): Message
     {
-        if ($message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT)) {
+        if ($message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)) {
             $this->saveCalledAggregateService->process($message);
         }
 

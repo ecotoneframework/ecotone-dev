@@ -42,6 +42,6 @@ final class CallAggregateAsynchronousEndpointTest extends AmqpMessagingTestCase
             ->sendCommand(new ScheduleMeeting('1', '2'))
         ;
 
-        self::assertFalse($ecotone->getMessageChannel('calendar')->receive()->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT));
+        self::assertFalse($ecotone->getMessageChannel('calendar')->receive()->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE));
     }
 }

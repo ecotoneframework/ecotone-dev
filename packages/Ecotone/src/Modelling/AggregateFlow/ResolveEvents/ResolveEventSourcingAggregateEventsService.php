@@ -35,15 +35,15 @@ final class ResolveEventSourcingAggregateEventsService implements ResolveAggrega
             }
             $resultMessage->setHeader(AggregateMessage::RESULT_AGGREGATE_EVENTS, is_array($resultAggregateEvents) ? $resultAggregateEvents : []);
         } else {
-            if ($message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_EVENTS)) {
+            if ($message->getHeaders()->containsKey(AggregateMessage::RECORDED_AGGREGATE_EVENTS)) {
                 return $resultMessage->build();
             }
             if ($this->aggregateMethodWithEvents) {
-                $calledAggregateEvents = call_user_func([$message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT), $this->aggregateMethodWithEvents]);
+                $calledAggregateEvents = call_user_func([$message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE), $this->aggregateMethodWithEvents]);
             } else {
                 $calledAggregateEvents = $message->getPayload();
             }
-            $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_EVENTS, is_array($calledAggregateEvents) ? $calledAggregateEvents : []);
+            $resultMessage->setHeader(AggregateMessage::RECORDED_AGGREGATE_EVENTS, is_array($calledAggregateEvents) ? $calledAggregateEvents : []);
         }
 
         return $resultMessage->build();

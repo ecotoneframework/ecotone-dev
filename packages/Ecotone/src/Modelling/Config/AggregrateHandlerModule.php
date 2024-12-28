@@ -41,6 +41,7 @@ use Ecotone\Modelling\AggregateFlow\PublishEvents\PublishAggregateEventsServiceB
 use Ecotone\Modelling\AggregateFlow\ResolveAggregate\ResolveAggregateServiceBuilder;
 use Ecotone\Modelling\AggregateFlow\ResolveEvents\ResolveAggregateEventsServiceBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateClassDefinition;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceBuilder;
@@ -422,9 +423,16 @@ class AggregrateHandlerModule implements AnnotationModule
 
 
         $messagingConfiguration->registerServiceDefinition(
+            AggregateDefinitionRegistry::class,
+            [
+                $this->aggregateClassDefinitions
+            ],
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
             AggregateResolver::class,
             Definition::createFor(AggregateResolver::class, [
-                $this->aggregateClassDefinitions,
+                Reference::to(AggregateDefinitionRegistry::class),
                 Reference::to(GroupedEventSourcingExecutor::class),
                 PropertyEditorAccessor::getDefinition(),
                 PropertyReaderAccessor::getDefinition(),
@@ -531,7 +539,7 @@ class AggregrateHandlerModule implements AnnotationModule
                         GatewayHeaderBuilder::create($interface->getFirstParameterName(), AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER),
                         GatewayHeaderBuilder::create($interface->getSecondParameter()->getName(), AggregateMessage::TARGET_VERSION),
                         GatewayPayloadBuilder::create($interface->getThirdParameter()),
-                        GatewayHeaderValueBuilder::create(AggregateMessage::CALLED_AGGREGATE_OBJECT, $aggregateClassDefinition->getClassType()->toString()),
+                        GatewayHeaderValueBuilder::create(AggregateMessage::CALLED_AGGREGATE_INSTANCE, $aggregateClassDefinition->getClassType()->toString()),
                         GatewayHeaderValueBuilder::create(AggregateMessage::RESULT_AGGREGATE_OBJECT, $aggregateClassDefinition->getClassType()->toString()),
                     ];
                 } else {
@@ -540,7 +548,7 @@ class AggregrateHandlerModule implements AnnotationModule
                     $requestChannel = self::getRegisterAggregateSaveRepositoryInputChannel($interface->getFirstParameter()->getTypeDescriptor()->toString());
 
                     $gatewayParameterConverters = [
-                        GatewayHeaderBuilder::create($interface->getFirstParameter()->getName(), AggregateMessage::CALLED_AGGREGATE_OBJECT),
+                        GatewayHeaderBuilder::create($interface->getFirstParameter()->getName(), AggregateMessage::CALLED_AGGREGATE_INSTANCE),
                         GatewayHeaderValueBuilder::create(AggregateMessage::CALLED_AGGREGATE_CLASS, $interface->getFirstParameter()->getTypeHint()),
                     ];
                 }

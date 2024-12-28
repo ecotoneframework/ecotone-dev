@@ -11,6 +11,7 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
@@ -19,13 +20,16 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\Config\AggregrateHandlerModule;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
+use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\Test\StubEventSourcedAggregate;
 
 /**
  * @template T
@@ -39,6 +43,7 @@ final class FlowTestSupport
         private CommandBus $commandBus,
         private EventBus $eventBus,
         private QueryBus $queryBus,
+        private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
         private MessagingTestSupport $testSupportGateway,
         private MessagingEntrypoint $messagingEntrypoint,
         private ConfiguredMessagingSystem $configuredMessagingSystem
@@ -179,12 +184,17 @@ final class FlowTestSupport
      */
     public function withEventsFor(string|object|array $identifiers, string $aggregateClass, array $events, int $aggregateVersion = 0): self
     {
+        $aggregateDefinition = $this->aggregateDefinitionRegistry->getFor(TypeDescriptor::create($aggregateClass));
+        Assert::isTrue($aggregateDefinition->isEventSourced(), "Aggregate {$aggregateClass} is not event sourced. Can't store events for it.");
+
         $this->messagingEntrypoint->sendWithHeaders(
-            $events,
+            [],
             [
                 AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER => is_object($identifiers) ? (string)$identifiers : $identifiers,
                 AggregateMessage::TARGET_VERSION => $aggregateVersion,
                 AggregateMessage::CALLED_AGGREGATE_CLASS => $aggregateClass,
+                AggregateMessage::CALLED_AGGREGATE_INSTANCE => new $aggregateClass(),
+                AggregateMessage::RECORDED_AGGREGATE_EVENTS => $events,
             ],
             AggregrateHandlerModule::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass). '.test_setup_state'
         );
@@ -197,7 +207,7 @@ final class FlowTestSupport
         $this->messagingEntrypoint->sendWithHeaders(
             $aggregate,
             [
-                AggregateMessage::CALLED_AGGREGATE_OBJECT => $aggregate,
+                AggregateMessage::CALLED_AGGREGATE_INSTANCE => $aggregate,
                 AggregateMessage::CALLED_AGGREGATE_CLASS => $aggregate::class,
             ],
             AggregrateHandlerModule::getRegisterAggregateSaveRepositoryInputChannel($aggregate::class). '.test_setup_state'

@@ -38,7 +38,7 @@ final class CallAggregateResultToMessageConverter implements ResultToMessageConv
         }
 
         if ($this->isCommandHandler) {
-            $calledAggregate = $requestMessage->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT) ? $requestMessage->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT) : null;
+            $calledAggregate = $requestMessage->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE) ? $requestMessage->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE) : null;
             $versionBeforeHandling = $requestMessage->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $requestMessage->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;
 
             if (is_null($versionBeforeHandling) && $this->aggregateVersionProperty) {

@@ -19,11 +19,8 @@ use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 
 final class AggregateResolver
 {
-    /**
-     * @param AggregateClassDefinition[] $aggregateDefinitions
-     */
     public function __construct(
-        private array $aggregateDefinitions,
+        private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
         private GroupedEventSourcingExecutor $eventSourcingExecutor,
         private PropertyEditorAccessor $propertyEditorAccessor,
         private PropertyReaderAccessor $propertyReaderAccessor,
@@ -37,7 +34,7 @@ final class AggregateResolver
      */
     public function resolve(Message $message, bool $throwOnUnresolvableIdentifiers): array
     {
-        return $this->resolveInternally($message, $throwOnUnresolvableIdentifiers, !$message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT));
+        return $this->resolveMultipleAggregates($message, $throwOnUnresolvableIdentifiers, !$message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE));
     }
 
     /**
@@ -57,6 +54,10 @@ final class AggregateResolver
      */
     private function resolveEvents(AggregateClassDefinition $aggregateDefinition, ?object $actualAggregate, Message $message): array
     {
+        if ($message->getHeaders()->containsKey(AggregateMessage::RECORDED_AGGREGATE_EVENTS)) {
+            return $message->getHeaders()->get(AggregateMessage::RECORDED_AGGREGATE_EVENTS);
+        }
+
         /** Pure Event Sourced Aggregates returns events directly, therefore it lands as message payload */
         if ($aggregateDefinition->isPureEventSourcedAggregate()) {
             $returnType = TypeDescriptor::createFromVariable($message->getPayload());
@@ -78,18 +79,17 @@ final class AggregateResolver
         return [];
     }
 
-    public function resolveInternally(Message $message, bool $throwOnUnresolvableIdentifiers, bool $isNewInstance): array
+    public function resolveMultipleAggregates(Message $message, bool $throwOnUnresolvableIdentifiers, bool $isNewInstance): array
     {
         $resolvedAggregates = [];
         /** This will be null for factory methods */
-        $calledAggregateInstance = $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_OBJECT) ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT) : null;
+        $calledAggregateInstance = $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE) ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE) : null;
 
         Assert::isTrue($message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_CLASS), "No aggregate class name was found in headers");
-        Assert::keyExists($this->aggregateDefinitions, $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_CLASS), "No aggregate was registered for {$message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_CLASS)}. Is this class name correct, and have you marked this class with #[Aggregate] attribute?");
-        $aggregateDefinition = $this->aggregateDefinitions[$message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_CLASS)];
+        $aggregateDefinition = $this->aggregateDefinitionRegistry->getFor(TypeDescriptor::create($message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_CLASS)));
 
         if ($calledAggregateInstance || (is_null($calledAggregateInstance) && $aggregateDefinition->isPureEventSourcedAggregate())) {
-            $resolvedAggregate = $this->resolveSingleAggregateFromMessage($aggregateDefinition, $calledAggregateInstance, $message, $throwOnUnresolvableIdentifiers, $isNewInstance);
+            $resolvedAggregate = $this->resolveSingleAggregate($aggregateDefinition, $calledAggregateInstance, $message, $throwOnUnresolvableIdentifiers, $isNewInstance);
 
             if ($resolvedAggregate) {
                 $resolvedAggregates[] = $resolvedAggregate;
@@ -98,10 +98,10 @@ final class AggregateResolver
 
         $returnType = TypeDescriptor::createFromVariable($message->getPayload());
         if ($this->isNewAggregateInstanceReturned($returnType)) {
-            $returnedResolvedAggregates = $this->resolveInternally(
+            $returnedResolvedAggregates = $this->resolveMultipleAggregates(
                 MessageBuilder::fromMessage($message)
                     ->setPayload([])
-                    ->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $message->getPayload())
+                    ->setHeader(AggregateMessage::CALLED_AGGREGATE_INSTANCE, $message->getPayload())
                     ->setHeader(AggregateMessage::CALLED_AGGREGATE_CLASS, $returnType->getTypeHint())
                     ->setHeader(AggregateMessage::TARGET_VERSION, 0)
                     ->removeHeaders([AggregateMessage::AGGREGATE_ID, AggregateMessage::NULL_EXECUTION_RESULT])
@@ -122,7 +122,7 @@ final class AggregateResolver
         return $resolvedAggregates;
     }
 
-    public function resolveSingleAggregateFromMessage(AggregateClassDefinition $aggregateDefinition, null|object $calledAggregateInstance, Message $message, bool $throwOnUnresolvableIdentifiers, bool $isNewInstance): ResolvedAggregate|null
+    public function resolveSingleAggregate(AggregateClassDefinition $aggregateDefinition, null|object $calledAggregateInstance, Message $message, bool $throwOnUnresolvableIdentifiers, bool $isNewInstance): ResolvedAggregate|null
     {
         $events = SaveAggregateServiceTemplate::buildEcotoneEvents(
             $this->resolveEvents($aggregateDefinition, $calledAggregateInstance, $message),
@@ -130,8 +130,7 @@ final class AggregateResolver
             $message,
         );
 
-        /** Nothing to save */
-        if ($aggregateDefinition->isPureEventSourcedAggregate() && $events === []) {
+        if ($this->hasReturnedNoEvents($aggregateDefinition, $events)) {
             return null;
         }
 
@@ -163,9 +162,13 @@ final class AggregateResolver
         );
     }
 
-    public function isNewAggregateInstanceReturned(TypeDescriptor|\Ecotone\Messaging\Handler\Type $returnType): bool
+    public function isNewAggregateInstanceReturned(TypeDescriptor $returnType): bool
     {
-        $isNewAggregateInstanceReturned = $returnType->isClassNotInterface() && isset($this->aggregateDefinitions[$returnType->getTypeHint()]);
-        return $isNewAggregateInstanceReturned;
+        return $this->aggregateDefinitionRegistry->has($returnType);
+    }
+
+    public function hasReturnedNoEvents(AggregateClassDefinition $aggregateDefinition, array $events): bool
+    {
+        return $aggregateDefinition->isPureEventSourcedAggregate() && $events === [];
     }
 }

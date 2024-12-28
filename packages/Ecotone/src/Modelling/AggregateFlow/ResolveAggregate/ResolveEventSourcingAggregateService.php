@@ -32,8 +32,8 @@ final class ResolveEventSourcingAggregateService implements ResolveAggregateServ
             $events = SaveAggregateServiceTemplate::buildEcotoneEvents($events, $this->calledAggregateType, $message);
             $resultMessage->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, $this->eventSourcingHandlerExecutor->fill($events, null));
         } else {
-            $events = $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_EVENTS);
-            $calledAggregate = $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT);
+            $events = $message->getHeaders()->get(AggregateMessage::RECORDED_AGGREGATE_EVENTS);
+            $calledAggregate = $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE);
             $events = SaveAggregateServiceTemplate::buildEcotoneEvents($events, $this->calledAggregateType, $message);
             $resultMessage->setHeader(AggregateMessage::RESULT_AGGREGATE_OBJECT, $this->eventSourcingHandlerExecutor->fill($events, $calledAggregate));
         }

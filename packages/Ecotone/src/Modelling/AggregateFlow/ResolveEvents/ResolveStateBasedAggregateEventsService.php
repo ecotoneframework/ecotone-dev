@@ -29,8 +29,8 @@ final class ResolveStateBasedAggregateEventsService implements ResolveAggregateE
             $events = call_user_func([$message->getPayload(), $this->aggregateMethodWithEvents]);
             $resultMessage->setHeader(AggregateMessage::RESULT_AGGREGATE_EVENTS, is_array($events) ? $events : []);
         } elseif ($this->resolveCalledAggregate && $this->aggregateMethodWithEvents) {
-            $events = call_user_func([$message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_OBJECT), $this->aggregateMethodWithEvents]);
-            $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_EVENTS, is_array($events) ? $events : []);
+            $events = call_user_func([$message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE), $this->aggregateMethodWithEvents]);
+            $resultMessage->setHeader(AggregateMessage::RECORDED_AGGREGATE_EVENTS, is_array($events) ? $events : []);
         } elseif ($this->aggregateMethodWithEvents) {
             $events = call_user_func([$message->getPayload(), $this->aggregateMethodWithEvents]);
             $resultMessage->setHeader(AggregateMessage::RESULT_AGGREGATE_EVENTS, is_array($events) ? $events : []);

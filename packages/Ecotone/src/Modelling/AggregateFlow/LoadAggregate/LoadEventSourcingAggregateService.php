@@ -84,7 +84,7 @@ final class LoadEventSourcingAggregateService implements MessageProcessor
             if (! is_null($aggregateVersion) && $this->isAggregateVersionAutomaticallyIncreased) {
                 $this->propertyEditorAccessor->enrichDataWith(PropertyPath::createWith($this->aggregateVersionPropertyName), $eventStream, $aggregateVersion, $message, null);
             }
-            $resultMessage = $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_OBJECT, $eventStream);
+            $resultMessage = $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_INSTANCE, $eventStream);
         }
 
         if (! $message->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {

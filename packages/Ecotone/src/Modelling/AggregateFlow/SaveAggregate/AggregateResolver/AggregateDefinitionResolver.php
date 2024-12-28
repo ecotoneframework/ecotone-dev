@@ -15,6 +15,9 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 
+/**
+ * licence Apache-2.0
+ */
 final class AggregateDefinitionResolver
 {
     public static function resolve(string $aggregateClass, InterfaceToCallRegistry $interfaceToCallRegistry): AggregateClassDefinition

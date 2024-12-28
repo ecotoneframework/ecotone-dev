@@ -8,6 +8,9 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\AggregateMessage;
 
+/**
+ * licence Apache-2.0
+ */
 final class AggregateDefinitionRegistry
 {
     /**

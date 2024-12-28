@@ -6,6 +6,9 @@ namespace Ecotone\Modelling\EventSourcingExecutor;
 
 use Ecotone\Modelling\Event;
 
+/**
+ * licence Apache-2.0
+ */
 final class GroupedEventSourcingExecutor
 {
     /**

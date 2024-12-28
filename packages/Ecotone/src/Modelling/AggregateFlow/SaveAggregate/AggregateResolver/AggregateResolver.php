@@ -18,6 +18,9 @@ use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 
+/**
+ * licence Apache-2.0
+ */
 final class AggregateResolver
 {
     public function __construct(

@@ -7,6 +7,9 @@ namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
+/**
+ * licence Apache-2.0
+ */
 final class AggregateClassDefinition implements DefinedObject
 {
     /**

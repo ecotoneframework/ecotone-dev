@@ -194,7 +194,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             ->send($commandToRun);
 
 
-        $this->assertEquals($commandToRun, $reply);
+        $this->assertNull($reply);
     }
 
     public function test_calling_action_method_of_existing_state_based_aggregate_with_internal_recorder(): void

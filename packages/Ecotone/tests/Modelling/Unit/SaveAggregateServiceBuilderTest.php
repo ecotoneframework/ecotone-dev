@@ -3,57 +3,39 @@
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\AggregateFlow\CallAggregate\CallAggregateServiceBuilder;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
-use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
-use Ecotone\Modelling\StandardRepository;
-use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
-use stdClass;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\AggregateCreated;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateAggregate;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateSomething;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\DoSomething;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\EventSourcingAggregateWithInternalRecorder;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\Something;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\SomethingWasCreated;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
-use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\GetOrderAmountQuery;
-use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Order;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\OrderWithManualVersioning;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\FinishJob;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\Job;
-use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobRepositoryInterface;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasFinished;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasStarted;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\StartJob;
+use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\Twitter;
+use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitterRepository;
+use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitterWithRecorder;
+use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitterWithRecorderRepository;
+use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitWasCreated;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\NoIdDefinedAfterRecordingEvents;
-use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodForEventSourcedAggregate;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodWithParameters;
-use Test\Ecotone\Modelling\Fixture\Ticket\AssignWorkerCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\StartTicketCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
-use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
 
 /**
  * Class ServiceCallToAggregateAdapterTest
@@ -62,6 +44,7 @@ use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
  *
  * @internal
  */
+
 /**
  * licence Apache-2.0
  * @internal
@@ -238,6 +221,50 @@ class SaveAggregateServiceBuilderTest extends TestCase
             $ecotoneLite
                 ->getAggregate(Something::class, ['id' => $somethingId])
                 ->getVersion()
+        );
+    }
+
+    public function test_storing_pure_event_sourced_aggregate_via_business_repository(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Twitter::class, TwitterRepository::class],
+        );
+
+        /** @var TwitterRepository $twitterRepository */
+        $twitterRepository = $ecotoneLite->getGateway(TwitterRepository::class);
+
+        $twitterRepository->save(
+            '1',
+            0,
+            [
+                new TwitWasCreated('1', 'Hello world'),
+            ]
+        );
+
+        $this->assertSame(
+            'Hello world',
+            $twitterRepository->getTwitter('1')
+                ->getContent()
+        );
+    }
+
+    public function test_storing_non_pure_event_sourced_aggregate_via_business_repository(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [TwitterWithRecorder::class, TwitterWithRecorderRepository::class],
+        );
+
+        /** @var TwitterWithRecorderRepository $twitterRepository */
+        $twitterRepository = $ecotoneLite->getGateway(TwitterWithRecorderRepository::class);
+
+        $twitterRepository->save(
+            TwitterWithRecorder::create('1', 'Hello world')
+        );
+
+        $this->assertSame(
+            'Hello world',
+            $twitterRepository->getTwitter('1')
+                ->getContent()
         );
     }
 }

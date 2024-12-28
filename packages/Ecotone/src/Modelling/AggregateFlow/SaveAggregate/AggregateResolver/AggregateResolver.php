@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
+use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -32,9 +33,9 @@ final class AggregateResolver
     /**
      * @return ResolvedAggregate[]
      */
-    public function resolve(Message $message, bool $throwOnUnresolvableIdentifiers): array
+    public function resolve(Message $message): array
     {
-        return $this->resolveMultipleAggregates($message, $throwOnUnresolvableIdentifiers, !$message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE));
+        return $this->resolveMultipleAggregates($message, !$message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE));
     }
 
     /**
@@ -79,7 +80,7 @@ final class AggregateResolver
         return [];
     }
 
-    public function resolveMultipleAggregates(Message $message, bool $throwOnUnresolvableIdentifiers, bool $isNewInstance): array
+    public function resolveMultipleAggregates(Message $message, bool $isNewInstance): array
     {
         $resolvedAggregates = [];
         /** This will be null for factory methods */
@@ -89,7 +90,7 @@ final class AggregateResolver
         $aggregateDefinition = $this->aggregateDefinitionRegistry->getFor(TypeDescriptor::create($message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_CLASS)));
 
         if ($calledAggregateInstance || (is_null($calledAggregateInstance) && $aggregateDefinition->isPureEventSourcedAggregate())) {
-            $resolvedAggregate = $this->resolveSingleAggregate($aggregateDefinition, $calledAggregateInstance, $message, $throwOnUnresolvableIdentifiers, $isNewInstance);
+            $resolvedAggregate = $this->resolveSingleAggregate($aggregateDefinition, $calledAggregateInstance, $message, $isNewInstance);
 
             if ($resolvedAggregate) {
                 $resolvedAggregates[] = $resolvedAggregate;
@@ -106,7 +107,6 @@ final class AggregateResolver
                     ->setHeader(AggregateMessage::TARGET_VERSION, 0)
                     ->removeHeaders([AggregateMessage::AGGREGATE_ID, AggregateMessage::NULL_EXECUTION_RESULT])
                     ->build(),
-                $aggregateDefinition->isEventSourced(),
                 true,
             );
 
@@ -122,7 +122,7 @@ final class AggregateResolver
         return $resolvedAggregates;
     }
 
-    public function resolveSingleAggregate(AggregateClassDefinition $aggregateDefinition, null|object $calledAggregateInstance, Message $message, bool $throwOnUnresolvableIdentifiers, bool $isNewInstance): ResolvedAggregate|null
+    public function resolveSingleAggregate(AggregateClassDefinition $aggregateDefinition, null|object $calledAggregateInstance, Message $message, bool $isNewInstance): ResolvedAggregate|null
     {
         $events = SaveAggregateServiceTemplate::buildEcotoneEvents(
             $this->resolveEvents($aggregateDefinition, $calledAggregateInstance, $message),
@@ -134,7 +134,9 @@ final class AggregateResolver
             return null;
         }
 
+        $versionBeforeHandling = $this->getVersionBeforeHandling($message, $aggregateDefinition, $calledAggregateInstance);
         $instance = $this->resolveAggregateInstance($events, $aggregateDefinition, $calledAggregateInstance);
+
         SaveAggregateServiceTemplate::enrichVersionIfNeeded(
             $this->propertyEditorAccessor,
             SaveAggregateServiceTemplate::resolveVersionBeforeHandling($message),
@@ -156,7 +158,7 @@ final class AggregateResolver
             $aggregateDefinition,
             $isNewInstance,
             $instance,
-            $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null,
+            $versionBeforeHandling,
             $identifiers,
             $events
         );
@@ -170,5 +172,30 @@ final class AggregateResolver
     public function hasReturnedNoEvents(AggregateClassDefinition $aggregateDefinition, array $events): bool
     {
         return $aggregateDefinition->isPureEventSourcedAggregate() && $events === [];
+    }
+
+    public function getVersionBeforeHandling(Message $message, AggregateClassDefinition $aggregateDefinition, null|object $calledAggregateInstance): ?int
+    {
+        $versionBeforeHandling = $message->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $message->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;
+
+        if ($versionBeforeHandling !== null) {
+            return $versionBeforeHandling;
+        }
+
+        if ($calledAggregateInstance === null) {
+            return 0;
+        }
+
+        if ($aggregateDefinition->getAggregateVersionProperty()) {
+            if ($aggregateDefinition->isAggregateVersionAutomaticallyIncreased() && $aggregateDefinition->isStateStored()) {
+                /** Version could already been bumped up, we are unaware which version was used before handling */
+
+                return null;
+            }
+
+            return $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($aggregateDefinition->getAggregateVersionProperty()), $calledAggregateInstance);
+        }
+
+        return null;
     }
 }

@@ -36,6 +36,11 @@ final class AggregateClassDefinition implements DefinedObject
         return $this->isEventSourced;
     }
 
+    public function isStateStored(): bool
+    {
+        return !$this->isEventSourced;
+    }
+
     public function isPureEventSourcedAggregate(): bool
     {
         return $this->isEventSourced && $this->eventRecorderMethod === null;

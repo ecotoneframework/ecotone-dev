@@ -83,8 +83,6 @@ final class LoadStateBasedAggregateService implements MessageProcessor
             $resultMessage = $resultMessage->setReplyChannel(NullableMessageChannel::create());
         }
 
-        return $resultMessage
-            ->setHeader(AggregateMessage::AGGREGATE_OBJECT_EXISTS, ! is_null($aggregate))
-            ->build();
+        return $resultMessage->build();
     }
 }

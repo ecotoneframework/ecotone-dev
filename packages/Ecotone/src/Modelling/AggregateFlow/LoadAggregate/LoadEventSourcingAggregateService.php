@@ -91,8 +91,6 @@ final class LoadEventSourcingAggregateService implements MessageProcessor
             $resultMessage = $resultMessage->setReplyChannel(NullableMessageChannel::create());
         }
 
-        return $resultMessage
-            ->setHeader(AggregateMessage::AGGREGATE_OBJECT_EXISTS, ! is_null($eventStream))
-            ->build();
+        return $resultMessage->build();
     }
 }

@@ -284,7 +284,6 @@ final class MessageHeaders
             $metadata[AggregateMessage::CALLED_AGGREGATE_CLASS],
             $metadata[AggregateMessage::RECORDED_AGGREGATE_EVENTS],
             $metadata[AggregateMessage::TARGET_VERSION],
-            $metadata[AggregateMessage::AGGREGATE_OBJECT_EXISTS],
             $metadata[AggregateMessage::NULL_EXECUTION_RESULT],
         );
 

@@ -28,6 +28,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
+use Ecotone\Messaging\Handler\Router\RouterProcessorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
@@ -228,7 +229,6 @@ class AggregrateHandlerModule implements AnnotationModule
         if ($hasFactoryAndActionRedirect) {
             Assert::isTrue(count($actionChannels) <= 1, "Message Handlers on Aggregate and Saga can be used either for single factory method and single action method together, or for multiple actions methods in {$aggregateClassDefinition->getClassType()->toString()}");
 
-            $messageChannelNameRouter = Uuid::uuid4()->toString();
             $configuration->registerMessageHandler(
                 MessageProcessorActivatorBuilder::create()
                     ->withInputChannelName($inputChannelNameForRouting)
@@ -237,12 +237,7 @@ class AggregrateHandlerModule implements AnnotationModule
                         LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $factoryHandledPayloadType, LoadAggregateMode::createContinueOnNotFound(), $interfaceToCallRegistry)
                             ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
                     )
-                    ->withOutputMessageChannel($messageChannelNameRouter)
-            );
-
-            $configuration->registerMessageHandler(
-                RouterBuilder::createHeaderMappingRouter(AggregateMessage::AGGREGATE_OBJECT_EXISTS, [true => $actionChannels[0], false => $factoryChannel])
-                    ->withInputChannelName($messageChannelNameRouter)
+                    ->chain(RouterProcessorBuilder::createHeaderExistsRouter(AggregateMessage::CALLED_AGGREGATE_INSTANCE, $actionChannels[0], $factoryChannel))
             );
         }
 

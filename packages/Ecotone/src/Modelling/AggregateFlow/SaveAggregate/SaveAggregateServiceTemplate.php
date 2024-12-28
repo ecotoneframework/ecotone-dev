@@ -87,7 +87,7 @@ class SaveAggregateServiceTemplate
 
         foreach ($aggregateDefinition->getAggregateIdentifierMapping() as $aggregateIdName => $aggregateIdValue) {
             if (isset($aggregateDefinition->getAggregateIdentifierGetMethods()[$aggregateIdName])) {
-                $id = call_user_func([$aggregateDefinition, $aggregateDefinition->getAggregateIdentifierGetMethods()[$aggregateIdName]]);
+                $id = call_user_func([$aggregate, $aggregateDefinition->getAggregateIdentifierGetMethods()[$aggregateIdName]]);
 
                 if (! is_null($id)) {
                     $aggregateIds[$aggregateIdName] = $id;

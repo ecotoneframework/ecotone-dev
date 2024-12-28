@@ -130,8 +130,8 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
         self::assertEquals(
             [
                 new CalendarCreated($calendarId),
-                new MeetingCreated($meetingId),
                 new MeetingScheduled($calendarId, $meetingId),
+                new MeetingCreated($meetingId),
             ],
             $ecotone->getRecordedEvents()
         );
@@ -164,8 +164,8 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
         self::assertEquals(
             [
                 new CalendarCreated($calendarId),
-                new MeetingCreated($meetingId),
                 new MeetingScheduled($calendarId, $meetingId),
+                new MeetingCreated($meetingId),
             ],
             $ecotone->getRecordedEvents()
         );

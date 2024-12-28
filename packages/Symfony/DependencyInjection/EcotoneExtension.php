@@ -4,7 +4,6 @@ namespace Ecotone\SymfonyBundle\DependencyInjection;
 
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
@@ -29,9 +28,6 @@ class EcotoneExtension extends Extension
         $config = $container->resolveEnvPlaceholders($config, true);
 
         $skippedModules = $config['skippedModulePackageNames'] ?? [];
-        if (! $config['test']) {
-            $skippedModules[] = ModulePackageList::TEST_PACKAGE;
-        }
 
         /** @TODO Ecotone 2.0 use ServiceContext to configure Symfony */
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
@@ -91,6 +87,7 @@ class EcotoneExtension extends Extension
             realpath(($container->hasParameter('kernel.project_dir') ? $container->getParameter('kernel.project_dir') : $container->getParameter('kernel.root_dir') . '/..')),
             $configurationVariableService,
             $serviceConfiguration,
+            enableTestPackage: $config['test']
         );
 
         $containerBuilder = new \Ecotone\Messaging\Config\Container\ContainerBuilder();

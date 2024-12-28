@@ -69,7 +69,8 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Ecotone\Modelling\Config\ModellingHandlerModule;
+use Ecotone\Modelling\Config\AggregrateHandlerModule;
+use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 
@@ -297,7 +298,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             || $extensionObject instanceof ServiceConfiguration;
     }
 
-    public function getModuleExtensions(array $serviceExtensions): array
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         foreach ($serviceExtensions as $serviceExtension) {
             if ($serviceExtension instanceof EventSourcingRepositoryBuilder) {
@@ -564,11 +565,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionConfiguration = $this->projectionSetupConfigurations[$projectionAttribute->getName()];
 
             /** @TODO in case of Projection Event Handlers we don't need to register them asynchronously, so this can be simplified to assume always synchronous */
-            $eventHandlerTriggeringInputChannel = ModellingHandlerModule::getHandlerChannel($projectionEventHandler);
+            $eventHandlerTriggeringInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($projectionEventHandler);
             $eventHandlerSynchronousInputChannel = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) ? $this->asynchronousModule->getSynchronousChannelFor($eventHandlerTriggeringInputChannel, $handlerAttribute->getEndpointId()) : $eventHandlerTriggeringInputChannel;
 
             $this->projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration->withProjectionEventHandler(
-                ModellingHandlerModule::getNamedMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry),
+                MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry),
                 $projectionEventHandler->getClassName(),
                 $projectionEventHandler->getMethodName(),
                 $eventHandlerSynchronousInputChannel

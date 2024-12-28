@@ -13,7 +13,6 @@ use Ecotone\Messaging\Config\Container\ContainerConfig;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
@@ -52,10 +51,6 @@ class EcotoneProvider extends ServiceProvider
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
         $skippedModules = Config::get('ecotone.skippedModulePackageNames');
-        if (! Config::get('ecotone.test')) {
-            $skippedModules[] = ModulePackageList::TEST_PACKAGE;
-        }
-
         /** @TODO Ecotone 2.0 use ServiceContext to configure Laravel */
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
@@ -113,6 +108,7 @@ class EcotoneProvider extends ServiceProvider
                 $rootCatalog,
                 new LaravelConfigurationVariableService(),
                 $applicationConfiguration,
+                enableTestPackage: Config::get('ecotone.test')
             );
             $definitionHolder = ContainerConfig::buildDefinitionHolder($configuration);
 

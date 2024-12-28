@@ -190,7 +190,7 @@ final class FlowTestSupport
         $this->messagingEntrypoint->sendWithHeaders(
             [],
             [
-                AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER => is_object($identifiers) ? (string)$identifiers : $identifiers,
+                AggregateMessage::AGGREGATE_ID => is_object($identifiers) ? (string)$identifiers : $identifiers,
                 AggregateMessage::TARGET_VERSION => $aggregateVersion,
                 AggregateMessage::CALLED_AGGREGATE_CLASS => $aggregateClass,
                 AggregateMessage::CALLED_AGGREGATE_INSTANCE => new $aggregateClass(),

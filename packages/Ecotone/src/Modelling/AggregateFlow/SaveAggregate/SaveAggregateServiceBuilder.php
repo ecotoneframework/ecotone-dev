@@ -93,6 +93,7 @@ class SaveAggregateServiceBuilder implements CompilableBuilder
 
         return new Definition(SaveAggregateService::class, [
             $eventSourcedRepository,
+            Definition::createFor(PropertyReaderAccessor::class, []),
             $standardRepository,
             new Reference(AggregateResolver::class),
             $this->eventSourcingConfiguration,

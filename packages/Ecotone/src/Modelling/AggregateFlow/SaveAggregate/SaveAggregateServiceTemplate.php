@@ -14,6 +14,8 @@ use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateClassDefinition;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;
 use Ecotone\Modelling\AggregateIdResolver;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Event;
@@ -74,10 +76,8 @@ class SaveAggregateServiceTemplate
     public static function getAggregateIds(
         PropertyReaderAccessor $propertyReaderAccessor,
         array $metadata,
-        string $calledClass,
-        array $aggregateIdentifierMapping,
-        array $aggregateIdentifierGetMethods,
-        object|string $aggregate,
+        object $aggregate,
+        AggregateClassDefinition $aggregateDefinition,
         bool $throwOnNoIdentifier
     ): array {
         $aggregateIds = $metadata[AggregateMessage::AGGREGATE_ID] ?? [];
@@ -85,9 +85,9 @@ class SaveAggregateServiceTemplate
             return $aggregateIds;
         }
 
-        foreach ($aggregateIdentifierMapping as $aggregateIdName => $aggregateIdValue) {
-            if (isset($aggregateIdentifierGetMethods[$aggregateIdName])) {
-                $id = call_user_func([$aggregate, $aggregateIdentifierGetMethods[$aggregateIdName]]);
+        foreach ($aggregateDefinition->getAggregateIdentifierMapping() as $aggregateIdName => $aggregateIdValue) {
+            if (isset($aggregateDefinition->getAggregateIdentifierGetMethods()[$aggregateIdName])) {
+                $id = call_user_func([$aggregateDefinition, $aggregateDefinition->getAggregateIdentifierGetMethods()[$aggregateIdName]]);
 
                 if (! is_null($id)) {
                     $aggregateIds[$aggregateIdName] = $id;
@@ -105,7 +105,7 @@ class SaveAggregateServiceTemplate
                     continue;
                 }
 
-                throw NoCorrectIdentifierDefinedException::create("After calling {$calledClass} has no identifier assigned. If you're using Event Sourcing Aggregate, please set up #[EventSourcingHandler] that will assign the id after first event");
+                throw NoCorrectIdentifierDefinedException::create("After calling {$aggregateDefinition->getClassName()} has no identifier assigned. If you're using Event Sourcing Aggregate, please set up #[EventSourcingHandler] that will assign the id after first event");
             }
 
             $aggregateIds[$aggregateIdName] = $id;

@@ -37,6 +37,7 @@ final class SaveAggregateService implements MessageProcessor
 
     public function __construct(
         private EventSourcedRepository $eventSourcedAggregateRepository,
+        private PropertyReaderAccessor $propertyReaderAccessor,
         private StandardRepository     $standardRepository,
         private AggregateResolver      $aggregateResolver,
         private BaseEventSourcingConfiguration $eventSourcingConfiguration,
@@ -56,7 +57,7 @@ final class SaveAggregateService implements MessageProcessor
             return MessageBuilder::fromMessage($message)->build();
         }
 
-        foreach ($resolvedAggregates as $resolvedAggregate) {
+        foreach ($resolvedAggregates as $key => $resolvedAggregate) {
             $version = $resolvedAggregate->getVersionBeforeHandling();
 
             if (!$resolvedAggregate->getAggregateClassDefinition()->isEventSourced()) {
@@ -65,6 +66,17 @@ final class SaveAggregateService implements MessageProcessor
                     $resolvedAggregate->getAggregateInstance(),
                     $metadata,
                     $version
+                );
+
+                /** For ORM identifier may be assigned after saving */
+                $resolvedAggregates[$key] = $resolvedAggregate->withIdentifiers(
+                    SaveAggregateServiceTemplate::getAggregateIds(
+                        $this->propertyReaderAccessor,
+                        $message->getHeaders()->headers(),
+                        $resolvedAggregate->getAggregateInstance(),
+                        $resolvedAggregate->getAggregateClassDefinition(),
+                        true,
+                    )
                 );
 
                 continue;

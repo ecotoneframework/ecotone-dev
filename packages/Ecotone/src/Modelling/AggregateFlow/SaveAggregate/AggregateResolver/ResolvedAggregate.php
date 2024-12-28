@@ -10,7 +10,7 @@ final class ResolvedAggregate
 {
     /**
      * @param object $aggregateInstance
-     * @param array $identifiers
+     * @param array<string, mixed> $identifiers
      * @param Event[] $events
      */
     public function __construct(
@@ -57,5 +57,20 @@ final class ResolvedAggregate
     public function getVersionBeforeHandling(): ?int
     {
         return $this->versionBeforeHandling;
+    }
+
+    /**
+     * @param array<string, mixed> $identifiers
+     */
+    public function withIdentifiers(array $identifiers): self
+    {
+        return new self(
+            $this->aggregateClassDefinition,
+            $this->isNewInstance,
+            $this->aggregateInstance,
+            $this->versionBeforeHandling,
+            $identifiers,
+            $this->events
+        );
     }
 }

@@ -142,11 +142,9 @@ final class AggregateResolver
         $identifiers = SaveAggregateServiceTemplate::getAggregateIds(
             $this->propertyReaderAccessor,
             $message->getHeaders()->headers(),
-            $aggregateDefinition->getClassName(),
-            $aggregateDefinition->getAggregateIdentifierMapping(),
-            $aggregateDefinition->getAggregateIdentifierGetMethods(),
             $instance,
-            $throwOnUnresolvableIdentifiers
+            $aggregateDefinition,
+            $aggregateDefinition->isEventSourced(),
         );
 
         return new ResolvedAggregate(

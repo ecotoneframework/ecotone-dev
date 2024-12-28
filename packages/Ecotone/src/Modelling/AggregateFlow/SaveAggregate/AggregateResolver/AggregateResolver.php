@@ -106,7 +106,7 @@ final class AggregateResolver
                     ->setHeader(AggregateMessage::TARGET_VERSION, 0)
                     ->removeHeaders([AggregateMessage::AGGREGATE_ID, AggregateMessage::NULL_EXECUTION_RESULT])
                     ->build(),
-                true,
+                $aggregateDefinition->isEventSourced(),
                 true,
             );
 

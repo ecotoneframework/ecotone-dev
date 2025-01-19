@@ -8,6 +8,9 @@ use Ecotone\Messaging\Channel\DynamicChannel\ChannelSendingStrategy;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Message;
 
+/**
+ * licence Enterprise
+ */
 final class NoSendingStrategy implements ChannelSendingStrategy
 {
     public function __construct(private string $channelName)

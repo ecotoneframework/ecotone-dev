@@ -10,6 +10,9 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
 use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
 
+/**
+ * licence Enterprise
+ */
 final class DistributedOutboundRouter
 {
     public function __construct(private DistributedServiceMap $distributedServiceMap, private string $thisServiceName)

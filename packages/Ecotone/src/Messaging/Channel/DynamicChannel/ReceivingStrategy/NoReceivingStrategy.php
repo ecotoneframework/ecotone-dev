@@ -7,6 +7,9 @@ namespace Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy;
 use Ecotone\Messaging\Channel\DynamicChannel\ChannelReceivingStrategy;
 use Ecotone\Messaging\Config\ConfigurationException;
 
+/**
+ * licence Enterprise
+ */
 final class NoReceivingStrategy implements ChannelReceivingStrategy
 {
     public function __construct(private string $channelName)

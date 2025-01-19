@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Api\Distribution;
 
+/**
+ * licence Enterprise
+ */
 interface DistributedBusHeader
 {
     public const DISTRIBUTED_TARGET_SERVICE_NAME = 'ecotone.distributed.targetServiceName';

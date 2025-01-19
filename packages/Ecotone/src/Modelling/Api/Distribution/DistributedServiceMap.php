@@ -13,6 +13,9 @@ use Ecotone\Modelling\Config\EventBusRouter;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\MessageHandling\Distribution\UnknownDistributedDestination;
 
+/**
+ * licence Enterprise
+ */
 final class DistributedServiceMap implements DefinedObject
 {
     /**

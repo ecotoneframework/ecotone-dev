@@ -25,6 +25,7 @@ use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\AggregrateModule;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
@@ -412,6 +413,11 @@ final class FlowTestSupport
     public function getGateway(string $referenceName): object
     {
         return $this->configuredMessagingSystem->getGatewayByName($referenceName);
+    }
+
+    public function getDistributedBus(string $referenceName = DistributedBus::class): DistributedBus
+    {
+        return $this->getGateway($referenceName);
     }
 
     /**

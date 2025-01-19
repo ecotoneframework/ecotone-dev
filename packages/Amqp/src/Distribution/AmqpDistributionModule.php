@@ -23,9 +23,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Config\DistributedGatewayModule;
+use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
 use Ecotone\Modelling\DistributedBus;
-use Ecotone\Modelling\DistributionEntrypoint;
+use Ecotone\Modelling\MessageHandling\Distribution\Module\DistributedHandlerModule;
 
 /**
  * licence Apache-2.0
@@ -48,8 +48,8 @@ class AmqpDistributionModule
     public static function create(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): self
     {
         return new self(
-            DistributedGatewayModule::getDistributedEventHandlerRoutingKeys($annotationFinder, $interfaceToCallRegistry),
-            DistributedGatewayModule::getDistributedCommandHandlerRoutingKeys($annotationFinder, $interfaceToCallRegistry)
+            DistributedHandlerModule::getDistributedEventHandlerRoutingKeys($annotationFinder, $interfaceToCallRegistry),
+            DistributedHandlerModule::getDistributedCommandHandlerRoutingKeys($annotationFinder, $interfaceToCallRegistry)
         );
     }
 
@@ -113,7 +113,7 @@ class AmqpDistributionModule
                 $configuration->registerMessageChannel(AmqpBackedMessageChannelBuilder::create($channelName, $distributedBusConfiguration->getConnectionReference()));
                 $configuration->registerMessageHandler(
                     TransformerBuilder::createHeaderEnricher([
-                        MessageHeaders::ROUTING_SLIP => DistributionEntrypoint::DISTRIBUTED_CHANNEL,
+                        MessageHeaders::ROUTING_SLIP => DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE,
                     ])
                         ->withEndpointId($applicationConfiguration->getServiceName())
                         ->withInputChannelName($channelName)
@@ -142,9 +142,11 @@ class AmqpDistributionModule
                             GatewayPayloadBuilder::create('command'),
                             GatewayHeadersBuilder::create('metadata'),
                             GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
-                            GatewayHeaderBuilder::create('routingKey', DistributionEntrypoint::DISTRIBUTED_ROUTING_KEY),
-                            GatewayHeaderBuilder::create('destination', self::AMQP_ROUTING_KEY),
-                            GatewayHeaderValueBuilder::create(DistributionEntrypoint::DISTRIBUTED_PAYLOAD_TYPE, 'command'),
+                            GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('targetServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
+                            GatewayHeaderBuilder::create('targetServiceName', self::AMQP_ROUTING_KEY),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->getServiceName()),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'command'),
                         ]
                     )
             )
@@ -154,9 +156,11 @@ class AmqpDistributionModule
                         [
                             GatewayPayloadBuilder::create('command'),
                             GatewayHeadersBuilder::create('metadata'),
-                            GatewayHeaderBuilder::create('routingKey', DistributionEntrypoint::DISTRIBUTED_ROUTING_KEY),
-                            GatewayHeaderBuilder::create('destination', self::AMQP_ROUTING_KEY),
-                            GatewayHeaderValueBuilder::create(DistributionEntrypoint::DISTRIBUTED_PAYLOAD_TYPE, 'command'),
+                            GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('targetServiceName', DistributedBusHeader::DISTRIBUTED_TARGET_SERVICE_NAME),
+                            GatewayHeaderBuilder::create('targetServiceName', self::AMQP_ROUTING_KEY),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->getServiceName()),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'command'),
                         ]
                     )
             )
@@ -167,9 +171,10 @@ class AmqpDistributionModule
                             GatewayPayloadBuilder::create('event'),
                             GatewayHeadersBuilder::create('metadata'),
                             GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
-                            GatewayHeaderBuilder::create('routingKey', DistributionEntrypoint::DISTRIBUTED_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
                             GatewayHeaderBuilder::create('routingKey', self::AMQP_ROUTING_KEY),
-                            GatewayHeaderValueBuilder::create(DistributionEntrypoint::DISTRIBUTED_PAYLOAD_TYPE, 'event'),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->getServiceName()),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'event'),
                         ]
                     )
             )
@@ -179,9 +184,24 @@ class AmqpDistributionModule
                         [
                             GatewayPayloadBuilder::create('event'),
                             GatewayHeadersBuilder::create('metadata'),
-                            GatewayHeaderBuilder::create('routingKey', DistributionEntrypoint::DISTRIBUTED_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('routingKey', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
                             GatewayHeaderBuilder::create('routingKey', self::AMQP_ROUTING_KEY),
-                            GatewayHeaderValueBuilder::create(DistributionEntrypoint::DISTRIBUTED_PAYLOAD_TYPE, 'event'),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->getServiceName()),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'event'),
+                        ]
+                    )
+            )
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create($amqpPublisher->getReferenceName(), DistributedBus::class, 'sendMessage', $amqpPublisher->getReferenceName())
+                    ->withParameterConverters(
+                        [
+                            GatewayPayloadBuilder::create('payload'),
+                            GatewayHeadersBuilder::create('metadata'),
+                            GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
+                            GatewayHeaderBuilder::create('targetChannelName', DistributedBusHeader::DISTRIBUTED_ROUTING_KEY),
+                            GatewayHeaderBuilder::create('targetServiceName', self::AMQP_ROUTING_KEY),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_SOURCE_SERVICE_NAME, $applicationConfiguration->getServiceName()),
+                            GatewayHeaderValueBuilder::create(DistributedBusHeader::DISTRIBUTED_PAYLOAD_TYPE, 'message'),
                         ]
                     )
             )
@@ -195,19 +215,6 @@ class AmqpDistributionModule
                     ->withRoutingKeyFromHeader(self::AMQP_ROUTING_KEY)
                     ->withDefaultConversionMediaType($mediaType)
                     ->withStaticHeadersToEnrich([MessageHeaders::POLLED_CHANNEL_NAME => $channelName])
-            )
-            ->registerGatewayBuilder(
-                GatewayProxyBuilder::create($amqpPublisher->getReferenceName(), DistributedBus::class, 'sendMessage', $amqpPublisher->getReferenceName())
-                    ->withParameterConverters(
-                        [
-                            GatewayPayloadBuilder::create('payload'),
-                            GatewayHeadersBuilder::create('metadata'),
-                            GatewayHeaderBuilder::create('sourceMediaType', MessageHeaders::CONTENT_TYPE),
-                            GatewayHeaderBuilder::create('targetChannelName', DistributionEntrypoint::DISTRIBUTED_ROUTING_KEY),
-                            GatewayHeaderBuilder::create('destination', self::AMQP_ROUTING_KEY),
-                            GatewayHeaderValueBuilder::create(DistributionEntrypoint::DISTRIBUTED_PAYLOAD_TYPE, 'message'),
-                        ]
-                    )
             )
             ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($amqpPublisher->getReferenceName()));
     }

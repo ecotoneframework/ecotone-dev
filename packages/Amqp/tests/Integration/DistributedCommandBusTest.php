@@ -41,6 +41,10 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
 
         $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
+        self::assertEquals(
+            ['User changed billing address'],
+            $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS)
+        );
     }
 
     public function test_distributing_command_misses_heartbeat_and_reconnects(): void

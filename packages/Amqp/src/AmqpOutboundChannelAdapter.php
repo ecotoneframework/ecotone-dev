@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use AMQPChannelException;
+use AMQPConnectionException;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -11,8 +13,6 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
-use AMQPChannelException;
-use AMQPConnectionException;
 
 /**
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
@@ -83,7 +83,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
                 ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
 //            this allow for having queue per delay instead of queue per delay + exchangeName
                 ->send(new AmqpTopic($exchangeName), $messageToSend);
-        }catch (AMQPConnectionException|AMQPChannelException $exception) {
+        } catch (AMQPConnectionException|AMQPChannelException $exception) {
             $this->connectionFactory->reconnect();
 
             throw $exception;

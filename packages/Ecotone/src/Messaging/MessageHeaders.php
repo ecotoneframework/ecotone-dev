@@ -8,8 +8,10 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Ramsey\Uuid\Uuid;
+
 use function json_encode;
+
+use Ramsey\Uuid\Uuid;
 
 /**
  * Class MessageHeaders

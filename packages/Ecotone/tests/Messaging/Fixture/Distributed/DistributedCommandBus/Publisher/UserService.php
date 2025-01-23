@@ -23,7 +23,7 @@ class UserService
             TicketServiceReceiver::CREATE_TICKET_ENDPOINT,
             'User changed billing address',
             metadata: [
-                'token' => '123'
+                'token' => '123',
             ]
         );
     }

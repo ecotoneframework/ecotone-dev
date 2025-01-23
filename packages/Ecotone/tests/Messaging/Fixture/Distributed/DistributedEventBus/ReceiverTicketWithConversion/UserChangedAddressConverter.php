@@ -19,7 +19,7 @@ final class UserChangedAddressConverter implements Converter
         }
 
         return [
-            'userId' => $source->userId
+            'userId' => $source->userId,
         ];
     }
 

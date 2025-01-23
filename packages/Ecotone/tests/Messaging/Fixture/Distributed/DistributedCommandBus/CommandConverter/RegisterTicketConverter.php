@@ -11,8 +11,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Messaging\Fixture\Distributed\DistributedCommandBus\Receiver\RegisterTicket;
 
 #[MediaTypeConverter]
-final class
-RegisterTicketConverter implements Converter
+final class RegisterTicketConverter implements Converter
 {
     public function convert($source, TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType)
     {
@@ -21,7 +20,7 @@ RegisterTicketConverter implements Converter
         }
 
         return [
-            'ticketId' => $source->ticketId
+            'ticketId' => $source->ticketId,
         ];
     }
 

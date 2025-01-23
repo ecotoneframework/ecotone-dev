@@ -108,7 +108,7 @@ class Assert
     public static function allObjects(array $arrayToCheck, string $exceptionMessage): void
     {
         foreach ($arrayToCheck as $potentialObject) {
-            if (!is_object($potentialObject)) {
+            if (! is_object($potentialObject)) {
                 throw InvalidArgumentException::create($exceptionMessage);
             }
         }

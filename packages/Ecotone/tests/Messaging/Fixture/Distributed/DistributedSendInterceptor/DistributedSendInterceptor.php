@@ -13,7 +13,7 @@ final class DistributedSendInterceptor
     public function addHeaders(): array
     {
         return [
-            "extra" => "123a"
+            'extra' => '123a',
         ];
     }
 }

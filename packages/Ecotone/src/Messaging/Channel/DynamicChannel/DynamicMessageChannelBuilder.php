@@ -19,7 +19,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\Assert;
 
 /**
@@ -60,7 +59,7 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
 
     public function hasReceiveStrategy(): bool
     {
-        return !($this->channelReceivingStrategy->getClassName() === NoReceivingStrategy::class);
+        return ! ($this->channelReceivingStrategy->getClassName() === NoReceivingStrategy::class);
     }
 
     /**

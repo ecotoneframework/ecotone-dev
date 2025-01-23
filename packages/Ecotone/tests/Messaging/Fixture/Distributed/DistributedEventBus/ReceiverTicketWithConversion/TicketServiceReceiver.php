@@ -2,14 +2,9 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicketWithConversion;
 
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\EventBus;
-use RuntimeException;
-use Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket\TicketRegistered;
 
 /**
  * licence Apache-2.0

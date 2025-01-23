@@ -37,7 +37,7 @@ use Ecotone\Modelling\MessageHandling\Distribution\DistributedOutboundRouter;
 /**
  * licence Enterprise
  */
-final  class DistributedBusWithServiceMapModule extends NoExternalConfigurationModule implements AnnotationModule
+final class DistributedBusWithServiceMapModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
@@ -57,7 +57,7 @@ final  class DistributedBusWithServiceMapModule extends NoExternalConfigurationM
             }
 
             foreach ($distributedServiceMap->getServiceMapping() as $serviceName => $channelName) {
-                if (!$this->isMessageChannelAvailable($messageChannels, $channelName)) {
+                if (! $this->isMessageChannelAvailable($messageChannels, $channelName)) {
                     throw ConfigurationException::create("Service Map has Service {$serviceName} mapped to channel {$channelName} but it is not available in message channels. Have you forgot to register it?");
                 }
             }
@@ -83,7 +83,7 @@ final  class DistributedBusWithServiceMapModule extends NoExternalConfigurationM
 
     private function registerDistributedBus(ServiceConfiguration $applicationConfiguration, Configuration $configuration, DistributedServiceMap $distributedServiceMap, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        Assert::isFalse($applicationConfiguration->getServiceName() === ServiceConfiguration::DEFAULT_SERVICE_NAME, "Service name must be provided in ServiceConfiguration to make use of Distributed Bus", true);
+        Assert::isFalse($applicationConfiguration->getServiceName() === ServiceConfiguration::DEFAULT_SERVICE_NAME, 'Service name must be provided in ServiceConfiguration to make use of Distributed Bus', true);
 
         $distributedChannelName = $distributedServiceMap->getReferenceName() . '_outboundDistribution';
         $outboundRouterReference = $distributedServiceMap->getReferenceName() . '_' . DistributedOutboundRouter::class;
@@ -114,7 +114,7 @@ final  class DistributedBusWithServiceMapModule extends NoExternalConfigurationM
                         ]
                     )
                     ->setResolutionRequired(false)
-                )
+            )
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create($distributedServiceMap->getReferenceName(), DistributedBus::class, 'sendCommand', $distributedChannelName)
                     ->withParameterConverters(

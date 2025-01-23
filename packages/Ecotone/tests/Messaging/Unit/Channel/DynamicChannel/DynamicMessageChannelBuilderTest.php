@@ -6,7 +6,6 @@ namespace Test\Ecotone\Messaging\Unit\Channel\DynamicChannel;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
-use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
@@ -19,7 +18,6 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Channel\DynamicChannel\DynamicChannelResolver;
@@ -82,7 +80,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             enableAsynchronousProcessing: [
-                $sharedChannel
+                $sharedChannel,
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

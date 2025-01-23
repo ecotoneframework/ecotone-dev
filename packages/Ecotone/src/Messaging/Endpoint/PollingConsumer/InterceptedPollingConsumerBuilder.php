@@ -56,7 +56,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
      */
     public function isSupporting(MessageHandlerBuilder $messageHandlerBuilder, MessageChannelBuilder $relatedMessageChannel): bool
     {
-        if ($relatedMessageChannel instanceof DynamicMessageChannelBuilder && !$relatedMessageChannel->hasReceiveStrategy()) {
+        if ($relatedMessageChannel instanceof DynamicMessageChannelBuilder && ! $relatedMessageChannel->hasReceiveStrategy()) {
             return false;
         }
 

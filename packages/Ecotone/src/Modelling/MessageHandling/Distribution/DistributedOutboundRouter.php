@@ -27,12 +27,11 @@ final class DistributedOutboundRouter
         ?string $targetedServiceName,
         #[Header(DistributedBusHeader::DISTRIBUTED_ROUTING_KEY)]
         $routingKey,
-    ): array
-    {
+    ): array {
         if ($payloadType === 'event') {
             return $this->distributedServiceMap->getAllChannelNamesBesides($this->thisServiceName, $routingKey);
         } elseif (in_array($payloadType, ['command', 'message'])) {
-            Assert::isTrue($targetedServiceName !== null, "Trying to send command without targeted service name");
+            Assert::isTrue($targetedServiceName !== null, 'Trying to send command without targeted service name');
 
             return [$this->distributedServiceMap->getChannelNameFor($targetedServiceName)];
         } else {

@@ -3,12 +3,12 @@
 namespace Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket;
 
 use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;
 use RuntimeException;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0

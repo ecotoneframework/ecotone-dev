@@ -6,7 +6,6 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow;
 
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -28,7 +27,7 @@ class PollOrThrowMessageHandlerConsumerBuilder implements MessageHandlerConsumer
      */
     public function isSupporting(MessageHandlerBuilder $messageHandlerBuilder, MessageChannelBuilder $relatedMessageChannel): bool
     {
-        if ($relatedMessageChannel instanceof DynamicMessageChannelBuilder && !$relatedMessageChannel->hasReceiveStrategy()) {
+        if ($relatedMessageChannel instanceof DynamicMessageChannelBuilder && ! $relatedMessageChannel->hasReceiveStrategy()) {
             return false;
         }
 

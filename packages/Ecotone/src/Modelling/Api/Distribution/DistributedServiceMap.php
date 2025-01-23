@@ -28,9 +28,8 @@ final class DistributedServiceMap implements DefinedObject
         private array $serviceMapping = [],
         private ?array $subscriptionRoutingKeys = null,
         private array $distributedBusAnnotations = [],
-    )
-    {
-        Assert::allObjects($this->distributedBusAnnotations, "Annotations passed to DistributedServiceMap, must all be objects");
+    ) {
+        Assert::allObjects($this->distributedBusAnnotations, 'Annotations passed to DistributedServiceMap, must all be objects');
     }
 
     public static function createEmpty(string $referenceName = DistributedBus::class): self
@@ -93,7 +92,7 @@ final class DistributedServiceMap implements DefinedObject
 
     public function getChannelNameFor(string $serviceName): string
     {
-        if (!array_key_exists($serviceName, $this->serviceMapping)) {
+        if (! array_key_exists($serviceName, $this->serviceMapping)) {
             throw new UnknownDistributedDestination("Service {$serviceName} is not registered in distributed service map");
         }
 

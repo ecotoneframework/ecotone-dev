@@ -20,8 +20,7 @@ class DistributedMessageHandler
         private array $distributedEventHandlerRoutingKeys,
         private array $distributedCommandHandlerRoutingKeys,
         private string $thisServiceName,
-    )
-    {
+    ) {
 
     }
 

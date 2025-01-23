@@ -2,12 +2,12 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Distributed\DistributedCommandBus\Receiver;
 
+use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\Event\TicketCreated;
-use Ecotone\Messaging\Message;
 
 /**
  * licence Apache-2.0

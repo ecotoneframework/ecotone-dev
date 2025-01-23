@@ -16,6 +16,7 @@ class TicketServiceReceiver
     public const CREATE_TICKET_ENDPOINT = 'createTicket';
     public const CREATE_TICKET_WITH_EVENT_ENDPOINT = 'createTicketWithEvent';
     public const GET_TICKETS_COUNT      = 'getTicketsCount';
+    public const GET_TICKETS      = 'getTickets';
 
     private array $tickets = [];
 
@@ -46,8 +47,14 @@ class TicketServiceReceiver
     }
 
     #[QueryHandler(self::GET_TICKETS_COUNT)]
-    public function getTickets(): int
+    public function getTicketsCount(): int
     {
         return count($this->tickets);
+    }
+
+    #[QueryHandler(self::GET_TICKETS)]
+    public function getTickets(): array
+    {
+        return $this->tickets;
     }
 }

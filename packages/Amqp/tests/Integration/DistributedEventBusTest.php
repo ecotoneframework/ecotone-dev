@@ -37,6 +37,10 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
 
         $ticketService->run('ticket_service');
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
+        self::assertEquals(
+            ['ticket was created'],
+            $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS)
+        );
     }
 
     public function test_distributing_event_and_publish_async_private_event(): void

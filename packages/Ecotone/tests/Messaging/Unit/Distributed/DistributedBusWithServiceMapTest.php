@@ -30,6 +30,7 @@ use Test\Ecotone\Messaging\Fixture\Distributed\DistributedCommandBus\Receiver\Ti
 use Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverOrder\OrderServiceReceiver;
 use Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicketWithConversion\UserChangedAddress;
 use Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicketWithConversion\UserChangedAddressConverter;
+use Test\Ecotone\Messaging\Fixture\Distributed\DistributedSendInterceptor\DistributedSendInterceptor;
 use Test\Ecotone\Messaging\Fixture\Distributed\TestServiceName;
 
 /**
@@ -504,6 +505,29 @@ final class DistributedBusWithServiceMapTest extends TestCase
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_intercepting_sending_messages(): void
+    {
+        $sharedQueueChannel = SimpleMessageChannelBuilder::createQueueChannel($channelName = 'distributed_ticket_channel');
+        $userService = $this->bootstrapEcotone(TestServiceName::USER_SERVICE, ['Test\Ecotone\Messaging\Fixture\Distributed\DistributedCommandBus\Publisher', 'Test\Ecotone\Messaging\Fixture\Distributed\DistributedSendInterceptor'], [new DistributedSendInterceptor()], $sharedQueueChannel,
+            DistributedServiceMap::createEmpty()
+                ->withServiceMapping(serviceName: TestServiceName::TICKET_SERVICE, channelName: $channelName)
+        );
+        $ticketService = $this->bootstrapEcotone(TestServiceName::TICKET_SERVICE, ['Test\Ecotone\Messaging\Fixture\Distributed\DistributedCommandBus\Receiver'], [new TicketServiceReceiver()], $sharedQueueChannel);
+
+        $userService->getDistributedBus()->sendCommand(
+            TestServiceName::TICKET_SERVICE,
+            TicketServiceReceiver::CREATE_TICKET_ENDPOINT,
+            'User changed billing address',
+        );
+
+        $ticketService->run($sharedQueueChannel->getMessageChannelName(), ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
+        self::assertEquals(
+            '123a',
+            $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS)[0]->getHeaders()->get('extra')
         );
     }
 

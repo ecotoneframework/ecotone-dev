@@ -34,6 +34,12 @@ final class EventSourcingAggregateExample
         return [new SomethingWasDone($this->id)];
     }
 
+    #[CommandHandler('aggregate.onlySideEffects')]
+    public function handle(\stdClass $class): void
+    {
+        $class->name = "test";
+    }
+
     #[EventSourcingHandler]
     public function applyAggregateCreated(AggregateCreated $event): void
     {

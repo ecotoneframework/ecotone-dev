@@ -8,6 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateAggregate;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\EventSourcingAggregateExample;
 use Test\Ecotone\Modelling\Fixture\EventRevision\Person;
@@ -54,7 +55,7 @@ final class EventSourcingAggregateTest extends TestCase
         ]);
 
 
-        $stdClass = new \stdClass();
+        $stdClass = new stdClass();
         $ecotoneLite
             ->sendCommand(new CreateAggregate(123))
             ->sendCommandWithRoutingKey('aggregate.onlySideEffects', $stdClass, metadata: ['aggregate.id' => 123]);

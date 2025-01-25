@@ -8,6 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Order\OrderErrorHandler;
@@ -42,6 +43,27 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
         );
     }
 
+    public function test_messages_are_delivered_after_lost_heartbeat(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            namespaces: ['Test\Ecotone\Amqp\Fixture\Order'],
+            services: [new OrderService(), new OrderErrorHandler(), 'logger' => new EchoLogger()],
+            amqpConfig: ['heartbeat' => 1]
+        );
+
+        $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+        $ecotone->run('orders');
+        self::assertEquals(['milk'], $ecotone->sendQueryWithRouting('order.getOrders'));
+        sleep(2);
+        $ecotone->sendCommandWithRoutingKey('order.register', 'salt');
+        $ecotone->run('orders');
+        self::assertEquals(['milk', 'salt'], $ecotone->sendQueryWithRouting('order.getOrders'));
+        sleep(10);
+        $ecotone->sendCommandWithRoutingKey('order.register', 'sunflower');
+        $ecotone->run('orders');
+        self::assertEquals(['milk', 'salt', 'sunflower'], $ecotone->sendQueryWithRouting('order.getOrders'));
+    }
+
     public function test_adding_product_to_shopping_cart_with_publisher_and_consumer(): void
     {
         $ecotone = $this->bootstrapEcotone(
@@ -58,10 +80,10 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
         );
     }
 
-    private function bootstrapEcotone(array $namespaces, array $services): FlowTestSupport
+    private function bootstrapEcotone(array $namespaces, array $services, array $amqpConfig = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: array_merge([AmqpConnectionFactory::class => $this->getCachedConnectionFactory()], $services),
+            containerOrAvailableServices: array_merge([AmqpConnectionFactory::class => $this->getCachedConnectionFactory($amqpConfig)], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

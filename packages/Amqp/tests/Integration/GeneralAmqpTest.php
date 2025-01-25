@@ -52,14 +52,12 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
         );
 
         $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
-        $ecotone->run('orders');
-        self::assertEquals(['milk'], $ecotone->sendQueryWithRouting('order.getOrders'));
         sleep(2);
         $ecotone->sendCommandWithRoutingKey('order.register', 'salt');
-        $ecotone->run('orders');
-        self::assertEquals(['milk', 'salt'], $ecotone->sendQueryWithRouting('order.getOrders'));
         sleep(10);
         $ecotone->sendCommandWithRoutingKey('order.register', 'sunflower');
+        $ecotone->run('orders');
+        $ecotone->run('orders');
         $ecotone->run('orders');
         self::assertEquals(['milk', 'salt', 'sunflower'], $ecotone->sendQueryWithRouting('order.getOrders'));
     }

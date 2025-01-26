@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
@@ -26,6 +27,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     private string $exchangeName;
     private bool $defaultPersistentDelivery = self::DEFAULT_PERSISTENT_MODE;
     private array $staticHeadersToAdd = [];
+    private bool $publisherAcknowledgments = true;
 
     private function __construct(string $exchangeName, string $amqpConnectionFactoryReferenceName)
     {
@@ -52,6 +54,13 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     public function withDefaultRoutingKey(string $routingKey): self
     {
         $this->defaultRoutingKey = $routingKey;
+
+        return $this;
+    }
+
+    public function withPublisherAcknowledgments(bool $publisherAcknowledgments): self
+    {
+        $this->publisherAcknowledgments = $publisherAcknowledgments;
 
         return $this;
     }
@@ -125,8 +134,10 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->exchangeFromHeader,
             $this->defaultPersistentDelivery,
             $this->autoDeclare,
+            $this->publisherAcknowledgments,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
+            Reference::to(AmqpTransactionInterceptor::class),
         ]);
     }
 }

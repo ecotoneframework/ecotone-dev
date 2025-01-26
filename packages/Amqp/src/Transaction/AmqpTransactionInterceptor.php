@@ -90,7 +90,9 @@ class AmqpTransactionInterceptor
                 $this->logger->info(
                     'AMQP transaction was roll backed',
                     $message,
-                    $exception
+                    [
+                        'exception' => $exception
+                    ]
                 );
 
                 throw $exception;
@@ -103,5 +105,10 @@ class AmqpTransactionInterceptor
 
         $this->isRunningTransaction = false;
         return $result;
+    }
+
+    public function isRunningInTransaction(): bool
+    {
+        return $this->isRunningTransaction;
     }
 }

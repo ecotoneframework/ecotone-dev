@@ -6,11 +6,13 @@ namespace Ecotone\Amqp;
 
 use AMQPChannelException;
 use AMQPConnectionException;
+use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
+use Enqueue\AmqpExt\AmqpContext;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
 
@@ -29,16 +31,18 @@ class AmqpOutboundChannelAdapter implements MessageHandler
     private $initialized = false;
 
     public function __construct(
-        private CachedConnectionFactory $connectionFactory,
-        private AmqpAdmin $amqpAdmin,
-        private string $exchangeName,
-        private ?string $routingKey,
-        private ?string $routingKeyFromHeaderName,
-        private ?string $exchangeFromHeaderName,
-        private bool $defaultPersistentDelivery,
-        private bool $autoDeclare,
-        private OutboundMessageConverter $outboundMessageConverter,
-        private ConversionService $conversionService
+        private CachedConnectionFactory    $connectionFactory,
+        private AmqpAdmin                  $amqpAdmin,
+        private string                     $exchangeName,
+        private ?string                    $routingKey,
+        private ?string                    $routingKeyFromHeaderName,
+        private ?string                    $exchangeFromHeaderName,
+        private bool                       $defaultPersistentDelivery,
+        private bool                       $autoDeclare,
+        private bool                       $publisherAcknowledgments,
+        private OutboundMessageConverter   $outboundMessageConverter,
+        private ConversionService          $conversionService,
+        private AmqpTransactionInterceptor $amqpTransactionInterceptor,
     ) {
     }
 
@@ -76,17 +80,22 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $messageToSend
             ->setDeliveryMode($this->defaultPersistentDelivery ? AmqpMessage::DELIVERY_MODE_PERSISTENT : AmqpMessage::DELIVERY_MODE_NON_PERSISTENT);
 
-        try {
-            $this->connectionFactory->getProducer()
-                ->setTimeToLive($outboundMessage->getTimeToLive())
-                ->setDelayStrategy(new HeadersExchangeDelayStrategy())
-                ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
-//            this allow for having queue per delay instead of queue per delay + exchangeName
-                ->send(new AmqpTopic($exchangeName), $messageToSend);
-        } catch (AMQPConnectionException|AMQPChannelException $exception) {
-            $this->connectionFactory->reconnect();
+        /** @var AmqpContext $context */
+        $context = $this->connectionFactory->createContext();
+        if ($this->publisherAcknowledgments && !$this->amqpTransactionInterceptor->isRunningInTransaction()) {
+            /** Ensures no messages are lost along the way when heartbeat is lost and ensures messages was peristed on the Broker side. Without this message can be simply "swallowed" without throwing exception */
+            $context->getExtChannel()->confirmSelect();
+        }
 
-            throw $exception;
+        $this->connectionFactory->getProducer()
+            ->setTimeToLive($outboundMessage->getTimeToLive())
+            ->setDelayStrategy(new HeadersExchangeDelayStrategy())
+            ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
+//            this allow for having queue per delay instead of queue per delay + exchangeName
+            ->send(new AmqpTopic($exchangeName), $messageToSend);
+
+        if ($this->publisherAcknowledgments && !$this->amqpTransactionInterceptor->isRunningInTransaction()) {
+            $context->getExtChannel()->waitForConfirm();
         }
     }
 }

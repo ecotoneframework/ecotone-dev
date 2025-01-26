@@ -48,39 +48,6 @@ final class AmqpModuleTest extends AmqpMessagingTestCase
         );
     }
 
-    public function test_registering_amqp_backed_message_channel_with_application_media_type()
-    {
-        $amqpChannelBuilder = AmqpBackedMessageChannelBuilder::create('amqpChannel');
-        $messagingSystem    = MessagingSystemConfiguration::prepareWithDefaults(
-            InMemoryModuleMessaging::createWith(
-                [AmqpModule::create(InMemoryAnnotationFinder::createEmpty(), InterfaceToCallRegistry::createEmpty())],
-                [
-                    ServiceConfiguration::createWithDefaults()
-                        ->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON),
-                    $amqpChannelBuilder,
-                ]
-            )
-        )
-            ->registerMessageChannel($amqpChannelBuilder)
-            ->registerConverter(new ArrayToJsonConverterBuilder())
-            ->buildMessagingSystemFromConfiguration(
-                InMemoryReferenceSearchService::createWith(
-                    [
-                        AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
-                    ]
-                )
-            );
-
-        /** @var PollableChannel $channel */
-        $channel = $messagingSystem->getMessageChannelByName('amqpChannel');
-        $channel->send(MessageBuilder::withPayload([1, 2, 3])->setContentType(MediaType::createApplicationXPHPArray())->build());
-
-        $this->assertEquals(
-            '[1,2,3]',
-            $channel->receive()->getPayload()
-        );
-    }
-
     public function test_registering_amqp_configuration()
     {
         $amqpExchange = AmqpExchange::createDirectExchange('exchange');

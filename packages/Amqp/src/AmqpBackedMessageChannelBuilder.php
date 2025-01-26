@@ -53,9 +53,9 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return $this->outboundChannelAdapter;
     }
 
-    public function withDeliveryGuarantee(bool $deliveryGuarantee): self
+    public function withPublisherAcknowledgments(bool $enabled): self
     {
-        $this->getAmqpOutboundChannelAdapter()->withDeliveryGuarantee($deliveryGuarantee);
+        $this->getAmqpOutboundChannelAdapter()->withPublisherAcknowledgments($enabled);
 
         return $this;
     }

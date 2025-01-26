@@ -74,7 +74,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName)
-                        ->withDeliveryGuarantee(false),
+                        ->withPublisherAcknowledgments(false),
                 ])
         );
 

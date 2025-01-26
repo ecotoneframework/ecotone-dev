@@ -11,6 +11,7 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
+use Enqueue\AmqpExt\AmqpContext;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
 
@@ -76,11 +77,19 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $messageToSend
             ->setDeliveryMode($this->defaultPersistentDelivery ? AmqpMessage::DELIVERY_MODE_PERSISTENT : AmqpMessage::DELIVERY_MODE_NON_PERSISTENT);
 
+        /** @var AmqpContext $context */
+        $context = $this->connectionFactory->createContext();
+        /** Ensures no messages are lost along the way when heartbeat is lost and ensures messages was peristed on the Broker side. Without this message can be simply "swallowed" without throwing exception */
+        $context->getExtChannel()->confirmSelect();
+
         $this->connectionFactory->getProducer()
             ->setTimeToLive($outboundMessage->getTimeToLive())
             ->setDelayStrategy(new HeadersExchangeDelayStrategy())
             ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);
+
+        $context->getExtChannel()->setConfirmCallback(fn() => false, fn() => throw new \RuntimeException("Message was not sent to exchange {$exchangeName} with routing key {$routingKey}"));
+        $context->getExtChannel()->waitForConfirm();
     }
 }

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
-use AMQPChannelException;
-use AMQPConnectionException;
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
@@ -82,7 +80,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         /** @var AmqpContext $context */
         $context = $this->connectionFactory->createContext();
-        if ($this->publisherAcknowledgments && !$this->amqpTransactionInterceptor->isRunningInTransaction()) {
+        if ($this->publisherAcknowledgments && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
             /** Ensures no messages are lost along the way when heartbeat is lost and ensures messages was peristed on the Broker side. Without this message can be simply "swallowed" without throwing exception */
             $context->getExtChannel()->confirmSelect();
         }
@@ -94,7 +92,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);
 
-        if ($this->publisherAcknowledgments && !$this->amqpTransactionInterceptor->isRunningInTransaction()) {
+        if ($this->publisherAcknowledgments && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
             $context->getExtChannel()->waitForConfirm();
         }
     }

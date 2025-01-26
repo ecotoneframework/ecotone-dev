@@ -91,7 +91,7 @@ class AmqpTransactionInterceptor
                     'AMQP transaction was roll backed',
                     $message,
                     [
-                        'exception' => $exception
+                        'exception' => $exception,
                     ]
                 );
 

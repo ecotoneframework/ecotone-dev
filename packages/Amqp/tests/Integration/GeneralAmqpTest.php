@@ -48,7 +48,7 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
         $ecotone = $this->bootstrapEcotone(
             namespaces: ['Test\Ecotone\Amqp\Fixture\Order'],
             services: [new OrderService(), new OrderErrorHandler(),
-//                'logger' => new EchoLogger()
+                //                'logger' => new EchoLogger()
             ],
             amqpConfig: ['heartbeat' => 2]
         );

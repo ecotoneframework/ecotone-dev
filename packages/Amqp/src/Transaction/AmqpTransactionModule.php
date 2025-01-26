@@ -51,18 +51,14 @@ class AmqpTransactionModule implements AnnotationModule
         $amqpConfiguration = ExtensionObjectResolver::resolveUnique(AmqpConfiguration::class, $extensionObjects, AmqpConfiguration::createWithDefaults());
         ;
 
-        $isTransactionWrapperEnabled = false;
         if ($amqpConfiguration->isTransactionOnAsynchronousEndpoints()) {
             $pointcut .= '||' . AsynchronousRunningEndpoint::class;
-            $isTransactionWrapperEnabled = true;
         }
         if ($amqpConfiguration->isTransactionOnCommandBus()) {
-            $pointcut .= '||' . CommandBus::class . '';
-            $isTransactionWrapperEnabled = true;
+            $pointcut .= '||' . CommandBus::class;
         }
         if ($amqpConfiguration->isTransactionOnConsoleCommands()) {
-            $pointcut .= '||' . ConsoleCommand::class . '';
-            $isTransactionWrapperEnabled = true;
+            $pointcut .= '||' . ConsoleCommand::class;
         }
         if ($amqpConfiguration->getDefaultConnectionReferenceNames()) {
             $connectionFactories = $amqpConfiguration->getDefaultConnectionReferenceNames();

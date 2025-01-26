@@ -61,6 +61,36 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $this->assertNull($messageChannel->receiveWithTimeout(1));
     }
 
+    public function test_sending_and_receiving_without_delivery_guarantee()
+    {
+        $queueName = Uuid::uuid4()->toString();
+        $messagePayload = 'some';
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            containerOrAvailableServices: [
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpBackedMessageChannelBuilder::create($queueName)
+                        ->withDeliveryGuarantee(false),
+                ])
+        );
+
+        /** @var PollableChannel $messageChannel */
+        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+
+        $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
+
+        $this->assertEquals(
+            'some',
+            $messageChannel->receiveWithTimeout(100)->getPayload()
+        );
+
+        $this->assertNull($messageChannel->receiveWithTimeout(1));
+    }
+
     public function test_sending_and_receiving_message_from_amqp_using_consumer()
     {
         $queueName = 'orders';

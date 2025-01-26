@@ -27,6 +27,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     private string $exchangeName;
     private bool $defaultPersistentDelivery = self::DEFAULT_PERSISTENT_MODE;
     private array $staticHeadersToAdd = [];
+    private bool $deliveryGuarantee = true;
 
     private function __construct(string $exchangeName, string $amqpConnectionFactoryReferenceName)
     {
@@ -53,6 +54,13 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     public function withDefaultRoutingKey(string $routingKey): self
     {
         $this->defaultRoutingKey = $routingKey;
+
+        return $this;
+    }
+
+    public function withDeliveryGuarantee(bool $deliveryGuarantee): self
+    {
+        $this->deliveryGuarantee = $deliveryGuarantee;
 
         return $this;
     }
@@ -126,6 +134,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->exchangeFromHeader,
             $this->defaultPersistentDelivery,
             $this->autoDeclare,
+            $this->deliveryGuarantee,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             Reference::to(AmqpTransactionInterceptor::class),

@@ -48,6 +48,18 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         );
     }
 
+    private function getAmqpOutboundChannelAdapter(): AmqpOutboundChannelAdapterBuilder
+    {
+        return $this->outboundChannelAdapter;
+    }
+
+    public function withDeliveryGuarantee(bool $deliveryGuarantee): self
+    {
+        $this->getAmqpOutboundChannelAdapter()->withDeliveryGuarantee($deliveryGuarantee);
+
+        return $this;
+    }
+
     public function getMessageChannelName(): string
     {
         return $this->channelName;

@@ -76,17 +76,11 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $messageToSend
             ->setDeliveryMode($this->defaultPersistentDelivery ? AmqpMessage::DELIVERY_MODE_PERSISTENT : AmqpMessage::DELIVERY_MODE_NON_PERSISTENT);
 
-        try {
-            $this->connectionFactory->getProducer()
-                ->setTimeToLive($outboundMessage->getTimeToLive())
-                ->setDelayStrategy(new HeadersExchangeDelayStrategy())
-                ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
+        $this->connectionFactory->getProducer()
+            ->setTimeToLive($outboundMessage->getTimeToLive())
+            ->setDelayStrategy(new HeadersExchangeDelayStrategy())
+            ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
 //            this allow for having queue per delay instead of queue per delay + exchangeName
-                ->send(new AmqpTopic($exchangeName), $messageToSend);
-        } catch (AMQPConnectionException|AMQPChannelException $exception) {
-            $this->connectionFactory->reconnect();
-
-            throw $exception;
-        }
+            ->send(new AmqpTopic($exchangeName), $messageToSend);
     }
 }

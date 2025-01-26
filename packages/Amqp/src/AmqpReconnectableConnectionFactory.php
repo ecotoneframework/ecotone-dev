@@ -63,6 +63,10 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
         Assert::isSubclassOf($context, AmqpContext::class, 'Context must be ' . AmqpContext::class);
 
+        if (!$context->getExtChannel()->getConnection()->isConnected()) {
+            return true;
+        }
+
         return ! $context->getExtChannel()->isConnected();
     }
 

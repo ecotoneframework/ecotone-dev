@@ -48,6 +48,7 @@ class CachedConnectionFactory implements ConnectionFactory
     public function reconnect(): void
     {
         $this->connectionFactory->reconnect();
+        $this->cachedContext = [];
     }
 
     public function getConsumer(Destination $destination): Consumer

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
@@ -127,6 +128,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->autoDeclare,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
+            Reference::to(AmqpTransactionInterceptor::class),
         ]);
     }
 }

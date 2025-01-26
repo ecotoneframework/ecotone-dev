@@ -37,7 +37,10 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
             $this->reconnect();
         }
 
-        return $this->connectionFactory->createContext();
+        $context = $this->connectionFactory->createContext();
+        $context->getExtChannel()->setConfirmCallback(fn() => false, fn() => throw new \RuntimeException("Message was failed to be persisted in RabbitMQ instance. Check RabbitMQ server logs."));
+
+        return $context;
     }
 
     public function getConnectionInstanceId(): string

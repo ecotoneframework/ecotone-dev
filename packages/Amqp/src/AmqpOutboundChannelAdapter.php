@@ -6,6 +6,7 @@ namespace Ecotone\Amqp;
 
 use AMQPChannelException;
 use AMQPConnectionException;
+use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -39,7 +40,8 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private bool $defaultPersistentDelivery,
         private bool $autoDeclare,
         private OutboundMessageConverter $outboundMessageConverter,
-        private ConversionService $conversionService
+        private ConversionService $conversionService,
+        private AmqpTransactionInterceptor $amqpTransactionInterceptor,
     ) {
     }
 
@@ -79,8 +81,10 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         /** @var AmqpContext $context */
         $context = $this->connectionFactory->createContext();
-        /** Ensures no messages are lost along the way when heartbeat is lost and ensures messages was peristed on the Broker side. Without this message can be simply "swallowed" without throwing exception */
-        $context->getExtChannel()->confirmSelect();
+        if (!$this->amqpTransactionInterceptor->isRunningInTransaction()) {
+            /** Ensures no messages are lost along the way when heartbeat is lost and ensures messages was peristed on the Broker side. Without this message can be simply "swallowed" without throwing exception */
+            $context->getExtChannel()->confirmSelect();
+        }
 
         $this->connectionFactory->getProducer()
             ->setTimeToLive($outboundMessage->getTimeToLive())
@@ -89,7 +93,8 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);
 
-        $context->getExtChannel()->setConfirmCallback(fn() => false, fn() => throw new \RuntimeException("Message was not sent to exchange {$exchangeName} with routing key {$routingKey}"));
-        $context->getExtChannel()->waitForConfirm();
+        if (!$this->amqpTransactionInterceptor->isRunningInTransaction()) {
+            $context->getExtChannel()->waitForConfirm();
+        }
     }
 }

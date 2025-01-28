@@ -23,7 +23,7 @@ class LiteDIContainer implements ContainerInterface
     {
         $builder = new ContainerBuilder();
         $serviceCacheConfiguration = new ServiceCacheConfiguration(
-            $serviceConfiguration->getCacheDirectoryPath(),
+            $serviceConfiguration->getCacheDirectoryPath() . DIRECTORY_SEPARATOR . 'ecotone',
             $useCache
         );
 

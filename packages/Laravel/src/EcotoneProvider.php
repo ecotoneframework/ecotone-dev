@@ -2,6 +2,9 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\AnnotationFinder\AnnotationFinderFactory;
+use Ecotone\Lite\EcotoneLite;
+use Illuminate\Support\Facades\Cache;
 use function class_exists;
 
 use const DIRECTORY_SEPARATOR;
@@ -31,6 +34,9 @@ use ReflectionMethod;
  */
 class EcotoneProvider extends ServiceProvider
 {
+    const MESSAGING_SYSTEM_FILE_NAME = 'messaging_system';
+    const PRODUCTION_CACHE_KEY = 'ecotone.cache.name';
+
     /**
      * Register services.
      *
@@ -45,8 +51,9 @@ class EcotoneProvider extends ServiceProvider
 
         $environment            = App::environment();
         $rootCatalog            = App::basePath();
-        $useCache               = in_array($environment, ['prod', 'production']) ? true : Config::get('ecotone.cacheConfiguration');
-        $cacheDirectory         = $this->getCacheDirectoryPath();
+        $useProductionCache      = in_array($environment, ['prod', 'production']) ? true : Config::get('ecotone.cacheConfiguration');
+        $cacheDirectory         = $this->getCacheDirectoryPath() . DIRECTORY_SEPARATOR . 'ecotone';
+        $enableTesting = Config::get('ecotone.test');
 
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
@@ -93,30 +100,9 @@ class EcotoneProvider extends ServiceProvider
         }
 
         $applicationConfiguration = $applicationConfiguration->withExtensionObjects([new EloquentRepositoryBuilder()]);
+        $applicationConfiguration = MessagingSystemConfiguration::addCorePackage($applicationConfiguration, $enableTesting);
 
-        $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, $useCache);
-
-        $definitionHolder = null;
-        $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging_system';
-        if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
-            /** It may fail on deserialization, then return `false` and we can build new one */
-            $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
-        }
-
-        if (! $definitionHolder) {
-            $configuration = MessagingSystemConfiguration::prepare(
-                $rootCatalog,
-                new LaravelConfigurationVariableService(),
-                $applicationConfiguration,
-                enableTestPackage: Config::get('ecotone.test')
-            );
-            $definitionHolder = ContainerConfig::buildDefinitionHolder($configuration);
-
-            if ($serviceCacheConfiguration->shouldUseCache()) {
-                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-                file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
-            }
-        }
+        list($serviceCacheConfiguration, $definitionHolder) = $this->prepareFromCache($useProductionCache, $rootCatalog, $applicationConfiguration, $enableTesting, $cacheDirectory);
 
         foreach ($definitionHolder->getDefinitions() as $id => $definition) {
             $this->app->singleton($id, function () use ($definition) {
@@ -248,5 +234,68 @@ class EcotoneProvider extends ServiceProvider
         } else {
             return $argument;
         }
+    }
+
+    public function prepareFromCache(mixed $useProductionCache, string $rootCatalog, ServiceConfiguration $applicationConfiguration, mixed $enableTesting, string $cacheDirectory): array
+    {
+        if ($useProductionCache && $cacheDirectory) {
+            $messagingFile = $cacheDirectory . DIRECTORY_SEPARATOR . self::MESSAGING_SYSTEM_FILE_NAME;
+
+            if (file_exists($messagingFile)) {
+                /** It may fail on deserialization, then return `false` and we can build new one */
+                $definitionHolder = unserialize(file_get_contents($messagingFile));
+
+                if ($definitionHolder) {
+                    return array(new ServiceCacheConfiguration($cacheDirectory, true), $definitionHolder);
+                }
+            }
+        }
+
+        $annotationFinder = AnnotationFinderFactory::createForAttributes(
+            realpath($rootCatalog),
+            $applicationConfiguration->getNamespaces(),
+            $applicationConfiguration->getEnvironment(),
+            $applicationConfiguration->getLoadedCatalog() ?? '',
+            MessagingSystemConfiguration::getModuleClassesFor($applicationConfiguration),
+            isRunningForTesting: $enableTesting,
+        );
+
+        $cacheHash = $annotationFinder->getCacheMessagingFileNameBasedOnConfig(
+            realpath($rootCatalog),
+            $applicationConfiguration,
+            Config::all(),
+            $enableTesting
+        );
+
+        $serviceCacheConfiguration = new ServiceCacheConfiguration(
+            $useProductionCache ? $cacheDirectory : ($cacheDirectory . DIRECTORY_SEPARATOR . $cacheHash),
+            true,
+        );
+
+        $definitionHolder = null;
+
+        $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . self::MESSAGING_SYSTEM_FILE_NAME;
+
+        if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
+            /** It may fail on deserialization, then return `false` and we can build new one */
+            $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
+        }
+
+        if (!$definitionHolder) {
+            $configuration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
+                $annotationFinder,
+                new LaravelConfigurationVariableService(),
+                $applicationConfiguration,
+                enableTestPackage: $enableTesting
+            );
+            $definitionHolder = ContainerConfig::buildDefinitionHolder($configuration);
+
+            if ($serviceCacheConfiguration->shouldUseCache()) {
+                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
+                file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
+            }
+        }
+
+        return array($serviceCacheConfiguration, $definitionHolder);
     }
 }

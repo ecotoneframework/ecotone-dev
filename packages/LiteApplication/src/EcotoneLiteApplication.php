@@ -48,7 +48,7 @@ class EcotoneLiteApplication
         }
 
         $serviceCacheConfiguration = new ServiceCacheConfiguration(
-            $serviceConfiguration->getCacheDirectoryPath(),
+            $serviceConfiguration->getCacheDirectoryPath() . DIRECTORY_SEPARATOR . 'ecotone',
             $cacheConfiguration
         );
         $file = $serviceCacheConfiguration->getPath() . '/CompiledContainer.php';

@@ -44,6 +44,8 @@ final class ApplicationTest extends TestCase
 
     public function test_working_with_gateways_automatically_registered_in_dependency_container()
     {
+        // use cached version
+        $this->createApplication();
         $app = $this->createApplication();
 
         $userId = '123';
@@ -57,6 +59,30 @@ final class ApplicationTest extends TestCase
             User::register($userId),
             $userRepository->getUser($userId)
         );
+    }
+
+    public function test_working_with_gateways_automatically_registered_in_dependency_container_with_production_env()
+    {
+        $_SERVER['APP_ENV'] = 'production';
+        try {
+            // use cached version
+            $this->createApplication();
+            $app = $this->createApplication();
+
+            $userId = '123';
+            /** @var CommandBus $commandBus */
+            $commandBus = $app->get(CommandBus::class);
+            $commandBus->sendWithRouting('user.register', $userId);
+
+            /** @var UserRepository $userRepository */
+            $userRepository = $app->get(UserRepository::class);
+            $this->assertEquals(
+                User::register($userId),
+                $userRepository->getUser($userId)
+            );
+        } finally {
+            $_SERVER['APP_ENV'] = null;
+        }
     }
 
     public function test_sending_command_using_expression_language()

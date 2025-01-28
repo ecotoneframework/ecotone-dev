@@ -77,7 +77,7 @@ class EcotoneExtension extends Extension
 
         $container->register(ServiceCacheConfiguration::REFERENCE_NAME, ServiceCacheConfiguration::class)
             ->setArguments([
-                '%kernel.cache_dir%',
+                '%kernel.cache_dir%/ecotone' ,
                 true,
             ]);
 

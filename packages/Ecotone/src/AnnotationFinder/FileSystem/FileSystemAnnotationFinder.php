@@ -16,6 +16,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use ReflectionClass;
 
 /**
  * Class FileSystemAnnotationRegistrationService
@@ -481,14 +482,13 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         ServiceConfiguration $serviceConfiguration,
         array $configurationVariables,
         bool $enableTesting
-    ): string
-    {
+    ): string {
         // this is temporary cache based on if files have changed
         // get file contents based on class names, configuration and configuration variables
         $fileSha = '';
 
         foreach ($this->registeredClasses() as $class) {
-            $filePath = (new \ReflectionClass($class))->getFileName();
+            $filePath = (new ReflectionClass($class))->getFileName();
             $fileSha .= sha1_file($filePath);
         }
 

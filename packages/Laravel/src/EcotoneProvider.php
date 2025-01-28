@@ -2,13 +2,11 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\AnnotationFinder\AnnotationFinderFactory;
-use Ecotone\Lite\EcotoneLite;
-use Illuminate\Support\Facades\Cache;
 use function class_exists;
 
 use const DIRECTORY_SEPARATOR;
 
+use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
@@ -34,8 +32,8 @@ use ReflectionMethod;
  */
 class EcotoneProvider extends ServiceProvider
 {
-    const MESSAGING_SYSTEM_FILE_NAME = 'messaging_system';
-    const PRODUCTION_CACHE_KEY = 'ecotone.cache.name';
+    public const MESSAGING_SYSTEM_FILE_NAME = 'messaging_system';
+    public const PRODUCTION_CACHE_KEY = 'ecotone.cache.name';
 
     /**
      * Register services.
@@ -102,7 +100,7 @@ class EcotoneProvider extends ServiceProvider
         $applicationConfiguration = $applicationConfiguration->withExtensionObjects([new EloquentRepositoryBuilder()]);
         $applicationConfiguration = MessagingSystemConfiguration::addCorePackage($applicationConfiguration, $enableTesting);
 
-        list($serviceCacheConfiguration, $definitionHolder) = $this->prepareFromCache($useProductionCache, $rootCatalog, $applicationConfiguration, $enableTesting, $cacheDirectory);
+        [$serviceCacheConfiguration, $definitionHolder] = $this->prepareFromCache($useProductionCache, $rootCatalog, $applicationConfiguration, $enableTesting, $cacheDirectory);
 
         foreach ($definitionHolder->getDefinitions() as $id => $definition) {
             $this->app->singleton($id, function () use ($definition) {
@@ -246,7 +244,7 @@ class EcotoneProvider extends ServiceProvider
                 $definitionHolder = unserialize(file_get_contents($messagingFile));
 
                 if ($definitionHolder) {
-                    return array(new ServiceCacheConfiguration($cacheDirectory, true), $definitionHolder);
+                    return [new ServiceCacheConfiguration($cacheDirectory, true), $definitionHolder];
                 }
             }
         }
@@ -281,7 +279,7 @@ class EcotoneProvider extends ServiceProvider
             $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
         }
 
-        if (!$definitionHolder) {
+        if (! $definitionHolder) {
             $configuration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
                 $annotationFinder,
                 new LaravelConfigurationVariableService(),
@@ -296,6 +294,6 @@ class EcotoneProvider extends ServiceProvider
             }
         }
 
-        return array($serviceCacheConfiguration, $definitionHolder);
+        return [$serviceCacheConfiguration, $definitionHolder];
     }
 }

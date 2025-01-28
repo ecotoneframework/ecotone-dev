@@ -28,7 +28,6 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use function json_decode;
 
 use Psr\Container\ContainerInterface;
-use ReflectionClass;
 
 /**
  * licence Apache-2.0

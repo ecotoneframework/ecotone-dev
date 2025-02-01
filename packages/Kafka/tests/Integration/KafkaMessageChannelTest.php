@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
+use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -55,7 +56,7 @@ final class KafkaMessageChannelTest extends TestCase
         $messageId = Uuid::uuid4()->toString();
         $messagePayload = new ExampleCommand($messageId);
 
-        $messaging = $this->prepareAsyncCommandHandler($channelName);
+        $messaging = $this->prepareAsyncCommandHandler($channelName, $topicName = Uuid::uuid4()->toString());
         $metadata = [
             MessageHeaders::MESSAGE_ID => $messageId,
             MessageHeaders::TIMESTAMP => 123333,
@@ -74,6 +75,9 @@ final class KafkaMessageChannelTest extends TestCase
         $this->assertEquals($messagePayload, $receivedMessage[0]['payload']);
         $this->assertEquals($metadata[MessageHeaders::MESSAGE_ID], $receivedMessage[0]['headers'][MessageHeaders::MESSAGE_ID]);
         $this->assertEquals($metadata[MessageHeaders::TIMESTAMP], $receivedMessage[0]['headers'][MessageHeaders::TIMESTAMP]);
+        $this->assertEquals($topicName, $receivedMessage[0]['headers'][KafkaHeader::TOPIC_HEADER_NAME]);
+        $this->assertEquals(0, $receivedMessage[0]['headers'][KafkaHeader::PARTITION_HEADER_NAME]);
+        $this->assertEquals(0, $receivedMessage[0]['headers'][KafkaHeader::OFFSET_HEADER_NAME]);
         $this->assertEquals($channelName, $receivedMessage[0]['headers'][MessageHeaders::POLLED_CHANNEL_NAME]);
         $this->assertEquals(MediaType::createApplicationXPHPSerialized()->toString(), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
     }
@@ -235,7 +239,7 @@ final class KafkaMessageChannelTest extends TestCase
         );
     }
 
-    public function prepareAsyncCommandHandler(string $channelName): \Ecotone\Lite\Test\FlowTestSupport
+    public function prepareAsyncCommandHandler(string $channelName, ?string $topicName = null): \Ecotone\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
             [KafkaAsyncCommandHandler::class],
@@ -249,8 +253,8 @@ final class KafkaMessageChannelTest extends TestCase
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
-                        topicName: $uniqueId = Uuid::uuid4()->toString(),
-                        groupId: $uniqueId
+                        topicName: ($topicName = $topicName ?: Uuid::uuid4()->toString()),
+                        groupId: $topicName
                     ),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,

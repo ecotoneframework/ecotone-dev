@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
+use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -50,7 +51,11 @@ final class InboundMessageConverter
 
             $messageBuilder = $messageBuilder
                 ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback)
-                ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, $this->acknowledgeHeaderName);
+                ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, $this->acknowledgeHeaderName)
+                ->setHeader(KafkaHeader::TOPIC_HEADER_NAME, $source->topic_name)
+                ->setHeader(KafkaHeader::PARTITION_HEADER_NAME, $source->partition)
+                ->setHeader(KafkaHeader::OFFSET_HEADER_NAME, $source->offset)
+                ->setHeader(KafkaHeader::KAFKA_TIMESTAMP_HEADER_NAME, $source->timestamp);
         }
 
         if (isset($messageHeaders[MessageHeaders::MESSAGE_ID])) {

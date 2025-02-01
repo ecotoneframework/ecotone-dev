@@ -101,7 +101,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
 
     public function withHeaderMapping(string $headerMapper): self
     {
-        $mapping = explode(",", $headerMapper);
+        $mapping = explode(',', $headerMapper);
         $this->headerMapper = DefaultHeaderMapper::createWith($mapping, $mapping);
 
         return $this;

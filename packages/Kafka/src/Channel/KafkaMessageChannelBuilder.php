@@ -7,7 +7,6 @@ namespace Ecotone\Kafka\Channel;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapterBuilder;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapterBuilder;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -34,13 +33,12 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         public readonly string $topicName,
         public readonly string $groupId,
         int             $receiveTimeoutInMilliseconds = KafkaConsumerConfiguration::DEFAULT_RECEIVE_TIMEOUT,
-    )
-    {
+    ) {
         $this->inboundChannelAdapterBuilder = KafkaInboundChannelAdapterBuilder::create($channelName)
             ->withReceiveTimeout($receiveTimeoutInMilliseconds);
         $this->outboundChannelAdapterBuilder = KafkaOutboundChannelAdapterBuilder::create($channelName);
 
-        $this->headerMapper = "*";
+        $this->headerMapper = '*';
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
@@ -60,8 +58,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         string  $channelName,
         ?string $topicName = null,
         ?string $groupId = null
-    ): self
-    {
+    ): self {
         return new self(
             $channelName,
             $topicName ?? $channelName,
@@ -76,7 +73,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
 
     public function getHeaderMapper(): HeaderMapper
     {
-        $headerMapper = explode(",", $this->headerMapper);
+        $headerMapper = explode(',', $this->headerMapper);
 
         return DefaultHeaderMapper::createWith($headerMapper, $headerMapper);
     }

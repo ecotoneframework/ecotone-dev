@@ -17,11 +17,11 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\LoggerExample;
 
-use Test\Ecotone\Kafka\ConnectionTestCase;
 use function getenv;
 
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Kafka\ConnectionTestCase;
 use Test\Ecotone\Kafka\Fixture\Handler\ExampleCommand;
 use Test\Ecotone\Kafka\Fixture\Handler\ExampleEvent;
 use Test\Ecotone\Kafka\Fixture\Handler\KafkaAsyncCommandHandler;
@@ -107,7 +107,8 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
 
-        $this->assertEmpty($messaging->sendQueryWithRouting('consumer.getMessages'));;
+        $this->assertEmpty($messaging->sendQueryWithRouting('consumer.getMessages'));
+        ;
         $this->assertNotEmpty($logger->getError());
     }
 

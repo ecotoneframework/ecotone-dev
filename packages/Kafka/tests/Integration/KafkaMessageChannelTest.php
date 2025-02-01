@@ -16,6 +16,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\LoggerExample;
 
+use Test\Ecotone\Kafka\ConnectionTestCase;
 use function getenv;
 
 use PHPUnit\Framework\TestCase;
@@ -102,6 +103,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
 
+        $this->assertEmpty($messaging->sendQueryWithRouting('consumer.getMessages'));;
         $this->assertNotEmpty($logger->getError());
     }
 
@@ -142,13 +144,8 @@ final class KafkaMessageChannelTest extends TestCase
         $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
-    /**
-     * @TODO
-     */
     public function test_sending_via_routing_without_payload()
     {
-        $this->markTestSkipped('unstable');
-
         $channelName = 'async';
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
@@ -265,9 +262,7 @@ final class KafkaMessageChannelTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [KafkaAsyncEventHandler::class],
             [
-                KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
-                    getenv('KAFKA_DSN') ?? 'localhost:9094',
-                ]), new KafkaAsyncEventHandler(), 'logger' => new EchoLogger(),
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(), 'logger' => new EchoLogger(),
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))

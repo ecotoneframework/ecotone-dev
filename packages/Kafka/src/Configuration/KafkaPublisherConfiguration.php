@@ -86,9 +86,9 @@ final class KafkaPublisherConfiguration implements DefinedObject
      * @param string $headerMapper comma separated list of headers to be mapped.
      *                             (e.g. "\*" or "thing1*, thing2" or "*thing1")
      */
-    public function withHeaderMapper(string $headerMapper): self
+    public function withHeaderMapper(string|HeaderMapper $headerMapper): self
     {
-        $this->headerMapper = DefaultHeaderMapper::createWith([], explode(',', $headerMapper));
+        $this->headerMapper = is_string($headerMapper) ? DefaultHeaderMapper::createWith([], explode(',', $headerMapper)) : $headerMapper;
 
         return $this;
     }

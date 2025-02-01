@@ -19,6 +19,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         protected KafkaAdmin                 $kafkaAdmin,
         protected InboundMessageConverter    $inboundMessageConverter,
         protected ConversionService          $conversionService,
+        protected int                       $receiveTimeoutInMilliseconds,
     ) {
     }
 
@@ -26,7 +27,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
     {
         $consumer = $this->kafkaAdmin->getConsumer($this->endpointId);
 
-        $message = $consumer->consume($timeoutInMilliseconds);
+        $message = $consumer->consume($timeoutInMilliseconds ?: $this->receiveTimeoutInMilliseconds);
 
         if ($message->err == RD_KAFKA_RESP_ERR__TIMED_OUT) {
             // This does happen when there is no topic, can't connect to broker, or simply consumer poll has reach time out

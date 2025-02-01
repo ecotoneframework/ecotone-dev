@@ -49,7 +49,8 @@ final class InboundMessageConverter
             }
 
             $messageBuilder = $messageBuilder
-                ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback);
+                ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback)
+                ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, $this->acknowledgeHeaderName);
         }
 
         if (isset($messageHeaders[MessageHeaders::MESSAGE_ID])) {
@@ -72,7 +73,6 @@ final class InboundMessageConverter
                 ->setHeader(MessageHeaders::PARENT_MESSAGE_ID, $messageHeaders[MessageHeaders::PARENT_MESSAGE_ID]);
         }
 
-        return $messageBuilder
-            ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, $this->acknowledgeHeaderName);
+        return $messageBuilder;
     }
 }

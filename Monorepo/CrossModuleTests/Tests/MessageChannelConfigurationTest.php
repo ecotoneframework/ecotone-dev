@@ -61,11 +61,11 @@ final class MessageChannelConfigurationTest extends TestCase
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('handler.fail', ["command" => 2])
-            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false, maxExecutionTimeInMilliseconds: 3000));
 
         $this->assertFalse($ecotoneLite->sendQueryWithRouting("handler.isSuccessful"));
 
-        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false, maxExecutionTimeInMilliseconds: 3000));
 
         $this->assertTrue($ecotoneLite->sendQueryWithRouting('handler.isSuccessful'));
     }
@@ -95,7 +95,7 @@ final class MessageChannelConfigurationTest extends TestCase
         );
         $ecotoneLite->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
 
-        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false, maxExecutionTimeInMilliseconds: 3000));
 
         $this->assertNotNull($ecotoneLite->getMessageChannel(self::ERROR_CHANNEL)->receive());
         $this->assertNull($ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive());
@@ -125,8 +125,7 @@ final class MessageChannelConfigurationTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('handler.fail', ['command' => 2])
-            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+            ->sendCommandWithRoutingKey('handler.fail', ['command' => 2]);
 
         $this->assertEquals(
             MediaType::createApplicationJson(),
@@ -236,6 +235,9 @@ final class MessageChannelConfigurationTest extends TestCase
         $this->assertEquals(            '123', $message->getHeaders()->get('token'));
     }
 
+    /**
+     * @dataProvider channelProvider
+     */
     public function test_it_send_message_batch(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,

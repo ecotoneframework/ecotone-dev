@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
+use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Kafka\KafkaHeader;
+use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -27,6 +28,8 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
     public const DECLARE_ON_STARTUP_DEFAULT = true;
 
     protected bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
+
+    private int $receiveTimeoutInMilliseconds = KafkaConsumerConfiguration::DEFAULT_RECEIVE_TIMEOUT;
 
     public function __construct(
         string $endpointId,
@@ -67,6 +70,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
                     Reference::to(LoggingGateway::class),
                 ]),
                 Reference::to(ConversionService::REFERENCE_NAME),
+                $this->receiveTimeoutInMilliseconds,
             ]
         );
     }
@@ -77,6 +81,19 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
     public function getEndpointId(): string
     {
         return $this->endpointId;
+    }
+
+    /**
+     * How long it should try to receive message
+     *
+     * @param int $timeoutInMilliseconds
+     * @return static
+     */
+    public function withReceiveTimeout(int $timeoutInMilliseconds): self
+    {
+        $this->receiveTimeoutInMilliseconds = $timeoutInMilliseconds;
+
+        return $this;
     }
 
     /**

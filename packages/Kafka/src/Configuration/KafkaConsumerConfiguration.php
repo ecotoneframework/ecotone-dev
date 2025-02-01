@@ -53,7 +53,7 @@ final class KafkaConsumerConfiguration implements DefinedObject
     }
 
     /**
-     * By default, the consumer will automatically commit offsets.
+     * Cnsumer will automatically commit offsets.
      */
     public function enableAutoCommit(string $intervalMilliseconds = '100'): self
     {
@@ -66,7 +66,7 @@ final class KafkaConsumerConfiguration implements DefinedObject
     /**
      * @link https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
      */
-    public function set(string $key, string $value): self
+    public function setConfiguration(string $key, string $value): self
     {
         $this->configuration[$key] = $value;
 

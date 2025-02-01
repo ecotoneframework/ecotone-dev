@@ -85,7 +85,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 $publisherConfigurations[$extensionObject->getMessageChannelName()] = KafkaPublisherConfiguration::createWithDefaults(
                     $extensionObject->topicName,
                     MessagePublisher::class . '::' . $extensionObject->getMessageChannelName(),
-                );
+                )
+                    ->withHeaderMapper($extensionObject->getHeaderMapper());
             }
         }
 

@@ -17,7 +17,7 @@ final class KafkaMessageChannel implements PollableChannel
 {
     public function __construct(
         private KafkaInboundChannelAdapter $inboundChannelAdapter,
-        private KafkaOutboundChannelAdapter $outboundChannelAdapter
+        private KafkaOutboundChannelAdapter $outboundChannelAdapter,
     ) {
 
     }
@@ -27,7 +27,7 @@ final class KafkaMessageChannel implements PollableChannel
         $this->outboundChannelAdapter->handle($message);
     }
 
-    public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
+    public function receiveWithTimeout(int $timeoutInMilliseconds = 0): ?Message
     {
         return $this->inboundChannelAdapter->receiveWithTimeout($timeoutInMilliseconds);
     }

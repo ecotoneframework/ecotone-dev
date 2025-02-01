@@ -235,19 +235,6 @@ final class MessageChannelConfigurationTest extends TestCase
         $this->assertEquals(            '123', $message->getHeaders()->get('token'));
     }
 
-    /**
-     * @dataProvider channelProvider
-     */
-    public function test_it_send_message_batch(
-        MessageChannelWithSerializationBuilder $messageChannelBuilder,
-        array                                  $services,
-        array                                  $skippedModulePackageNames,
-        \Closure                               $closure
-    ): void
-    {
-
-    }
-
     public function channelProvider()
     {
         yield "in memory" => [

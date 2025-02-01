@@ -23,7 +23,7 @@ final class KafkaPublisherConfiguration implements DefinedObject
     /**
      * @param array<string, string> $configuration
      */
-    private function __construct(
+    public function __construct(
         private string $defaultTopicName,
         private string $referenceName,
         private array  $configuration,

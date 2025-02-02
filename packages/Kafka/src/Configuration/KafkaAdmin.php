@@ -80,17 +80,16 @@ final class KafkaAdmin
             Assert::keyExists($this->kafkaConsumers, $endpointId, "Consumer with endpoint id {$endpointId} not found");
 
             $configuration = $this->getConfigurationForConsumer($endpointId);
+            $kafkaBrokerConfiguration = $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()];
             $conf = $configuration->getConfig();
             $conf->set('group.id', $this->kafkaConsumers[$endpointId]->getGroupId());
-            $kafkaBrokerConfiguration = $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()];
-            $conf->set('bootstrap.servers', implode(',', $kafkaBrokerConfiguration->getBootstrapServers()));
+            $conf->set('metadata.broker.list', implode(',', $kafkaBrokerConfiguration->getBootstrapServers()));
             $this->setLoggerCallbacks($conf, $endpointId);
             $consumer = new KafkaConsumer($conf);
 
             $topics = $this->getMappedTopicNames($this->kafkaConsumers[$endpointId]->getTopics());
             if ($this->isRunningForTests($kafkaBrokerConfiguration)) {
                 // ensures there is no need for repartitioning
-                $conf->set('group.instance.id', $endpointId);
                 $consumer->assign([new TopicPartition($topics[0], 0)]);
             } else {
                 $consumer->subscribe($topics);
@@ -122,9 +121,10 @@ final class KafkaAdmin
         if (! array_key_exists($referenceName, $this->initializedProducers)) {
             $configuration = $this->getConfigurationForPublisher($referenceName);
             $conf = $configuration->getAsKafkaConfig();
-            $conf->set('bootstrap.servers', implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
+            $conf->set('metadata.broker.list', implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
             $this->setLoggerCallbacks($conf, $referenceName);
             $producer = new Producer($conf);
+            $producer->addBrokers(implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
 
             $this->initializedProducers[$referenceName] = $producer;
         }

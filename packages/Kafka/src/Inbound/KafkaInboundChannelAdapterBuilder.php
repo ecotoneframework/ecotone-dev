@@ -71,6 +71,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
                 ]),
                 Reference::to(ConversionService::REFERENCE_NAME),
                 $this->receiveTimeoutInMilliseconds,
+                Reference::to(LoggingGateway::class),
             ]
         );
     }

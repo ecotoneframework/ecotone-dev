@@ -6,6 +6,7 @@ namespace Ecotone\Kafka\Inbound;
 
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\MessagingException;
@@ -21,6 +22,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         protected InboundMessageConverter    $inboundMessageConverter,
         protected ConversionService          $conversionService,
         protected int                       $receiveTimeoutInMilliseconds,
+        private LoggingGateway $loggingGateway,
     ) {
     }
 
@@ -39,6 +41,23 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         if ($message->err === RD_KAFKA_RESP_ERR_NO_ERROR) {
             return $this->inboundMessageConverter->toMessage($consumer, $message, $this->conversionService)
                 ->build();
+        }
+
+        if (in_array($message->err, [RD_KAFKA_MSG_PARTITIONER_RANDOM, RD_KAFKA_MSG_PARTITIONER_CONSISTENT, RD_KAFKA_MSG_PARTITIONER_CONSISTENT_RANDOM, RD_KAFKA_MSG_PARTITIONER_MURMUR2, RD_KAFKA_MSG_PARTITIONER_MURMUR2_RANDOM])) {
+            $this->loggingGateway->info(sprintf(
+                "%s hashing key is used for related topic",
+                    match ($message->err) {
+                        RD_KAFKA_MSG_PARTITIONER_RANDOM => "Random",
+                        RD_KAFKA_MSG_PARTITIONER_CONSISTENT => "Consistent",
+                        RD_KAFKA_MSG_PARTITIONER_CONSISTENT_RANDOM => "Consistent random",
+                        RD_KAFKA_MSG_PARTITIONER_MURMUR2 => "MurMur2",
+                        RD_KAFKA_MSG_PARTITIONER_MURMUR2_RANDOM => "MurMur2 random",
+                        default => "Unknown"
+                    }
+                )
+            );
+
+            return null;
         }
 
         throw MessagingException::create("Unhandled error code: {$message->err}");

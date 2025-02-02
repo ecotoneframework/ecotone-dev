@@ -18,10 +18,11 @@ final class KafkaBrokerConfiguration
 
     /**
      * @param array<string> $bootstrapServers [broker-one:9092, broker-two:9092]
+     * @param $setupForTesting bool|null If true it will assume single partition for topics, which speed up partitioning process for running tests
      */
     public static function createWithDefaults(array $bootstrapServers = ['localhost:9092'], ?bool $setupForTesting = null): self
     {
-        return new self($bootstrapServers);
+        return new self($bootstrapServers, $setupForTesting);
     }
 
     public function getBootstrapServers(): array

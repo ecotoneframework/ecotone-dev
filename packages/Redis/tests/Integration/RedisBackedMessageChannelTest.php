@@ -130,7 +130,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
         $this->assertTrue($wasFinallyRethrown, 'Connection exception was not propagated');
         $this->assertEquals(
             [
-                "Message Consumer starting to consume messages",
+                'Message Consumer starting to consume messages',
                 ConnectionException::connectionRetryMessage(1, 1),
                 ConnectionException::connectionRetryMessage(2, 3),
                 ConnectionException::connectionRetryMessage(3, 9),

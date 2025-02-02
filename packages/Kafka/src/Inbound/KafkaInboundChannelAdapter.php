@@ -44,15 +44,16 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         }
 
         if (in_array($message->err, [RD_KAFKA_MSG_PARTITIONER_RANDOM, RD_KAFKA_MSG_PARTITIONER_CONSISTENT, RD_KAFKA_MSG_PARTITIONER_CONSISTENT_RANDOM, RD_KAFKA_MSG_PARTITIONER_MURMUR2, RD_KAFKA_MSG_PARTITIONER_MURMUR2_RANDOM])) {
-            $this->loggingGateway->info(sprintf(
-                "%s hashing key is used for related topic",
+            $this->loggingGateway->info(
+                sprintf(
+                    '%s hashing key is used for related topic',
                     match ($message->err) {
-                        RD_KAFKA_MSG_PARTITIONER_RANDOM => "Random",
-                        RD_KAFKA_MSG_PARTITIONER_CONSISTENT => "Consistent",
-                        RD_KAFKA_MSG_PARTITIONER_CONSISTENT_RANDOM => "Consistent random",
-                        RD_KAFKA_MSG_PARTITIONER_MURMUR2 => "MurMur2",
-                        RD_KAFKA_MSG_PARTITIONER_MURMUR2_RANDOM => "MurMur2 random",
-                        default => "Unknown"
+                        RD_KAFKA_MSG_PARTITIONER_RANDOM => 'Random',
+                        RD_KAFKA_MSG_PARTITIONER_CONSISTENT => 'Consistent',
+                        RD_KAFKA_MSG_PARTITIONER_CONSISTENT_RANDOM => 'Consistent random',
+                        RD_KAFKA_MSG_PARTITIONER_MURMUR2 => 'MurMur2',
+                        RD_KAFKA_MSG_PARTITIONER_MURMUR2_RANDOM => 'MurMur2 random',
+                        default => 'Unknown'
                     }
                 )
             );

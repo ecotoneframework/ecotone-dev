@@ -13,7 +13,7 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Redis\RedisBackedMessageChannelBuilder;
-use Ecotone\Test\LoggerExample;
+use Ecotone\Test\StubLogger;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisDestination;
 use Ramsey\Uuid\Uuid;
@@ -96,7 +96,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
 
     public function test_failing_to_consume_due_to_connection_failure()
     {
-        $loggerExample = LoggerExample::create();
+        $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [OrderService::class],
             containerOrAvailableServices: [

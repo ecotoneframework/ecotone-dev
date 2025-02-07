@@ -10,6 +10,7 @@ use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryAcknowledgeCallback;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -20,11 +21,13 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
+use Ecotone\Test\StubLogger;
 use InvalidArgumentException;
 use RuntimeException;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerStoppingService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerThrowingExceptionService;
 use Test\Ecotone\Messaging\Fixture\Handler\DataReturningService;
+use Test\Ecotone\Messaging\Fixture\Handler\FailureHandler\ExampleFailureCommandHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\SuccessServiceActivator;
 use Test\Ecotone\Messaging\Unit\MessagingTestCase;
 
@@ -349,6 +352,37 @@ class PollingConsumerBuilderTest extends MessagingTestCase
 
         $this->assertTrue($acknowledgementCallback->isRequeued());
         $this->assertNull($errorChannel->receive());
+    }
+
+    public function test_requeing_when_error_channel_throws_exception_with_in_memory_channel()
+    {
+        $asyncChannelName = 'async';
+        $errorChannelName = 'errorChannelName';
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [ExampleFailureCommandHandler::class],
+            [new ExampleFailureCommandHandler(), 'logger' => $logger = StubLogger::create()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel($asyncChannelName),
+                    SimpleMessageChannelBuilder::createExceptionChannel(ExceptionalQueueChannel::createWithExceptionOnSend($errorChannelName)),
+                    PollingMetadata::create('async')
+                        ->setStopOnError(false)
+                        ->setExecutionAmountLimit(1)
+                        ->setErrorChannelName($errorChannelName)
+                ]),
+            enableAsynchronousProcessing: true,
+        );
+
+        $originalNessage = MessageBuilder::withPayload('some')->build();
+        $messaging->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
+
+        $messaging->run($asyncChannelName);
+
+        $this->assertNull($messaging->getMessageChannel($errorChannelName)->receive());
+        $requeuedMessage = $messaging->getMessageChannel($asyncChannelName)->receive();
+        $this->assertNotNull($requeuedMessage);
+        $this->assertNotSame($originalNessage->getHeaders()->getMessageId(), $requeuedMessage->getHeaders()->getMessageId());
     }
 
     public function test_finish_when_no_messages(): void

@@ -15,7 +15,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Test\LoggerExample;
+use Ecotone\Test\StubLogger;
 
 use function getenv;
 
@@ -91,7 +91,7 @@ final class KafkaMessageChannelTest extends TestCase
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                     'wronghost:9092',
-                ]), new KafkaAsyncCommandHandler(), 'logger' => $logger = LoggerExample::create(),
+                ]), new KafkaAsyncCommandHandler(), 'logger' => $logger = StubLogger::create(),
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))

@@ -15,7 +15,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Test\LoggerExample;
+use Ecotone\Test\StubLogger;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use Ramsey\Uuid\Uuid;
@@ -225,7 +225,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
     public function test_failing_to_consume_due_to_connection_failure()
     {
-        $loggerExample = LoggerExample::create();
+        $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [\Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService::class],
             containerOrAvailableServices: [

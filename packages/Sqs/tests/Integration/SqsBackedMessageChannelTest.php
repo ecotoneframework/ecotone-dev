@@ -14,7 +14,7 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
-use Ecotone\Test\LoggerExample;
+use Ecotone\Test\StubLogger;
 use Enqueue\Sqs\SqsConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;
@@ -94,7 +94,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
 
     public function test_failing_to_consume_due_to_connection_failure()
     {
-        $loggerExample = LoggerExample::create();
+        $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [OrderService::class],
             containerOrAvailableServices: [

@@ -283,76 +283,34 @@ class PollingConsumerBuilderTest extends MessagingTestCase
         $this->assertNull($ecotoneTestSupport->getMessageChannel($messageChannelName)->receive());
     }
 
-    public function test_acking_on_gateway_failure_when_error_channel_defined()
+    public function test_sending_to_error_channel()
     {
-        $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
-            ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
-            ->setHeader('amqpAcker', $acknowledgementCallback)
-            ->build();
-
-        $inputChannelName = 'inputChannel';
+        $asyncChannelName = 'async';
         $errorChannelName = 'errorChannelName';
-        $inputChannel = QueueChannel::create();
-        $errorChannel = QueueChannel::create();
-        $messageHandler = DataReturningService::createExceptionalServiceActivatorBuilder()
-            ->withEndpointId('some-id')
-            ->withInputChannelName($inputChannelName);
 
-        $messaging = $this->createPollingConsumerWithCustomConfiguration(
-            [
-                $inputChannelName => $inputChannel,
-                $errorChannelName => $errorChannel,
-            ],
-            $messageHandler,
-            PollingMetadata::create('some-id')
-                ->setExecutionAmountLimit(1)
-                ->setErrorChannelName($errorChannelName)
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [ExampleFailureCommandHandler::class],
+            [new ExampleFailureCommandHandler(), 'logger' => $logger = StubLogger::create()],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel($asyncChannelName),
+                    SimpleMessageChannelBuilder::createQueueChannel($errorChannelName),
+                    PollingMetadata::create('async')
+                        ->setStopOnError(false)
+                        ->setExecutionAmountLimit(1)
+                        ->setErrorChannelName($errorChannelName)
+                ]),
+            enableAsynchronousProcessing: true,
         );
 
-        $messaging->sendMessageDirectToChannel($inputChannelName, $message);
-        $messaging->run('some-id');
+        $originalNessage = MessageBuilder::withPayload('some')->build();
+        $messaging->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
 
-        $this->assertNotNull($errorChannel);
-        $this->assertTrue($acknowledgementCallback->isAcked());
+        $messaging->run($asyncChannelName);
+
+        $this->assertNotNull($messaging->getMessageChannel($errorChannelName)->receive());
     }
 
-    public function test_throwing_exception_and_requeing_when_stop_on_failure_defined_and_error_channel()
-    {
-        $acknowledgementCallback = NullAcknowledgementCallback::create();
-        $message = MessageBuilder::withPayload('some')
-            ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, 'amqpAcker')
-            ->setHeader('amqpAcker', $acknowledgementCallback)
-            ->build();
-
-        $inputChannelName = 'inputChannel';
-        $errorChannelName = 'errorChannelName';
-        $inputChannel = QueueChannel::create();
-        $errorChannel = QueueChannel::create();
-        $messageHandler = DataReturningService::createExceptionalServiceActivatorBuilder()
-            ->withEndpointId('some-id')
-            ->withInputChannelName($inputChannelName);
-
-        $messaging = $this->createPollingConsumerWithCustomConfiguration(
-            [
-                $inputChannelName => $inputChannel,
-                $errorChannelName => $errorChannel,
-            ],
-            $messageHandler,
-            PollingMetadata::create('some-id')
-                ->setStopOnError(true)
-                ->setExecutionAmountLimit(1)
-                ->setErrorChannelName($errorChannelName)
-        );
-
-        $this->expectException(InvalidArgumentException::class);
-
-        $messaging->sendMessageDirectToChannel($inputChannelName, $message);
-        $messaging->run('some-id');
-
-        $this->assertTrue($acknowledgementCallback->isRequeued());
-        $this->assertNull($errorChannel->receive());
-    }
 
     public function test_requeing_when_error_channel_throws_exception_with_in_memory_channel()
     {

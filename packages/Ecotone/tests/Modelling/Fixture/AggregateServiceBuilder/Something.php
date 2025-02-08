@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder;
 
+use Ecotone\EventSourcing\Attribute\AggregateType;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\WithAggregateEvents;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 
+#[AggregateType('something')]
 #[Aggregate]
 /**
  * licence Apache-2.0

@@ -263,7 +263,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $this->assertSame('1234', $eventMetadata->get('userland'));
         $this->assertSame($newInstanceId, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
         $this->assertSame(1, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_VERSION));
-        $this->assertSame(Something::class, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
+        $this->assertSame('something', $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
     }
 
     public function test_storing_pure_event_sourced_aggregate_via_business_repository_for_first_time(): void

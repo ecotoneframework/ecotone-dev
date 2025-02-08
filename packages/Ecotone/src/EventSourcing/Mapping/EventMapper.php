@@ -10,6 +10,9 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Event;
 
+/**
+ * licence Apache-2.0
+ */
 final class EventMapper
 {
     private array $eventToNameMapping;

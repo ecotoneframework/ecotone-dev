@@ -47,10 +47,10 @@ class EventSourcingRepository implements EventSourcedRepository
         return in_array($aggregateClassName, $this->handledAggregateClassNames);
     }
 
-    public function findBy(string $aggregateClassName, array $identifiers): EventStream
+    public function findBy(string $aggregateClassName, array $identifiers, int $fromAggregateVersion = 1): EventStream
     {
         $aggregateId = reset($identifiers);
-        $aggregateVersion = 0;
+        $aggregateVersion = $fromAggregateVersion;
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
         $aggregateType = $this->getAggregateType($aggregateClassName);
         $snapshotEvent = [];
@@ -59,7 +59,7 @@ class EventSourcingRepository implements EventSourcedRepository
             $aggregate = $this->documentStoreReferences[$aggregateClassName]->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
 
             if (! is_null($aggregate)) {
-                $aggregateVersion = $this->getAggregateVersion($aggregate);
+                $aggregateVersion = $this->getAggregateVersion($aggregate) + 1;
                 Assert::isTrue($aggregateVersion > 0, sprintf('Serialization for snapshot of %s is set incorrectly, it does not serialize aggregate version', $aggregate::class));
 
                 $snapshotEvent[] = new SnapshotEvent($aggregate);
@@ -81,7 +81,7 @@ class EventSourcingRepository implements EventSourcedRepository
         if ($aggregateVersion > 0) {
             $metadataMatcher = $metadataMatcher->withMetadataMatch(
                 MessageHeaders::EVENT_AGGREGATE_VERSION,
-                Operator::GREATER_THAN(),
+                Operator::GREATER_THAN_EQUALS(),
                 $aggregateVersion
             );
         }

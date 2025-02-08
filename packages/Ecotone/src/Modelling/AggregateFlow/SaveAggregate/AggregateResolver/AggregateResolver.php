@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
 use Ecotone\EventSourcing\Attribute\AggregateType;
+use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
@@ -32,6 +33,7 @@ final class AggregateResolver
         private PropertyReaderAccessor $propertyReaderAccessor,
         private ConversionService $conversionService,
         private HeaderMapper $headerMapper,
+        private EventMapper $eventMapper,
     ) {
 
     }
@@ -136,6 +138,7 @@ final class AggregateResolver
             $message,
             $this->headerMapper,
             $this->conversionService,
+            $this->eventMapper,
         );
 
         if ($this->hasReturnedNoEvents($aggregateDefinition, $events)) {
@@ -169,7 +172,7 @@ final class AggregateResolver
 
             $enrichedEvents[] = $event->withAddedMetadata([
                 MessageHeaders::EVENT_AGGREGATE_ID => count($identifiers) == 1 ? $identifiers[array_key_first($identifiers)] : $identifiers,
-                MessageHeaders::EVENT_AGGREGATE_TYPE => $this->getAggregateType($aggregateDefinition),
+                MessageHeaders::EVENT_AGGREGATE_TYPE => $aggregateDefinition->getAggregateClassType(),
                 MessageHeaders::EVENT_AGGREGATE_VERSION => $incrementedVersion,
             ]);
         }
@@ -217,16 +220,5 @@ final class AggregateResolver
         }
 
         return null;
-    }
-
-    private function getAggregateType(AggregateClassDefinition $aggregateClassDefinition): string
-    {
-        foreach ($aggregateClassDefinition->getClassAnnotations() as $annotation) {
-            if ($annotation instanceof AggregateType) {
-                return $annotation->getName();
-            }
-        }
-
-        return $aggregateClassDefinition->getClassName();
     }
 }

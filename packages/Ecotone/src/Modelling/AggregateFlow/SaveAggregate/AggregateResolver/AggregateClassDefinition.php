@@ -25,7 +25,7 @@ final class AggregateClassDefinition implements DefinedObject
         private bool    $isAggregateVersionAutomaticallyIncreased,
         private array   $aggregateIdentifierMapping,
         private array   $aggregateIdentifierGetMethods,
-        private array   $classAnnotations = [],
+        private string  $aggregateClassType,
     )
     {
 
@@ -87,12 +87,9 @@ final class AggregateClassDefinition implements DefinedObject
         return $this->aggregateIdentifierGetMethods;
     }
 
-    /**
-     * @return array<object>
-     */
-    public function getClassAnnotations(): array
+    public function getAggregateClassType(): string
     {
-        return $this->classAnnotations;
+        return $this->aggregateClassType;
     }
 
     public function getDefinition(): Definition
@@ -105,7 +102,7 @@ final class AggregateClassDefinition implements DefinedObject
             $this->isAggregateVersionAutomaticallyIncreased,
             $this->aggregateIdentifierMapping,
             $this->aggregateIdentifierGetMethods,
-            $this->classAnnotations,
+            $this->aggregateClassType,
         ]);
     }
 }

@@ -57,7 +57,7 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
             new Definition(EcotoneEventStoreProophWrapper::class, [
                 new Reference(LazyProophEventStore::class),
                 new Reference(ConversionService::REFERENCE_NAME),
-                new Reference(EventMapper::class),
+                new Reference(ProophEventMapper::class),
             ], 'prepare'),
             $this->handledAggregateClassNames,
             new Reference(EventSourcingConfiguration::class),

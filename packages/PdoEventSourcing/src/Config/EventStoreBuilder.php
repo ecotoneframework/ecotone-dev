@@ -2,7 +2,7 @@
 
 namespace Ecotone\EventSourcing\Config;
 
-use Ecotone\EventSourcing\EventMapper;
+use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -43,7 +43,7 @@ class EventStoreBuilder extends InputOutputMessageHandlerBuilder
         $eventStoreProophWrapper = new Definition(EcotoneEventStoreProophWrapper::class, [
             $this->eventStoreReference,
             new Reference(ConversionService::REFERENCE_NAME),
-            new Reference(EventMapper::class),
+            new Reference(ProophEventMapper::class),
         ], 'prepare');
 
         return ServiceActivatorBuilder::createWithDefinition($eventStoreProophWrapper, $this->methodName)

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
+use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
@@ -134,10 +135,10 @@ class SaveAggregateServiceTemplate
     /**
      * @return Event[]
      */
-    public static function buildEcotoneEvents(mixed $events, string $calledInterface, Message $message, HeaderMapper $headerMapper, ConversionService $conversionService): array
+    public static function buildEcotoneEvents(mixed $events, string $calledInterface, Message $message, HeaderMapper $headerMapper, ConversionService $conversionService, EventMapper $eventMapper): array
     {
         Assert::isIterable($events, "Return value Event Sourced Aggregate {$calledInterface} must return array of events");
-        return array_map(static function ($event) use ($message, $calledInterface, $headerMapper, $conversionService): Event {
+        return array_map(static function ($event) use ($message, $calledInterface, $headerMapper, $conversionService, $eventMapper): Event {
             if (! is_object($event)) {
                 $typeDescriptor = TypeDescriptor::createFromVariable($event);
                 throw InvalidArgumentException::create("Events return by after calling {$calledInterface} must all be objects, {$typeDescriptor->toString()} given");
@@ -158,7 +159,11 @@ class SaveAggregateServiceTemplate
                 MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId(),
             ], $eventMetadata);
 
-            return Event::create($event, $eventMetadata);
+            return Event::createWithType(
+                $eventMapper->mapEventToName($event),
+                $event,
+                $eventMetadata
+            );
         }, $events);
     }
 }

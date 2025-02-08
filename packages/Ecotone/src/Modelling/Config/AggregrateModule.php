@@ -5,12 +5,14 @@ namespace Ecotone\Modelling\Config;
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -47,6 +49,7 @@ use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\Attribute\RelatedAggregate;
 use Ecotone\Modelling\Attribute\Repository;
@@ -83,7 +86,8 @@ class AggregrateModule implements AnnotationModule
         private array $aggregateQueryHandlers,
         private array $aggregateEventHandlers,
         private array $aggregateRepositoryReferenceNames,
-        private array $gatewayRepositoryMethods
+        private array $gatewayRepositoryMethods,
+        private EventMapper $eventMapper,
     ) {
     }
 
@@ -105,6 +109,20 @@ class AggregrateModule implements AnnotationModule
         $aggregateClassDefinitions = [];
         foreach ($aggregateClasses as $aggregateClass) {
             $aggregateClassDefinitions[$aggregateClass] = AggregateDefinitionResolver::resolve($aggregateClass, $interfaceToCallRegistry);
+        }
+
+        $fromClassToNameMapping = [];
+        $fromNameToClassMapping = [];
+        foreach ($annotationRegistrationService->findAnnotatedClasses(NamedEvent::class) as $namedEventClass) {
+            /** @var NamedEvent $attribute */
+            $attribute = $annotationRegistrationService->getAttributeForClass($namedEventClass, NamedEvent::class);
+
+            if (array_key_exists($attribute->getName(), $fromNameToClassMapping)) {
+                throw ConfigurationException::create(sprintf('Named Events should have unique names. However, `%s` is used more than once.', $attribute->getName()));
+            }
+
+            $fromClassToNameMapping[$namedEventClass] = $attribute->getName();
+            $fromNameToClassMapping[$attribute->getName()] = $namedEventClass;
         }
 
         return new self(
@@ -129,7 +147,8 @@ class AggregrateModule implements AnnotationModule
                 }
             ),
             $aggregateRepositoryReferenceNames,
-            $annotationRegistrationService->findAnnotatedMethods(Repository::class)
+            $annotationRegistrationService->findAnnotatedMethods(Repository::class),
+            EventMapper::createWith($fromClassToNameMapping, $fromNameToClassMapping)
         );
     }
 
@@ -154,6 +173,7 @@ class AggregrateModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $moduleExtensions, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $messagingConfiguration->registerServiceDefinition(EventMapper::class, $this->eventMapper->compile());
         $this->initialization($messagingConfiguration, $interfaceToCallRegistry);
 
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
@@ -428,6 +448,7 @@ class AggregrateModule implements AnnotationModule
                 PropertyReaderAccessor::getDefinition(),
                 Reference::to(ConversionService::REFERENCE_NAME),
                 DefaultHeaderMapper::createAllHeadersMapping()->getDefinition(),
+                Reference::to(EventMapper::class),
             ])
         );
     }

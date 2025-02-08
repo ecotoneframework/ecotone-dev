@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
+use Ecotone\EventSourcing\Attribute\AggregateType;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -59,8 +60,19 @@ final class AggregateDefinitionResolver
             $isCalledAggregateVersionAutomaticallyIncreased,
             $calledAggregateIdentifierMapping,
             $calledAggregateIdentifierGetMethods,
-            $aggregateClassDefinition->getClassAnnotations(),
+            self::getAggregateType($aggregateClassDefinition),
         );
+    }
+
+    private static function getAggregateType(ClassDefinition $classDefinition): string
+    {
+        foreach ($classDefinition->getClassAnnotations() as $annotation) {
+            if ($annotation instanceof AggregateType) {
+                return $annotation->getName();
+            }
+        }
+
+        return $classDefinition->getClassType()->toString();
     }
 
     private static function resolveAggregateIdentifierMapping(ClassDefinition $aggregateClassDefinition, InterfaceToCallRegistry $interfaceToCallRegistry): array

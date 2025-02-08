@@ -1,21 +1,16 @@
 <?php
 
-namespace Ecotone\EventSourcing;
+declare(strict_types=1);
 
-use Ecotone\EventSourcing\Prooph\ProophMessage;
+namespace Ecotone\EventSourcing\Mapping;
+
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Event;
-use Prooph\Common\Messaging\Message;
-use Prooph\Common\Messaging\MessageFactory;
-use Ramsey\Uuid\Uuid;
 
-/**
- * licence Apache-2.0
- */
-class EventMapper implements MessageFactory, CompilableBuilder
+final class EventMapper
 {
     private array $eventToNameMapping;
     private array $nameToEventMapping;
@@ -36,19 +31,6 @@ class EventMapper implements MessageFactory, CompilableBuilder
         return new self($eventToNameMapping, $nameToEventMapping);
     }
 
-    public function createMessageFromArray(string $messageName, array $messageData): Message
-    {
-        $eventType = $messageName;
-
-        return new ProophMessage(
-            Uuid::fromString($messageData['uuid']),
-            $messageData['created_at'],
-            $messageData['payload'],
-            $messageData['metadata'],
-            $eventType
-        );
-    }
-
     public function mapNameToEventType(string $name): string
     {
         if ($name === TypeDescriptor::ARRAY) {
@@ -62,9 +44,9 @@ class EventMapper implements MessageFactory, CompilableBuilder
         return $name;
     }
 
-    public function mapEventToName(Event $event): string
+    public function mapEventToName(object $event): string
     {
-        $type = $event->getEventName();
+        $type = $event instanceof Event ? $event->getEventName() : $event::class;
         if (array_key_exists($type, $this->eventToNameMapping)) {
             return $this->eventToNameMapping[$type];
         }
@@ -72,7 +54,7 @@ class EventMapper implements MessageFactory, CompilableBuilder
         return $type;
     }
 
-    public function compile(MessagingContainerBuilder $builder): Definition
+    public function compile(): Definition
     {
         return new Definition(self::class, [
             $this->eventToNameMapping,

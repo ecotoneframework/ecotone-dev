@@ -14,11 +14,14 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\AggregateCreated;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateAggregate;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateSomething;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\DoSomething;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\EventSourcingAggregateWithInternalRecorder;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\Something;
+use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\SomethingWasCreated;
+use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\SomethingWasCreatedPrivateEvent;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
@@ -29,6 +32,7 @@ use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorde
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasFinished;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\JobWasStarted;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\StartJob;
+use Test\Ecotone\Modelling\Fixture\EventSourcing\CustomRepository\CustomEventSourcingRepository;
 use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitContentWasChanged;
 use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\Twitter;
 use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitterRepository;
@@ -245,7 +249,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $this->assertSame(EventSourcingAggregateWithInternalRecorder::class, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
 
         $ecotoneLite
-            ->sendCommand(new CreateSomething($id = 1000, $newInstanceId = 2000), metadata: [
+            ->sendCommand(new CreateSomething($id, $newInstanceId = 2000), metadata: [
                 MessageHeaders::MESSAGE_ID=> $messageId = Uuid::uuid4()->toString(),
                 'userland' => '1234'
             ]);
@@ -264,6 +268,28 @@ class SaveAggregateServiceBuilderTest extends TestCase
         $this->assertSame($newInstanceId, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
         $this->assertSame(1, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_VERSION));
         $this->assertSame('something', $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
+    }
+
+    public function test_storing_with_custom_event_sourced_repository(): void
+    {
+        $repository = new CustomEventSourcingRepository();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [EventSourcingAggregateWithInternalRecorder::class, Something::class, CustomEventSourcingRepository::class, SomethingWasCreated::class],
+            [CustomEventSourcingRepository::class => $repository],
+            addInMemoryEventSourcedRepository: false,
+        )
+            ->sendCommand(new CreateAggregate($id = 1000));
+
+        $eventStream = $repository->findBy(EventSourcingAggregateWithInternalRecorder::class, ['id' => $id]);
+        $this->assertCount(1, $eventStream->getEvents());
+        $this->assertSame($id, $ecotoneLite->getAggregate(EventSourcingAggregateWithInternalRecorder::class, ['id' => $id])->getId());
+        $this->assertSame(AggregateCreated::class, $eventStream->getEvents()[0]->getEventName());
+
+        $ecotoneLite->sendCommand(new CreateSomething($id, 2000));
+
+        $eventStream = $repository->findBy(EventSourcingAggregateWithInternalRecorder::class, ['id' => $id]);
+        $this->assertCount(2, $eventStream->getEvents());
+        $this->assertSame('something_was_created', $eventStream->getEvents()[1]->getEventName());
     }
 
     public function test_storing_pure_event_sourced_aggregate_via_business_repository_for_first_time(): void

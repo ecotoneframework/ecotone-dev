@@ -17,7 +17,6 @@ use Ecotone\Modelling\RepositoryBuilder;
 final class EventSourcingRepositoryBuilder implements RepositoryBuilder
 {
     private array $handledAggregateClassNames = [];
-    private array $headerMapper = [];
     private EventSourcingConfiguration $eventSourcingConfiguration;
 
     private function __construct(EventSourcingConfiguration $eventSourcingConfiguration)
@@ -42,13 +41,6 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
         return $this;
     }
 
-    public function withMetadataMapper(string $headerMapper): self
-    {
-        $this->headerMapper = explode(',', $headerMapper);
-
-        return $this;
-    }
-
     public function isEventSourced(): bool
     {
         return true;
@@ -56,10 +48,6 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $headerMapper = $this->headerMapper
-            ? DefaultHeaderMapper::createWith($this->headerMapper, $this->headerMapper)
-            : DefaultHeaderMapper::createAllHeadersMapping();
-
         $documentStoreReferences = [];
         foreach ($this->eventSourcingConfiguration->getSnapshotsConfig() as $aggregateClass => $config) {
             $documentStoreReferences[$aggregateClass] = new Reference($config['documentStore']);
@@ -72,12 +60,10 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
                 new Reference(EventMapper::class),
             ], 'prepare'),
             $this->handledAggregateClassNames,
-            $headerMapper,
             new Reference(EventSourcingConfiguration::class),
             new Reference(AggregateStreamMapping::class),
             new Reference(AggregateTypeMapping::class),
             $documentStoreReferences,
-            new Reference(ConversionService::REFERENCE_NAME),
         ]);
     }
 }

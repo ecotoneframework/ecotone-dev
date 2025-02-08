@@ -17,6 +17,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -31,6 +32,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerProcessorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\AggregateFlow\CallAggregate\CallAggregateServiceBuilder;
 use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateMode;
@@ -424,6 +426,8 @@ class AggregrateModule implements AnnotationModule
                 Reference::to(GroupedEventSourcingExecutor::class),
                 PropertyEditorAccessor::getDefinition(),
                 PropertyReaderAccessor::getDefinition(),
+                Reference::to(ConversionService::REFERENCE_NAME),
+                DefaultHeaderMapper::createAllHeadersMapping()->getDefinition(),
             ])
         );
     }

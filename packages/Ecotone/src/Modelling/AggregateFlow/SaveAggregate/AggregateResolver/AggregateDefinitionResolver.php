@@ -58,7 +58,8 @@ final class AggregateDefinitionResolver
             $calledAggregateVersionProperty,
             $isCalledAggregateVersionAutomaticallyIncreased,
             $calledAggregateIdentifierMapping,
-            $calledAggregateIdentifierGetMethods
+            $calledAggregateIdentifierGetMethods,
+            $aggregateClassDefinition->getClassAnnotations(),
         );
     }
 

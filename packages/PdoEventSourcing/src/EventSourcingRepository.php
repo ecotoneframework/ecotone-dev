@@ -10,6 +10,7 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
@@ -34,12 +35,10 @@ class EventSourcingRepository implements EventSourcedRepository
     public function __construct(
         private EcotoneEventStoreProophWrapper $eventStore,
         private array $handledAggregateClassNames,
-        private HeaderMapper $headerMapper,
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private AggregateStreamMapping $aggregateStreamMapping,
         private AggregateTypeMapping $aggregateTypeMapping,
         private array $documentStoreReferences,
-        private ConversionService $conversionService
     ) {
     }
 
@@ -69,19 +68,19 @@ class EventSourcingRepository implements EventSourcedRepository
 
         $metadataMatcher = new MetadataMatcher();
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            LazyProophEventStore::AGGREGATE_TYPE,
+            MessageHeaders::EVENT_AGGREGATE_TYPE,
             Operator::EQUALS(),
             $aggregateType
         );
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            LazyProophEventStore::AGGREGATE_ID,
+            MessageHeaders::EVENT_AGGREGATE_ID,
             Operator::EQUALS(),
             $aggregateId
         );
 
         if ($aggregateVersion > 0) {
             $metadataMatcher = $metadataMatcher->withMetadataMatch(
-                LazyProophEventStore::AGGREGATE_VERSION,
+                MessageHeaders::EVENT_AGGREGATE_VERSION,
                 Operator::GREATER_THAN(),
                 $aggregateVersion
             );
@@ -102,32 +101,12 @@ class EventSourcingRepository implements EventSourcedRepository
 
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
-        $metadata = $this->headerMapper->mapFromMessageHeaders($metadata, $this->conversionService);
-        $events = array_map(static function ($event) use ($metadata): Event {
-            if ($event instanceof Event) {
-                return $event;
-            }
-
-            return Event::create($event, $metadata);
-        }, $events);
-
         $aggregateId = reset($identifiers);
         Assert::notNullAndEmpty($aggregateId, sprintf('There was a problem when retrieving identifier for %s', $aggregateClassName));
 
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
-        $aggregateType = $this->getAggregateType($aggregateClassName);
 
-        $eventsWithMetadata = [];
-        $eventsCount = count($events);
-
-        for ($eventNumber = 1; $eventNumber <= $eventsCount; $eventNumber++) {
-            $eventsWithMetadata[] = $events[$eventNumber - 1]->withAddedMetadata([
-                LazyProophEventStore::AGGREGATE_ID => $aggregateId,
-                LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
-                LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
-            ]);
-        }
-        $this->eventStore->appendTo($streamName, $eventsWithMetadata);
+        $this->eventStore->appendTo($streamName, $events);
     }
 
     private function getStreamName(string $aggregateClassName, mixed $aggregateId): StreamName

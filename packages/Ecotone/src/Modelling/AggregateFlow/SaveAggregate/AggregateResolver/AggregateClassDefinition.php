@@ -15,16 +15,19 @@ final class AggregateClassDefinition implements DefinedObject
     /**
      * @param array<string, string> $aggregateIdentifierMapping
      * @param array<string> $aggregateIdentifierGetMethods
+     * @param array<object> $classAnnotations
      */
     public function __construct(
-        private string $className,
-        private bool $isEventSourced,
+        private string  $className,
+        private bool    $isEventSourced,
         private ?string $eventRecorderMethod,
         private ?string $aggregateVersionProperty,
         private bool    $isAggregateVersionAutomaticallyIncreased,
-        private array $aggregateIdentifierMapping,
-        private array $aggregateIdentifierGetMethods,
-    ) {
+        private array   $aggregateIdentifierMapping,
+        private array   $aggregateIdentifierGetMethods,
+        private array   $classAnnotations = [],
+    )
+    {
 
     }
 
@@ -40,7 +43,7 @@ final class AggregateClassDefinition implements DefinedObject
 
     public function isStateStored(): bool
     {
-        return ! $this->isEventSourced;
+        return !$this->isEventSourced;
     }
 
     public function isPureEventSourcedAggregate(): bool
@@ -84,6 +87,14 @@ final class AggregateClassDefinition implements DefinedObject
         return $this->aggregateIdentifierGetMethods;
     }
 
+    /**
+     * @return array<object>
+     */
+    public function getClassAnnotations(): array
+    {
+        return $this->classAnnotations;
+    }
+
     public function getDefinition(): Definition
     {
         return new Definition(self::class, [
@@ -94,6 +105,7 @@ final class AggregateClassDefinition implements DefinedObject
             $this->isAggregateVersionAutomaticallyIncreased,
             $this->aggregateIdentifierMapping,
             $this->aggregateIdentifierGetMethods,
+            $this->classAnnotations,
         ]);
     }
 }

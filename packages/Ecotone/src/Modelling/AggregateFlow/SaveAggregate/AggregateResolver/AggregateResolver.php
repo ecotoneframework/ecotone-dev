@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
+use Ecotone\EventSourcing\Attribute\AggregateType;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
@@ -26,6 +30,8 @@ final class AggregateResolver
         private GroupedEventSourcingExecutor $eventSourcingExecutor,
         private PropertyEditorAccessor $propertyEditorAccessor,
         private PropertyReaderAccessor $propertyReaderAccessor,
+        private ConversionService $conversionService,
+        private HeaderMapper $headerMapper,
     ) {
 
     }
@@ -128,6 +134,8 @@ final class AggregateResolver
             $this->resolveEvents($aggregateDefinition, $calledAggregateInstance, $message),
             $aggregateDefinition->getDefinition()->getClassName(),
             $message,
+            $this->headerMapper,
+            $this->conversionService,
         );
 
         if ($this->hasReturnedNoEvents($aggregateDefinition, $events)) {
@@ -154,13 +162,25 @@ final class AggregateResolver
             $aggregateDefinition->isEventSourced(),
         );
 
+        $enrichedEvents = [];
+        $incrementedVersion = $versionBeforeHandling;
+        foreach ($events as $event) {
+            $incrementedVersion += 1;
+
+            $enrichedEvents[] = $event->withAddedMetadata([
+                MessageHeaders::EVENT_AGGREGATE_ID => count($identifiers) == 1 ? $identifiers[array_key_first($identifiers)] : $identifiers,
+                MessageHeaders::EVENT_AGGREGATE_TYPE => $this->getAggregateType($aggregateDefinition),
+                MessageHeaders::EVENT_AGGREGATE_VERSION => $incrementedVersion,
+            ]);
+        }
+
         return new ResolvedAggregate(
             $aggregateDefinition,
             $isNewInstance,
             $instance,
             $versionBeforeHandling,
             $identifiers,
-            $events
+            $enrichedEvents,
         );
     }
 
@@ -197,5 +217,16 @@ final class AggregateResolver
         }
 
         return null;
+    }
+
+    private function getAggregateType(AggregateClassDefinition $aggregateClassDefinition): string
+    {
+        foreach ($aggregateClassDefinition->getClassAnnotations() as $annotation) {
+            if ($annotation instanceof AggregateType) {
+                return $annotation->getName();
+            }
+        }
+
+        return $aggregateClassDefinition->getClassName();
     }
 }

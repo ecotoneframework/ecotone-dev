@@ -4,6 +4,7 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateAggregate;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateSomething;
+use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\DoSomething;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\EventSourcingAggregateWithInternalRecorder;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\Something;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
@@ -223,6 +225,45 @@ class SaveAggregateServiceBuilderTest extends TestCase
                 ->getAggregate(Something::class, ['id' => $somethingId])
                 ->getVersion()
         );
+    }
+
+    public function test_userland_metadata_is_propagated_and_proper_event_sourced_assigned(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [EventSourcingAggregateWithInternalRecorder::class, Something::class],
+        )
+            ->sendCommand(new CreateAggregate($id = 1000), metadata: [
+                MessageHeaders::MESSAGE_ID=> $messageId = Uuid::uuid4()->toString(),
+                'userland' => '123'
+            ]);
+
+        $eventMetadata = $ecotoneLite->getRecordedEventHeaders()[0];
+        $this->assertNotSame($messageId, $eventMetadata->get(MessageHeaders::MESSAGE_ID));
+        $this->assertSame('123', $eventMetadata->get('userland'));
+        $this->assertSame($id, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
+        $this->assertSame(1, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_VERSION));
+        $this->assertSame(EventSourcingAggregateWithInternalRecorder::class, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
+
+        $ecotoneLite
+            ->sendCommand(new CreateSomething($id = 1000, $newInstanceId = 2000), metadata: [
+                MessageHeaders::MESSAGE_ID=> $messageId = Uuid::uuid4()->toString(),
+                'userland' => '1234'
+            ]);
+
+        $eventHeaders = $ecotoneLite->getRecordedEventHeaders();
+        $eventMetadata = $eventHeaders[0];
+        $this->assertNotSame($messageId, $eventMetadata->get(MessageHeaders::MESSAGE_ID));
+        $this->assertSame('1234', $eventMetadata->get('userland'));
+        $this->assertSame($id, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
+        $this->assertSame(2, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_VERSION));
+        $this->assertSame(EventSourcingAggregateWithInternalRecorder::class, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
+
+        $eventMetadata = $eventHeaders[1];
+        $this->assertNotSame($eventHeaders[0]->get(MessageHeaders::MESSAGE_ID), $eventMetadata->get(MessageHeaders::MESSAGE_ID));
+        $this->assertSame('1234', $eventMetadata->get('userland'));
+        $this->assertSame($newInstanceId, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
+        $this->assertSame(1, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_VERSION));
+        $this->assertSame(Something::class, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_TYPE));
     }
 
     public function test_storing_pure_event_sourced_aggregate_via_business_repository_for_first_time(): void

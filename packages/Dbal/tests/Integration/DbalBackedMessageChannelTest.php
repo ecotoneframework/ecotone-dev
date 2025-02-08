@@ -14,7 +14,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
-use Ecotone\Test\LoggerExample;
+use Ecotone\Test\StubLogger;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Ramsey\Uuid\Uuid;
@@ -234,7 +234,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_failing_to_consume_due_to_connection_failure()
     {
-        $loggerExample = LoggerExample::create();
+        $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [OrderService::class],
             containerOrAvailableServices: [

@@ -18,7 +18,6 @@ use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
-use Ecotone\Modelling\SnapshotEvent;
 use Prooph\EventStore\Exception\StreamNotFound;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;

@@ -6,6 +6,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
@@ -23,7 +24,7 @@ final class UniqueNamedEventsTest extends TestCase
 {
     public function test_event_names_should_be_unique(): void
     {
-        $this->expectExceptionObject(new RuntimeException('Named Events should have unique names. However, `event` is used more than once.'));
+        $this->expectException(ConfigurationException::class);
 
         EcotoneLite::bootstrapForTesting(
             [Ticket::class],

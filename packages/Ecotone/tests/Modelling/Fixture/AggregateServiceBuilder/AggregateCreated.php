@@ -12,4 +12,11 @@ final class AggregateCreated
     public function __construct(public int $id)
     {
     }
+
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+        ];
+    }
 }

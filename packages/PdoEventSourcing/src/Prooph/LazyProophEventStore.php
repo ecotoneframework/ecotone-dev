@@ -5,7 +5,7 @@ namespace Ecotone\EventSourcing\Prooph;
 use Doctrine\DBAL\Driver\PDOConnection;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\EventSourcing\EventMapper;
+use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
@@ -79,8 +79,8 @@ class LazyProophEventStore implements EventStore
 
     public function __construct(
         private EventSourcingConfiguration $eventSourcingConfiguration,
-        private EventMapper $messageFactory,
-        private ConnectionFactory|null $connectionFactory,
+        private ProophEventMapper          $messageFactory,
+        private ConnectionFactory|null     $connectionFactory,
     ) {
         $this->messageConverter = new FromProophMessageToArrayConverter();
         $this->canBeInitialized = $eventSourcingConfiguration->isInitializedOnStart();

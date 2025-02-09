@@ -16,7 +16,8 @@ use Ecotone\EventSourcing\Attribute\Stream;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionChannelAdapter;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionExecutorBuilder;
-use Ecotone\EventSourcing\EventMapper;
+use Ecotone\EventSourcing\Mapping\EventMapper;
+use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
@@ -90,7 +91,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
     private array $projectionSetupConfigurations;
     /** @var ServiceActivatorBuilder[] */
     private array $projectionLifeCycleServiceActivators = [];
-    private EventMapper $eventMapper;
     private AggregateStreamMapping $aggregateToStreamMapping;
     private AggregateTypeMapping $aggregateTypeMapping;
 
@@ -100,31 +100,16 @@ class EventSourcingModule extends NoExternalConfigurationModule
      * @var ServiceActivatorBuilder[]
      * @var GatewayProxyBuilder[]
      */
-    private function __construct(array $projectionConfigurations, private array $projectionEventHandlers, private AsynchronousModule $asynchronousModule, array $projectionLifeCycleServiceActivators, EventMapper $eventMapper, AggregateStreamMapping $aggregateToStreamMapping, AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways)
+    private function __construct(array $projectionConfigurations, private array $projectionEventHandlers, private AsynchronousModule $asynchronousModule, array $projectionLifeCycleServiceActivators, AggregateStreamMapping $aggregateToStreamMapping, AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways)
     {
         $this->projectionSetupConfigurations = $projectionConfigurations;
         $this->projectionLifeCycleServiceActivators = $projectionLifeCycleServiceActivators;
-        $this->eventMapper = $eventMapper;
         $this->aggregateToStreamMapping = $aggregateToStreamMapping;
         $this->aggregateTypeMapping = $aggregateTypeMapping;
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $fromClassToNameMapping = [];
-        $fromNameToClassMapping = [];
-        foreach ($annotationRegistrationService->findAnnotatedClasses(NamedEvent::class) as $namedEventClass) {
-            /** @var NamedEvent $attribute */
-            $attribute = $annotationRegistrationService->getAttributeForClass($namedEventClass, NamedEvent::class);
-
-            if (array_key_exists($attribute->getName(), $fromNameToClassMapping)) {
-                throw new RuntimeException(sprintf('Named Events should have unique names. However, `%s` is used more than once.', $attribute->getName()));
-            }
-
-            $fromClassToNameMapping[$namedEventClass] = $attribute->getName();
-            $fromNameToClassMapping[$attribute->getName()] = $namedEventClass;
-        }
-
         $aggregateToStreamMapping = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(Stream::class) as $aggregateWithCustomStream) {
             /** @var Stream $attribute */
@@ -264,7 +249,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionSetupConfigurations[$projectionAttribute->getName()] = $projectionConfiguration;
         }
 
-        return new self($projectionSetupConfigurations, $projectionEventHandlers, AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry), $projectionLifeCyclesServiceActivators, EventMapper::createWith($fromClassToNameMapping, $fromNameToClassMapping), AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $projectionStateGateways);
+        return new self($projectionSetupConfigurations, $projectionEventHandlers, AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry), $projectionLifeCyclesServiceActivators, AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $projectionStateGateways);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -276,7 +261,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $messagingConfiguration->registerServiceDefinition(LazyProophEventStore::class, new Definition(LazyProophEventStore::class, [
             new Reference(EventSourcingConfiguration::class),
-            new Reference(EventMapper::class),
+            new Reference(ProophEventMapper::class),
             new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
         ]));
 
@@ -308,11 +293,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $eventSourcingRepositories = [];
         foreach ($serviceExtensions as $extensionObject) {
             if ($extensionObject instanceof EventSourcingConfiguration) {
-                $eventSourcingRepositories[] = EventSourcingRepositoryBuilder::create($extensionObject);
+                $eventSourcingRepositories[] = EventSourcingRepositoryBuilder::create();
             }
         }
 
-        return $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create(EventSourcingConfiguration::createWithDefaults())];
+        return $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create()];
     }
 
     private function registerEventStore(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
@@ -491,7 +476,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $eventStoreReference = new Reference(LazyProophEventStore::class.'.eventStreamEmitter');
         $configuration->registerServiceDefinition($eventStoreReference->getId(), new Definition(LazyProophEventStore::class, [
             $eventSourcingConfigurationReference,
-            new Reference(EventMapper::class),
+            new Reference(ProophEventMapper::class),
             new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
         ]));
 
@@ -580,7 +565,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
         }
 
-        $moduleReferenceSearchService->store(EventMapper::class, $this->eventMapper);
+        $messagingConfiguration->registerServiceDefinition(ProophEventMapper::class, Definition::createFor(ProophEventMapper::class, [Reference::to(EventMapper::class)]));
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
 

@@ -9,10 +9,10 @@ use Ecotone\Modelling\Attribute\NamedEvent;
 /**
  * licence Apache-2.0
  */
-#[NamedEvent("something_was_created")]
-final class SomethingWasCreated
+#[NamedEvent("something_was_created_private")]
+final class SomethingWasCreatedPrivateEvent
 {
-    public function __construct(public int $id, public int $somethingId)
+    public function __construct(public int $somethingId)
     {
     }
 
@@ -20,7 +20,6 @@ final class SomethingWasCreated
     {
         return [
             'id' => $this->id,
-            'somethingId' => $this->somethingId,
         ];
     }
 }

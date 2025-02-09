@@ -10,6 +10,7 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
@@ -17,7 +18,6 @@ use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
-use Ecotone\Modelling\SnapshotEvent;
 use Prooph\EventStore\Exception\StreamNotFound;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
@@ -34,12 +34,9 @@ class EventSourcingRepository implements EventSourcedRepository
     public function __construct(
         private EcotoneEventStoreProophWrapper $eventStore,
         private array $handledAggregateClassNames,
-        private HeaderMapper $headerMapper,
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private AggregateStreamMapping $aggregateStreamMapping,
         private AggregateTypeMapping $aggregateTypeMapping,
-        private array $documentStoreReferences,
-        private ConversionService $conversionService
     ) {
     }
 
@@ -48,41 +45,29 @@ class EventSourcingRepository implements EventSourcedRepository
         return in_array($aggregateClassName, $this->handledAggregateClassNames);
     }
 
-    public function findBy(string $aggregateClassName, array $identifiers): EventStream
+    public function findBy(string $aggregateClassName, array $identifiers, int $fromAggregateVersion = 1): EventStream
     {
         $aggregateId = reset($identifiers);
-        $aggregateVersion = 0;
+        $aggregateVersion = $fromAggregateVersion;
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
         $aggregateType = $this->getAggregateType($aggregateClassName);
-        $snapshotEvent = [];
-
-        if (array_key_exists($aggregateClassName, $this->documentStoreReferences)) {
-            $aggregate = $this->documentStoreReferences[$aggregateClassName]->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
-
-            if (! is_null($aggregate)) {
-                $aggregateVersion = $this->getAggregateVersion($aggregate);
-                Assert::isTrue($aggregateVersion > 0, sprintf('Serialization for snapshot of %s is set incorrectly, it does not serialize aggregate version', $aggregate::class));
-
-                $snapshotEvent[] = new SnapshotEvent($aggregate);
-            }
-        }
 
         $metadataMatcher = new MetadataMatcher();
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            LazyProophEventStore::AGGREGATE_TYPE,
+            MessageHeaders::EVENT_AGGREGATE_TYPE,
             Operator::EQUALS(),
             $aggregateType
         );
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            LazyProophEventStore::AGGREGATE_ID,
+            MessageHeaders::EVENT_AGGREGATE_ID,
             Operator::EQUALS(),
             $aggregateId
         );
 
         if ($aggregateVersion > 0) {
             $metadataMatcher = $metadataMatcher->withMetadataMatch(
-                LazyProophEventStore::AGGREGATE_VERSION,
-                Operator::GREATER_THAN(),
+                MessageHeaders::EVENT_AGGREGATE_VERSION,
+                Operator::GREATER_THAN_EQUALS(),
                 $aggregateVersion
             );
         }
@@ -97,37 +82,17 @@ class EventSourcingRepository implements EventSourcedRepository
             $aggregateVersion = $streamEvents[array_key_last($streamEvents)]->getMetadata()[LazyProophEventStore::AGGREGATE_VERSION];
         }
 
-        return EventStream::createWith($aggregateVersion, array_merge($snapshotEvent, $streamEvents));
+        return EventStream::createWith($aggregateVersion, $streamEvents);
     }
 
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
-        $metadata = $this->headerMapper->mapFromMessageHeaders($metadata, $this->conversionService);
-        $events = array_map(static function ($event) use ($metadata): Event {
-            if ($event instanceof Event) {
-                return $event;
-            }
-
-            return Event::create($event, $metadata);
-        }, $events);
-
         $aggregateId = reset($identifiers);
         Assert::notNullAndEmpty($aggregateId, sprintf('There was a problem when retrieving identifier for %s', $aggregateClassName));
 
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
-        $aggregateType = $this->getAggregateType($aggregateClassName);
 
-        $eventsWithMetadata = [];
-        $eventsCount = count($events);
-
-        for ($eventNumber = 1; $eventNumber <= $eventsCount; $eventNumber++) {
-            $eventsWithMetadata[] = $events[$eventNumber - 1]->withAddedMetadata([
-                LazyProophEventStore::AGGREGATE_ID => $aggregateId,
-                LazyProophEventStore::AGGREGATE_TYPE => $aggregateType,
-                LazyProophEventStore::AGGREGATE_VERSION => $versionBeforeHandling + $eventNumber,
-            ]);
-        }
-        $this->eventStore->appendTo($streamName, $eventsWithMetadata);
+        $this->eventStore->appendTo($streamName, $events);
     }
 
     private function getStreamName(string $aggregateClassName, mixed $aggregateId): StreamName
@@ -151,24 +116,5 @@ class EventSourcingRepository implements EventSourcedRepository
         }
 
         return $aggregateClassName;
-    }
-
-    private function getAggregateVersion(object|array|string $aggregate): mixed
-    {
-        $propertyReader = new PropertyReaderAccessor();
-        $versionAnnotation = TypeDescriptor::create(AggregateVersion::class);
-        $aggregateVersionPropertyName = null;
-        foreach (ClassDefinition::createFor(TypeDescriptor::createFromVariable($aggregate))->getProperties() as $property) {
-            if ($property->hasAnnotation($versionAnnotation)) {
-                $aggregateVersionPropertyName = $property->getName();
-                break;
-            }
-        }
-
-        $aggregateVersion = $propertyReader->getPropertyValue(
-            PropertyPath::createWith($aggregateVersionPropertyName),
-            $aggregate
-        );
-        return $aggregateVersion;
     }
 }

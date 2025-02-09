@@ -16,7 +16,7 @@ final class EventStream
     private function __construct(int $aggregateVersion, array $events)
     {
         foreach ($events as $event) {
-            Assert::isTrue($event instanceof Event, 'Event is not type of Event or SnapshotEvent' . get_class($event));
+            Assert::isTrue($event instanceof Event, sprintf('Event object is not type of Event, %s given', get_class($event)));
         }
 
         $this->aggregateVersion = $aggregateVersion;

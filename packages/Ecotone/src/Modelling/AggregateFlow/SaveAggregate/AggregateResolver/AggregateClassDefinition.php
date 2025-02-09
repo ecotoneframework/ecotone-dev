@@ -26,8 +26,7 @@ final class AggregateClassDefinition implements DefinedObject
         private array   $aggregateIdentifierMapping,
         private array   $aggregateIdentifierGetMethods,
         private string  $aggregateClassType,
-    )
-    {
+    ) {
 
     }
 
@@ -43,7 +42,7 @@ final class AggregateClassDefinition implements DefinedObject
 
     public function isStateStored(): bool
     {
-        return !$this->isEventSourced;
+        return ! $this->isEventSourced;
     }
 
     public function isPureEventSourcedAggregate(): bool

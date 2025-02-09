@@ -10,7 +10,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 /**

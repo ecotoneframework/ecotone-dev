@@ -9,7 +9,7 @@ use Ecotone\Modelling\Attribute\NamedEvent;
 /**
  * licence Apache-2.0
  */
-#[NamedEvent("something_was_created_private")]
+#[NamedEvent('something_was_created_private')]
 final class SomethingWasCreatedPrivateEvent
 {
     public function __construct(public int $somethingId)

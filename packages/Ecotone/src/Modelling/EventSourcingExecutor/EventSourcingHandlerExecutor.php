@@ -34,11 +34,11 @@ final class EventSourcingHandlerExecutor
             $metadata = [];
             if ($event instanceof Event) {
                 $eventPayload = $event->getPayload();
-                Assert::isObject($eventPayload, "Event returned by repository should be deserialized objects. Got: " . TypeDescriptor::createFromVariable($eventPayload)->toString());
+                Assert::isObject($eventPayload, 'Event returned by repository should be deserialized objects. Got: ' . TypeDescriptor::createFromVariable($eventPayload)->toString());
                 $eventType = TypeDescriptor::createFromVariable($eventPayload);
                 $metadata  = $event->getMetadata();
             } else {
-                Assert::isObject($event, "Event returned by repository should be deserialized objects. Got: " . TypeDescriptor::createFromVariable($event)->toString());
+                Assert::isObject($event, 'Event returned by repository should be deserialized objects. Got: ' . TypeDescriptor::createFromVariable($event)->toString());
                 $eventType = TypeDescriptor::createFromVariable($event);
                 $eventPayload = $event;
             }

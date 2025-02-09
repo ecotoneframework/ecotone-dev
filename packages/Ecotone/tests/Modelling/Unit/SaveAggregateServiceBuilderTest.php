@@ -17,11 +17,9 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\AggregateCreated;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateAggregate;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateSomething;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\DoSomething;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\EventSourcingAggregateWithInternalRecorder;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\Something;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\SomethingWasCreated;
-use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\SomethingWasCreatedPrivateEvent;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
@@ -291,8 +289,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [EventSourcingAggregateWithInternalRecorder::class, Something::class],
         )
             ->sendCommand(new CreateAggregate($id = 1000), metadata: [
-                MessageHeaders::MESSAGE_ID=> $messageId = Uuid::uuid4()->toString(),
-                'userland' => '123'
+                MessageHeaders::MESSAGE_ID => $messageId = Uuid::uuid4()->toString(),
+                'userland' => '123',
             ]);
 
         $eventMetadata = $ecotoneLite->getRecordedEventHeaders()[0];
@@ -304,8 +302,8 @@ class SaveAggregateServiceBuilderTest extends TestCase
 
         $ecotoneLite
             ->sendCommand(new CreateSomething($id, $newInstanceId = 2000), metadata: [
-                MessageHeaders::MESSAGE_ID=> $messageId = Uuid::uuid4()->toString(),
-                'userland' => '1234'
+                MessageHeaders::MESSAGE_ID => $messageId = Uuid::uuid4()->toString(),
+                'userland' => '1234',
             ]);
 
         $eventHeaders = $ecotoneLite->getRecordedEventHeaders();

@@ -298,7 +298,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                     PollingMetadata::create('async')
                         ->setStopOnError(false)
                         ->setExecutionAmountLimit(1)
-                        ->setErrorChannelName($errorChannelName)
+                        ->setErrorChannelName($errorChannelName),
                 ]),
             enableAsynchronousProcessing: true,
         );
@@ -327,7 +327,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                     PollingMetadata::create('async')
                         ->setStopOnError(false)
                         ->setExecutionAmountLimit(1)
-                        ->setErrorChannelName($errorChannelName)
+                        ->setErrorChannelName($errorChannelName),
                 ]),
             enableAsynchronousProcessing: true,
         );

@@ -2,9 +2,9 @@
 
 namespace Ecotone\EventSourcing\Config;
 
-use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
+use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;

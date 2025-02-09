@@ -60,7 +60,6 @@ use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MultipleMethodsGatewayExample
 use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithAnnotationFromMethodInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\StubCallSavingService;
-use Test\Ecotone\Messaging\Fixture\InterceptedBridge\BridgeExample;
 use Test\Ecotone\Messaging\Fixture\InterceptedBridge\BridgeExampleIncomplete;
 use Test\Ecotone\Messaging\Fixture\SameChannelAndRouting\SomeTestCommandHandler;
 use Test\Ecotone\Messaging\Fixture\SameChannelAndRouting\SomeTestEventHandler;

@@ -17,6 +17,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilde
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
+use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\AroundInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\AroundInterceptorWithCustomParameterConverters;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\ServiceActivatorInterceptorExample;
@@ -41,17 +42,17 @@ final class MethodInterceptorModuleTest extends AnnotationConfigurationTestCase
             [AroundInterceptorExample::class],
             [$service = new AroundInterceptorExample()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel("async"),
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ]
         );
 
-        $ecootneLite->sendCommandWithRoutingKey("doSomethingAsync", new \stdClass());
+        $ecootneLite->sendCommandWithRoutingKey('doSomethingAsync', new stdClass());
         $this->assertNull($service->payload);
         $this->assertNull($service->consumerName);
 
         $ecootneLite->run('async');
-        $this->assertEquals($service->payload, new \stdClass());
-        $this->assertEquals($service->consumerName, "async");
+        $this->assertEquals($service->payload, new stdClass());
+        $this->assertEquals($service->consumerName, 'async');
     }
 
     public function test_registering_around_method_level_interceptor_with_parameter_converters()

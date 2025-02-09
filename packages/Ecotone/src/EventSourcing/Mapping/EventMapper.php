@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Mapping;
 
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Event;
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\AnnotationFinder\FileSystem;
 
+use Closure;
 use Composer\Autoload\ClassLoader;
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
@@ -512,9 +513,9 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         foreach ($configuration as $key => $value) {
             if (is_iterable($value)) {
                 $configurationVariables[$key] = $this->skipClosures($value);
-            } elseif($value instanceof \Closure) {
-                $configurationVariables[$key] = "Closure";
-            }else {
+            } elseif ($value instanceof Closure) {
+                $configurationVariables[$key] = 'Closure';
+            } else {
                 $configurationVariables[$key] = $value;
             }
         }

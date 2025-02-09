@@ -88,7 +88,7 @@ class AcknowledgeConfirmationInterceptor implements DefinedObject
 
             return;
         } catch (Throwable $exception) {
-            if (!$acknowledgementCallback->isAutoAck()) {
+            if (! $acknowledgementCallback->isAutoAck()) {
                 $logger->critical(
                     sprintf(
                         'Acknowledgment mode is not auto and unrecoverable error happened. Stopping Message Consumer without acknowledgment to avoid Message loss.  Error: %s',

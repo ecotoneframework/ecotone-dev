@@ -16,18 +16,18 @@ use Ecotone\EventSourcing\Attribute\Stream;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionChannelAdapter;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionExecutorBuilder;
-use Ecotone\EventSourcing\Mapping\EventMapper;
-use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
+use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\ProjectionLifeCycleConfiguration;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -68,11 +68,9 @@ use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ramsey\Uuid\Uuid;
-use RuntimeException;
 
 #[ModuleAnnotation]
 /**

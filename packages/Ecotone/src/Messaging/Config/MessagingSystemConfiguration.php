@@ -882,13 +882,13 @@ final class MessagingSystemConfiguration implements Configuration
         );
 
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
-            if (!isset($this->channelBuilders[$gatewayBuilder->getRequestChannelName()])) {
+            if (! isset($this->channelBuilders[$gatewayBuilder->getRequestChannelName()])) {
                 throw ConfigurationException::create("Gateway {$gatewayBuilder->getInterfaceName()}:{$gatewayBuilder->getRelatedMethodName()} has not existing request channel {$gatewayBuilder->getRequestChannelName()}. Have you forgot to declare some Message Handler for it?");
             }
         }
         foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
             if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel) {
-                if (!$this->isChannelDefinedFor($messageHandlerBuilder)) {
+                if (! $this->isChannelDefinedFor($messageHandlerBuilder)) {
                     throw ConfigurationException::create("Message handler {$messageHandlerBuilder} has not existing output channel {$messageHandlerBuilder->getInputMessageChannelName()}. Have you forgot to declare some Message Handler for it?");
                 }
             }
@@ -1090,7 +1090,7 @@ final class MessagingSystemConfiguration implements Configuration
 
     public function isChannelDefinedFor(MessageHandlerBuilderWithOutputChannel|MessageHandlerBuilder $messageHandlerBuilder): bool
     {
-        if (!$messageHandlerBuilder->getOutputMessageChannelName()) {
+        if (! $messageHandlerBuilder->getOutputMessageChannelName()) {
             return true;
         }
 

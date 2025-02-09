@@ -4,18 +4,9 @@ namespace Ecotone\EventSourcing;
 
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
-use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\Enricher\PropertyPath;
-use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
-use Ecotone\Modelling\Attribute\AggregateVersion;
-use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
 use Prooph\EventStore\Exception\StreamNotFound;

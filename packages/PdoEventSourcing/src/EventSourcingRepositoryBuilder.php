@@ -17,16 +17,15 @@ use Ecotone\Modelling\RepositoryBuilder;
 final class EventSourcingRepositoryBuilder implements RepositoryBuilder
 {
     private array $handledAggregateClassNames = [];
-    private EventSourcingConfiguration $eventSourcingConfiguration;
 
-    private function __construct(EventSourcingConfiguration $eventSourcingConfiguration)
+    private function __construct()
     {
-        $this->eventSourcingConfiguration = $eventSourcingConfiguration;
+
     }
 
-    public static function create(EventSourcingConfiguration $eventSourcingConfiguration): static
+    public static function create(): static
     {
-        return new static($eventSourcingConfiguration);
+        return new static();
     }
 
     public function canHandle(string $aggregateClassName): bool
@@ -48,11 +47,6 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $documentStoreReferences = [];
-        foreach ($this->eventSourcingConfiguration->getSnapshotsConfig() as $aggregateClass => $config) {
-            $documentStoreReferences[$aggregateClass] = new Reference($config['documentStore']);
-        }
-
         return new Definition(EventSourcingRepository::class, [
             new Definition(EcotoneEventStoreProophWrapper::class, [
                 new Reference(LazyProophEventStore::class),
@@ -63,7 +57,6 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
             new Reference(EventSourcingConfiguration::class),
             new Reference(AggregateStreamMapping::class),
             new Reference(AggregateTypeMapping::class),
-            $documentStoreReferences,
         ]);
     }
 }

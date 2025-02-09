@@ -41,6 +41,7 @@ use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitterWithRe
 use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitWasCreated;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\NoIdDefinedAfterRecordingEvents;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodWithParameters;
+use Test\Ecotone\Modelling\Fixture\Ticket\AssignWorkerCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\StartTicketCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
 
@@ -86,6 +87,59 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ->sendCommand(new StartTicketCommand($ticketId = 1))
             ->getAggregate(Ticket::class, ['ticketId' => $ticketId]);
 
+        $this->assertEquals(
+            $ticket,
+            $inMemoryDocumentStore->getDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), 1)
+        );
+    }
+
+    public function test_snapshoting_different_aggregate_instances()
+    {
+        $inMemoryDocumentStore = InMemoryDocumentStore::createEmpty();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Ticket::class],
+            [DocumentStore::class => $inMemoryDocumentStore],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    BaseEventSourcingConfiguration::withDefaults()
+                        ->withSnapshotsFor(Ticket::class, 1),
+                ])
+        )
+            ->sendCommand(new StartTicketCommand($ticketOneId = 1))
+            ->sendCommand(new StartTicketCommand($ticketTwoId = 2))
+        ;
+
+        /** @var Ticket $ticketOne */
+        $ticketOne = $ecotoneLite->getAggregate(Ticket::class, ['ticketId' => $ticketOneId]);
+        $this->assertEquals(1, $ticketOne->id());
+        $this->assertEquals(1, $ticketOne->getVersion());
+        $this->assertEquals($ticketOne, $inMemoryDocumentStore->getDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), 1));
+
+        /** @var Ticket $ticketTwo */
+        $ticketTwo = $ecotoneLite->getAggregate(Ticket::class, ['ticketId' => $ticketTwoId]);
+        $this->assertEquals(2, $ticketTwo->id());
+        $this->assertEquals(1, $ticketTwo->getVersion());
+        $this->assertEquals($ticketTwo, $inMemoryDocumentStore->getDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), 2));
+    }
+
+    public function test_snapshoting_aggregate_for_further_actions()
+    {
+        $inMemoryDocumentStore = InMemoryDocumentStore::createEmpty();
+
+        $ticket = EcotoneLite::bootstrapFlowTesting(
+            [Ticket::class],
+            [DocumentStore::class => $inMemoryDocumentStore],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 1),
+                ])
+        )
+            ->sendCommand(new StartTicketCommand($ticketId = 1))
+            ->sendCommand(new AssignWorkerCommand($ticketId, 'johny'))
+            ->getAggregate(Ticket::class, ['ticketId' => $ticketId]);
+
+        $this->assertEquals(2, $ticket->getVersion());
         $this->assertEquals(
             $ticket,
             $inMemoryDocumentStore->getDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), 1)

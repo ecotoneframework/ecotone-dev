@@ -293,11 +293,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $eventSourcingRepositories = [];
         foreach ($serviceExtensions as $extensionObject) {
             if ($extensionObject instanceof EventSourcingConfiguration) {
-                $eventSourcingRepositories[] = EventSourcingRepositoryBuilder::create($extensionObject);
+                $eventSourcingRepositories[] = EventSourcingRepositoryBuilder::create();
             }
         }
 
-        return $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create(EventSourcingConfiguration::createWithDefaults())];
+        return $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create()];
     }
 
     private function registerEventStore(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void

@@ -38,7 +38,6 @@ class EventSourcingRepository implements EventSourcedRepository
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private AggregateStreamMapping $aggregateStreamMapping,
         private AggregateTypeMapping $aggregateTypeMapping,
-        private array $documentStoreReferences,
     ) {
     }
 
@@ -54,17 +53,6 @@ class EventSourcingRepository implements EventSourcedRepository
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
         $aggregateType = $this->getAggregateType($aggregateClassName);
         $snapshotEvent = [];
-
-        if (array_key_exists($aggregateClassName, $this->documentStoreReferences)) {
-            $aggregate = $this->documentStoreReferences[$aggregateClassName]->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), $aggregateId);
-
-            if (! is_null($aggregate)) {
-                $aggregateVersion = $this->getAggregateVersion($aggregate) + 1;
-                Assert::isTrue($aggregateVersion > 0, sprintf('Serialization for snapshot of %s is set incorrectly, it does not serialize aggregate version', $aggregate::class));
-
-                $snapshotEvent[] = new SnapshotEvent($aggregate);
-            }
-        }
 
         $metadataMatcher = new MetadataMatcher();
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
@@ -130,24 +118,5 @@ class EventSourcingRepository implements EventSourcedRepository
         }
 
         return $aggregateClassName;
-    }
-
-    private function getAggregateVersion(object|array|string $aggregate): mixed
-    {
-        $propertyReader = new PropertyReaderAccessor();
-        $versionAnnotation = TypeDescriptor::create(AggregateVersion::class);
-        $aggregateVersionPropertyName = null;
-        foreach (ClassDefinition::createFor(TypeDescriptor::createFromVariable($aggregate))->getProperties() as $property) {
-            if ($property->hasAnnotation($versionAnnotation)) {
-                $aggregateVersionPropertyName = $property->getName();
-                break;
-            }
-        }
-
-        $aggregateVersion = $propertyReader->getPropertyValue(
-            PropertyPath::createWith($aggregateVersionPropertyName),
-            $aggregate
-        );
-        return $aggregateVersion;
     }
 }

@@ -51,7 +51,6 @@ class EventSourcingRepository implements EventSourcedRepository
         $aggregateVersion = $fromAggregateVersion;
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
         $aggregateType = $this->getAggregateType($aggregateClassName);
-        $snapshotEvent = [];
 
         $metadataMatcher = new MetadataMatcher();
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
@@ -83,7 +82,7 @@ class EventSourcingRepository implements EventSourcedRepository
             $aggregateVersion = $streamEvents[array_key_last($streamEvents)]->getMetadata()[LazyProophEventStore::AGGREGATE_VERSION];
         }
 
-        return EventStream::createWith($aggregateVersion, array_merge($snapshotEvent, $streamEvents));
+        return EventStream::createWith($aggregateVersion, $streamEvents);
     }
 
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void

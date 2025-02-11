@@ -46,6 +46,7 @@ class DbalConfiguration
 
     private bool $enableDocumentStoreStandardRepository = false;
     private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
+    private int $deduplicationRemovalBatchSize = 1000;
 
     private function __construct()
     {
@@ -200,12 +201,17 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDeduplication(bool $isDeduplicatedEnabled, string $connectionReference = DbalConnectionFactory::class, int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS): self
+    /**
+     * @param int $expirationTime time in milliseconds that has to pass in order to remove message
+     * @param int $removalBatchSize batch size for removing messages (Ecotone does not remove all at once, to avoid database locks)
+     */
+    public function withDeduplication(bool $isDeduplicatedEnabled = true, string $connectionReference = DbalConnectionFactory::class, int $expirationTime = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS, int $removalBatchSize = 1000): self
     {
         $self = clone $this;
         $self->deduplicatedEnabled = $isDeduplicatedEnabled;
         $self->deduplicationConnectionReference = $connectionReference;
-        $self->minimumTimeToRemoveMessageInMilliseconds = $minimumTimeToRemoveMessageInMilliseconds;
+        $self->minimumTimeToRemoveMessageInMilliseconds = $expirationTime;
+        $self->deduplicationRemovalBatchSize = $removalBatchSize;
 
         return $self;
     }
@@ -241,6 +247,11 @@ class DbalConfiguration
     public function minimumTimeToRemoveMessageFromDeduplication(): int
     {
         return $this->minimumTimeToRemoveMessageInMilliseconds;
+    }
+
+    public function deduplicationRemovalBatchSize(): int
+    {
+        return $this->deduplicationRemovalBatchSize;
     }
 
     public function isDeadLetterEnabled(): bool

@@ -120,7 +120,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true, minimumTimeToRemoveMessageInMilliseconds: 60000),
+                    DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 60000),
                     DbalBackedMessageChannelBuilder::create($queueName),
                 ])
         );
@@ -131,7 +131,41 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
             $ecotoneLite
                 ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
                 ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, 300))
+                ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
+                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(2, 300))
+                ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
+                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(2, 300))
+                ->sendQueryWithRouting('email_event_handler.getCallCount')
+        );
+    }
+
+    public function test_deduplicating_given_event_handler_with_custom_timeout_and_batch_size()
+    {
+        $queueName = 'async';
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DeduplicatedEventHandler::class],
+            [
+                new DeduplicatedEventHandler(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 1, removalBatchSize: 1),
+                    DbalBackedMessageChannelBuilder::create($queueName),
+                ])
+        );
+
+        $messageId = Uuid::uuid4()->toString();
+        $this->assertEquals(
+            4,
+            $ecotoneLite
+                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->publishEventWithRoutingKey('order.was_cancelled', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+                ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
+                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(2, 300))
+                ->runConsoleCommand('ecotone:deduplication:remove-expired-messages', [])
+                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(2, 300))
                 ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }

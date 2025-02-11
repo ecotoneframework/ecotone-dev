@@ -2,7 +2,9 @@
 
 namespace Ecotone\Dbal\Deduplication;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
@@ -36,7 +38,7 @@ class DeduplicationInterceptor
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
     private array $initialized = [];
 
-    public function __construct(private ConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private LoggingGateway $logger)
+    public function __construct(private ConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger)
     {
     }
 
@@ -49,7 +51,6 @@ class DeduplicationInterceptor
             $this->createDataBaseTable($connectionFactory);
             $this->initialized[$contextId] = true;
         }
-        $this->removeExpiredMessages($connectionFactory);
         $messageId = $deduplicatedAttribute?->getDeduplicationHeaderName() ? $message->getHeaders()->get($deduplicatedAttribute->getDeduplicationHeaderName()) : $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
         /** If global deduplication consumer_endpoint_id will be used */
         $consumerEndpointId = $asynchronousRunningEndpoint ? $asynchronousRunningEndpoint->getEndpointId() : '';
@@ -97,13 +98,18 @@ class DeduplicationInterceptor
         return $result;
     }
 
-    private function removeExpiredMessages(ConnectionFactory $connectionFactory): void
+    public function removeExpiredMessages(): void
     {
-        $this->getConnection($connectionFactory)->createQueryBuilder()
-            ->delete($this->getTableName())
-            ->andWhere('handled_at <= :threshold')
-            ->setParameter('threshold', ($this->clock->unixTimeInMilliseconds() - $this->minimumTimeToRemoveMessageInMilliseconds), Types::BIGINT)
-            ->execute();
+        $connectionFactory = $this->connection;
+        $this->createDataBaseTable($connectionFactory);
+
+        while ($messageIds = $this->getMessageIdsToRemoval($connectionFactory)) {
+            $this->getConnection($connectionFactory)->createQueryBuilder()
+                ->delete($this->getTableName())
+                ->andWhere('message_id IN (:messageIds)')
+                ->setParameter('messageIds', array_column($messageIds, 'message_id'), ArrayParameterType::STRING)
+                ->executeStatement();
+        }
     }
 
     private function insertHandledMessage(ConnectionFactory $connectionFactory, string $messageId, string $consumerEndpointId, string $routingSlip): void
@@ -161,5 +167,18 @@ class DeduplicationInterceptor
         $context = $connectionFactory->createContext();
 
         return $context->getDbalConnection();
+    }
+
+    public function getMessageIdsToRemoval(ConnectionFactory $connectionFactory): array
+    {
+        $messageIds = $this->getConnection($connectionFactory)->createQueryBuilder()
+            ->select('message_id')
+            ->from($this->getTableName())
+            ->andWhere('handled_at <= :threshold')
+            ->setParameter('threshold', ($this->clock->unixTimeInMilliseconds() - $this->minimumTimeToRemoveMessageInMilliseconds), Types::BIGINT)
+            ->setMaxResults($this->deduplicationRemovalBatchSize)
+            ->executeQuery()
+            ->fetchAllAssociative();
+        return $messageIds;
     }
 }

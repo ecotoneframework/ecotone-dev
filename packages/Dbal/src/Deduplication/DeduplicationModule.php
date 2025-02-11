@@ -10,6 +10,7 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -18,6 +19,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\Clock;
 
@@ -50,7 +52,6 @@ class DeduplicationModule implements AnnotationModule
 
         $isDeduplicatedEnabled = $dbalConfiguration->isDeduplicatedEnabled();
         $connectionFactory     = $dbalConfiguration->getDeduplicationConnectionReference();
-        $minimumTimeToRemoveMessageFromDeduplication     = $dbalConfiguration->minimumTimeToRemoveMessageFromDeduplication();
 
         $pointcut = Deduplicated::class;
         if ($isDeduplicatedEnabled) {
@@ -64,7 +65,8 @@ class DeduplicationModule implements AnnotationModule
                 [
                     new Reference($connectionFactory),
                     new Reference(Clock::class),
-                    $minimumTimeToRemoveMessageFromDeduplication,
+                    $dbalConfiguration->minimumTimeToRemoveMessageFromDeduplication(),
+                    $dbalConfiguration->deduplicationRemovalBatchSize(),
                     new Reference(LoggingGateway::class),
                 ]
             )
@@ -78,7 +80,17 @@ class DeduplicationModule implements AnnotationModule
                     Precedence::DATABASE_TRANSACTION_PRECEDENCE + 100,
                     $pointcut
                 )
-            );
+            )
+            ->registerMessageHandler(ServiceActivatorBuilder::create(
+                DeduplicationInterceptor::class,
+                'removeExpiredMessages'
+                )->withInputChannelName($inputChannelName = 'ecotone.deduplication.removeExpiredMessages')
+            )
+            ->registerConsoleCommand(ConsoleCommandConfiguration::create(
+                $inputChannelName,
+            'ecotone:deduplication:remove-expired-messages',
+                []
+            ));
     }
 
     /**

@@ -107,7 +107,7 @@ class DeduplicationInterceptor
             $this->getConnection($connectionFactory)->createQueryBuilder()
                 ->delete($this->getTableName())
                 ->andWhere('message_id IN (:messageIds)')
-                ->setParameter('messageIds', array_column($messageIds, 'message_id'), ArrayParameterType::STRING)
+                ->setParameter('messageIds', array_column($messageIds, 'message_id'), Connection::PARAM_STR_ARRAY)
                 ->executeStatement();
         }
     }

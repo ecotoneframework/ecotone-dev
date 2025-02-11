@@ -177,7 +177,7 @@ class DeduplicationInterceptor
             ->andWhere('handled_at <= :threshold')
             ->setParameter('threshold', ($this->clock->unixTimeInMilliseconds() - $this->minimumTimeToRemoveMessageInMilliseconds), Types::BIGINT)
             ->setMaxResults($this->deduplicationRemovalBatchSize)
-            ->executeQuery()
+            ->execute()
             ->fetchAllAssociative();
         return $messageIds;
     }

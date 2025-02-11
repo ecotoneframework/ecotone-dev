@@ -108,7 +108,7 @@ class DeduplicationInterceptor
                 ->delete($this->getTableName())
                 ->andWhere('message_id IN (:messageIds)')
                 ->setParameter('messageIds', array_column($messageIds, 'message_id'), Connection::PARAM_STR_ARRAY)
-                ->executeStatement();
+                ->execute();
         }
     }
 

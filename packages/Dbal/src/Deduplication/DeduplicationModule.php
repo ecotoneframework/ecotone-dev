@@ -81,14 +81,15 @@ class DeduplicationModule implements AnnotationModule
                     $pointcut
                 )
             )
-            ->registerMessageHandler(ServiceActivatorBuilder::create(
-                DeduplicationInterceptor::class,
-                'removeExpiredMessages'
+            ->registerMessageHandler(
+                ServiceActivatorBuilder::create(
+                    DeduplicationInterceptor::class,
+                    'removeExpiredMessages'
                 )->withInputChannelName($inputChannelName = 'ecotone.deduplication.removeExpiredMessages')
             )
             ->registerConsoleCommand(ConsoleCommandConfiguration::create(
                 $inputChannelName,
-            'ecotone:deduplication:remove-expired-messages',
+                'ecotone:deduplication:remove-expired-messages',
                 []
             ));
     }

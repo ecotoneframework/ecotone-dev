@@ -5,16 +5,16 @@ namespace Test\Ecotone\JMSConverter\Unit;
 use ArrayObject;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverter;
-use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Test\Ecotone\JMSConverter\Fixture\Configuration\ArrayConversion\ClassToArrayConverter;
@@ -22,6 +22,11 @@ use Test\Ecotone\JMSConverter\Fixture\Configuration\Status\Person;
 use Test\Ecotone\JMSConverter\Fixture\Configuration\Status\Status;
 use Test\Ecotone\JMSConverter\Fixture\Configuration\Status\StatusConverter;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\CollectionProperty;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\Date\ObjectWithDate;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\Date\YearMonthDayDateConverter;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\Enum\Account;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\Enum\AccountStatus;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\Enum\AccountStatusConverter;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PersonAbstractClass;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PersonInterface;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\PropertiesWithDocblockTypes;
@@ -89,21 +94,9 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"data":{"name":"Franco","age":13,"passport":{"id":123,"valid":"2022-01-01"}}}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::create(ArrayObject::class),
-                TypeDescriptor::createArrayType(),
-                new Definition(ArrayObjectConverter::class),
-                'from'
-            ),
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::createArrayType(),
-                TypeDescriptor::create(ArrayObject::class),
-                new Definition(ArrayObjectConverter::class),
-                'to'
-            ),
+            new ArrayObjectConverter()
         ]);
     }
-
 
     public function test_two_level_object_nesting()
     {
@@ -210,18 +203,7 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"status":"active"}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::create(Status::class),
-                TypeDescriptor::createStringType(),
-                Reference::to(StatusConverter::class),
-                'convertFrom'
-            ),
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::createStringType(),
-                TypeDescriptor::create(Status::class),
-                Reference::to(StatusConverter::class),
-                'convertTo'
-            ),
+            new StatusConverter()
         ]);
     }
 
@@ -232,18 +214,7 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"data":"someInformation"}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::createArrayType(),
-                TypeDescriptor::create(stdClass::class),
-                Reference::to(ClassToArrayConverter::class),
-                'convertFrom'
-            ),
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::create(stdClass::class),
-                TypeDescriptor::createArrayType(),
-                Reference::to(ClassToArrayConverter::class),
-                'convertTo'
-            ),
+            new ClassToArrayConverter()
         ]);
     }
 
@@ -252,22 +223,7 @@ class JMSConverterTest extends TestCase
         $toSerialize = [new Status('active'), new Status('archived')];
         $expectedSerialized = ['active', 'archived'];
 
-        $jmsHandlerAdapters = [
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::create(Status::class),
-                TypeDescriptor::createStringType(),
-                Reference::to(StatusConverter::class),
-                'convertFrom'
-            ),
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::createStringType(),
-                TypeDescriptor::create(Status::class),
-                Reference::to(StatusConverter::class),
-                'convertTo'
-            ),
-        ];
-
-        $this->assertEquals($expectedSerialized, $this->serializeToArray($toSerialize, $jmsHandlerAdapters));
+        $this->assertEquals($expectedSerialized, $this->serializeToArray($toSerialize, [new StatusConverter()]));
     }
 
     public function test_converting_array_of_objects_to_json()
@@ -275,24 +231,11 @@ class JMSConverterTest extends TestCase
         $toSerialize = [new Status('active'), new Status('archived')];
         $expectedSerializationString = '["active","archived"]';
 
-        $jmsHandlerAdapters = [
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::create(Status::class),
-                TypeDescriptor::createStringType(),
-                Reference::to(StatusConverter::class),
-                'convertFrom'
-            ),
-            new JMSHandlerAdapterBuilder(
-                TypeDescriptor::createStringType(),
-                TypeDescriptor::create(Status::class),
-                Reference::to(StatusConverter::class),
-                'convertTo'
-            ),
-        ];
-
-        $serialized = $this->serializeToJson($toSerialize, $jmsHandlerAdapters);
+        $serialized = $this->serializeToJson($toSerialize, [new StatusConverter()]);
         $this->assertEquals($expectedSerializationString, $serialized);
-        $this->assertEquals($toSerialize, $this->deserialize($serialized, "array<Test\Ecotone\JMSConverter\Fixture\Configuration\Status\Status>", $jmsHandlerAdapters));
+        $this->assertEquals($toSerialize, $this->deserialize($serialized, "array<Test\Ecotone\JMSConverter\Fixture\Configuration\Status\Status>", [
+            new StatusConverter()
+        ]));
     }
 
     public function test_converting_json_to_array()
@@ -323,6 +266,45 @@ class JMSConverterTest extends TestCase
         $serialized = $this->getJMSConverter([])->convert($toSerialize, TypeDescriptor::createFromVariable($toSerialize), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createWithParameters('application', 'x-php', [JMSConverter::SERIALIZE_NULL_PARAMETER => 'true']));
         $this->assertEquals($expectedSerializationObject, $serialized);
         $this->assertEquals($toSerialize, $this->getJMSConverter([])->convert($serialized, TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP(), TypeDescriptor::createFromVariable($toSerialize), MediaType::createApplicationXPHP()));
+    }
+
+    public function test_serializing_class_with_default_enum_converter(): void
+    {
+        $toSerialize = new Account(AccountStatus::ACTIVE);
+        $expectedSerializationString = '{"status":"active"}';
+
+        $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [], JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true));
+    }
+
+    public function test_serializing_class_with_custom_enum_converter(): void
+    {
+        $toSerialize = new Account(AccountStatus::ACTIVE);
+        $expectedSerializationString = '{"status":{"value":"active"}}';
+
+        $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
+            new AccountStatusConverter()
+        ]);
+    }
+
+    public function test_serializing_with_default_time_handler(): void
+    {
+        $toSerialize = new ObjectWithDate(new \DateTimeImmutable('2021-01-01 12:00:00'));
+        $expectedSerializationString = '{"date":"2021-01-01T12:00:00+00:00"}';
+
+        $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString);
+    }
+
+    public function test_overriding_custom_time_handler(): void
+    {
+        $toSerialize = new ObjectWithDate(new \DateTimeImmutable('2021-01-01 12:00:00'));
+
+        $serialized = $this->serializeToJson($toSerialize, [new YearMonthDayDateConverter()], null);
+        $this->assertEquals('{"date":"2021-01-01"}', $serialized);
+
+        $this->assertEquals(
+            new ObjectWithDate(new \DateTimeImmutable('2021-01-01 00:00:00')),
+            $this->deserialize($serialized, get_class($toSerialize), [new YearMonthDayDateConverter()])
+        );
     }
 
     public function test_converting_to_xml()
@@ -465,7 +447,7 @@ class JMSConverterTest extends TestCase
     {
         $serialized = $this->serializeToJson($toSerialize, $jmsHandlerAdapters, $configuration);
         $this->assertEquals($expectedSerializationString, $serialized);
-        $this->assertEquals($toSerialize, $this->deserialize($serialized, is_array($toSerialize) ? TypeDescriptor::ARRAY : get_class($toSerialize), $jmsHandlerAdapters));
+        $this->assertEquals($toSerialize, $this->deserialize($serialized, is_array($toSerialize) ? TypeDescriptor::ARRAY : get_class($toSerialize), $jmsHandlerAdapters, $configuration));
     }
 
     private function serializeToJson($data, array $jmsHandlerAdapters, ?JMSConverterConfiguration $configuration = null)
@@ -478,18 +460,23 @@ class JMSConverterTest extends TestCase
         return $this->getJMSConverter($jmsHandlerAdapters)->convert($data, TypeDescriptor::createFromVariable($data), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP());
     }
 
-    private function deserialize(string $data, string $type, array $jmsHandlerAdapters)
+    private function deserialize(string $data, string $type, array $jmsHandlerAdapters, ?JMSConverterConfiguration $configuration = null)
     {
-        return $this->getJMSConverter($jmsHandlerAdapters)->convert($data, TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::create($type), MediaType::createApplicationXPHP(), TypeDescriptor::create($type));
+        return $this->getJMSConverter($jmsHandlerAdapters, $configuration)->convert($data, TypeDescriptor::createStringType(), MediaType::createApplicationJson(), TypeDescriptor::create($type), MediaType::createApplicationXPHP(), TypeDescriptor::create($type));
     }
 
-    private function getJMSConverter(array $jmsHandlerAdapters, ?JMSConverterConfiguration $configuration = null): ConversionService
+    /**
+     * @param object[] $converters
+     */
+    private function getJMSConverter(array $converters, ?JMSConverterConfiguration $configuration = null): ConversionService
     {
-        return ComponentTestBuilder::create([StatusConverter::class, ClassToArrayConverter::class])
-            ->withReference(StatusConverter::class, new StatusConverter())
-            ->withReference(ClassToArrayConverter::class, new ClassToArrayConverter())
-            ->withConverter(new JMSConverterBuilder($jmsHandlerAdapters, $configuration ?: JMSConverterConfiguration::createWithDefaults()))
-            ->build()
+        return EcotoneLite::bootstrapFlowTesting(
+                array_map(fn(object $converter) => $converter::class, $converters),
+                $converters,
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withExtensionObjects($configuration ? [$configuration] : [])
+        )
             ->getServiceFromContainer(ConversionService::REFERENCE_NAME);
     }
 }

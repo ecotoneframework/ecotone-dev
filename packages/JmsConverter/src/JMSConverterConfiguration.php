@@ -17,7 +17,10 @@ class JMSConverterConfiguration
 
     public function __construct(
         private string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY,
-        private bool $defaultNullSerialization = false
+        /** @TODO Ecotone 2.0 - make default yes */
+        private bool $defaultNullSerialization = false,
+        /** @TODO Ecotone 2.0 - make default yes */
+        private bool $enableEnumSupport = false,
     ) {
     }
 
@@ -40,6 +43,13 @@ class JMSConverterConfiguration
         return $this;
     }
 
+    public function withDefaultEnumSupport(bool $enabled): static
+    {
+        $this->enableEnumSupport = $enabled;
+
+        return $this;
+    }
+
     public function getNamingStrategy(): string
     {
         return $this->namingStrategy;
@@ -48,5 +58,10 @@ class JMSConverterConfiguration
     public function getDefaultNullSerialization(): bool
     {
         return $this->defaultNullSerialization;
+    }
+
+    public function isEnumSupportEnabled(): bool
+    {
+        return $this->enableEnumSupport;
     }
 }

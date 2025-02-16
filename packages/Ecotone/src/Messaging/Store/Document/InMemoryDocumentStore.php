@@ -81,7 +81,13 @@ final class InMemoryDocumentStore implements DocumentStore
             return null;
         }
 
-        return $this->collection[$collectionName][$documentId];
+        $document = $this->collection[$collectionName][$documentId];
+
+        if ($document instanceof \Throwable) {
+            throw $document;
+        }
+
+        return $document;
     }
 
     public function getAllDocuments(string $collectionName): array

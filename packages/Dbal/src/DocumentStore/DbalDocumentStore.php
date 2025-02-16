@@ -8,6 +8,7 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\TypeDescriptor;
@@ -305,12 +306,18 @@ final class DbalDocumentStore implements DocumentStore
             return $select['document'];
         }
 
-        return $this->conversionService->convert(
-            $select['document'],
-            TypeDescriptor::createStringType(),
-            MediaType::createApplicationJson(),
-            $documentType,
-            MediaType::createApplicationXPHP()
-        );
+        try {
+            $data = $this->conversionService->convert(
+                $select['document'],
+                TypeDescriptor::createStringType(),
+                MediaType::createApplicationJson(),
+                $documentType,
+                MediaType::createApplicationXPHP()
+            );
+        }catch (ConversionException $conversionException) {
+            throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be converted from JSON to PHP object', $select['document_id']), $conversionException);
+        }
+
+        return $data;
     }
 }

@@ -82,7 +82,7 @@ final class LoadEventSourcingAggregateService implements MessageProcessor
                 try {
                     $aggregate = $documentStore->findDocument(SaveAggregateService::getSnapshotCollectionName($this->aggregateClassName), SaveAggregateService::getSnapshotDocumentId($aggregateIdentifiers));
                 }catch (DocumentException $documentException) {
-                    $this->loggingGateway->error("Failure during loading snapshot for aggregate {$this->aggregateClassName} with identifiers " . json_encode($aggregateIdentifiers) . ". Error: " . $documentException->getMessage(), [
+                    $this->loggingGateway->error("Failure during loading snapshot for aggregate {$this->aggregateClassName} with identifiers " . json_encode($aggregateIdentifiers) . ". Snapshot ignored to self system system. Error: " . $documentException->getMessage(), [
                         'exception' => $documentException
                     ]);
                 }

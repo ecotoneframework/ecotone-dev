@@ -3,12 +3,11 @@
 namespace Test\Ecotone\JMSConverter\Unit;
 
 use ArrayObject;
+use DateTimeImmutable;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverter;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
-use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
@@ -94,7 +93,7 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"data":{"name":"Franco","age":13,"passport":{"id":123,"valid":"2022-01-01"}}}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            new ArrayObjectConverter()
+            new ArrayObjectConverter(),
         ]);
     }
 
@@ -203,7 +202,7 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"status":"active"}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            new StatusConverter()
+            new StatusConverter(),
         ]);
     }
 
@@ -214,7 +213,7 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"data":"someInformation"}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            new ClassToArrayConverter()
+            new ClassToArrayConverter(),
         ]);
     }
 
@@ -234,7 +233,7 @@ class JMSConverterTest extends TestCase
         $serialized = $this->serializeToJson($toSerialize, [new StatusConverter()]);
         $this->assertEquals($expectedSerializationString, $serialized);
         $this->assertEquals($toSerialize, $this->deserialize($serialized, "array<Test\Ecotone\JMSConverter\Fixture\Configuration\Status\Status>", [
-            new StatusConverter()
+            new StatusConverter(),
         ]));
     }
 
@@ -282,13 +281,13 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"status":{"value":"active"}}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
-            new AccountStatusConverter()
+            new AccountStatusConverter(),
         ]);
     }
 
     public function test_serializing_with_default_time_handler(): void
     {
-        $toSerialize = new ObjectWithDate(new \DateTimeImmutable('2021-01-01 12:00:00'));
+        $toSerialize = new ObjectWithDate(new DateTimeImmutable('2021-01-01 12:00:00'));
         $expectedSerializationString = '{"date":"2021-01-01T12:00:00+00:00"}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString);
@@ -296,13 +295,13 @@ class JMSConverterTest extends TestCase
 
     public function test_overriding_custom_time_handler(): void
     {
-        $toSerialize = new ObjectWithDate(new \DateTimeImmutable('2021-01-01 12:00:00'));
+        $toSerialize = new ObjectWithDate(new DateTimeImmutable('2021-01-01 12:00:00'));
 
         $serialized = $this->serializeToJson($toSerialize, [new YearMonthDayDateConverter()], null);
         $this->assertEquals('{"date":"2021-01-01"}', $serialized);
 
         $this->assertEquals(
-            new ObjectWithDate(new \DateTimeImmutable('2021-01-01 00:00:00')),
+            new ObjectWithDate(new DateTimeImmutable('2021-01-01 00:00:00')),
             $this->deserialize($serialized, get_class($toSerialize), [new YearMonthDayDateConverter()])
         );
     }
@@ -471,8 +470,8 @@ class JMSConverterTest extends TestCase
     private function getJMSConverter(array $converters, ?JMSConverterConfiguration $configuration = null): ConversionService
     {
         return EcotoneLite::bootstrapFlowTesting(
-                array_map(fn(object $converter) => $converter::class, $converters),
-                $converters,
+            array_map(fn (object $converter) => $converter::class, $converters),
+            $converters,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::JMS_CONVERTER_PACKAGE]))
                 ->withExtensionObjects($configuration ? [$configuration] : [])

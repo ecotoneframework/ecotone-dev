@@ -12,7 +12,7 @@ final class AccountStatusConverter
     public function from(AccountStatus $status): array
     {
         return [
-            'value' => $status->value
+            'value' => $status->value,
         ];
     }
 

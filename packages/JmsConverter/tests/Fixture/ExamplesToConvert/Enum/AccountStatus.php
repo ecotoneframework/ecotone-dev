@@ -6,7 +6,7 @@ namespace Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\Enum;
 
 enum AccountStatus: string
 {
-    case ACTIVE = "active";
-    case INACTIVE = "inactive";
-    case BLOCKED = "blocked";
+    case ACTIVE = 'active';
+    case INACTIVE = 'inactive';
+    case BLOCKED = 'blocked';
 }

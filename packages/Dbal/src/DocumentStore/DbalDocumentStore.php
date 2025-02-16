@@ -314,7 +314,7 @@ final class DbalDocumentStore implements DocumentStore
                 $documentType,
                 MediaType::createApplicationXPHP()
             );
-        }catch (ConversionException $conversionException) {
+        } catch (ConversionException $conversionException) {
             throw DocumentException::createFromPreviousException(sprintf('Document with id %s can not be converted from JSON to PHP object', $select['document_id']), $conversionException);
         }
 

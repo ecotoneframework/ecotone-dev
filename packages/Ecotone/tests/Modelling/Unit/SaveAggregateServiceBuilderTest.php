@@ -4,7 +4,6 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentStore;
@@ -17,6 +16,7 @@ use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+use stdClass;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\AggregateCreated;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateAggregate;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateSomething;
@@ -112,7 +112,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ->sendCommand(new StartTicketCommand($ticketId = 1))
             ->getAggregate(Ticket::class, ['ticketId' => $ticketId]);
 
-        $inMemoryDocumentStore->upsertDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), SaveAggregateService::getSnapshotDocumentId(['ticketId' => 1]), new \stdClass());
+        $inMemoryDocumentStore->upsertDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), SaveAggregateService::getSnapshotDocumentId(['ticketId' => 1]), new stdClass());
 
         $ecotoneLite->sendCommand(new AssignWorkerCommand($ticketId, 'johny'));
 
@@ -140,7 +140,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ->sendCommand(new StartTicketCommand($ticketId = 1))
             ->getAggregate(Ticket::class, ['ticketId' => $ticketId]);
 
-        $inMemoryDocumentStore->upsertDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), SaveAggregateService::getSnapshotDocumentId(['ticketId' => 1]), DocumentException::create("failure on conversion"));
+        $inMemoryDocumentStore->upsertDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), SaveAggregateService::getSnapshotDocumentId(['ticketId' => 1]), DocumentException::create('failure on conversion'));
 
         $ecotoneLite->sendCommand(new AssignWorkerCommand($ticketId, 'johny'));
 

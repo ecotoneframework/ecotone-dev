@@ -5,6 +5,7 @@ namespace Ecotone\Messaging\Store\Document;
 use function json_decode;
 
 use JsonException;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -83,7 +84,7 @@ final class InMemoryDocumentStore implements DocumentStore
 
         $document = $this->collection[$collectionName][$documentId];
 
-        if ($document instanceof \Throwable) {
+        if ($document instanceof Throwable) {
             throw $document;
         }
 

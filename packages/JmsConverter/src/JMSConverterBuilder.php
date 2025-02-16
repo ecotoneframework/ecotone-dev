@@ -36,6 +36,9 @@ class JMSConverterBuilder implements CompilableBuilder
                     ? new IdenticalPropertyNamingStrategy()
                     : new CamelCaseNamingStrategy()
             )
+            ->setDocBlockTypeResolver(true)
+            ->enableEnumSupport($jmsConverterConfiguration->isEnumSupportEnabled())
+            ->addDefaultHandlers()
             ->configureHandlers(function (HandlerRegistry $registry) use ($convertersHandlers) {
                 foreach ($convertersHandlers as $converterHandler) {
                     $registry->registerHandler(
@@ -57,7 +60,6 @@ class JMSConverterBuilder implements CompilableBuilder
             $builder->setCacheDir($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'jms');
         }
 
-        $builder->setDocBlockTypeResolver(true);
 
         return new JMSConverter($builder->build(), $jmsConverterConfiguration);
     }
@@ -67,6 +69,7 @@ class JMSConverterBuilder implements CompilableBuilder
         $configuration = new Definition(JMSConverterConfiguration::class, [
             $this->jmsConverterConfiguration->getNamingStrategy(),
             $this->jmsConverterConfiguration->getDefaultNullSerialization(),
+            $this->jmsConverterConfiguration->isEnumSupportEnabled(),
         ]);
         $converterHandlers = [];
         foreach ($this->converterHandlerBuilders as $converterHandlerBuilder) {

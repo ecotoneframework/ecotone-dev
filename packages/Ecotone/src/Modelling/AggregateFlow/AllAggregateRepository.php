@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow;
 
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;
 
 class AllAggregateRepository implements AggregateRepository
@@ -46,10 +47,9 @@ class AllAggregateRepository implements AggregateRepository
         foreach ($this->aggregateRepositories as $aggregateRepository) {
             if ($aggregateRepository->canHandle($aggregate->getAggregateClassName())) {
                 $aggregateRepository->save($aggregate, $metadata, $versionBeforeHandling);
+                return;
             }
         }
+        throw InvalidArgumentException::create('There is no repository available for aggregate: ' . $aggregate->getAggregateClassName() . '. This happens because are multiple Repositories of given type registered, therefore each Repository need to specify which aggregate it can handle. If this fails during Ecotone Lite tests, consider turning off default In Memory implementations.');
     }
-}
-{
-
 }

@@ -28,6 +28,8 @@ use Psr\Log\NullLogger;
 
 class EventSourcedRepositoryAdapter implements AggregateRepository
 {
+    public const SNAPSHOT_COLLECTION = 'aggregate_snapshots_';
+
     private LoggerInterface $logger;
     public function __construct(
         private EventSourcedRepository $eventSourcedRepository,
@@ -61,7 +63,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
                 $documentStore = $this->container->get($config['documentStore']);
 
                 try {
-                    $aggregate = $documentStore->findDocument(SaveAggregateService::getSnapshotCollectionName($aggregateClassName), SaveAggregateService::getSnapshotDocumentId($identifiers));
+                    $aggregate = $documentStore->findDocument(self::getSnapshotCollectionName($aggregateClassName), self::getSnapshotDocumentId($identifiers));
                 } catch (DocumentException $documentException) {
                     $this->logger->error("Failure during loading snapshot for aggregate {$aggregateClassName} with identifiers " . json_encode($identifiers) . '. Snapshot ignored to self system system. Error: ' . $documentException->getMessage(), [
                         'exception' => $documentException,
@@ -107,6 +109,21 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
 
     public function save(ResolvedAggregate $aggregate, array $metadata, ?int $versionBeforeHandling): void
     {
+        $version = $aggregate->getVersionBeforeHandling();
+
+        if ($this->eventSourcingConfiguration->useSnapshotFor($aggregate->getAggregateClassName())) {
+            $snapshotTriggerThreshold = $this->eventSourcingConfiguration->getSnapshotTriggerThresholdFor($aggregate->getAggregateClassName());
+            foreach ($aggregate->getEvents() as $event) {
+                $version += 1;
+                if ($version % $snapshotTriggerThreshold === 0) {
+                    $documentStore = $this->container->get(
+                        $this->eventSourcingConfiguration->getDocumentStoreReferenceFor($aggregate->getAggregateClassName())
+                    );
+                    $documentStore->upsertDocument(self::getSnapshotCollectionName($aggregate->getAggregateClassName()), self::getSnapshotDocumentId($aggregate->getIdentifiers()), $aggregate->getAggregateInstance());
+                }
+            }
+        }
+
         $this->eventSourcedRepository->save(
             $aggregate->getIdentifiers(),
             $aggregate->getAggregateClassDefinition()->getClassName(),
@@ -131,5 +148,15 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
             PropertyPath::createWith($aggregateVersionPropertyName),
             $aggregate
         );
+    }
+
+    private static function getSnapshotCollectionName(string $aggregateClassname): string
+    {
+        return self::SNAPSHOT_COLLECTION . $aggregateClassname;
+    }
+
+    private static function getSnapshotDocumentId(array $identifiers): string
+    {
+        return count($identifiers) === 1 ? (string)reset($identifiers) : json_encode($identifiers);
     }
 }

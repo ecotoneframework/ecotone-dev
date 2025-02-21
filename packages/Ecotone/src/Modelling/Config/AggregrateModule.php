@@ -70,7 +70,6 @@ use Ecotone\Modelling\RepositoryBuilder;
 use Ecotone\Modelling\StandardRepository;
 use InvalidArgumentException;
 use Psr\Container\ContainerInterface;
-use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use ReflectionMethod;
 
@@ -264,7 +263,7 @@ class AggregrateModule implements AnnotationModule
         });
 
 
-        $this->registerForDirectLoadAndSaveOfAggregate($interfaceToCallRegistry, $messagingConfiguration, $baseEventSourcingConfiguration);
+        $this->registerForDirectLoadAndSaveOfAggregate($interfaceToCallRegistry, $messagingConfiguration);
         $this->registerBusinessRepositories($interfaceToCallRegistry, $messagingConfiguration);
 
         foreach ($this->aggregateQueryHandlers as $registration) {
@@ -380,8 +379,7 @@ class AggregrateModule implements AnnotationModule
                         ->withMethodParameterConverters($parameterConverters)
                 )
                 ->chain(
-                    SaveAggregateServiceBuilder::create($baseEventSourcingConfiguration)
-                        ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
+                    SaveAggregateServiceBuilder::create()
                 );
 
             $configuration->registerMessageHandler($serviceActivatorHandler);
@@ -540,7 +538,7 @@ class AggregrateModule implements AnnotationModule
         return $aggregateCommandOrEventHandlers;
     }
 
-    public function registerForDirectLoadAndSaveOfAggregate(InterfaceToCallRegistry $interfaceToCallRegistry, Configuration $messagingConfiguration, BaseEventSourcingConfiguration $baseEventSourcingConfiguration): void
+    public function registerForDirectLoadAndSaveOfAggregate(InterfaceToCallRegistry $interfaceToCallRegistry, Configuration $messagingConfiguration): void
     {
         foreach ($this->aggregateClasses as $aggregateClass) {
             $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($aggregateClass));
@@ -567,8 +565,7 @@ class AggregrateModule implements AnnotationModule
                 MessageProcessorActivatorBuilder::create()
                     ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass))
                     ->chain(
-                        SaveAggregateServiceBuilder::create($baseEventSourcingConfiguration)
-                            ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
+                        SaveAggregateServiceBuilder::create()
                     )
             );
 
@@ -577,8 +574,7 @@ class AggregrateModule implements AnnotationModule
                     MessageProcessorActivatorBuilder::create()
                         ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass) . '.test_setup_state')
                         ->chain(
-                            SaveAggregateServiceBuilder::create($baseEventSourcingConfiguration)
-                                ->withAggregateRepositoryFactories($this->aggregateRepositoryReferenceNames)
+                            SaveAggregateServiceBuilder::create()
                                 ->withPublishEvents(false)
                         )
                 );

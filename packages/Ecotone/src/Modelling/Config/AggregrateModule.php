@@ -284,6 +284,7 @@ class AggregrateModule implements AnnotationModule
                 ->withEndpointId($endpointId)
                 ->withInputChannelName($connectionChannel)
                 ->withOutputMessageChannel($annotation->getOutputChannelName())
+                ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
                 ->chain(TransformerProcessorBuilder::create(
                     TransformerBuilder::createHeaderEnricher([
                         AggregateMessage::CALLED_AGGREGATE_CLASS => $registration->getClassName(),
@@ -306,14 +307,10 @@ class AggregrateModule implements AnnotationModule
                     CallAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), true, $interfaceToCallRegistry)
                         ->withMethodParameterConverters($parameterConverters)
                 )
-                ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames());
-
-            $serviceActivatorHandler->chain(
-                SaveAggregateServiceBuilder::create(
-                    $baseEventSourcingConfiguration
-                )
-                    ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
-            );
+                ->chain(
+                    SaveAggregateServiceBuilder::create($baseEventSourcingConfiguration)
+                        ->withAggregateRepositoryFactories($aggregateRepositoryReferenceNames)
+                );
 
             $configuration->registerMessageHandler($serviceActivatorHandler);
         }
@@ -419,7 +416,6 @@ class AggregrateModule implements AnnotationModule
             if ($aggregateClassDefinition->isEventSourced()) {
                 $eventSourcingExecutors[$aggregateClassDefinition->getClassName()] = EventSourcingHandlerExecutorBuilder::createFor(
                     $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($aggregateClassDefinition->getClassName())),
-                    $aggregateClassDefinition->isEventSourced(),
                     $interfaceToCallRegistry
                 );
             }

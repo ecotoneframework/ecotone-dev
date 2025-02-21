@@ -100,7 +100,9 @@ class LoadAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
         }
 
         $this->messageVersionPropertyName = $aggregateMessageVersionPropertyName;
-        $this->eventSourcingHandlerExecutor = EventSourcingHandlerExecutorBuilder::createFor($aggregateClassDefinition, $this->isEventSourced, $interfaceToCallRegistry);
+        if ($this->isEventSourced) {
+            $this->eventSourcingHandlerExecutor = EventSourcingHandlerExecutorBuilder::createFor($aggregateClassDefinition, $interfaceToCallRegistry);
+        }
     }
 
     private function loadEventSourcingAggregateService(): Definition

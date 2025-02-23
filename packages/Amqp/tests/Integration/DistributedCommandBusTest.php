@@ -13,6 +13,7 @@ use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\DistributedBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
+use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Interceptor\CustomDistributedBusInterceptor;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher\UserService;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceMessagingConfiguration;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceReceiver;
@@ -47,13 +48,31 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
         );
     }
 
+    public function test_intercepting_asynchronous_consumption_on_amqp_distributed_bus(): void
+    {
+        $customDistributedBusInterceptor = new CustomDistributedBusInterceptor();
+        $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()]);
+        $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Interceptor'], [new TicketServiceReceiver(), $customDistributedBusInterceptor,
+            //            'logger' => new EchoLogger(),
+        ]);
+
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
+        self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
+
+        $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'user_service');
+
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
+        self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
+        $this->assertTrue($customDistributedBusInterceptor->wasCalled);
+    }
+
     public function test_distributing_command_misses_heartbeat_and_reconnects(): void
     {
         $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(10000)->withStopOnError(false);
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher'], [new UserService()], amqpConfig: ['heartbeat' => 1]);
         $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver', 'Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler'], [new TicketServiceReceiver([0, 6, 0]), new TicketNotificationEventHandler([0, 6, 0]),
             //            'logger' => new EchoLogger(),
-        ], amqpConfig: ['heartbeat' => 1]);
+        ], amqpConfig: ['heartbeat' => 3]);
 
         $ticketService->run('ticket_service', $executionPollingMetadata);
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));

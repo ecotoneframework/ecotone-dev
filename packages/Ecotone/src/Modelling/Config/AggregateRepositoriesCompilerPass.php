@@ -78,7 +78,7 @@ class AggregateRepositoriesCompilerPass implements CompilerPass
                     new Reference(ContainerInterface::class),
                     new Reference(PropertyEditorAccessor::class),
                     $esRepositoryCount === 1,
-                    new Reference('logger', ContainerImplementation::NULL_ON_INVALID_REFERENCE),
+                    new Reference('logger'),
                 ]);
             } else {
                 throw new InvalidArgumentException("Repository should be either " . StandardRepository::class . " or " . EventSourcedRepository::class);

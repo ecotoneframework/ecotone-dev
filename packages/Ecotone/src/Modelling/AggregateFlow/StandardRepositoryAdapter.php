@@ -46,12 +46,12 @@ class StandardRepositoryAdapter implements AggregateRepository
         );
     }
 
-    public function save(ResolvedAggregate $aggregate, array $metadata, ?int $versionBeforeHandling): void
+    public function save(ResolvedAggregate $aggregate, array $metadata): void
     {
         $this->standardRepository->save(
             $aggregate->getIdentifiers(),
             $aggregate->getAggregateInstance(),
             $metadata,
-            $versionBeforeHandling);
+            $aggregate->getVersionBeforeHandling());
     }
 }

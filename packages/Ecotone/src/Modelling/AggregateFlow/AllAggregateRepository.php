@@ -42,11 +42,11 @@ class AllAggregateRepository implements AggregateRepository
         return null;
     }
 
-    public function save(ResolvedAggregate $aggregate, array $metadata, ?int $versionBeforeHandling): void
+    public function save(ResolvedAggregate $aggregate, array $metadata): void
     {
         foreach ($this->aggregateRepositories as $aggregateRepository) {
             if ($aggregateRepository->canHandle($aggregate->getAggregateClassName())) {
-                $aggregateRepository->save($aggregate, $metadata, $versionBeforeHandling);
+                $aggregateRepository->save($aggregate, $metadata);
                 return;
             }
         }

@@ -7,11 +7,11 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\Config;
 
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
-use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Modelling\AggregateFlow\AllAggregateRepository;
 use Ecotone\Modelling\AggregateFlow\EventSourcedRepositoryAdapter;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
@@ -78,7 +78,7 @@ class AggregateRepositoriesCompilerPass implements CompilerPass
                     new Reference(ContainerInterface::class),
                     new Reference(PropertyEditorAccessor::class),
                     $esRepositoryCount === 1,
-                    new Reference('logger'),
+                    new Reference(LoggingGateway::class),
                 ]);
             } else {
                 throw new InvalidArgumentException("Repository should be either " . StandardRepository::class . " or " . EventSourcedRepository::class);

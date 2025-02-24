@@ -17,7 +17,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\GenericMessage;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
 use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\EventSourcedRepository;
@@ -107,7 +106,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
         );
     }
 
-    public function save(ResolvedAggregate $aggregate, array $metadata, ?int $versionBeforeHandling): void
+    public function save(ResolvedAggregate $aggregate, array $metadata): void
     {
         $version = $aggregate->getVersionBeforeHandling();
 
@@ -129,7 +128,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
             $aggregate->getAggregateClassDefinition()->getClassName(),
             $aggregate->getEvents(),
             $metadata,
-            $versionBeforeHandling);
+            $aggregate->getVersionBeforeHandling());
     }
 
     private function getAggregateVersion(object|array|string $aggregate): mixed

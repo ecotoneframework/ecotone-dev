@@ -1,5 +1,7 @@
 <?php
-
+/*
+ * licence Apache-2.0
+ */
 namespace Ecotone\EventSourcing\Attribute;
 
 use Attribute;
@@ -8,6 +10,6 @@ use Attribute;
 /**
  * licence Apache-2.0
  */
-class ProjectionDelete
+class ProjectionReset
 {
 }

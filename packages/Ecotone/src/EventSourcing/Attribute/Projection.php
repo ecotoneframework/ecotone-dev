@@ -1,5 +1,7 @@
 <?php
-
+/*
+ * licence Apache-2.0
+ */
 namespace Ecotone\EventSourcing\Attribute;
 
 use Attribute;

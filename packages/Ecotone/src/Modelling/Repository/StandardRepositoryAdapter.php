@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Modelling\AggregateFlow;
+namespace Ecotone\Modelling\Repository;
 
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;

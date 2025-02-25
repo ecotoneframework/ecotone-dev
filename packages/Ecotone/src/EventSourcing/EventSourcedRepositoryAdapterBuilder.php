@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Modelling\AggregateFlow;
+namespace Ecotone\EventSourcing;
 
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -14,6 +14,7 @@ use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDef
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
+use Ecotone\Modelling\Repository\AggregateRepositoryBuilder;
 use Psr\Container\ContainerInterface;
 
 class EventSourcedRepositoryAdapterBuilder implements AggregateRepositoryBuilder

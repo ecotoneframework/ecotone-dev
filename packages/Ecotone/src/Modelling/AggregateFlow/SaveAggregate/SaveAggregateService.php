@@ -12,11 +12,11 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\AggregateFlow\AggregateRepository;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
+use Ecotone\Modelling\Repository\AggregateRepository;
 
 /**
  * licence Apache-2.0

@@ -7,9 +7,9 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
-use Ecotone\Modelling\AggregateFlow\AllAggregateRepository;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
 use Ecotone\Modelling\EventBus;
+use Ecotone\Modelling\Repository\AllAggregateRepository;
 
 /**
  * Class AggregateCallingCommandHandlerBuilder

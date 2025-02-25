@@ -4,9 +4,8 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Modelling\AggregateFlow;
+namespace Ecotone\Modelling\Repository;
 
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;
 
@@ -17,7 +16,6 @@ class AllAggregateRepository implements AggregateRepository
      */
     public function __construct(private array $aggregateRepositories)
     {
-        Assert::allInstanceOfType($aggregateRepositories, AggregateRepository::class);
     }
 
     public function canHandle(string $aggregateClassName): bool

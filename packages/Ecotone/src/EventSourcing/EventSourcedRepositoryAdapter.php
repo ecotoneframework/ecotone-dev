@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Modelling\AggregateFlow;
+namespace Ecotone\EventSourcing;
 
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -21,6 +21,7 @@ use Ecotone\Modelling\Attribute\AggregateVersion;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
+use Ecotone\Modelling\Repository\AggregateRepository;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;

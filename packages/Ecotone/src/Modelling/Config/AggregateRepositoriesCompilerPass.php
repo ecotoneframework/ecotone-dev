@@ -9,8 +9,8 @@ namespace Ecotone\Modelling\Config;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Modelling\AggregateFlow\AggregateRepositoryBuilder;
-use Ecotone\Modelling\AggregateFlow\AllAggregateRepository;
+use Ecotone\Modelling\Repository\AggregateRepositoryBuilder;
+use Ecotone\Modelling\Repository\AllAggregateRepository;
 use InvalidArgumentException;
 
 class AggregateRepositoriesCompilerPass implements CompilerPass

@@ -28,11 +28,6 @@ class DoctrineORMRepositoryBuilder implements RepositoryBuilder
         return in_array($aggregateClassName, $this->dbalConfiguration->getDoctrineORMClasses());
     }
 
-    public function isEventSourced(): bool
-    {
-        return false;
-    }
-
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(ManagerRegistryRepository::class, [

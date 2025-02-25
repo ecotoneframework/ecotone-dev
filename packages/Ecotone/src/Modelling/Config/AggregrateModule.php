@@ -13,9 +13,6 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
-use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
-use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -39,9 +36,8 @@ use Ecotone\Messaging\Handler\Transformer\TransformerProcessorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\AggregateFlow\AllAggregateRepository;
+use Ecotone\Modelling\AggregateFlow\AggregateRepositoryBuilder;
 use Ecotone\Modelling\AggregateFlow\CallAggregate\CallAggregateServiceBuilder;
-use Ecotone\Modelling\AggregateFlow\EventSourcedRepositoryAdapter;
 use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateMode;
 use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateServiceBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateClassDefinition;
@@ -49,7 +45,7 @@ use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDef
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceBuilder;
-use Ecotone\Modelling\AggregateFlow\StandardRepositoryAdapter;
+use Ecotone\Modelling\AggregateFlow\StandardRepositoryAdapterBuilder;
 use Ecotone\Modelling\AggregateIdentifierRetrevingServiceBuilder;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Attribute\Aggregate;
@@ -59,17 +55,13 @@ use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\Attribute\RelatedAggregate;
 use Ecotone\Modelling\Attribute\Repository;
-use Ecotone\Modelling\BaseEventSourcingConfiguration;
-use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventSourcingExecutor\EnterpriseAggregateMethodInvoker;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 use Ecotone\Modelling\EventSourcingExecutor\OpenCoreAggregateMethodInvoker;
 use Ecotone\Modelling\FetchAggregate;
 use Ecotone\Modelling\RepositoryBuilder;
-use Ecotone\Modelling\StandardRepository;
 use InvalidArgumentException;
-use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 use ReflectionMethod;
 
@@ -111,7 +103,7 @@ class AggregrateModule implements AnnotationModule
 
         $aggregateRepositoryReferenceNames = [];
         foreach ($aggregateRepositoryClasses as $aggregateRepositoryClass) {
-            $aggregateRepositoryReferenceNames[] = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $aggregateRepositoryClass);
+            $aggregateRepositoryReferenceNames[$aggregateRepositoryClass] = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $aggregateRepositoryClass);
         }
 
         $aggregateClasses = $annotationRegistrationService->findAnnotatedClasses(Aggregate::class);
@@ -169,12 +161,12 @@ class AggregrateModule implements AnnotationModule
         return
             $extensionObject instanceof RepositoryBuilder
             ||
-            $extensionObject instanceof BaseEventSourcingConfiguration;
+            $extensionObject instanceof AggregateRepositoryBuilder;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        return [new StandardRepositoryAdapterBuilder()];
     }
 
     /**
@@ -186,33 +178,35 @@ class AggregrateModule implements AnnotationModule
         $this->initialization($messagingConfiguration, $interfaceToCallRegistry);
 
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
+
+        $repositories = $this->aggregateRepositoryReferenceNames;
+        $aggregateRepositoryBuilders = [];
         foreach ($moduleExtensions as $aggregateRepositoryBuilder) {
+            if ($aggregateRepositoryBuilder instanceof AggregateRepositoryBuilder) {
+                $aggregateRepositoryBuilders[] = $aggregateRepositoryBuilder;
+            }
             if ($aggregateRepositoryBuilder instanceof RepositoryBuilder) {
                 $referenceId = Uuid::uuid4()->toString();
                 $moduleReferenceSearchService->store($referenceId, $aggregateRepositoryBuilder);
-                $this->aggregateRepositoryReferenceNames[$referenceId] = $referenceId;
+                $repositories[$referenceId] = $referenceId;
             }
         }
 
-        $baseEventSourcingConfiguration = new BaseEventSourcingConfiguration();
-        foreach ($moduleExtensions as $moduleExtension) {
-            if ($moduleExtension instanceof BaseEventSourcingConfiguration) {
-                $baseEventSourcingConfiguration = $moduleExtension;
-            }
-        }
-
-        $messagingConfiguration->addCompilerPass(new AggregateRepositoriesCompilerPass($this->aggregateRepositoryReferenceNames, $baseEventSourcingConfiguration));
+        $messagingConfiguration->addCompilerPass(new AggregateRepositoriesCompilerPass(
+            $repositories,
+            $aggregateRepositoryBuilders
+        ));
 
         $this->registerForDirectLoadAndSaveOfAggregate($interfaceToCallRegistry, $messagingConfiguration);
         $this->registerBusinessRepositories($interfaceToCallRegistry, $messagingConfiguration);
 
         foreach ($this->aggregateQueryHandlers as $registration) {
-            $this->registerAggregateQueryHandler($registration, $interfaceToCallRegistry, $parameterConverterAnnotationFactory, $messagingConfiguration, $baseEventSourcingConfiguration);
+            $this->registerAggregateQueryHandler($registration, $interfaceToCallRegistry, $parameterConverterAnnotationFactory, $messagingConfiguration);
         }
 
         foreach ($this->getCombinedCommandAndEventHandlers($interfaceToCallRegistry, $messagingConfiguration) as $channelNameRegistrations) {
             foreach ($channelNameRegistrations as $channelName => $registrations) {
-                $this->registerAggregateCommandHandler($messagingConfiguration, $interfaceToCallRegistry, $this->aggregateRepositoryReferenceNames, $registrations, $channelName, $baseEventSourcingConfiguration);
+                $this->registerAggregateCommandHandler($messagingConfiguration, $interfaceToCallRegistry, $registrations, $channelName);
             }
         }
     }
@@ -220,7 +214,7 @@ class AggregrateModule implements AnnotationModule
     /**
      * @var AnnotatedDefinition[] $registrations
      */
-    private function registerAggregateCommandHandler(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, array $aggregateRepositoryReferenceNames, array $registrations, string $inputChannelNameForRouting, BaseEventSourcingConfiguration $baseEventSourcingConfiguration): void
+    private function registerAggregateCommandHandler(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, array $registrations, string $inputChannelNameForRouting): void
     {
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 
@@ -326,7 +320,7 @@ class AggregrateModule implements AnnotationModule
         }
     }
 
-    private function registerAggregateQueryHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory, Configuration $configuration, BaseEventSourcingConfiguration $baseEventSourcingConfiguration): void
+    private function registerAggregateQueryHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory, Configuration $configuration): void
     {
         /** @var QueryHandler $annotationForMethod */
         $annotationForMethod = $registration->getAnnotationForMethod();

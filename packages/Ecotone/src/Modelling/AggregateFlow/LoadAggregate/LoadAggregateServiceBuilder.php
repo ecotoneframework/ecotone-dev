@@ -10,12 +10,10 @@ use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\AggregateFlow\AllAggregateRepository;
 use Ecotone\Modelling\Attribute\TargetAggregateVersion;
-use Ecotone\Modelling\BaseEventSourcingConfiguration;
 
 /**
  * licence Apache-2.0

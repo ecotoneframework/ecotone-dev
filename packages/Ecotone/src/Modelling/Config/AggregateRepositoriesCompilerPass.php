@@ -9,81 +9,53 @@ namespace Ecotone\Modelling\Config;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Modelling\AggregateFlow\AggregateRepositoryBuilder;
 use Ecotone\Modelling\AggregateFlow\AllAggregateRepository;
-use Ecotone\Modelling\AggregateFlow\EventSourcedRepositoryAdapter;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
-use Ecotone\Modelling\AggregateFlow\StandardRepositoryAdapter;
-use Ecotone\Modelling\BaseEventSourcingConfiguration;
-use Ecotone\Modelling\EventSourcedRepository;
-use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
-use Ecotone\Modelling\StandardRepository;
 use InvalidArgumentException;
-use Psr\Container\ContainerInterface;
 
 class AggregateRepositoriesCompilerPass implements CompilerPass
 {
     /**
-     * @param class-string[] $aggregateRepositoryReferenceNames
+     * @param array<class-string, string> $aggregateRepositoryReferenceNames
+     * @param array<AggregateRepositoryBuilder> $aggregateRepositoryBuilders
      */
-    public function __construct(private array $aggregateRepositoryReferenceNames, private BaseEventSourcingConfiguration $baseEventSourcingConfiguration)
-    {
+    public function __construct(
+        private array $aggregateRepositoryReferenceNames,
+        private array $aggregateRepositoryBuilders,
+    ) {
     }
 
     public function process(ContainerBuilder $builder): void
     {
         $aggregateRepositories = [];
-        $standardRepositoryCount = 0;
-        $esRepositoryCount = 0;
-        foreach ($this->aggregateRepositoryReferenceNames as $referenceId) {
-            if ($builder->has($referenceId)) {
-                $repositoryDefinition = $builder->getDefinition($referenceId);
-                $className = $repositoryDefinition->getClassName();
-            } else if (\class_exists($referenceId)) {
-                $className = $referenceId;
-            } else {
-                throw new InvalidArgumentException("Repository with id {$referenceId} not found, and its class cannot be inferred from its reference id.");
-            }
-            if (\is_a($className, StandardRepository::class, true)) {
-                $standardRepositoryCount++;
-            }
-            if (\is_a($className, EventSourcedRepository::class, true)) {
-                $esRepositoryCount++;
-            }
-        }
-        foreach ($this->aggregateRepositoryReferenceNames as $referenceId) {
-            if ($builder->has($referenceId)) {
-                $repositoryDefinition = $builder->getDefinition($referenceId);
-                $className = $repositoryDefinition->getClassName();
-            } else if (\class_exists($referenceId)) {
-                $className = $referenceId;
-            } else {
-                throw new InvalidArgumentException("Repository with id {$referenceId} not found, and its class cannot be inferred from its reference id.");
-            }
+        $repositoriesLeftToHandle = \array_keys($this->aggregateRepositoryReferenceNames);
 
-            if (\is_a($className, StandardRepository::class, true)) {
-                $aggregateRepositories[] = new Definition(StandardRepositoryAdapter::class, [
-                    new Reference($referenceId),
-                    new Reference(AggregateDefinitionRegistry::class),
-                    $standardRepositoryCount === 1,
-                ]);
-            } elseif (\is_a($className, EventSourcedRepository::class, true)) {
-                $aggregateRepositories[] = new Definition(EventSourcedRepositoryAdapter::class, [
-                    new Reference($referenceId),
-                    new Reference(AggregateDefinitionRegistry::class),
-                    $this->baseEventSourcingConfiguration,
-                    new Reference(GroupedEventSourcingExecutor::class),
-                    new Reference(ContainerInterface::class),
-                    new Reference(PropertyEditorAccessor::class),
-                    $esRepositoryCount === 1,
-                    new Reference(LoggingGateway::class),
-                ]);
-            } else {
-                throw new InvalidArgumentException("Repository should be either " . StandardRepository::class . " or " . EventSourcedRepository::class);
+        foreach ($this->aggregateRepositoryBuilders as $aggregateRepositoryBuilder) {
+            $aggregateRepositoriesForThisBuilder = [];
+            foreach ($this->aggregateRepositoryReferenceNames as $classNameOrReferenceId => $referenceId) {
+                if (!\class_exists($classNameOrReferenceId)) {
+                    if ($builder->has($referenceId)) {
+                        $className = $builder->getDefinition($referenceId)->getClassName();
+                    } else {
+                        throw new InvalidArgumentException("Class $classNameOrReferenceId does not exist and there is no service registered under $referenceId");
+                    }
+                } else {
+                    $className = $classNameOrReferenceId;
+                }
+                if ($aggregateRepositoryBuilder->canHandle($className)) {
+                    $aggregateRepositoriesForThisBuilder[] = $referenceId;
+                    $repositoriesLeftToHandle = \array_diff($repositoriesLeftToHandle, [$classNameOrReferenceId]);
+                }
+            }
+            foreach ($aggregateRepositoriesForThisBuilder as $referenceId) {
+                $aggregateRepositories[] = $aggregateRepositoryBuilder->compile($referenceId, count($aggregateRepositoriesForThisBuilder) === 1);
             }
         }
+
+        if (!empty($repositoriesLeftToHandle)) {
+            throw new InvalidArgumentException("No repository builder found for " . \implode(", ", $repositoriesLeftToHandle));
+        }
+
         $builder->register(AllAggregateRepository::class, new Definition(AllAggregateRepository::class, [$aggregateRepositories]));
     }
 }

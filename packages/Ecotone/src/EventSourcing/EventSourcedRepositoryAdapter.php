@@ -30,7 +30,6 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
 {
     public const SNAPSHOT_COLLECTION = 'aggregate_snapshots_';
 
-    private LoggerInterface $logger;
     public function __construct(
         private EventSourcedRepository $eventSourcedRepository,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
@@ -39,9 +38,8 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
         private ContainerInterface $container,
         private PropertyEditorAccessor $propertyEditorAccessor,
         private bool $isDefaultRepository = false,
-        ?LoggerInterface $logger = null,
+        private LoggerInterface $logger,
     ) {
-        $this->logger = $logger ?? new NullLogger();
     }
 
     public function canHandle(string $aggregateClassName): bool

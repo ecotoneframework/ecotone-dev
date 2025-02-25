@@ -39,11 +39,6 @@ final class EventSourcingRepositoryBuilder implements RepositoryBuilder
         return $this;
     }
 
-    public function isEventSourced(): bool
-    {
-        return true;
-    }
-
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(EventSourcingRepository::class, [

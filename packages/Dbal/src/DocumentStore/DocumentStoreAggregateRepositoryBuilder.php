@@ -21,11 +21,6 @@ final class DocumentStoreAggregateRepositoryBuilder implements RepositoryBuilder
         return true;
     }
 
-    public function isEventSourced(): bool
-    {
-        return false;
-    }
-
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(DocumentStoreAggregateRepository::class, [

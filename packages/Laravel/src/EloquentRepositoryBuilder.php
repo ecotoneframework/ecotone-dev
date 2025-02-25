@@ -24,11 +24,6 @@ final class EloquentRepositoryBuilder implements RepositoryBuilder
         return $this->eloquentRepository->canHandle($aggregateClassName);
     }
 
-    public function isEventSourced(): bool
-    {
-        return false;
-    }
-
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         return new Definition(EloquentRepository::class);

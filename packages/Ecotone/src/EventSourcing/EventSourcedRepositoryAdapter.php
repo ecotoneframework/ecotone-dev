@@ -24,7 +24,6 @@ use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 use Ecotone\Modelling\Repository\AggregateRepository;
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
 class EventSourcedRepositoryAdapter implements AggregateRepository
 {
@@ -37,7 +36,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
         private GroupedEventSourcingExecutor $eventSourcingHandlerExecutor,
         private ContainerInterface $container,
         private PropertyEditorAccessor $propertyEditorAccessor,
-        private bool $isDefaultRepository = false,
+        private bool $isDefaultRepository,
         private LoggerInterface $logger,
     ) {
     }

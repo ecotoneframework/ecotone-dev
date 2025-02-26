@@ -383,9 +383,9 @@ class AggregrateModule implements AnnotationModule
         return self::getAggregateRepositoryInputChannel($className, '.will_load', false, $allowNulls);
     }
 
-    public static function getRegisterAggregateSaveRepositoryInputChannel(string $className): string
+    public static function getRegisterAggregateSaveRepositoryInputChannel(string $className, bool $forTesting = false): string
     {
-        return self::getAggregateRepositoryInputChannel($className, '.will_save', true, false);
+        return self::getAggregateRepositoryInputChannel($className, '.will_save', true, false) . ($forTesting ? '.test_setup_state' : '');
     }
 
     public static function getAggregateRepositoryInputChannel(string $className, string $methodName1, bool $isSave, bool $canReturnNull): string
@@ -506,10 +506,10 @@ class AggregrateModule implements AnnotationModule
             if ($messagingConfiguration->isRunningForTest()) {
                 $messagingConfiguration->registerMessageHandler(
                     MessageProcessorActivatorBuilder::create()
-                        ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass) . '.test_setup_state')
+                        ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass, forTesting: true))
+                        ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], null, $interfaceToCallRegistry))
                         ->chain(
-                            SaveAggregateServiceBuilder::create()
-                                ->withPublishEvents(false)
+                            SaveAggregateServiceBuilder::create()->withPublishEvents(false)
                         )
                 );
             }

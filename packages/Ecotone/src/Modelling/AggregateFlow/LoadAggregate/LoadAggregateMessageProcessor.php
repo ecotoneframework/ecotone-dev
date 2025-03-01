@@ -12,9 +12,11 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\Repository\AggregateRepository;
+use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 
 /**
  * licence Apache-2.0
@@ -35,7 +37,9 @@ final class LoadAggregateMessageProcessor implements MessageProcessor
     {
         $resultMessage = MessageBuilder::fromMessage($message);
 
-        $aggregateIdentifiers = $message->getHeaders()->get(AggregateMessage::AGGREGATE_ID);
+        $aggregateIdentifiers = AggregateIdMetadata::createFrom(
+            $message->getHeaders()->get(AggregateMessage::AGGREGATE_ID)
+        )->getIdentifiers();
 
         foreach ($aggregateIdentifiers as $identifierName => $aggregateIdentifier) {
             if (is_null($aggregateIdentifier)) {

@@ -9,6 +9,7 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\WithEvents;
 
 #[Aggregate]
 /**
@@ -16,6 +17,8 @@ use Ecotone\Modelling\Attribute\QueryHandler;
  */
 final class Calendar
 {
+    use WithEvents;
+
     private array $meetings = [];
 
     public function __construct(#[Identifier] private string $calendarId)
@@ -28,11 +31,12 @@ final class Calendar
         return new self($command->calendarId);
     }
 
-    #[CommandHandler(endpointId: 'calendar.schedule-meeting')]
     #[Asynchronous(channelName: 'async')]
+    #[CommandHandler(endpointId: 'calendar.schedule-meeting')]
     public function scheduleMeeting(ScheduleMeeting $command, array $metadata): void
     {
         $this->meetings[] = ['id' => $command->meetingId, 'metadata' => $metadata];
+        $this->recordThat(new MeetingCreated($this->calendarId));
     }
 
     /**

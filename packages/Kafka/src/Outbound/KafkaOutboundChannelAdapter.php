@@ -51,13 +51,16 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             $partitionKey = $message->getHeaders()->getMessageId();
         }
 
+        $headers = $outboundMessage->getHeaders();
+        unset($headers[KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME]);
+
         $topic->producev(
             RD_KAFKA_PARTITION_UA,
             0,
             $outboundMessage->getPayload(),
             $partitionKey,
             array_merge(
-                $outboundMessage->getHeaders(),
+                $headers,
                 [
                     KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME => $partitionKey
                 ]

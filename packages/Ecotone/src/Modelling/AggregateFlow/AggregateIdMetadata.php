@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow;
 
+use function json_decode;
+
 /**
  * licence Apache-2.0
  */
@@ -21,7 +23,7 @@ final class AggregateIdMetadata
     {
         if (! is_array($identifiers) && ! $identifiers instanceof self) {
             return new self(
-                \json_decode($identifiers, true, 512, JSON_THROW_ON_ERROR)
+                json_decode($identifiers, true, 512, JSON_THROW_ON_ERROR)
             );
         }
 

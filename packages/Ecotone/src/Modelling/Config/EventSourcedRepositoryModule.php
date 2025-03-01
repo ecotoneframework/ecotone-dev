@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -20,7 +21,6 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
 #[ModuleAnnotation]
 class EventSourcedRepositoryModule implements AnnotationModule
 {
-
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         return new self();

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow;
 
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
-use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;

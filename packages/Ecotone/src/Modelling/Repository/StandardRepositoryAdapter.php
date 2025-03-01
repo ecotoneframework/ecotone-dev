@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -52,6 +53,7 @@ class StandardRepositoryAdapter implements AggregateRepository
             $aggregate->getIdentifiers(),
             $aggregate->getAggregateInstance(),
             $metadata,
-            $aggregate->getVersionBeforeHandling());
+            $aggregate->getVersionBeforeHandling()
+        );
     }
 }

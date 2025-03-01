@@ -88,7 +88,7 @@ final class KafkaChannelAdapterTest extends TestCase
             'metadata' => [MessageHeaders::MESSAGE_ID => $messageId],
             'expectedKey' => $messageId,
         ];
-        yield "with event aggregate id as partition key" => [
+        yield 'with event aggregate id as partition key' => [
             'metadata' => [MessageHeaders::MESSAGE_ID => $messageId, MessageHeaders::EVENT_AGGREGATE_ID => $eventAggregateId],
             'expectedKey' => $eventAggregateId,
         ];
@@ -130,7 +130,7 @@ final class KafkaChannelAdapterTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [ExampleKafkaConsumer::class],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new ExampleKafkaConsumer(),
-//                'logger' => new EchoLogger()
+                //                'logger' => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))

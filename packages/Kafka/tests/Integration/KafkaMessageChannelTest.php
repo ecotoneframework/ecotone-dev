@@ -17,15 +17,15 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
-use Test\Ecotone\Kafka\Fixture\Calendar\Calendar;
-use Test\Ecotone\Kafka\Fixture\Calendar\MeetingHistory;
-use Test\Ecotone\Kafka\Fixture\Calendar\CreateCalendar;
-use Test\Ecotone\Kafka\Fixture\Calendar\ScheduleMeeting;
 use function getenv;
 
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
+use Test\Ecotone\Kafka\Fixture\Calendar\Calendar;
+use Test\Ecotone\Kafka\Fixture\Calendar\CreateCalendar;
+use Test\Ecotone\Kafka\Fixture\Calendar\MeetingHistory;
+use Test\Ecotone\Kafka\Fixture\Calendar\ScheduleMeeting;
 use Test\Ecotone\Kafka\Fixture\Handler\ExampleCommand;
 use Test\Ecotone\Kafka\Fixture\Handler\ExampleEvent;
 use Test\Ecotone\Kafka\Fixture\Handler\KafkaAsyncCommandHandler;
@@ -122,7 +122,7 @@ final class KafkaMessageChannelTest extends TestCase
             ->sendCommand(
                 new ScheduleMeeting($calendarId, Uuid::uuid4()->toString()),
                 metadata: [
-                    KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME => '123'
+                    KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME => '123',
                 ]
             );
 
@@ -322,7 +322,7 @@ final class KafkaMessageChannelTest extends TestCase
             [KafkaAsyncEventHandler::class],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(),
-//                'logger' => new EchoLogger(),
+                //                'logger' => new EchoLogger(),
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))

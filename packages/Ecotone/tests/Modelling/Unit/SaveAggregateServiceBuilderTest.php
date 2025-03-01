@@ -46,7 +46,6 @@ use Test\Ecotone\Modelling\Fixture\Ticket\AssignWorkerCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\StartTicketCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
 use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
-use Test\Ecotone\Modelling\Fixture\Ticket\WorkerAssignationFailedEvent;
 use Test\Ecotone\Modelling\Fixture\Ticket\WorkerWasAssignedEvent;
 
 /**

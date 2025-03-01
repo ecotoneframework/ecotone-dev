@@ -7,7 +7,6 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\InMemoryArticleStandardRepository;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -91,7 +92,12 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
         $aggregateClassDefinition = $this->aggregateDefinitionRegistry->getFor($aggregateClassName);
         if (! is_null($aggregateVersion) && $aggregateClassDefinition->isAggregateVersionAutomaticallyIncreased()) {
             $this->propertyEditorAccessor->enrichDataWith(
-                PropertyPath::createWith($aggregateClassDefinition->getAggregateVersionProperty()), $aggregate, $aggregateVersion, GenericMessage::createWithEmptyHeaders(""), null);
+                PropertyPath::createWith($aggregateClassDefinition->getAggregateVersionProperty()),
+                $aggregate,
+                $aggregateVersion,
+                GenericMessage::createWithEmptyHeaders(''),
+                null
+            );
         }
 
         return new ResolvedAggregate(
@@ -126,7 +132,8 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
             $aggregate->getAggregateClassDefinition()->getClassName(),
             $aggregate->getEvents(),
             $metadata,
-            $aggregate->getVersionBeforeHandling());
+            $aggregate->getVersionBeforeHandling()
+        );
     }
 
     private function getAggregateVersion(object|array|string $aggregate): mixed

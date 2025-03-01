@@ -13,6 +13,9 @@ use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 
+/**
+ * licence Apache-2.0
+ */
 final class AggregateIdMetadataConverter implements CompilableBuilder, Converter
 {
     public function from(AggregateIdMetadata $aggregateIdMetadata): string

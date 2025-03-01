@@ -5,6 +5,7 @@ namespace Ecotone\Messaging;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
 use Ecotone\Modelling\Config\MessageBusChannel;
@@ -286,7 +287,7 @@ final class MessageHeaders
     public static function unsetAggregateKeys(array $metadata): array
     {
         unset(
-            $metadata[AggregateMessage::AGGREGATE_ID],
+            $metadata[AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER],
             $metadata[AggregateMessage::CALLED_AGGREGATE_INSTANCE],
             $metadata[AggregateMessage::CALLED_AGGREGATE_CLASS],
             $metadata[AggregateMessage::RECORDED_AGGREGATE_EVENTS],

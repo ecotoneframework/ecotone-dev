@@ -17,6 +17,9 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
+use Test\Ecotone\Kafka\Fixture\Calendar\Calendar;
+use Test\Ecotone\Kafka\Fixture\Calendar\CreateCalendar;
+use Test\Ecotone\Kafka\Fixture\Calendar\ScheduleMeeting;
 use function getenv;
 
 use PHPUnit\Framework\TestCase;
@@ -74,12 +77,35 @@ final class KafkaMessageChannelTest extends TestCase
         $receivedMessage = $messaging->sendQueryWithRouting('consumer.getMessages');
         $this->assertEquals($messagePayload, $receivedMessage[0]['payload']);
         $this->assertEquals($metadata[MessageHeaders::MESSAGE_ID], $receivedMessage[0]['headers'][MessageHeaders::MESSAGE_ID]);
+        $this->assertEquals($metadata[MessageHeaders::MESSAGE_ID], $receivedMessage[0]['headers'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
         $this->assertEquals($metadata[MessageHeaders::TIMESTAMP], $receivedMessage[0]['headers'][MessageHeaders::TIMESTAMP]);
         $this->assertEquals($topicName, $receivedMessage[0]['headers'][KafkaHeader::TOPIC_HEADER_NAME]);
         $this->assertEquals(0, $receivedMessage[0]['headers'][KafkaHeader::PARTITION_HEADER_NAME]);
         $this->assertEquals(0, $receivedMessage[0]['headers'][KafkaHeader::OFFSET_HEADER_NAME]);
         $this->assertEquals($channelName, $receivedMessage[0]['headers'][MessageHeaders::POLLED_CHANNEL_NAME]);
         $this->assertEquals(MediaType::createApplicationXPHPSerialized()->toString(), $receivedMessage[0]['headers'][MessageHeaders::CONTENT_TYPE]);
+    }
+
+    public function test_executing_aggregate_instance_by_command_identifier_from_correct_partition()
+    {
+        $channelName = 'async';
+        $calendarId = Uuid::uuid4()->toString();
+
+        $messaging = $this->prepareAsyncCommandHandler($channelName, Uuid::uuid4()->toString());
+
+        $messaging
+            ->sendCommand(new CreateCalendar($calendarId))
+            ;
+
+        $messaging
+            ->sendCommand(new ScheduleMeeting($calendarId, $meetingId = Uuid::uuid4()->toString()));
+
+        $messaging->run($channelName);
+
+//        $meetings = $messaging->sendQueryWithRouting('calendar.getMeetings', metadata: ['aggregate.id' => $calendarId]);
+//
+//        $this->assertEquals($meetingId, $meetings[0]['id']);
+//        $this->assertEquals($calendarId, $meetings[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
     }
 
     public function test_failing_to_consume_due_to_connection_failure()
@@ -243,7 +269,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function prepareAsyncCommandHandler(string $channelName, ?string $topicName = null): \Ecotone\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            [KafkaAsyncCommandHandler::class],
+            [KafkaAsyncCommandHandler::class, Calendar::class],
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                     getenv('KAFKA_DSN') ?? 'localhost:9094',

@@ -20,6 +20,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Conversion\SerializedToObject\DeserializingConverterBuilder;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -36,6 +37,7 @@ use Ecotone\Messaging\Handler\Transformer\TransformerProcessorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Modelling\AggregateFlow\AggregateIdMetadataConverter;
 use Ecotone\Modelling\AggregateFlow\CallAggregate\CallAggregateServiceBuilder;
 use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateMode;
 use Ecotone\Modelling\AggregateFlow\LoadAggregate\LoadAggregateServiceBuilder;
@@ -175,6 +177,7 @@ class AggregrateModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $moduleExtensions, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $messagingConfiguration->registerServiceDefinition(EventMapper::class, $this->eventMapper->compile());
+        $messagingConfiguration->registerConverter(new AggregateIdMetadataConverter());
         $this->initialization($messagingConfiguration, $interfaceToCallRegistry);
 
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
@@ -260,6 +263,7 @@ class AggregrateModule implements AnnotationModule
                         LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $factoryHandledPayloadType, LoadAggregateMode::createContinueOnNotFound())
 
                     )
+                    ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
                     ->chain(RouterProcessorBuilder::createHeaderExistsRouter(AggregateMessage::CALLED_AGGREGATE_INSTANCE, $actionChannels[0], $factoryChannel))
             );
         }
@@ -278,12 +282,25 @@ class AggregrateModule implements AnnotationModule
                 ? ($isFactoryMethod ? $factoryChannel : $actionChannels[0])
                 : MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
             if (! $hasFactoryAndActionRedirect) {
-                $configuration->registerMessageHandler(
-                    BridgeBuilder::create()
-                        ->withInputChannelName($inputChannelNameForRouting)
-                        ->withOutputMessageChannel($connectionChannel)
-                        ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
-                );
+                if ($isFactoryMethod) {
+                    $configuration->registerMessageHandler(
+                        BridgeBuilder::create()
+                            ->withInputChannelName($inputChannelNameForRouting)
+                            ->withOutputMessageChannel($connectionChannel)
+                            ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
+                    );
+                }else {
+                    $handledPayloadType = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
+                    $handledPayloadType = $handledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($handledPayloadType)) : null;
+
+                    $configuration->registerMessageHandler(
+                        MessageProcessorActivatorBuilder::create()
+                            ->withInputChannelName($inputChannelNameForRouting)
+                            ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getIdentifierMapping(), $handledPayloadType, $interfaceToCallRegistry))
+                            ->withOutputMessageChannel($connectionChannel)
+                            ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
+                    );
+                }
             }
 
             $serviceActivatorHandler = MessageProcessorActivatorBuilder::create()
@@ -301,7 +318,7 @@ class AggregrateModule implements AnnotationModule
                 $handledPayloadType = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
                 $handledPayloadType = $handledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($handledPayloadType)) : null;
                 $serviceActivatorHandler
-                    ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getIdentifierMapping(), $handledPayloadType, $interfaceToCallRegistry))
+//                    ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getIdentifierMapping(), $handledPayloadType, $interfaceToCallRegistry))
                     ->chain(
                         LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $handledPayloadType, $dropMessageOnNotFound ? LoadAggregateMode::createDropMessageOnNotFound() : LoadAggregateMode::createThrowOnNotFound())
                     );
@@ -498,9 +515,8 @@ class AggregrateModule implements AnnotationModule
             $messagingConfiguration->registerMessageHandler(
                 MessageProcessorActivatorBuilder::create()
                     ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass))
-                    ->chain(
-                        SaveAggregateServiceBuilder::create()
-                    )
+                    ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], null, $interfaceToCallRegistry))
+                    ->chain(SaveAggregateServiceBuilder::create())
             );
 
             if ($messagingConfiguration->isRunningForTest()) {
@@ -508,9 +524,7 @@ class AggregrateModule implements AnnotationModule
                     MessageProcessorActivatorBuilder::create()
                         ->withInputChannelName(self::getRegisterAggregateSaveRepositoryInputChannel($aggregateClass, forTesting: true))
                         ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], null, $interfaceToCallRegistry))
-                        ->chain(
-                            SaveAggregateServiceBuilder::create()->withPublishEvents(false)
-                        )
+                        ->chain(SaveAggregateServiceBuilder::create()->withPublishEvents(false))
                 );
             }
         }
@@ -536,7 +550,7 @@ class AggregrateModule implements AnnotationModule
                     $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($relatedAggregate->getClassName()));
 
                     $gatewayParameterConverters = [
-                        GatewayHeaderBuilder::create($interface->getFirstParameterName(), AggregateMessage::AGGREGATE_ID),
+                        GatewayHeaderBuilder::create($interface->getFirstParameterName(), AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER),
                         GatewayHeaderBuilder::create($interface->getSecondParameter()->getName(), AggregateMessage::TARGET_VERSION),
                         GatewayPayloadBuilder::create($interface->getThirdParameter()),
                         GatewayHeaderValueBuilder::create(AggregateMessage::CALLED_AGGREGATE_CLASS, $aggregateClassDefinition->getClassType()->toString()),

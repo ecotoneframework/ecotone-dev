@@ -217,7 +217,6 @@ final class MessageHeaders
         $metadata = self::unsetEnqueueMetadata($metadata);
         $metadata = self::unsetDistributionKeys($metadata);
         $metadata = self::unsetBusKeys($metadata);
-        unset($metadata[AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER]);
 
         return self::unsetAggregateKeys($metadata);
     }

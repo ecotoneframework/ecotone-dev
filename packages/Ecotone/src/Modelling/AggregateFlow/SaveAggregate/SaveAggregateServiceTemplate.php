@@ -144,6 +144,8 @@ class SaveAggregateServiceTemplate
                 $event = $event->getPayload();
             }
             $eventMetadata = MessageHeaders::unsetAllFrameworkHeaders($eventMetadata);
+            /** This need to be removed explicitly after saving, to be passed correctly across asynchronous message channels */
+            unset($eventMetadata[AggregateMessage::AGGREGATE_ID]);
             $eventMetadata = $headerMapper->mapFromMessageHeaders($eventMetadata, $conversionService);
 
             $eventMetadata = RevisionMetadataEnricher::enrich($eventMetadata, $event);

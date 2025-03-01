@@ -91,21 +91,19 @@ final class KafkaMessageChannelTest extends TestCase
         $channelName = 'async';
         $calendarId = Uuid::uuid4()->toString();
 
-        $messaging = $this->prepareAsyncCommandHandler($channelName, Uuid::uuid4()->toString());
-
-        $messaging
-            ->sendCommand(new CreateCalendar($calendarId))
-            ;
+        $messaging = $this
+            ->prepareAsyncCommandHandler($channelName, Uuid::uuid4()->toString())
+            ->sendCommand(new CreateCalendar($calendarId));
 
         $messaging
             ->sendCommand(new ScheduleMeeting($calendarId, $meetingId = Uuid::uuid4()->toString()));
 
-        $messaging->run($channelName);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
 
-//        $meetings = $messaging->sendQueryWithRouting('calendar.getMeetings', metadata: ['aggregate.id' => $calendarId]);
-//
-//        $this->assertEquals($meetingId, $meetings[0]['id']);
-//        $this->assertEquals($calendarId, $meetings[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
+        $meetings = $messaging->sendQueryWithRouting('calendar.getMeetings', metadata: ['aggregate.id' => $calendarId]);
+
+        $this->assertEquals($meetingId, $meetings[0]['id']);
+        $this->assertEquals($calendarId, $meetings[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
     }
 
     public function test_failing_to_consume_due_to_connection_failure()
@@ -273,7 +271,8 @@ final class KafkaMessageChannelTest extends TestCase
             [
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([
                     getenv('KAFKA_DSN') ?? 'localhost:9094',
-                ]), new KafkaAsyncCommandHandler(), 'logger' => new EchoLogger(),
+                ]), new KafkaAsyncCommandHandler(),
+                //'logger' => new EchoLogger(),
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
@@ -293,7 +292,8 @@ final class KafkaMessageChannelTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [KafkaAsyncEventHandler::class],
             [
-                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(), 'logger' => new EchoLogger(),
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(),
+//                'logger' => new EchoLogger(),
             ],
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))

@@ -92,12 +92,12 @@ final class KafkaChannelAdapterTest extends TestCase
             'metadata' => [MessageHeaders::MESSAGE_ID => $messageId, MessageHeaders::EVENT_AGGREGATE_ID => $eventAggregateId],
             'expectedKey' => $eventAggregateId,
         ];
-        yield 'with only partition key header' => [
-            'metadata' => [MessageHeaders::MESSAGE_ID => $messageId, MessageHeaders::EVENT_AGGREGATE_ID => $eventAggregateId, AggregateMessage::AGGREGATE_ID => $aggregateId],
+        yield 'with target aggregate id header' => [
+            'metadata' => [MessageHeaders::MESSAGE_ID => $messageId, MessageHeaders::EVENT_AGGREGATE_ID => $eventAggregateId, AggregateMessage::AGGREGATE_ID => ['orderId' => $aggregateId]],
             'expectedKey' => $aggregateId,
         ];
         yield 'with custom partition key' => [
-            'metadata' => [MessageHeaders::MESSAGE_ID => $messageId, MessageHeaders::EVENT_AGGREGATE_ID => $eventAggregateId, AggregateMessage::AGGREGATE_ID => $aggregateId, KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME => $customKey],
+            'metadata' => [MessageHeaders::MESSAGE_ID => $messageId, MessageHeaders::EVENT_AGGREGATE_ID => $eventAggregateId, AggregateMessage::AGGREGATE_ID => ['orderId' => $aggregateId], KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME => $customKey],
             'expectedKey' => $customKey,
         ];
     }
@@ -129,7 +129,9 @@ final class KafkaChannelAdapterTest extends TestCase
     {
         return EcotoneLite::bootstrapFlowTesting(
             [ExampleKafkaConsumer::class],
-            [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new ExampleKafkaConsumer(), 'logger' => new EchoLogger()],
+            [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new ExampleKafkaConsumer(),
+//                'logger' => new EchoLogger()
+            ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([

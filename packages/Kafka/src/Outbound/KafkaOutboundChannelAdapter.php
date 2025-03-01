@@ -12,6 +12,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 use Ecotone\Modelling\AggregateMessage;
 
 /**
@@ -43,7 +44,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         if ($message->getHeaders()->containsKey(KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME)) {
             $partitionKey = $message->getHeaders()->get(KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME);
         } elseif ($message->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)) {
-            $partitionKey = $message->getHeaders()->get(AggregateMessage::AGGREGATE_ID);
+            $partitionKey = implode(",", array_values(AggregateIdMetadata::createFrom($message->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers()));
         } elseif ($message->getHeaders()->containsKey(MessageHeaders::EVENT_AGGREGATE_ID)) {
             $partitionKey = $message->getHeaders()->get(MessageHeaders::EVENT_AGGREGATE_ID);
         } else {

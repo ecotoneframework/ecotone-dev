@@ -23,6 +23,7 @@ use Test\Ecotone\Modelling\Fixture\Renter\Appointment;
 use Test\Ecotone\Modelling\Fixture\Renter\AppointmentRepositoryInterface;
 use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStandardRepository;
 use Test\Ecotone\Modelling\Fixture\Renter\CreateAppointmentCommand;
+use Test\Ecotone\Modelling\Fixture\Saga\BeforeFinishOrder;
 use Test\Ecotone\Modelling\Fixture\Saga\OrderFulfilment;
 use Test\Ecotone\Modelling\Fixture\Saga\PaymentWasDoneEvent;
 
@@ -51,8 +52,27 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
             'done',
             EcotoneLite::bootstrapFlowTesting(classesToResolve: [OrderFulfilment::class])
                 ->sendCommandWithRoutingKey('order.start', $oderId = 100)
-                ->publishEvent(PaymentWasDoneEvent::create(), metadata: ['paymentId' => $oderId])
+                ->publishEvent(PaymentWasDoneEvent::create($oderId), metadata: ['paymentId' => $oderId])
                 ->sendQueryWithRouting('order.status', metadata: ['aggregate.id' => $oderId])
+        );
+    }
+
+    public function test_loading_aggregate_by_metadata_using_interceptor()
+    {
+        $this->assertEquals(
+            'done',
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [
+                    OrderFulfilment::class,
+                    BeforeFinishOrder::class
+                ],
+                containerOrAvailableServices: [
+                    new BeforeFinishOrder()
+                ],
+            )
+            ->sendCommandWithRoutingKey('order.start', $oderId = 100)
+            ->publishEvent(PaymentWasDoneEvent::create($oderId))
+            ->sendQueryWithRouting('order.status', metadata: ['aggregate.id' => $oderId])
         );
     }
 

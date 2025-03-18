@@ -62,10 +62,10 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [
                 OrderFulfilment::class,
-                BeforeFinishOrder::class
+                BeforeFinishOrder::class,
             ],
             containerOrAvailableServices: [
-                new BeforeFinishOrder()
+                new BeforeFinishOrder(),
             ],
         );
         $ecotone->sendCommandWithRoutingKey('order.start', $oderId = 100);

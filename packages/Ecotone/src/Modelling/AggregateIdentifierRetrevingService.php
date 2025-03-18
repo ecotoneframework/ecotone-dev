@@ -101,7 +101,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             ]);
         }
 
-        if (!AggregateIdResolver::canResolveAggregateId($this->aggregateClassName, $aggregateIdentifiers)) {
+        if (! AggregateIdResolver::canResolveAggregateId($this->aggregateClassName, $aggregateIdentifiers)) {
             return $message;
         }
 

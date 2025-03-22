@@ -15,7 +15,7 @@ The roots of Object Oriented Programming (OOP) were mainly about communication u
 `Ecotone` aims to return to the origins of OOP, by providing tools which allows us to fully move the focus from Objects to Flows, from Data storage to Application Design, from Technicalities to Business logic.  
 Ecotone does that by making Messages first class-citizen in our Applications.
 
-Thanks to being Message-Driven at the foundation level, Ecotone provides architecture which is resilient and scalable by default. Making it possible for Developers to focus on business problems instead of technical concerns.      
+Thanks to being Message-Driven at the foundation level, Ecotone provides architecture which is resilient and scalable by default, making it possible for Developers to focus on business problems instead of technical concerns.      
 Together with declarative configuration and higher level building blocks, it makes the system design explicit, easy to follow and change no matter of Developers experience.
 
 Visit main page [ecotone.tech](https://ecotone.tech) to learn more.

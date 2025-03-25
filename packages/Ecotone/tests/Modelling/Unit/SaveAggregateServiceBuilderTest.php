@@ -42,12 +42,9 @@ use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitterWithRe
 use Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\TwitWasCreated;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\NoIdDefinedAfterRecordingEvents;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\PublicIdentifierGetMethodWithParameters;
-use Test\Ecotone\Modelling\Fixture\SimplifiedAggregate\SimplifiedAggregate;
 use Test\Ecotone\Modelling\Fixture\Ticket\AssignWorkerCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\StartTicketCommand;
 use Test\Ecotone\Modelling\Fixture\Ticket\Ticket;
-use Test\Ecotone\Modelling\Fixture\Ticket\TicketWasStartedEvent;
-use Test\Ecotone\Modelling\Fixture\Ticket\WorkerWasAssignedEvent;
 
 /**
  * Class ServiceCallToAggregateAdapterTest

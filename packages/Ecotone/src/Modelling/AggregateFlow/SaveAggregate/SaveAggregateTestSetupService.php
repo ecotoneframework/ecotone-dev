@@ -30,7 +30,8 @@ final class SaveAggregateTestSetupService implements MessageProcessor
         private HeaderMapper $headerMapper,
         private EventMapper $eventMapper,
         private AggregateRepository $aggregateRepository,
-    ) { }
+    ) {
+    }
 
     public function process(Message $message): Message|null
     {

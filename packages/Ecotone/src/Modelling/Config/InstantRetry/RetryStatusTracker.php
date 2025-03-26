@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\InstantRetry;
 
+/**
+ * licence Apache-2.0
+ */
 final class RetryStatusTracker
 {
     public function __construct(

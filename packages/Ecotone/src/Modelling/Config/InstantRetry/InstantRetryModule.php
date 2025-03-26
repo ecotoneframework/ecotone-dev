@@ -73,7 +73,7 @@ final class InstantRetryModule implements AnnotationModule
 
     private function registerInterceptor(Configuration $messagingConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry, int $retryAttempt, array $exceptions, string $pointcut): void
     {
-        $instantRetryId = Uuid::uuid7()->toString();
+        $instantRetryId = Uuid::uuid4()->toString();
         $messagingConfiguration->registerServiceDefinition($instantRetryId, Definition::createFor(InstantRetryInterceptor::class, [$retryAttempt, $exceptions, Reference::to(RetryStatusTracker::class)]));
 
         $messagingConfiguration

@@ -14,44 +14,57 @@ use Exception;
 /**
  * licence Apache-2.0
  */
-class InstantRetryInterceptor implements DefinedObject
+class InstantRetryInterceptor
 {
-    public function __construct(private int $maxRetryAttempts, private array $exceptions = [])
+    public function __construct(
+        private int $maxRetryAttempts,
+        private array $exceptions,
+        private RetryStatusTracker $retryStatusTracker,
+    )
     {
     }
 
     public function retry(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger)
     {
-        $isSuccessful = false;
-        $retries = 0;
+        if ($this->retryStatusTracker->isCurrentlyWrappedByRetry()) {
+            return $methodInvocation->proceed();
+        }
 
-        $result = null;
-        while (! $isSuccessful) {
-            try {
-                $result = $methodInvocation->proceed();
-                $isSuccessful = true;
-            } catch (Exception $exception) {
-                if (! $this->canRetryThrownException($exception) || $retries >= $this->maxRetryAttempts) {
+        try {
+            $isSuccessful = false;
+            $retries = 0;
+            $this->retryStatusTracker->markAsWrapped();
+
+            $result = null;
+            while (! $isSuccessful) {
+                try {
+                    $result = $methodInvocation->proceed();
+                    $isSuccessful = true;
+                } catch (Exception $exception) {
+                    if (! $this->canRetryThrownException($exception) || $retries >= $this->maxRetryAttempts) {
+                        $logger->info(
+                            sprintf('Instant retry have exceed %d/%d retry limit. No more retries will be done', $retries, $this->maxRetryAttempts),
+                            $message,
+                            ['exception' => $exception],
+                        );
+                        throw $exception;
+                    }
+
+                    $retries++;
                     $logger->info(
-                        sprintf('Instant retry have exceed %d/%d retry limit. No more retries will be done', $retries, $this->maxRetryAttempts),
+                        sprintf(
+                            'Exception happened. Trying to self-heal by doing instant try %d out of %d. Due to %s',
+                            $retries,
+                            $this->maxRetryAttempts,
+                            $exception->getMessage()
+                        ),
                         $message,
-                        ['exception' => $exception],
+                        ['exception' => $exception]
                     );
-                    throw $exception;
                 }
-
-                $retries++;
-                $logger->info(
-                    sprintf(
-                        'Exception happened. Trying to self-heal by doing instant try %d out of %d. Due to %s',
-                        $retries,
-                        $this->maxRetryAttempts,
-                        $exception->getMessage()
-                    ),
-                    $message,
-                    ['exception' => $exception]
-                );
             }
+        } finally {
+            $this->retryStatusTracker->markAsUnwrapped();
         }
 
         return $result;
@@ -70,10 +83,5 @@ class InstantRetryInterceptor implements DefinedObject
         }
 
         return false;
-    }
-
-    public function getDefinition(): Definition
-    {
-        return new Definition(self::class, [$this->maxRetryAttempts, $this->exceptions]);
     }
 }

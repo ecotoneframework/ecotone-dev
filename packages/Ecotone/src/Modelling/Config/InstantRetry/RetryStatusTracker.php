@@ -11,8 +11,7 @@ final class RetryStatusTracker
 {
     public function __construct(
         private bool $isWrappedByRetryInterceptor
-    )
-    {
+    ) {
 
     }
 

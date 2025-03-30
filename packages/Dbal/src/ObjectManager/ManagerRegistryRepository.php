@@ -26,7 +26,7 @@ class ManagerRegistryRepository implements StandardRepository
     public function canHandle(string $aggregateClassName): bool
     {
         if (is_null($this->relatedClasses)) {
-            return true;
+            return $this->getManagerRegistry($aggregateClassName) !== null;
         }
 
         return in_array($aggregateClassName, $this->relatedClasses);
@@ -47,7 +47,7 @@ class ManagerRegistryRepository implements StandardRepository
         }
     }
 
-    private function getManagerRegistry(string $aggregateClass): ObjectManager
+    private function getManagerRegistry(string $aggregateClass): ?ObjectManager
     {
         $connectionFactory = $this->connectionFactory;
         if ($connectionFactory instanceof MultiTenantConnectionFactory) {

@@ -34,8 +34,7 @@
     },
     "require": {
         "ecotone/dbal": "~1.252.0",
-        "prooph/event-store": "<=7.11.1",
-        "prooph/pdo-event-store": "^1.15.1 <1.16.0"
+        "prooph/pdo-event-store": "^1.16.2"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6|^10.5|^11.0",

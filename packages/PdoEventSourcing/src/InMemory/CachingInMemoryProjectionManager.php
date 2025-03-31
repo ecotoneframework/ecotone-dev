@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\InMemory;
 
 use Ecotone\EventSourcing\CachingInMemoryReadModelProjector;
+use Prooph\EventStore\Projection\ProjectionManager;
 use Prooph\EventStore\Projection\ProjectionStatus;
 use Prooph\EventStore\Projection\Projector;
 use Prooph\EventStore\Projection\Query;
@@ -14,7 +15,7 @@ use Prooph\EventStore\Projection\ReadModelProjector;
 /**
  * licence Apache-2.0
  */
-class CachingInMemoryProjectionManager implements \Prooph\EventStore\Projection\ProjectionManager
+class CachingInMemoryProjectionManager implements ProjectionManager
 {
     /**
      * @var ReadModelProjector[]

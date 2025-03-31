@@ -2,6 +2,7 @@
 
 namespace Ecotone\EventSourcing;
 
+use Assert\Assertion;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\NullableMessageChannel;

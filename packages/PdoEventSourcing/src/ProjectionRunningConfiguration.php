@@ -2,9 +2,11 @@
 
 namespace Ecotone\EventSourcing;
 
+use Assert\Assertion;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use InvalidArgumentException;
+use Prooph\EventStore\Metadata\MetadataMatcher;
 
 /**
  * licence Apache-2.0
@@ -35,6 +37,9 @@ class ProjectionRunningConfiguration implements DefinedObject
     public const OPTION_LOAD_COUNT = 'load_count';
     public const DEFAULT_LOAD_COUNT = null;
 
+    public const OPTION_METADATA_MATCHER = 'metadata_matcher';
+    public const DEFAULT_METADATA_MATCHER = null;
+
     public const OPTION_IS_TESTING_SETUP = 'isTestingSetup';
     public const DEFAULT_IS_TESTING_SETUP = false;
 
@@ -54,6 +59,7 @@ class ProjectionRunningConfiguration implements DefinedObject
             self::OPTION_UPDATE_LOCK_TIMEOUT_AFTER => self::DEFAULT_UPDATE_LOCK_TIMEOUT_AFTER,
             self::OPTION_IS_TESTING_SETUP => self::DEFAULT_IS_TESTING_SETUP,
             self::OPTION_LOAD_COUNT => self::DEFAULT_LOAD_COUNT,
+            self::OPTION_METADATA_MATCHER => self::DEFAULT_METADATA_MATCHER,
         ];
     }
 
@@ -100,6 +106,10 @@ class ProjectionRunningConfiguration implements DefinedObject
 
     public function withOption(string $key, mixed $value): static
     {
+        if ($key === self::OPTION_METADATA_MATCHER && $value !== null) {
+            Assertion::isInstanceOf($value, MetadataMatcher::class);
+        }
+
         $self = clone $this;
         $self->options[$key] = $value;
 

@@ -38,7 +38,7 @@
         "prooph/pdo-event-store": "^1.15.1 <1.16.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.6",
+        "phpunit/phpunit": "^9.6|^10.5",
         "phpstan/phpstan": "^1.8",
         "wikimedia/composer-merge-plugin": "^2.1"
     },

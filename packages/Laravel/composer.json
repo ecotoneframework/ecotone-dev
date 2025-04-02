@@ -49,7 +49,7 @@
         "orchestra/testbench": "^7.6|^8.0|^9.0|^10.0|^11.0",
         "wikimedia/composer-merge-plugin": "^2.1",
         "symfony/expression-language": "^6.0|^7.0",
-        "nesbot/carbon": "^2.71",
+        "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
         "ecotone/dbal": "~1.251.1",
         "timacdonald/log-fake": "^2.0"

@@ -80,7 +80,15 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private function ping(Connection $connection): bool
     {
         try {
-            $connection->executeQuery($connection->getDatabasePlatform()->getDummySelectSQL());
+            // Use a more direct approach to check connection that avoids Doctrine DBAL compatibility issues
+            $sql = $connection->getDatabasePlatform()->getDummySelectSQL();
+            $pdo = $connection->getWrappedConnection();
+            if ($pdo instanceof \PDO) {
+                $pdo->query($sql);
+            } else {
+                // Fallback to the standard approach if not a PDO connection
+                $connection->executeQuery($sql);
+            }
         } catch (Exception $e) {
             return false;
         }

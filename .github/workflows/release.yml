@@ -7,7 +7,7 @@ on:
 
 # Cancel in-progress jobs when a new commit is pushed
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: true
 
 env:

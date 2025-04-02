@@ -53,7 +53,7 @@
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": [
-            "vendor/bin/phpunit"
+            "vendor/bin/phpunit --no-coverage"
         ],
         "tests:behat": [
             "vendor/bin/behat -vvv"

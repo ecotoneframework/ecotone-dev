@@ -10,7 +10,7 @@ on:
 
 # Cancel in-progress jobs when a new commit is pushed
 concurrency:
-  group: monorepo-tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  group: monorepo-tests-${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:

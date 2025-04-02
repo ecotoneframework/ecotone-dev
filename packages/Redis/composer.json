@@ -44,7 +44,7 @@
     "require-dev": {
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
-        "phpunit/phpunit": "^9.6",
+        "phpunit/phpunit": "^9.6|^10.5",
         "predis/predis": "^1.1.10",
         "wikimedia/composer-merge-plugin": "^2.1"
     },

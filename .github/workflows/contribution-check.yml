@@ -6,7 +6,7 @@ on:
 
 # Cancel in-progress jobs when a new commit is pushed
 concurrency:
-  group: contribution-check-${{ github.ref }}
+  group: contribution-check-${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:

@@ -146,7 +146,7 @@
         "friends-of-behat/symfony-extension": "<=2.4.2|^2.5",
         "friendsofphp/php-cs-fixer": "^3.9",
         "guzzlehttp/psr7": "^2.0",
-        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
         "php-coveralls/php-coveralls": "^2.5",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^9.6|^10.5|^11.0",
@@ -164,7 +164,7 @@
         "open-telemetry/exporter-otlp": "^1.0.0",
         "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
-        "timacdonald/log-fake": "^2.4.0",
+        "timacdonald/log-fake": "^2.0",
         "symfony/monolog-bundle": "^3.10",
         "kwn/php-rdkafka-stubs": "^2.2"
     },

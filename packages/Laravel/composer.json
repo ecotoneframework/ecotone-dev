@@ -46,13 +46,13 @@
         "behat/behat": "^3.10",
         "guzzlehttp/psr7": "^2.0",
         "phpstan/phpstan": "^1.8",
-        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
         "wikimedia/composer-merge-plugin": "^2.1",
         "symfony/expression-language": "^6.0|^7.0",
         "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
         "ecotone/dbal": "~1.251.1",
-        "timacdonald/log-fake": "^2.4.0"
+        "timacdonald/log-fake": "^2.0"
     },
     "extra": {
         "laravel": {

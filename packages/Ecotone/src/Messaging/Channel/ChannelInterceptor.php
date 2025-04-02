@@ -26,9 +26,6 @@ interface ChannelInterceptor
      * @param MessageChannel $messageChannel message channel that message will be send to
      * @return Message|null
      */
-    /**
-     * @return Message|null
-     */
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message;
 
     /**
@@ -36,9 +33,6 @@ interface ChannelInterceptor
      *
      * @param Message $message
      * @param MessageChannel $messageChannel message channel that message was sent to
-     */
-    /**
-     * @return void
      */
     public function postSend(Message $message, MessageChannel $messageChannel): void;
 
@@ -53,9 +47,6 @@ interface ChannelInterceptor
      *
      * @return bool In case of exception, return true to indicate that exception was handled and exception can be skipped
      */
-    /**
-     * @return bool
-     */
     public function afterSendCompletion(Message $message, MessageChannel $messageChannel, ?Throwable $exception): bool;
 
     /**
@@ -65,9 +56,6 @@ interface ChannelInterceptor
      * Before receiving from subscription channel
      *
      * @param MessageChannel $messageChannel
-     * @return bool
-     */
-    /**
      * @return bool
      */
     public function preReceive(MessageChannel $messageChannel): bool;
@@ -80,9 +68,6 @@ interface ChannelInterceptor
      * @param Throwable|null $exception
      * @return void
      */
-    /**
-     * @return void
-     */
     public function afterReceiveCompletion(?Message $message, MessageChannel $messageChannel, ?Throwable $exception): void;
 
     /**
@@ -90,9 +75,6 @@ interface ChannelInterceptor
      *
      * @param Message $message message that was received
      * @param MessageChannel $messageChannel message channel that message was received from
-     * @return Message|null
-     */
-    /**
      * @return Message|null
      */
     public function postReceive(Message $message, MessageChannel $messageChannel): ?Message;

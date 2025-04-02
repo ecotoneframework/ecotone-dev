@@ -10,12 +10,14 @@ on:
 
 # Cancel in-progress jobs when a new commit is pushed
 concurrency:
-  group: split-tests-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: split-tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   get_packages:
     name: Get packages
+    # Only run this job for push events that are not from pull requests, or for pull_request events
+    if: (github.event_name == 'push' && !contains(github.ref, 'refs/pull/')) || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -40,6 +42,8 @@ jobs:
   split_testing:
     name: Testing ${{ matrix.package.name }} separately (${{ matrix.stability }})
     needs: get_packages
+    # Only run this job for push events that are not from pull requests, or for pull_request events
+    if: (github.event_name == 'push' && !contains(github.ref, 'refs/pull/')) || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
 
     strategy:

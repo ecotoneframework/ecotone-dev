@@ -7,15 +7,19 @@ on:
       - '**'
     tags-ignore:
       - '*.*'
+    paths-ignore:
+      - '.github/workflows/**'
 
 # Cancel in-progress jobs when a new commit is pushed
 concurrency:
-  group: monorepo-tests-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: monorepo-tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   run:
     name: "Monorepo"
+    # Only run this job for push events that are not from pull requests, or for pull_request events
+    if: (github.event_name == 'push' && !contains(github.ref, 'refs/pull/')) || github.event_name == 'pull_request'
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: true # Fail the entire workflow if any job fails

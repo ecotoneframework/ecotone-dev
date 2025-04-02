@@ -8,11 +8,17 @@ on:
     tags-ignore:
       - '*.*'
 
+# Cancel in-progress jobs when a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run:
     name: "Monorepo"
     runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: true # Fail the entire workflow if any job fails
       matrix:
         operating-system: [ ubuntu-latest ]
         php-versions: [ '8.1', '8.3' ]

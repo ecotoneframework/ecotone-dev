@@ -8,6 +8,11 @@ on:
     tags-ignore:
       - '*.*'
 
+# Cancel in-progress jobs when a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   get_packages:
     name: Get packages
@@ -38,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: false
+      fail-fast: true # Fail the entire workflow if any job fails
       matrix:
         package: ${{ fromJson(needs.get_packages.outputs.matrix) }}
         stability: [ prefer-lowest, prefer-stable ]

@@ -13,6 +13,7 @@ use Ecotone\Modelling\CommandBus;
 class OrderService
 {
     private $order = null;
+    private $eventBus = null;
 
     #[CommandHandler('order.register')]
     public function register(string $order, CommandBus $commandBus): void

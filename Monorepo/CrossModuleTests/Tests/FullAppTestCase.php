@@ -12,10 +12,8 @@ abstract class FullAppTestCase extends FullAppBenchmarkCase
         $this->bench_symfony_prod();
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
     public function test_symfony_dev()
     {
         self::clearSymfonyCache();

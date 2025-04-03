@@ -38,7 +38,7 @@
         "aws/aws-sdk-php": "<=3.269.5"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.6",
+        "phpunit/phpunit": "^9.6|^10.5|^11.0",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
         "wikimedia/composer-merge-plugin": "^2.1"
@@ -48,7 +48,7 @@
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
-        "tests:phpunit": "vendor/bin/phpunit",
+        "tests:phpunit": "vendor/bin/phpunit --no-coverage",
         "tests:behat": "vendor/bin/behat -vvv",
         "tests:ci": [
             "@tests:phpstan",

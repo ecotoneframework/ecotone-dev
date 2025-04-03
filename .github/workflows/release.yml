@@ -5,6 +5,11 @@ on:
     tags:
       - '*'
 
+# Cancel in-progress jobs when a new commit is pushed
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
 env:
   # 1. for Github split
   GITHUB_TOKEN: ${{ secrets.ECOTONE_BOT_TOKEN }}
@@ -96,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: false
+      fail-fast: true # Fail the entire workflow if any job fails
       matrix:
         package: ${{ fromJson(needs.get_packages.outputs.matrix) }}
 

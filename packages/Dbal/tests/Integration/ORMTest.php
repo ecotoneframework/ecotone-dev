@@ -71,9 +71,10 @@ final class ORMTest extends DbalMessagingTestCase
         );
     }
 
-    public function configuration(): iterable
+    public static function configuration(): iterable
     {
-        $connectionFactory = $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person']);
+        $instance = new self('configuration');
+        $connectionFactory = $instance->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person']);
         $ORMPersonRepository = new ORMPersonRepository($connectionFactory->getRegistry());
 
         yield 'For standard Object Manager Connection' => [
@@ -88,11 +89,12 @@ final class ORMTest extends DbalMessagingTestCase
         ];
     }
 
-    public function multiTenantConnectionConfiguration(): iterable
+    public static function multiTenantConnectionConfiguration(): iterable
     {
+        $instance = new self('multiTenantConnectionConfiguration');
         $tenantConnections = [
-            'tenant_a_connection' => $this->connectionForTenantA(),
-            'tenant_b_connection' => $this->connectionForTenantB(),
+            'tenant_a_connection' => $instance->connectionForTenantA(),
+            'tenant_b_connection' => $instance->connectionForTenantB(),
         ];
 
         yield 'For standard Object Manager Connection' => [

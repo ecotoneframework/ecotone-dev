@@ -21,6 +21,10 @@ use Symfony\Component\HttpKernel\Kernel as SymfonyKernel;
  */
 abstract class FullAppBenchmarkCase extends TestCase
 {
+    public function __construct(?string $name = 'benchmark')
+    {
+        parent::__construct($name);
+    }
     public function bench_symfony_prod()
     {
         self::productionEnvironments();

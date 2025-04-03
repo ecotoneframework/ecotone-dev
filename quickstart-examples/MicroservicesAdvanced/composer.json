@@ -18,7 +18,7 @@
         "ecotone/lite-event-sourcing-starter": "^1.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.6",
+        "phpunit/phpunit": "^9.6|^10.5|^11.0",
         "wikimedia/composer-merge-plugin": "^2.1"
     },
     "config": {

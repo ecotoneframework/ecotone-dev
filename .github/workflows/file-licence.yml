@@ -8,6 +8,11 @@ on:
     tags-ignore:
       - '*.*'
 
+# Cancel in-progress jobs when a new commit is pushed
+concurrency:
+  group: file-licence-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   check-files:
     runs-on: ubuntu-latest

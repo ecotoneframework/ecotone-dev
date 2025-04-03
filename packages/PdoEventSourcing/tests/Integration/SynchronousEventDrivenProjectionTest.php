@@ -211,7 +211,7 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                     EventSourcingConfiguration::createWithDefaults(),
                     ProjectionRunningConfiguration::createEventDriven(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
                         ->withTestingSetup()
-                        ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 2),
+                        ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 100),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true

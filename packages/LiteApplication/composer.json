@@ -41,11 +41,11 @@
         "php-di/php-di": "^7.0.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.6",
+        "phpunit/phpunit": "^9.6|^10.5|^11.0",
         "behat/behat": "^3.10",
         "guzzlehttp/psr7": "^2.0",
         "phpstan/phpstan": "^1.8",
-        "orchestra/testbench": "^7.6|^8.0|^9.0",
+        "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
         "wikimedia/composer-merge-plugin": "^2.1"
     },
     "extra": {
@@ -76,7 +76,7 @@
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": [
-            "vendor/bin/phpunit"
+            "vendor/bin/phpunit --no-coverage"
         ],
         "tests:ci": [
             "@tests:phpstan",

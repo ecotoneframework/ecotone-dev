@@ -2,17 +2,18 @@ name: 'Tests'
 
 on:
   pull_request:
-  push:
-    branches:
-      - '**'
-    tags-ignore:
-      - '*.*'
+
+# Cancel in-progress jobs when a new commit is pushed
+concurrency:
+  group: monorepo-tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   run:
     name: "Monorepo"
     runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: true # Fail the entire workflow if any job fails
       matrix:
         operating-system: [ ubuntu-latest ]
         php-versions: [ '8.1', '8.3' ]
@@ -112,7 +113,7 @@ jobs:
       run: vendor/bin/phpstan
 
     - name: Test PHPUnit on Postgres
-      run: vendor/bin/phpunit
+      run: vendor/bin/phpunit --no-coverage
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
@@ -130,7 +131,7 @@ jobs:
         APP_DB_DRIVER: pdo_pgsql
 
     - name: Test PHPUnit on Mysql
-      run: vendor/bin/phpunit
+      run: vendor/bin/phpunit --no-coverage
       env:
         DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
         SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone

@@ -21,7 +21,6 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     protected static function getSchemaManager(Connection $connection): \Doctrine\DBAL\Schema\AbstractSchemaManager
     {
         return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
-        ;
     }
 
     protected function setUp(): void
@@ -117,5 +116,10 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     {
         yield 'Open Core' => [false];
         yield 'Enterprise' => [true];
+    }
+
+    protected function isMySQL(): bool
+    {
+        return str_starts_with(getenv('DATABASE_DSN'), 'mysql');
     }
 }

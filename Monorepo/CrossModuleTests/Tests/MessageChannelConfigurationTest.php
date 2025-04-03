@@ -235,7 +235,7 @@ final class MessageChannelConfigurationTest extends TestCase
         $this->assertEquals(            '123', $message->getHeaders()->get('token'));
     }
 
-    public function channelProvider()
+    public static function channelProvider()
     {
         yield "in memory" => [
             SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),

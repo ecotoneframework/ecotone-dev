@@ -7,6 +7,8 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use InvalidArgumentException;
 use Prooph\EventStore\Metadata\MetadataMatcher;
+use Prooph\EventStore\Pdo\Projection\GapDetection;
+use Prooph\EventStore\Pdo\Projection\PdoEventStoreReadModelProjector;
 
 /**
  * licence Apache-2.0
@@ -43,6 +45,8 @@ class ProjectionRunningConfiguration implements DefinedObject
     public const OPTION_IS_TESTING_SETUP = 'isTestingSetup';
     public const DEFAULT_IS_TESTING_SETUP = false;
 
+    public const OPTION_GAP_DETECTION = PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION;
+
     private array $options;
     private bool $isTestingSetup = false;
 
@@ -60,6 +64,7 @@ class ProjectionRunningConfiguration implements DefinedObject
             self::OPTION_IS_TESTING_SETUP => self::DEFAULT_IS_TESTING_SETUP,
             self::OPTION_LOAD_COUNT => self::DEFAULT_LOAD_COUNT,
             self::OPTION_METADATA_MATCHER => self::DEFAULT_METADATA_MATCHER,
+            self::OPTION_GAP_DETECTION => new GapDetection(retryConfig: [0, 5, 50, 500, 800]),
         ];
     }
 
@@ -108,6 +113,10 @@ class ProjectionRunningConfiguration implements DefinedObject
     {
         if ($key === self::OPTION_METADATA_MATCHER && $value !== null) {
             Assertion::isInstanceOf($value, MetadataMatcher::class);
+        }
+
+        if ($key === self::OPTION_GAP_DETECTION && $value !== null) {
+            Assertion::isInstanceOf($value, GapDetection::class);
         }
 
         $self = clone $this;

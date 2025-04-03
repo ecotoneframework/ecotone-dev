@@ -14,7 +14,7 @@ use Prooph\EventStore\Pdo\Projection\GapDetection;
 use Prooph\EventStore\Pdo\Projection\PdoEventStoreReadModelProjector;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\InProgressTicketList;
 
-final class ProjectionWithMetadataMatcherConfig
+final class PollingProjectionWithMetadataMatcherConfig
 {
     #[ServiceContext]
     public function enablePollingProjection(): ProjectionRunningConfiguration
@@ -25,7 +25,8 @@ final class ProjectionWithMetadataMatcherConfig
 
         return ProjectionRunningConfiguration::createPolling(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
             ->withTestingSetup()
-            ->withOption(PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION, null)
-            ->withOption(ProjectionRunningConfiguration::OPTION_METADATA_MATCHER, $metadataMatcher);
+            ->withOption(ProjectionRunningConfiguration::OPTION_GAP_DETECTION, null)
+            ->withOption(ProjectionRunningConfiguration::OPTION_METADATA_MATCHER, $metadataMatcher)
+        ;
     }
 }

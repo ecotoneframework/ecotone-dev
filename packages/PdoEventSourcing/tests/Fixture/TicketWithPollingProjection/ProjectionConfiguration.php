@@ -5,6 +5,7 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Prooph\EventStore\Pdo\Projection\GapDetection;
 
 /**
  * licence Apache-2.0
@@ -22,7 +23,6 @@ class ProjectionConfiguration
     #[ServiceContext]
     public function configureProjection()
     {
-        return ProjectionRunningConfiguration::createPolling(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
-                    ->withTestingSetup();
+        return ProjectionRunningConfiguration::createPolling(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)->withTestingSetup();
     }
 }

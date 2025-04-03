@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel;
 
-use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * Class ChannelInterceptorTest

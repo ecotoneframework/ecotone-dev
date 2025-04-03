@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\PublishSubscribeChannel;
@@ -39,7 +38,6 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
@@ -54,7 +52,6 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Gateway\SingleMeth
 use Test\Ecotone\Messaging\Fixture\Annotation\ModuleConfiguration\ExampleModuleConfiguration;
 use Test\Ecotone\Messaging\Fixture\Behat\ErrorHandling\DeadLetter\OrderService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
-use Test\Ecotone\Messaging\Unit\Channel\TestChannelInterceptor;
 use Test\Ecotone\Messaging\Fixture\Handler\DumbMessageHandlerBuilder;
 use Test\Ecotone\Messaging\Fixture\Handler\ExceptionMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MultipleMethodsGatewayExample;
@@ -69,6 +66,7 @@ use Test\Ecotone\Messaging\Fixture\Service\CalculatingServiceForAsynchronousScen
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceCalculatingService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceWithoutReturnValue;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceWithReturnValue;
+use Test\Ecotone\Messaging\Unit\Channel\TestChannelInterceptor;
 use Test\Ecotone\Messaging\Unit\MessagingTestCase;
 
 ;

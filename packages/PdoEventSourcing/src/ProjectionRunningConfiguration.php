@@ -2,9 +2,13 @@
 
 namespace Ecotone\EventSourcing;
 
+use Assert\Assertion;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use InvalidArgumentException;
+use Prooph\EventStore\Metadata\MetadataMatcher;
+use Prooph\EventStore\Pdo\Projection\GapDetection;
+use Prooph\EventStore\Pdo\Projection\PdoEventStoreReadModelProjector;
 
 /**
  * licence Apache-2.0
@@ -35,8 +39,13 @@ class ProjectionRunningConfiguration implements DefinedObject
     public const OPTION_LOAD_COUNT = 'load_count';
     public const DEFAULT_LOAD_COUNT = null;
 
+    public const OPTION_METADATA_MATCHER = 'metadata_matcher';
+    public const DEFAULT_METADATA_MATCHER = null;
+
     public const OPTION_IS_TESTING_SETUP = 'isTestingSetup';
     public const DEFAULT_IS_TESTING_SETUP = false;
+
+    public const OPTION_GAP_DETECTION = PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION;
 
     private array $options;
     private bool $isTestingSetup = false;
@@ -44,8 +53,9 @@ class ProjectionRunningConfiguration implements DefinedObject
     public function __construct(
         private string $projectionName,
         private string $runningType,
+        array $_options = [],
     ) {
-        $this->options = [
+        $this->options = $_options !== [] ? $_options : [
             self::OPTION_INITIALIZE_ON_STARTUP => self::DEFAULT_INITIALIZE_ON_STARTUP,
             self::OPTION_AMOUNT_OF_CACHED_STREAM_NAMES => self::DEFAULT_AMOUNT_OF_CACHED_STREAM_NAMES,
             self::OPTION_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND => self::DEFAULT_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND,
@@ -54,6 +64,8 @@ class ProjectionRunningConfiguration implements DefinedObject
             self::OPTION_UPDATE_LOCK_TIMEOUT_AFTER => self::DEFAULT_UPDATE_LOCK_TIMEOUT_AFTER,
             self::OPTION_IS_TESTING_SETUP => self::DEFAULT_IS_TESTING_SETUP,
             self::OPTION_LOAD_COUNT => self::DEFAULT_LOAD_COUNT,
+            self::OPTION_METADATA_MATCHER => self::DEFAULT_METADATA_MATCHER,
+            self::OPTION_GAP_DETECTION => new GapDetection(retryConfig: [0, 5, 50, 500, 800]),
         ];
     }
 
@@ -64,6 +76,7 @@ class ProjectionRunningConfiguration implements DefinedObject
             [
                 $this->projectionName,
                 $this->runningType,
+                $this->options,
             ]
         );
     }
@@ -100,6 +113,14 @@ class ProjectionRunningConfiguration implements DefinedObject
 
     public function withOption(string $key, mixed $value): static
     {
+        if ($key === self::OPTION_METADATA_MATCHER && $value !== null) {
+            Assertion::isInstanceOf($value, MetadataMatcher::class);
+        }
+
+        if ($key === self::OPTION_GAP_DETECTION && $value !== null) {
+            Assertion::isInstanceOf($value, GapDetection::class);
+        }
+
         $self = clone $this;
         $self->options[$key] = $value;
 

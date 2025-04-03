@@ -6,8 +6,6 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\Assert;
-use Prooph\EventStore\Pdo\Projection\GapDetection;
-use Prooph\EventStore\Pdo\Projection\PdoEventStoreReadModelProjector;
 
 /**
  * licence Apache-2.0
@@ -33,22 +31,11 @@ final class ProjectionSetupConfiguration implements DefinedObject
 
     public static function create(string $projectionName, ProjectionLifeCycleConfiguration $projectionLifeCycleConfiguration, string $eventStoreReferenceName, ProjectionStreamSource $projectionStreamSource, ?string $asynchronousChannelName): static
     {
-        return new self($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource, $asynchronousChannelName, projectionOptions: [PdoEventStoreReadModelProjector::OPTION_GAP_DETECTION => new GapDetection(
-            retryConfig: [0, 5, 50, 500, 800],
-            detectionWindow: null
-        )]);
+        return new self($projectionName, $projectionLifeCycleConfiguration, $eventStoreReferenceName, $projectionStreamSource, $asynchronousChannelName);
     }
 
     public function getDefinition(): Definition
     {
-        $projectionOptions = [];
-        foreach ($this->projectionOptions as $key => $value) {
-            if ($value instanceof GapDetection) {
-                $projectionOptions[$key] = new Definition(GapDetection::class);
-            } else {
-                $projectionOptions[$key] = $value;
-            }
-        }
         return new Definition(
             ProjectionSetupConfiguration::class,
             [
@@ -60,7 +47,7 @@ final class ProjectionSetupConfiguration implements DefinedObject
                 $this->isPolling,
                 $this->projectionEventHandlerConfigurations,
                 $this->keepStateBetweenEvents,
-                $projectionOptions,
+                $this->projectionOptions,
             ]
         );
     }

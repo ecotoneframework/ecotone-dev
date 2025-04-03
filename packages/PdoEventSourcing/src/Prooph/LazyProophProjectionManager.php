@@ -4,6 +4,7 @@ namespace Ecotone\EventSourcing\Prooph;
 
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionExecutor;
+use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
@@ -12,9 +13,12 @@ use Ecotone\Modelling\Event;
 use Prooph\Common\Messaging\Message;
 use Prooph\EventStore\Exception\ProjectionNotFound;
 use Prooph\EventStore\Exception\RuntimeException;
+use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Pdo\Projection\MariaDbProjectionManager;
 use Prooph\EventStore\Pdo\Projection\MySqlProjectionManager;
 use Prooph\EventStore\Pdo\Projection\PostgresProjectionManager;
+use Prooph\EventStore\Projection\MetadataAwareProjector;
+use Prooph\EventStore\Projection\MetadataAwareReadModelProjector;
 use Prooph\EventStore\Projection\ProjectionManager;
 use Prooph\EventStore\Projection\ProjectionStatus;
 use Prooph\EventStore\Projection\Projector;
@@ -74,12 +78,28 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function createProjection(string $name, array $options = []): Projector
     {
-        return $this->getProjectionManager()->createProjection($name, $options);
+        $projection = $this->getProjectionManager()->createProjection($name, $options);
+
+        $metadataMatcher = $options[ProjectionRunningConfiguration::OPTION_METADATA_MATCHER] ?? null;
+
+        if ($metadataMatcher instanceof MetadataMatcher && $projection instanceof MetadataAwareProjector) {
+            $projection = $projection->withMetadataMatcher($metadataMatcher);
+        }
+
+        return $projection;
     }
 
     public function createReadModelProjection(string $name, ReadModel $readModel, array $options = []): ReadModelProjector
     {
-        return $this->getProjectionManager()->createReadModelProjection($name, $readModel, $options);
+        $projection = $this->getProjectionManager()->createReadModelProjection($name, $readModel, $options);
+
+        $metadataMatcher = $options[ProjectionRunningConfiguration::OPTION_METADATA_MATCHER] ?? null;
+
+        if ($metadataMatcher instanceof MetadataMatcher && $projection instanceof MetadataAwareReadModelProjector) {
+            $projection = $projection->withMetadataMatcher($metadataMatcher);
+        }
+
+        return $projection;
     }
 
     public function deleteProjection(string $name, bool $deleteEmittedEvents): void

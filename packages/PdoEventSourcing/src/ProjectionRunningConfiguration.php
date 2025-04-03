@@ -53,8 +53,9 @@ class ProjectionRunningConfiguration implements DefinedObject
     public function __construct(
         private string $projectionName,
         private string $runningType,
+        array $_options = [],
     ) {
-        $this->options = [
+        $this->options = $_options !== [] ? $_options : [
             self::OPTION_INITIALIZE_ON_STARTUP => self::DEFAULT_INITIALIZE_ON_STARTUP,
             self::OPTION_AMOUNT_OF_CACHED_STREAM_NAMES => self::DEFAULT_AMOUNT_OF_CACHED_STREAM_NAMES,
             self::OPTION_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND => self::DEFAULT_WAIT_BEFORE_CALLING_ES_WHEN_NO_EVENTS_FOUND,
@@ -75,6 +76,7 @@ class ProjectionRunningConfiguration implements DefinedObject
             [
                 $this->projectionName,
                 $this->runningType,
+                $this->options,
             ]
         );
     }

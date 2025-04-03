@@ -21,9 +21,6 @@ use Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\InProgressTic
 use Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\ProjectionConfiguration;
 
 /**
- * @internal
- */
-/**
  * licence Apache-2.0
  * @internal
  */

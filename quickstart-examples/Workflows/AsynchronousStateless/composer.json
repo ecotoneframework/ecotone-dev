@@ -23,7 +23,7 @@
     },
     "require-dev": {
         "doctrine/orm": "^2.11|^3.0",
-        "phpunit/phpunit": "^9.6",
+        "phpunit/phpunit": "^9.6|^10.5|^11.0",
         "wikimedia/composer-merge-plugin": "^2.1"
     },
     "config": {

@@ -54,6 +54,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Gateway\SingleMeth
 use Test\Ecotone\Messaging\Fixture\Annotation\ModuleConfiguration\ExampleModuleConfiguration;
 use Test\Ecotone\Messaging\Fixture\Behat\ErrorHandling\DeadLetter\OrderService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
+use Test\Ecotone\Messaging\Unit\Channel\TestChannelInterceptor;
 use Test\Ecotone\Messaging\Fixture\Handler\DumbMessageHandlerBuilder;
 use Test\Ecotone\Messaging\Fixture\Handler\ExceptionMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MultipleMethodsGatewayExample;
@@ -676,7 +677,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
     public function test_registering_asynchronous_endpoint_with_channel_interceptor()
     {
         $calculatingService = CalculatingService::create(1);
-        $channelInterceptor = $this->createMock(ChannelInterceptor::class);
+        $channelInterceptor = new TestChannelInterceptor();
 
         $configuredMessagingSystem = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
@@ -700,25 +701,10 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         /** @var MessageChannel $channel */
         $channel = $configuredMessagingSystem->getMessageChannelByName('inputChannel');
 
-        $channelInterceptor
-            ->expects($this->once())
-            ->method('preSend')
-            ->with(
-                $this->callback(
-                    function (Message $inputMessage) use ($requestMessage) {
-                        $this->assertMessages($inputMessage, $requestMessage);
-
-                        return true;
-                    }
-                ),
-                $this->callback(
-                    function () {
-                        return true;
-                    }
-                )
-            );
-
         $channel->send($requestMessage);
+
+        $this->assertTrue($channelInterceptor->wasPreSendCalled());
+        $this->assertSame($requestMessage, $channelInterceptor->getCapturedMessage());
     }
 
     public function test_registering_with_extension_media_type_serializer_applied_to_application_configuration()
@@ -781,7 +767,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceName));
 
-        $channelInterceptor = $this->createMock(ChannelInterceptor::class);
+        $channelInterceptor = new TestChannelInterceptor();
         $messagingSystem = $messagingSystemConfiguration->buildMessagingSystemFromConfiguration(
             InMemoryReferenceSearchService::createWith(
                 [
@@ -795,11 +781,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
         $preSendModifiedMessage = MessageBuilder::withPayload('preSend')->build();
-        $channelInterceptor->method('preSend')
-            ->with($message, $queueChannel->getInternalMessageChannel())
-            ->willReturn($preSendModifiedMessage);
-        $channelInterceptor->method('preReceive')
-            ->willReturn(true);
+        $channelInterceptor->setReturnMessageOnPreSend($preSendModifiedMessage);
 
         $queueChannel->send($message);
 
@@ -825,8 +807,8 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceNameSecondToCall)->withPrecedence(1))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceNameFirstToCall)->withPrecedence(2));
 
-        $channelInterceptorSecondToCall = $this->createMock(ChannelInterceptor::class);
-        $channelInterceptorFirstToCall = $this->createMock(ChannelInterceptor::class);
+        $channelInterceptorSecondToCall = new TestChannelInterceptor();
+        $channelInterceptorFirstToCall = new TestChannelInterceptor();
         $messagingSystem = $messagingSystemConfiguration->buildMessagingSystemFromConfiguration(
             InMemoryReferenceSearchService::createWith(
                 [
@@ -843,18 +825,8 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $messageFirstModification = MessageBuilder::withPayload('preSend1')->build();
         $messageSecondModification = MessageBuilder::withPayload('preSend2')->build();
 
-        $channelInterceptorFirstToCall->method('preSend')
-            ->with($message, $queueChannel->getInternalMessageChannel())
-            ->willReturn($messageFirstModification);
-        $channelInterceptorSecondToCall->method('preSend')
-            ->with($messageFirstModification, $queueChannel->getInternalMessageChannel())
-            ->willReturn($messageSecondModification);
-        $channelInterceptorSecondToCall
-            ->method('preReceive')
-            ->willReturn(true);
-        $channelInterceptorFirstToCall
-            ->method('preReceive')
-            ->willReturn(true);
+        $channelInterceptorFirstToCall->setReturnMessageOnPreSend($messageFirstModification);
+        $channelInterceptorSecondToCall->setReturnMessageOnPreSend($messageSecondModification);
 
         $queueChannel->send($message);
 
@@ -878,7 +850,8 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceName));
 
-        $channelInterceptor = $this->createMock(ChannelInterceptor::class);
+        $channelInterceptor = new TestChannelInterceptor();
+        $channelInterceptor->setReturnNullOnPreSend(true);
         $messagingSystem = $messagingSystemConfiguration->buildMessagingSystemFromConfiguration(
             InMemoryReferenceSearchService::createWith(
                 [
@@ -891,9 +864,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
-        $channelInterceptor->method('preSend')
-            ->with($message, $queueChannel->getInternalMessageChannel())
-            ->willReturn(null);
+        $channelInterceptor->setReturnNullOnPreSend(true);
 
         $queueChannel->send($message);
 
@@ -917,7 +888,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceName));
 
-        $channelInterceptor = $this->createMock(ChannelInterceptor::class);
+        $channelInterceptor = new TestChannelInterceptor();
         $messagingSystem = $messagingSystemConfiguration->buildMessagingSystemFromConfiguration(
             InMemoryReferenceSearchService::createWith(
                 [
@@ -930,16 +901,11 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
-        $channelInterceptor->method('preSend')
-            ->with($message, $queueChannel->getInternalMessageChannel())
-            ->willReturn($message);
-
-        $channelInterceptor
-            ->expects($this->once())
-            ->method('postSend')
-            ->with($message, $queueChannel->getInternalMessageChannel());
-
         $queueChannel->send($message);
+
+        $this->assertTrue($channelInterceptor->wasPreSendCalled());
+        $this->assertTrue($channelInterceptor->wasPostSendCalled());
+        $this->assertSame($message, $channelInterceptor->getCapturedMessage());
     }
 
     /**
@@ -958,7 +924,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerConsumerFactory(new EventDrivenConsumerBuilder())
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName, $referenceName));
 
-        $channelInterceptor = $this->createMock(ChannelInterceptor::class);
+        $channelInterceptor = new TestChannelInterceptor(null, true, true);
         $messagingSystem = $messagingSystemConfiguration->buildMessagingSystemFromConfiguration(
             InMemoryReferenceSearchService::createWith(
                 [
@@ -971,13 +937,12 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         /** @var QueueChannel|MessageChannelInterceptorAdapter $queueChannel */
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
-        $channelInterceptor->method('preSend')
-            ->with($message, $queueChannel->getInternalMessageChannel())
-            ->willReturn($message);
-
-        $this->expectException(\InvalidArgumentException::class);
-
         $queueChannel->send($message);
+
+        $this->assertTrue($channelInterceptor->wasPreSendCalled());
+        $this->assertTrue($channelInterceptor->wasAfterSendCompletionCalled());
+        $this->assertSame($message, $channelInterceptor->getCapturedMessage());
+        $this->assertInstanceOf(\InvalidArgumentException::class, $channelInterceptor->getCapturedException());
     }
 
     /**
@@ -998,8 +963,8 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName1, $referenceName1))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create($messageChannelName2, $referenceName2));
 
-        $channelInterceptor1 = $this->createMock(ChannelInterceptor::class);
-        $channelInterceptor2 = $this->createMock(ChannelInterceptor::class);
+        $channelInterceptor1 = new TestChannelInterceptor();
+        $channelInterceptor2 = new TestChannelInterceptor();
         $messagingSystem = $messagingSystemConfiguration->buildMessagingSystemFromConfiguration(
             InMemoryReferenceSearchService::createWith(
                 [
@@ -1014,15 +979,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName2);
 
         $preSendModifiedMessage = MessageBuilder::withPayload('preSend')->build();
-        $channelInterceptor2->method('preSend')
-            ->with($message, $queueChannel->getInternalMessageChannel())
-            ->willReturn($preSendModifiedMessage);
-        $channelInterceptor1
-            ->method('preReceive')
-            ->willReturn(true);
-        $channelInterceptor2
-            ->method('preReceive')
-            ->willReturn(true);
+        $channelInterceptor2->setReturnMessageOnPreSend($preSendModifiedMessage);
 
         $queueChannel->send($message);
 
@@ -1046,7 +1003,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName))
             ->registerChannelInterceptor(SimpleChannelInterceptorBuilder::create('request*', $referenceName));
 
-        $channelInterceptor = $this->createMock(ChannelInterceptor::class);
+        $channelInterceptor = new TestChannelInterceptor();
         $messagingSystem = $messagingSystemConfiguration->buildMessagingSystemFromConfiguration(
             InMemoryReferenceSearchService::createWith(
                 [
@@ -1060,12 +1017,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $queueChannel = $messagingSystem->getMessageChannelByName($messageChannelName);
 
         $preSendModifiedMessage = MessageBuilder::withPayload('preSend')->build();
-        $channelInterceptor->method('preSend')
-            ->with($message, $queueChannel->getInternalMessageChannel())
-            ->willReturn($preSendModifiedMessage);
-        $channelInterceptor
-            ->method('preReceive')
-            ->willReturn(true);
+        $channelInterceptor->setReturnMessageOnPreSend($preSendModifiedMessage);
 
         $queueChannel->send($message);
 

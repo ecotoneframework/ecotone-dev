@@ -3,11 +3,17 @@ name: 'PR stats'
 on:
   pull_request:
 
+# Cancel in-progress jobs when a new commit is pushed
+concurrency:
+  group: benchmark-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   run:
     name: "Benchmark"
     runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: true # Fail the entire workflow if any job fails
       matrix:
         operating-system: [ ubuntu-latest ]
         php-versions: [ 8.2 ]

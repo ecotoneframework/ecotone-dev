@@ -77,7 +77,7 @@ final class KafkaChannelAdapterTest extends TestCase
         self::assertEquals($expectedKey, $messages[0]['metadata'][KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME]);
     }
 
-    public function providePartitionKeySet(): iterable
+    public static function providePartitionKeySet(): iterable
     {
         $messageId = Uuid::uuid4()->toString();
         $aggregateId = Uuid::uuid4()->toString();

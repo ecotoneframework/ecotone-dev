@@ -1,19 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
+        xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
         backupGlobals="true"
+        displayDetailsOnTestsThatTriggerWarnings="true"
+        displayDetailsOnTestsThatTriggerDeprecations="true"
+        displayDetailsOnTestsThatTriggerErrors="true"
+        displayDetailsOnTestsThatTriggerNotices="true"
 >
     <php>
         <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
         <server name="APP_SECRET" value="test" />
     </php>
-    <coverage processUncoveredFiles="true">
+    <source>
         <include>
             <directory suffix=".php">./App</directory>
             <directory suffix=".php">./DependencyInjection</directory>
             <directory suffix=".php">./SymfonyBundle</directory>
         </include>
+    </source>
+    <coverage>
         <report>
             <text outputFile="php://stdout" showOnlySummary="true" />
         </report>

@@ -48,6 +48,7 @@ class OrderService
     public function registerWithTableCreation(string $order, OrderRegisteringGateway $orderRegisteringGateway, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connection): void
     {
         $connection = $connection->createContext()->getDbalConnection();
+        // Handle both DBAL 3.x (getSchemaManager) and 4.x (createSchemaManager)
         $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
 
         if ($schemaManager->tablesExist(['test_table'])) {

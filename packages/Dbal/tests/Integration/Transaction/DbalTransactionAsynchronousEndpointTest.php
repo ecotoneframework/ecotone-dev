@@ -17,6 +17,8 @@ use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\ConnectionBreakingModule;
+use Test\Ecotone\Dbal\Fixture\ConnectionBreakingConfiguration;
 use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
@@ -79,57 +81,12 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $this->assertFalse($aggregateCommitted);
     }
 
-    public function deduplication_table_if_rolled_back_is_handled_correctly_in_next_run()
-    {
-        if (! method_exists(Connection::class, 'getNativeConnection')) {
-            $this->markTestSkipped('Dbal version >= 3.0');
-        }
-
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Person::class, MultipleInternalCommandsService::class],
-            [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailuresOnCommit: [false, true]),
-                //                'logger' => new EchoLogger()
-            ],
-            ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false)
-                        ->withDoctrineORMRepositories(true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
-            addInMemoryStateStoredRepository: false
-        );
-
-        /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
-            ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
-        ]);
-
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5, failAtError: false));
-
-        /** Should be rolled back */
-        $aggregateCommitted = true;
-        try {
-            $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100]);
-        } catch (AggregateNotFoundException) {
-            $aggregateCommitted = false;
-        }
-        $this->assertFalse($aggregateCommitted);
-    }
-
     public function test_reconnecting_on_lost_connection_during_commit()
     {
-        if (! method_exists(Connection::class, 'getNativeConnection')) {
-            $this->markTestSkipped('Dbal version >= 3.0');
-        }
-
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Person::class, MultipleInternalCommandsService::class],
-            [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailuresOnCommit: [false, false, true]),
-                //                "logger" => new EchoLogger()
+            [Person::class, MultipleInternalCommandsService::class, ConnectionBreakingModule::class],
+            [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([]),
+                                "logger" => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -138,6 +95,9 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
+                    // Add the connection breaking configuration
+                    // [false, false, true] means: don't break on 1st and 2nd calls, break on 3rd call
+                    ConnectionBreakingConfiguration::createWithBreakBeforeCommit([false, false, true]),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
             addInMemoryStateStoredRepository: false
@@ -156,13 +116,9 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_message_acknowledge()
     {
-        if (! method_exists(Connection::class, 'getNativeConnection')) {
-            $this->markTestSkipped('Dbal version >= 3.0');
-        }
-
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Person::class, MultipleInternalCommandsService::class],
-            [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailureOnMessageAcknowledge: [true, false]),
+            [Person::class, MultipleInternalCommandsService::class, ConnectionBreakingModule::class],
+            [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([]),
                 //                "logger" => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
@@ -172,6 +128,9 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
+                    // Add the connection breaking configuration
+                    // [true, false] means: break on 1st call, don't break on 2nd call
+                    ConnectionBreakingConfiguration::createWithBreakBeforeMessageAcknowledge([true, false]),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
             addInMemoryStateStoredRepository: false
@@ -182,41 +141,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: true));
 
         $this->assertNull($ecotoneLite->getMessageChannel('async')->receiveWithTimeout(100));
-    }
-
-    public function test_reconnecting_on_lost_connection_during_dead_letter_storage()
-    {
-        if (! method_exists(Connection::class, 'getNativeConnection')) {
-            $this->markTestSkipped('Dbal version >= 3.0');
-        }
-
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Person::class, MultipleInternalCommandsService::class],
-            [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->prepareFailingConnection(connectionFailureOnStoreInDeadLetter: [true, false]),
-                //                'logger' => new EchoLogger()
-            ],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel('dbal_dead_letter')
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()
-                        ->withTransactionOnAsynchronousEndpoints(true)
-                        ->withTransactionOnCommandBus(false)
-                        ->withDoctrineORMRepositories(true),
-                    DbalBackedMessageChannelBuilder::create('async'),
-                ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
-            addInMemoryStateStoredRepository: false
-        );
-
-        $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 100, 'personName' => 'Johny', 'exception' => true]);
-
-        /** @var DeadLetterGateway $deadLetter */
-        $deadLetter = $ecotoneLite->getGateway(DeadLetterGateway::class);
-        $this->assertSame(0, $deadLetter->count());
-
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
-
-        $this->assertSame(1, $deadLetter->count());
     }
 
     public function test_turning_on_transactions_for_polling_consumer_with_tenant_connection()

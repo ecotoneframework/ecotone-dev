@@ -24,14 +24,59 @@ use InvalidArgumentException;
  */
 final class QueryBuilderProxy extends QueryBuilder
 {
-    public function __construct(private QueryBuilder $queryBuilder)
+    private QueryBuilder $queryBuilder;
+
+    public function __construct(QueryBuilder $queryBuilder)
     {
+        $this->queryBuilder = $queryBuilder;
+
+        // In DBAL 4.x, the QueryBuilder constructor requires a Connection object
+        // We need to get the connection from the queryBuilder
+        try {
+            // First try using reflection to get the connection property
+            $reflectionClass = new \ReflectionClass($queryBuilder);
+            if ($reflectionClass->hasProperty('connection')) {
+                $connectionProperty = $reflectionClass->getProperty('connection');
+                $connectionProperty->setAccessible(true);
+                $connection = $connectionProperty->getValue($queryBuilder);
+                parent::__construct($connection);
+            } else {
+                // Try using getConnection method if available
+                if (method_exists($queryBuilder, 'getConnection')) {
+                    parent::__construct($queryBuilder->getConnection());
+                } else {
+                    // Last resort fallback - try to construct without connection
+                    // This will likely fail in DBAL 4.x but might work in 3.x
+                    parent::__construct();
+                }
+            }
+        } catch (\Exception $e) {
+            // If all else fails, try one more approach
+            try {
+                if (method_exists($queryBuilder, 'getConnection')) {
+                    parent::__construct($queryBuilder->getConnection());
+                } else {
+                    // Last resort fallback
+                    parent::__construct();
+                }
+            } catch (\Exception $e) {
+                // We've tried our best, let the error propagate
+                throw $e;
+            }
+        }
     }
 
     // override all public methods from parent class with empty body
-    public function select($select = null): self
+    public function select(string ...$expressions): self
     {
-        $this->queryBuilder->{__FUNCTION__}(...func_get_args());
+        // Handle both DBAL 3.x and 4.x versions
+        if (count($expressions) === 0) {
+            // DBAL 3.x style: select()
+            $this->queryBuilder->select();
+        } else {
+            // DBAL 4.x style: select(string ...)
+            $this->queryBuilder->select(...$expressions);
+        }
 
         return $this;
     }
@@ -43,9 +88,16 @@ final class QueryBuilderProxy extends QueryBuilder
         return $this;
     }
 
-    public function addSelect($select = null): self
+    public function addSelect(string ...$expressions): self
     {
-        $this->queryBuilder->{__FUNCTION__}(...func_get_args());
+        // Handle both DBAL 3.x and 4.x versions
+        if (count($expressions) === 0) {
+            // DBAL 3.x style: addSelect()
+            $this->queryBuilder->addSelect();
+        } else {
+            // DBAL 4.x style: addSelect(string ...)
+            $this->queryBuilder->addSelect(...$expressions);
+        }
 
         return $this;
     }
@@ -71,44 +123,86 @@ final class QueryBuilderProxy extends QueryBuilder
         return $this;
     }
 
-    public function where($predicates): self
+    public function where($predicate, ...$predicates): self
     {
-        $this->queryBuilder->{__FUNCTION__}($predicates);
+        // Handle both DBAL 3.x and 4.x versions
+        if (empty($predicates)) {
+            // DBAL 3.x style: where($predicates)
+            $this->queryBuilder->where($predicate);
+        } else {
+            // DBAL 4.x style: where($predicate, ...$predicates)
+            $this->queryBuilder->where($predicate, ...$predicates);
+        }
 
         return $this;
     }
 
-    public function andWhere($where): self
+    public function andWhere($predicate, ...$predicates): self
     {
-        $this->queryBuilder->{__FUNCTION__}($where);
+        // Handle both DBAL 3.x and 4.x versions
+        if (empty($predicates)) {
+            // DBAL 3.x style: andWhere($where)
+            $this->queryBuilder->andWhere($predicate);
+        } else {
+            // DBAL 4.x style: andWhere($predicate, ...$predicates)
+            $this->queryBuilder->andWhere($predicate, ...$predicates);
+        }
 
         return $this;
     }
 
-    public function orWhere($where): self
+    public function orWhere($predicate, ...$predicates): self
     {
-        $this->queryBuilder->{__FUNCTION__}($where);
+        // Handle both DBAL 3.x and 4.x versions
+        if (empty($predicates)) {
+            // DBAL 3.x style: orWhere($where)
+            $this->queryBuilder->orWhere($predicate);
+        } else {
+            // DBAL 4.x style: orWhere($predicate, ...$predicates)
+            $this->queryBuilder->orWhere($predicate, ...$predicates);
+        }
 
         return $this;
     }
 
-    public function groupBy($groupBy): self
+    public function groupBy($groupBy, ...$groupBys): self
     {
-        $this->queryBuilder->{__FUNCTION__}($groupBy);
+        // Handle both DBAL 3.x and 4.x versions
+        if (empty($groupBys)) {
+            // DBAL 3.x style: groupBy($groupBy)
+            $this->queryBuilder->groupBy($groupBy);
+        } else {
+            // DBAL 4.x style: groupBy($groupBy, ...$groupBys)
+            $this->queryBuilder->groupBy($groupBy, ...$groupBys);
+        }
 
         return $this;
     }
 
-    public function addGroupBy($groupBy): self
+    public function addGroupBy($groupBy, ...$groupBys): self
     {
-        $this->queryBuilder->{__FUNCTION__}($groupBy);
+        // Handle both DBAL 3.x and 4.x versions
+        if (empty($groupBys)) {
+            // DBAL 3.x style: addGroupBy($groupBy)
+            $this->queryBuilder->addGroupBy($groupBy);
+        } else {
+            // DBAL 4.x style: addGroupBy($groupBy, ...$groupBys)
+            $this->queryBuilder->addGroupBy($groupBy, ...$groupBys);
+        }
 
         return $this;
     }
 
-    public function having($having): self
+    public function having($having, ...$havings): self
     {
-        $this->queryBuilder->{__FUNCTION__}($having);
+        // Handle both DBAL 3.x and 4.x versions
+        if (empty($havings)) {
+            // DBAL 3.x style: having($having)
+            $this->queryBuilder->having($having);
+        } else {
+            // DBAL 4.x style: having($having, ...$havings)
+            $this->queryBuilder->having($having, ...$havings);
+        }
 
         return $this;
     }
@@ -185,11 +279,16 @@ final class QueryBuilderProxy extends QueryBuilder
 
     public function execute(): Result|int|string
     {
+        // In DBAL 4.x, execute() is deprecated and split into executeQuery() and executeStatement()
+        // In DBAL 3.x, execute() returns a Result object for SELECT queries
+        // and an integer for UPDATE/DELETE/INSERT queries
         return $this->queryBuilder->{__FUNCTION__}();
     }
 
     public function executeQuery(): Result
     {
+        // In DBAL 4.x, this is the preferred method for SELECT queries
+        // In DBAL 3.x, we need to fall back to execute()
         $name = method_exists($this->queryBuilder, __FUNCTION__) ? __FUNCTION__ : 'execute';
 
         return $this->queryBuilder->{$name}();
@@ -197,6 +296,8 @@ final class QueryBuilderProxy extends QueryBuilder
 
     public function executeStatement(): int
     {
+        // In DBAL 4.x, this is the preferred method for UPDATE/DELETE/INSERT queries
+        // In DBAL 3.x, we need to fall back to execute()
         $name = method_exists($this->queryBuilder, __FUNCTION__) ? __FUNCTION__ : 'execute';
 
         return $this->queryBuilder->{$name}();

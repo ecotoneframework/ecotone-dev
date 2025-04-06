@@ -198,23 +198,24 @@ final class DbalDocumentStore implements DocumentStore
             return;
         }
 
-        $sm = $this->getConnection()->getSchemaManager();
-
         if ($this->doesTableExists()) {
             return;
         }
 
+        $connection = $this->getConnection();
+        $schemaManager = $connection->createSchemaManager();
+
         $table = new Table($this->getTableName());
 
-        $table->addColumn('collection', Types::STRING);
-        $table->addColumn('document_id', Types::STRING);
+        $table->addColumn('collection', Types::STRING, ['length' => 255]);
+        $table->addColumn('document_id', Types::STRING, ['length' => 255]);
         $table->addColumn('document_type', Types::TEXT);
         $table->addColumn('document', Types::JSON);
         $table->addColumn('updated_at', Types::FLOAT, ['length' => 53]);
 
         $table->setPrimaryKey(['collection', 'document_id']);
 
-        $sm->createTable($table);
+        $schemaManager->createTable($table);
     }
 
     private function getConnection(): Connection
@@ -236,7 +237,8 @@ final class DbalDocumentStore implements DocumentStore
             return true;
         }
 
-        $tableExists = $connection->getSchemaManager()->tablesExist([$this->getTableName()]);
+        $schemaManager = $connection->createSchemaManager();
+        $tableExists = $schemaManager->tablesExist([$this->getTableName()]);
 
         if ($tableExists) {
             $this->initialized[spl_object_id($connection)] = true;

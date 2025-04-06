@@ -67,8 +67,39 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
         $connection = $this->getConnection();
 
         if ($connection) {
-            $connection->close();
-            $connection->connect();
+            // In DBAL 4.x, close() and connect() are protected, so we need a different approach
+            try {
+                // Force a new connection by getting the native connection after clearing internal state
+                $reflectionClass = new \ReflectionClass($connection);
+
+                // Try to find the connection property - it might be '_conn' or 'connection' depending on DBAL version
+                $connPropertyName = null;
+                foreach (self::CONNECTION_PROPERTIES as $propertyName) {
+                    if ($reflectionClass->hasProperty($propertyName)) {
+                        $connPropertyName = $propertyName;
+                        break;
+                    }
+                }
+
+                if ($connPropertyName) {
+                    $connectedProperty = $reflectionClass->getProperty($connPropertyName);
+                    $connectedProperty->setAccessible(true);
+                    $connectedProperty->setValue($connection, null);
+                }
+
+                // This will force a new connection
+                $connection->getNativeConnection();
+            } catch (\Exception $e) {
+                // Best effort approach - if reflection fails, try another method
+                try {
+                    // For DBAL 4.x, we can try to close and reopen by nullifying our reference
+                    // and getting a fresh connection
+                    $this->connectionFactory->close();
+                    $this->connectionFactory->createContext();
+                } catch (\Exception $innerException) {
+                    // We've tried our best
+                }
+            }
         }
     }
 

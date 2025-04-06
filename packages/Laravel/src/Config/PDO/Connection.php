@@ -8,7 +8,10 @@ use Doctrine\DBAL\Driver\PDO\Exception;
 use Doctrine\DBAL\Driver\PDO\Result;
 use Doctrine\DBAL\Driver\PDO\Statement;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
-use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
+use Doctrine\DBAL\Driver\Connection as DriverConnection;
+use Doctrine\DBAL\ServerVersionProvider;
+
+// No need for version detection, we'll implement the DBAL 4.x interface
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use Doctrine\DBAL\ParameterType;
 use PDO;
@@ -29,7 +32,7 @@ use PDOStatement;
 /**
  * licence Apache-2.0
  */
-class Connection implements ServerInfoAwareConnection
+class Connection implements DriverConnection, ServerVersionProvider
 {
     /**
      * The underlying PDO connection.
@@ -114,14 +117,10 @@ class Connection implements ServerInfoAwareConnection
      *
      * @throws Exception
      */
-    public function lastInsertId($name = null)
+    public function lastInsertId(): string|int
     {
         try {
-            if ($name === null) {
-                return $this->connection->lastInsertId();
-            }
-
-            return $this->connection->lastInsertId($name);
+            return $this->connection->lastInsertId();
         } catch (PDOException $exception) {
             throw Exception::new($exception);
         }
@@ -140,32 +139,26 @@ class Connection implements ServerInfoAwareConnection
 
     /**
      * Begin a new database transaction.
-     *
-     * @return bool
      */
-    public function beginTransaction()
+    public function beginTransaction(): void
     {
-        return $this->connection->beginTransaction();
+        $this->connection->beginTransaction();
     }
 
     /**
      * Commit a database transaction.
-     *
-     * @return bool
      */
-    public function commit()
+    public function commit(): void
     {
-        return $this->connection->commit();
+        $this->connection->commit();
     }
 
     /**
      * Rollback a database transaction.
-     *
-     * @return bool
      */
-    public function rollBack()
+    public function rollBack(): void
     {
-        return $this->connection->rollBack();
+        $this->connection->rollBack();
     }
 
     /**
@@ -175,9 +168,9 @@ class Connection implements ServerInfoAwareConnection
      * @param  string  $type
      * @return string
      */
-    public function quote($input, $type = ParameterType::STRING)
+    public function quote(string $value): string
     {
-        return $this->connection->quote($input, $type);
+        return $this->connection->quote($value);
     }
 
     /**
@@ -185,9 +178,19 @@ class Connection implements ServerInfoAwareConnection
      *
      * @return string
      */
-    public function getServerVersion()
+    public function getServerVersion(): string
     {
         return $this->connection->getAttribute(PDO::ATTR_SERVER_VERSION);
+    }
+
+    /**
+     * Get the native connection.
+     *
+     * @return PDO
+     */
+    public function getNativeConnection(): PDO
+    {
+        return $this->connection;
     }
 
     /**

@@ -49,7 +49,31 @@ final class DbalBusinessMethodHandler
     ): ?Message {
         [$sql, $parameters, $parameterTypes] = $this->prepareExecution($sql, $headers);
 
-        $query = $this->getConnection()->executeQuery($sql, $parameters, $parameterTypes);
+        // Define constants for compatibility with both DBAL 3.x and 4.x
+        if (!defined('DBAL_ARRAY_PARAM_INT')) {
+            define('DBAL_ARRAY_PARAM_INT', class_exists('\Doctrine\DBAL\ArrayParameterType') ? 1 : 102);
+        }
+        if (!defined('DBAL_ARRAY_PARAM_STR')) {
+            define('DBAL_ARRAY_PARAM_STR', class_exists('\Doctrine\DBAL\ArrayParameterType') ? 2 : 101);
+        }
+
+        // Convert integer parameter types to ParameterType objects for DBAL 4.x
+        $convertedParameterTypes = [];
+        foreach ($parameterTypes as $key => $type) {
+            if (is_int($type)) {
+                if ($type === DBAL_ARRAY_PARAM_INT && class_exists('\Doctrine\DBAL\ArrayParameterType')) {
+                    $convertedParameterTypes[$key] = \Doctrine\DBAL\ArrayParameterType::INTEGER;
+                } elseif ($type === DBAL_ARRAY_PARAM_STR && class_exists('\Doctrine\DBAL\ArrayParameterType')) {
+                    $convertedParameterTypes[$key] = \Doctrine\DBAL\ArrayParameterType::STRING;
+                } else {
+                    $convertedParameterTypes[$key] = $type;
+                }
+            } else {
+                $convertedParameterTypes[$key] = $type;
+            }
+        }
+
+        $query = $this->getConnection()->executeQuery($sql, $parameters, $convertedParameterTypes);
 
         $result = match($fetchMode) {
             FetchMode::ASSOCIATIVE => $query->fetchAllAssociative(),
@@ -183,9 +207,17 @@ final class DbalBusinessMethodHandler
                 if ($typeDescriptor->isCollection() && $typeDescriptor->isSingleTypeCollection()) {
                     $typeDescriptor = $typeDescriptor->resolveGenericTypes()[0];
                     if ($typeDescriptor->isInteger()) {
-                        $preparedParameterTypes[$parameterName] = Connection::PARAM_INT_ARRAY;
+                        // Define constants for compatibility with both DBAL 3.x and 4.x
+                        if (!defined('DBAL_ARRAY_PARAM_INT')) {
+                            define('DBAL_ARRAY_PARAM_INT', class_exists('\Doctrine\DBAL\ArrayParameterType') ? 1 : 102);
+                        }
+                        $preparedParameterTypes[$parameterName] = DBAL_ARRAY_PARAM_INT;
                     } else {
-                        $preparedParameterTypes[$parameterName] = Connection::PARAM_STR_ARRAY;
+                        // Define constants for compatibility with both DBAL 3.x and 4.x
+                        if (!defined('DBAL_ARRAY_PARAM_STR')) {
+                            define('DBAL_ARRAY_PARAM_STR', class_exists('\Doctrine\DBAL\ArrayParameterType') ? 2 : 101);
+                        }
+                        $preparedParameterTypes[$parameterName] = DBAL_ARRAY_PARAM_STR;
                     }
                 } else {
                     if ($typeDescriptor->isInteger()) {

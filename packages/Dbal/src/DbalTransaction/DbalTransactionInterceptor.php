@@ -91,8 +91,30 @@ class DbalTransactionInterceptor
                 try {
                     $connection->commit();
                     $logger->info('Database Transaction committed', $message);
-                } catch (PDOException $exception) {
-                    if (str_contains($exception->getMessage(), 'There is no active transaction')) {
+                } catch (\Exception $exception) {
+                    // Only handle the specific case where MySQL did an implicit commit when creating tables
+                    // This only happens with MySQL and is indicated by a "There is no active transaction" error
+                    $isMySql = false;
+                    try {
+                        // Check if this is a MySQL connection
+                        $platform = $connection->getDatabasePlatform();
+                        $isMySql = $platform instanceof \Doctrine\DBAL\Platforms\MySQLPlatform ||
+                                  $platform instanceof \Doctrine\DBAL\Platforms\MySQL57Platform ||
+                                  $platform instanceof \Doctrine\DBAL\Platforms\MySQL80Platform ||
+                                  $platform instanceof \Doctrine\DBAL\Platforms\MariaDBPlatform ||
+                                  (method_exists($platform, 'getName') &&
+                                   (str_contains($platform->getName(), 'MySQL') || str_contains($platform->getName(), 'MariaDB')));
+                    } catch (\Exception $e) {
+                        // If we can't determine the platform, assume it's not MySQL
+                        $isMySql = false;
+                    }
+
+                    $isNoActiveTransactionError =
+                        str_contains($exception->getMessage(), 'There is no active transaction') ||
+                        $exception instanceof \Doctrine\DBAL\Exception\DriverException && str_contains($exception->getMessage(), 'There is no active transaction');
+
+                    // Only handle the case for MySQL with "no active transaction" error
+                    if ($isMySql && $isNoActiveTransactionError) {
                         /** Handles the case where Mysql did implicit commit, when new creating tables */
                         $logger->info(
                             'Implicit Commit was detected, skipping manual one.',

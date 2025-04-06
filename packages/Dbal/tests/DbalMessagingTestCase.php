@@ -13,7 +13,7 @@ use Ecotone\Test\ComponentTestBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Dbal\Fixture\FailingConnection;
+use Test\Ecotone\Dbal\Fixture\ConnectionBreakingConfiguration;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 /**
@@ -39,32 +39,11 @@ abstract class DbalMessagingTestCase extends TestCase
             return self::$defaultConnection;
         }
 
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@database:5432/ecotone?charset=UTF8';
         $dbalConnection = new DbalConnectionFactory($dsn);
         self::$defaultConnection = $dbalConnection;
 
         return $dbalConnection;
-    }
-
-    /**
-     * @param array $connectionFailuresOnCommit any true will cause connection to fail on commit
-     * @param array $connectionFailuresOnRollBack any true will cause connection to fail on roll back
-     */
-    public static function prepareFailingConnection(
-        array $connectionFailuresOnRollBack = [],
-        array $connectionFailuresOnCommit = [],
-        array $connectionFailureOnStoreInDeadLetter = [],
-        array $connectionFailureOnMessageAcknowledge = [],
-    ): ConnectionFactory {
-        return ManagerRegistryEmulator::create((
-                new FailingConnection(
-                    self::prepareConnection()->createContext()->getDbalConnection(),
-                    $connectionFailuresOnRollBack,
-                    $connectionFailuresOnCommit,
-                    $connectionFailureOnStoreInDeadLetter,
-                    $connectionFailureOnMessageAcknowledge
-                )
-        ));
     }
 
     /**
@@ -156,7 +135,7 @@ abstract class DbalMessagingTestCase extends TestCase
         }
 
         $connectionFactory = DbalConnection::fromDsn(
-            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'
+            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@database-mysql:3306/ecotone'
         );
 
         $this->tenantBConnection = $connectionFactory;
@@ -192,6 +171,7 @@ abstract class DbalMessagingTestCase extends TestCase
 
     private function getSchemaManager(Connection $connection): ?\Doctrine\DBAL\Schema\AbstractSchemaManager
     {
+        // Handle both DBAL 3.x (getSchemaManager) and 4.x (createSchemaManager)
         return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
     }
 }

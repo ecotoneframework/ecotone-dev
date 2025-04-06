@@ -67,8 +67,9 @@ class DeduplicationInterceptor
             ->setParameter('consumerEndpointId', $consumerEndpointId, Types::TEXT)
             ->setParameter('routingSlip', $routingSlip, Types::TEXT)
             ->setMaxResults(1)
-            ->execute()
-            ->fetch();
+            // In DBAL 4.x, execute() is replaced with executeQuery()
+            ->executeQuery()
+            ->fetchAssociative();
 
         if ($select) {
             $this->logger->info('Message with was already handled. Skipping.', [
@@ -105,8 +106,9 @@ class DeduplicationInterceptor
             $this->getConnection($connectionFactory)->createQueryBuilder()
                 ->delete($this->getTableName())
                 ->andWhere('message_id IN (:messageIds)')
-                ->setParameter('messageIds', array_column($messageIds, 'message_id'), Connection::PARAM_STR_ARRAY)
-                ->execute();
+                ->setParameter('messageIds', array_column($messageIds, 'message_id'), class_exists('\Doctrine\DBAL\ArrayParameterType') ? \Doctrine\DBAL\ArrayParameterType::STRING : (defined('\Doctrine\DBAL\Connection::PARAM_STR_ARRAY') ? \Doctrine\DBAL\Connection::PARAM_STR_ARRAY : 'string[]'))
+                // In DBAL 4.x, execute() is replaced with executeStatement()
+                ->executeStatement();
         }
     }
 
@@ -139,23 +141,24 @@ class DeduplicationInterceptor
 
     private function createDataBaseTable(ConnectionFactory $connectionFactory): void
     {
-        $sm = $this->getConnection($connectionFactory)->getSchemaManager();
+        $connection = $this->getConnection($connectionFactory);
+        $schemaManager = $connection->createSchemaManager();
 
-        if ($sm->tablesExist([$this->getTableName()])) {
+        if ($schemaManager->tablesExist([$this->getTableName()])) {
             return;
         }
 
         $table = new Table($this->getTableName());
 
-        $table->addColumn('message_id', Types::STRING);
-        $table->addColumn('consumer_endpoint_id', Types::STRING);
-        $table->addColumn('routing_slip', Types::STRING);
+        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
+        $table->addColumn('consumer_endpoint_id', Types::STRING, ['length' => 255]);
+        $table->addColumn('routing_slip', Types::STRING, ['length' => 255]);
         $table->addColumn('handled_at', Types::BIGINT);
 
         $table->setPrimaryKey(['message_id', 'consumer_endpoint_id', 'routing_slip']);
         $table->addIndex(['handled_at']);
 
-        $sm->createTable($table);
+        $schemaManager->createTable($table);
         $this->logger->info('Deduplication table was created');
     }
 
@@ -175,7 +178,8 @@ class DeduplicationInterceptor
             ->andWhere('handled_at <= :threshold')
             ->setParameter('threshold', ($this->clock->unixTimeInMilliseconds() - $this->minimumTimeToRemoveMessageInMilliseconds), Types::BIGINT)
             ->setMaxResults($this->deduplicationRemovalBatchSize)
-            ->execute()
+            // In DBAL 4.x, execute() is replaced with executeQuery()
+            ->executeQuery()
             ->fetchAllAssociative();
         return $messageIds;
     }

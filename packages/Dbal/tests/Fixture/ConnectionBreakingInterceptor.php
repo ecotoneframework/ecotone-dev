@@ -35,23 +35,21 @@ class ConnectionBreakingInterceptor
      */
     public function breakConnection(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        // Get the current call index (0-based)
         $currentCallIndex = $this->callCount;
         $this->callCount++;
 
-        // Determine if we should break the connection for this call
         $shouldBreak = true; // Default behavior
         if (isset($this->breakConnectionOnCalls[$currentCallIndex])) {
             $shouldBreak = $this->breakConnectionOnCalls[$currentCallIndex];
         }
 
-        // Break the connection if specified for this call
+        $result = $methodInvocation->proceed();
+
         if ($shouldBreak) {
             $this->closeAllConnections();
         }
 
-        // Proceed with the method invocation
-        return $methodInvocation->proceed();
+        return $result;
     }
 
     /**

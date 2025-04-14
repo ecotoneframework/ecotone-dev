@@ -95,8 +95,6 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
-                    // Add the connection breaking configuration
-                    // [false, false, true] means: don't break on 1st and 2nd calls, break on 3rd call
                     ConnectionBreakingConfiguration::createWithBreakBeforeCommit([false, false, true]),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),

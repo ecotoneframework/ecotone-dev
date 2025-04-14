@@ -27,7 +27,7 @@ Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
 
 ## Contribution
 
-Read [Read me Development Context](./readme-development-context.md) for information about the Monorepo.
+Read [Read me Development Context](./README-DEVELOPMENT-CONTEXT) for information about the Monorepo.
 Visit [Ecotone's Documentation](https://docs.ecotone.tech/messaging/contributing-to-ecotone) for more information about contributing.
 
 ## Feature requests and issue reporting

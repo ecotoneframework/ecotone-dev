@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Compatibility;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Result;
@@ -14,7 +15,7 @@ use InvalidArgumentException;
  * @author Łukasz Adamczewski <tworzenieweb@gmail.com>
  *
  * Simple proxy class to keep the QueryBuilder API compatible with Doctrine DBAL 2.10, 3.0, and 4.0
- * All the parent methods need to be implemented in order to intercept and pass to the wrapped instance.
+ * This class delegates all calls to the wrapped QueryBuilder instance.
  * Class supports execution of various fetch methods directly from query object that was added in version 3.1
  *
  * @see https://github.com/doctrine/dbal/blob/3.6.x/UPGRADE.md#upgrade-to-31
@@ -22,7 +23,7 @@ use InvalidArgumentException;
 /**
  * licence Apache-2.0
  */
-final class QueryBuilderProxy extends QueryBuilder
+final class QueryBuilderProxy
 {
     private QueryBuilder $queryBuilder;
     private bool $isDbal4;
@@ -31,41 +32,6 @@ final class QueryBuilderProxy extends QueryBuilder
     {
         $this->queryBuilder = $queryBuilder;
         $this->isDbal4 = $this->detectDbal4();
-
-        // In DBAL 4.x, the QueryBuilder constructor requires a Connection object
-        // We need to get the connection from the queryBuilder
-        try {
-            // First try using reflection to get the connection property
-            $reflectionClass = new \ReflectionClass($queryBuilder);
-            if ($reflectionClass->hasProperty('connection')) {
-                $connectionProperty = $reflectionClass->getProperty('connection');
-                $connectionProperty->setAccessible(true);
-                $connection = $connectionProperty->getValue($queryBuilder);
-                parent::__construct($connection);
-            } else {
-                // Try using getConnection method if available
-                if (method_exists($queryBuilder, 'getConnection')) {
-                    parent::__construct($queryBuilder->getConnection());
-                } else {
-                    // Last resort fallback - try to construct without connection
-                    // This will likely fail in DBAL 4.x but might work in 3.x
-                    parent::__construct();
-                }
-            }
-        } catch (\Exception $e) {
-            // If all else fails, try one more approach
-            try {
-                if (method_exists($queryBuilder, 'getConnection')) {
-                    parent::__construct($queryBuilder->getConnection());
-                } else {
-                    // Last resort fallback
-                    parent::__construct();
-                }
-            } catch (\Exception $e) {
-                // We've tried our best, let the error propagate
-                throw $e;
-            }
-        }
     }
 
     /**
@@ -90,83 +56,103 @@ final class QueryBuilderProxy extends QueryBuilder
         }
     }
 
-    // override all public methods from parent class with empty body
     /**
-     * @param mixed $select
-     * @return $this
+     * Proxy for select method that works with both DBAL 3 and DBAL 4
      */
-    public function select($select = null): self
+    public function select(/* mixed ...$args */): self
     {
+        $args = func_get_args();
+
         if ($this->isDbal4) {
             // DBAL 4.x style: select(string ...$expressions)
-            $args = func_get_args();
-            $this->queryBuilder->select(...$args);
+            if (count($args) === 1 && is_array($args[0])) {
+                // Handle array argument for DBAL 4
+                // Convert array to variadic arguments
+                $this->queryBuilder->select(...$args[0]);
+            } else {
+                $this->queryBuilder->select(...$args);
+            }
         } else {
             // DBAL 3.x style: select($select = null)
-            if (func_num_args() === 0) {
+            if (count($args) === 0) {
                 $this->queryBuilder->select();
-            } elseif (is_array($select)) {
-                $this->queryBuilder->select($select);
+            } elseif (count($args) === 1 && is_array($args[0])) {
+                $this->queryBuilder->select($args[0]);
             } else {
-                $this->queryBuilder->select($select);
+                $this->queryBuilder->select(...$args);
             }
         }
 
         return $this;
     }
 
+    /**
+     * Proxy for from method
+     */
     public function from($from, $alias = null): self
     {
-        $this->queryBuilder->{__FUNCTION__}($from, $alias);
+        $this->queryBuilder->from($from, $alias);
 
         return $this;
     }
 
     /**
-     * @param mixed $select
-     * @return $this
+     * Proxy for addSelect method that works with both DBAL 3 and DBAL 4
      */
-    public function addSelect($select = null): self
+    public function addSelect(/* mixed ...$args */): self
     {
+        $args = func_get_args();
+
         if ($this->isDbal4) {
             // DBAL 4.x style: addSelect(string ...$expressions)
-            $args = func_get_args();
             $this->queryBuilder->addSelect(...$args);
         } else {
             // DBAL 3.x style: addSelect($select = null)
-            if (func_num_args() === 0) {
+            if (count($args) === 0) {
                 $this->queryBuilder->addSelect();
-            } elseif (is_array($select)) {
-                $this->queryBuilder->addSelect($select);
+            } elseif (count($args) === 1 && is_array($args[0])) {
+                $this->queryBuilder->addSelect($args[0]);
             } else {
-                $this->queryBuilder->addSelect($select);
+                $this->queryBuilder->addSelect(...$args);
             }
         }
 
         return $this;
     }
 
+    /**
+     * Proxy for delete method
+     */
     public function delete($delete = null, $alias = null): self
     {
-        $this->queryBuilder->{__FUNCTION__}($delete, $alias);
+        $this->queryBuilder->delete($delete, $alias);
 
         return $this;
     }
 
+    /**
+     * Proxy for update method
+     */
     public function update($update = null, $alias = null): self
     {
-        $this->queryBuilder->{__FUNCTION__}($update, $alias);
+        $this->queryBuilder->update($update, $alias);
 
         return $this;
     }
 
+    /**
+     * Proxy for set method
+     */
     public function set($key, $value): self
     {
-        $this->queryBuilder->{__FUNCTION__}($key, $value);
+        $this->queryBuilder->set($key, $value);
 
         return $this;
     }
 
+    /**
+     * Proxy for where method that works with both DBAL 3 and DBAL 4
+     */
     public function where($predicate, ...$predicates): self
     {
         // Handle both DBAL 3.x and 4.x versions
@@ -181,6 +167,9 @@ final class QueryBuilderProxy extends QueryBuilder
         return $this;
     }
 
+    /**
+     * Proxy for andWhere method that works with both DBAL 3 and DBAL 4
+     */
     public function andWhere($predicate, ...$predicates): self
     {
         // Handle both DBAL 3.x and 4.x versions
@@ -195,6 +184,9 @@ final class QueryBuilderProxy extends QueryBuilder
         return $this;
     }
 
+    /**
+     * Proxy for orWhere method that works with both DBAL 3 and DBAL 4
+     */
     public function orWhere($predicate, ...$predicates): self
     {
         // Handle both DBAL 3.x and 4.x versions
@@ -209,6 +201,9 @@ final class QueryBuilderProxy extends QueryBuilder
         return $this;
     }
 
+    /**
+     * Proxy for groupBy method that works with both DBAL 3 and DBAL 4
+     */
     public function groupBy($groupBy, ...$groupBys): self
     {
         // Handle both DBAL 3.x and 4.x versions
@@ -223,6 +218,9 @@ final class QueryBuilderProxy extends QueryBuilder
         return $this;
     }
 
+    /**
+     * Proxy for addGroupBy method that works with both DBAL 3 and DBAL 4
+     */
     public function addGroupBy($groupBy, ...$groupBys): self
     {
         // Handle both DBAL 3.x and 4.x versions
@@ -237,6 +235,9 @@ final class QueryBuilderProxy extends QueryBuilder
         return $this;
     }
 
+    /**
+     * Proxy for having method that works with both DBAL 3 and DBAL 4
+     */
     public function having($having, ...$havings): self
     {
         // Handle both DBAL 3.x and 4.x versions
@@ -251,104 +252,164 @@ final class QueryBuilderProxy extends QueryBuilder
         return $this;
     }
 
+    /**
+     * Proxy for setFirstResult method
+     */
     public function setFirstResult($firstResult): self
     {
-        $this->queryBuilder->{__FUNCTION__}($firstResult);
+        $this->queryBuilder->setFirstResult($firstResult);
 
         return $this;
     }
 
+    /**
+     * Proxy for setMaxResults method
+     */
     public function setMaxResults($maxResults): self
     {
-        $this->queryBuilder->{__FUNCTION__}($maxResults);
+        $this->queryBuilder->setMaxResults($maxResults);
 
         return $this;
     }
 
+    /**
+     * Proxy for setParameter method
+     */
     public function setParameter($key, $value, $type = null): self
     {
-        $this->queryBuilder->{__FUNCTION__}($key, $value, $type);
+        $this->queryBuilder->setParameter($key, $value, $type);
 
         return $this;
     }
 
+    /**
+     * Proxy for setParameters method
+     */
     public function setParameters(array $params, array $types = []): self
     {
-        $this->queryBuilder->{__FUNCTION__}($params, $types);
+        $this->queryBuilder->setParameters($params, $types);
 
         return $this;
     }
 
+    /**
+     * Proxy for __clone method
+     */
     public function __clone(): void
     {
-        $this->queryBuilder->{__FUNCTION__}();
+        $this->queryBuilder = clone $this->queryBuilder;
     }
 
+    /**
+     * Proxy for __toString method
+     */
     public function __toString(): string
     {
-        return $this->queryBuilder->{__FUNCTION__}();
+        return $this->queryBuilder->__toString();
     }
 
+    /**
+     * Proxy for expr method
+     */
     public function expr(): ExpressionBuilder
     {
-        return $this->queryBuilder->{__FUNCTION__}();
+        return $this->queryBuilder->expr();
     }
 
+    /**
+     * Proxy for resetQueryParts method
+     */
     public function resetQueryParts($queryPartNames = null): self
     {
-        $this->queryBuilder->{__FUNCTION__}($queryPartNames);
+        $this->queryBuilder->resetQueryParts($queryPartNames);
 
         return $this;
     }
 
+    /**
+     * Proxy for getQueryPart method
+     */
     public function getQueryPart($queryPartName): mixed
     {
-        return $this->queryBuilder->{__FUNCTION__}($queryPartName);
+        return $this->queryBuilder->getQueryPart($queryPartName);
     }
 
+    /**
+     * Proxy for getSQL method
+     */
     public function getSQL(): string
     {
-        return $this->queryBuilder->{__FUNCTION__}();
+        return $this->queryBuilder->getSQL();
     }
 
+    /**
+     * Proxy for getType method
+     */
     public function getType(): int
     {
-        return $this->queryBuilder->{__FUNCTION__}();
+        return $this->queryBuilder->getType();
     }
 
+    /**
+     * Proxy for getState method
+     */
     public function getState(): int
     {
-        return $this->queryBuilder->{__FUNCTION__}();
+        return $this->queryBuilder->getState();
     }
 
-    public function execute(): Result|int|string
+    /**
+     * Proxy for execute method
+     */
+    public function execute(): mixed
     {
         // In DBAL 4.x, execute() is deprecated and split into executeQuery() and executeStatement()
         // In DBAL 3.x, execute() returns a Result object for SELECT queries
         // and an integer for UPDATE/DELETE/INSERT queries
-        return $this->queryBuilder->{__FUNCTION__}();
+        if (method_exists($this->queryBuilder, 'execute')) {
+            return $this->queryBuilder->execute();
+        } else {
+            // In DBAL 4.x, execute() is split into executeQuery() and executeStatement()
+            // Since we can't reliably determine the query type, try executeQuery() first
+            // and fall back to executeStatement() if it fails
+            try {
+                return $this->queryBuilder->executeQuery();
+            } catch (\Exception $e) {
+                return $this->queryBuilder->executeStatement();
+            }
+        }
     }
 
-    public function executeQuery(): Result
+    /**
+     * Proxy for executeQuery method
+     */
+    public function executeQuery(): mixed
     {
         // In DBAL 4.x, this is the preferred method for SELECT queries
         // In DBAL 3.x, we need to fall back to execute()
-        $name = method_exists($this->queryBuilder, __FUNCTION__) ? __FUNCTION__ : 'execute';
+        $name = method_exists($this->queryBuilder, 'executeQuery') ? 'executeQuery' : 'execute';
 
         return $this->queryBuilder->{$name}();
     }
 
-    public function executeStatement(): int
+    /**
+     * Proxy for executeStatement method
+     */
+    public function executeStatement(): mixed
     {
         // In DBAL 4.x, this is the preferred method for UPDATE/DELETE/INSERT queries
         // In DBAL 3.x, we need to fall back to execute()
-        $name = method_exists($this->queryBuilder, __FUNCTION__) ? __FUNCTION__ : 'execute';
+        $name = method_exists($this->queryBuilder, 'executeStatement') ? 'executeStatement' : 'execute';
 
         return $this->queryBuilder->{$name}();
     }
 
+    /**
+     * Magic method to handle fetch methods and other methods not explicitly defined
+     */
     public function __call($name, $arguments)
     {
+        // Handle fetch methods that were added in DBAL 3.1
         switch ($name) {
             case 'fetchAllAssociativeIndexed':
             case 'fetchAllKeyValue':
@@ -358,7 +419,18 @@ final class QueryBuilderProxy extends QueryBuilder
             case 'fetchAllAssociative':
             case 'fetchFirstColumn':
             case 'fetchOne':
-                return $this->queryBuilder->execute()->$name(...$arguments);
+                return $this->execute()->$name(...$arguments);
+        }
+
+        // Try to call the method on the wrapped QueryBuilder
+        if (method_exists($this->queryBuilder, $name)) {
+            $result = $this->queryBuilder->$name(...$arguments);
+            return ($result === $this->queryBuilder) ? $this : $result;
+        }
+
+        // Special handling for methods that might not exist in all DBAL versions
+        if ($name === 'execute') {
+            return $this->execute();
         }
 
         throw new InvalidArgumentException(sprintf('Not supported proxy method: %s', $name));

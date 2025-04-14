@@ -65,6 +65,9 @@
         "ecotone": {
             "repository": "dbal"
         },
+        "autoload": {
+            "files": ["bootstrap.php"]
+        },
         "merge-plugin": {
             "include": [
                 "../local_packages.json"

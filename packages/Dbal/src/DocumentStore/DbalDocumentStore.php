@@ -7,6 +7,7 @@ use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -207,11 +208,18 @@ final class DbalDocumentStore implements DocumentStore
 
         $table = new Table($this->getTableName());
 
-        $table->addColumn('collection', Types::STRING, ['length' => 255]);
-        $table->addColumn('document_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('document_type', Types::TEXT);
-        $table->addColumn('document', Types::JSON);
-        $table->addColumn('updated_at', Types::FLOAT, ['length' => 53]);
+        $collectionColumn = $table->addColumn('collection', Types::STRING, ['length' => 255]);
+        $documentIdColumn = $table->addColumn('document_id', Types::STRING, ['length' => 255]);
+        $documentTypeColumn = $table->addColumn('document_type', Types::TEXT);
+        $documentColumn = $table->addColumn('document', Types::JSON);
+        $updatedAtColumn = $table->addColumn('updated_at', Types::FLOAT, ['length' => 53]);
+
+        // Apply compatibility fixes for DBAL 3.x
+        SchemaManagerCompatibility::fixColumnComment($collectionColumn);
+        SchemaManagerCompatibility::fixColumnComment($documentIdColumn);
+        SchemaManagerCompatibility::fixColumnComment($documentTypeColumn);
+        SchemaManagerCompatibility::fixColumnComment($documentColumn);
+        SchemaManagerCompatibility::fixColumnComment($updatedAtColumn);
 
         $table->setPrimaryKey(['collection', 'document_id']);
 
@@ -292,7 +300,7 @@ final class DbalDocumentStore implements DocumentStore
         return $rowsAffected;
     }
 
-    private function getDocumentsFor(string $collectionName): \Doctrine\DBAL\Query\QueryBuilder
+    private function getDocumentsFor(string $collectionName): mixed
     {
         return (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
             ->select('document', 'document_type')

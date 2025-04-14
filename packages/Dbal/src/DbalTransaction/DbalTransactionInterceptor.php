@@ -4,6 +4,7 @@ namespace Ecotone\Dbal\DbalTransaction;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
+use Ecotone\Dbal\Compatibility\ConnectionExceptionCompatibility;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
@@ -103,7 +104,7 @@ class DbalTransactionInterceptor
                             (str_contains($platform->getName(), 'MySQL') || str_contains($platform->getName(), 'MariaDB')));
 
                     // Only handle the case for MySQL with "no active transaction" error
-                    if ($isMySql && str_contains($exception->getMessage(), 'There is no active transaction')) {
+                    if ($isMySql && ($exception instanceof ConnectionException && ConnectionExceptionCompatibility::isNoActiveTransactionException($exception) || str_contains($exception->getMessage(), 'There is no active transaction'))) {
                         /** Handles the case where Mysql did implicit commit, when new creating tables */
                         $logger->info(
                             'Implicit Commit was detected, skipping manual one.',

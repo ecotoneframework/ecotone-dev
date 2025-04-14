@@ -115,7 +115,6 @@
         "doctrine/dbal": "^3.9|^4.0",
         "doctrine/persistence": "^2.5|^3.4",
         "enqueue/amqp-ext": "^0.10.18",
-        "enqueue/dbal": "^0.10.17",
         "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",
         "enqueue/dsn": "^0.10.4",

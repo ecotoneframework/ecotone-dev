@@ -23,8 +23,7 @@
     "autoload": {
         "psr-4": {
             "Ecotone\\Dbal\\": "src",
-            "Enqueue\\Dbal\\": "src/EnqueueDbal",
-            "Enqueue\\Dsn\\": "src/EnqueueDsn"
+            "Enqueue\\Dbal\\": "src/EnqueueDbal"
         }
     },
     "autoload-dev": {
@@ -37,6 +36,7 @@
     "require": {
         "ecotone/enqueue": "~1.252.0",
         "doctrine/dbal": "^3.9|^4.0",
+        "enqueue/dsn": "^0.10.4",
         "ramsey/uuid": "^3.5|^4"
     },
     "require-dev": {

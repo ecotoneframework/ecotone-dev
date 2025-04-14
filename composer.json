@@ -168,7 +168,8 @@
         "kwn/php-rdkafka-stubs": "^2.2"
     },
     "conflict": {
-        "symfony/doctrine-messenger": ">7.0.5 < 7.1.0"
+        "symfony/doctrine-messenger": ">7.0.5 < 7.1.0",
+        "enqueue/dbal": "*"
     },
     "extra": {
         "laravel": {

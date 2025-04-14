@@ -90,5 +90,8 @@
         "allow-plugins": {
             "wikimedia/composer-merge-plugin": true
         }
+    },
+    "conflict": {
+        "enqueue/dbal": "*"
     }
 }

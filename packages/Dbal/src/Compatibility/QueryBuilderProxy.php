@@ -13,7 +13,7 @@ use InvalidArgumentException;
  * @package Ecotone\Dbal\Compatibility
  * @author Łukasz Adamczewski <tworzenieweb@gmail.com>
  *
- * Simple proxy class to keep the QueryBuilder API compatible with Doctrine DBAL 2.10 and 3.0
+ * Simple proxy class to keep the QueryBuilder API compatible with Doctrine DBAL 2.10, 3.0, and 4.0
  * All the parent methods need to be implemented in order to intercept and pass to the wrapped instance.
  * Class supports execution of various fetch methods directly from query object that was added in version 3.1
  *
@@ -25,10 +25,12 @@ use InvalidArgumentException;
 final class QueryBuilderProxy extends QueryBuilder
 {
     private QueryBuilder $queryBuilder;
+    private bool $isDbal4;
 
     public function __construct(QueryBuilder $queryBuilder)
     {
         $this->queryBuilder = $queryBuilder;
+        $this->isDbal4 = $this->detectDbal4();
 
         // In DBAL 4.x, the QueryBuilder constructor requires a Connection object
         // We need to get the connection from the queryBuilder
@@ -66,16 +68,48 @@ final class QueryBuilderProxy extends QueryBuilder
         }
     }
 
-    // override all public methods from parent class with empty body
-    public function select(string ...$expressions): self
+    /**
+     * Detects if we're using DBAL 4.x
+     */
+    private function detectDbal4(): bool
     {
-        // Handle both DBAL 3.x and 4.x versions
-        if (count($expressions) === 0) {
-            // DBAL 3.x style: select()
-            $this->queryBuilder->select();
+        // Check if the select method has the DBAL 4 signature (with variadic string parameters)
+        try {
+            $reflectionMethod = new \ReflectionMethod(QueryBuilder::class, 'select');
+            $parameters = $reflectionMethod->getParameters();
+
+            if (count($parameters) === 0) {
+                return false;
+            }
+
+            // In DBAL 4, the first parameter is named 'expressions' and is variadic
+            return $parameters[0]->isVariadic() && $parameters[0]->getName() === 'expressions';
+        } catch (\Exception $e) {
+            // If we can't determine the version, assume it's DBAL 3
+            return false;
+        }
+    }
+
+    // override all public methods from parent class with empty body
+    /**
+     * @param mixed $select
+     * @return $this
+     */
+    public function select($select = null): self
+    {
+        if ($this->isDbal4) {
+            // DBAL 4.x style: select(string ...$expressions)
+            $args = func_get_args();
+            $this->queryBuilder->select(...$args);
         } else {
-            // DBAL 4.x style: select(string ...)
-            $this->queryBuilder->select(...$expressions);
+            // DBAL 3.x style: select($select = null)
+            if (func_num_args() === 0) {
+                $this->queryBuilder->select();
+            } elseif (is_array($select)) {
+                $this->queryBuilder->select($select);
+            } else {
+                $this->queryBuilder->select($select);
+            }
         }
 
         return $this;
@@ -88,15 +122,25 @@ final class QueryBuilderProxy extends QueryBuilder
         return $this;
     }
 
-    public function addSelect(string ...$expressions): self
+    /**
+     * @param mixed $select
+     * @return $this
+     */
+    public function addSelect($select = null): self
     {
-        // Handle both DBAL 3.x and 4.x versions
-        if (count($expressions) === 0) {
-            // DBAL 3.x style: addSelect()
-            $this->queryBuilder->addSelect();
+        if ($this->isDbal4) {
+            // DBAL 4.x style: addSelect(string ...$expressions)
+            $args = func_get_args();
+            $this->queryBuilder->addSelect(...$args);
         } else {
-            // DBAL 4.x style: addSelect(string ...)
-            $this->queryBuilder->addSelect(...$expressions);
+            // DBAL 3.x style: addSelect($select = null)
+            if (func_num_args() === 0) {
+                $this->queryBuilder->addSelect();
+            } elseif (is_array($select)) {
+                $this->queryBuilder->addSelect($select);
+            } else {
+                $this->queryBuilder->addSelect($select);
+            }
         }
 
         return $this;

@@ -15,7 +15,7 @@ class ConnectionBreakingConfiguration
     /**
      * Private constructor - use factory methods instead
      *
-     * @param string $pointcut The pointcut type ('commit' or 'message_acknowledge')
+     * @param string $pointcut The pointcut type ('commit', 'message_acknowledge', or 'dead_letter_storage')
      * @param array $breakConnectionOnCalls Array of booleans indicating whether to break the connection on each call
      */
     private function __construct(string $pointcut, array $breakConnectionOnCalls = [])
@@ -77,4 +77,6 @@ class ConnectionBreakingConfiguration
     {
         return $this->pointcut === 'message_acknowledge';
     }
+
+
 }

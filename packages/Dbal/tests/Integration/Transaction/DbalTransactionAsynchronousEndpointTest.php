@@ -17,8 +17,8 @@ use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
-use Test\Ecotone\Dbal\Fixture\ConnectionBreakingModule;
 use Test\Ecotone\Dbal\Fixture\ConnectionBreakingConfiguration;
+use Test\Ecotone\Dbal\Fixture\ConnectionBreakingModule;
 use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
@@ -83,10 +83,13 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_commit()
     {
+        // Now create the actual test instance with the connection breaking module
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class, ConnectionBreakingModule::class],
-            [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([]),
-                                "logger" => new EchoLogger()
+            [
+                new MultipleInternalCommandsService(),
+                DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
+//                "logger" => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -95,50 +98,89 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
-                    ConnectionBreakingConfiguration::createWithBreakBeforeCommit([false, false, true]),
+                    // Configure to break connection on the third commit
+                    // First two commits should succeed, third should fail but recover
+                    ConnectionBreakingConfiguration::createWithBreakBeforeCommit([false, false, false, true]),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
             addInMemoryStateStoredRepository: false
         );
 
-        /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
+        // Send a command to ensure the deduplication table is created
         $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 99, 'personName' => 'Johny', 'exception' => false]);
         $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 100, 'personName' => 'Johny', 'exception' => false]);
 
+        // Run with enough message handling attempts to process both commands
+        // The second command will encounter a connection failure but should recover
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5, failAtError: false));
 
+        // Verify that despite the connection failure, the aggregate was successfully created
         $this->assertNotNull(
             $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100])
         );
     }
 
-    public function test_reconnecting_on_lost_connection_during_message_acknowledge()
+    /**
+     * @group test_reconnecting_on_lost_connection_during_dead_letter_storage
+     */
+    public function test_reconnecting_on_lost_connection_during_dead_letter_storage()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Person::class, MultipleInternalCommandsService::class, ConnectionBreakingModule::class],
-            [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([]),
-                //                "logger" => new EchoLogger()
+        // First, create a regular EcotoneLite instance to set up the database tables
+        $setupEcotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Person::class, MultipleInternalCommandsService::class],
+            [
+                new MultipleInternalCommandsService(),
+                DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withDefaultErrorChannel('dbal_dead_letter')
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
-                    // Add the connection breaking configuration
-                    // [true, false] means: break on 1st call, don't break on 2nd call
-                    ConnectionBreakingConfiguration::createWithBreakBeforeMessageAcknowledge([true, false]),
                 ])
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
             addInMemoryStateStoredRepository: false
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 99, 'personName' => 'Johny', 'exception' => false], metadata: ['publish_event' => false]);
+        // Send a command to ensure the deduplication table is created
+        $setupEcotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 98, 'personName' => 'Setup', 'exception' => false]]);
+        $setupEcotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: true));
+        // Now create the actual test instance with the connection breaking module
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [Person::class, MultipleInternalCommandsService::class, ConnectionBreakingModule::class],
+            [
+                new MultipleInternalCommandsService(),
+                DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
+                "logger" => new EchoLogger()
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withDefaultErrorChannel('dbal_dead_letter')
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withTransactionOnAsynchronousEndpoints(true)
+                        ->withTransactionOnCommandBus(false)
+                        ->withDoctrineORMRepositories(true),
+                    DbalBackedMessageChannelBuilder::create('async'),
+                    // Configure to break connection during dead letter storage
+                    ConnectionBreakingConfiguration::createWithBreakBeforeCommit([true, false]),
+                ])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
+            addInMemoryStateStoredRepository: false
+        );
 
-        $this->assertNull($ecotoneLite->getMessageChannel('async')->receiveWithTimeout(100));
+        $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 100, 'personName' => 'Johny', 'exception' => true]);
+
+        /** @var DeadLetterGateway $deadLetter */
+        $deadLetter = $ecotoneLite->getGateway(DeadLetterGateway::class);
+        $this->assertSame(0, $deadLetter->count());
+
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+
+        $this->assertSame(1, $deadLetter->count());
     }
 
     public function test_turning_on_transactions_for_polling_consumer_with_tenant_connection()

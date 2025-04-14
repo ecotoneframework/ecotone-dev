@@ -35,16 +35,20 @@ class ConnectionBreakingInterceptor
      */
     public function breakConnection(MethodInvocation $methodInvocation, Message $message): mixed
     {
+        // Get the current call index (0-based)
         $currentCallIndex = $this->callCount;
         $this->callCount++;
 
-        $shouldBreak = true; // Default behavior
+        // Determine if we should break the connection for this call
+        $shouldBreak = false; // Default behavior is not to break
         if (isset($this->breakConnectionOnCalls[$currentCallIndex])) {
             $shouldBreak = $this->breakConnectionOnCalls[$currentCallIndex];
         }
 
+        // Proceed with the method invocation
         $result = $methodInvocation->proceed();
 
+        // Break the connection after the method has executed if configured to do so
         if ($shouldBreak) {
             $this->closeAllConnections();
         }
@@ -63,7 +67,9 @@ class ConnectionBreakingInterceptor
                 $connection = $context->getDbalConnection();
 
                 // Force the connection to close
-                $connection->close();
+                if ($connection->isConnected()) {
+                    $connection->close();
+                }
             }
         }
     }

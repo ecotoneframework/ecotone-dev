@@ -13,7 +13,7 @@ use Ecotone\Test\ComponentTestBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Dbal\Fixture\ConnectionBreakingConfiguration;
+
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 /**
@@ -39,12 +39,14 @@ abstract class DbalMessagingTestCase extends TestCase
             return self::$defaultConnection;
         }
 
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@database:5432/ecotone?charset=UTF8';
+        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone';
         $dbalConnection = new DbalConnectionFactory($dsn);
         self::$defaultConnection = $dbalConnection;
 
         return $dbalConnection;
     }
+
+
 
     /**
      * @param string[] $pathsToMapping
@@ -135,7 +137,7 @@ abstract class DbalMessagingTestCase extends TestCase
         }
 
         $connectionFactory = DbalConnection::fromDsn(
-            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@database-mysql:3306/ecotone'
+            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'
         );
 
         $this->tenantBConnection = $connectionFactory;
@@ -171,7 +173,6 @@ abstract class DbalMessagingTestCase extends TestCase
 
     private function getSchemaManager(Connection $connection): ?\Doctrine\DBAL\Schema\AbstractSchemaManager
     {
-        // Handle both DBAL 3.x (getSchemaManager) and 4.x (createSchemaManager)
         return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
     }
 }

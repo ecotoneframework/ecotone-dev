@@ -71,6 +71,8 @@ class ConnectionBreakingModule implements AnnotationModule
 
         $messageAcknowledgePointcut = '(' . AsynchronousRunningEndpoint::class . ')';
 
+        $deadLetterStoragePointcut = '(' . AsynchronousRunningEndpoint::class . ')';
+
         // Get the connection factories
         $connectionFactories = [DbalConnectionFactory::class];
 

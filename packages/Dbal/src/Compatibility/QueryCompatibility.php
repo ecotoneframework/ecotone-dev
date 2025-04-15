@@ -15,6 +15,9 @@ use Doctrine\DBAL\Statement;
  *
  * Compatibility layer for DBAL 3.x and 4.x query execution methods
  */
+/**
+ * licence Apache-2.0
+ */
 final class QueryCompatibility
 {
     /**

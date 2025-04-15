@@ -12,6 +12,9 @@ use Doctrine\DBAL\Types\Type;
  *
  * Compatibility layer for DBAL 3.x and 4.x
  */
+/**
+ * licence Apache-2.0
+ */
 final class DbalTypeCompatibility
 {
     private static ?bool $isDbal4 = null;

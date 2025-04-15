@@ -6,9 +6,14 @@ namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
+use Ecotone\Dbal\Compatibility\DbalTypeCompatibility;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class ManagerRegistryConnectionFactory implements ConnectionFactory
 {
     /**
@@ -55,16 +60,29 @@ class ManagerRegistryConnectionFactory implements ConnectionFactory
 
     public function close(): void
     {
+        // Nothing to do here, as the connection is managed by the registry
+        // The connection will be closed when the registry is destroyed
     }
 
     private function establishConnection(): Connection
     {
         $connection = $this->registry->getConnection($this->config['connection_name']);
 
-        // In DBAL 4.x, connect() is protected, so we need to use a different approach
+        // Ensure the connection is established
         try {
-            // Force a connection by getting the native connection
-            $connection->getNativeConnection();
+            // In DBAL 3.x, connect() is public
+            if (method_exists($connection, 'connect') && is_callable([$connection, 'connect'])) {
+                $reflection = new \ReflectionMethod($connection, 'connect');
+                if ($reflection->isPublic()) {
+                    $connection->connect();
+                } else {
+                    // In DBAL 4.x, connect() is protected, so we'll use a different approach
+                    $connection->getNativeConnection();
+                }
+            } else {
+                // Fallback for any other case
+                $connection->getNativeConnection();
+            }
         } catch (\Exception $e) {
             // Connection failed, but we've already tried our best
         }

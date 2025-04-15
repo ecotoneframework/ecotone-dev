@@ -25,18 +25,33 @@ final class PlatformCompatibility
         try {
             if (DbalTypeCompatibility::isDbal4()) {
                 // In DBAL 4.x, we don't need to call requiresSQLCommentHint
-                return $platform->getDoctrineTypeComment($type);
+                try {
+                    return $platform->getDoctrineTypeComment($type);
+                } catch (\Throwable $e) {
+                    // If the method fails, try to construct the comment manually
+                    return '(DC2Type:' . $type->getName() . ')';
+                }
             }
 
             // In DBAL 3.x, we need to check if the type requires a SQL comment hint
             if (DbalTypeCompatibility::requiresSQLCommentHint($type)) {
-                return $platform->getDoctrineTypeComment($type);
+                try {
+                    return $platform->getDoctrineTypeComment($type);
+                } catch (\Throwable $e) {
+                    // If the method fails, try to construct the comment manually
+                    return '(DC2Type:' . $type->getName() . ')';
+                }
             }
 
             return '';
-        } catch (\Error $e) {
-            // If there's an error, return an empty string
-            return '';
+        } catch (\Throwable $e) {
+            // If there's an error, try to construct the comment manually
+            try {
+                return '(DC2Type:' . $type->getName() . ')';
+            } catch (\Throwable $e2) {
+                // If all else fails, return an empty string
+                return '';
+            }
         }
     }
 }

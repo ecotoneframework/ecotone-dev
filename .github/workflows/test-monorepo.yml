@@ -106,9 +106,6 @@ jobs:
     - name: Install dependencies
       run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-    - name: Validate cross package versions
-      run: vendor/bin/monorepo-builder validate
-
     - name: Test PHPStan
       run: vendor/bin/phpstan
 

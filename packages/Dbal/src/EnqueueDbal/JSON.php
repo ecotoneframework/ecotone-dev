@@ -2,6 +2,10 @@
 
 namespace Enqueue\Dbal;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class JSON
 {
     /**

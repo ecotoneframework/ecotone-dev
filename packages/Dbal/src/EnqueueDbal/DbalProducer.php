@@ -12,6 +12,10 @@ use Interop\Queue\Message;
 use Interop\Queue\Producer;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class DbalProducer implements Producer
 {
     /**

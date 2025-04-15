@@ -6,6 +6,10 @@ namespace Enqueue\Dbal;
 
 use Interop\Queue\Message;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class DbalMessage implements Message
 {
     /**

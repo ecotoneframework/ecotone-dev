@@ -6,10 +6,16 @@ namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
+use Ecotone\Dbal\Compatibility\ConnectionConfigCompatibility;
+use Ecotone\Dbal\Compatibility\DbalTypeCompatibility;
 use Enqueue\Dsn\Dsn;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class DbalConnectionFactory implements ConnectionFactory
 {
     /**
@@ -77,26 +83,46 @@ class DbalConnectionFactory implements ConnectionFactory
 
     public function close(): void
     {
-        // In DBAL 4.x, close() is protected, so we can't call it directly
-        // The connection will be closed automatically when the object is destroyed
-        $this->connection = null;
+        if ($this->connection) {
+            // In DBAL 3.x, close() is public, but in DBAL 4.x, it's protected
+            // Try to call close() if it's available, otherwise just set to null
+            try {
+                if (method_exists($this->connection, 'close') && is_callable([$this->connection, 'close'])) {
+                    $reflection = new \ReflectionMethod($this->connection, 'close');
+                    if ($reflection->isPublic()) {
+                        $this->connection->close();
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore any errors, we'll set the connection to null anyway
+            }
+
+            // The connection will be closed automatically when the object is destroyed
+            $this->connection = null;
+        }
     }
 
     private function establishConnection(): Connection
     {
         if (false == $this->connection) {
-            // Ensure we have a driver specified for Doctrine DBAL 4.x compatibility
-            if (empty($this->config['connection']['driver']) && empty($this->config['connection']['driverClass']) && empty($this->config['connection']['url'])) {
-                // Default to pdo_mysql if no driver is specified
-                $this->config['connection']['driver'] = 'pdo_mysql';
-            }
-
+            // Create the connection
             $this->connection = DriverManager::getConnection($this->config['connection']);
 
-            // In DBAL 4.x, connect() is protected, so we'll use a different approach
-            // to ensure the connection is established
+            // Ensure the connection is established
             try {
-                $this->connection->getNativeConnection();
+                // In DBAL 3.x, connect() is public
+                if (method_exists($this->connection, 'connect') && is_callable([$this->connection, 'connect'])) {
+                    $reflection = new \ReflectionMethod($this->connection, 'connect');
+                    if ($reflection->isPublic()) {
+                        $this->connection->connect();
+                    } else {
+                        // In DBAL 4.x, connect() is protected, so we'll use a different approach
+                        $this->connection->getNativeConnection();
+                    }
+                } else {
+                    // Fallback for any other case
+                    $this->connection->getNativeConnection();
+                }
             } catch (\Exception $e) {
                 // Connection failed, but we've already tried our best
             }
@@ -140,27 +166,54 @@ class DbalConnectionFactory implements ConnectionFactory
                 'password' => '',
             ];
 
+            // Normalize connection parameters for both DBAL 3.x and 4.x
+            $connectionParams = array_replace_recursive($default, $config['connection']);
+
             return [
                 'lazy' => true,
-                'connection' => array_replace_recursive($default, $config['connection']),
+                'connection' => $connectionParams,
             ];
         }
 
-        $url = $dsnHasProtocolOnly ?
-            $doctrineScheme.'://root@localhost' :
-            str_replace($parsedDsn->getScheme(), $doctrineScheme, $dsn);
+        if ($dsnHasProtocolOnly) {
+            $url = $doctrineScheme.'://root@localhost';
+        } else {
+            // Create a proper URL without replacing the scheme in the entire DSN
+            $url = $doctrineScheme . '://';
+            if ($parsedDsn->getUser()) {
+                $url .= $parsedDsn->getUser();
+                if ($parsedDsn->getPassword()) {
+                    $url .= ':' . $parsedDsn->getPassword();
+                }
+                $url .= '@';
+            }
+            $url .= $parsedDsn->getHost() ?: 'localhost';
+            if ($parsedDsn->getPort()) {
+                $url .= ':' . $parsedDsn->getPort();
+            }
+            if ($parsedDsn->getPath()) {
+                $url .= $parsedDsn->getPath();
+            }
+            if ($parsedDsn->getQuery()) {
+                $url .= '?' . $parsedDsn->getQuery();
+            }
+        }
+
+        // Create connection parameters
+        $connectionParams = [
+            'driver' => $doctrineScheme,
+            // Don't use the URL directly, as it might cause issues
+            // 'url' => $url,
+            'host' => $parsedDsn->getHost() ?: 'localhost',
+            'port' => $parsedDsn->getPort() ?: ($doctrineScheme === 'pdo_pgsql' ? 5432 : 3306),
+            'user' => $parsedDsn->getUser() ?: 'root',
+            'password' => $parsedDsn->getPassword() ?: '',
+            'dbname' => ltrim($parsedDsn->getPath() ?: '', '/') ?: 'ecotone',
+        ];
 
         return [
             'lazy' => true,
-            'connection' => [
-                'driver' => $doctrineScheme,
-                'url' => $url,
-                'host' => $parsedDsn->getHost() ?: 'localhost',
-                'port' => $parsedDsn->getPort() ?: ($doctrineScheme === 'pdo_pgsql' ? 5432 : 3306),
-                'user' => $parsedDsn->getUser() ?: 'root',
-                'password' => $parsedDsn->getPassword() ?: '',
-                'dbname' => ltrim($parsedDsn->getPath() ?: '', '/') ?: 'ecotone',
-            ],
+            'connection' => $connectionParams,
         ];
     }
 }

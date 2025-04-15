@@ -6,6 +6,9 @@ namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
+use Ecotone\Dbal\Compatibility\DbalTypeCompatibility;
+use Ecotone\Dbal\Compatibility\QueryCompatibility;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
 use Interop\Queue\Destination;
@@ -17,6 +20,10 @@ use Interop\Queue\Queue;
 use Interop\Queue\SubscriptionConsumer;
 use Interop\Queue\Topic;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class DbalContext implements Context
 {
     /**
@@ -179,11 +186,27 @@ class DbalContext implements Context
      */
     public function purgeQueue(Queue $queue): void
     {
-        $this->getDbalConnection()->delete(
-            $this->getTableName(),
-            ['queue' => $queue->getQueueName()],
-            ['queue' => DbalType::STRING]
-        );
+        try {
+            // Try using the delete method directly
+            $this->getDbalConnection()->delete(
+                $this->getTableName(),
+                ['queue' => $queue->getQueueName()],
+                ['queue' => DbalType::STRING]
+            );
+        } catch (\Throwable $e) {
+            // If the delete method fails, try using executeStatement
+            try {
+                QueryCompatibility::executeStatement(
+                    $this->getDbalConnection(),
+                    "DELETE FROM {$this->getTableName()} WHERE queue = :queue",
+                    ['queue' => $queue->getQueueName()],
+                    ['queue' => DbalType::STRING]
+                );
+            } catch (\Throwable $e2) {
+                // If both methods fail, re-throw the original exception
+                throw $e;
+            }
+        }
     }
 
     public function getTableName(): string
@@ -213,10 +236,35 @@ class DbalContext implements Context
     public function createDataBaseTable(): void
     {
         $connection = $this->getDbalConnection();
-        // Handle both DBAL 3.x (getSchemaManager) and 4.x (createSchemaManager)
-        $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
+        // Get the schema manager using our compatibility layer
+        $schemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
 
-        if ($schemaManager->tablesExist([$this->getTableName()])) {
+        // Check if table exists - handle both DBAL 3.x and 4.x
+        $tableExists = false;
+        try {
+            // First try DBAL 3.x method
+            if (method_exists($schemaManager, 'tablesExist')) {
+                $tableExists = $schemaManager->tablesExist([$this->getTableName()]);
+            } else {
+                // Then try DBAL 4.x method
+                $tableExists = $schemaManager->introspectSchema()->hasTable($this->getTableName());
+            }
+        } catch (\Throwable $e) {
+            // If both methods fail, try a direct query as a last resort
+            try {
+                $result = QueryCompatibility::executeQuery(
+                    $connection,
+                    'SELECT 1 FROM information_schema.tables WHERE table_name = ? LIMIT 1',
+                    [$this->getTableName()]
+                );
+                $tableExists = (bool) QueryCompatibility::fetchOne($result);
+            } catch (\Throwable $e2) {
+                // If all methods fail, assume table doesn't exist
+                $tableExists = false;
+            }
+        }
+
+        if ($tableExists) {
             return;
         }
 
@@ -242,6 +290,20 @@ class DbalContext implements Context
         $table->addIndex(['time_to_live', 'delivery_id']);
         $table->addIndex(['delivery_id']);
 
-        $schemaManager->createTable($table);
+        // Handle both DBAL 3.x and 4.x for creating tables
+        try {
+            if (method_exists($schemaManager, 'createTable')) {
+                // DBAL 3.x method
+                $schemaManager->createTable($table);
+            } else {
+                // DBAL 4.x method
+                $schema = $schemaManager->introspectSchema();
+                $schema->createTable($table);
+                $schemaManager->createSchemaObjects($schema);
+            }
+        } catch (\Throwable $e) {
+            // If both methods fail, throw the exception
+            throw $e;
+        }
     }
 }

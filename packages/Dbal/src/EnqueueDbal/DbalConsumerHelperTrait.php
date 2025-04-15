@@ -8,6 +8,10 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\RetryableException;
 use Ramsey\Uuid\Uuid;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 trait DbalConsumerHelperTrait
 {
     private $redeliverMessagesLastExecutedAt;

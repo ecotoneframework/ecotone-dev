@@ -23,32 +23,82 @@ final class TypeCompatibility
     public static function getBindingType(Type $type): int|ParameterType
     {
         try {
-            $bindingType = $type->getBindingType();
+            // Get the binding type, handling potential errors
+            try {
+                $bindingType = $type->getBindingType();
+            } catch (\Throwable $e) {
+                // If getBindingType fails, use a default based on the type name
+                return self::getDefaultBindingTypeForTypeName($type->getName());
+            }
 
             if (DbalTypeCompatibility::isDbal4()) {
                 // In DBAL 4.x, the method returns a ParameterType enum
-                return $bindingType;
+                if ($bindingType instanceof ParameterType) {
+                    return $bindingType;
+                }
+
+                // If it's an integer (unexpected in DBAL 4.x), convert it to a ParameterType enum
+                if (is_int($bindingType)) {
+                    return StatementCompatibility::convertBindingType($bindingType);
+                }
+
+                // Default to STRING for DBAL 4.x
+                return ParameterType::STRING;
             }
 
             // In DBAL 3.x, the method returns an integer
             // If we're running in DBAL 4 but the code expects DBAL 3 behavior,
             // convert the ParameterType enum to an integer
             if ($bindingType instanceof ParameterType) {
-                return match ($bindingType) {
-                    ParameterType::NULL => ParameterType::NULL->value,
-                    ParameterType::INTEGER => ParameterType::INTEGER->value,
-                    ParameterType::STRING => ParameterType::STRING->value,
-                    ParameterType::BINARY => ParameterType::BINARY->value,
-                    ParameterType::LARGE_OBJECT => ParameterType::LARGE_OBJECT->value,
-                    ParameterType::BOOLEAN => ParameterType::BOOLEAN->value,
-                    default => ParameterType::STRING->value,
-                };
+                return StatementCompatibility::convertBindingType($bindingType);
             }
 
-            return $bindingType;
-        } catch (\Error $e) {
+            // If it's already an integer, return it
+            if (is_int($bindingType)) {
+                return $bindingType;
+            }
+
+            // Default to STRING (2) for DBAL 3.x
+            return 2; // ParameterType::STRING->value
+        } catch (\Throwable $e) {
             // If there's an error, return a default value
-            return DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : ParameterType::STRING->value;
+            return DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2; // 2 is STRING in DBAL 3.x
         }
+    }
+
+    /**
+     * Get a default binding type based on the type name
+     */
+    private static function getDefaultBindingTypeForTypeName(string $typeName): int|ParameterType
+    {
+        // Map common type names to binding types
+        $map = [
+            'string' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'text' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'ascii_string' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'integer' => DbalTypeCompatibility::isDbal4() ? ParameterType::INTEGER : 1,
+            'smallint' => DbalTypeCompatibility::isDbal4() ? ParameterType::INTEGER : 1,
+            'bigint' => DbalTypeCompatibility::isDbal4() ? ParameterType::INTEGER : 1,
+            'boolean' => DbalTypeCompatibility::isDbal4() ? ParameterType::BOOLEAN : 5,
+            'decimal' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'float' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'binary' => DbalTypeCompatibility::isDbal4() ? ParameterType::BINARY : 3,
+            'blob' => DbalTypeCompatibility::isDbal4() ? ParameterType::BINARY : 3,
+            'guid' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'json' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'array' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'simple_array' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'object' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'date' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'date_immutable' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'datetime' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'datetime_immutable' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'datetimetz' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'datetimetz_immutable' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'time' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+            'time_immutable' => DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2,
+        ];
+
+        return $map[strtolower($typeName)] ?? (DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2);
     }
 }

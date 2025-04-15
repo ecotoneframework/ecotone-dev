@@ -8,6 +8,10 @@ use Doctrine\DBAL\Connection;
 use Interop\Queue\Consumer;
 use Interop\Queue\SubscriptionConsumer;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class DbalSubscriptionConsumer implements SubscriptionConsumer
 {
     use DbalConsumerHelperTrait;

@@ -7,6 +7,10 @@ namespace Enqueue\Dbal;
 use Interop\Queue\Queue;
 use Interop\Queue\Topic;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class DbalDestination implements Topic, Queue
 {
     /**

@@ -22,16 +22,45 @@ final class ConnectionExceptionCompatibility
      */
     public static function isNoActiveTransactionException(ConnectionException $exception): bool
     {
-        // Check if the noActiveTransaction method exists
-        if (method_exists($exception, 'noActiveTransaction')) {
-            try {
-                return $exception->noActiveTransaction();
-            } catch (\Error $e) {
-                // If there's an error, fall back to checking the message
+        try {
+            // First try: Check if the noActiveTransaction method exists and is callable
+            if (method_exists($exception, 'noActiveTransaction') && is_callable([$exception, 'noActiveTransaction'])) {
+                try {
+                    $reflection = new \ReflectionMethod($exception, 'noActiveTransaction');
+                    if ($reflection->isPublic()) {
+                        return $exception->noActiveTransaction();
+                    }
+                } catch (\Throwable $e) {
+                    // If there's an error, fall back to checking the message
+                }
             }
-        }
 
-        // In DBAL 4.x, we need to check the exception message
-        return str_contains($exception->getMessage(), 'No active transaction');
+            // Second try: Check the exception message for common patterns
+            $message = $exception->getMessage();
+            $patterns = [
+                'No active transaction', // Standard message
+                'There is no active transaction', // Alternative wording
+                'Transaction not active', // Another alternative
+                'not in a transaction', // Another possible message
+            ];
+
+            foreach ($patterns as $pattern) {
+                if (str_contains($message, $pattern)) {
+                    return true;
+                }
+            }
+
+            // Third try: Check the exception class name for clues
+            $className = get_class($exception);
+            if (str_contains($className, 'NoActiveTransaction')) {
+                return true;
+            }
+
+            // If none of the above checks pass, it's probably not a "no active transaction" exception
+            return false;
+        } catch (\Throwable $e) {
+            // If there's any error in our detection logic, default to false
+            return false;
+        }
     }
 }

@@ -11,6 +11,10 @@ use Interop\Queue\Impl\ConsumerPollingTrait;
 use Interop\Queue\Message;
 use Interop\Queue\Queue;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class DbalConsumer implements Consumer
 {
     use ConsumerPollingTrait;

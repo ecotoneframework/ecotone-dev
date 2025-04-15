@@ -5,15 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\ArrayParameterType;
-
-// Define constants for compatibility with both DBAL 3.x and 4.x
-if (!defined('DBAL_ARRAY_PARAM_INT')) {
-    define('DBAL_ARRAY_PARAM_INT', class_exists('\Doctrine\DBAL\ArrayParameterType') ? 1 : 102);
-}
-if (!defined('DBAL_ARRAY_PARAM_STR')) {
-    define('DBAL_ARRAY_PARAM_STR', class_exists('\Doctrine\DBAL\ArrayParameterType') ? 2 : 101);
-}
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Dbal\Attribute\DbalQuery;
 
@@ -24,11 +15,11 @@ interface ParameterDbalTypeConversion
 {
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]
     public function getPersonsWith(
-        #[DbalParameter(type: DBAL_ARRAY_PARAM_INT)] array $personIds
+        #[DbalParameter(type: 102)] array $personIds
     ): array;
 
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]
-    #[DbalParameter('personIds', type: DBAL_ARRAY_PARAM_INT, expression: '[1]')]
+    #[DbalParameter('personIds', type: 102, expression: '[1]')]
     public function getPersonsWithWithMethodLevelParameter(): array;
 
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]

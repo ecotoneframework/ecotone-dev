@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Enqueue\Dbal;
 
+/**
+ * licence MIT
+ * code comes from https://github.com/php-enqueue/dbal
+ */
 class DbalType
 {
     public const ARRAY = 'array';

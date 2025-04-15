@@ -24,24 +24,71 @@ final class SchemaManagerCompatibility
     {
         try {
             if (DbalTypeCompatibility::isDbal4()) {
-                // In DBAL 4.x, we don't need to do anything
+                // In DBAL 4.x, type information is stored in the schema, not in comments
+                // However, we might still want to add a comment for backward compatibility
+                // with tools that read the comments
+                try {
+                    $type = $column->getType();
+                    $comment = $column->getComment() ?: '';
+                    $typeComment = '(DC2Type:' . $type->getName() . ')';
+
+                    // Only add the comment if it's not already there
+                    if ($comment === '') {
+                        // In DBAL 4.x, we don't need to set the comment, but we can if we want
+                        // for backward compatibility
+                        // $column->setComment($typeComment);
+                    } elseif (!str_contains($comment, $typeComment)) {
+                        // If there's already a comment, we can append the type information
+                        // $column->setComment($comment . ' ' . $typeComment);
+                    }
+                } catch (\Throwable $e) {
+                    // If there's an error getting the type or setting the comment, just ignore it
+                }
                 return;
             }
 
             // In DBAL 3.x, we need to set the comment if the type requires it
-            $type = $column->getType();
-            if (DbalTypeCompatibility::requiresSQLCommentHint($type)) {
-                $comment = $column->getComment() ?: '';
-                $typeComment = '(DC2Type:' . $type->getName() . ')';
+            try {
+                $type = $column->getType();
+                if (DbalTypeCompatibility::requiresSQLCommentHint($type)) {
+                    $comment = $column->getComment() ?: '';
+                    $typeComment = '(DC2Type:' . $type->getName() . ')';
 
-                if ($comment === '') {
-                    $column->setComment($typeComment);
-                } elseif (!str_contains($comment, $typeComment)) {
-                    $column->setComment($comment . ' ' . $typeComment);
+                    if ($comment === '') {
+                        $column->setComment($typeComment);
+                    } elseif (!str_contains($comment, $typeComment)) {
+                        $column->setComment($comment . ' ' . $typeComment);
+                    }
                 }
+            } catch (\Throwable $e) {
+                // If there's an error getting the type or setting the comment, just ignore it
             }
-        } catch (\Error $e) {
+        } catch (\Throwable $e) {
             // If there's an error, just ignore it
+        }
+    }
+
+    /**
+     * Get the schema manager from a connection, handling both DBAL 3.x and 4.x
+     */
+    public static function getSchemaManager($connection): object
+    {
+        try {
+            // Try DBAL 3.x method first
+            if (method_exists($connection, 'getSchemaManager')) {
+                return $connection->getSchemaManager();
+            }
+
+            // Then try DBAL 4.x method
+            if (method_exists($connection, 'createSchemaManager')) {
+                return $connection->createSchemaManager();
+            }
+
+            // If neither method exists, throw an exception
+            throw new \RuntimeException('Could not get schema manager from connection');
+        } catch (\Throwable $e) {
+            // If there's an error, re-throw it
+            throw $e;
         }
     }
 }

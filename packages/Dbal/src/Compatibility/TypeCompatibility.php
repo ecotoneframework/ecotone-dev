@@ -25,48 +25,37 @@ final class TypeCompatibility
      */
     public static function getBindingType(Type $type): int|ParameterType
     {
-        try {
-            // Get the binding type, handling potential errors
-            try {
-                $bindingType = $type->getBindingType();
-            } catch (\Throwable $e) {
-                // If getBindingType fails, use a default based on the type name
-                return self::getDefaultBindingTypeForTypeName($type->getName());
-            }
+        $bindingType = $type->getBindingType();
 
-            if (DbalTypeCompatibility::isDbal4()) {
-                // In DBAL 4.x, the method returns a ParameterType enum
-                if ($bindingType instanceof ParameterType) {
-                    return $bindingType;
-                }
-
-                // If it's an integer (unexpected in DBAL 4.x), convert it to a ParameterType enum
-                if (is_int($bindingType)) {
-                    return StatementCompatibility::convertBindingType($bindingType);
-                }
-
-                // Default to STRING for DBAL 4.x
-                return ParameterType::STRING;
-            }
-
-            // In DBAL 3.x, the method returns an integer
-            // If we're running in DBAL 4 but the code expects DBAL 3 behavior,
-            // convert the ParameterType enum to an integer
+        if (DbalTypeCompatibility::isDbal4()) {
+            // In DBAL 4.x, the method returns a ParameterType enum
             if ($bindingType instanceof ParameterType) {
-                return StatementCompatibility::convertBindingType($bindingType);
-            }
-
-            // If it's already an integer, return it
-            if (is_int($bindingType)) {
                 return $bindingType;
             }
 
-            // Default to STRING (2) for DBAL 3.x
-            return 2; // ParameterType::STRING->value
-        } catch (\Throwable $e) {
-            // If there's an error, return a default value
-            return DbalTypeCompatibility::isDbal4() ? ParameterType::STRING : 2; // 2 is STRING in DBAL 3.x
+            // If it's an integer (unexpected in DBAL 4.x), convert it to a ParameterType enum
+            if (is_int($bindingType)) {
+                return StatementCompatibility::convertBindingType($bindingType);
+            }
+
+            // Default to STRING for DBAL 4.x
+            return ParameterType::STRING;
         }
+
+        // In DBAL 3.x, the method returns an integer
+        // If we're running in DBAL 4 but the code expects DBAL 3 behavior,
+        // convert the ParameterType enum to an integer
+        if ($bindingType instanceof ParameterType) {
+            return StatementCompatibility::convertBindingType($bindingType);
+        }
+
+        // If it's already an integer, return it
+        if (is_int($bindingType)) {
+            return $bindingType;
+        }
+
+        // Default to STRING (2) for DBAL 3.x
+        return 2; // ParameterType::STRING->value
     }
 
     /**

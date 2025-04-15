@@ -370,13 +370,7 @@ final class QueryBuilderProxy
             return $this->queryBuilder->execute();
         } else {
             // In DBAL 4.x, execute() is split into executeQuery() and executeStatement()
-            // Since we can't reliably determine the query type, try executeQuery() first
-            // and fall back to executeStatement() if it fails
-            try {
-                return $this->queryBuilder->executeQuery();
-            } catch (\Exception $e) {
-                return $this->queryBuilder->executeStatement();
-            }
+            return $this->queryBuilder->executeQuery();
         }
     }
 

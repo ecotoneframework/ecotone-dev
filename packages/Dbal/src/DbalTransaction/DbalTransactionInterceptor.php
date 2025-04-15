@@ -93,20 +93,10 @@ class DbalTransactionInterceptor
                     $connection->commit();
                     $logger->info('Database Transaction committed', $message);
                 } catch (\Exception $exception) {
-                    // Only handle the specific case where MySQL did an implicit commit when creating tables
-                    // This only happens with MySQL and is indicated by a "There is no active transaction" error
-                    $platform = $connection->getDatabasePlatform();
-                    $isMySql = $platform instanceof \Doctrine\DBAL\Platforms\MySQLPlatform ||
-                        $platform instanceof \Doctrine\DBAL\Platforms\MySQL57Platform ||
-                        $platform instanceof \Doctrine\DBAL\Platforms\MySQL80Platform ||
-                        $platform instanceof \Doctrine\DBAL\Platforms\MariaDBPlatform ||
-                        (method_exists($platform, 'getName') &&
-                            (str_contains($platform->getName(), 'MySQL') || str_contains($platform->getName(), 'MariaDB')));
-
-                    if ($isMySql && $this->isImplicitCommitException($exception)) {
-                        /** Handles the case where Mysql did implicit commit, when new creating tables */
+                    // Handle the case where a database did an implicit commit or the transaction is no longer active
+                    if ($this->isImplicitCommitException($exception)) {
                         $logger->info(
-                            'Implicit Commit was detected, skipping manual one.',
+                            sprintf('Implicit Commit was detected, skipping manual one.'),
                             $message,
                             ['exception' => $exception],
                         );
@@ -114,6 +104,7 @@ class DbalTransactionInterceptor
                         try {
                             $connection->rollBack();
                         } catch (Exception) {
+                            // Ignore rollback errors after implicit commit
                         };
 
                         continue;

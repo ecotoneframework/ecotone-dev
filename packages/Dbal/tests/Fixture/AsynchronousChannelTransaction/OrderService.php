@@ -57,7 +57,7 @@ class OrderService
 
         $table = new Table('test_table');
 
-        $table->addColumn('id', Types::STRING);
+        $table->addColumn('id', Types::STRING, ['length' => 255]);
 
         $table->setPrimaryKey(['id']);
 

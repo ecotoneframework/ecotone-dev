@@ -103,8 +103,7 @@ class DbalTransactionInterceptor
                         (method_exists($platform, 'getName') &&
                             (str_contains($platform->getName(), 'MySQL') || str_contains($platform->getName(), 'MariaDB')));
 
-                    // Only handle the case for MySQL with "no active transaction" error
-                    if ($isMySql && ($exception instanceof ConnectionException && ConnectionExceptionCompatibility::isNoActiveTransactionException($exception) || str_contains($exception->getMessage(), 'There is no active transaction'))) {
+                    if ($isMySql && $this->isImplicitCommitException($exception)) {
                         /** Handles the case where Mysql did implicit commit, when new creating tables */
                         $logger->info(
                             'Implicit Commit was detected, skipping manual one.',
@@ -143,5 +142,23 @@ class DbalTransactionInterceptor
         }
 
         return $result;
+    }
+
+    private function isImplicitCommitException(\Throwable $exception): bool
+    {
+        $patterns = [
+            'No active transaction',
+            'There is no active transaction',
+            'Transaction not active',
+            'not in a transaction',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (str_contains($exception->getMessage(), $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

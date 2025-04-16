@@ -6,6 +6,7 @@ namespace Ecotone\EventSourcing\Prooph\Metadata;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+
 use function is_array;
 use function is_scalar;
 use function is_string;

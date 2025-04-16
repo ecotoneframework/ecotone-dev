@@ -18,6 +18,9 @@ use Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\InProgressTic
 use Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\ProjectionConfiguration;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList as EventDrivenInProgressTicketList;
 
+/**
+ * @internal
+ */
 final class ProjectionWithMetadataMatcherTest extends EventSourcingMessagingTestCase
 {
     public function test_configured_metadata_matcher_is_used_with_polling_projection(): void

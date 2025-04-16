@@ -4,7 +4,6 @@ namespace Ecotone\EventSourcing;
 
 use Assert\Assertion;
 use Ecotone\EventSourcing\Prooph\GapDetection;
-use Ecotone\EventSourcing\Prooph\Metadata\FieldType;
 use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;

@@ -5,7 +5,6 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Prooph\EventStore\Pdo\Projection\GapDetection;
 
 /**
  * licence Apache-2.0

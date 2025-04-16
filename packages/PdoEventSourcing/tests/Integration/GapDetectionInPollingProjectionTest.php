@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\EventSourcing\Prooph\GapDetection\DateInterval;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\Prooph\GapDetection;
+use Ecotone\EventSourcing\Prooph\GapDetection\DateInterval;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ServiceConfiguration;

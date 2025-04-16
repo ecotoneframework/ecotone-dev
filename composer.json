@@ -204,7 +204,7 @@
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
-        "tests:phpunit": "vendor/bin/phpunit --no-coverage",
+        "tests:phpunit": "vendor/bin/phpunit --no-coverage --debug",
         "tests:behat": "vendor/bin/behat -p symfony -vvv",
         "tests:ci": [
             "@tests:phpstan",

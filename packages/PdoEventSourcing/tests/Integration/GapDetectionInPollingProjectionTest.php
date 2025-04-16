@@ -72,10 +72,9 @@ final class GapDetectionInPollingProjectionTest extends EventSourcingMessagingTe
 
     public function test_detecting_gaps_without_detection_window(): void
     {
-        $gapDetection = new GapDetection([10, 20, 50]);
+        $gapDetection = new GapDetection(null);
 
         $ecotone = $this->bootstrapEcotoneWithGapDetection($gapDetection);
-        $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotone->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
         self::assertEquals([
@@ -84,6 +83,7 @@ final class GapDetectionInPollingProjectionTest extends EventSourcingMessagingTe
 
         $this->addMissingEvent();
 
+        $ecotone->resetProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotone->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
         self::assertEquals([

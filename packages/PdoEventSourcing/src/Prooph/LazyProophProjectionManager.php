@@ -10,6 +10,7 @@ use Ecotone\EventSourcing\ProjectionStreamSource;
 use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
+use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Modelling\Event;
 use Prooph\Common\Messaging\Message;
 use Prooph\EventStore\Exception\ProjectionNotFound;
@@ -201,18 +202,19 @@ class LazyProophProjectionManager implements ProjectionManager
         return $this->getProjectionManager()->fetchProjectionState($name);
     }
 
-    public function run(string $projectionName, ProjectionStreamSource $projectionStreamSource, ProjectionExecutor $projectionExecutor, array $relatedEventClassNames, array $projectionConfiguration): void
+    public function run(ProjectionSetupConfiguration $projectionSetupConfiguration, ProjectionExecutor $projectionExecutor): void
     {
-        $projection = $this->createReadModelProjection($projectionName, new ProophReadModel(), $projectionConfiguration);
-        if ($projectionStreamSource->isForAllStreams()) {
+        $projection = $this->createReadModelProjection($projectionSetupConfiguration->getProjectionName(), new ProophReadModel(), $projectionSetupConfiguration->getProjectionOptions());
+        if ($projectionSetupConfiguration->getProjectionStreamSource()->isForAllStreams()) {
             $projection = $projection->fromAll();
-        } elseif ($projectionStreamSource->getCategories()) {
-            $projection = $projection->fromCategories(...$projectionStreamSource->getCategories());
-        } elseif ($projectionStreamSource->getStreams()) {
-            $projection = $projection->fromStreams(...$projectionStreamSource->getStreams());
+        } elseif ($projectionSetupConfiguration->getProjectionStreamSource()->getCategories()) {
+            $projection = $projection->fromCategories(...$projectionSetupConfiguration->getProjectionStreamSource()->getCategories());
+        } elseif ($projectionSetupConfiguration->getProjectionStreamSource()->getStreams()) {
+            $projection = $projection->fromStreams(...$projectionSetupConfiguration->getProjectionStreamSource()->getStreams());
         }
 
         $handlers = [];
+        $relatedEventClassNames = array_keys($projectionSetupConfiguration->getProjectionEventHandlerConfigurations());
         foreach ($relatedEventClassNames as $eventName) {
             $handlers[$eventName] = function ($state, Message $event) use ($eventName, $projectionExecutor): mixed {
                 return $projectionExecutor->executeWith(
@@ -224,15 +226,17 @@ class LazyProophProjectionManager implements ProjectionManager
         }
         $projection = $projection->when($handlers);
 
+        $keepRunning = $this->shouldKeepRunning($projectionSetupConfiguration);
+
         try {
-            $projection->run(false);
+            $projection->run($keepRunning);
         } catch (RuntimeException $exception) {
             if (! str_contains($exception->getMessage(), 'Another projection process is already running')) {
                 throw $exception;
             }
 
             sleep(1);
-            $projection->run(false);
+            $projection->run($keepRunning);
         }
     }
 
@@ -262,5 +266,12 @@ class LazyProophProjectionManager implements ProjectionManager
         }
 
         return $options;
+    }
+
+    private function shouldKeepRunning(ProjectionSetupConfiguration $projectionSetupConfiguration): bool
+    {
+        $eventStore = $this->getLazyProophEventStore();
+
+        return $eventStore->getEventStoreType() !== LazyProophEventStore::EVENT_STORE_TYPE_IN_MEMORY && ! $projectionSetupConfiguration->isPolling() && $projectionSetupConfiguration->getAsynchronousChannelName() !== null;
     }
 }

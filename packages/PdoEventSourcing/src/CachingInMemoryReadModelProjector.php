@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing;
 
 use Closure;
+use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Projection\ReadModel;
 use Prooph\EventStore\Projection\ReadModelProjector;
 
@@ -23,6 +24,13 @@ class CachingInMemoryReadModelProjector implements ReadModelProjector
     public function init(Closure $callback): ReadModelProjector
     {
         $this->inMemoryEventStoreReadModelProjector->init($callback);
+
+        return $this;
+    }
+
+    public function withMetadataMatcher(?MetadataMatcher $metadataMatcher = null): ReadModelProjector
+    {
+        $this->inMemoryEventStoreReadModelProjector->withMetadataMatcher($metadataMatcher);
 
         return $this;
     }

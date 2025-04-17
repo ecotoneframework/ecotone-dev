@@ -99,7 +99,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
             [OrderService::class],
             containerOrAvailableServices: [
                 new OrderService(),
-                SqsConnectionFactory::class => new SqsConnectionFactory('sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:1000&version=latest'),
+                SqsConnectionFactory::class => new SqsConnectionFactory('sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:1000&version=latest'),
                 'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()

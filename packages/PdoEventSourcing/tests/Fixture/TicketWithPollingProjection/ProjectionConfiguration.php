@@ -22,7 +22,6 @@ class ProjectionConfiguration
     #[ServiceContext]
     public function configureProjection()
     {
-        return ProjectionRunningConfiguration::createPolling(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
-                    ->withTestingSetup();
+        return ProjectionRunningConfiguration::createPolling(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)->withTestingSetup();
     }
 }

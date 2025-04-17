@@ -33,9 +33,8 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~1.252.0",
-        "prooph/event-store": "<=7.11.1",
-        "prooph/pdo-event-store": "^1.15.1 <1.16.0"
+        "ecotone/dbal": "~1.253.0",
+        "prooph/pdo-event-store": "^1.16.2"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0",
@@ -52,7 +51,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.252.0-dev"
+            "dev-main": "1.253.0-dev"
         },
         "ecotone": {
             "repository": "pdo-event-sourcing"
@@ -73,7 +72,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2025-04-03 15:42:26"
+        "release-time": "2025-04-16 05:35:52"
     },
     "config": {
         "allow-plugins": {

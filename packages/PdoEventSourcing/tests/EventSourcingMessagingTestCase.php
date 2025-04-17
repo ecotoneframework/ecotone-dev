@@ -118,4 +118,9 @@ abstract class EventSourcingMessagingTestCase extends TestCase
         yield 'Open Core' => [false];
         yield 'Enterprise' => [true];
     }
+
+    protected function isMySQL(): bool
+    {
+        return str_starts_with(getenv('DATABASE_DSN'), 'mysql');
+    }
 }

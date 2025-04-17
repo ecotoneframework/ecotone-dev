@@ -4,8 +4,10 @@ namespace Ecotone\EventSourcing\Prooph;
 
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionExecutor;
+use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
+use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Modelling\Event;
@@ -15,6 +17,8 @@ use Prooph\EventStore\Exception\RuntimeException;
 use Prooph\EventStore\Pdo\Projection\MariaDbProjectionManager;
 use Prooph\EventStore\Pdo\Projection\MySqlProjectionManager;
 use Prooph\EventStore\Pdo\Projection\PostgresProjectionManager;
+use Prooph\EventStore\Projection\MetadataAwareProjector;
+use Prooph\EventStore\Projection\MetadataAwareReadModelProjector;
 use Prooph\EventStore\Projection\ProjectionManager;
 use Prooph\EventStore\Projection\ProjectionStatus;
 use Prooph\EventStore\Projection\Projector;
@@ -74,12 +78,32 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function createProjection(string $name, array $options = []): Projector
     {
-        return $this->getProjectionManager()->createProjection($name, $options);
+        $options = $this->resolveGapDetection($options);
+
+        $projection = $this->getProjectionManager()->createProjection($name, $options);
+
+        $metadataMatcher = $options[ProjectionRunningConfiguration::OPTION_METADATA_MATCHER] ?? null;
+
+        if ($metadataMatcher instanceof MetadataMatcher && $projection instanceof MetadataAwareProjector) {
+            $projection = $projection->withMetadataMatcher($metadataMatcher->build());
+        }
+
+        return $projection;
     }
 
     public function createReadModelProjection(string $name, ReadModel $readModel, array $options = []): ReadModelProjector
     {
-        return $this->getProjectionManager()->createReadModelProjection($name, $readModel, $options);
+        $options = $this->resolveGapDetection($options);
+
+        $projection = $this->getProjectionManager()->createReadModelProjection($name, $readModel, $options);
+
+        $metadataMatcher = $options[ProjectionRunningConfiguration::OPTION_METADATA_MATCHER] ?? null;
+
+        if ($metadataMatcher instanceof MetadataMatcher && $projection instanceof MetadataAwareReadModelProjector) {
+            $projection = $projection->withMetadataMatcher($metadataMatcher->build());
+        }
+
+        return $projection;
     }
 
     public function deleteProjection(string $name, bool $deleteEmittedEvents): void
@@ -228,5 +252,15 @@ class LazyProophProjectionManager implements ProjectionManager
     public static function getProjectionStreamName(string $name): string
     {
         return 'projection_' . $name;
+    }
+
+    private function resolveGapDetection(array $options): array
+    {
+        $gapDetection = $options[ProjectionRunningConfiguration::OPTION_GAP_DETECTION] ?? null;
+        if ($gapDetection instanceof GapDetection) {
+            $options[ProjectionRunningConfiguration::OPTION_GAP_DETECTION] = $gapDetection->build();
+        }
+
+        return $options;
     }
 }

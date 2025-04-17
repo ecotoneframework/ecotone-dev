@@ -32,7 +32,7 @@ jobs:
       matrix: ${{ steps.get_json.outputs.json }}
 
   split_testing:
-    name: Testing ${{ matrix.package.name }}
+    name: Testing ${{ matrix.package.name }} on PHP ${{ matrix.php-versions }}
     needs: get_packages
     runs-on: ubuntu-latest
 

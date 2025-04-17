@@ -107,12 +107,11 @@ jobs:
         ports:
           - '6379:6379'
 
-    env: &common_env
+    env:
       RABBIT_HOST: amqp://127.0.0.1:5672
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest
       REDIS_DSN: redis://127.0.0.1:6379
       KAFKA_DSN: 127.0.0.1:9092
-      COMPOSER_ROOT_VERSION: 'dev-main'
 
     steps:
       - uses: actions/checkout@v2
@@ -135,24 +134,22 @@ jobs:
         run: composer update --prefer-stable --no-interaction
         working-directory: ${{ matrix.package.directory }}
 
-      - &run_postgres_tests
-        name: Run tests on Postgres (prefer-stable)
+      - name: Run tests on Postgres (prefer-stable)
         run: composer tests:ci
         working-directory: ${{ matrix.package.directory }}
         env:
-          <<: *common_env
+          COMPOSER_ROOT_VERSION: 'dev-main'
           DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
           SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
           APP_DB_HOST: 127.0.0.1
           APP_DB_PORT: 5432
           APP_DB_DRIVER: pdo_pgsql
 
-      - &run_mysql_tests
-        name: Run tests on Mysql (prefer-stable)
+      - name: Run tests on Mysql (prefer-stable)
         run: composer tests:ci
         working-directory: ${{ matrix.package.directory }}
         env:
-          <<: *common_env
+          COMPOSER_ROOT_VERSION: 'dev-main'
           DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
           SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
           APP_DB_HOST: 127.0.0.1
@@ -163,8 +160,24 @@ jobs:
         run: composer update --prefer-lowest --no-interaction
         working-directory: ${{ matrix.package.directory }}
 
-      - <<: *run_postgres_tests
-        name: Run tests on Postgres (prefer-lowest)
+      - name: Run tests on Postgres (prefer-lowest)
+        run: composer tests:ci
+        working-directory: ${{ matrix.package.directory }}
+        env:
+          COMPOSER_ROOT_VERSION: 'dev-main'
+          DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+          SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
+          APP_DB_HOST: 127.0.0.1
+          APP_DB_PORT: 5432
+          APP_DB_DRIVER: pdo_pgsql
 
-      - <<: *run_mysql_tests
-        name: Run tests on Mysql (prefer-lowest)
+      - name: Run tests on Mysql (prefer-lowest)
+        run: composer tests:ci
+        working-directory: ${{ matrix.package.directory }}
+        env:
+          COMPOSER_ROOT_VERSION: 'dev-main'
+          DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
+          SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+          APP_DB_HOST: 127.0.0.1
+          APP_DB_PORT: 3306
+          APP_DB_DRIVER: pdo_mysql

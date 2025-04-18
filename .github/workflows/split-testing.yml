@@ -133,7 +133,7 @@ jobs:
         working-directory: ${{ matrix.package.directory }}
 
       - name: Install dependencies
-        run: composer update ${{ matrix.stability }} --no-interaction
+        run: composer update --${{ matrix.stability }} --no-interaction
         working-directory: ${{ matrix.package.directory }}
 
       - name: Run tests on Postgres

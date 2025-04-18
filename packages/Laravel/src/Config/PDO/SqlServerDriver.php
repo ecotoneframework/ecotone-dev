@@ -3,6 +3,7 @@
 namespace Ecotone\Laravel\Config\PDO;
 
 use Doctrine\DBAL\Driver\AbstractSQLServerDriver;
+use Doctrine\DBAL\Driver\Connection as DriverConnection;
 
 /**
  * This file is a modified version of a class from the Laravel framework.
@@ -10,13 +11,10 @@ use Doctrine\DBAL\Driver\AbstractSQLServerDriver;
  * Laravel is licensed under the MIT License.
  * Original authors: Taylor Otwell and the Laravel contributors.
  *
- * @license MIT (https://opensource.org/licenses/MIT)
+ * license MIT (https://opensource.org/licenses/MIT)
  *
  * Modifications were made as part of the Ecotone framework under the Apache 2.0 License.
  * See LICENSE file for the Apache 2.0 License details.
- */
-/**
- * licence Apache-2.0
  */
 class SqlServerDriver extends AbstractSQLServerDriver
 {
@@ -29,7 +27,7 @@ class SqlServerDriver extends AbstractSQLServerDriver
      * @param  mixed[]  $driverOptions
      * @return SqlServerConnection
      */
-    public function connect(array $params, $username = null, $password = null, array $driverOptions = [])
+    public function connect(array $params, $username = null, $password = null, array $driverOptions = []): DriverConnection
     {
         return new SqlServerConnection(
             new Connection($params['pdo'])

@@ -2,7 +2,9 @@
 
 namespace Ecotone\SymfonyBundle\App;
 
-use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
+use Ecotone\SymfonyBundle\Compatibility\CompatibleMicroKernelTrait;
+use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
+use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
 
 /**
@@ -10,5 +12,13 @@ use Symfony\Component\HttpKernel\Kernel as BaseKernel;
  */
 class Kernel extends BaseKernel
 {
-    use MicroKernelTrait;
+    use CompatibleMicroKernelTrait;
+
+    /**
+     * Register bundles for the application
+     */
+    public function registerBundles(): iterable
+    {
+        return [new FrameworkBundle()];
+    }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Symfony\Component\HttpKernel\Kernel;
 
@@ -11,7 +12,7 @@ function runMigrationForSymfonyTenants(Kernel $kernel): void
 
     /** @var Connection $connection */
     foreach ([$connectionTenantA, $connectionTenantB] as $connection) {
-        $abstractSchemaManager = method_exists('createSchemaManager', $connection::class) ? $connection->createSchemaManager() : $connection->getSchemaManager();
+        $abstractSchemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
         foreach ($abstractSchemaManager->listTables() as $table) {
             $connection->executeStatement('DROP TABLE ' . $table->getName());
         }

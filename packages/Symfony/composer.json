@@ -60,7 +60,7 @@
     "autoload": {
         "psr-4": {
             "Ecotone\\SymfonyBundle\\DependencyInjection\\": "DependencyInjection",
-            "Ecotone\\SymfonyBundle\\": "SymfonyBundle"
+            "Ecotone\\SymfonyBundle\\": ["SymfonyBundle", "src"]
         }
     },
     "autoload-dev": {

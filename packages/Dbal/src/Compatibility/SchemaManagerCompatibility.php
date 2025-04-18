@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Compatibility;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Types\Type;
@@ -71,27 +72,38 @@ final class SchemaManagerCompatibility
         }
     }
 
+    public static function isDbalThree(Connection $connection): bool
+    {
+        return method_exists($connection, 'getSchemaManager');
+    }
+
     /**
      * Get the schema manager from a connection, handling both DBAL 3.x and 4.x
      */
-    public static function getSchemaManager($connection): object
+    public static function getSchemaManager(Connection $connection): object
     {
-        try {
-            // Try DBAL 3.x method first
-            if (method_exists($connection, 'getSchemaManager')) {
-                return $connection->getSchemaManager();
-            }
+        // Try DBAL 3.x method first
+        if (method_exists($connection, 'getSchemaManager')) {
+            return $connection->getSchemaManager();
+        }
 
+        // Then try DBAL 4.x method
+        if (method_exists($connection, 'createSchemaManager')) {
+            return $connection->createSchemaManager();
+        }
+
+        // If neither method exists, throw an exception
+        throw new \RuntimeException('Could not get schema manager from connection');
+    }
+
+    public static function tableExists(Connection $connection, string $tableName): bool
+    {
+        $schemaManager = self::getSchemaManager($connection);
+        if (method_exists($schemaManager, 'tablesExist')) {
+            return $schemaManager->tablesExist([$tableName]);
+        } else {
             // Then try DBAL 4.x method
-            if (method_exists($connection, 'createSchemaManager')) {
-                return $connection->createSchemaManager();
-            }
-
-            // If neither method exists, throw an exception
-            throw new \RuntimeException('Could not get schema manager from connection');
-        } catch (\Throwable $e) {
-            // If there's an error, re-throw it
-            throw $e;
+            return $schemaManager->introspectSchema()->hasTable($tableName);
         }
     }
 }

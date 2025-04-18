@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -139,7 +140,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
         $ecotoneLite->deleteProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotoneLite->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
-        self::assertFalse(self::getSchemaManager($connection)->tablesExist('in_progress_tickets'));
+        self::assertFalse(SchemaManagerCompatibility::tableExists($connection, 'in_progress_tickets'));
     }
 
     public function test_building_multiple_polling_projection(): void

@@ -3,6 +3,7 @@
 namespace Ecotone\EventSourcing\Prooph;
 
 use Doctrine\DBAL\Driver\PDOConnection;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
@@ -169,15 +170,14 @@ class LazyProophEventStore implements EventStore
             return;
         }
 
-        $sm = $this->getConnection()->getSchemaManager();
-        if (! $sm->tablesExist([$this->eventSourcingConfiguration->getEventStreamTableName()])) {
+        if (! SchemaManagerCompatibility::tableExists($this->getConnection(), $this->eventSourcingConfiguration->getEventStreamTableName())) {
             match ($this->getEventStoreType()) {
                 self::EVENT_STORE_TYPE_POSTGRES => $this->createPostgresEventStreamTable(),
                 self::EVENT_STORE_TYPE_MARIADB => $this->createMariadbEventStreamTable(),
                 self::EVENT_STORE_TYPE_MYSQL => $this->createMysqlEventStreamTable()
             };
         }
-        if (! $sm->tablesExist([$this->eventSourcingConfiguration->getProjectionsTable()])) {
+        if (! SchemaManagerCompatibility::tableExists($this->getConnection(), $this->eventSourcingConfiguration->getProjectionsTable())) {
             match ($this->getEventStoreType()) {
                 self::EVENT_STORE_TYPE_POSTGRES => $this->createPostgresProjectionTable(),
                 self::EVENT_STORE_TYPE_MARIADB => $this->createMariadbProjectionTable(),

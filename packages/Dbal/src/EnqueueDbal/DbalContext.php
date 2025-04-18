@@ -236,33 +236,7 @@ class DbalContext implements Context
     public function createDataBaseTable(): void
     {
         $connection = $this->getDbalConnection();
-        // Get the schema manager using our compatibility layer
-        $schemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
-
-        // Check if table exists - handle both DBAL 3.x and 4.x
-        $tableExists = false;
-        try {
-            // First try DBAL 3.x method
-            if (method_exists($schemaManager, 'tablesExist')) {
-                $tableExists = $schemaManager->tablesExist([$this->getTableName()]);
-            } else {
-                // Then try DBAL 4.x method
-                $tableExists = $schemaManager->introspectSchema()->hasTable($this->getTableName());
-            }
-        } catch (\Throwable $e) {
-            // If both methods fail, try a direct query as a last resort
-            try {
-                $result = QueryCompatibility::executeQuery(
-                    $connection,
-                    'SELECT 1 FROM information_schema.tables WHERE table_name = ? LIMIT 1',
-                    [$this->getTableName()]
-                );
-                $tableExists = (bool) QueryCompatibility::fetchOne($result);
-            } catch (\Throwable $e2) {
-                // If all methods fail, assume table doesn't exist
-                $tableExists = false;
-            }
-        }
+        $tableExists = SchemaManagerCompatibility::tableExists($connection, $this->getTableName());
 
         if ($tableExists) {
             return;
@@ -291,19 +265,13 @@ class DbalContext implements Context
         $table->addIndex(['delivery_id']);
 
         // Handle both DBAL 3.x and 4.x for creating tables
-        try {
-            if (method_exists($schemaManager, 'createTable')) {
-                // DBAL 3.x method
-                $schemaManager->createTable($table);
-            } else {
-                // DBAL 4.x method
-                $schema = $schemaManager->introspectSchema();
-                $schema->createTable($table);
-                $schemaManager->createSchemaObjects($schema);
-            }
-        } catch (\Throwable $e) {
-            // If both methods fail, throw the exception
-            throw $e;
+        $schemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
+        if (SchemaManagerCompatibility::isDbalThree($connection)) {
+            $schemaManager->createTable($table);
+        }else {
+            $schema = $schemaManager->introspectSchema();
+            $schema->createTable($table);
+            $schemaManager->createSchemaObjects($schema);
         }
     }
 }

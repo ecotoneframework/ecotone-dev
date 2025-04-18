@@ -2,24 +2,14 @@
 
 namespace Symfony\App\SingleTenant\Configuration;
 
-use Ecotone\SymfonyBundle\Compatibility\CompatibleFrameworkBundle;
-use Ecotone\SymfonyBundle\Compatibility\CompatibleMicroKernelTrait;
-use Symfony\Component\HttpKernel\Bundle\BundleInterface;
+use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 
 /**
  * licence Apache-2.0
  */
 class Kernel extends \Symfony\Component\HttpKernel\Kernel
 {
-    use CompatibleMicroKernelTrait;
-
-    /**
-     * Register bundles for the application
-     */
-    public function registerBundles(): iterable
-    {
-        return [new CompatibleFrameworkBundle()];
-    }
+    use MicroKernelTrait;
 
     public function getProjectDir(): string
     {

@@ -31,7 +31,7 @@ function addLicenceToFile(string $file)
 foreach ($files as $file) {
     $fileContent = file_get_contents($file->getRealPath());
 
-    if (! preg_match('/\*\s*(@licence|licence)\s+(Enterprise|Apache\-2\.0)\s*/', $fileContent, $matches)) {
+    if (! preg_match('/\*\s*(@licence|licence)\s+(Enterprise|MIT|Apache\-2\.0)\s*/', $fileContent, $matches)) {
         addLicenceToFile($file);
     }
 }

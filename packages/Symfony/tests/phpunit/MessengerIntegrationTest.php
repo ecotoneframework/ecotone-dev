@@ -17,6 +17,7 @@ use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;
 use Fixture\MessengerConsumer\MessengerAsyncEventHandler;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Test\DatabaseVersionResolver;
 
 /**
  * @internal
@@ -30,8 +31,29 @@ final class MessengerIntegrationTest extends WebTestCase
     public function setUp(): void
     {
         try {
-            self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
-        } catch (Exception) {
+            $container = self::bootKernel()->getContainer();
+            $connection = $container->get('Doctrine\DBAL\Connection-public');
+
+            // Set the appropriate server version based on the database driver
+            $params = $connection->getParams();
+            $driverName = $params['driver'] ?? 'pdo_mysql';
+            $serverVersion = DatabaseVersionResolver::getServerVersion($driverName);
+
+            // Set the server version directly on the connection
+            $params = $connection->getParams();
+            $params['serverVersion'] = $serverVersion;
+
+            // Use reflection to set the updated params
+            $connectionReflection = new \ReflectionObject($connection);
+            $paramsProperty = $connectionReflection->getProperty('params');
+            $paramsProperty->setAccessible(true);
+            $paramsProperty->setValue($connection, $params);
+
+            // Clean up the test table
+            $connection->executeQuery('DELETE FROM messenger_messages');
+        } catch (Exception $e) {
+            // Log the exception for debugging
+            error_log('Error in setUp: ' . $e->getMessage());
         }
     }
 

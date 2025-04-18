@@ -251,7 +251,7 @@ class DbalContext implements Context
         $table->addColumn('properties', DbalType::TEXT, ['notnull' => false]);
         $table->addColumn('redelivered', DbalType::BOOLEAN, ['notnull' => false]);
         $table->addColumn('queue', DbalType::STRING, ['length' => 255]);
-        $table->addColumn('priority', DbalType::SMALLINT, ['notnull' => false]);
+        $table->addColumn('priority', DbalType::INTEGER, ['notnull' => false]);
         $table->addColumn('delayed_until', DbalType::BIGINT, ['notnull' => false]);
         $table->addColumn('time_to_live', DbalType::BIGINT, ['notnull' => false]);
         $table->addColumn('delivery_id', DbalType::GUID, ['length' => 16, 'fixed' => true, 'notnull' => false]);

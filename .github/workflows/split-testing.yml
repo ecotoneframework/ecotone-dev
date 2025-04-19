@@ -140,8 +140,8 @@ jobs:
         run: composer tests:ci
         working-directory: ${{ matrix.package.directory }}
         env:
-          DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
-          SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
+          DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+          SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8
           APP_DB_HOST: 127.0.0.1
           APP_DB_PORT: 5432
           APP_DB_DRIVER: pdo_pgsql
@@ -150,8 +150,8 @@ jobs:
         run: composer tests:ci
         working-directory: ${{ matrix.package.directory }}
         env:
-          DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
-          SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+          DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8
+          SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
           APP_DB_HOST: 127.0.0.1
           APP_DB_PORT: 3306
           APP_DB_DRIVER: pdo_mysql

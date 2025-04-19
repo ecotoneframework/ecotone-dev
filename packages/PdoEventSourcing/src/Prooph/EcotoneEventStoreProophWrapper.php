@@ -107,7 +107,7 @@ class EcotoneEventStoreProophWrapper implements EventStore
         return $this->eventStore->hasStream(new StreamName($streamName));
     }
 
-    public function load(string $streamName, int $fromNumber = 1, int $count = null, MetadataMatcher $metadataMatcher = null, bool $deserialize = true): array
+    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null, bool $deserialize = true): array
     {
         $streamEvents = $this->eventStore->load(new StreamName($streamName), $fromNumber, $count, $metadataMatcher);
         if (! $streamEvents->valid()) {

@@ -7,7 +7,9 @@ namespace Ecotone\Dbal\Compatibility;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Schema\Table;
 
 /**
  * @package Ecotone\Dbal\Compatibility
@@ -105,5 +107,16 @@ final class SchemaManagerCompatibility
             // Then try DBAL 4.x method
             return $schemaManager->introspectSchema()->hasTable($tableName);
         }
+    }
+
+    public static function getTableToCreate(Connection $connection, string $tableName): Table
+    {
+        if (self::isDbalThree($connection)) {
+            return new Table($tableName);
+        }
+
+        $schema = new Schema();
+
+        return $schema->createTable($tableName);
     }
 }

@@ -242,62 +242,28 @@ class DbalContext implements Context
             return;
         }
 
-        // Handle both DBAL 3.x and 4.x for creating tables
+        $table = SchemaManagerCompatibility::getTableToCreate($connection, $this->getTableName());
+
+        $table->addColumn('id', 'guid', ['length' => 16, 'fixed' => true]);
+        $table->addColumn('published_at', 'bigint');
+        $table->addColumn('body', 'text', ['notnull' => false]);
+        $table->addColumn('headers', 'text', ['notnull' => false]);
+        $table->addColumn('properties', 'text', ['notnull' => false]);
+        $table->addColumn('redelivered', 'boolean', ['notnull' => false]);
+        $table->addColumn('queue', 'string', ['length' => 255]);
+        $table->addColumn('priority', 'integer', ['notnull' => false]);
+        $table->addColumn('delayed_until', 'bigint', ['notnull' => false]);
+        $table->addColumn('time_to_live', 'bigint', ['notnull' => false]);
+        $table->addColumn('delivery_id', 'guid', ['length' => 16, 'fixed' => true, 'notnull' => false]);
+        $table->addColumn('redeliver_after', 'bigint', ['notnull' => false]);
+
+        $table->setPrimaryKey(['id']);
+        $table->addIndex(['priority', 'published_at', 'queue', 'delivery_id', 'delayed_until', 'id']);
+        $table->addIndex(['redeliver_after', 'delivery_id']);
+        $table->addIndex(['time_to_live', 'delivery_id']);
+        $table->addIndex(['delivery_id']);
+
         $schemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
-
-        if (SchemaManagerCompatibility::isDbalThree($connection)) {
-            // DBAL 3.x approach
-            $table = new Table($this->getTableName());
-
-            $table->addColumn('id', DbalType::GUID, ['length' => 16, 'fixed' => true]);
-            $table->addColumn('published_at', DbalType::BIGINT);
-            $table->addColumn('body', DbalType::TEXT, ['notnull' => false]);
-            $table->addColumn('headers', DbalType::TEXT, ['notnull' => false]);
-            $table->addColumn('properties', DbalType::TEXT, ['notnull' => false]);
-            $table->addColumn('redelivered', DbalType::BOOLEAN, ['notnull' => false]);
-            $table->addColumn('queue', DbalType::STRING, ['length' => 255]);
-            $table->addColumn('priority', DbalType::INTEGER, ['notnull' => false]);
-            $table->addColumn('delayed_until', DbalType::BIGINT, ['notnull' => false]);
-            $table->addColumn('time_to_live', DbalType::BIGINT, ['notnull' => false]);
-            $table->addColumn('delivery_id', DbalType::GUID, ['length' => 16, 'fixed' => true, 'notnull' => false]);
-            $table->addColumn('redeliver_after', DbalType::BIGINT, ['notnull' => false]);
-
-            $table->setPrimaryKey(['id']);
-            $table->addIndex(['priority', 'published_at', 'queue', 'delivery_id', 'delayed_until', 'id']);
-            $table->addIndex(['redeliver_after', 'delivery_id']);
-            $table->addIndex(['time_to_live', 'delivery_id']);
-            $table->addIndex(['delivery_id']);
-
-            $schemaManager->createTable($table);
-        } else {
-            // DBAL 4.x approach - use schema manager to handle different database platforms
-            $schema = new \Doctrine\DBAL\Schema\Schema();
-            $table = $schema->createTable($this->getTableName());
-
-            // Add columns with appropriate types for the database platform
-            $table->addColumn('id', 'guid', ['length' => 16, 'fixed' => true]);
-            $table->addColumn('published_at', 'bigint');
-            $table->addColumn('body', 'text', ['notnull' => false]);
-            $table->addColumn('headers', 'text', ['notnull' => false]);
-            $table->addColumn('properties', 'text', ['notnull' => false]);
-            $table->addColumn('redelivered', 'boolean', ['notnull' => false]);
-            $table->addColumn('queue', 'string', ['length' => 255]);
-            $table->addColumn('priority', 'integer', ['notnull' => false]);
-            $table->addColumn('delayed_until', 'bigint', ['notnull' => false]);
-            $table->addColumn('time_to_live', 'bigint', ['notnull' => false]);
-            $table->addColumn('delivery_id', 'guid', ['length' => 16, 'fixed' => true, 'notnull' => false]);
-            $table->addColumn('redeliver_after', 'bigint', ['notnull' => false]);
-
-            $table->setPrimaryKey(['id']);
-            $table->addIndex(['priority', 'published_at', 'queue', 'delivery_id', 'delayed_until', 'id']);
-            $table->addIndex(['redeliver_after', 'delivery_id']);
-            $table->addIndex(['time_to_live', 'delivery_id']);
-            $table->addIndex(['delivery_id']);
-
-            $queries = $schema->toSql($connection->getDatabasePlatform());
-            foreach ($queries as $query) {
-                $connection->executeStatement($query);
-            }
-        }
+        $schemaManager->createTable($table);
     }
 }

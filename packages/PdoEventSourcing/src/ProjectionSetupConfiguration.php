@@ -66,6 +66,11 @@ final class ProjectionSetupConfiguration implements DefinedObject
         return $this;
     }
 
+    public function isPolling(): bool
+    {
+        return $this->isPolling;
+    }
+
     public function isKeepingStateBetweenEvents(): bool
     {
         return $this->keepStateBetweenEvents;

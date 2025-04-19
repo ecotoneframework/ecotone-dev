@@ -110,7 +110,7 @@ jobs:
       run: vendor/bin/phpstan
 
     - name: Test PHPUnit on Postgres
-      run: vendor/bin/phpunit --no-coverage
+      run: vendor/bin/phpunit --no-coverage --debug
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0

@@ -8,6 +8,7 @@ use App\Microservices\BackofficeService\Domain\Ticket\Ticket;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
@@ -71,7 +72,7 @@ SQL
     #[ProjectionInitialization]
     public function initializeProjection() : void
     {
-        if ($this->getConnection()->createSchemaManager()->tablesExist('last_prepared_tickets')) {
+        if (SchemaManagerCompatibility::tableExists($this->getConnection(), 'last_prepared_tickets')) {
             return;
         }
 
@@ -83,7 +84,7 @@ SQL
         $table->addColumn('status', Types::STRING);
         $table->addColumn('prepared_at', Types::STRING);
 
-        $this->getConnection()->createSchemaManager()->createTable($table);
+        SchemaManagerCompatibility::getSchemaManager($this->getConnection())->createTable($table);
     }
 
     #[ProjectionReset]

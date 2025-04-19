@@ -68,7 +68,7 @@ jobs:
       RABBIT_HOST: amqp://127.0.0.1:5672
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest
       REDIS_DSN: redis://127.0.0.1:6379
-      DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+      DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
       APP_DB_HOST: 127.0.0.1
       APP_DB_PORT: 5432
       APP_DB_DRIVER: pdo_pgsql

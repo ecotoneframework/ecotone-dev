@@ -7,6 +7,8 @@ namespace Enqueue\Dbal;
 use Doctrine\DBAL\Connection;
 use Interop\Queue\Consumer;
 use Interop\Queue\SubscriptionConsumer;
+use InvalidArgumentException;
+use LogicException;
 
 /**
  * licence MIT
@@ -29,7 +31,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
     private $subscribers;
 
     /**
-     * @var \Doctrine\DBAL\Connection
+     * @var Connection
      */
     private $dbal;
 
@@ -86,7 +88,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
     public function consume(int $timeout = 0): void
     {
         if (empty($this->subscribers)) {
-            throw new \LogicException('No subscribers');
+            throw new LogicException('No subscribers');
         }
 
         $queueNames = [];
@@ -126,7 +128,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
             } else {
                 $currentQueueNames = [];
 
-                if (!$queueConsumed) {
+                if (! $queueConsumed) {
                     usleep($this->getPollingInterval() * 1000);
                 }
             }
@@ -143,7 +145,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
     public function subscribe(Consumer $consumer, callable $callback): void
     {
         if (false == $consumer instanceof DbalConsumer) {
-            throw new \InvalidArgumentException(sprintf('The consumer must be instance of "%s" got "%s"', DbalConsumer::class, get_class($consumer)));
+            throw new InvalidArgumentException(sprintf('The consumer must be instance of "%s" got "%s"', DbalConsumer::class, get_class($consumer)));
         }
 
         $queueName = $consumer->getQueue()->getQueueName();
@@ -152,7 +154,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
                 return;
             }
 
-            throw new \InvalidArgumentException(sprintf('There is a consumer subscribed to queue: "%s"', $queueName));
+            throw new InvalidArgumentException(sprintf('There is a consumer subscribed to queue: "%s"', $queueName));
         }
 
         $this->subscribers[$queueName] = [$consumer, $callback];
@@ -164,7 +166,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
     public function unsubscribe(Consumer $consumer): void
     {
         if (false == $consumer instanceof DbalConsumer) {
-            throw new \InvalidArgumentException(sprintf('The consumer must be instance of "%s" got "%s"', DbalConsumer::class, get_class($consumer)));
+            throw new InvalidArgumentException(sprintf('The consumer must be instance of "%s" got "%s"', DbalConsumer::class, get_class($consumer)));
         }
 
         $queueName = $consumer->getQueue()->getQueueName();

@@ -6,9 +6,10 @@ namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Dbal\Compatibility\DbalTypeCompatibility;
+use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
+use ReflectionMethod;
 
 /**
  * licence MIT
@@ -72,7 +73,7 @@ class ManagerRegistryConnectionFactory implements ConnectionFactory
         try {
             // In DBAL 3.x, connect() is public
             if (method_exists($connection, 'connect') && is_callable([$connection, 'connect'])) {
-                $reflection = new \ReflectionMethod($connection, 'connect');
+                $reflection = new ReflectionMethod($connection, 'connect');
                 if ($reflection->isPublic()) {
                     $connection->connect();
                 } else {
@@ -83,7 +84,7 @@ class ManagerRegistryConnectionFactory implements ConnectionFactory
                 // Fallback for any other case
                 $connection->getNativeConnection();
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Connection failed, but we've already tried our best
         }
 

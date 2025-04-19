@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Compatibility;
 
-use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Result;
+use Exception;
 use InvalidArgumentException;
+use ReflectionMethod;
 
 /**
  * @package Ecotone\Dbal\Compatibility
@@ -41,7 +42,7 @@ final class QueryBuilderProxy
     {
         // Check if the select method has the DBAL 4 signature (with variadic string parameters)
         try {
-            $reflectionMethod = new \ReflectionMethod(QueryBuilder::class, 'select');
+            $reflectionMethod = new ReflectionMethod(QueryBuilder::class, 'select');
             $parameters = $reflectionMethod->getParameters();
 
             if (count($parameters) === 0) {
@@ -50,7 +51,7 @@ final class QueryBuilderProxy
 
             // In DBAL 4, the first parameter is named 'expressions' and is variadic
             return $parameters[0]->isVariadic() && $parameters[0]->getName() === 'expressions';
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If we can't determine the version, assume it's DBAL 3
             return false;
         }

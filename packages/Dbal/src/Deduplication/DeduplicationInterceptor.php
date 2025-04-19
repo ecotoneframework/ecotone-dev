@@ -105,7 +105,7 @@ class DeduplicationInterceptor
             $this->getConnection($connectionFactory)->createQueryBuilder()
                 ->delete($this->getTableName())
                 ->andWhere('message_id IN (:messageIds)')
-                ->setParameter('messageIds', array_column($messageIds, 'message_id'), class_exists('\Doctrine\DBAL\ArrayParameterType') ? \Doctrine\DBAL\ArrayParameterType::STRING : (defined('\Doctrine\DBAL\Connection::PARAM_STR_ARRAY') ? \Doctrine\DBAL\Connection::PARAM_STR_ARRAY : 'string[]'))
+                ->setParameter('messageIds', array_column($messageIds, 'message_id'), class_exists('\Doctrine\DBAL\ArrayParameterType') ? \Doctrine\DBAL\ArrayParameterType::STRING : (defined('\Doctrine\DBAL\Connection::PARAM_STR_ARRAY') ? Connection::PARAM_STR_ARRAY : 'string[]'))
                 // In DBAL 4.x, execute() is replaced with executeStatement()
                 ->executeStatement();
         }

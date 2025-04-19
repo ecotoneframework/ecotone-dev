@@ -6,6 +6,7 @@ namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\RetryableException;
+use LogicException;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -25,7 +26,7 @@ trait DbalConsumerHelperTrait
     protected function fetchMessage(array $queues, int $redeliveryDelay): ?DbalMessage
     {
         if (empty($queues)) {
-            throw new \LogicException('Queues must not be empty.');
+            throw new LogicException('Queues must not be empty.');
         }
 
         $now = time();
@@ -41,7 +42,7 @@ trait DbalConsumerHelperTrait
             ->andWhere('delivery_id IS NULL')
             ->addOrderBy('priority', 'asc')
             ->addOrderBy('published_at', 'asc')
-            ->setParameter('queues', $queues, class_exists('\Doctrine\DBAL\ArrayParameterType') ? \Doctrine\DBAL\ArrayParameterType::STRING : (defined('\Doctrine\DBAL\Connection::PARAM_STR_ARRAY') ? \Doctrine\DBAL\Connection::PARAM_STR_ARRAY : 'string[]'))
+            ->setParameter('queues', $queues, class_exists('\Doctrine\DBAL\ArrayParameterType') ? \Doctrine\DBAL\ArrayParameterType::STRING : (defined('\Doctrine\DBAL\Connection::PARAM_STR_ARRAY') ? Connection::PARAM_STR_ARRAY : 'string[]'))
             ->setParameter('delayedUntil', $now, DbalType::INTEGER)
             ->setMaxResults(1);
 
@@ -166,7 +167,7 @@ trait DbalConsumerHelperTrait
     private function deleteMessage(string $deliveryId): void
     {
         if (empty($deliveryId)) {
-            throw new \LogicException(sprintf('Expected record was removed but it is not. Delivery id: "%s"', $deliveryId));
+            throw new LogicException(sprintf('Expected record was removed but it is not. Delivery id: "%s"', $deliveryId));
         }
 
         $this->getConnection()->delete(

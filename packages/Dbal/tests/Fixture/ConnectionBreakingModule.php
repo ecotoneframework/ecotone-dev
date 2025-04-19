@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalTransaction\DbalTransaction;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ConsoleCommand;
@@ -59,7 +58,7 @@ class ConnectionBreakingModule implements AnnotationModule
     {
         // Find the configuration in the extension objects
         $configuration = $this->findConfiguration($extensionObjects);
-        if (!$configuration) {
+        if (! $configuration) {
             return; // No configuration found, don't register the interceptor
         }
 

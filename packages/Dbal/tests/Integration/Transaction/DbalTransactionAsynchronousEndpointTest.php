@@ -16,6 +16,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ConnectionBreakingConfiguration;
 use Test\Ecotone\Dbal\Fixture\ConnectionBreakingModule;
@@ -89,7 +90,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             [
                 new MultipleInternalCommandsService(),
                 DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
-//                "logger" => new EchoLogger()
+                //                "logger" => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -118,7 +119,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         try {
             $name = $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 100]);
             $this->assertNotNull($name);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // If person with ID 100 doesn't exist, try with ID 99
             $name = $ecotoneLite->sendQueryWithRouting('person.getName', metadata: ['aggregate.id' => 99]);
             $this->assertNotNull($name);
@@ -160,7 +161,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             [
                 new MultipleInternalCommandsService(),
                 DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
-                "logger" => new EchoLogger()
+                'logger' => new EchoLogger(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultErrorChannel('dbal_dead_letter')

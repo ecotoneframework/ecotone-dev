@@ -2,7 +2,6 @@
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Ecotone\SymfonyBundle\Compatibility\ContainerCompatibility;
 
 // Clear all cache directories
 echo "Clearing cache directories...\n";
@@ -20,7 +19,7 @@ foreach ($cacheDirectories as $cacheDir) {
             new RecursiveDirectoryIterator($cacheDir, RecursiveDirectoryIterator::SKIP_DOTS),
             RecursiveIteratorIterator::CHILD_FIRST
         );
-        
+
         foreach ($files as $file) {
             if ($file->isDir()) {
                 rmdir($file->getRealPath());
@@ -28,7 +27,7 @@ foreach ($cacheDirectories as $cacheDir) {
                 unlink($file->getRealPath());
             }
         }
-        
+
         // Remove the directory itself
         rmdir($cacheDir);
     }
@@ -38,10 +37,10 @@ echo "Cache directories cleared.\n";
 
 // Create a .gitignore file to prevent committing generated container files
 $gitignoreContent = <<<EOT
-# Ignore generated container files
-/var/cache/
-/tests/phpunit/*/var/cache/
-EOT;
+    # Ignore generated container files
+    /var/cache/
+    /tests/phpunit/*/var/cache/
+    EOT;
 
 file_put_contents(__DIR__ . '/.gitignore', $gitignoreContent, FILE_APPEND);
 

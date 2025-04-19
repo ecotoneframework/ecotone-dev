@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\Table;
-use Ecotone\Dbal\Compatibility\DbalTypeCompatibility;
-use Ecotone\Dbal\Compatibility\QueryCompatibility;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
@@ -19,6 +16,8 @@ use Interop\Queue\Producer;
 use Interop\Queue\Queue;
 use Interop\Queue\SubscriptionConsumer;
 use Interop\Queue\Topic;
+use InvalidArgumentException;
+use LogicException;
 
 /**
  * licence MIT
@@ -59,7 +58,7 @@ class DbalContext implements Context
         } elseif (is_callable($connection)) {
             $this->connectionFactory = $connection;
         } else {
-            throw new \InvalidArgumentException(sprintf('The connection argument must be either %s or callable that returns %s.', Connection::class, Connection::class));
+            throw new InvalidArgumentException(sprintf('The connection argument must be either %s or callable that returns %s.', Connection::class, Connection::class));
         }
     }
 
@@ -208,7 +207,7 @@ class DbalContext implements Context
         if (false == $this->connection) {
             $connection = call_user_func($this->connectionFactory);
             if (false == $connection instanceof Connection) {
-                throw new \LogicException(sprintf('The factory must return instance of Doctrine\DBAL\Connection. It returns %s', is_object($connection) ? get_class($connection) : gettype($connection)));
+                throw new LogicException(sprintf('The factory must return instance of Doctrine\DBAL\Connection. It returns %s', is_object($connection) ? get_class($connection) : gettype($connection)));
             }
 
             $this->connection = $connection;

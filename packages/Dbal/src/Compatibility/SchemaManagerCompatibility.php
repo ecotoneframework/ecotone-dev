@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Compatibility;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Schema\Table;
+use RuntimeException;
 
 /**
  * @package Ecotone\Dbal\Compatibility
@@ -43,7 +41,7 @@ final class SchemaManagerCompatibility
         }
 
         // If neither method exists, throw an exception
-        throw new \RuntimeException('Could not get schema manager from connection');
+        throw new RuntimeException('Could not get schema manager from connection');
     }
 
     public static function tableExists(Connection $connection, string $tableName): bool

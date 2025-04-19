@@ -6,11 +6,13 @@ namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Ecotone\Dbal\Compatibility\ConnectionConfigCompatibility;
-use Ecotone\Dbal\Compatibility\DbalTypeCompatibility;
 use Enqueue\Dsn\Dsn;
+use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
+use LogicException;
+use ReflectionMethod;
+use Throwable;
 
 /**
  * licence MIT
@@ -56,7 +58,7 @@ class DbalConnectionFactory implements ConnectionFactory
                 unset($config['dsn']);
             }
         } else {
-            throw new \LogicException('The config must be either an array of options, a DSN string or null');
+            throw new LogicException('The config must be either an array of options, a DSN string or null');
         }
 
         $this->config = array_replace_recursive([
@@ -88,12 +90,12 @@ class DbalConnectionFactory implements ConnectionFactory
             // Try to call close() if it's available, otherwise just set to null
             try {
                 if (method_exists($this->connection, 'close') && is_callable([$this->connection, 'close'])) {
-                    $reflection = new \ReflectionMethod($this->connection, 'close');
+                    $reflection = new ReflectionMethod($this->connection, 'close');
                     if ($reflection->isPublic()) {
                         $this->connection->close();
                     }
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 // Ignore any errors, we'll set the connection to null anyway
             }
 
@@ -112,7 +114,7 @@ class DbalConnectionFactory implements ConnectionFactory
             try {
                 // In DBAL 3.x, connect() is public
                 if (method_exists($this->connection, 'connect') && is_callable([$this->connection, 'connect'])) {
-                    $reflection = new \ReflectionMethod($this->connection, 'connect');
+                    $reflection = new ReflectionMethod($this->connection, 'connect');
                     if ($reflection->isPublic()) {
                         $this->connection->connect();
                     } else {
@@ -123,7 +125,7 @@ class DbalConnectionFactory implements ConnectionFactory
                     // Fallback for any other case
                     $this->connection->getNativeConnection();
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Connection failed, but we've already tried our best
             }
         }
@@ -152,7 +154,7 @@ class DbalConnectionFactory implements ConnectionFactory
         ];
 
         if ($parsedDsn && false == isset($supported[$parsedDsn->getScheme()])) {
-            throw new \LogicException(sprintf('The given DSN schema "%s" is not supported. There are supported schemes: "%s".', $parsedDsn->getScheme(), implode('", "', array_keys($supported))));
+            throw new LogicException(sprintf('The given DSN schema "%s" is not supported. There are supported schemes: "%s".', $parsedDsn->getScheme(), implode('", "', array_keys($supported))));
         }
 
         $doctrineScheme = $supported[$parsedDsn->getScheme()];

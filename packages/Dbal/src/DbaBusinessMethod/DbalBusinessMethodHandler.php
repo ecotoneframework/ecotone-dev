@@ -324,12 +324,12 @@ final class DbalBusinessMethodHandler
         // If we're using DBAL 4.x with enum ParameterType
         if (enum_exists('\Doctrine\DBAL\ParameterType')) {
             return match($type) {
-                1 => \Doctrine\DBAL\ParameterType::INTEGER,
-                2 => \Doctrine\DBAL\ParameterType::STRING,
-                3 => \Doctrine\DBAL\ParameterType::LARGE_OBJECT,
-                5 => \Doctrine\DBAL\ParameterType::BOOLEAN,
-                16 => \Doctrine\DBAL\ParameterType::BINARY,
-                17 => \Doctrine\DBAL\ParameterType::ASCII,
+                1 => ParameterType::INTEGER,
+                2 => ParameterType::STRING,
+                3 => ParameterType::LARGE_OBJECT,
+                5 => ParameterType::BOOLEAN,
+                16 => ParameterType::BINARY,
+                17 => ParameterType::ASCII,
                 default => $type,
             };
         }

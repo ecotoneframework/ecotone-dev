@@ -4,7 +4,6 @@ namespace Ecotone\Dbal\DbalTransaction;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
-use Ecotone\Dbal\Compatibility\ConnectionExceptionCompatibility;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
@@ -18,7 +17,6 @@ use Enqueue\Dbal\DbalContext;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 use Exception;
 use Interop\Queue\ConnectionFactory;
-use PDOException;
 use Throwable;
 
 /**
@@ -92,7 +90,7 @@ class DbalTransactionInterceptor
                 try {
                     $connection->commit();
                     $logger->info('Database Transaction committed', $message);
-                } catch (\Exception $exception) {
+                } catch (Exception $exception) {
                     // Handle the case where a database did an implicit commit or the transaction is no longer active
                     if ($this->isImplicitCommitException($exception)) {
                         $logger->info(
@@ -135,7 +133,7 @@ class DbalTransactionInterceptor
         return $result;
     }
 
-    private function isImplicitCommitException(\Throwable $exception): bool
+    private function isImplicitCommitException(Throwable $exception): bool
     {
         $patterns = [
             'No active transaction',

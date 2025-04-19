@@ -13,7 +13,6 @@ use Ecotone\Test\ComponentTestBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
-
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 /**

@@ -4,16 +4,14 @@ namespace Ecotone\Laravel\Config\PDO;
 
 use function assert;
 
+use Doctrine\DBAL\Driver\Connection as DriverConnection;
 use Doctrine\DBAL\Driver\PDO\Exception;
 use Doctrine\DBAL\Driver\PDO\Result;
 use Doctrine\DBAL\Driver\PDO\Statement;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
-use Doctrine\DBAL\Driver\Connection as DriverConnection;
-use Doctrine\DBAL\ServerVersionProvider;
-
-// No need for version detection, we'll implement the DBAL 4.x interface
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
-use Doctrine\DBAL\ParameterType;
+// No need for version detection, we'll implement the DBAL 4.x interface
+use Doctrine\DBAL\ServerVersionProvider;
 use PDO;
 use PDOException;
 use PDOStatement;

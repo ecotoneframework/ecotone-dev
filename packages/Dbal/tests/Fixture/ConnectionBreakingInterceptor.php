@@ -8,7 +8,6 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 
@@ -25,7 +24,8 @@ class ConnectionBreakingInterceptor
      * @param ConnectionFactory[] $connectionFactories
      * @param array $breakConnectionOnCalls Array of booleans indicating whether to break the connection on each call
      */
-    public function __construct(array $connectionFactories, array $breakConnectionOnCalls = []) {
+    public function __construct(array $connectionFactories, array $breakConnectionOnCalls = [])
+    {
         $this->connectionFactories = $connectionFactories;
         $this->breakConnectionOnCalls = $breakConnectionOnCalls;
     }

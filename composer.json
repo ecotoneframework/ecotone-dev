@@ -31,6 +31,7 @@
                 "packages/Ecotone/src/Dbal/",
                 "packages/Dbal/src"
             ],
+            "Enqueue\\Dbal\\": "packages/Dbal/src/EnqueueDbal",
             "Ecotone\\Enqueue\\": [
                 "packages/Ecotone/src/Enqueue/",
                 "packages/Enqueue/src"
@@ -115,7 +116,6 @@
         "doctrine/dbal": "^3.9|^4.0",
         "doctrine/persistence": "^2.5|^3.4",
         "enqueue/amqp-ext": "^0.10.18",
-        "enqueue/dbal": "^0.10.17",
         "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",
         "enqueue/dsn": "^0.10.4",
@@ -148,7 +148,7 @@
         "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
         "php-coveralls/php-coveralls": "^2.5",
         "phpstan/phpstan": "^1.8",
-        "phpunit/phpunit": "^9.6|^10.5|^11.0",
+        "phpunit/phpunit": "^11.0",
         "predis/predis": "^1.1.10",
         "symfony/expression-language": "^6.0|^7.0",
         "symplify/monorepo-builder": "11.1.21",
@@ -168,7 +168,8 @@
         "kwn/php-rdkafka-stubs": "^2.2"
     },
     "conflict": {
-        "symfony/doctrine-messenger": ">7.0.5 < 7.1.0"
+        "symfony/doctrine-messenger": ">7.0.5 < 7.1.0",
+        "enqueue/dbal": "*"
     },
     "extra": {
         "laravel": {

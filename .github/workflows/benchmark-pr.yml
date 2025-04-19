@@ -16,7 +16,7 @@ jobs:
       fail-fast: true # Fail the entire workflow if any job fails
       matrix:
         operating-system: [ ubuntu-latest ]
-        php-versions: [ 8.2 ]
+        php-versions: [ 8.3 ]
         stability: [prefer-stable]
     services:
       rabbitmq:
@@ -72,6 +72,7 @@ jobs:
       APP_DB_HOST: 127.0.0.1
       APP_DB_PORT: 5432
       APP_DB_DRIVER: pdo_pgsql
+      APP_DB_SERVER_VERSION: 16
     steps:
       - name: PHP ${{ matrix.php-versions }} - ${{ matrix.stability }}
         uses: shivammathur/setup-php@v2

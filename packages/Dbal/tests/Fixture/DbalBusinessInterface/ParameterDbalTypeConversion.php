@@ -15,11 +15,11 @@ interface ParameterDbalTypeConversion
 {
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]
     public function getPersonsWith(
-        #[DbalParameter(type: Connection::PARAM_INT_ARRAY)] array $personIds
+        #[DbalParameter(type: 102)] array $personIds
     ): array;
 
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]
-    #[DbalParameter('personIds', type: Connection::PARAM_INT_ARRAY, expression: '[1]')]
+    #[DbalParameter('personIds', type: 102, expression: '[1]')]
     public function getPersonsWithWithMethodLevelParameter(): array;
 
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]

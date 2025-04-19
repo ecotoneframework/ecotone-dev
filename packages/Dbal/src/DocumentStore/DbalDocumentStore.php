@@ -7,6 +7,7 @@ use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -198,23 +199,23 @@ final class DbalDocumentStore implements DocumentStore
             return;
         }
 
-        $sm = $this->getConnection()->getSchemaManager();
-
         if ($this->doesTableExists()) {
             return;
         }
 
+        $schemaManager = SchemaManagerCompatibility::getSchemaManager($this->getConnection());
+
         $table = new Table($this->getTableName());
 
-        $table->addColumn('collection', Types::STRING);
-        $table->addColumn('document_id', Types::STRING);
-        $table->addColumn('document_type', Types::TEXT);
-        $table->addColumn('document', Types::JSON);
-        $table->addColumn('updated_at', Types::FLOAT, ['length' => 53]);
+        $table->addColumn('collection', 'string', ['length' => 255]);
+        $table->addColumn('document_id', 'string', ['length' => 255]);
+        $table->addColumn('document_type', 'text');
+        $table->addColumn('document', 'json');
+        $table->addColumn('updated_at', 'float', ['length' => 53]);
 
         $table->setPrimaryKey(['collection', 'document_id']);
 
-        $sm->createTable($table);
+        $schemaManager->createTable($table);
     }
 
     private function getConnection(): Connection
@@ -236,7 +237,8 @@ final class DbalDocumentStore implements DocumentStore
             return true;
         }
 
-        $tableExists = $connection->getSchemaManager()->tablesExist([$this->getTableName()]);
+        $schemaManager = $connection->createSchemaManager();
+        $tableExists = $schemaManager->tablesExist([$this->getTableName()]);
 
         if ($tableExists) {
             $this->initialized[spl_object_id($connection)] = true;
@@ -290,7 +292,7 @@ final class DbalDocumentStore implements DocumentStore
         return $rowsAffected;
     }
 
-    private function getDocumentsFor(string $collectionName): \Doctrine\DBAL\Query\QueryBuilder
+    private function getDocumentsFor(string $collectionName): mixed
     {
         return (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
             ->select('document', 'document_type')

@@ -33,7 +33,7 @@ trait ConnectsToDatabase
      *
      * @throws InvalidArgumentException
      */
-    public function connect(array $params, $username = null, $password = null, array $driverOptions = [])
+    public function connect(array $params): \Doctrine\DBAL\Driver\Connection
     {
         if (! isset($params['pdo']) || ! $params['pdo'] instanceof PDO) {
             throw new InvalidArgumentException('Laravel requires the "pdo" property to be set and be a PDO instance.');

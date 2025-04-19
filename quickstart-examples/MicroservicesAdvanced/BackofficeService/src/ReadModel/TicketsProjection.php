@@ -8,6 +8,7 @@ use App\Microservices\BackofficeService\Domain\Ticket\Ticket;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
@@ -71,19 +72,19 @@ SQL
     #[ProjectionInitialization]
     public function initializeProjection() : void
     {
-        if ($this->getConnection()->createSchemaManager()->tablesExist('last_prepared_tickets')) {
+        if (SchemaManagerCompatibility::tableExists($this->getConnection(), 'last_prepared_tickets')) {
             return;
         }
 
         $table = new Table('last_prepared_tickets');
 
-        $table->addColumn('ticket_id', Types::STRING);
-        $table->addColumn('ticket_type', Types::STRING);
-        $table->addColumn('description', Types::TEXT);
-        $table->addColumn('status', Types::STRING);
-        $table->addColumn('prepared_at', Types::STRING);
+        $table->addColumn('ticket_id', 'string', ['length' => 255]);
+        $table->addColumn('ticket_type', 'string', ['length' => 255]);
+        $table->addColumn('description', 'text');
+        $table->addColumn('status', 'string', ['length' => 255]);
+        $table->addColumn('prepared_at', 'string', ['length' => 255]);
 
-        $this->getConnection()->createSchemaManager()->createTable($table);
+        SchemaManagerCompatibility::getSchemaManager($this->getConnection())->createTable($table);
     }
 
     #[ProjectionReset]

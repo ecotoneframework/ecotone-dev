@@ -17,6 +17,7 @@ use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;
 use Fixture\MessengerConsumer\MessengerAsyncEventHandler;
 use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Test\DatabaseVersionResolver;
 
 /**
  * @internal
@@ -31,7 +32,8 @@ final class MessengerIntegrationTest extends WebTestCase
     {
         try {
             self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
-        } catch (Exception) {
+        }catch (\Exception $exception) {
+
         }
     }
 

@@ -230,7 +230,8 @@ class DbalDeadLetterHandler
 
     private function createDataBaseTable(): void
     {
-        $sm = $this->getConnection()->getSchemaManager();
+        $connection = $this->getConnection();
+        $schemaManager = $connection->createSchemaManager();
 
         if ($this->doesDeadLetterTableExists()) {
             return;
@@ -238,7 +239,7 @@ class DbalDeadLetterHandler
 
         $table = new Table($this->getTableName());
 
-        $table->addColumn('message_id', Types::STRING);
+        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
         $table->addColumn('failed_at', Types::DATETIME_MUTABLE);
         $table->addColumn('payload', Types::TEXT);
         $table->addColumn('headers', Types::TEXT);
@@ -246,14 +247,15 @@ class DbalDeadLetterHandler
         $table->setPrimaryKey(['message_id']);
         $table->addIndex(['failed_at']);
 
-        $sm->createTable($table);
+        $schemaManager->createTable($table);
     }
 
     private function doesDeadLetterTableExists(): bool
     {
-        $sm = $this->getConnection()->getSchemaManager();
+        $connection = $this->getConnection();
+        $schemaManager = $connection->createSchemaManager();
 
-        return $sm->tablesExist([$this->getTableName()]);
+        return $schemaManager->tablesExist([$this->getTableName()]);
     }
 
     private function getConnection(): Connection

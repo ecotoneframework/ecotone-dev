@@ -1,0 +1,130 @@
+name: 'Quickstart Examples Tests'
+
+on:
+  pull_request:
+
+concurrency:
+  group: quickstart-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  quickstart_examples_testing:
+    name: Quickstart Examples
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: true
+      matrix:
+        package:
+          - name: 'Quickstart'
+            package: 'ecotone/quickstart-examples'
+            directory: 'quickstart-examples'
+        php-versions: [ '8.3' ]
+        stability: [prefer-stable]
+
+    services:
+      kafka:
+        image: bitnami/kafka:latest
+        options: >-
+          --env ALLOW_PLAINTEXT_LISTENER=yes
+          --env KAFKA_ENABLE_KRAFT=yes
+          --env KAFKA_CFG_NODE_ID=0
+          --env KAFKA_CFG_PROCESS_ROLES=controller,broker
+          --env KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+          --env KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093
+          --env KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+          --env KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          --env KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@127.0.0.1:9093
+          --health-cmd="kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+        ports:
+          - 9092:9092
+      rabbitmq:
+        image: rabbitmq:3.11-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "secret"
+          MYSQL_USER: "ecotone"
+          MYSQL_PASSWORD: "secret"
+          MYSQL_DATABASE: "ecotone"
+          DB_PORT: 3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=10s
+          --health-retries=5
+        ports:
+          - 3306:3306
+      postgres:
+        image: simplycodedsoftware/postgres:16.1
+        env:
+          POSTGRES_USER: ecotone
+          POSTGRES_PASSWORD: secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      localstack:
+        image: localstack/localstack:2.2.0
+        env:
+          SERVICES: 'sqs,sns'
+        ports:
+          - "4566:4566"
+          - "4510-4559:4510-4559"
+      redis:
+        image: redis:7-alpine
+        ports:
+          - '6379:6379'
+
+    env:
+      RABBIT_HOST: amqp://127.0.0.1:5672
+      SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest
+      REDIS_DSN: redis://127.0.0.1:6379
+      KAFKA_DSN: 127.0.0.1:9092
+      COMPOSER_ROOT_VERSION: 'dev-main'
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set Up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: grpc, rdkafka
+          coverage: none
+
+      - name: Install OpenSSH (For Kafka)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client
+
+      - name: Enable merge-plugin
+        run: composer global config --no-interaction allow-plugins.wikimedia/composer-merge-plugin true && composer global require wikimedia/composer-merge-plugin
+        working-directory: ${{ github.workspace }}/${{ matrix.package.directory }}
+
+      - name: Install dependencies
+        run: composer update --${{ matrix.stability }} --no-interaction
+        working-directory: ${{ github.workspace }}/${{ matrix.package.directory }}
+
+      - name: Run tests on Postgres
+        run: composer tests:ci
+        working-directory: ${{ github.workspace }}/${{ matrix.package.directory }}
+        env:
+          DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+          SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8
+
+      - name: Run tests on Mysql
+        run: composer tests:ci
+        working-directory: ${{ github.workspace }}/${{ matrix.package.directory }}
+        env:
+          DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8
+          SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16

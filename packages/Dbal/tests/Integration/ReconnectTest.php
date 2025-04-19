@@ -27,6 +27,10 @@ final class ReconnectTest extends DbalMessagingTestCase
     public function test_it_will_automatically_reconnect(): void
     {
         $connectionFactory = $this->connectionForTenantA();
+
+        // Create the necessary database tables
+        $connectionFactory->createContext()->createDataBaseTable();
+
         $ecotone = $this->bootstrapEcotone([
             DbalConnectionFactory::class => $connectionFactory,
         ]);
@@ -46,6 +50,10 @@ final class ReconnectTest extends DbalMessagingTestCase
     public function test_it_will_automatically_reconnect_for_multi_tenant_connection(): void
     {
         $connectionFactory = $this->connectionForTenantA();
+
+        // Create the necessary database tables
+        $connectionFactory->createContext()->createDataBaseTable();
+
         $ecotone = $this->bootstrapEcotone([
             'tenant_a_connection' => $connectionFactory,
         ], [

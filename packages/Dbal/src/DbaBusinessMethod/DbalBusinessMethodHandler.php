@@ -49,7 +49,10 @@ final class DbalBusinessMethodHandler
     ): ?Message {
         [$sql, $parameters, $parameterTypes] = $this->prepareExecution($sql, $headers);
 
-        $query = $this->getConnection()->executeQuery($sql, $parameters, $parameterTypes);
+        // Convert parameter types to be compatible with both DBAL 3.x and 4.x
+        $convertedParameterTypes = $this->convertParameterTypes($parameterTypes);
+
+        $query = $this->getConnection()->executeQuery($sql, $parameters, $convertedParameterTypes);
 
         $result = match($fetchMode) {
             FetchMode::ASSOCIATIVE => $query->fetchAllAssociative(),
@@ -73,7 +76,10 @@ final class DbalBusinessMethodHandler
     {
         [$sql, $parameters, $parameterTypes] = $this->prepareExecution($sql, $headers);
 
-        return $this->getConnection()->executeStatement($sql, $parameters, $parameterTypes);
+        // Convert parameter types to be compatible with both DBAL 3.x and 4.x
+        $convertedParameterTypes = $this->convertParameterTypes($parameterTypes);
+
+        return $this->getConnection()->executeStatement($sql, $parameters, $convertedParameterTypes);
     }
 
     /**
@@ -183,17 +189,17 @@ final class DbalBusinessMethodHandler
                 if ($typeDescriptor->isCollection() && $typeDescriptor->isSingleTypeCollection()) {
                     $typeDescriptor = $typeDescriptor->resolveGenericTypes()[0];
                     if ($typeDescriptor->isInteger()) {
-                        $preparedParameterTypes[$parameterName] = Connection::PARAM_INT_ARRAY;
+                        $preparedParameterTypes[$parameterName] = $this->getArrayIntegerTypeValue();
                     } else {
-                        $preparedParameterTypes[$parameterName] = Connection::PARAM_STR_ARRAY;
+                        $preparedParameterTypes[$parameterName] = $this->getArrayStringTypeValue();
                     }
                 } else {
                     if ($typeDescriptor->isInteger()) {
-                        $preparedParameterTypes[$parameterName] = ParameterType::INTEGER;
+                        $preparedParameterTypes[$parameterName] = $this->convertScalarParameterType(ParameterType::INTEGER);
                     } elseif ($typeDescriptor->isString()) {
-                        $preparedParameterTypes[$parameterName] = ParameterType::STRING;
+                        $preparedParameterTypes[$parameterName] = $this->convertScalarParameterType(ParameterType::STRING);
                     } elseif ($typeDescriptor->isBoolean()) {
-                        $preparedParameterTypes[$parameterName] = ParameterType::BOOLEAN;
+                        $preparedParameterTypes[$parameterName] = $this->convertScalarParameterType(ParameterType::BOOLEAN);
                     }
                 }
             }
@@ -235,5 +241,100 @@ final class DbalBusinessMethodHandler
         }
 
         return $parameterValue;
+    }
+
+    /**
+     * Convert parameter types to be compatible with both DBAL 3.x and 4.x
+     */
+    private function convertParameterTypes(array $parameterTypes): array
+    {
+        $convertedParameterTypes = [];
+        foreach ($parameterTypes as $key => $type) {
+            if (is_int($type)) {
+                // Handle array parameter types
+                if ($type === $this->getArrayIntegerTypeValue()) {
+                    $convertedParameterTypes[$key] = $this->getArrayIntegerType();
+                } elseif ($type === $this->getArrayStringTypeValue()) {
+                    $convertedParameterTypes[$key] = $this->getArrayStringType();
+                } else {
+                    // Handle scalar parameter types
+                    $convertedParameterTypes[$key] = $this->convertScalarParameterType($type);
+                }
+            } else {
+                $convertedParameterTypes[$key] = $type;
+            }
+        }
+
+        return $convertedParameterTypes;
+    }
+
+    /**
+     * Get the appropriate ArrayParameterType::INTEGER for the current DBAL version
+     */
+    private function getArrayIntegerType()
+    {
+        // For DBAL 4.x (enum)
+        if (class_exists('\Doctrine\DBAL\ArrayParameterType') && enum_exists('\Doctrine\DBAL\ArrayParameterType')) {
+            return \Doctrine\DBAL\ArrayParameterType::INTEGER;
+        }
+
+        // For DBAL 3.x (integer constant)
+        return $this->getArrayIntegerTypeValue();
+    }
+
+    /**
+     * Get the appropriate ArrayParameterType::STRING for the current DBAL version
+     */
+    private function getArrayStringType()
+    {
+        // For DBAL 4.x (enum)
+        if (class_exists('\Doctrine\DBAL\ArrayParameterType') && enum_exists('\Doctrine\DBAL\ArrayParameterType')) {
+            return \Doctrine\DBAL\ArrayParameterType::STRING;
+        }
+
+        // For DBAL 3.x (integer constant)
+        return $this->getArrayStringTypeValue();
+    }
+
+    /**
+     * Get the integer value for ArrayParameterType::INTEGER
+     */
+    private function getArrayIntegerTypeValue(): int
+    {
+        // DBAL 3.x uses Connection::ARRAY_PARAM_OFFSET (100) + ParameterType::INTEGER (1) = 101
+        // But the actual implementation uses 102 for INTEGER arrays
+        return 102;
+    }
+
+    /**
+     * Get the integer value for ArrayParameterType::STRING
+     */
+    private function getArrayStringTypeValue(): int
+    {
+        // DBAL 3.x uses Connection::ARRAY_PARAM_OFFSET (100) + ParameterType::STRING (2) = 102
+        // But the actual implementation uses 101 for STRING arrays
+        return 101;
+    }
+
+    /**
+     * Convert scalar parameter types between DBAL 3.x and 4.x
+     */
+    private function convertScalarParameterType($type)
+    {
+        // If we're using DBAL 4.x with enum ParameterType
+        if (enum_exists('\Doctrine\DBAL\ParameterType')) {
+            return match($type) {
+                1 => \Doctrine\DBAL\ParameterType::INTEGER,
+                2 => \Doctrine\DBAL\ParameterType::STRING,
+                3 => \Doctrine\DBAL\ParameterType::LARGE_OBJECT,
+                5 => \Doctrine\DBAL\ParameterType::BOOLEAN,
+                16 => \Doctrine\DBAL\ParameterType::BINARY,
+                17 => \Doctrine\DBAL\ParameterType::ASCII,
+                default => $type,
+            };
+        }
+
+        // For DBAL 3.x, just return the integer constant
+        return $type;
     }
 }

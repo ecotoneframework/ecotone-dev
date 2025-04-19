@@ -1,9 +1,8 @@
-name: 'Tests'
+name: 'Split Testing'
 
 on:
   pull_request:
 
-# Cancel in-progress jobs when a new commit is pushed
 concurrency:
   group: split-tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
@@ -33,15 +32,16 @@ jobs:
       matrix: ${{ steps.get_json.outputs.json }}
 
   split_testing:
-    name: Testing ${{ matrix.package.name }} separately (${{ matrix.stability }})
+    name: ${{ matrix.package.name }} (${{ matrix.php-versions }}, ${{ matrix.stability }})
     needs: get_packages
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: true # Fail the entire workflow if any job fails
+      fail-fast: true
       matrix:
         package: ${{ fromJson(needs.get_packages.outputs.matrix) }}
-        stability: [ prefer-lowest, prefer-stable ]
+        php-versions: [ '8.1', '8.3' ]
+        stability: [prefer-stable, prefer-lowest]
 
     services:
       kafka:
@@ -113,13 +113,15 @@ jobs:
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest
       REDIS_DSN: redis://127.0.0.1:6379
       KAFKA_DSN: 127.0.0.1:9092
+      COMPOSER_ROOT_VERSION: 'dev-main'
+
     steps:
       - uses: actions/checkout@v2
 
       - name: Set Up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.2
+          php-version: ${{ matrix.php-versions }}
           extensions: grpc, rdkafka
           coverage: none
 
@@ -131,29 +133,27 @@ jobs:
         working-directory: ${{ matrix.package.directory }}
 
       - name: Install dependencies
-        run: composer update  --${{ matrix.stability }} --no-interaction
+        run: composer update --${{ matrix.stability }} --no-interaction
         working-directory: ${{ matrix.package.directory }}
-        env:
-          COMPOSER_ROOT_VERSION: 'dev-main'
 
       - name: Run tests on Postgres
         run: composer tests:ci
         working-directory: ${{ matrix.package.directory }}
         env:
-          COMPOSER_ROOT_VERSION: 'dev-main'
-          DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
-          SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
+          DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+          SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8
           APP_DB_HOST: 127.0.0.1
           APP_DB_PORT: 5432
           APP_DB_DRIVER: pdo_pgsql
+          APP_DB_SERVER_VERSION: 16
 
       - name: Run tests on Mysql
         run: composer tests:ci
         working-directory: ${{ matrix.package.directory }}
         env:
-          COMPOSER_ROOT_VERSION: 'dev-main'
-          DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone
-          SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
+          DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8
+          SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
           APP_DB_HOST: 127.0.0.1
           APP_DB_PORT: 3306
           APP_DB_DRIVER: pdo_mysql
+          APP_DB_SERVER_VERSION: 8

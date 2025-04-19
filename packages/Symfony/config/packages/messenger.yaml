@@ -9,6 +9,7 @@ doctrine:
         user: ecotone
         password: secret
         driver: "%env(APP_DB_DRIVER)%"
+        server_version: "%env(APP_DB_SERVER_VERSION)%"
 
 framework:
   messenger:

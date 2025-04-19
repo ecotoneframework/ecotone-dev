@@ -22,7 +22,8 @@
     "description": "Extends Ecotone with Dbal integration",
     "autoload": {
         "psr-4": {
-            "Ecotone\\Dbal\\": "src"
+            "Ecotone\\Dbal\\": "src",
+            "Enqueue\\Dbal\\": "src/EnqueueDbal"
         }
     },
     "autoload-dev": {
@@ -34,11 +35,11 @@
     },
     "require": {
         "ecotone/enqueue": "~1.253.0",
-        "enqueue/dbal": "^0.10.17",
-        "doctrine/dbal": "^3.9|^4.0"
+        "doctrine/dbal": "^3.9|^4.0",
+        "enqueue/dsn": "^0.10.4"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.6|^10.5|^11.0",
+        "phpunit/phpunit": "^10.5|^11.0",
         "doctrine/persistence": "^2.5|^3.4",
         "phpstan/phpstan": "^1.8",
         "doctrine/orm": "^2.11|^3.0",
@@ -85,5 +86,8 @@
         "allow-plugins": {
             "wikimedia/composer-merge-plugin": true
         }
+    },
+    "conflict": {
+        "enqueue/dbal": "*"
     }
 }

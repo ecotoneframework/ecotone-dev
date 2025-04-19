@@ -41,7 +41,7 @@
         "php-di/php-di": "^7.0.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.6|^10.5|^11.0",
+        "phpunit/phpunit": "^10.5|^11.0",
         "behat/behat": "^3.10",
         "guzzlehttp/psr7": "^2.0",
         "phpstan/phpstan": "^1.8",

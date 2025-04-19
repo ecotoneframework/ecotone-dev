@@ -6,3 +6,6 @@ tests/coverage
 .phpunit.result.cache
 composer.lock
 phpunit.xml
+# Ignore generated container files
+/var/cache/
+/tests/phpunit/*/var/cache/

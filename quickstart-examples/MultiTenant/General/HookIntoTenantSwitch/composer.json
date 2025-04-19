@@ -13,6 +13,8 @@
         }
     },
     "require": {
+        "doctrine/orm": "^3.3",
+        "doctrine/persistence": "^4.0",
         "ecotone/lite-dbal-starter": "^1.0.1"
     },
     "require-dev": {

@@ -22,6 +22,7 @@ services:
       APP_DB_HOST: database-mysql
       APP_DB_PORT: 3306
       APP_DB_DRIVER: pdo_mysql
+      APP_DB_SERVER_VERSION: 8.0
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379
@@ -50,6 +51,7 @@ services:
       APP_DB_HOST: database-mysql
       APP_DB_PORT: 3306
       APP_DB_DRIVER: pdo_mysql
+      APP_DB_SERVER_VERSION: 8.0
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379

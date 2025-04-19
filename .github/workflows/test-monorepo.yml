@@ -117,6 +117,7 @@ jobs:
         APP_DB_HOST: 127.0.0.1
         APP_DB_PORT: 5432
         APP_DB_DRIVER: pdo_pgsql
+        APP_DB_SERVER_VERSION: 16
 
     - name: Test Behat on Postgres
       run: vendor/bin/behat -vvv
@@ -126,6 +127,7 @@ jobs:
         APP_DB_HOST: 127.0.0.1
         APP_DB_PORT: 5432
         APP_DB_DRIVER: pdo_pgsql
+        APP_DB_SERVER_VERSION: 16
 
     - name: Test PHPUnit on Mysql
       run: vendor/bin/phpunit --no-coverage
@@ -135,6 +137,7 @@ jobs:
         APP_DB_HOST: 127.0.0.1
         APP_DB_PORT: 3306
         APP_DB_DRIVER: pdo_mysql
+        APP_DB_SERVER_VERSION: 8
 
     - name: Test Behat on Mysql
       run: vendor/bin/behat -vvv
@@ -144,3 +147,4 @@ jobs:
         APP_DB_HOST: 127.0.0.1
         APP_DB_PORT: 3306
         APP_DB_DRIVER: pdo_mysql
+        APP_DB_SERVER_VERSION: 8

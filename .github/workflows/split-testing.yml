@@ -145,6 +145,7 @@ jobs:
           APP_DB_HOST: 127.0.0.1
           APP_DB_PORT: 5432
           APP_DB_DRIVER: pdo_pgsql
+          APP_DB_SERVER_VERSION: 16
 
       - name: Run tests on Mysql
         run: composer tests:ci
@@ -155,3 +156,4 @@ jobs:
           APP_DB_HOST: 127.0.0.1
           APP_DB_PORT: 3306
           APP_DB_DRIVER: pdo_mysql
+          APP_DB_SERVER_VERSION: 8

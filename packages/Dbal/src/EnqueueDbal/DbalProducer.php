@@ -132,7 +132,7 @@ class DbalProducer implements Producer
         }
     }
 
-    public function setDeliveryDelay(int $deliveryDelay = null): Producer
+    public function setDeliveryDelay(?int $deliveryDelay = null): Producer
     {
         $this->deliveryDelay = $deliveryDelay;
 
@@ -144,7 +144,7 @@ class DbalProducer implements Producer
         return $this->deliveryDelay;
     }
 
-    public function setPriority(int $priority = null): Producer
+    public function setPriority(?int $priority = null): Producer
     {
         $this->priority = $priority;
 
@@ -156,7 +156,7 @@ class DbalProducer implements Producer
         return $this->priority;
     }
 
-    public function setTimeToLive(int $timeToLive = null): Producer
+    public function setTimeToLive(?int $timeToLive = null): Producer
     {
         $this->timeToLive = $timeToLive;
 

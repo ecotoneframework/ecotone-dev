@@ -161,59 +161,29 @@ class DbalConnectionFactory implements ConnectionFactory
             $default = [
                 'driver' => $doctrineScheme,
                 'host' => 'localhost',
-                'port' => '3306',
+                'port' => ($doctrineScheme === 'pdo_pgsql' ? 5432 : 3306),
                 'user' => 'root',
                 'password' => '',
             ];
 
-            // Normalize connection parameters for both DBAL 3.x and 4.x
-            $connectionParams = array_replace_recursive($default, $config['connection']);
-
             return [
                 'lazy' => true,
-                'connection' => $connectionParams,
+                'connection' => array_replace_recursive($default, $config['connection']),
             ];
         }
 
-        if ($dsnHasProtocolOnly) {
-            $url = $doctrineScheme.'://root@localhost';
-        } else {
-            // Create a proper URL without replacing the scheme in the entire DSN
-            $url = $doctrineScheme . '://';
-            if ($parsedDsn->getUser()) {
-                $url .= $parsedDsn->getUser();
-                if ($parsedDsn->getPassword()) {
-                    $url .= ':' . $parsedDsn->getPassword();
-                }
-                $url .= '@';
-            }
-            $url .= $parsedDsn->getHost() ?: 'localhost';
-            if ($parsedDsn->getPort()) {
-                $url .= ':' . $parsedDsn->getPort();
-            }
-            if ($parsedDsn->getPath()) {
-                $url .= $parsedDsn->getPath();
-            }
-            if ($parsedDsn->getQuery()) {
-                $url .= '?' . $parsedDsn->getQuery();
-            }
-        }
-
-        // Create connection parameters
-        $connectionParams = [
-            'driver' => $doctrineScheme,
-            // Don't use the URL directly, as it might cause issues
-            // 'url' => $url,
-            'host' => $parsedDsn->getHost() ?: 'localhost',
-            'port' => $parsedDsn->getPort() ?: ($doctrineScheme === 'pdo_pgsql' ? 5432 : 3306),
-            'user' => $parsedDsn->getUser() ?: 'root',
-            'password' => $parsedDsn->getPassword() ?: '',
-            'dbname' => ltrim($parsedDsn->getPath() ?: '', '/') ?: 'ecotone',
-        ];
-
         return [
             'lazy' => true,
-            'connection' => $connectionParams,
+            'connection' => [
+                'driver' => $doctrineScheme,
+                // Don't use the URL directly, as it might cause issues
+                // 'url' => $url,
+                'host' => $parsedDsn->getHost() ?: 'localhost',
+                'port' => $parsedDsn->getPort() ?: ($doctrineScheme === 'pdo_pgsql' ? 5432 : 3306),
+                'user' => $parsedDsn->getUser() ?: 'root',
+                'password' => $parsedDsn->getPassword() ?: '',
+                'dbname' => ltrim($parsedDsn->getPath() ?: '', '/') ?: '',
+            ],
         ];
     }
 }

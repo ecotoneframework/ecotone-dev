@@ -67,7 +67,6 @@ class DeduplicationInterceptor
             ->setParameter('consumerEndpointId', $consumerEndpointId, Types::TEXT)
             ->setParameter('routingSlip', $routingSlip, Types::TEXT)
             ->setMaxResults(1)
-            // In DBAL 4.x, execute() is replaced with executeQuery()
             ->executeQuery()
             ->fetchAssociative();
 
@@ -178,7 +177,6 @@ class DeduplicationInterceptor
             ->andWhere('handled_at <= :threshold')
             ->setParameter('threshold', ($this->clock->unixTimeInMilliseconds() - $this->minimumTimeToRemoveMessageInMilliseconds), Types::BIGINT)
             ->setMaxResults($this->deduplicationRemovalBatchSize)
-            // In DBAL 4.x, execute() is replaced with executeQuery()
             ->executeQuery()
             ->fetchAllAssociative();
         return $messageIds;

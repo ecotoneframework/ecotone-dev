@@ -57,7 +57,6 @@ trait DbalConsumerHelperTrait
 
         while (microtime(true) < $endAt) {
             try {
-                // In DBAL 4.x, execute() is replaced with executeQuery()
                 $result = method_exists($select, 'execute') ?
                     $select->execute()->fetch() :
                     $select->executeQuery()->fetchAssociative();
@@ -79,7 +78,6 @@ trait DbalConsumerHelperTrait
                         ->andWhere('delivery_id = :deliveryId')
                         ->setParameter('deliveryId', $deliveryId, DbalType::GUID)
                         ->setMaxResults(1)
-                        // In DBAL 4.x, execute() is replaced with executeQuery()
                         ->executeQuery()
                         ->fetchAssociative();
 

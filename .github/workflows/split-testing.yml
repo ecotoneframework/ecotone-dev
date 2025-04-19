@@ -40,7 +40,7 @@ jobs:
       fail-fast: true
       matrix:
         package: ${{ fromJson(needs.get_packages.outputs.matrix) }}
-        php-versions: [ '8.1', '8.3' ]
+        php-versions: [ '8.1', '8.4' ]
         stability: [prefer-stable, prefer-lowest]
 
     services:
@@ -97,7 +97,7 @@ jobs:
         ports:
           - 5432:5432
       localstack:
-        image: localstack/localstack:2.2.0
+        image: localstack/localstack:3.0.0
         env:
           SERVICES: 'sqs,sns'
         ports:

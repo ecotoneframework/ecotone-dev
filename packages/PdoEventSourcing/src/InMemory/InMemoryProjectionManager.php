@@ -71,7 +71,7 @@ final class InMemoryProjectionManager implements ProjectionManager
         }
     }
 
-    public function createQuery(array $options = null): Query
+    public function createQuery(?array $options = null): Query
     {
         return new InMemoryEventStoreQuery(
             $this->eventStore,
@@ -81,7 +81,7 @@ final class InMemoryProjectionManager implements ProjectionManager
 
     public function createProjection(
         string $name,
-        array $options = null
+        ?array $options = null
     ): Projector {
         $projector = new InMemoryEventStoreProjector(
             $this->eventStore,
@@ -101,7 +101,7 @@ final class InMemoryProjectionManager implements ProjectionManager
     public function createReadModelProjection(
         string $name,
         ReadModel $readModel,
-        array $options = null
+        ?array $options = null
     ): ReadModelProjector {
         $projector = new InMemoryEventStoreReadModelProjector(
             $this->eventStore,

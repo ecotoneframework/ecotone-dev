@@ -33,8 +33,8 @@ interface EventStore
     public function load(
         string $streamName,
         int $fromNumber = 1,
-        int $count = null,
-        MetadataMatcher $metadataMatcher = null,
+        ?int $count = null,
+        ?MetadataMatcher $metadataMatcher = null,
         bool $deserialize = true
     ): iterable;
 }

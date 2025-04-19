@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: php:8.4.6-fpm-test
+    image: simplycodedsoftware/php:8.4.6
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
@@ -84,7 +84,7 @@ services:
       - "15672:15672"
       - "5672:5672"
   localstack:
-    image: localstack/localstack:2.2.0
+    image: localstack/localstack:3.0.0
     environment:
       LOCALSTACK_HOST: 'localstack'
       SERVICES: 'sqs,sns'

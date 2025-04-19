@@ -54,7 +54,7 @@ jobs:
         ports:
           - 5432:5432
       localstack:
-        image: localstack/localstack:2.2.0
+        image: localstack/localstack:3.0.0
         env:
           SERVICES: 'sqs,sns'
         ports:

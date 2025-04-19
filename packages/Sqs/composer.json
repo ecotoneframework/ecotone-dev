@@ -35,7 +35,7 @@
     "require": {
         "ecotone/enqueue": "~1.253.0",
         "enqueue/sqs": "^0.10.15",
-        "aws/aws-sdk-php": "<=3.269.5"
+        "aws/aws-sdk-php": ">=3.340.5"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0",

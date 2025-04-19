@@ -14,7 +14,7 @@ use InvalidArgumentException;
  * @package Ecotone\Dbal\Compatibility
  * @author Łukasz Adamczewski <tworzenieweb@gmail.com>
  *
- * Simple proxy class to keep the QueryBuilder API compatible with Doctrine DBAL 2.10, 3.0, and 4.0
+ * Simple proxy class to keep the QueryBuilder API compatible with Doctrine DBAL 3.0, and 4.0
  * This class delegates all calls to the wrapped QueryBuilder instance.
  * Class supports execution of various fetch methods directly from query object that was added in version 3.1
  *

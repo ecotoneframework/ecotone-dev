@@ -186,27 +186,11 @@ class DbalContext implements Context
      */
     public function purgeQueue(Queue $queue): void
     {
-        try {
-            // Try using the delete method directly
-            $this->getDbalConnection()->delete(
-                $this->getTableName(),
-                ['queue' => $queue->getQueueName()],
-                ['queue' => DbalType::STRING]
-            );
-        } catch (\Throwable $e) {
-            // If the delete method fails, try using executeStatement
-            try {
-                QueryCompatibility::executeStatement(
-                    $this->getDbalConnection(),
-                    "DELETE FROM {$this->getTableName()} WHERE queue = :queue",
-                    ['queue' => $queue->getQueueName()],
-                    ['queue' => DbalType::STRING]
-                );
-            } catch (\Throwable $e2) {
-                // If both methods fail, re-throw the original exception
-                throw $e;
-            }
-        }
+        $this->getDbalConnection()->delete(
+            $this->getTableName(),
+            ['queue' => $queue->getQueueName()],
+            ['queue' => DbalType::STRING]
+        );
     }
 
     public function getTableName(): string

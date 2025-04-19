@@ -203,23 +203,15 @@ final class DbalDocumentStore implements DocumentStore
             return;
         }
 
-        $connection = $this->getConnection();
-        $schemaManager = $connection->createSchemaManager();
+        $schemaManager = SchemaManagerCompatibility::getSchemaManager($this->getConnection());
 
         $table = new Table($this->getTableName());
 
-        $collectionColumn = $table->addColumn('collection', Types::STRING, ['length' => 255]);
-        $documentIdColumn = $table->addColumn('document_id', Types::STRING, ['length' => 255]);
-        $documentTypeColumn = $table->addColumn('document_type', Types::TEXT);
-        $documentColumn = $table->addColumn('document', Types::JSON);
-        $updatedAtColumn = $table->addColumn('updated_at', Types::FLOAT, ['length' => 53]);
-
-        // Apply compatibility fixes for DBAL 3.x
-        SchemaManagerCompatibility::fixColumnComment($collectionColumn);
-        SchemaManagerCompatibility::fixColumnComment($documentIdColumn);
-        SchemaManagerCompatibility::fixColumnComment($documentTypeColumn);
-        SchemaManagerCompatibility::fixColumnComment($documentColumn);
-        SchemaManagerCompatibility::fixColumnComment($updatedAtColumn);
+        $table->addColumn('collection', 'string', ['length' => 255]);
+        $table->addColumn('document_id', 'string', ['length' => 255]);
+        $table->addColumn('document_type', 'text');
+        $table->addColumn('document', 'json');
+        $table->addColumn('updated_at', 'float', ['length' => 53]);
 
         $table->setPrimaryKey(['collection', 'document_id']);
 

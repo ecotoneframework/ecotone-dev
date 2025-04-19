@@ -23,9 +23,4 @@
             <directory>tests</directory>
         </testsuite>
     </testsuites>
-    <php>
-        <env name="DATABASE_DSN" value="pgsql://ecotone:secret@database:5432/ecotone" />
-        <env name="SECONDARY_DATABASE_DSN" value="mysql://ecotone:secret@database-mysql:3306/ecotone" />
-        <env name="DATABASE_MYSQL" value="mysql://ecotone:secret@database-mysql:3306/ecotone" />
-    </php>
 </phpunit>

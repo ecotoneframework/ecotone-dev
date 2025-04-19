@@ -78,11 +78,11 @@ SQL
 
         $table = new Table('last_prepared_tickets');
 
-        $table->addColumn('ticket_id', Types::STRING);
-        $table->addColumn('ticket_type', Types::STRING);
-        $table->addColumn('description', Types::TEXT);
-        $table->addColumn('status', Types::STRING);
-        $table->addColumn('prepared_at', Types::STRING);
+        $table->addColumn('ticket_id', 'string', ['length' => 255]);
+        $table->addColumn('ticket_type', 'string', ['length' => 255]);
+        $table->addColumn('description', 'text');
+        $table->addColumn('status', 'string', ['length' => 255]);
+        $table->addColumn('prepared_at', 'string', ['length' => 255]);
 
         SchemaManagerCompatibility::getSchemaManager($this->getConnection())->createTable($table);
     }

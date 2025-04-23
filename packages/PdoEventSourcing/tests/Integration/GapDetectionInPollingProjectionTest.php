@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
@@ -55,7 +57,7 @@ final class GapDetectionInPollingProjectionTest extends EventSourcingMessagingTe
         $this->missingEvent = $connection->fetchAssociative(sprintf('select * from %s where no = ?', $streamName), [2]);
         $connection->delete($streamName, ['no' => 2]);
 
-        $initialTimestamp = (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->getTimestamp();
+        $initialTimestamp = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->getTimestamp();
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [1]), true);
         $metadata['timestamp'] = $initialTimestamp;

@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Projecting;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Projecting\Fixture\TicketCreated;
@@ -25,22 +26,33 @@ class IntegrationTest extends TestCase
         );
 
         $streamSource->append(
-            Event::create(new TicketCreated('ticket-1')),
-            Event::create(new TicketCreated('ticket-4')),
+            Event::create(new TicketCreated('ticket-1'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
+            Event::create(new TicketCreated('ticket-4'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-4']),
         );
         self::assertEquals([], $projection->getProjectedEvents());
 
-        $ecotone->publishEvent(new TicketCreated('ticket-that-triggers-projection'));
+        $ecotone->publishEvent(new TicketCreated('ticket-that-triggers-projection'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEvent(new TicketCreated('ticket-that-triggers-projection'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+
+        self::assertEquals([
+            new TicketCreated('ticket-1'),
+        ], $projection->getProjectedEvents());
+
+        $ecotone->publishEvent(new TicketCreated('ticket-that-triggers-projection'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-4']);
 
         self::assertEquals([
             new TicketCreated('ticket-1'),
             new TicketCreated('ticket-4'),
         ], $projection->getProjectedEvents());
 
-        $ecotone->publishEvent(new TicketCreated('ticket-that-triggers-projection'));
+        $streamSource->append(
+            Event::create(new TicketCreated('ticket-4'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-4']),
+        );
 
+        $ecotone->publishEvent(new TicketCreated('ticket-that-triggers-projection'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-4']);
         self::assertEquals([
             new TicketCreated('ticket-1'),
+            new TicketCreated('ticket-4'),
             new TicketCreated('ticket-4'),
         ], $projection->getProjectedEvents());
     }

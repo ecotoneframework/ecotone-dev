@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting;
 
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
@@ -31,7 +32,13 @@ class InMemoryStreamSource implements StreamSource
     {
         $from = $lastPosition !== null ? (int) $lastPosition : 0;
 
-        $events = array_slice($this->events, $from, $count);
+        if ($partitionKey) {
+            $events = array_filter($this->events, fn (Event $event) => $event->getMetadata()[MessageHeaders::EVENT_AGGREGATE_ID] === $partitionKey);
+        } else {
+            $events = $this->events;
+        }
+
+        $events = array_slice($events, $from, $count);
         $to = $from + count($events);
 
         return new StreamPage($events, (string) $to);

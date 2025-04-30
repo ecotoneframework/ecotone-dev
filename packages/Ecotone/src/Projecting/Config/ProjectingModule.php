@@ -23,9 +23,11 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ecotone\Projecting\Attribute\Projection;
@@ -125,7 +127,7 @@ class ProjectingModule implements AnnotationModule
                             $projectingManager,
                             InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
                             [
-                                new ValueBuilder('partitionKey', null)
+                                HeaderBuilder::create('partitionKey', MessageHeaders::EVENT_AGGREGATE_ID)
                             ],
                         )
                     )

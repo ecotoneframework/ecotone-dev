@@ -1,0 +1,28 @@
+<?php
+/*
+ * licence Apache-2.0
+ */
+declare(strict_types=1);
+
+namespace Ecotone\EventSourcing\Prooph\Projecting\SequenceAccessor;
+
+use Ecotone\EventSourcing\Prooph\Projecting\SequenceTracker;
+use Ecotone\EventSourcing\Prooph\Projecting\SequenceFactory;
+
+class GlobalSequenceFactory implements SequenceFactory
+{
+    public function create(?string $lastPosition): SequenceTracker
+    {
+        return new GlobalSequenceTracker($lastPosition);
+    }
+
+    public function createPositionFrom(?string $lastPosition, array $events): string
+    {
+        $sequenceTracker = $this->create($lastPosition);
+        foreach ($events as $event) {
+            $sequenceTracker->add($event);
+        }
+
+        return $sequenceTracker->toPosition();
+    }
+}

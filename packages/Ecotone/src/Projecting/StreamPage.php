@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\Projecting;
+namespace Ecotone\Projecting;
 
 use Ecotone\Modelling\Event;
 

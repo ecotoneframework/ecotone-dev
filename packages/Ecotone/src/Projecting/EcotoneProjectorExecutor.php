@@ -4,12 +4,12 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\Projecting;
+namespace Ecotone\Projecting;
 
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Modelling\Event;
 
-class ProjectorExecutor
+class EcotoneProjectorExecutor implements ProjectorExecutor
 {
     public function __construct(
         private MessagingEntrypoint $messagingEntrypoint,

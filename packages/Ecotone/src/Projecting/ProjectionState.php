@@ -4,13 +4,13 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\Projecting;
+namespace Ecotone\Projecting;
 
 class ProjectionState
 {
     public function __construct(
         public readonly string $projectionName,
-        public readonly string $partitionKey,
+        public readonly ?string $partitionKey,
         public readonly ?string $lastPosition = null
     ) {
     }

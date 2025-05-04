@@ -1,0 +1,20 @@
+doctrine:
+  dbal:
+    connections:
+      default:
+        schema_filter: '~^(?!messenger_messages)~'
+        dbname: ecotone
+        host: "%env(APP_DB_HOST)%"
+        port: "%env(APP_DB_PORT)%"
+        user: ecotone
+        password: secret
+        driver: "%env(APP_DB_DRIVER)%"
+        server_version: "%env(APP_DB_SERVER_VERSION)%"
+
+framework:
+  messenger:
+    transports:
+      notifications:
+        dsn: 'doctrine://default?queue_name=async'
+        options:
+          use_notify: false

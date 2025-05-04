@@ -88,6 +88,7 @@ class ErrorHandler
             );
             $messageBuilder->removeHeader(self::ECOTONE_RETRY_HEADER);
 
+//            This should happen in ErrorChannelInterceptor to have same message structure
             return $messageBuilder
                     ->setHeader(ErrorContext::EXCEPTION_MESSAGE, $cause->getMessage())
                     ->setHeader(ErrorContext::EXCEPTION_STACKTRACE, $cause->getTraceAsString())

@@ -23,6 +23,15 @@ function migrateSymfonyForSingleTenant(Connection $connection): void
                 DROP TABLE IF EXISTS persons
         SQL);
     $connection->executeStatement(<<<SQL
+                DROP TABLE IF EXISTS ecotone_error_messages
+        SQL);
+    $connection->executeStatement(<<<SQL
+                DROP TABLE IF EXISTS messenger_messages
+        SQL);
+    $connection->executeStatement(<<<SQL
+                DROP TABLE IF EXISTS customer_notifications
+        SQL);
+    $connection->executeStatement(<<<SQL
             CREATE TABLE persons (
                 customer_id INTEGER PRIMARY KEY,
                 name VARCHAR(255),

@@ -5,8 +5,15 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\Config\MessageBusChannel;
+use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantConversion;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\Merchant;
@@ -24,15 +31,19 @@ use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPrio
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityWithLowerPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandler;
+use Ecotone\Modelling\ComandBus;
+use Ecotone\Modelling\EventBus;
+use Ecotone\Modelling\QueryBus;
 
-/**
- * @internal
- */
 /**
  * licence Apache-2.0
  * @internal
  */
-final class ModellingEcotoneLiteTest extends TestCase
+#[CoversClass(CommandBus::class)]
+#[CoversClass(EventBus::class)]
+#[CoversClass(QueryBus::class)]
+#[CoversClass(MessagingGatewayModule::class)]
+final class MessageBusTest extends TestCase
 {
     public function test_command_event_command_flow()
     {
@@ -224,6 +235,31 @@ final class ModellingEcotoneLiteTest extends TestCase
             $ecotoneLite
                 ->sendCommandWithRoutingKey('aggregate.create')
                 ->getRecordedEvents()
+        );
+    }
+
+    public function test_sending_to_command_channel_directly_with_type_id_and_serialized_payload(): void
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [Merchant::class, MerchantConversion::class],
+            [new MerchantConversion()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+        );
+
+        $merchantId = '123';
+
+        $this->assertSame(
+            $merchantId, // factory method returns aggregate id
+            $ecotoneTestSupport
+                ->sendDirectToChannel(
+                    MessageBusChannel::COMMAND_CHANNEL_NAME_BY_OBJECT,
+                    ['merchantId' => $merchantId],
+                    metadata: [
+                        MessageHeaders::TYPE_ID => CreateMerchant::class,
+                        MessageHeaders::CONTENT_TYPE => MediaType::createApplicationXPHPArray()->toString(),
+                    ]
+                )
         );
     }
 }

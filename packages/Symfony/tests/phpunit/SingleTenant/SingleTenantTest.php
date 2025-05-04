@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Test\SingleTenant;
 
+use Ecotone\Dbal\Recoverability\DeadLetterGateway;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use PHPUnit\Framework\TestCase;
@@ -33,6 +37,7 @@ final class SingleTenantTest extends TestCase
 {
     private QueryBus $queryBus;
     private CommandBus $commandBus;
+    private DeadLetterGateway $deadLetterGateway;
     private Kernel $kernel;
 
     public function setUp(): void
@@ -44,6 +49,7 @@ final class SingleTenantTest extends TestCase
 
         $this->commandBus = $app->get(CommandBus::class);
         $this->queryBus = $app->get(QueryBus::class);
+        $this->deadLetterGateway = $app->get(DeadLetterGateway::class);
         $this->kernel = $kernel;
     }
 
@@ -137,5 +143,60 @@ final class SingleTenantTest extends TestCase
             2,
             $ecotoneLite->getAggregate(Customer::class, 2)->getCustomerId()
         );
+    }
+    public function test_exception_handling_with_error_channel(): void
+    {
+        $application = new Application($this->kernel);
+        $application->setAutoExit(false);
+        $output = new ConsoleOutput();
+
+
+        // Register a customer that will cause an exception in the async event handler
+        $this->commandBus->send(
+            new RegisterCustomer(3, 'Error Customer'),
+            metadata: ['shouldThrowAsyncExceptionTimes' => 1]
+        );
+
+        // Run the notifications consumer which should process the message
+        // The first attempt will fail due to the exception
+        $input = new ArrayInput([
+            'command' => 'ecotone:run',
+            'consumerName' => 'notifications',
+            '--stopOnFailure' => false,
+            '--executionTimeLimit' => 1000
+        ]);
+        $application->run($input, $output);
+
+        $this->assertSame(
+            0,
+            $this->queryBus->sendWithRouting('getNotificationsCount'),
+            'Message should be in dead letter, and notifications should not be sent'
+        );
+
+        self::assertCount(1, $this->deadLetterGateway->list(100, 0));
+
+        $this->deadLetterGateway->reply(array_values($this->deadLetterGateway->list(100, 0))[0]->getMessageId());
+
+        $this->assertSame(
+            0,
+            $this->queryBus->sendWithRouting('getNotificationsCount'),
+            'Message should be replied to asynchronous message channel first'
+        );
+
+        // Process the message again replied to the asynchronous message channel
+        $input = new ArrayInput([
+            'command' => 'ecotone:run',
+            'consumerName' => 'notifications',
+            '--stopOnFailure' => false,
+            '--executionTimeLimit' => 1000
+        ]);
+        $application->run($input, $output);
+
+        $this->assertSame(
+            1,
+            $this->queryBus->sendWithRouting('getNotificationsCount'),
+            'Message should be processed and notifications should be sent'
+        );
+        self::assertCount(0, $this->deadLetterGateway->list(100, 0));
     }
 }

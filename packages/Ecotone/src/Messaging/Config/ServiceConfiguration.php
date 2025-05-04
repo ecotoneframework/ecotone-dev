@@ -57,6 +57,9 @@ class ServiceConfiguration
         return (new self());
     }
 
+    /**
+     * @TODO Ecotone 2.0 make async part of core package
+     */
     public static function createWithAsynchronicityOnly(): self
     {
         return self::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]));

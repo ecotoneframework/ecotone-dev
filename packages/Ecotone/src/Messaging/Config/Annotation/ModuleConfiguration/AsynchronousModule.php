@@ -145,6 +145,7 @@ class AsynchronousModule extends NoExternalConfigurationModule implements Annota
                                 PollingMetadata::create($asyncEndpointChannel)
                                     ->setStopOnError(true)
                                     ->setFinishWhenNoMessages(true)
+                                    ->setExecutionTimeLimitInMilliseconds(1000)
                             );
 
                             continue;

@@ -55,9 +55,6 @@ class GatewayHeadersConverter implements GatewayParameterConverter
         }
 
         foreach ($headers as $headerName => $headerValue) {
-            if (in_array($headerName, [MessageHeaders::ROUTING_SLIP])) {
-                continue;
-            }
             if ($headerName === MessageHeaders::CONTENT_TYPE) {
                 $messagePayloadType = TypeDescriptor::createFromVariable($messageBuilder->getPayload());
                 $mediaType = MediaType::parseMediaType($headerValue);

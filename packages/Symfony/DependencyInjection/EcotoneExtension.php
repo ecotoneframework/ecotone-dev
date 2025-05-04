@@ -94,11 +94,11 @@ class EcotoneExtension extends Extension
         $containerBuilder->addCompilerPass($messagingConfiguration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
         $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
-        $containerBuilder->compile();
+        $definitionHolder = $containerBuilder->compile();
 
         $container->getDefinition(LoggingGateway::class)->addTag('monolog.logger', ['channel' => 'ecotone']);
 
-        foreach ($messagingConfiguration->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
+        foreach ($definitionHolder->getRegisteredCommands() as $oneTimeCommandConfiguration) {
             $definition = new Definition();
             $definition->setClass(MessagingEntrypointCommand::class);
             $definition->addArgument($oneTimeCommandConfiguration->getName());

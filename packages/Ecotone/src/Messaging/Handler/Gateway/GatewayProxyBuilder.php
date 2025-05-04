@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\ErrorChannel;
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
@@ -29,6 +31,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
@@ -300,7 +303,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             Assert::isTrue(is_a($requestChannelDefinition->getClassName(), SubscribableChannel::class, true), 'Gateway request channel should not be pollable if expected return type is not nullable');
         }
 
-        if (! $interfaceToCall->canItReturnNull() && $this->errorChannelName && ! $interfaceToCall->hasReturnTypeVoid()) {
+        if (! $interfaceToCall->canItReturnNull() && $this->getErrorChannel($interfaceToCall) && ! $interfaceToCall->hasReturnTypeVoid()) {
             throw InvalidArgumentException::create("Gateway {$interfaceToCall} with error channel must allow nullable return type");
         }
 
@@ -369,12 +372,29 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
 
         $aroundInterceptors = $this->aroundInterceptors;
-        if ($this->errorChannelName) {
+        if ($this->getErrorChannel($interfaceToCall)) {
+            $relatedPolledChannelName = null;
+            $errorChannelRoutingSlip = null;
+            /** @var ErrorChannel[] $errorChannel */
+            $errorChannelAttributes = $interfaceToCall->getAnnotationsByImportanceOrder(TypeDescriptor::create(ErrorChannel::class));
+            /** @var ErrorChannel $errorChannelAttribute */
+            $errorChannelAttribute = $errorChannelAttributes ? $errorChannelAttributes[0] : null;
+            if ($errorChannelAttribute) {
+                if ($errorChannelAttribute->replyChannelName) {
+                    $relatedPolledChannelName = $errorChannelAttribute->replyChannelName;
+                    $errorChannelRoutingSlip = $this->requestChannelName;
+                }else {
+                    $relatedPolledChannelName = $this->requestChannelName;
+                }
+            }
+
             $interceptorReference = $builder->register(
                 Uuid::uuid4()->toString(),
                 new Definition(ErrorChannelInterceptor::class, [
-                    new ChannelReference($this->errorChannelName),
-                    Reference::to(LoggingGateway::class),
+                    Reference::to(ErrorChannelService::class),
+                    new ChannelReference($this->getErrorChannel($interfaceToCall)),
+                    $relatedPolledChannelName,
+                    $errorChannelRoutingSlip,
                 ])
             );
             $channelInterceptorInterface = $builder->getInterfaceToCall(new InterfaceToCallReference(ErrorChannelInterceptor::class, 'handle'));
@@ -446,5 +466,18 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         }
 
         return $channelNames;
+    }
+
+    private function getErrorChannel(InterfaceToCall $interfaceToCall): ?string
+    {
+        if ($this->errorChannelName) {
+            return $this->errorChannelName;
+        }
+
+        /** @var ErrorChannel[] $errorChannel */
+        $errorChannel = $interfaceToCall->getAnnotationsByImportanceOrder(TypeDescriptor::create(ErrorChannel::class));
+        $channelName = $errorChannel ? $errorChannel[0]->name : null;
+
+        return $channelName;
     }
 }

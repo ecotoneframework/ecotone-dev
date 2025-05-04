@@ -2,8 +2,11 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
+use Ecotone\Messaging\Config\Container\Compiler\ContainerDefinitionsHolder;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -25,6 +28,8 @@ class ContainerBuilder
      * @var CompilerPass[] $compilerPasses
      */
     private array $compilerPasses = [];
+
+    private ?Configuration $configuration = null;
 
     public function __construct()
     {
@@ -71,11 +76,16 @@ class ContainerBuilder
         return $this->externalReferences;
     }
 
-    public function compile(): void
+    public function compile(): ContainerDefinitionsHolder
     {
         foreach ($this->compilerPasses as $compilerPass) {
             $compilerPass->process($this);
         }
+
+        return new ContainerDefinitionsHolder(
+            $this->getDefinitions(),
+            $this->configuration ? $this->configuration->getRegisteredConsoleCommands() : [],
+        );
     }
 
     public function has(string $id): bool
@@ -86,5 +96,9 @@ class ContainerBuilder
     public function addCompilerPass(CompilerPass $compilerPass)
     {
         $this->compilerPasses[] = $compilerPass;
+
+        if ($compilerPass instanceof Configuration) {
+            $this->configuration = $compilerPass;
+        }
     }
 }

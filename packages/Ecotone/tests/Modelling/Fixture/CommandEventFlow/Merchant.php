@@ -28,4 +28,9 @@ final class Merchant
 
         return $self;
     }
+
+    public function getMerchantId(): string
+    {
+        return $this->merchantId;
+    }
 }

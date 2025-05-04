@@ -31,7 +31,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConverterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders\EndpointHeadersInterceptorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorHandlerModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\GatewayModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageConsumerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\MethodInterceptorModule;
@@ -81,7 +81,7 @@ class ModuleClassList
         ConsoleCommandModule::class,
         ConverterModule::class,
         ErrorHandlerModule::class,
-        GatewayModule::class,
+        MessagingGatewayModule::class,
         LoggingModule::class,
         PollerModule::class,
         RequiredConsumersModule::class,

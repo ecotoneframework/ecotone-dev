@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\Config\Container\Compiler\ModuleConfigurationCompilerPass;
+use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -163,6 +165,8 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $compilerPasses = [];
 
+    private ModuleConfigurationCompilerPass $moduleConfigurationCompilerPass;
+
     private bool $isRunningForTest = false;
 
     /**
@@ -227,31 +231,15 @@ final class MessagingSystemConfiguration implements Configuration
         $moduleReferenceSearchService = ModuleReferenceSearchService::createEmpty();
 
         $modules = $moduleConfigurationRetrievingService->findAllModuleConfigurations($serviceConfiguration->getSkippedModulesPackages());
-        $moduleExtensions = [];
 
-        $extensionObjects = $serviceExtensions;
-        foreach ($modules as $module) {
-            $extensionObjects = array_merge($extensionObjects, $module->getModuleExtensions($serviceConfiguration, $serviceExtensions));
-        }
-        foreach ($modules as $module) {
-            $moduleExtensions[get_class($module)] = [];
-            foreach ($extensionObjects as $extensionObject) {
-                if ($module->canHandle($extensionObject)) {
-                    $moduleExtensions[get_class($module)][] = $extensionObject;
-                }
-            }
-        }
-
-        foreach ($modules as $module) {
-            $module->prepare(
-                $this,
-                $moduleExtensions[get_class($module)],
-                $moduleReferenceSearchService,
-                $this->interfaceToCallRegistry,
-            );
-        }
-
+        /** This will allow to delay all configuration when everything is already added to the MessagingConfiguration */
+        $this->moduleConfigurationCompilerPass = new ModuleConfigurationCompilerPass($modules, $serviceExtensions, $serviceConfiguration, $this, $moduleReferenceSearchService);
         $this->moduleReferenceSearchService = $moduleReferenceSearchService;
+    }
+
+    public function getInterfaceToCallRegistry(): InterfaceToCallRegistry
+    {
+        return $this->interfaceToCallRegistry;
     }
 
     public static function getModuleClassesFor(ServiceConfiguration $serviceConfiguration): array
@@ -527,9 +515,17 @@ final class MessagingSystemConfiguration implements Configuration
         return false;
     }
 
-    public static function prepareWithDefaults(ModuleRetrievingService $moduleConfigurationRetrievingService, ?ServiceConfiguration $serviceConfiguration = null): MessagingSystemConfiguration
+    public static function prepareWithDefaultsForTesting(
+        array $extensionObjects = [], ?ServiceConfiguration $serviceConfiguration = null
+    ): Configuration
     {
-        return new self($moduleConfigurationRetrievingService, $moduleConfigurationRetrievingService->findAllExtensionObjects(), InterfaceToCallRegistry::createEmpty(), $serviceConfiguration ?? ServiceConfiguration::createWithDefaults());
+        return self::prepare(
+            __DIR__ .'/../../../',
+            InMemoryConfigurationVariableService::createEmpty(),
+            $serviceConfiguration ?? ServiceConfiguration::createWithAsynchronicityOnly(),
+            $extensionObjects,
+            true,
+        );
     }
 
     public static function prepare(
@@ -869,6 +865,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     public function process(ContainerBuilder $builder): void
     {
+        $this->moduleConfigurationCompilerPass->process($builder);
         $this->prepareAndOptimizeConfiguration($this->interfaceToCallRegistry);
 
         $messagingBuilder = new MessagingContainerBuilder(

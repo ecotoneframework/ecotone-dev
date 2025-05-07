@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Test\Ecotone\Projecting;
+namespace Ecotone\Projecting\InMemory;
 
 use Ecotone\Projecting\ProjectionState;
 use Ecotone\Projecting\ProjectionStateStorage;
@@ -35,5 +35,15 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
             return $projectionName;
         }
         return $projectionName . '-' . $partitionKey;
+    }
+
+    public function deleteState(string $projectionName): void
+    {
+        $projectionStartKey = $this->getKey($projectionName, "");
+        foreach ($this->projectionStates as $key => $value) {
+            if (str_starts_with($key, $projectionStartKey)) {
+                unset($this->projectionStates[$key]);
+            }
+        }
     }
 }

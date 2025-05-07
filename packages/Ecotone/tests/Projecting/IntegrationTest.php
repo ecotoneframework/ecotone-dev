@@ -9,6 +9,7 @@ namespace Test\Ecotone\Projecting;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
+use Ecotone\Projecting\InMemory\InMemoryStreamSource;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Projecting\Fixture\TicketCreated;
 use Test\Ecotone\Projecting\Fixture\TicketProjection;

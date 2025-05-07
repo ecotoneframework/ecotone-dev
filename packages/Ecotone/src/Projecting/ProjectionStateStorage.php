@@ -10,4 +10,5 @@ interface ProjectionStateStorage
 {
     public function getState(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionState;
     public function saveState(ProjectionState $projectionState): void;
+    public function deleteState(string $projectionName): void;
 }

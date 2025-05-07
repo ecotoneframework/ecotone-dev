@@ -6,12 +6,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\Modelling\Event;
+use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectorExecutor;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Projecting\InMemoryProjectionStateStorage;
-use Test\Ecotone\Projecting\InMemoryStreamSource;
 
 class EventStoreProjectingTest extends TestCase
 {

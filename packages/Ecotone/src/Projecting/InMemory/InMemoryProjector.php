@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Test\Ecotone\Projecting;
+namespace Ecotone\Projecting\InMemory;
 
 use Countable;
 use Ecotone\Modelling\Event;

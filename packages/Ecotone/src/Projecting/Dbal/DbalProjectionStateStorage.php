@@ -73,4 +73,12 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             )'
         );
     }
+
+    public function deleteState(string $projectionName): void
+    {
+        $this->connection->executeStatement(
+            'DELETE FROM ' . $this->tableName . ' WHERE projection_name = :projectionName',
+            ['projectionName' => $projectionName]
+        );
+    }
 }

@@ -12,6 +12,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -32,6 +33,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ecotone\Projecting\Attribute\Projection;
@@ -56,13 +58,15 @@ class ProjectingModule implements AnnotationModule
      * @param array<string, MessageProcessorActivatorBuilder> $projectionInitHandlers
      * @param array<string, MessageProcessorActivatorBuilder> $projectionResetHandlers
      * @param array<string, MessageProcessorActivatorBuilder> $projectionDeleteHandlers
+     * @param array<string, string> $asynchronousProjectionChannels key is projection name - value is channel name
      */
     public function __construct(
         private array $projectionEventHandlers,
         private array $projectionInitHandlers,
         private array $projectionResetHandlers,
         private array $projectionDeleteHandlers,
-        private AsynchronousModule $asynchronousModule
+        private AsynchronousModule $asynchronousModule,
+        private array $asynchronousProjectionChannels,
     ) {
     }
 
@@ -73,12 +77,22 @@ class ProjectingModule implements AnnotationModule
         $projectionResetHandlers = self::buildProjectionLifeCycleHandlers($annotationRegistrationService, ProjectionReset::class);
         $projectionDeleteHandlers = self::buildProjectionLifeCycleHandlers($annotationRegistrationService, ProjectionDelete::class);
 
+        /** @var array<string, string> $asynchronousProjectionChannels */
+        $asynchronousProjectionChannels = [];
+        foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
+            $asynchronousChannelName = self::getProjectionAsynchronousChannel($annotationRegistrationService, $projectionClassName);
+            if ($asynchronousChannelName !== null) {
+                $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
+                $asynchronousProjectionChannels[$projectionAttribute->name] = $asynchronousChannelName;
+            }
+        }
         return new self(
             $projectionEventHandlers,
             $projectionInitHandlers,
             $projectionResetHandlers,
             $projectionDeleteHandlers,
             AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry),
+            $asynchronousProjectionChannels,
         );
     }
 
@@ -146,6 +160,15 @@ class ProjectingModule implements AnnotationModule
                     ->withEndpointId($this->endpointIdForProjection($projectionName))
                     ->withInputChannelName($this->inputChannelForProjectingManager($projectionName))
             );
+            if (
+                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE)
+                && isset($this->asynchronousProjectionChannels[$projectionName])
+            ) {
+                $messagingConfiguration->registerAsynchronousEndpoint(
+                    $this->asynchronousProjectionChannels[$projectionName],
+                    $this->endpointIdForProjection($projectionName),
+                );
+            }
         }
 
         // Register implementations
@@ -248,5 +271,21 @@ class ProjectingModule implements AnnotationModule
             $messagingConfiguration->registerMessageHandler($lifecycleHandler);
         }
         return $channelsMap;
+    }
+
+    /**
+     * @param class-string $projectionClassName
+     */
+    private static function getProjectionAsynchronousChannel(AnnotationFinder $annotationRegistrationService, string $projectionClassName): ?string
+    {
+        $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
+        foreach ($attributes as $attribute) {
+            if ($attribute instanceof Asynchronous) {
+                $asynchronousChannelName = $attribute->getChannelName();
+                Assert::isTrue(count($asynchronousChannelName) === 1, "Make use of single channel name in Asynchronous annotation for Projection: {$projectionClassName}");
+                return array_pop($asynchronousChannelName);
+            }
+        }
+        return null;
     }
 }

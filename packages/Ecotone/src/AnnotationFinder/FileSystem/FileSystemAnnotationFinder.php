@@ -328,7 +328,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
     {
         $attributes = $this->getAnnotationsForClass($className);
         foreach ($attributes as $attributeToVerify) {
-            if (TypeDescriptor::createFromVariable($attributeToVerify)->isCompatibleWith(TypeDescriptor::create($attributeClassName))) {
+            if ($attributeToVerify instanceof $attributeClassName) {
                 return $attributeToVerify;
             }
         }

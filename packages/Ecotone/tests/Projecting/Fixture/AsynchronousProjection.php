@@ -17,7 +17,7 @@ class AsynchronousProjection
     public const ASYNC_CHANNEL = 'async_projection';
 
     private array $projectedEvents = [];
-    #[EventHandler(endpointId: 'ticket_created')]
+    #[EventHandler]
     public function on(TicketCreated $event): void
     {
         $this->projectedEvents[] = $event;

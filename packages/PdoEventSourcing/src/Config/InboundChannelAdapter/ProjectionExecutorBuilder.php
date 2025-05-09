@@ -26,7 +26,6 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
 {
     public function __construct(
         private ProjectionSetupConfiguration $projectionSetupConfiguration,
-        private array $projectSetupConfigurations,
         private string $methodName
     ) {
     }
@@ -41,12 +40,7 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
         $projectionEventHandler =  new Definition(
             ProjectionEventHandler::class,
             [
-                new Definition(LazyProophProjectionManager::class, [
-                    Reference::to(EventSourcingConfiguration::class),
-                    $this->projectSetupConfigurations,
-                    Reference::to(ReferenceSearchService::class),
-                    Reference::to(LazyProophEventStore::class),
-                ]),
+                new Reference(LazyProophProjectionManager::class),
                 $this->projectionSetupConfiguration,
                 Reference::to(ConversionService::REFERENCE_NAME),
             ]

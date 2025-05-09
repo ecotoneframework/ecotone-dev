@@ -27,6 +27,7 @@ use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
@@ -61,6 +62,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\Router\RouterProcessorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
@@ -263,6 +265,15 @@ class EventSourcingModule extends NoExternalConfigurationModule
             new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
         ]));
 
+        $messagingConfiguration->registerServiceDefinition(LazyProophProjectionManager::class,
+            new Definition(LazyProophProjectionManager::class, [
+                Reference::to(EventSourcingConfiguration::class),
+                $this->projectionSetupConfigurations,
+                Reference::to(ReferenceSearchService::class),
+                Reference::to(LazyProophEventStore::class),
+            ]),
+        );
+
         $this->registerProjections($serviceConfiguration, $interfaceToCallRegistry, $moduleReferenceSearchService, $messagingConfiguration, $extensionObjects, $eventSourcingConfiguration);
         foreach ($this->projectionLifeCycleServiceActivators as $serviceActivator) {
             $messagingConfiguration->registerMessageHandler($serviceActivator);
@@ -437,7 +448,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     private function registerProjectionManagerAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration, ?string $consoleCommandName = null, array $consoleCommandParameters = []): void
     {
-        $messageHandlerBuilder = ProjectionManagerBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration, $this->projectionSetupConfigurations);
+        $messageHandlerBuilder = ProjectionManagerBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration);
         $configuration->registerMessageHandler($messageHandlerBuilder);
         $configuration->registerGatewayBuilder(
             GatewayProxyBuilder::create($eventSourcingConfiguration->getProjectManagerReferenceName(), ProjectionManager::class, $methodName, $messageHandlerBuilder->getInputMessageChannelName())
@@ -583,7 +594,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
             /** Our main entrypoint for projection execution */
             $messagingConfiguration->registerMessageHandler(
-                (new ProjectionExecutorBuilder($projectionSetupConfiguration, $this->projectionSetupConfigurations, 'execute'))
+                (new ProjectionExecutorBuilder($projectionSetupConfiguration, 'execute'))
                     ->withEndpointId($projectionSetupConfiguration->getProjectionEndpointId())
                     ->withInputChannelName($projectionSetupConfiguration->getProjectionInputChannel())
             );

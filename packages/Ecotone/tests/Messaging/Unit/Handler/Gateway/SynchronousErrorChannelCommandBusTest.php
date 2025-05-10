@@ -28,7 +28,7 @@ use Test\Ecotone\Messaging\SerializationSupport;
  * licence Enterprise
  * @internal
  */
-final class CustomErrorChannelGatewayTest extends TestCase
+final class SynchronousErrorChannelCommandBusTest extends TestCase
 {
     public function test_it_throws_when_using_in_non_enterprise_mode(): void
     {

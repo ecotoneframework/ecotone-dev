@@ -65,7 +65,7 @@ final class InstantRetryModule implements AnnotationModule
         // Register interceptors for interfaces with InstantRetry attribute
         foreach ($this->commandBusesWithInstantRetry as $commandBusInterface => $instantRetryAttribute) {
             if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-                throw LicensingException::create('Instant retry attribute is available only for enterprise edition. Please contact support@ecotone.org for more information.');
+                throw LicensingException::create('Instant retry attribute is available only for Ecotone Enterprise.');
             }
 
             $this->registerInterceptor(

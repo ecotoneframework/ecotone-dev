@@ -38,27 +38,75 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
         // Verify that the error message was stored in the dead letter
-        $this->assertErrorMessageCount($ecotone, 1, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
+        $this->assertErrorMessageCount($ecotone, 1);
 
         // Reply the error message
         $this->replyAllErrorMessages($ecotone);
 
         // Verify that the error message was removed from the dead letter
-        $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
+        $this->assertErrorMessageCount($ecotone, 0);
 
         // Verify that the order was processed successfully after replying
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
-    private function assertErrorMessageCount(FlowTestSupport $ecotone, int $amount, string $deadLetterReference = DeadLetterGateway::class): void
+    public function test_exception_handling_replaying_multiple_dead_messages(): void
+    {
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
+        ], [new SynchronousOrderService(2)]);
+
+        $commandBus = $ecotone->getGateway(SynchronousErrorChannelCommandBus::class);
+
+        $commandBus->sendWithRouting('order.place', 'coffee');
+        $commandBus->sendWithRouting('order.place', 'tea');
+
+        // Verify that the orders were not processed successfully
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+
+        // Verify that the error messages were stored in the dead letter
+        $this->assertErrorMessageCount($ecotone, 2);
+
+        // Reply the error messages by ID
+        $this->replyAllErrorMessagesById($ecotone);
+
+        // Verify that the error messages were removed from the dead letter
+        $this->assertErrorMessageCount($ecotone, 0);
+
+        // Verify that the orders were processed successfully after replying
+        self::assertEquals(2, $ecotone->sendQueryWithRouting('getOrderAmount'));
+    }
+
+    public function test_exception_handling_deleting_multiple_dead_messages(): void
+    {
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
+        ], [new SynchronousOrderService(2)]);
+
+        $commandBus = $ecotone->getGateway(SynchronousErrorChannelCommandBus::class);
+
+        $commandBus->sendWithRouting('order.place', 'coffee');
+        $commandBus->sendWithRouting('order.place', 'tea');
+
+        // Verify that the orders were not processed successfully
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+
+        // Verify that the error messages were stored in the dead letter
+        $this->assertErrorMessageCount($ecotone, 2);
+
+        // Delete the error messages by ID
+        $this->deleteAllErrorMessagesById($ecotone);
+
+        // Verify that the error messages were removed from the dead letter
+        $this->assertErrorMessageCount($ecotone, 0);
+
+        // Verify that the orders were not processed after deleting
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+    }
+
+    private function assertErrorMessageCount(FlowTestSupport $ecotone, int $amount): void
     {
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
-
-        self::assertCount($amount, $gateway->list(100, 0));
-        self::assertEquals($amount, $gateway->count());
-
-        /** @var DeadLetterGateway $gateway */
-        $gateway = $ecotone->getGateway($deadLetterReference);
 
         self::assertCount($amount, $gateway->list(100, 0));
         self::assertEquals($amount, $gateway->count());

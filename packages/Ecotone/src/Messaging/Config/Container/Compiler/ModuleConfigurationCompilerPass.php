@@ -10,6 +10,9 @@ use Ecotone\Messaging\Config\Module;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 
+/**
+ * licence Apache-2.0
+ */
 final class ModuleConfigurationCompilerPass implements CompilerPass
 {
     /**

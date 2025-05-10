@@ -19,6 +19,7 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationCo
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelWithReplyCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousOrderService;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithReplyCommandBus;
 
 /**
  * licence Apache-2.0
@@ -137,6 +138,68 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
+    public function test_passing_message_directly_to_async_channel_on_failure_and_then_succeeding(): void
+    {
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply',
+        ], [new SynchronousOrderService(1)]);
+
+        $commandBus = $ecotone->getGateway(SynchronousRetryWithReplyCommandBus::class);
+
+        $commandBus->sendWithRouting('order.place', 'coffee');
+
+        // Verify that the order was not processed successfully
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+
+        // Verify that the error message was not stored in the dead letter
+        $this->assertErrorMessageCount($ecotone, 0);
+
+        // Run the async channel to process the message with custom polling metadata
+        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(failAtError: false);
+
+        $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
+
+        // Verify that the order was processed successfully after replying
+        // The SynchronousOrderService is configured to succeed after 1 attempt
+        // and this is the 2nd attempt (1 original + 1 from async channel)
+        self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
+    }
+
+    public function test_passing_message_directly_to_async_channel_on_failure_and_then_failing(): void
+    {
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply',
+        ], [new SynchronousOrderService(2)]);
+
+        $commandBus = $ecotone->getGateway(SynchronousRetryWithReplyCommandBus::class);
+
+        $commandBus->sendWithRouting('order.place', 'coffee');
+
+        // Verify that the order was not processed successfully
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+        // Verify that the error message was not stored in the dead letter
+        $this->assertErrorMessageCount($ecotone, 0);
+
+        // first try on async retry config
+        $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL);
+
+        // Verify that the order was not processed successfully
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+        // Verify that the error message was stored in dead letter
+        $this->assertErrorMessageCount($ecotone, 1);
+
+        $this->replyAllErrorMessages($ecotone);
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+
+        $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL);
+        // Verify that the order was processed successfully after replying
+        // The SynchronousOrderService is configured to succeed after 2 attempt
+        // and this is the 2nd attempt (1 original + 1 from async channel + 1 from error channel)
+        self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
+    }
+
     private function assertErrorMessageCount(FlowTestSupport $ecotone, int $amount): void
     {
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
@@ -173,7 +236,7 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $connectionFactory,
                 'managerRegistry' => $connectionFactory,
             ]),
-            configuration: ServiceConfiguration::createWithDefaults()
+            configuration: ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withNamespaces($namespaces),

@@ -15,11 +15,11 @@ class ErrorChannel
 {
     /**
      * @param string $errorChannelName Name of the error channel to send Message too
-     * @param string|null $replyChannelName If Message will be stored in Dead Letter, through which channel it will be replied
+     * @param string|null $retryChannelName If Message will be stored in Dead Letter, through which channel it will be replied
      */
     public function __construct(
         public readonly string   $errorChannelName,
-        public readonly  ?string $replyChannelName = null
+        public readonly  ?string $retryChannelName = null
     )
     {
         Assert::notNullAndEmpty($errorChannelName, 'Channel name can not be empty string');

@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Fixture\Service\Gateway;
 use Ecotone\Messaging\Attribute\ErrorChannel;
 use Ecotone\Modelling\CommandBus;
 
-#[ErrorChannel('someErrorChannel', replyChannelName: 'async')]
+#[ErrorChannel('someErrorChannel', retryChannelName: 'async')]
 interface ErrorChannelWithReplayChannelNameCommandBus extends CommandBus
 {
 

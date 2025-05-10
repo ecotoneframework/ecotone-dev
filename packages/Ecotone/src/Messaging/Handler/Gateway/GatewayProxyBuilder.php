@@ -380,8 +380,8 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             /** @var ErrorChannel $errorChannelAttribute */
             $errorChannelAttribute = $errorChannelAttributes ? $errorChannelAttributes[0] : null;
             if ($errorChannelAttribute) {
-                if ($errorChannelAttribute->replyChannelName) {
-                    $relatedPolledChannelName = $errorChannelAttribute->replyChannelName;
+                if ($errorChannelAttribute->retryChannelName) {
+                    $relatedPolledChannelName = $errorChannelAttribute->retryChannelName;
                     $errorChannelRoutingSlip = $this->requestChannelName;
                 }else {
                     $relatedPolledChannelName = $this->requestChannelName;

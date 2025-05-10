@@ -11,7 +11,7 @@ use Ecotone\Modelling\CommandBus;
 /**
  * licence Apache-2.0
  */
-#[ErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL, replyChannelName: 'asyncReplyChannel')]
+#[ErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL, retryChannelName: 'asyncReplyChannel')]
 interface SynchronousErrorChannelWithReplyCommandBus extends CommandBus
 {
 }

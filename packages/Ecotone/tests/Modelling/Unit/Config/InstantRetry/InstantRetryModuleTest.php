@@ -10,12 +10,15 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
+use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithCustomRetryCountAttribute;
+use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithErrorChannelAndInstantRetryAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithInstantRetryAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithInvalidArgumentExceptionsAttribute;
+use Test\Ecotone\Modelling\Fixture\Retry\ErrorChannelHandler;
 use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
 
 /**

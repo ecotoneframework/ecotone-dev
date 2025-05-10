@@ -17,6 +17,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\CommandBus;
 use Ramsey\Uuid\Uuid;
@@ -63,6 +64,10 @@ final class InstantRetryModule implements AnnotationModule
 
         // Register interceptors for interfaces with InstantRetry attribute
         foreach ($this->commandBusesWithInstantRetry as $commandBusInterface => $instantRetryAttribute) {
+            if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+                throw LicensingException::create('Instant retry attribute is available only for enterprise edition. Please contact support@ecotone.org for more information.');
+            }
+
             $this->registerInterceptor(
                 $messagingConfiguration,
                 $interfaceToCallRegistry,

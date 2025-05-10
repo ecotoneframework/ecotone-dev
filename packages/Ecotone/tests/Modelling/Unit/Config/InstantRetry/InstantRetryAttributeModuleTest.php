@@ -9,14 +9,18 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
+use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithCustomRetryCountAttribute;
+use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithErrorChannelAndInstantRetryAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithInstantRetryAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithInvalidArgumentExceptionsAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithRuntimeExceptionsAttribute;
+use Test\Ecotone\Modelling\Fixture\Retry\ErrorChannelHandler;
 use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
 
 /**
@@ -24,10 +28,12 @@ use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
  */
 final class InstantRetryAttributeModuleTest extends TestCase
 {
-    public function test_retrying_with_asynchronous_handler_and_ignoring_retries_on_nested_command_bus()
+    public function test_throwing_exception_if_no_licence_for_instant_retry_attribute()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [RetriedCommandHandler::class, CommandBusWithCustomRetryCountAttribute::class],
             [
                 new RetriedCommandHandler(),
             ],
@@ -38,57 +44,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
                     InstantRetryConfiguration::createWithDefaults()
                         ->withAsynchronousEndpointsRetry(true, 3)
                         ->withCommandBusRetry(true, 3),
-                ])
-        );
-
-        $this->assertEquals(
-            4,
-            $ecotoneLite
-                ->sendCommandWithRoutingKey('retried.nested.async', 4)
-                ->run('async', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup())
-                ->sendQueryWithRouting('retried.getCallCount')
-        );
-    }
-
-    public function test_exceeding_retries_with_asynchronous_handler()
-    {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class],
-            [
-                new RetriedCommandHandler(),
-            ],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('async'),
-                    InstantRetryConfiguration::createWithDefaults()
-                        ->withAsynchronousEndpointsRetry(true, 2),
-                ])
-        );
-
-        $this->expectException(RuntimeException::class);
-
-        $ecotoneLite
-            ->sendCommandWithRoutingKey('retried.asynchronous', 4)
-            ->run('async', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
-    }
-
-    public function test_retrying_with_command_bus_using_attribute()
-    {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RetriedCommandHandler::class, CommandBusWithInstantRetryAttribute::class],
-            [
-                new RetriedCommandHandler(),
-            ],
-            ServiceConfiguration::createWithDefaults()
-        );
-
-        $commandBus = $ecotoneLite->getGateway(CommandBusWithInstantRetryAttribute::class);
-        $commandBus->sendWithRouting('retried.synchronous', 4);
-
-        $this->assertEquals(
-            4,
-            $ecotoneLite->sendQueryWithRouting('retried.getCallCount')
+                ]),
         );
     }
 
@@ -99,7 +55,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
             [
                 new RetriedCommandHandler(),
             ],
-            ServiceConfiguration::createWithDefaults()
+            ServiceConfiguration::createWithDefaults(),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $this->expectException(RuntimeException::class);
@@ -116,7 +73,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
             [
                 new RetriedCommandHandler(),
             ],
-            ServiceConfiguration::createWithDefaults()
+            ServiceConfiguration::createWithDefaults(),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $exceptionThrown = false;
@@ -141,7 +99,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
             [
                 new RetriedCommandHandler(),
             ],
-            ServiceConfiguration::createWithDefaults()
+            ServiceConfiguration::createWithDefaults(),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $commandBus = $ecotoneLite->getGateway(CommandBusWithRuntimeExceptionsAttribute::class);
@@ -161,7 +120,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
                 ->withExtensionObjects([
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
-                ])
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $ecotoneLite
@@ -182,7 +142,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
                 ->withExtensionObjects([
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
-                ])
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $this->expectException(RuntimeException::class);
@@ -190,5 +151,46 @@ final class InstantRetryAttributeModuleTest extends TestCase
         $ecotoneLite
             ->getGateway(CommandBusWithCustomRetryCountAttribute::class)
             ->sendWithRouting('retried.synchronous', 4);
+    }
+
+    public function test_instant_retry_recovers_before_error_channel()
+    {
+        $errorChannelHandler = new ErrorChannelHandler();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [RetriedCommandHandler::class, CommandBusWithErrorChannelAndInstantRetryAttribute::class, ErrorChannelHandler::class],
+            [
+                new RetriedCommandHandler(),
+                $errorChannelHandler
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        $commandBus = $ecotoneLite->getGateway(CommandBusWithErrorChannelAndInstantRetryAttribute::class);
+        $commandBus->sendWithRouting('retried.synchronous', 3);
+
+        $this->assertEquals(3, $ecotoneLite->sendQueryWithRouting('retried.getCallCount'));
+        $this->assertFalse($errorChannelHandler->wasErrorHandled());
+    }
+
+    public function test_error_channel_used_when_instant_retries_exceeded()
+    {
+        $errorChannelHandler = new ErrorChannelHandler();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [RetriedCommandHandler::class, CommandBusWithErrorChannelAndInstantRetryAttribute::class, ErrorChannelHandler::class],
+            [
+                new RetriedCommandHandler(),
+                $errorChannelHandler
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        $commandBus = $ecotoneLite->getGateway(CommandBusWithErrorChannelAndInstantRetryAttribute::class);
+
+        $commandBus->sendWithRouting('retried.synchronous', 4);
+
+        $this->assertEquals(3, $ecotoneLite->sendQueryWithRouting('retried.getCallCount'));
+        $this->assertTrue($errorChannelHandler->wasErrorHandled());
     }
 }

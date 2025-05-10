@@ -15,7 +15,9 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\CommandBus;
 use Ramsey\Uuid\Uuid;
 
@@ -25,8 +27,11 @@ use Ramsey\Uuid\Uuid;
  */
 final class InstantRetryModule implements AnnotationModule
 {
-    private function __construct()
+    private array $commandBusesWithInstantRetry;
+
+    private function __construct(array $commandBusesWithInstantRetry)
     {
+        $this->commandBusesWithInstantRetry = $commandBusesWithInstantRetry;
     }
 
     /**
@@ -34,7 +39,18 @@ final class InstantRetryModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        $commandBusesWithInstantRetry = [];
+        $annotatedInterfaces = $annotationRegistrationService->findAnnotatedClasses(InstantRetry::class);
+
+        foreach ($annotatedInterfaces as $annotatedInterface) {
+            // Check if the interface extends CommandBus
+            if (is_subclass_of($annotatedInterface, CommandBus::class)) {
+                $instantRetryAttribute = $annotationRegistrationService->getAttributeForClass($annotatedInterface, InstantRetry::class);
+                $commandBusesWithInstantRetry[$annotatedInterface] = $instantRetryAttribute;
+            }
+        }
+
+        return new self($commandBusesWithInstantRetry);
     }
 
     /**
@@ -45,11 +61,24 @@ final class InstantRetryModule implements AnnotationModule
         $configuration = ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $extensionObjects, InstantRetryConfiguration::createWithDefaults());
         $messagingConfiguration->registerServiceDefinition(RetryStatusTracker::class, Definition::createFor(RetryStatusTracker::class, [false]));
 
+        // Register interceptors for interfaces with InstantRetry attribute
+        foreach ($this->commandBusesWithInstantRetry as $commandBusInterface => $instantRetryAttribute) {
+            $this->registerInterceptor(
+                $messagingConfiguration,
+                $interfaceToCallRegistry,
+                $instantRetryAttribute->retryTimes,
+                $instantRetryAttribute->exceptions,
+                TypeDescriptor::create($commandBusInterface)->toString(),
+                Precedence::CUSTOM_INSTANT_RETRY_PRECEDENCE,
+            );
+        }
+
+        // Register global interceptors if enabled
         if ($configuration->isEnabledForCommandBus()) {
-            $this->registerInterceptor($messagingConfiguration, $interfaceToCallRegistry, $configuration->getCommandBusRetryTimes(), $configuration->getCommandBuExceptions(), CommandBus::class);
+            $this->registerInterceptor($messagingConfiguration, $interfaceToCallRegistry, $configuration->getCommandBusRetryTimes(), $configuration->getCommandBuExceptions(), CommandBus::class, Precedence::GLOBAL_INSTANT_RETRY_PRECEDENCE);
         }
         if ($configuration->isEnabledForAsynchronousEndpoints()) {
-            $this->registerInterceptor($messagingConfiguration, $interfaceToCallRegistry, $configuration->getAsynchronousRetryTimes(), $configuration->getAsynchronousExceptions(), AsynchronousRunningEndpoint::class);
+            $this->registerInterceptor($messagingConfiguration, $interfaceToCallRegistry, $configuration->getAsynchronousRetryTimes(), $configuration->getAsynchronousExceptions(), AsynchronousRunningEndpoint::class, Precedence::GLOBAL_INSTANT_RETRY_PRECEDENCE);
         }
     }
 
@@ -71,7 +100,17 @@ final class InstantRetryModule implements AnnotationModule
         return ModulePackageList::CORE_PACKAGE;
     }
 
-    private function registerInterceptor(Configuration $messagingConfiguration, InterfaceToCallRegistry $interfaceToCallRegistry, int $retryAttempt, array $exceptions, string $pointcut): void
+    /**
+     * @param string[] $exceptions
+     */
+    private function registerInterceptor(
+        Configuration $messagingConfiguration,
+        InterfaceToCallRegistry $interfaceToCallRegistry,
+        int $retryAttempt,
+        array $exceptions,
+        string $pointcut,
+        int $precedence,
+    ): void
     {
         $instantRetryId = Uuid::uuid4()->toString();
         $messagingConfiguration->registerServiceDefinition($instantRetryId, Definition::createFor(InstantRetryInterceptor::class, [$retryAttempt, $exceptions, Reference::to(RetryStatusTracker::class)]));
@@ -81,7 +120,7 @@ final class InstantRetryModule implements AnnotationModule
                 AroundInterceptorBuilder::create(
                     $instantRetryId,
                     $interfaceToCallRegistry->getFor(InstantRetryInterceptor::class, 'retry'),
-                    Precedence::AROUND_INSTANT_RETRY_PRECEDENCE,
+                    $precedence,
                     $pointcut
                 )
             );

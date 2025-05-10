@@ -476,8 +476,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
 
         /** @var ErrorChannel[] $errorChannel */
         $errorChannel = $interfaceToCall->getAnnotationsByImportanceOrder(TypeDescriptor::create(ErrorChannel::class));
-        $channelName = $errorChannel ? $errorChannel[0]->name : null;
 
-        return $channelName;
+        return $errorChannel ? $errorChannel[0]->errorChannelName : null;
     }
 }

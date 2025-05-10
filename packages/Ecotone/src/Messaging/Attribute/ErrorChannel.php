@@ -14,14 +14,14 @@ use Ecotone\Messaging\Support\Assert;
 class ErrorChannel
 {
     /**
-     * @param string $name Name of the error channel to send Message too
+     * @param string $errorChannelName Name of the error channel to send Message too
      * @param string|null $replyChannelName If Message will be stored in Dead Letter, through which channel it will be replied
      */
     public function __construct(
-        public readonly string   $name,
+        public readonly string   $errorChannelName,
         public readonly  ?string $replyChannelName = null
     )
     {
-        Assert::notNullAndEmpty($name, 'Channel name can not be empty string');
+        Assert::notNullAndEmpty($errorChannelName, 'Channel name can not be empty string');
     }
 }

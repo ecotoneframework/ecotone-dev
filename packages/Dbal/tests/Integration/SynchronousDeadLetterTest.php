@@ -37,19 +37,14 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
 
         $commandBus->sendWithRouting('order.place', 'coffee');
 
-        // Verify that the order was not processed successfully
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
-        // Verify that the error message was stored in the dead letter
         $this->assertErrorMessageCount($ecotone, 1);
 
-        // Reply the error message
         $this->replyAllErrorMessages($ecotone);
 
-        // Verify that the error message was removed from the dead letter
         $this->assertErrorMessageCount($ecotone, 0);
 
-        // Verify that the order was processed successfully after replying
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
@@ -64,19 +59,13 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
         $commandBus->sendWithRouting('order.place', 'coffee');
         $commandBus->sendWithRouting('order.place', 'tea');
 
-        // Verify that the orders were not processed successfully
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
-        // Verify that the error messages were stored in the dead letter
         $this->assertErrorMessageCount($ecotone, 2);
 
-        // Reply the error messages by ID
         $this->replyAllErrorMessagesById($ecotone);
 
-        // Verify that the error messages were removed from the dead letter
         $this->assertErrorMessageCount($ecotone, 0);
-
-        // Verify that the orders were processed successfully after replying
         self::assertEquals(2, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
@@ -91,19 +80,13 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
         $commandBus->sendWithRouting('order.place', 'coffee');
         $commandBus->sendWithRouting('order.place', 'tea');
 
-        // Verify that the orders were not processed successfully
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
-        // Verify that the error messages were stored in the dead letter
         $this->assertErrorMessageCount($ecotone, 2);
 
-        // Delete the error messages by ID
         $this->deleteAllErrorMessagesById($ecotone);
 
-        // Verify that the error messages were removed from the dead letter
         $this->assertErrorMessageCount($ecotone, 0);
-
-        // Verify that the orders were not processed after deleting
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
@@ -117,24 +100,16 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
 
         $commandBus->sendWithRouting('order.place', 'coffee');
 
-        // Verify that the order was not processed successfully
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
-        // Verify that the error message was stored in the dead letter
         $this->assertErrorMessageCount($ecotone, 1);
 
-        // Reply the error message
         $this->replyAllErrorMessages($ecotone);
 
-        // Verify that the error message was removed from the dead letter
         $this->assertErrorMessageCount($ecotone, 0);
-        // but not processed yet, as it should land in async message channel
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
-        // Run the async channel to process the message
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup());
-
-        // Verify that the order was processed successfully after replying
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
@@ -149,20 +124,13 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
 
         $commandBus->sendWithRouting('order.place', 'coffee');
 
-        // Verify that the order was not processed successfully
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
-        // Verify that the error message was not stored in the dead letter
         $this->assertErrorMessageCount($ecotone, 0);
 
-        // Run the async channel to process the message with custom polling metadata
         $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(failAtError: false);
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
-
-        // Verify that the order was processed successfully after replying
-        // The SynchronousOrderService is configured to succeed after 1 attempt
-        // and this is the 2nd attempt (1 original + 1 from async channel)
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
@@ -177,26 +145,18 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
 
         $commandBus->sendWithRouting('order.place', 'coffee');
 
-        // Verify that the order was not processed successfully
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
-        // Verify that the error message was not stored in the dead letter
         $this->assertErrorMessageCount($ecotone, 0);
 
-        // first try on async retry config
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL);
 
-        // Verify that the order was not processed successfully
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
-        // Verify that the error message was stored in dead letter
         $this->assertErrorMessageCount($ecotone, 1);
 
         $this->replyAllErrorMessages($ecotone);
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL);
-        // Verify that the order was processed successfully after replying
-        // The SynchronousOrderService is configured to succeed after 2 attempt
-        // and this is the 2nd attempt (1 original + 1 from async channel + 1 from error channel)
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 

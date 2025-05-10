@@ -19,6 +19,7 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationCo
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelWithReplyCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousOrderService;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithoutRetryCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithReplyCommandBus;
 
 /**
@@ -131,6 +132,20 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
         $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(failAtError: false);
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
+        self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
+    }
+
+    public function test_it_retries_immediately_if_no_retry_channel_defined(): void
+    {
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply',
+        ], [new SynchronousOrderService(1)]);
+
+        $commandBus = $ecotone->getGateway(SynchronousRetryWithoutRetryCommandBus::class);
+
+        $commandBus->sendWithRouting('order.place', 'coffee');
+
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 

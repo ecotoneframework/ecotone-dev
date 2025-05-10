@@ -21,6 +21,7 @@ use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithInstantRetryAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithInvalidArgumentExceptionsAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithRuntimeExceptionsAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\ErrorChannelHandler;
+use Test\Ecotone\Modelling\Fixture\Retry\NonCommandBusWithInstantRetryAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
 
 /**
@@ -192,5 +193,20 @@ final class InstantRetryAttributeModuleTest extends TestCase
 
         $this->assertEquals(3, $ecotoneLite->sendQueryWithRouting('retried.getCallCount'));
         $this->assertTrue($errorChannelHandler->wasErrorHandled());
+    }
+
+    public function test_instant_retry_attribute_fails_on_non_command_bus_interfaces()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("InstantRetry attribute can only be used on interfaces extending CommandBus");
+
+        EcotoneLite::bootstrapFlowTesting(
+            [RetriedCommandHandler::class, NonCommandBusWithInstantRetryAttribute::class],
+            [
+                new RetriedCommandHandler(),
+            ],
+            ServiceConfiguration::createWithDefaults(),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
     }
 }

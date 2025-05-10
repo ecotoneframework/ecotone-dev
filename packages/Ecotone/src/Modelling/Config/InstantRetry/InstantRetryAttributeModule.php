@@ -42,11 +42,15 @@ final class InstantRetryAttributeModule implements AnnotationModule
         $annotatedInterfaces = $annotationRegistrationService->findAnnotatedClasses(InstantRetry::class);
 
         foreach ($annotatedInterfaces as $annotatedInterface) {
-            // Check if the interface extends CommandBus
-            if (is_subclass_of($annotatedInterface, CommandBus::class)) {
-                $instantRetryAttribute = $annotationRegistrationService->getAttributeForClass($annotatedInterface, InstantRetry::class);
-                $commandBusesWithInstantRetry[$annotatedInterface] = $instantRetryAttribute;
+            if (!is_subclass_of($annotatedInterface, CommandBus::class)) {
+                throw new \InvalidArgumentException(sprintf(
+                    "InstantRetry attribute can only be used on interfaces extending CommandBus. '%s' does not extend CommandBus.",
+                    $annotatedInterface
+                ));
             }
+
+            $instantRetryAttribute = $annotationRegistrationService->getAttributeForClass($annotatedInterface, InstantRetry::class);
+            $commandBusesWithInstantRetry[$annotatedInterface] = $instantRetryAttribute;
         }
 
         return new self($commandBusesWithInstantRetry);

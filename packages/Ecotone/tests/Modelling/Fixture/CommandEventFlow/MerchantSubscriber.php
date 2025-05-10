@@ -13,8 +13,10 @@ use Ecotone\Modelling\CommandBus;
 final class MerchantSubscriber
 {
     #[EventHandler]
-    public function merchantToUser(MerchantCreated $event, CommandBus $commandBus): void
+    public function merchantToUser(MerchantCreated $event, CommandBus $commandBus): MerchantCreated
     {
         $commandBus->send(new RegisterUser($event->merchantId));
+
+        return $event;
     }
 }

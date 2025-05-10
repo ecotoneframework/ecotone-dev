@@ -32,7 +32,16 @@ final class CustomErrorChannelGatewayTest extends TestCase
 {
     public function test_it_throws_when_using_in_non_enterprise_mode(): void
     {
+        $this->expectException(LicensingException::class);
 
+        EcotoneLite::bootstrapFlowTesting(
+            [TicketService::class, ErrorChannelCommandBus::class],
+            [new TicketService()],
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+                SimpleMessageChannelBuilder::createQueueChannel('someErrorChannel'),
+            ],
+        );
     }
 
     public function test_using_custom_error_channel_on_gateway(): void

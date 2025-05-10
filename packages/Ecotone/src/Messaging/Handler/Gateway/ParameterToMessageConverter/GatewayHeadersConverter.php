@@ -21,24 +21,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
  */
 class GatewayHeadersConverter implements GatewayParameterConverter
 {
-    private string $parameterName;
-
-    /**
-     * HeaderMessageParameter constructor.
-     * @param string $parameterName
-     */
-    public function __construct(string $parameterName)
+    public function __construct(private string $parameterName, private bool $isMessageBus)
     {
-        $this->parameterName = $parameterName;
-    }
-
-    /**
-     * @param string $parameterName
-     * @return self
-     */
-    public static function create(string $parameterName): self
-    {
-        return new self($parameterName);
     }
 
     /**
@@ -55,6 +39,13 @@ class GatewayHeadersConverter implements GatewayParameterConverter
         }
 
         foreach ($headers as $headerName => $headerValue) {
+            /**
+             * Do not propagate routing slip when calling higher level Gateways (Command, Query, Event Bus)
+             * This is because they start new flows which should not be routed back to the original one
+             */
+            if ($this->isMessageBus && in_array($headerName, [MessageHeaders::ROUTING_SLIP])) {
+                continue;
+            }
             if ($headerName === MessageHeaders::CONTENT_TYPE) {
                 $messagePayloadType = TypeDescriptor::createFromVariable($messageBuilder->getPayload());
                 $mediaType = MediaType::parseMediaType($headerValue);

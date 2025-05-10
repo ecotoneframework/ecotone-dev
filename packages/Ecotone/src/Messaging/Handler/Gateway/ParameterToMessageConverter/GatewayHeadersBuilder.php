@@ -3,10 +3,14 @@
 namespace Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter;
 
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayParameterConverterBuilder;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
+use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\EventBus;
+use Ecotone\Modelling\QueryBus;
 
 /**
  * Class GatewayHeaderArrayBuilder
@@ -45,6 +49,13 @@ class GatewayHeadersBuilder implements GatewayParameterConverterBuilder
 
     public function compile(MessagingContainerBuilder $builder, InterfaceToCall $interfaceToCall): Definition
     {
-        return new Definition(GatewayHeadersConverter::class, [$this->parameterName]);
+        return new Definition(GatewayHeadersConverter::class, [
+            $this->parameterName,
+            in_array($interfaceToCall->getInterfaceName(), [
+                CommandBus::class,
+                QueryBus::class,
+                EventBus::class,
+            ])
+        ]);
     }
 }

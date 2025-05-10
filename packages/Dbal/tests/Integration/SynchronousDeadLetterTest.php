@@ -10,12 +10,14 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelCommandBus;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelWithReplyCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousOrderService;
 
 /**
@@ -102,6 +104,37 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
 
         // Verify that the orders were not processed after deleting
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+    }
+
+    public function test_exception_handling_with_custom_reply_channel(): void
+    {
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
+        ], [new SynchronousOrderService(1)]);
+
+        $commandBus = $ecotone->getGateway(SynchronousErrorChannelWithReplyCommandBus::class);
+
+        $commandBus->sendWithRouting('order.place', 'coffee');
+
+        // Verify that the order was not processed successfully
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+
+        // Verify that the error message was stored in the dead letter
+        $this->assertErrorMessageCount($ecotone, 1);
+
+        // Reply the error message
+        $this->replyAllErrorMessages($ecotone);
+
+        // Verify that the error message was removed from the dead letter
+        $this->assertErrorMessageCount($ecotone, 0);
+        // but not processed yet, as it should land in async message channel
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+
+        // Run the async channel to process the message
+        $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup());
+
+        // Verify that the order was processed successfully after replying
+        self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
     private function assertErrorMessageCount(FlowTestSupport $ecotone, int $amount): void

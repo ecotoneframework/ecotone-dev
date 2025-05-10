@@ -3,10 +3,8 @@
 namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -15,18 +13,24 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\CommandBus;
 use Ramsey\Uuid\Uuid;
 
 #[ModuleAnnotation]
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
-final class InstantRetryModule implements AnnotationModule
+final class InstantRetryAttributeModule implements AnnotationModule
 {
-    private function __construct()
+    private array $commandBusesWithInstantRetry;
+
+    private function __construct(array $commandBusesWithInstantRetry)
     {
+        $this->commandBusesWithInstantRetry = $commandBusesWithInstantRetry;
     }
 
     /**
@@ -34,7 +38,18 @@ final class InstantRetryModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        $commandBusesWithInstantRetry = [];
+        $annotatedInterfaces = $annotationRegistrationService->findAnnotatedClasses(InstantRetry::class);
+
+        foreach ($annotatedInterfaces as $annotatedInterface) {
+            // Check if the interface extends CommandBus
+            if (is_subclass_of($annotatedInterface, CommandBus::class)) {
+                $instantRetryAttribute = $annotationRegistrationService->getAttributeForClass($annotatedInterface, InstantRetry::class);
+                $commandBusesWithInstantRetry[$annotatedInterface] = $instantRetryAttribute;
+            }
+        }
+
+        return new self($commandBusesWithInstantRetry);
     }
 
     /**
@@ -42,14 +57,24 @@ final class InstantRetryModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $configuration = ExtensionObjectResolver::resolveUnique(InstantRetryConfiguration::class, $extensionObjects, InstantRetryConfiguration::createWithDefaults());
-        $messagingConfiguration->registerServiceDefinition(RetryStatusTracker::class, Definition::createFor(RetryStatusTracker::class, [false]));
-
-        if ($configuration->isEnabledForCommandBus()) {
-            $this->registerInterceptor($messagingConfiguration, $interfaceToCallRegistry, $configuration->getCommandBusRetryTimes(), $configuration->getCommandBuExceptions(), CommandBus::class, Precedence::GLOBAL_INSTANT_RETRY_PRECEDENCE);
+        if (empty($this->commandBusesWithInstantRetry)) {
+            return;
         }
-        if ($configuration->isEnabledForAsynchronousEndpoints()) {
-            $this->registerInterceptor($messagingConfiguration, $interfaceToCallRegistry, $configuration->getAsynchronousRetryTimes(), $configuration->getAsynchronousExceptions(), AsynchronousRunningEndpoint::class, Precedence::GLOBAL_INSTANT_RETRY_PRECEDENCE);
+
+        if (!$messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create('Instant retry attribute is available only for Ecotone Enterprise.');
+        }
+
+        // Register interceptors for interfaces with InstantRetry attribute
+        foreach ($this->commandBusesWithInstantRetry as $commandBusInterface => $instantRetryAttribute) {
+            $this->registerInterceptor(
+                $messagingConfiguration,
+                $interfaceToCallRegistry,
+                $instantRetryAttribute->retryTimes,
+                $instantRetryAttribute->exceptions,
+                TypeDescriptor::create($commandBusInterface)->toString(),
+                Precedence::CUSTOM_INSTANT_RETRY_PRECEDENCE,
+            );
         }
     }
 
@@ -58,7 +83,7 @@ final class InstantRetryModule implements AnnotationModule
      */
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof InstantRetryConfiguration;
+        return false;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

@@ -25,7 +25,6 @@ class ErrorChannelInterceptor
         private ErrorChannelService $errorChannelService,
         private MessageChannel $errorChannel,
         private ?string $relatedPolledChannelName = null,
-        private ?string $routingSlip = null,
     )
     {
     }
@@ -40,7 +39,6 @@ class ErrorChannelInterceptor
                 $exception,
                 $this->errorChannel,
                 $this->relatedPolledChannelName,
-                $this->routingSlip,
             );
         }
     }

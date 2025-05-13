@@ -17,16 +17,15 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelCommandBus;
-use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelWithReplyCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousOrderService;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithoutRetryCommandBus;
-use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithReplyCommandBus;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithAsyncChannelCommandBus;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  * @internal
  */
-final class SynchronousDeadLetterTest extends DbalMessagingTestCase
+final class DeadLetterCommandBusTest extends DbalMessagingTestCase
 {
     public function test_exception_handling_with_using_error_channel_right_away(): void
     {
@@ -91,29 +90,6 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
-    public function test_exception_handling_with_custom_reply_channel(): void
-    {
-        $ecotone = $this->bootstrapEcotone([
-            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
-        ], [new SynchronousOrderService(1)]);
-
-        $commandBus = $ecotone->getGateway(SynchronousErrorChannelWithReplyCommandBus::class);
-
-        $commandBus->sendWithRouting('order.place', 'coffee');
-
-        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
-
-        $this->assertErrorMessageCount($ecotone, 1);
-
-        $this->replyAllErrorMessages($ecotone);
-
-        $this->assertErrorMessageCount($ecotone, 0);
-        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
-
-        $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup());
-        self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
-    }
-
     public function test_passing_message_directly_to_async_channel_on_failure_and_then_succeeding(): void
     {
         $ecotone = $this->bootstrapEcotone([
@@ -121,7 +97,7 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
             'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply',
         ], [new SynchronousOrderService(1)]);
 
-        $commandBus = $ecotone->getGateway(SynchronousRetryWithReplyCommandBus::class);
+        $commandBus = $ecotone->getGateway(SynchronousRetryWithAsyncChannelCommandBus::class);
 
         $commandBus->sendWithRouting('order.place', 'coffee');
 
@@ -156,7 +132,7 @@ final class SynchronousDeadLetterTest extends DbalMessagingTestCase
             'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply',
         ], [new SynchronousOrderService(2)]);
 
-        $commandBus = $ecotone->getGateway(SynchronousRetryWithReplyCommandBus::class);
+        $commandBus = $ecotone->getGateway(SynchronousRetryWithAsyncChannelCommandBus::class);
 
         $commandBus->sendWithRouting('order.place', 'coffee');
 

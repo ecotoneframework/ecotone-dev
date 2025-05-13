@@ -12,7 +12,7 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationCo
 /**
  * licence Apache-2.0
  */
-#[ErrorChannel(RetryConfiguration::ERROR_CHANNEL, retryChannelName: ErrorConfigurationContext::ASYNC_REPLY_CHANNEL)]
-interface SynchronousRetryWithReplyCommandBus extends CommandBus
+#[ErrorChannel(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL)]
+interface SynchronousRetryWithAsyncChannelCommandBus extends CommandBus
 {
 }

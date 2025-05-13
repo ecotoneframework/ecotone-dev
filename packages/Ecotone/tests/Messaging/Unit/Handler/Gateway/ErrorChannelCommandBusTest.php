@@ -19,7 +19,7 @@ use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Lazy\LazyUuidFromString;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelCommandBus;
-use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelWithReplayChannelNameCommandBus;
+use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelWithAsyncChannel;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketService;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Messaging\SerializationSupport;
@@ -28,7 +28,7 @@ use Test\Ecotone\Messaging\SerializationSupport;
  * licence Enterprise
  * @internal
  */
-final class SynchronousErrorChannelCommandBusTest extends TestCase
+final class ErrorChannelCommandBusTest extends TestCase
 {
     public function test_it_throws_when_using_in_non_enterprise_mode(): void
     {
@@ -89,7 +89,7 @@ final class SynchronousErrorChannelCommandBusTest extends TestCase
     public function test_using_custom_error_channel_with_reply_channel(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TicketService::class, ErrorChannelWithReplayChannelNameCommandBus::class],
+            [TicketService::class, ErrorChannelWithAsyncChannel::class],
             [new TicketService()],
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
@@ -98,7 +98,7 @@ final class SynchronousErrorChannelCommandBusTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $commandBus = $ecotoneLite->getGateway(ErrorChannelWithReplayChannelNameCommandBus::class);
+        $commandBus = $ecotoneLite->getGateway(ErrorChannelWithAsyncChannel::class);
 
         $payload = Uuid::uuid4();
         $commandBus->sendWithRouting(
@@ -114,54 +114,7 @@ final class SynchronousErrorChannelCommandBusTest extends TestCase
         );
 
 
-        $message = $ecotoneLite->getMessageChannel('someErrorChannel')->receive();
+        $message = $ecotoneLite->getMessageChannel('async')->receive();
         $this->assertNotNull($message);
-        /** @var MessageHandlingException $messagingException */
-        $messagingException = $message->getPayload();
-
-        $failedMessage = $messagingException->getFailedMessage();
-        $this->assertSame('async', $failedMessage->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME));
-        $this->assertSame(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME, $failedMessage->getHeaders()->get(MessageHeaders::ROUTING_SLIP));
-    }
-
-    public function test_when_using_reply_channel_previous_routing_slip_is_not_lost(): void
-    {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TicketService::class, ErrorChannelWithReplayChannelNameCommandBus::class],
-            [new TicketService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-                SimpleMessageChannelBuilder::createQueueChannel('someErrorChannel'),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
-
-        $commandBus = $ecotoneLite->getGateway(ErrorChannelWithReplayChannelNameCommandBus::class);
-
-        $payload = Uuid::uuid4();
-        $commandBus->sendWithRouting(
-            'createViaCommand', $payload,
-            metadata: [
-                'throwException' => true,
-                MessageHeaders::ROUTING_SLIP => 'someChannel,someOtherChannel',
-            ]
-        );
-
-        $this->assertEquals(
-            [],
-            $ecotoneLite->sendQueryWithRouting('getTickets')
-        );
-
-
-        $message = $ecotoneLite->getMessageChannel('someErrorChannel')->receive();
-        $this->assertNotNull($message);
-        /** @var MessageHandlingException $messagingException */
-        $messagingException = $message->getPayload();
-
-        $failedMessage = $messagingException->getFailedMessage();
-        $this->assertSame(
-            implode(',', [MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME, 'someChannel', 'someOtherChannel']),
-            $failedMessage->getHeaders()->get(MessageHeaders::ROUTING_SLIP)
-        );
     }
 }

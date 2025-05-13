@@ -374,18 +374,12 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         $aroundInterceptors = $this->aroundInterceptors;
         if ($this->getErrorChannel($interfaceToCall)) {
             $relatedPolledChannelName = null;
-            $errorChannelRoutingSlip = null;
             /** @var ErrorChannel[] $errorChannel */
             $errorChannelAttributes = $interfaceToCall->getAnnotationsByImportanceOrder(TypeDescriptor::create(ErrorChannel::class));
             /** @var ErrorChannel $errorChannelAttribute */
             $errorChannelAttribute = $errorChannelAttributes ? $errorChannelAttributes[0] : null;
             if ($errorChannelAttribute) {
-                if ($errorChannelAttribute->retryChannelName) {
-                    $relatedPolledChannelName = $errorChannelAttribute->retryChannelName;
-                    $errorChannelRoutingSlip = $this->requestChannelName;
-                }else {
-                    $relatedPolledChannelName = $this->requestChannelName;
-                }
+                $relatedPolledChannelName = $this->requestChannelName;
             }
 
             $interceptorReference = $builder->register(
@@ -394,7 +388,6 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
                     Reference::to(ErrorChannelService::class),
                     new ChannelReference($this->getErrorChannel($interfaceToCall)),
                     $relatedPolledChannelName,
-                    $errorChannelRoutingSlip,
                 ])
             );
             $channelInterceptorInterface = $builder->getInterfaceToCall(new InterfaceToCallReference(ErrorChannelInterceptor::class, 'handle'));

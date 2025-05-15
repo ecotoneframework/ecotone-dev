@@ -28,6 +28,7 @@ use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
+use Ecotone\EventSourcing\Prooph\Projecting\EventStoreStreamSourceBuilder;
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -280,6 +281,15 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerProjectionManager($messagingConfiguration, $eventSourcingConfiguration);
+
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof EventStoreStreamSourceBuilder) {
+                $messagingConfiguration->registerServiceDefinition(
+                    $extensionObject->streamSourceName,
+                    $extensionObject->compile(),
+                );
+            }
+        }
     }
 
     public function canHandle($extensionObject): bool
@@ -287,7 +297,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
         return
             $extensionObject instanceof EventSourcingConfiguration
             || $extensionObject instanceof ProjectionRunningConfiguration
-            || $extensionObject instanceof ServiceConfiguration;
+            || $extensionObject instanceof ServiceConfiguration
+            || $extensionObject instanceof EventStoreStreamSourceBuilder;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

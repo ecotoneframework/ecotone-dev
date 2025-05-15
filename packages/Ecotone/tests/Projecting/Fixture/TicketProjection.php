@@ -9,9 +9,10 @@ namespace Test\Ecotone\Projecting\Fixture;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
 
-#[Projection('ticket_projection', 'ticket_stream_source')]
+#[Projection(self::NAME, 'ticket_stream_source')]
 class TicketProjection
 {
+    public const NAME = 'ticket_projection';
     private array $projectedEvents = [];
 
     public function getProjectedEvents(): array
@@ -25,8 +26,14 @@ class TicketProjection
     }
 
     #[EventHandler]
-    public function whenTicketCreated(TicketCreated $ticketCreated): void
+    public function whenTicketCreated(TicketCreated $event): void
     {
-        $this->projectedEvents[] = $ticketCreated;
+        $this->projectedEvents[] = $event;
+    }
+
+    #[EventHandler]
+    public function whenTicketAssigned(TicketAssigned $event): void
+    {
+        $this->projectedEvents[] = $event;
     }
 }

@@ -14,7 +14,7 @@ class Projection extends StreamBasedSource
 {
     public function __construct(
         public readonly string $name,
-        public ?string         $streamSourceReference,
+        public ?string         $streamSourceReference = null,
     ) {
     }
 

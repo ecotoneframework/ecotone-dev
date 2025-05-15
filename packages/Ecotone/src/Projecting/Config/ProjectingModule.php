@@ -48,6 +48,7 @@ use Ecotone\Projecting\Lifecycle\LifecycleManager;
 use Ecotone\Projecting\Lifecycle\ProjectionLifecycleStateStorage;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionStateStorage;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithLimitedLoad\ProjectionConfiguration;
 
 #[ModuleAnnotation]
@@ -171,12 +172,12 @@ class ProjectingModule implements AnnotationModule
             }
         }
 
-        // Register implementations
+        // Register projection state implementations
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateStorage::class,
             match ($projectingConfiguration->projectionStateStorageReference) {
                 InMemoryProjectionStateStorage::class => new Definition(InMemoryProjectionStateStorage::class),
-                DbalProjectionStateStorage::class => new Definition(DbalProjectionStateStorage::class, [new Reference(Connection::class)]),
+                DbalProjectionStateStorage::class => new Definition(DbalProjectionStateStorage::class, [new Reference(DbalConnectionFactory::class)]),
                 default => new Reference($projectingConfiguration->projectionStateStorageReference)
             }
         );
@@ -185,7 +186,7 @@ class ProjectingModule implements AnnotationModule
             ProjectionLifecycleStateStorage::class,
             match ($projectingConfiguration->projectionLifecycleStateStorageReference) {
                 InMemoryProjectionLifecycleStateStorage::class => new Definition(InMemoryProjectionLifecycleStateStorage::class),
-                DbalProjectionLifecycleStateStorage::class => new Definition(DbalProjectionLifecycleStateStorage::class, [new Reference(Connection::class)]),
+                DbalProjectionLifecycleStateStorage::class => new Definition(DbalProjectionLifecycleStateStorage::class, [new Reference(DbalConnectionFactory::class)]),
                 default => new Reference($projectingConfiguration->projectionLifecycleStateStorageReference)
             }
         );
@@ -193,9 +194,9 @@ class ProjectingModule implements AnnotationModule
         // Lifecycle handlers
         $ecotoneLifecycleExecutor = new Definition(EcotoneLifecycleExecutor::class, [
             new Reference(MessagingEntrypoint::class),
-            self::registerProjectionLifeCycleHandlers($messagingConfiguration, $this->projectionInitHandlers),
-            self::registerProjectionLifeCycleHandlers($messagingConfiguration, $this->projectionResetHandlers),
-            self::registerProjectionLifeCycleHandlers($messagingConfiguration, $this->projectionDeleteHandlers),
+            self::registerProjectionLifecycleHandlers($messagingConfiguration, $this->projectionInitHandlers),
+            self::registerProjectionLifecycleHandlers($messagingConfiguration, $this->projectionResetHandlers),
+            self::registerProjectionLifecycleHandlers($messagingConfiguration, $this->projectionDeleteHandlers),
         ]);
 
         $messagingConfiguration->registerServiceDefinition(
@@ -211,7 +212,8 @@ class ProjectingModule implements AnnotationModule
     public function canHandle($extensionObject): bool
     {
         return $extensionObject instanceof ServiceConfiguration
-            || $extensionObject instanceof ProjectingConfiguration;
+            || $extensionObject instanceof ProjectingConfiguration
+            || $extensionObject instanceof StreamSourceBuilder;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
@@ -264,7 +266,7 @@ class ProjectingModule implements AnnotationModule
      * @param array<string, MessageProcessorActivatorBuilder> $lifecycleHandlers key is projection name, value is MessageProcessorActivatorBuilder for lifecycle handler
      * @return array<string, string> key is projection name, value is channel name
      */
-    private static function registerProjectionLifeCycleHandlers(Configuration $messagingConfiguration, array $lifecycleHandlers): array {
+    private static function registerProjectionLifecycleHandlers(Configuration $messagingConfiguration, array $lifecycleHandlers): array {
         $channelsMap = [];
         foreach ($lifecycleHandlers as $projectionName => $lifecycleHandler) {
             $channelsMap[$projectionName] = $lifecycleHandler->getInputMessageChannelName();

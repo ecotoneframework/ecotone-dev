@@ -9,16 +9,22 @@ namespace Ecotone\Projecting\Dbal;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\Projecting\Lifecycle\ProjectionLifecycleStateStorage;
+use Enqueue\Dbal\DbalConnectionFactory;
 
 class DbalProjectionLifecycleStateStorage implements ProjectionLifecycleStateStorage
 {
     private const STATE_INITIALIZED = 'initialized';
-    public function __construct(private Connection $connection, private string $tableName = 'ecotone_projection_lifecycle_state')
+    private Connection $connection;
+    private bool $initialized = false;
+    public function __construct(DbalConnectionFactory $connectionFactory, private string $tableName = 'ecotone_projection_lifecycle_state')
     {
+        $this->connection = $connectionFactory->createContext()->getDbalConnection();
     }
 
     public function init(string $projectionName): bool
     {
+        $this->createSchema();
+
         $statement = match(true) {
             $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
                     INSERT INTO {$this->tableName} (projection_name, state) VALUES (:projectionName, :state)
@@ -26,7 +32,7 @@ class DbalProjectionLifecycleStateStorage implements ProjectionLifecycleStateSto
                     SQL,
             default => <<<SQL
                     INSERT INTO {$this->tableName} (projection_name, state) VALUES (:projectionName, :state)
-                    ON DUPLICATE KEY DO NOTHING
+                    ON CONFLICT DO NOTHING
                     SQL,
         };
 
@@ -40,6 +46,8 @@ class DbalProjectionLifecycleStateStorage implements ProjectionLifecycleStateSto
 
     public function delete(string $projectionName): bool
     {
+        $this->createSchema();
+
         $rowsAffected = $this->connection->executeStatement(<<<SQL
             DELETE FROM {$this->tableName} WHERE projection_name = :projectionName
             SQL, [
@@ -51,6 +59,11 @@ class DbalProjectionLifecycleStateStorage implements ProjectionLifecycleStateSto
 
     public function createSchema(): void
     {
+        if ($this->initialized) {
+            return;
+        }
+
+        $this->initialized = true;
         $this->connection->executeStatement(<<<SQL
             CREATE TABLE IF NOT EXISTS {$this->tableName} (
                 projection_name VARCHAR(255) NOT NULL,

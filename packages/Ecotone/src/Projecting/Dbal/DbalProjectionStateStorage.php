@@ -10,17 +10,23 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\Projecting\ProjectionState;
 use Ecotone\Projecting\ProjectionStateStorage;
+use Enqueue\Dbal\DbalConnectionFactory;
 
 class DbalProjectionStateStorage implements ProjectionStateStorage
 {
     private ?string $saveStateQuery = null;
+    private Connection $connection;
+    private bool $initialized = false;
 
-    public function __construct(private Connection $connection, private string $tableName = 'ecotone_projection_state')
+    public function __construct(DbalConnectionFactory $connectionFactory, private string $tableName = 'ecotone_projection_state')
     {
+        $this->connection = $connectionFactory->createContext()->getDbalConnection();
     }
 
     public function getState(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionState
     {
+        $this->createSchema();
+
         $query = <<<SQL
             SELECT last_position FROM {$this->tableName}
             WHERE projection_name = :projectionName AND partition_key = :partitionKey
@@ -40,6 +46,8 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function saveState(ProjectionState $projectionState): void
     {
+        $this->createSchema();
+
         if (!$this->saveStateQuery) {
             $this->saveStateQuery = match(true) {
                 $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
@@ -62,8 +70,23 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         ]);
     }
 
+    public function deleteState(string $projectionName): void
+    {
+        $this->createSchema();
+
+        $this->connection->executeStatement(
+            'DELETE FROM ' . $this->tableName . ' WHERE projection_name = :projectionName',
+            ['projectionName' => $projectionName]
+        );
+    }
+
     public function createSchema(): void
     {
+        if ($this->initialized) {
+            return;
+        }
+
+        $this->initialized = true;
         $this->connection->executeStatement(
             'CREATE TABLE IF NOT EXISTS ' . $this->tableName . ' (
                 projection_name VARCHAR(255) NOT NULL,
@@ -71,14 +94,6 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
                 last_position TEXT NOT NULL,
                 PRIMARY KEY (projection_name, partition_key)
             )'
-        );
-    }
-
-    public function deleteState(string $projectionName): void
-    {
-        $this->connection->executeStatement(
-            'DELETE FROM ' . $this->tableName . ' WHERE projection_name = :projectionName',
-            ['projectionName' => $projectionName]
         );
     }
 }

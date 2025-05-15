@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Projecting;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;

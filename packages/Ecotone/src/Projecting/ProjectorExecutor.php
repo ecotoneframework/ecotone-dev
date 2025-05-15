@@ -10,5 +10,9 @@ use Ecotone\Modelling\Event;
 
 interface ProjectorExecutor
 {
-    public function project(Event $event): void;
+    /**
+     * @param mixed|null $userState
+     * @return mixed the new user state
+     */
+    public function project(Event $event, mixed $userState = null): mixed;
 }

@@ -21,6 +21,7 @@ class Ticket
 
     public const STREAM_NAME = 'ticket_stream_for_projecting_tests';
     public const ASSIGN_COMMAND = 'ticket.assign_ticket';
+    public const UNASSIGN_COMMAND = 'ticket.unassign_ticket';
 
     #[Identifier]
     public string $ticketId;
@@ -35,6 +36,12 @@ class Ticket
     public function assign(): array
     {
         return [new TicketAssigned($this->ticketId)];
+    }
+
+    #[CommandHandler(self::UNASSIGN_COMMAND)]
+    public function unassign(): array
+    {
+        return [new TicketUnassigned($this->ticketId)];
     }
 
     #[EventSourcingHandler]

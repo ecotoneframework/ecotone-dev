@@ -14,9 +14,10 @@ class InMemoryProjector implements ProjectorExecutor, Countable
 {
     private array $projectedEvents = [];
 
-    public function project(Event $event): void
+    public function project(Event $event, mixed $userState = null): mixed
     {
         $this->projectedEvents[] = $event;
+        return $userState;
     }
 
     public function getProjectedEvents(): array

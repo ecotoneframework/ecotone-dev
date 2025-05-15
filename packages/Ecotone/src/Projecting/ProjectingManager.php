@@ -29,10 +29,15 @@ class ProjectingManager
 
         $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->maxCount, $partitionKey);
 
+        $userState = $projectionState->userState;
         foreach ($streamPage->events as $event) {
-            $this->projectorExecutor->project($event);
+            $userState = $this->projectorExecutor->project($event, $userState);
         }
 
-        $this->projectionStateStorage->saveState($projectionState->withLastPosition($streamPage->lastPosition));
+        $this->projectionStateStorage->saveState(
+            $projectionState
+                ->withLastPosition($streamPage->lastPosition)
+                ->withUserState($userState)
+        );
     }
 }

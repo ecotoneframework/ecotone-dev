@@ -103,6 +103,8 @@ class ProjectingModule implements AnnotationModule
         $projectingConfiguration = ExtensionObjectResolver::resolveUnique(ProjectingConfiguration::class, $extensionObjects, ProjectingConfiguration::createInMemory());
         /** @var array<string, array<string, string>> $eventToChannelMapping first key is projection name - key is event name - value is channel name */
         $eventToChannelMapping = [];
+        /** @var array<string, array<string, bool>> $eventToChannelDoesReturnStateMapping first key is projection name - key is event name - value is boolean if channel returns state */
+        $eventToChannelDoesReturnStateMapping = [];
 
         /** @var array<string, Projection> $projectionAttributes */
         $projectionAttributes = [];
@@ -116,8 +118,10 @@ class ProjectingModule implements AnnotationModule
             $eventName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry);
             $eventHandlerTriggeringInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($projectionEventHandler);
             $eventHandlerSynchronousInputChannel = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) ? $this->asynchronousModule->getSynchronousChannelFor($eventHandlerTriggeringInputChannel, $handlerAttribute->getEndpointId()) : $eventHandlerTriggeringInputChannel;
+            $isReturningUserState = $interfaceToCallRegistry->getFor($projectionEventHandler->getClassName(), $projectionEventHandler->getMethodName())->canReturnValue();
 
             $eventToChannelMapping[$projectionAttribute->name][$eventName] = $eventHandlerSynchronousInputChannel;
+            $eventToChannelDoesReturnStateMapping[$projectionAttribute->name][$eventName] = $isReturningUserState;
             $projectionAttributes[$projectionAttribute->name] = $projectionAttribute;
 
             $messagingConfiguration->registerMessageHandler(
@@ -137,6 +141,7 @@ class ProjectingModule implements AnnotationModule
             $projector = new Definition(EcotoneProjectorExecutor::class, [
                 new Reference(MessagingEntrypoint::class),
                 $eventToChannelMap,
+                $eventToChannelDoesReturnStateMapping[$projectionName],
             ]);
 
             $projectingManager = new Definition(ProjectingManager::class, [

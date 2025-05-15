@@ -37,6 +37,8 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionBuilder;
+use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionEventHandlerConfiguration;
 use Ecotone\Projecting\Dbal\DbalProjectionLifecycleStateStorage;
 use Ecotone\Projecting\Dbal\DbalProjectionStateStorage;
 use Ecotone\Projecting\EcotoneProjectorExecutor;
@@ -100,55 +102,20 @@ class ProjectingModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
-        $projectingConfiguration = ExtensionObjectResolver::resolveUnique(ProjectingConfiguration::class, $extensionObjects, ProjectingConfiguration::createInMemory());
-        /** @var array<string, array<string, string>> $eventToChannelMapping first key is projection name - key is event name - value is channel name */
-        $eventToChannelMapping = [];
-        /** @var array<string, array<string, bool>> $eventToChannelDoesReturnStateMapping first key is projection name - key is event name - value is boolean if channel returns state */
-        $eventToChannelDoesReturnStateMapping = [];
+        $projectionBuilders = ExtensionObjectResolver::resolve(ProjectionBuilder::class, $extensionObjects);
 
-        /** @var array<string, Projection> $projectionAttributes */
-        $projectionAttributes = [];
-
-        foreach ($this->projectionEventHandlers as $projectionEventHandler) {
-            /** @var Projection $projectionAttribute */
-            $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
-            /** @var EventHandler $handlerAttribute */
-            $handlerAttribute = $projectionEventHandler->getAnnotationForMethod();
-
-            $eventName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry);
-            $eventHandlerTriggeringInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($projectionEventHandler);
-            $eventHandlerSynchronousInputChannel = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) ? $this->asynchronousModule->getSynchronousChannelFor($eventHandlerTriggeringInputChannel, $handlerAttribute->getEndpointId()) : $eventHandlerTriggeringInputChannel;
-            $isReturningUserState = $interfaceToCallRegistry->getFor($projectionEventHandler->getClassName(), $projectionEventHandler->getMethodName())->canReturnValue();
-
-            $eventToChannelMapping[$projectionAttribute->name][$eventName] = $eventHandlerSynchronousInputChannel;
-            $eventToChannelDoesReturnStateMapping[$projectionAttribute->name][$eventName] = $isReturningUserState;
-            $projectionAttributes[$projectionAttribute->name] = $projectionAttribute;
-
-            $messagingConfiguration->registerMessageHandler(
-                BridgeBuilder::create()
-                    ->withInputChannelName($eventName)
-                    ->withOutputMessageChannel($this->inputChannelForProjectingManager($projectionAttribute->name))
-                    ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($projectionEventHandler)->toAttributeDefinition()])
-            );
-        }
-
-        foreach ($eventToChannelMapping as $projectionName => $eventToChannelMap) {
-            $projectionAttribute = $projectionAttributes[$projectionName];
-            if ($projectionAttribute->streamSourceReference === null) {
-                continue;
-            }
-
+        foreach ($projectionBuilders as $projectionBuilder) {
+            $projectionName = $projectionBuilder->projectionName;
             $projector = new Definition(EcotoneProjectorExecutor::class, [
                 new Reference(MessagingEntrypoint::class),
-                $eventToChannelMap,
-                $eventToChannelDoesReturnStateMapping[$projectionName],
+                $projectionBuilder->projectionEventHandlers,
             ]);
 
             $projectingManager = new Definition(ProjectingManager::class, [
                 new Reference(ProjectionStateStorage::class),
                 new Reference(LifecycleManager::class),
                 $projector,
-                new Reference($projectionAttribute->streamSourceReference),
+                new Reference($projectionBuilder->streamSourceReferenceName),
                 $projectionName,
             ]);
 
@@ -166,18 +133,31 @@ class ProjectingModule implements AnnotationModule
                     ->withEndpointId($this->endpointIdForProjection($projectionName))
                     ->withInputChannelName($this->inputChannelForProjectingManager($projectionName))
             );
+
+            // Triggering events for this projection
+            foreach ($projectionBuilder->projectionEventTriggers as $eventName => $priority) {
+                $messagingConfiguration->registerMessageHandler(
+                    BridgeBuilder::create()
+                        ->withInputChannelName($eventName)
+                        ->withOutputMessageChannel($this->inputChannelForProjectingManager($projectionName))
+                        ->withEndpointAnnotations([$priority->toAttributeDefinition()])
+                );
+            }
+
+            // Should the projection be triggered asynchronously?
             if (
                 $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE)
-                && isset($this->asynchronousProjectionChannels[$projectionName])
+                && $projectionBuilder->asynchronousChannelName !== null
             ) {
                 $messagingConfiguration->registerAsynchronousEndpoint(
-                    $this->asynchronousProjectionChannels[$projectionName],
+                    $projectionBuilder->asynchronousChannelName,
                     $this->endpointIdForProjection($projectionName),
                 );
             }
         }
 
         // Register projection state implementations
+        $projectingConfiguration = ExtensionObjectResolver::resolveUnique(ProjectingConfiguration::class, $extensionObjects, ProjectingConfiguration::createInMemory());
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateStorage::class,
             match ($projectingConfiguration->projectionStateStorageReference) {
@@ -218,12 +198,55 @@ class ProjectingModule implements AnnotationModule
     {
         return $extensionObject instanceof ServiceConfiguration
             || $extensionObject instanceof ProjectingConfiguration
-            || $extensionObject instanceof StreamSourceBuilder;
+            || $extensionObject instanceof StreamSourceBuilder
+            || $extensionObject instanceof ProjectionBuilder;
     }
 
-    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions, ?InterfaceToCallRegistry $interfaceToCallRegistry = null): array
     {
-        return [];
+        /** @var array<string, array<string, string>> $eventToChannelMapping first key is projection name - key is event name - value is channel name */
+        $eventToChannelMapping = [];
+        /** @var array<string, array<string, bool>> $eventToChannelDoesReturnStateMapping first key is projection name - key is event name - value is boolean if channel returns state */
+        $eventToChannelDoesReturnStateMapping = [];
+
+        /** @var array<string, Projection> $projectionAttributes */
+        $projectionAttributes = [];
+        $projectionsEventHandlersConfiguration = [];
+        $projectionsEventTriggeringPriority = [];
+
+        foreach ($this->projectionEventHandlers as $projectionEventHandler) {
+            /** @var Projection $projectionAttribute */
+            $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
+            /** @var EventHandler $handlerAttribute */
+            $handlerAttribute = $projectionEventHandler->getAnnotationForMethod();
+
+            $eventName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry);
+            $eventHandlerTriggeringInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($projectionEventHandler);
+            $eventHandlerSynchronousInputChannel = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) ? $this->asynchronousModule->getSynchronousChannelFor($eventHandlerTriggeringInputChannel, $handlerAttribute->getEndpointId()) : $eventHandlerTriggeringInputChannel;
+            $isReturningUserState = $interfaceToCallRegistry->getFor($projectionEventHandler->getClassName(), $projectionEventHandler->getMethodName())->canReturnValue();
+
+            $eventToChannelMapping[$projectionAttribute->name][$eventName] = $eventHandlerSynchronousInputChannel;
+            $eventToChannelDoesReturnStateMapping[$projectionAttribute->name][$eventName] = $isReturningUserState;
+            $projectionAttributes[$projectionAttribute->name] = $projectionAttribute;
+            $projectionsEventHandlersConfiguration[$projectionAttribute->name][$eventName] = new ProjectionEventHandlerConfiguration(
+                $eventHandlerSynchronousInputChannel,
+                $isReturningUserState,
+            );
+            $projectionsEventTriggeringPriority[$projectionAttribute->name][$eventName] = PriorityBasedOnType::fromAnnotatedFinding($projectionEventHandler);
+        }
+
+        $projectionBuilders = [];
+        foreach ($eventToChannelMapping as $projectionName => $eventToChannelMap) {
+            $projectionBuilders[] = new ProjectionBuilder(
+                $projectionName,
+                $projectionAttributes[$projectionName]->streamSourceReference,
+                $projectionsEventHandlersConfiguration[$projectionName],
+                $this->asynchronousProjectionChannels[$projectionName],
+                $projectionsEventTriggeringPriority[$projectionName],
+            );
+        }
+
+        return $projectionBuilders;
     }
 
     public function getModulePackageName(): string

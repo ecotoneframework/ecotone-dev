@@ -8,24 +8,23 @@ namespace Ecotone\Projecting;
 
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Modelling\Event;
+use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionEventHandlerConfiguration;
 
 class EcotoneProjectorExecutor implements ProjectorExecutor
 {
     /**
-     * @param array<string, string> $eventToChannelMapping key is event name, value is channel name
-     * @param array<string, bool> $eventToChannelDoesReturnStateMapping key is event name, value is true if the channel returns state
+     * @param array<string, ProjectionEventHandlerConfiguration> $projectionEventHandlers key is event name
      */
     public function __construct(
         private MessagingEntrypoint $messagingEntrypoint,
-        private array $eventToChannelMapping,
-        private array $eventToChannelDoesReturnStateMapping,
+        private array $projectionEventHandlers,
     ) {
     }
 
     public function project(Event $event, mixed $userState = null): mixed
     {
-        $channel = $this->eventToChannelMapping[$event->getEventName()] ?? null;
-        if (!$channel) {
+        $projectionEventHandler = $this->projectionEventHandlers[$event->getEventName()] ?? null;
+        if (!$projectionEventHandler) {
             return $userState;
         }
         $metadata = $event->getMetadata();
@@ -34,10 +33,10 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         $newUserState = $this->messagingEntrypoint->sendWithHeaders(
             $event->getPayload(),
             $metadata,
-            $channel,
+            $projectionEventHandler->channelName,
         );
 
-        if ($this->eventToChannelDoesReturnStateMapping[$event->getEventName()] ?? false) {
+        if ($projectionEventHandler->doesItReturnsUserState) {
             return $newUserState;
         } else {
             return $userState;

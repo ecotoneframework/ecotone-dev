@@ -67,7 +67,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
             : $dbalConnectionFactory;
     }
 
-    public function getConnection(): Connection
+    public static function getConnection(): Connection
     {
         return self::getConnectionFactory()->createContext()->getDbalConnection();
     }

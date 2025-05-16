@@ -6,7 +6,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config;
 
-use Doctrine\DBAL\Connection;
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
@@ -16,7 +15,6 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -45,13 +43,11 @@ use Ecotone\Projecting\EcotoneProjectorExecutor;
 use Ecotone\Projecting\InMemory\InMemoryProjectionLifecycleStateStorage;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
 use Ecotone\Projecting\Lifecycle\EcotoneLifecycleExecutor;
-use Ecotone\Projecting\Lifecycle\LifecycleExecutor;
 use Ecotone\Projecting\Lifecycle\LifecycleManager;
 use Ecotone\Projecting\Lifecycle\ProjectionLifecycleStateStorage;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Test\Ecotone\EventSourcing\Fixture\TicketWithLimitedLoad\ProjectionConfiguration;
 
 #[ModuleAnnotation]
 class ProjectingModule implements AnnotationModule
@@ -68,7 +64,6 @@ class ProjectingModule implements AnnotationModule
         private array $projectionInitHandlers,
         private array $projectionResetHandlers,
         private array $projectionDeleteHandlers,
-        private AsynchronousModule $asynchronousModule,
         private array $asynchronousProjectionChannels,
     ) {
     }
@@ -94,7 +89,6 @@ class ProjectingModule implements AnnotationModule
             $projectionInitHandlers,
             $projectionResetHandlers,
             $projectionDeleteHandlers,
-            AsynchronousModule::create($annotationRegistrationService, $interfaceToCallRegistry),
             $asynchronousProjectionChannels,
         );
     }
@@ -221,15 +215,14 @@ class ProjectingModule implements AnnotationModule
             $handlerAttribute = $projectionEventHandler->getAnnotationForMethod();
 
             $eventName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry);
-            $eventHandlerTriggeringInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($projectionEventHandler);
-            $eventHandlerSynchronousInputChannel = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) ? $this->asynchronousModule->getSynchronousChannelFor($eventHandlerTriggeringInputChannel, $handlerAttribute->getEndpointId()) : $eventHandlerTriggeringInputChannel;
+            $eventHandlerInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($projectionEventHandler);
             $isReturningUserState = $interfaceToCallRegistry->getFor($projectionEventHandler->getClassName(), $projectionEventHandler->getMethodName())->canReturnValue();
 
-            $eventToChannelMapping[$projectionAttribute->name][$eventName] = $eventHandlerSynchronousInputChannel;
+            $eventToChannelMapping[$projectionAttribute->name][$eventName] = $eventHandlerInputChannel;
             $eventToChannelDoesReturnStateMapping[$projectionAttribute->name][$eventName] = $isReturningUserState;
             $projectionAttributes[$projectionAttribute->name] = $projectionAttribute;
             $projectionsEventHandlersConfiguration[$projectionAttribute->name][$eventName] = new ProjectionEventHandlerConfiguration(
-                $eventHandlerSynchronousInputChannel,
+                $eventHandlerInputChannel,
                 $isReturningUserState,
             );
             $projectionsEventTriggeringPriority[$projectionAttribute->name][$eventName] = PriorityBasedOnType::fromAnnotatedFinding($projectionEventHandler);

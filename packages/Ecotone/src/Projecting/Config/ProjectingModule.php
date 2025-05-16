@@ -128,7 +128,7 @@ class ProjectingModule implements AnnotationModule
                     ->withInputChannelName($this->inputChannelForProjectingManager($projectionName))
             );
 
-            // Triggering events for this projection
+            // Connect projection trigger channel to event bus
             foreach ($projectionBuilder->projectionEventTriggers as $eventName => $priority) {
                 $messagingConfiguration->registerMessageHandler(
                     BridgeBuilder::create()
@@ -200,8 +200,6 @@ class ProjectingModule implements AnnotationModule
     {
         /** @var array<string, array<string, string>> $eventToChannelMapping first key is projection name - key is event name - value is channel name */
         $eventToChannelMapping = [];
-        /** @var array<string, array<string, bool>> $eventToChannelDoesReturnStateMapping first key is projection name - key is event name - value is boolean if channel returns state */
-        $eventToChannelDoesReturnStateMapping = [];
 
         /** @var array<string, Projection> $projectionAttributes */
         $projectionAttributes = [];
@@ -211,15 +209,12 @@ class ProjectingModule implements AnnotationModule
         foreach ($this->projectionEventHandlers as $projectionEventHandler) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
-            /** @var EventHandler $handlerAttribute */
-            $handlerAttribute = $projectionEventHandler->getAnnotationForMethod();
 
             $eventName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry);
             $eventHandlerInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($projectionEventHandler);
             $isReturningUserState = $interfaceToCallRegistry->getFor($projectionEventHandler->getClassName(), $projectionEventHandler->getMethodName())->canReturnValue();
 
             $eventToChannelMapping[$projectionAttribute->name][$eventName] = $eventHandlerInputChannel;
-            $eventToChannelDoesReturnStateMapping[$projectionAttribute->name][$eventName] = $isReturningUserState;
             $projectionAttributes[$projectionAttribute->name] = $projectionAttribute;
             $projectionsEventHandlersConfiguration[$projectionAttribute->name][$eventName] = new ProjectionEventHandlerConfiguration(
                 $eventHandlerInputChannel,

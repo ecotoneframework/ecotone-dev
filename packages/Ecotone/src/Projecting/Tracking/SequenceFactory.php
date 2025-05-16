@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\Prooph\Projecting;
+namespace Ecotone\Projecting\Tracking;
 
 use Ecotone\Modelling\Event;
 

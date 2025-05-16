@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\Prooph\Projecting\SequenceAccessor;
+namespace Ecotone\Projecting\Tracking\SequenceAccessor;
 
 use Ecotone\Messaging\Support\Assert;
 

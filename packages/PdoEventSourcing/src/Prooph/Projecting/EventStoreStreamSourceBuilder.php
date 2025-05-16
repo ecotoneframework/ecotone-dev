@@ -7,11 +7,9 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Prooph\Projecting;
 
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\Prooph\Projecting\SequenceAccessor\GlobalSequenceFactory;
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Projecting\Tracking\SequenceAccessor\GlobalSequenceFactory;
 
 class EventStoreStreamSourceBuilder
 {

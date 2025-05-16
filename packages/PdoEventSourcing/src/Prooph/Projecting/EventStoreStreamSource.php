@@ -10,6 +10,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
+use Ecotone\Projecting\Tracking\SequenceFactory;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
 

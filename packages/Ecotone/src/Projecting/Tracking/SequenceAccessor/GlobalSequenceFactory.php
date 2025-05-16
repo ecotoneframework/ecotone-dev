@@ -4,10 +4,10 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\Prooph\Projecting\SequenceAccessor;
+namespace Ecotone\Projecting\Tracking\SequenceAccessor;
 
-use Ecotone\EventSourcing\Prooph\Projecting\SequenceTracker;
-use Ecotone\EventSourcing\Prooph\Projecting\SequenceFactory;
+use Ecotone\Projecting\Tracking\SequenceFactory;
+use Ecotone\Projecting\Tracking\SequenceTracker;
 
 class GlobalSequenceFactory implements SequenceFactory
 {

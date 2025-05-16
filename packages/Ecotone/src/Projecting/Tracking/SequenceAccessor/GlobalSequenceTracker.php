@@ -4,10 +4,10 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\Prooph\Projecting\SequenceAccessor;
+namespace Ecotone\Projecting\Tracking\SequenceAccessor;
 
-use Ecotone\EventSourcing\Prooph\Projecting\SequenceTracker;
 use Ecotone\Modelling\Event;
+use Ecotone\Projecting\Tracking\SequenceTracker;
 
 class GlobalSequenceTracker implements SequenceTracker
 {

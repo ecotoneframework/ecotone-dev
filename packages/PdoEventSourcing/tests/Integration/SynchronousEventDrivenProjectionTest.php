@@ -58,6 +58,8 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
 
+        $ecotone->deleteProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
+
         $ecotone->sendCommand(new CloseTicket('123'));
         $ecotone->sendCommand(new RegisterTicket('124', 'Johnny', 'info'));
 

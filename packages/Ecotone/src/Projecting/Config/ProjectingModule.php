@@ -229,7 +229,7 @@ class ProjectingModule implements AnnotationModule
                 $projectionName,
                 $projectionAttributes[$projectionName]->streamSourceReference,
                 $projectionsEventHandlersConfiguration[$projectionName],
-                $this->asynchronousProjectionChannels[$projectionName],
+                $this->asynchronousProjectionChannels[$projectionName] ?? null,
                 $projectionsEventTriggeringPriority[$projectionName],
             );
         }

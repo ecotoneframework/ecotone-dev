@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting;
 
-use Ecotone\EventSourcing\Prooph\Projecting\EventStoreStreamSourceBuilder;
+use Ecotone\EventSourcing\Prooph\Projecting\EventStoreAggregateStreamSourceBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
@@ -33,7 +33,7 @@ class DbalIntegrationTest extends TestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory()
             ],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new EventStoreStreamSourceBuilder('ticket_stream_source', Ticket::STREAM_NAME))
+                ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder('ticket_stream_source', Ticket::class, Ticket::STREAM_NAME))
                 ->addExtensionObject(ProjectingConfiguration::createDbal())
             ,
             runForProductionEventStore: true,
@@ -71,7 +71,7 @@ class DbalIntegrationTest extends TestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory()
             ],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new EventStoreStreamSourceBuilder('ticket_stream_source', Ticket::STREAM_NAME))
+                ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder('ticket_stream_source', Ticket::class, Ticket::STREAM_NAME))
                 ->addExtensionObject(ProjectingConfiguration::createDbal())
             ,
             runForProductionEventStore: true,

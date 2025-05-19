@@ -58,7 +58,7 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
         }
 
         $connection = $context->getDbalConnection();
-        $isConnected = $connection->isConnected() && $this->ping($connection);
+        $isConnected = $connection->isConnected();
 
         return ! $isConnected;
     }
@@ -110,23 +110,7 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
         ) {
             return $connection->getConnection();
         } else {
-            $reflectionClass   = new ReflectionClass($connection);
-            $method = $reflectionClass->getMethod('establishConnection');
-            $method->setAccessible(true);
-            $method->invoke($connection);
-
-            foreach ($reflectionClass->getProperties() as $property) {
-                foreach (self::CONNECTION_PROPERTIES as $connectionPropertyName) {
-                    if ($property->getName() === $connectionPropertyName) {
-                        $connectionProperty = $reflectionClass->getProperty($connectionPropertyName);
-                        $connectionProperty->setAccessible(true);
-                        /** @var Connection $connection */
-                        return $connectionProperty->getValue($connection);
-                    }
-                }
-            }
-
-            throw InvalidArgumentException::create('Did not found connection property in ' . $reflectionClass->getName());
+            return $connection->establishConnection();
         }
     }
 }

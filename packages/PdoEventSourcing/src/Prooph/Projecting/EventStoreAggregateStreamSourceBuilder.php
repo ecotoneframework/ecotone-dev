@@ -11,19 +11,19 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Projecting\Tracking\SequenceAccessor\GlobalSequenceFactory;
 
-class EventStoreStreamSourceBuilder
+class EventStoreAggregateStreamSourceBuilder
 {
-    public function __construct(public readonly string $streamSourceName, private ?string $streamName = null) {
+    public function __construct(public readonly string $streamSourceName, public string $aggregateType, private ?string $streamName = null) {
     }
 
     public function compile(): Definition|Reference
     {
         return new Definition(
-            EventStoreStreamSource::class,
+            EventStoreAggregateStreamSource::class,
             [
                 new Reference(EventStore::class),
                 $this->streamName ?? $this->streamSourceName,
-                new Definition(GlobalSequenceFactory::class),
+                $this->aggregateType,
             ],
         );
     }

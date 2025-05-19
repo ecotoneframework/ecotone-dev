@@ -4,7 +4,6 @@ use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Monorepo\ExampleAppEventSourcing\Common\PriceChangeOverTimeProjection;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     return EcotoneLiteApplication::bootstrap(

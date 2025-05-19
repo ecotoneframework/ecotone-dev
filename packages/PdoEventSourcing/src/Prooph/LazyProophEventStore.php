@@ -296,7 +296,7 @@ class LazyProophEventStore implements EventStore
         return $eventStoreType;
     }
 
-    public function getConnection(): \Doctrine\DBAL\Connection
+    private function getConnection(): \Doctrine\DBAL\Connection
     {
         $connectionFactory = new DbalReconnectableConnectionFactory($this->connectionFactory);
 

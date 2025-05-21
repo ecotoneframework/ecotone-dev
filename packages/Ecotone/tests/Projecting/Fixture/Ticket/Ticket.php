@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Test\Ecotone\Projecting\Fixture;
+namespace Test\Ecotone\Projecting\Fixture\Ticket;
 
 use Ecotone\EventSourcing\Attribute\Stream;
 use Ecotone\Modelling\Attribute\CommandHandler;

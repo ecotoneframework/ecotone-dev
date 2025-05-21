@@ -29,6 +29,7 @@ use Ecotone\EventSourcing\ProjectionStreamSource;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\EventSourcing\Prooph\Projecting\EventStoreAggregateStreamSourceBuilder;
+use Ecotone\EventSourcing\Prooph\Projecting\EventStoreGlobalStreamSourceBuilder;
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -38,6 +39,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
@@ -96,8 +98,9 @@ class EventSourcingModule extends NoExternalConfigurationModule
      * @param array<string, string> $namedEvents key is class name, value is event name
      * @param ServiceActivatorBuilder[] $projectionLifeCycleServiceActivators
      * @param GatewayProxyBuilder[] $projectionStateGateways
+     * @param Projection[] $projectionsWithNewProjectingSystem
      */
-    private function __construct(private array $projectionSetupConfigurations, private array $projectionEventHandlers, private array $namedEvents, private array $projectionLifeCycleServiceActivators, private AggregateStreamMapping $aggregateToStreamMapping, private AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways)
+    private function __construct(private array $projectionSetupConfigurations, private array $projectionEventHandlers, private array $projectionLifeCycleServiceActivators, private AggregateStreamMapping $aggregateToStreamMapping, private AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways, private array $projectionsWithNewProjectingSystem)
     {
     }
 
@@ -141,6 +144,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $projectionEventHandlers = $annotationRegistrationService->findCombined(Projection::class, EventHandler::class);
         $projectionSetupConfigurations = [];
         $projectionLifeCyclesServiceActivators = [];
+        $projectionsWithNewProjectingSystem = [];
 
         foreach ($projectionClassNames as $projectionClassName) {
             $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
@@ -160,6 +164,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
 
             if ($projectionAttribute->disableDefaultProjectionHandler === false) {
+                $projectionsWithNewProjectingSystem[] = $projectionAttribute;
                 continue;
             }
 
@@ -251,7 +256,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $namedEvents[$className] = $attribute->getName();
         }
 
-        return new self($projectionSetupConfigurations, $projectionEventHandlers, $namedEvents, $projectionLifeCyclesServiceActivators, AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $projectionStateGateways);
+        return new self($projectionSetupConfigurations, $projectionEventHandlers, $namedEvents, $projectionLifeCyclesServiceActivators, AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $projectionStateGateways, $projectionsWithNewProjectingSystem);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -305,7 +310,19 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     private function buildEventStoreStreamSourceBuilder(): array
     {
-        return [];
+        $builders = [];
+        foreach ($this->projectionsWithNewProjectingSystem as $projection) {
+            $streams = $projection->getFromStreams();
+            if (\count($streams) > 1) {
+                throw new ConfigurationException("Projection {$projection->getName()} can only be used with one stream. Found: " . implode(', ', $streams));
+            }
+            $stream = reset($streams);
+            $builders[] = new EventStoreGlobalStreamSourceBuilder(
+                $stream,
+                [$projection->getName()]
+            );
+        }
+        return $builders;
     }
 
     private function buildEventSourcingRepositoryBuilder(array $serviceExtensions): array

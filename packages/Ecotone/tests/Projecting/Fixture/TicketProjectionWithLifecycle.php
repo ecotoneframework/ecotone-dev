@@ -9,9 +9,10 @@ namespace Test\Ecotone\Projecting\Fixture;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
 
 #[Projection(self::NAME)]
-class ProjectionWithLifecycle
+class TicketProjectionWithLifecycle
 {
     public const NAME = 'projection_with_lifecycle';
     private bool $initialized = false;

@@ -9,6 +9,9 @@ namespace Test\Ecotone\Projecting\Fixture;
 use Ecotone\EventSourcing\Attribute\ProjectionState;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketAssigned;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketUnassigned;
 
 #[Projection(self::NAME)]
 class TicketProjection

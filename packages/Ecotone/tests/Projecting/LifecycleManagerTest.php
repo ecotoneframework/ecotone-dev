@@ -13,21 +13,21 @@ use Ecotone\Modelling\Event;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Projecting\Fixture\ProjectionWithLifecycle;
-use Test\Ecotone\Projecting\Fixture\TicketCreated;
+use Test\Ecotone\Projecting\Fixture\TicketProjectionWithLifecycle;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
 
 class LifecycleManagerTest extends TestCase
 {
     public function test_it_can_init_projection_lifecycle_state(): void
     {
         $streamSource = new InMemoryStreamSource();
-        $projection = new ProjectionWithLifecycle();
+        $projection = new TicketProjectionWithLifecycle();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [ProjectionWithLifecycle::class],
-            ['ticket_stream_source' => $streamSource, ProjectionWithLifecycle::class => $projection],
+            [TicketProjectionWithLifecycle::class],
+            ['ticket_stream_source' => $streamSource, TicketProjectionWithLifecycle::class => $projection],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new InMemoryStreamSourceBuilder([ProjectionWithLifecycle::NAME], 'ticket_stream_source'))
+                ->addExtensionObject(new InMemoryStreamSourceBuilder([TicketProjectionWithLifecycle::NAME], 'ticket_stream_source'))
         );
 
         $streamSource->append(

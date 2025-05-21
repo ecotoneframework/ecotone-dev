@@ -32,7 +32,11 @@ class GapAwarePosition
         Assert::isTrue(count($parts) === 2, 'Invalid position format. Expected "position:gaps"');
 
         $position = (int) $parts[0];
-        $gaps = array_map('intval', explode(',', $parts[1]));
+        if (empty($parts[1])) {
+            $gaps= [];
+        } else {
+            $gaps = array_map('intval', explode(',', $parts[1]));
+        }
 
         return new self($position, $gaps);
     }
@@ -57,6 +61,13 @@ class GapAwarePosition
 
     public function addGap(int $gap): void
     {
+        if ($gap > $this->position) {
+            throw new \InvalidArgumentException('Cannot add a gap greater than the current position. Current position: ' . $this->position . ', gap: ' . $gap);
+        }
+//        if ($gap === 0) {
+//            // ignore position 0
+//            return;
+//        }
         if (!in_array($gap, $this->gaps, true)) {
             $this->gaps[] = $gap;
             sort($this->gaps);
@@ -65,16 +76,19 @@ class GapAwarePosition
 
     public function advanceTo(int $position): void
     {
-        Assert::isTrue($position > $this->position, 'Position must be greater than current position');
-
         if ($position === $this->position + 1) {
             $this->position++;
-        } else {
+        } else if (\in_array($position, $this->gaps, true)) {
+            // if the position is already in gaps, remove it
+            $this->gaps = array_values(array_diff($this->gaps, [$position]));
+        } else if ($position > $this->position + 1) {
             // add all gaps between current position and new position
             for ($i = $this->position + 1; $i < $position; $i++) {
                 $this->addGap($i);
             }
             $this->position = $position;
+        } else {
+            throw new \InvalidArgumentException('Cannot advance to a position less than or equal to the current position. Current position: ' . $this->position . ', new position: ' . $position);
         }
     }
 }

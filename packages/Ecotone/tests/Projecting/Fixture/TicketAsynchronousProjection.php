@@ -9,10 +9,11 @@ namespace Test\Ecotone\Projecting\Fixture;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
 
 #[Projection(self::NAME)]
 #[Asynchronous(self::ASYNC_CHANNEL)]
-class AsynchronousProjection
+class TicketAsynchronousProjection
 {
     public const NAME = 'projection_with_async';
     public const ASYNC_CHANNEL = 'async_projection';

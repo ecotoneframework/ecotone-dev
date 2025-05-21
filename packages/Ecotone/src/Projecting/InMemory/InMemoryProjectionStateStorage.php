@@ -16,17 +16,13 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
     public function getState(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionState
     {
         $key = $this->getKey($projectionName, $partitionKey);
-        return new ProjectionState(
-            $projectionName,
-            $partitionKey,
-            $this->projectionStates[$key] ?? null
-        );
+        return $this->projectionStates[$key] ?? new ProjectionState($projectionName, $partitionKey);
     }
 
     public function saveState(ProjectionState $projectionState): void
     {
         $key = $this->getKey($projectionState->projectionName, $projectionState->partitionKey);
-        $this->projectionStates[$key] = $projectionState->lastPosition;
+        $this->projectionStates[$key] = $projectionState;
     }
 
     private function getKey(string $projectionName, ?string $partitionKey): string

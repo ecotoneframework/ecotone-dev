@@ -26,6 +26,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
@@ -124,8 +125,9 @@ class ProjectingModule implements AnnotationModule
         foreach ($projectionBuilders as $projectionBuilder) {
             $projectionName = $projectionBuilder->projectionName;
             $projector = new Definition(EcotoneProjectorExecutor::class, [
-                new Reference(MessagingEntrypoint::class),
+                new Reference(MessagingEntrypointWithHeadersPropagation::class), // Headers propagation is required for EventStreamEmitter
                 $projectionBuilder->projectionEventHandlers,
+                $projectionBuilder->projectionName,
             ]);
 
             if (!isset($projectionNameToStreamSourceReferenceMap[$projectionName])) {

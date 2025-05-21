@@ -13,7 +13,7 @@ use Ecotone\Modelling\Event;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Projecting\Fixture\TicketCreated;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\Projecting\Fixture\TicketProjection;
 
 class IntegrationTest extends TestCase

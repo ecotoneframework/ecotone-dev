@@ -9,25 +9,23 @@ namespace Test\Ecotone\Projecting;
 use Ecotone\EventSourcing\Prooph\Projecting\EventStoreAggregateStreamSourceBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Projecting\Config\ProjectingConfiguration;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Projecting\Fixture\CreateTicketCommand;
-use Test\Ecotone\Projecting\Fixture\Ticket;
-use Test\Ecotone\Projecting\Fixture\TicketAssigned;
-use Test\Ecotone\Projecting\Fixture\TicketCreated;
+use Test\Ecotone\Projecting\Fixture\Ticket\CreateTicketCommand;
+use Test\Ecotone\Projecting\Fixture\Ticket\Ticket;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketAssigned;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
+use Test\Ecotone\Projecting\Fixture\Ticket\TicketUnassigned;
 use Test\Ecotone\Projecting\Fixture\TicketProjection;
-use Test\Ecotone\Projecting\Fixture\TicketUnassigned;
 
 class DbalIntegrationTest extends TestCase
 {
     public function test_it_can_project_events(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [TicketProjection::class, Ticket::class],
+            [TicketProjection::class],
             [
                 TicketProjection::class => $projection = new TicketProjection(),
                 DbalConnectionFactory::class => $this->getConnectionFactory()
@@ -35,6 +33,7 @@ class DbalIntegrationTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder('ticket_stream_source', Ticket::class, Ticket::STREAM_NAME))
                 ->addExtensionObject(ProjectingConfiguration::createDbal())
+                ->withNamespaces(['Test\Ecotone\Projecting\Fixture\Ticket'])
             ,
             runForProductionEventStore: true,
         );

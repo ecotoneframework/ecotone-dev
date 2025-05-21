@@ -143,6 +143,28 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $projectionLifeCyclesServiceActivators = [];
 
         foreach ($projectionClassNames as $projectionClassName) {
+            $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
+            /** @var Projection $projectionAttribute */
+            $projectionAttribute = null;
+            /** @var Asynchronous|null $asynchronousChannelName */
+            $asynchronousChannelName = null;
+            foreach ($attributes as $attribute) {
+                if ($attribute instanceof Projection) {
+                    $projectionAttribute = $attribute;
+                }
+                if ($attribute instanceof Asynchronous) {
+                    $asynchronousChannelName = $attribute->getChannelName();
+                    Assert::isTrue(count($asynchronousChannelName) === 1, "Make use of single channel name in Asynchronous annotation for Projection: {$projectionClassName}");
+                    $asynchronousChannelName = array_pop($asynchronousChannelName);
+                }
+            }
+
+            if ($projectionAttribute->disableDefaultProjectionHandler === false) {
+                continue;
+            }
+
+            Assert::keyNotExists($projectionSetupConfigurations, $projectionAttribute->getName(), "Can't define projection with name {$projectionAttribute->getName()} twice");
+
             $referenceName = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $projectionClassName);
 
             $projectionLifeCycle = ProjectionLifeCycleConfiguration::create();
@@ -194,24 +216,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     }
                 }
             }
-
-            $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
-            /** @var Projection $projectionAttribute */
-            $projectionAttribute = null;
-            /** @var Asynchronous|null $asynchronousChannelName */
-            $asynchronousChannelName = null;
-            foreach ($attributes as $attribute) {
-                if ($attribute instanceof Projection) {
-                    $projectionAttribute = $attribute;
-                }
-                if ($attribute instanceof Asynchronous) {
-                    $asynchronousChannelName = $attribute->getChannelName();
-                    Assert::isTrue(count($asynchronousChannelName) === 1, "Make use of single channel name in Asynchronous annotation for Projection: {$projectionClassName}");
-                    $asynchronousChannelName = array_pop($asynchronousChannelName);
-                }
-            }
-
-            Assert::keyNotExists($projectionSetupConfigurations, $projectionAttribute->getName(), "Can't define projection with name {$projectionAttribute->getName()} twice");
 
             if ($projectionAttribute->isFromAll()) {
                 $projectionConfiguration = ProjectionSetupConfiguration::create(
@@ -281,15 +285,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerProjectionManager($messagingConfiguration, $eventSourcingConfiguration);
-
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof EventStoreAggregateStreamSourceBuilder) {
-                $messagingConfiguration->registerServiceDefinition(
-                    $extensionObject->streamSourceName,
-                    $extensionObject->compile(),
-                );
-            }
-        }
     }
 
     public function canHandle($extensionObject): bool
@@ -297,11 +292,23 @@ class EventSourcingModule extends NoExternalConfigurationModule
         return
             $extensionObject instanceof EventSourcingConfiguration
             || $extensionObject instanceof ProjectionRunningConfiguration
-            || $extensionObject instanceof ServiceConfiguration
-            || $extensionObject instanceof EventStoreAggregateStreamSourceBuilder;
+            || $extensionObject instanceof ServiceConfiguration;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        return array_merge(
+            $this->buildEventStoreStreamSourceBuilder(),
+            $this->buildEventSourcingRepositoryBuilder($serviceExtensions)
+        );
+    }
+
+    private function buildEventStoreStreamSourceBuilder(): array
+    {
+        return [];
+    }
+
+    private function buildEventSourcingRepositoryBuilder(array $serviceExtensions): array
     {
         foreach ($serviceExtensions as $serviceExtension) {
             if ($serviceExtension instanceof EventSourcingRepositoryBuilder) {

@@ -12,14 +12,14 @@ class ProjectionBuilder
 {
     /**
      * @param array<string, ProjectionEventHandlerConfiguration> $projectionEventHandlers key is event name
-     * @param array<string, Priority> $projectionEventTriggers key is event name
+     * @param array<string, Priority> $projectionEventTriggerPriorities key is event name
      */
     public function __construct(
-        public readonly string $projectionName,
-        public readonly string $streamSourceReferenceName,
-        public readonly array $projectionEventHandlers,
+        public readonly string  $projectionName,
+        public readonly array   $projectionEventHandlers,
         public readonly ?string $asynchronousChannelName,
-        public readonly array $projectionEventTriggers,
+        public readonly array   $projectionEventTriggerPriorities,
+        public readonly ?string $partitionHeaderName = null,
     )
     {
     }

@@ -15,22 +15,19 @@ use Ecotone\Projecting\Config\StreamSourceBuilder;
 class InMemoryStreamSourceBuilder implements StreamSourceBuilder
 {
     /**
-     * @param array<string, InMemoryStreamSource> $streams
+     * @param array<string> $streams projection names
      */
-    public function __construct(private array $streams)
+    public function __construct(private array $projectionNames, private string $referenceName)
     {
     }
 
-    public function canHandle(Projection $projection): bool
+    public function canHandle(string $projectionName): bool
     {
-        return isset($this->streams[$projection->streamSourceReference]);
+        return \in_array($projectionName, $this->projectionNames, true);
     }
 
-    /**
-     * @param non-empty-list<Projection> $projections
-     */
-    public function compile(MessagingContainerBuilder $builder, array $projections): Definition|Reference
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
-        return new Definition(InMemoryStreamSource::class);
+        return new Reference($this->referenceName);
     }
 }

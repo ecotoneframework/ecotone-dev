@@ -8,15 +8,21 @@ namespace Ecotone\EventSourcing\Prooph\Projecting;
 
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Projecting\Tracking\SequenceAccessor\GlobalSequenceFactory;
+use Ecotone\Projecting\Config\StreamSourceBuilder;
 
-class EventStoreAggregateStreamSourceBuilder
+class EventStoreAggregateStreamSourceBuilder implements StreamSourceBuilder
 {
     public function __construct(public readonly string $streamSourceName, public string $aggregateType, private ?string $streamName = null) {
     }
 
-    public function compile(): Definition|Reference
+    public function canHandle(string $projectionName): bool
+    {
+        return true;
+    }
+
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         return new Definition(
             EventStoreAggregateStreamSource::class,

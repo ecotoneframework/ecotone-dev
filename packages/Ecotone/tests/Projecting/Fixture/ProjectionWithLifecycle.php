@@ -10,9 +10,10 @@ use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
 
-#[Projection('projection_with_lifecycle', 'ticket_stream_source')]
+#[Projection(self::NAME)]
 class ProjectionWithLifecycle
 {
+    public const NAME = 'projection_with_lifecycle';
     private bool $initialized = false;
     private array $projectedEvents = [];
     #[EventHandler]

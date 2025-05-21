@@ -17,6 +17,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -28,6 +29,7 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
@@ -48,6 +50,7 @@ use Ecotone\Projecting\Lifecycle\ProjectionLifecycleStateStorage;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Ramsey\Uuid\Uuid;
 
 #[ModuleAnnotation]
 class ProjectingModule implements AnnotationModule
@@ -97,6 +100,26 @@ class ProjectingModule implements AnnotationModule
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $projectionBuilders = ExtensionObjectResolver::resolve(ProjectionBuilder::class, $extensionObjects);
+        $streamSourceBuilders = ExtensionObjectResolver::resolve(StreamSourceBuilder::class, $extensionObjects);
+
+        /** @var array<string, string> $projectionNameToStreamSourceReferenceMap */
+        $projectionNameToStreamSourceReferenceMap = [];
+        foreach ($streamSourceBuilders as $streamSourceBuilder) {
+            $reference = Uuid::uuid4()->toString();
+            $moduleReferenceSearchService->store($reference, $streamSourceBuilder);
+            foreach ($projectionBuilders as $projectionBuilder) {
+                if ($streamSourceBuilder->canHandle($projectionBuilder->projectionName)) {
+                    if (isset($projectionNameToStreamSourceReferenceMap[$projectionBuilder->projectionName])) {
+                        throw ConfigurationException::create(
+                            "Projection with name {$projectionBuilder->projectionName} is already registered for stream source with reference {$projectionNameToStreamSourceReferenceMap[$projectionBuilder->projectionName]}."
+                            . " You can only register one stream source per projection. Please check your configuration."
+                        );
+                    }
+                    $projectionNameToStreamSourceReferenceMap[$projectionBuilder->projectionName] = $reference;
+                    break;
+                }
+            }
+        }
 
         foreach ($projectionBuilders as $projectionBuilder) {
             $projectionName = $projectionBuilder->projectionName;
@@ -105,11 +128,17 @@ class ProjectingModule implements AnnotationModule
                 $projectionBuilder->projectionEventHandlers,
             ]);
 
+            if (!isset($projectionNameToStreamSourceReferenceMap[$projectionName])) {
+                throw ConfigurationException::create(
+                    "Projection with name {$projectionName} is not registered for any stream source. Please check your configuration."
+                );
+            }
+
             $projectingManager = new Definition(ProjectingManager::class, [
                 new Reference(ProjectionStateStorage::class),
                 new Reference(LifecycleManager::class),
                 $projector,
-                new Reference($projectionBuilder->streamSourceReferenceName),
+                new Reference($projectionNameToStreamSourceReferenceMap[$projectionName]),
                 $projectionName,
             ]);
 
@@ -120,7 +149,9 @@ class ProjectingModule implements AnnotationModule
                             $projectingManager,
                             InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
                             [
-                                HeaderBuilder::create('partitionKey', MessageHeaders::EVENT_AGGREGATE_ID)
+                                $projectionBuilder->partitionHeaderName
+                                    ? HeaderBuilder::create('partitionKey', $projectionBuilder->partitionHeaderName)
+                                    : ValueBuilder::create('partitionKey', null),
                             ],
                         )
                     )
@@ -129,7 +160,7 @@ class ProjectingModule implements AnnotationModule
             );
 
             // Connect projection trigger channel to event bus
-            foreach ($projectionBuilder->projectionEventTriggers as $eventName => $priority) {
+            foreach ($projectionBuilder->projectionEventTriggerPriorities as $eventName => $priority) {
                 $messagingConfiguration->registerMessageHandler(
                     BridgeBuilder::create()
                         ->withInputChannelName($eventName)
@@ -209,6 +240,9 @@ class ProjectingModule implements AnnotationModule
         foreach ($this->projectionEventHandlers as $projectionEventHandler) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
+            if ($projectionAttribute->disableDefaultProjectionHandler) {
+                continue;
+            }
 
             $eventName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($projectionEventHandler, $interfaceToCallRegistry);
             $eventHandlerInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($projectionEventHandler);
@@ -227,10 +261,10 @@ class ProjectingModule implements AnnotationModule
         foreach ($eventToChannelMapping as $projectionName => $eventToChannelMap) {
             $projectionBuilders[] = new ProjectionBuilder(
                 $projectionName,
-                $projectionAttributes[$projectionName]->streamSourceReference,
                 $projectionsEventHandlersConfiguration[$projectionName],
                 $this->asynchronousProjectionChannels[$projectionName] ?? null,
                 $projectionsEventTriggeringPriority[$projectionName],
+                $projectionAttributes[$projectionName]->partitionHeaderName,
             );
         }
 

@@ -6,17 +6,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config;
 
-use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 
-interface StreamSourceBuilder
+interface StreamSourceBuilder extends CompilableBuilder
 {
-    public function canHandle(Projection $projection): bool;
-
-    /**
-     * @param non-empty-list<Projection> $projections
-     */
-    public function compile(MessagingContainerBuilder $builder, array $projections): Definition|Reference;
+    public function canHandle(string $projectionName): bool;
 }

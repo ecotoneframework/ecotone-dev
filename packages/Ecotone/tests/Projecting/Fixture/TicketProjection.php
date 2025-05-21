@@ -10,7 +10,7 @@ use Ecotone\EventSourcing\Attribute\ProjectionState;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
 
-#[Projection(self::NAME, 'ticket_stream_source')]
+#[Projection(self::NAME)]
 class TicketProjection
 {
     public const NAME = 'ticket_projection';

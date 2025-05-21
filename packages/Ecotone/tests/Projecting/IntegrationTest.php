@@ -11,6 +11,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
+use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Projecting\Fixture\TicketCreated;
 use Test\Ecotone\Projecting\Fixture\TicketProjection;
@@ -25,6 +26,8 @@ class IntegrationTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [TicketProjection::class],
             ['ticket_stream_source' => $streamSource, TicketProjection::class => $projection],
+            ServiceConfiguration::createWithDefaults()
+                ->addExtensionObject(new InMemoryStreamSourceBuilder([TicketProjection::NAME], 'ticket_stream_source'))
         );
 
         $streamSource->append(

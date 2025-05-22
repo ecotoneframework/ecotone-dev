@@ -6,11 +6,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
-use Ecotone\Messaging\Handler\Router\BusRoutingConfig;
+use Ecotone\Messaging\Handler\Router\BusRoutingConfigBuilder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-class RoutingConfigTest extends TestCase
+class BusRoutingConfigTest extends TestCase
 {
     public static function optimizedProvider(): iterable
     {
@@ -18,9 +18,9 @@ class RoutingConfigTest extends TestCase
         yield 'optimized' => [true];
     }
 
-    public static function routingConfig(bool $isOptimized): BusRoutingConfig
+    public static function routingConfig(bool $isOptimized): BusRoutingConfigBuilder
     {
-        $routingConfig = new BusRoutingConfig();
+        $routingConfig = new BusRoutingConfigBuilder();
         $routingConfig->addObjectRoute(AClass::class, 'AClassRouteChannel1', 3);
         $routingConfig->addObjectRoute(AClass::class, 'AClassRouteChannel2', 2);
         $routingConfig->addCatchAllRoute('CatchAllRouteChannel', -2);

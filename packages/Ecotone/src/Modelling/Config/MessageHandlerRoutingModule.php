@@ -28,6 +28,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
+use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
@@ -171,42 +172,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
         return $namedCommandHandlers;
     }
 
-    public static function getQueryBusByObjectsMapping(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry, array &$uniqueChannels = []): array
-    {
-        $objectQueryHandlers = [];
-        foreach ($annotationRegistrationService->findCombined(Aggregate::class, QueryHandler::class) as $registration) {
-            if (self::hasMessageNameDefined($registration)) {
-                continue;
-            }
-
-            $classChannel = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
-            if ($classChannel) {
-                $objectQueryHandlers[$classChannel][] = self::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
-                $objectQueryHandlers[$classChannel]   = array_unique($objectQueryHandlers[$classChannel]);
-                $uniqueChannels[$classChannel][]      = $registration;
-            }
-        }
-        foreach ($annotationRegistrationService->findAnnotatedMethods(QueryHandler::class) as $registration) {
-            if ($registration->hasClassAnnotation(Aggregate::class)) {
-                continue;
-            }
-            if (self::hasMessageNameDefined($registration)) {
-                continue;
-            }
-
-            $classChannel = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
-            if ($classChannel) {
-                $objectQueryHandlers[$classChannel][] = self::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
-                $objectQueryHandlers[$classChannel]   = array_unique($objectQueryHandlers[$classChannel]);
-                $uniqueChannels[$classChannel][]      = $registration;
-            }
-        }
-
-        self::verifyUniqueness($uniqueChannels);
-
-        return $objectQueryHandlers;
-    }
-
     public static function getFirstParameterClassIfAny(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): ?string
     {
         $type = TypeDescriptor::create(self::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
@@ -255,31 +220,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
         }
 
         return TypeDescriptor::ARRAY;
-    }
-
-    public static function getQueryBusByNamesMapping(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry, array &$uniqueChannels = []): array
-    {
-        $namedQueryHandlers = [];
-        foreach ($annotationRegistrationService->findCombined(Aggregate::class, QueryHandler::class) as $registration) {
-            $namedChannel                        = self::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
-            $namedQueryHandlers[$namedChannel][] = $namedChannel;
-            $namedQueryHandlers[$namedChannel]   = array_unique($namedQueryHandlers[$namedChannel]);
-            $uniqueChannels[$namedChannel][]     = $registration;
-        }
-        foreach ($annotationRegistrationService->findAnnotatedMethods(QueryHandler::class) as $registration) {
-            if ($registration->hasClassAnnotation(Aggregate::class)) {
-                continue;
-            }
-
-            $namedChannel                        = self::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
-            $namedQueryHandlers[$namedChannel][] = $namedChannel;
-            $namedQueryHandlers[$namedChannel]   = array_unique($namedQueryHandlers[$namedChannel]);
-            $uniqueChannels[$namedChannel][]     = $registration;
-        }
-
-        self::verifyUniqueness($uniqueChannels);
-
-        return $namedQueryHandlers;
     }
 
     public static function getEventBusByObjectsMapping(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry, bool $hasToBeDistributed): array
@@ -537,10 +477,28 @@ class MessageHandlerRoutingModule implements AnnotationModule
         $commandBusRoutingConfig = new BusRoutingConfigBuilder();
         foreach ($this->annotationFinder->findAnnotatedMethods(CommandHandler::class) as $registration) {
             $this->addRoutesFromAnnotatedFinding($commandBusRoutingConfig, $registration, self::getExecutionMessageHandlerChannel($registration));
+            /** @var CommandHandler $commandHandler */
+            $commandHandler = $registration->getAnnotationForMethod();
+            if ($commandHandler->getInputChannelName()) {
+                $messagingConfiguration->registerMessageHandler(
+                    BridgeBuilder::create()
+                        ->withInputChannelName($commandHandler->getInputChannelName())
+                        ->withOutputMessageChannel(self::getExecutionMessageHandlerChannel($registration))
+                );
+            }
         }
         $queryBusRouting = new BusRoutingConfigBuilder();
         foreach ($this->annotationFinder->findAnnotatedMethods(QueryHandler::class) as $registration) {
             $this->addRoutesFromAnnotatedFinding($queryBusRouting, $registration, self::getExecutionMessageHandlerChannel($registration));
+            /** @var QueryHandler $commandHandler */
+            $queryHandler = $registration->getAnnotationForMethod();
+            if ($queryHandler->getInputChannelName()) {
+                $messagingConfiguration->registerMessageHandler(
+                    BridgeBuilder::create()
+                        ->withInputChannelName($queryHandler->getInputChannelName())
+                        ->withOutputMessageChannel(self::getExecutionMessageHandlerChannel($registration))
+                );
+            }
         }
         $eventBusRouting = new BusRoutingConfigBuilder();
         foreach ($this->annotationFinder->findAnnotatedMethods(EventHandler::class) as $registration) {

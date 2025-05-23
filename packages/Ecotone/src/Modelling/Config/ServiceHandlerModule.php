@@ -108,17 +108,17 @@ final class ServiceHandlerModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $moduleExtensions, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         foreach ($this->serviceCommandHandlers as $registration) {
-            $this->registerServiceHandler(MessageHandlerRoutingModule::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
+            $this->registerServiceHandler($messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
         foreach ($this->serviceQueryHandlers as $registration) {
-            $this->registerServiceHandler(MessageHandlerRoutingModule::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, false);
+            $this->registerServiceHandler($messagingConfiguration, $registration, $interfaceToCallRegistry, false);
         }
         foreach ($this->serviceEventHandlers as $registration) {
-            $this->registerServiceHandler(MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry), $messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
+            $this->registerServiceHandler($messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
         }
     }
 
-    private function registerServiceHandler(string $inputChannelNameForRouting, Configuration $configuration, AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, bool $isStreamBasedSource): void
+    private function registerServiceHandler(Configuration $configuration, AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, bool $isStreamBasedSource): void
     {
         /** @var QueryHandler|CommandHandler|EventHandler $methodAnnotation */
         $methodAnnotation = $registration->getAnnotationForMethod();
@@ -127,20 +127,6 @@ final class ServiceHandlerModule implements AnnotationModule
 
         $relatedClassInterface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
         $parameterConverters = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
-
-        $configuration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($inputChannelNameForRouting));
-        /**
-         * We want to connect Event Handler directly to Event Bus channel only if it's not fetched from Stream Based Source.
-         * This allows to connecting Event Handlers via Projection Event Handler that lead the way.
-         */
-        if (! $isStreamBasedSource) {
-            $configuration->registerMessageHandler(
-                BridgeBuilder::create()
-                    ->withInputChannelName($inputChannelNameForRouting)
-                    ->withOutputMessageChannel($executionInputChannel)
-                    ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
-            );
-        }
 
         $handler = $registration->hasMethodAnnotation(ChangingHeaders::class)
             ? TransformerBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()))

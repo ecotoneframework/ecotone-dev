@@ -19,14 +19,23 @@ class BusRoutingConfigBuilder extends BusRoutingConfig
 
     /**
      * @param class-string $class
+     * @param int|int[] $priority
      */
-    public function addObjectRoute(string $class, string $channel, int $priority = 1): void
+    public function addObjectRoute(string $class, string $channel, int|array $priority = 1): void
     {
-        $this->addChannel($channel, $priority);
-        $this->objectRoutes[$class][] = $channel;
+        if ($class === 'object') {
+            $this->addCatchAllRoute($channel, $priority);
+        } else {
+            $this->addChannel($channel, $priority);
+            $this->objectRoutes[$class][] = $channel;
+        }
     }
 
-    public function addCatchAllRoute(string $channel, int $priority = 1): void
+
+    /**
+     * @param int|int[] $priority
+     */
+    public function addCatchAllRoute(string $channel, int|array $priority = 1): void
     {
         $this->addChannel($channel, $priority);
         $this->catchAllRoutes[] = $channel;
@@ -58,7 +67,7 @@ class BusRoutingConfigBuilder extends BusRoutingConfig
     }
 
     /**
-     * @param int|array<int> $priority
+     * @param int|int[] $priority
      */
     public function addNamedRoute(string $routeName, string $channel, int|array $priority = 1): void
     {

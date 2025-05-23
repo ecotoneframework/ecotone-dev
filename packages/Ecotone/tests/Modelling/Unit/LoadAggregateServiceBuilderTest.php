@@ -250,7 +250,8 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
 
     public function test_throwing_exception_if_no_event_sourcing_handler_defined_for_event_sourced_aggregate()
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("You must define at least one EventSourcingHandler to provide aggregate's identifier after first event.");
 
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [NoFactoryMethodAggregateExample::class]);
     }

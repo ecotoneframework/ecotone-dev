@@ -30,10 +30,10 @@ final class EventSourcingHandlerExecutorBuilder
             $constructMethod = $class->getMethod('__construct');
 
             if ($constructMethod->getParameters()) {
-                throw InvalidArgumentException::create("Constructor for Event Sourced {$classDefinition} should not have any parameters");
+                throw ConfigurationException::create("Constructor for Event Sourced {$classDefinition} should not have any parameters");
             }
             if (! $constructMethod->isPublic()) {
-                throw InvalidArgumentException::create("Constructor for Event Sourced {$classDefinition} should be public");
+                throw ConfigurationException::create("Constructor for Event Sourced {$classDefinition} should be public");
             }
         }
 
@@ -64,7 +64,7 @@ final class EventSourcingHandlerExecutorBuilder
         }
 
         if (! $eventSourcingHandlerMethods) {
-            throw InvalidArgumentException::create("Your aggregate {$classDefinition->getClassType()}, is event sourced. You must define at least one EventSourcingHandler to provide aggregate's identifier after first event.");
+            throw ConfigurationException::create("Your aggregate {$classDefinition->getClassType()}, is event sourced. You must define at least one EventSourcingHandler to provide aggregate's identifier after first event.");
         }
 
         return new Definition(EventSourcingHandlerExecutor::class, [

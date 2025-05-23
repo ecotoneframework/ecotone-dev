@@ -82,7 +82,7 @@ final class ModellingEcotoneLiteTest extends TestCase
         );
 
         $this->assertSame(
-            ['lowerPriorityHandlerWithObjectRouting', 'higherPriorityHandler', 'middlePriorityHandler'],
+            ['higherPriorityHandler', 'middlePriorityHandler', 'lowerPriorityHandlerWithObjectRouting'],
             $ecotoneTestSupport
                 ->publishEvent(new OrderWasPlaced(1))
                 ->sendQueryWithRouting('getTriggers')

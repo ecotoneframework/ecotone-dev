@@ -25,6 +25,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -468,8 +469,10 @@ class MessageHandlerRoutingModule implements AnnotationModule
             $routingKey = $annotationForMethod->getInputChannelName();
         }
 
+        $priority = PriorityBasedOnType::fromAnnotatedFinding($registration);
+
         if ($routingKey) {
-            $busRoutingConfigBuilder->addNamedRoute($routingKey, $destinationChannel);
+            $busRoutingConfigBuilder->addNamedRoute($routingKey, $destinationChannel, $priority->getPriorityArray());
             return;
         }
 
@@ -480,10 +483,10 @@ class MessageHandlerRoutingModule implements AnnotationModule
         $type = $interfaceToCall->getFirstParameter()->getTypeDescriptor();
         if ($type->isUnionType()) {
             foreach ($type->getUnionTypes() as $unionType) {
-                $busRoutingConfigBuilder->addObjectRoute($unionType, $destinationChannel);
+                $busRoutingConfigBuilder->addObjectRoute($unionType, $destinationChannel, $priority->getPriorityArray());
             }
         } else {
-            $busRoutingConfigBuilder->addObjectRoute($type, $destinationChannel);
+            $busRoutingConfigBuilder->addObjectRoute($type, $destinationChannel, $priority->getPriorityArray());
         }
     }
 

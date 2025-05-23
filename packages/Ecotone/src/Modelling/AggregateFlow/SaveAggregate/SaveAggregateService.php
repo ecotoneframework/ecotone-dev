@@ -83,15 +83,6 @@ final class SaveAggregateService implements MessageProcessor
     {
         foreach ($events as $event) {
             $this->eventBus->publish($event->getPayload(), $event->getMetadata());
-
-            $eventDefinition = ClassDefinition::createFor(TypeDescriptor::createFromVariable($event->getPayload()));
-            $namedEvent = TypeDescriptor::create(NamedEvent::class);
-            if ($eventDefinition->hasClassAnnotation($namedEvent)) {
-                /** @var NamedEvent $namedEvent */
-                $namedEvent = $eventDefinition->getSingleClassAnnotation($namedEvent);
-
-                $this->eventBus->publishWithRouting($namedEvent->getName(), $event->getPayload(), MediaType::APPLICATION_X_PHP, $event->getMetadata());
-            }
         }
     }
 

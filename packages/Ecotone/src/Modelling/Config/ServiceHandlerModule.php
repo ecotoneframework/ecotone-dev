@@ -99,29 +99,7 @@ final class ServiceHandlerModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [
-//            new RoutedChannels(CommandBus::class, $this->getRoutingConfigurationFor($this->serviceCommandHandlers)),
-//            new RoutedChannels(QueryBus::class, $this->getRoutingConfigurationFor($this->serviceQueryHandlers)),
-//            new RoutedChannels(EventBus::class, $this->getRoutingConfigurationFor($this->serviceEventHandlers)),
-        ];
-    }
-
-    /**
-     * @param AnnotatedFinding[] $registrations
-     */
-    private function getRoutingConfigurationFor(array $registrations): BusRoutingConfigBuilder
-    {
-        $busRoutingConfig = new BusRoutingConfigBuilder();
-        foreach ($registrations as $registration) {
-            MessageHandlerRoutingModule::addRoutesFromAnnotatedFinding(
-                $busRoutingConfig,
-                $registration,
-                $this->interfaceToCallRegistry,
-                self::getHandlerChannel($registration),
-            );
-        }
-
-        return $busRoutingConfig;
+        return [];
     }
 
     /**

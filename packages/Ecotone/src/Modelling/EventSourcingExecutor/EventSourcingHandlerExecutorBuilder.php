@@ -4,6 +4,7 @@ namespace Ecotone\Modelling\EventSourcingExecutor;
 
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
@@ -43,16 +44,16 @@ final class EventSourcingHandlerExecutorBuilder
 
             if ($methodToCheck->hasMethodAnnotation($aggregateFactoryAnnotation)) {
                 if ($methodToCheck->isStaticallyCalled()) {
-                    throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should not be static.");
+                    throw ConfigurationException::create("{$methodToCheck} is Event Sourcing Handler and should not be static.");
                 }
                 if ($methodToCheck->getInterfaceParameterAmount() < 1) {
-                    throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should have at least one parameter.");
+                    throw ConfigurationException::create("{$methodToCheck} is Event Sourcing Handler and should have at least one parameter.");
                 }
                 if (! $methodToCheck->getFirstParameter()->isObjectTypeHint()) {
-                    throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should have first parameter as Event Class type hint.");
+                    throw ConfigurationException::create("{$methodToCheck} is Event Sourcing Handler and should have first parameter as Event Class type hint.");
                 }
                 if (! $methodToCheck->hasReturnTypeVoid()) {
-                    throw InvalidArgumentException::create("{$methodToCheck} is Event Sourcing Handler and should return void return type");
+                    throw ConfigurationException::create("{$methodToCheck} is Event Sourcing Handler and should return void return type");
                 }
 
                 $eventSourcingHandlerMethods[$method] = EventSourcingHandlerMethod::prepareDefinition(

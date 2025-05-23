@@ -258,6 +258,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     public function test_throwing_exception_if_factory_method_for_event_sourced_aggregate_has_no_parameters()
     {
         $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(EventSourcingHandlerMethodWithWrongParameterCountExample::class ."::factory is Event Sourcing Handler and should have at least one parameter.");
 
         try {
             EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithWrongParameterCountExample::class]);

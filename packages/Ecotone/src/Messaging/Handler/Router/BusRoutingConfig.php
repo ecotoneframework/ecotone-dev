@@ -10,7 +10,7 @@ class BusRoutingConfig
 {
     public function __construct(
         /**
-         * @var array<string, int> key is the channel name, value is the priority
+         * @var array<string, int|array<int>> key is the channel name, value is the priority
          */
         protected array $channelsPriority = [],
         /**
@@ -111,8 +111,27 @@ class BusRoutingConfig
         return $resultRoutingKeys;
     }
 
-    private function sortByChannelPriority(string $a, string $b): int
+    private function sortByChannelPriority(string $aChannel, string $bChannel): int
     {
-        return $this->channelsPriority[$b] <=> $this->channelsPriority[$a];
+        $a = $this->channelsPriority[$aChannel];
+        $b = $this->channelsPriority[$bChannel];
+
+        $a = is_array($a) ? $a : [$a];
+        $b = is_array($b) ? $b : [$b];
+
+        $maxLength = max(count($a), count($b));
+
+        for ($i = 0; $i < $maxLength; $i++) {
+            $aValue = $a[$i] ?? 0;
+            $bValue = $b[$i] ?? 0;
+
+            if ($aValue < $bValue) {
+                return 1;
+            } elseif ($aValue > $bValue) {
+                return -1;
+            }
+        }
+
+        return 0;
     }
 }

@@ -6,13 +6,17 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Router;
 
-use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 
-class BusRoutingConfigBuilder extends BusRoutingConfig implements CompilableBuilder
+class BusRoutingConfigBuilder extends BusRoutingConfig
 {
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
     /**
      * @param class-string $class
      */
@@ -28,7 +32,35 @@ class BusRoutingConfigBuilder extends BusRoutingConfig implements CompilableBuil
         $this->catchAllRoutes[] = $channel;
     }
 
-    public function addNamedRoute(string $routeName, string $channel, int $priority = 1): void
+    public function merge(self $routingConfig): void
+    {
+        foreach ($routingConfig->channelsPriority as $channel => $priority) {
+            $this->addChannel($channel, $priority);
+        }
+        foreach ($routingConfig->objectRoutes as $class => $channels) {
+            foreach ($channels as $channel) {
+                $this->objectRoutes[$class][] = $channel;
+            }
+        }
+        foreach ($routingConfig->catchAllRoutes as $channel) {
+            $this->catchAllRoutes[] = $channel;
+        }
+        foreach ($routingConfig->namedRoutes as $routeName => $channels) {
+            foreach ($channels as $channel) {
+                $this->namedRoutes[$routeName][] = $channel;
+            }
+        }
+        foreach ($routingConfig->regexRoutes as $pattern => $channels) {
+            foreach ($channels as $channel) {
+                $this->regexRoutes[$pattern][] = $channel;
+            }
+        }
+    }
+
+    /**
+     * @param int|array<int> $priority
+     */
+    public function addNamedRoute(string $routeName, string $channel, int|array $priority = 1): void
     {
         $this->addChannel($channel, $priority);
         if (\str_contains($routeName, '*')) {
@@ -63,7 +95,7 @@ class BusRoutingConfigBuilder extends BusRoutingConfig implements CompilableBuil
         }
     }
 
-    private function addChannel(string $channel, int $priority): void
+    private function addChannel(string $channel, int|array $priority): void
     {
         if (!empty($this->optimizedRoutes)) {
             throw new \RuntimeException("Cannot add channel $channel to routing config, because it is already optimized");
@@ -75,7 +107,7 @@ class BusRoutingConfigBuilder extends BusRoutingConfig implements CompilableBuil
         $this->channelsPriority[$channel] = $priority;
     }
 
-    public function compile(MessagingContainerBuilder $builder): Definition|Reference
+    public function compile(): Definition
     {
         $this->optimize();
         return new Definition(BusRoutingConfig::class, [

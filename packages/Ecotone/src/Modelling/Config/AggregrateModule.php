@@ -207,7 +207,7 @@ class AggregrateModule implements AnnotationModule
             $this->registerAggregateQueryHandler($registration, $interfaceToCallRegistry, $parameterConverterAnnotationFactory, $messagingConfiguration);
         }
 
-        foreach ($this->getCombinedCommandAndEventHandlers($interfaceToCallRegistry, $messagingConfiguration) as $channelNameRegistrations) {
+        foreach ($this->getCombinedCommandAndEventHandlers($messagingConfiguration) as $channelNameRegistrations) {
             foreach ($channelNameRegistrations as $channelName => $registrations) {
                 $this->registerAggregateCommandHandler($messagingConfiguration, $interfaceToCallRegistry, $registrations, $channelName);
             }
@@ -237,7 +237,7 @@ class AggregrateModule implements AnnotationModule
             $channel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
             if ((new ReflectionMethod($registration->getClassName(), $registration->getMethodName()))->isStatic()) {
                 Assert::null($factoryChannel, "Trying to register factory method for {$aggregateClassDefinition->getClassType()->toString()} twice under same channel {$inputChannelNameForRouting}");
-                $factoryChannel                   = $channel;
+                $factoryChannel                   = $channel . '-factory';
                 $factoryHandledPayloadType        = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
                 $factoryHandledPayloadType        = $factoryHandledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($factoryHandledPayloadType)) : null;
                 $factoryIdentifierMetadataMapping = $registration->getAnnotationForMethod()->identifierMetadataMapping;
@@ -247,7 +247,7 @@ class AggregrateModule implements AnnotationModule
                     throw \Ecotone\Messaging\Support\InvalidArgumentException::create("Trying to register action method for {$aggregateClassDefinition->getClassType()->toString()} twice under same channel {$inputChannelNameForRouting}");
                 }
 
-                $actionChannels[] = $channel;
+                $actionChannels[] = $channel . '-action';
             }
         }
 
@@ -279,7 +279,7 @@ class AggregrateModule implements AnnotationModule
             $parameterConverters   = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
             $connectionChannel     = $hasFactoryAndActionRedirect
                 ? ($isFactoryMethod ? $factoryChannel : $actionChannels[0])
-                : MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
+                : MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration) . '-connection';
             if (! $hasFactoryAndActionRedirect) {
                 if ($isFactoryMethod) {
                     $configuration->registerMessageHandler(
@@ -471,17 +471,17 @@ class AggregrateModule implements AnnotationModule
     /**
      * @return array<string, array<string, AnnotatedFinding[]>>
      */
-    public function getCombinedCommandAndEventHandlers(InterfaceToCallRegistry $interfaceToCallRegistry, Configuration $messagingConfiguration): array
+    public function getCombinedCommandAndEventHandlers(Configuration $messagingConfiguration): array
     {
         $aggregateCommandOrEventHandlers = [];
         foreach ($this->aggregateCommandHandlers as $registration) {
-            $channelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
+            $channelName = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }
 
         foreach ($this->aggregateEventHandlers as $registration) {
-            $channelName = MessageHandlerRoutingModule::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
+            $channelName = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
             $messagingConfiguration->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($channelName));
             $aggregateCommandOrEventHandlers[$registration->getClassName()][$channelName][] = $registration;
         }

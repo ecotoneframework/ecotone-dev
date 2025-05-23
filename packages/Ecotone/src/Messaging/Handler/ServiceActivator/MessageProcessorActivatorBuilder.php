@@ -72,7 +72,6 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
             )
             : MethodInterceptorsConfiguration::createEmpty();
 
-        $name = $this->getInterceptedInterface($builder->getInterfaceToCallRegistry())->toString();
         $processor = $this->chainedMessageProcessorBuilder->compileProcessor($builder, $interceptorsConfiguration);
 
         return new Definition(
@@ -82,7 +81,7 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
                 $processor,
                 new Reference(ChannelResolver::class),
                 $this->isReplyRequired,
-                $name,
+                $interceptedInterface?->getName() ?? '',
             ]
         );
     }

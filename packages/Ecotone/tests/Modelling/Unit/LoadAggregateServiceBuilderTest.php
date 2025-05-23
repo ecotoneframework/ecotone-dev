@@ -259,7 +259,11 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithWrongParameterCountExample::class]);
+        try {
+            EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithWrongParameterCountExample::class]);
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 
     public function test_throwing_exception_if_construct_having_parameters()

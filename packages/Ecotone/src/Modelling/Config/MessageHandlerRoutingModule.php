@@ -7,7 +7,6 @@ use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
 use Ecotone\Messaging\Attribute\MessageGateway;
@@ -25,7 +24,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
@@ -35,10 +33,6 @@ use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
-use Ecotone\Messaging\Handler\Router\BusRoutingConfig;
-use Ecotone\Messaging\Handler\Router\BusRoutingConfigBuilder;
-use Ecotone\Messaging\Handler\Router\BusRoutingSelector;
-use Ecotone\Messaging\Handler\Router\Router;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
 use Ecotone\Messaging\Handler\Router\RouteToChannelResolver;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
@@ -55,7 +49,10 @@ use Ecotone\Modelling\Attribute\IgnorePayload;
 use Ecotone\Modelling\Attribute\NotUniqueHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\Config\Routing\BusRoutingConfigBuilder;
+use Ecotone\Modelling\Config\Routing\BusRoutingSelector;
 use Ecotone\Modelling\Config\Routing\RoutedChannels;
+use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\QueryBus;
@@ -395,41 +392,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
         return $inputChannelName;
     }
 
-    /**
-     * @return array<string>
-     */
-    public function addRoutesFromAnnotatedFinding(BusRoutingConfigBuilder $busRoutingConfigBuilder, AnnotatedFinding $registration, string $destinationChannel): void
-    {
-        /** @var InputOutputEndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        if ($annotationForMethod instanceof EventHandler) {
-            $routingKey = $annotationForMethod->getListenTo();
-        } else {
-            $routingKey = $annotationForMethod->getInputChannelName();
-        }
-
-        $priority = PriorityBasedOnType::fromAnnotatedFinding($registration);
-
-        if ($routingKey) {
-            $busRoutingConfigBuilder->addNamedRoute($routingKey, $destinationChannel, $priority->getPriorityArray());
-            return;
-        }
-
-        $interfaceToCall = $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
-        if ($interfaceToCall->hasNoParameters()) {
-            throw ConfigurationException::create("Missing class type hint or routing key for {$registration}.");
-        }
-        $type = $interfaceToCall->getFirstParameter()->getTypeDescriptor();
-        if ($type->isUnionType()) {
-            foreach ($type->getUnionTypes() as $unionType) {
-                $busRoutingConfigBuilder->addObjectRoute($unionType, $destinationChannel, $priority->getPriorityArray());
-            }
-        } else {
-            $busRoutingConfigBuilder->addObjectRoute($type, $destinationChannel, $priority->getPriorityArray());
-        }
-    }
-
     public static function getRoutingInputMessageChannelFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
     {
         /** @var InputOutputEndpointAnnotation $annotationForMethod */
@@ -474,35 +436,36 @@ class MessageHandlerRoutingModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $commandBusRoutingConfig = new BusRoutingConfigBuilder();
+        $routingEventHandlers = ExtensionObjectResolver::resolve(RoutingEventHandler::class, $extensionObjects);
+        $commandBusRoutingConfig = new BusRoutingConfigBuilder(true, $routingEventHandlers);
         foreach ($this->annotationFinder->findAnnotatedMethods(CommandHandler::class) as $registration) {
-            $this->addRoutesFromAnnotatedFinding($commandBusRoutingConfig, $registration, self::getExecutionMessageHandlerChannel($registration));
+            $destinationChannel = $commandBusRoutingConfig->addRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
             /** @var CommandHandler $commandHandler */
             $commandHandler = $registration->getAnnotationForMethod();
-            if ($commandHandler->getInputChannelName()) {
+            if ($commandHandler->getInputChannelName() && $destinationChannel) {
                 $messagingConfiguration->registerMessageHandler(
                     BridgeBuilder::create()
                         ->withInputChannelName($commandHandler->getInputChannelName())
-                        ->withOutputMessageChannel(self::getExecutionMessageHandlerChannel($registration))
+                        ->withOutputMessageChannel($destinationChannel)
                 );
             }
         }
-        $queryBusRouting = new BusRoutingConfigBuilder();
+        $queryBusRouting = new BusRoutingConfigBuilder(true, $routingEventHandlers);
         foreach ($this->annotationFinder->findAnnotatedMethods(QueryHandler::class) as $registration) {
-            $this->addRoutesFromAnnotatedFinding($queryBusRouting, $registration, self::getExecutionMessageHandlerChannel($registration));
+            $destinationChannel = $queryBusRouting->addRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
             /** @var QueryHandler $commandHandler */
             $queryHandler = $registration->getAnnotationForMethod();
             if ($queryHandler->getInputChannelName()) {
                 $messagingConfiguration->registerMessageHandler(
                     BridgeBuilder::create()
                         ->withInputChannelName($queryHandler->getInputChannelName())
-                        ->withOutputMessageChannel(self::getExecutionMessageHandlerChannel($registration))
+                        ->withOutputMessageChannel($destinationChannel)
                 );
             }
         }
-        $eventBusRouting = new BusRoutingConfigBuilder();
+        $eventBusRouting = new BusRoutingConfigBuilder(false, $routingEventHandlers);
         foreach ($this->annotationFinder->findAnnotatedMethods(EventHandler::class) as $registration) {
-            $this->addRoutesFromAnnotatedFinding($eventBusRouting, $registration, self::getExecutionMessageHandlerChannel($registration));
+            $eventBusRouting->addRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
         }
 
         $messagingConfiguration
@@ -577,7 +540,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
      */
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof RoutedChannels;
+        return $extensionObject instanceof RoutingEventHandler;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

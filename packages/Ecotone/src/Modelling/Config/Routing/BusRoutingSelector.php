@@ -4,8 +4,9 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Handler\Router;
+namespace Ecotone\Modelling\Config\Routing;
 
+use Ecotone\Messaging\Handler\Router\RouteSelector;
 use Ecotone\Messaging\Message;
 
 class BusRoutingSelector implements RouteSelector

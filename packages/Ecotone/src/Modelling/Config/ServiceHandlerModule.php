@@ -7,19 +7,14 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Router\BusRoutingConfig;
-use Ecotone\Messaging\Handler\Router\BusRoutingConfigBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Modelling\Attribute\Aggregate;
@@ -27,10 +22,6 @@ use Ecotone\Modelling\Attribute\ChangingHeaders;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\Config\Routing\RoutedChannels;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\QueryBus;
 
 #[ModuleAnnotation]
 /**

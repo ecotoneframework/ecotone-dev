@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
-use Ecotone\Messaging\Handler\Router\BusRoutingConfigBuilder;
+use Ecotone\Modelling\Config\Routing\BusRoutingConfigBuilder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

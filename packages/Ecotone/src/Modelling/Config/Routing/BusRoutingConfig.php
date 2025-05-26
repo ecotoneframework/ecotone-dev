@@ -4,7 +4,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Handler\Router;
+namespace Ecotone\Modelling\Config\Routing;
 
 class BusRoutingConfig
 {

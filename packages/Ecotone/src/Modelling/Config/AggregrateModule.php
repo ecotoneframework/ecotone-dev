@@ -718,9 +718,17 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         $parameterConverters   = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
         $aggregateClassDefinition = $this->interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($registration->getClassName()));
 
+        // This is executed before sending to async channel
+        $aggregateIdentifierHandlerPreCheck = MessageProcessorActivatorBuilder::create()
+            ->withInputChannelName($destinationChannel)
+            ->withOutputMessageChannel($connectionChannel = $destinationChannel . '-connection')
+            ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getIdentifierMapping(), null, $this->interfaceToCallRegistry))
+            ;
+        $messagingConfiguration->registerMessageHandler($aggregateIdentifierHandlerPreCheck);
+
         $serviceActivatorHandler = MessageProcessorActivatorBuilder::create()
             ->withEndpointId($endpointId)
-            ->withInputChannelName($destinationChannel)
+            ->withInputChannelName($connectionChannel)
             ->withOutputMessageChannel($annotation->getOutputChannelName())
             ->withRequiredInterceptorNames($annotation->getRequiredInterceptorNames())
             ->chain(TransformerProcessorBuilder::create(
@@ -786,9 +794,17 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         )
             ->withRequiredInterceptorNames($actionAnnotation->getRequiredInterceptorNames());
 
+        // This is executed before sending to async channel
+        $aggregateIdentifierHandlerPreCheck = MessageProcessorActivatorBuilder::create()
+            ->withInputChannelName($destinationChannel)
+            ->withOutputMessageChannel($connectionChannel = $destinationChannel . '-connection')
+            ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $factoryIdentifierMetadataMapping, $factoryIdentifierMapping, $factoryHandledPayloadType, $this->interfaceToCallRegistry))
+        ;
+        $messagingConfiguration->registerMessageHandler($aggregateIdentifierHandlerPreCheck);
+
         $messagingConfiguration->registerMessageHandler(
             MessageProcessorActivatorBuilder::create()
-                ->withInputChannelName($destinationChannel)
+                ->withInputChannelName($connectionChannel)
                 // factory endpoint name is used. action endpoint name is not used
                 ->withEndpointId($factoryAnnotation->getEndpointId())
                 ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($factoryRegistration)->toAttributeDefinition()])

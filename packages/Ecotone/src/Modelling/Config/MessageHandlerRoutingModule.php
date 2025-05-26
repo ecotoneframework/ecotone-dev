@@ -437,7 +437,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $routingEventHandlers = ExtensionObjectResolver::resolve(RoutingEventHandler::class, $extensionObjects);
-        $commandBusRoutingConfig = new BusRoutingConfigBuilder(true, $routingEventHandlers);
+        $commandBusRoutingConfig = new BusRoutingConfigBuilder(true, $routingEventHandlers, $messagingConfiguration);
         foreach ($this->annotationFinder->findAnnotatedMethods(CommandHandler::class) as $registration) {
             $destinationChannel = $commandBusRoutingConfig->addRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
             /** @var CommandHandler $commandHandler */
@@ -450,7 +450,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
                 );
             }
         }
-        $queryBusRouting = new BusRoutingConfigBuilder(true, $routingEventHandlers);
+        $queryBusRouting = new BusRoutingConfigBuilder(true, $routingEventHandlers, $messagingConfiguration);
         foreach ($this->annotationFinder->findAnnotatedMethods(QueryHandler::class) as $registration) {
             $destinationChannel = $queryBusRouting->addRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
             /** @var QueryHandler $commandHandler */
@@ -463,7 +463,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
                 );
             }
         }
-        $eventBusRouting = new BusRoutingConfigBuilder(false, $routingEventHandlers);
+        $eventBusRouting = new BusRoutingConfigBuilder(false, $routingEventHandlers, $messagingConfiguration);
         foreach ($this->annotationFinder->findAnnotatedMethods(EventHandler::class) as $registration) {
             $eventBusRouting->addRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
         }

@@ -25,7 +25,10 @@ class RoutingEvent
     ) {
     }
 
-    public function getPriority(): int
+    /**
+     * @return int|int[]
+     */
+    public function getPriority(): int|array
     {
         return $this->priority;
     }

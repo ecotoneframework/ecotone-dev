@@ -28,6 +28,7 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderB
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderValueBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Router\RouterProcessorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
@@ -76,8 +77,13 @@ use ReflectionMethod;
 class AggregrateModule implements AnnotationModule, RoutingEventHandler
 {
 
-    /** @var array<string, array{string, string}> $channelsToBridge key is routingKey, value is [factory-channel, action-channel] */
+    /**
+     * @var array<string, AnnotatedFinding> $channelsToBridge key is factoryChannel, value is actionChannel registration
+     */
     private array $channelsToBridge = [];
+    /**
+     * @var array<string> $channelsToCancel
+     */
     private array $channelsToCancel = [];
 
     /**
@@ -176,11 +182,16 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
             $staticRegistrations = [];
             $staticChannelsOfAggregate = [];
             $routerBuilder = new BusRoutingConfigBuilder();
+            /** @var array<string, AnnotatedFinding> $channelToRegistrations */
+            $channelToRegistrations = [];
             foreach ($registrations as $registration) {
                 $destinationChannel = $routerBuilder->addRoutesFromAnnotatedFinding(
                     $registration,
                     $this->interfaceToCallRegistry);
-                if ($this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->isStaticallyCalled()) {
+                if ($destinationChannel) {
+                    $channelToRegistrations[$destinationChannel] = $registration;
+                }
+                if ($this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName())->isFactoryMethod()) {
                     $staticRegistrations[] = $registration;
                     $staticChannelsOfAggregate[] = $destinationChannel;
                 }
@@ -191,6 +202,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
             foreach ($staticRegistrations as $staticRegistration) {
                 $routedKeys = $routerBuilder->getRoutesFromAnnotatedFinding($staticRegistration, $this->interfaceToCallRegistry);
 
+                $bridgeForThisFactoryMethod = null;
                 foreach ($routedKeys as $routedKey) {
                     $channels = $routerBuilder->resolve($routedKey);
                     $staticChannels = \array_filter($channels, fn ($channel) => \in_array($channel, $staticChannelsOfAggregate, true));
@@ -203,10 +215,25 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                         throw ConfigurationException::create("Message Handlers on Aggregate and Saga can be used either for single factory method and single action method together, or for multiple actions methods in {$staticRegistration->getClassName()}");
                     }
                     // Exactly one factory and one action channel, register a bridge
-                    $this->channelsToBridge[$routedKey] = [
-                        reset($staticChannels),
-                        reset($actionChannels),
-                    ];
+                    if ($bridgeForThisFactoryMethod === null) {
+                        $bridgeForThisFactoryMethod = [
+                            'factoryChannel' => reset($staticChannels),
+                            'actionChannel' => reset($actionChannels),
+                            'routes' => [$routedKey]
+                        ];
+                    } else {
+                        // If we already have a bridge for this factory method, add the route to it
+                        $bridgeForThisFactoryMethod['routes'][] = $routedKey;
+                        Assert::isTrue(
+                            reset($staticChannels) === $bridgeForThisFactoryMethod['factoryChannel']
+                            && reset($actionChannels) === $bridgeForThisFactoryMethod['actionChannel'],
+                            "Trying to register multiple factory methods for {$staticRegistration->getClassName()} under same route {$routedKey}"
+                        );
+                    }
+                }
+                if ($bridgeForThisFactoryMethod !== null) {
+                    $this->channelsToBridge[$bridgeForThisFactoryMethod['factoryChannel']] = $channelToRegistrations[$bridgeForThisFactoryMethod['actionChannel']];
+                    $this->channelsToCancel[] = $bridgeForThisFactoryMethod['actionChannel'];
                 }
             }
         }
@@ -278,6 +305,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
      */
     private function registerAggregateCommandHandler(Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, array $registrations, string $inputChannelNameForRouting): void
     {
+        return;
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 
         $registration = reset($registrations);
@@ -656,15 +684,23 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         if (! $event->getRegistration()->hasAnnotation(Aggregate::class)) {
             return;
         }
+        if ($event->getRegistration()->getAnnotationForMethod() instanceof QueryHandler) {
+            // TODO: handle query handlers with this module
+            return;
+        }
 
         Assert::notNull($messagingConfiguration, "RoutingEvent should be handled with messaging configuration, but it is null. Did you forget to pass it?");
 
-        foreach($event->getRoutingKeys() as $eventRoutingKey) {
-            if (isset($this->channelsToBridge[$eventRoutingKey])) {
-                $
-            }
+        if (\in_array($event->getDestinationChannel(), $this->channelsToCancel, true)) {
+            // Cancel the route to the action channel, as it is already bridged inside factory method
+            $event->cancel();
+        }else if (isset($this->channelsToBridge[$event->getDestinationChannel()])) {
+            // Register a router to bridge factory method and action method
+            $this->registerRoutedFactoryHandler($event->getRegistration(), $this->channelsToBridge[$event->getDestinationChannel()], $event->getDestinationChannel(), $messagingConfiguration);
+        } else {
+            // Normal handler registration
+            $this->registerHandler($event->getRegistration(), $event->getDestinationChannel(), $messagingConfiguration);
         }
-
     }
 
     private function registerHandler(AnnotatedFinding $registration, string $destinationChannel, Configuration $messagingConfiguration): void
@@ -712,26 +748,87 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
             ->chain(
                 SaveAggregateServiceBuilder::create()
             );
+
+        $messagingConfiguration->registerMessageHandler($serviceActivatorHandler);
     }
 
-    public function registerRoutedFactoryHandler(AnnotatedFinding $registration, string $destinationChannel, Configuration $messagingConfiguration): void
+    public function registerRoutedFactoryHandler(AnnotatedFinding $factoryRegistration, AnnotatedFinding $actionRegistration, string $destinationChannel, Configuration $messagingConfiguration): void
     {
-        /** @var CommandHandler|EventHandler $annotation */
-        $annotation = $registration->getAnnotationForMethod();
+        $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 
-        $factoryHandledPayloadType        = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $this->interfaceToCallRegistry);
+        $aggregateClassDefinition = $this->interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($factoryRegistration->getClassName()));
+
+        // factory processor
+        /** @var CommandHandler|EventHandler $factoryAnnotation */
+        $factoryAnnotation = $factoryRegistration->getAnnotationForMethod();
+
+        $factoryInterface = $this->interfaceToCallRegistry->getFor($factoryRegistration->getClassName(), $factoryRegistration->getMethodName());
+        $factoryHandledPayloadType        = MessageHandlerRoutingModule::getFirstParameterClassIfAny($factoryRegistration, $this->interfaceToCallRegistry);
         $factoryHandledPayloadType        = $factoryHandledPayloadType ? $this->interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($factoryHandledPayloadType)) : null;
-        $factoryIdentifierMetadataMapping = $annotation->identifierMetadataMapping;
-        $factoryIdentifierMapping = $annotation->identifierMapping;
-        $aggregateClassDefinition = $this->interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($registration->getClassName()));
+        $factoryIdentifierMetadataMapping = $factoryAnnotation->identifierMetadataMapping;
+        $factoryIdentifierMapping = $factoryAnnotation->identifierMapping;
+        $factoryParameterConverters   = $parameterConverterAnnotationFactory->createParameterWithDefaults($factoryInterface);
 
-        MessageProcessorActivatorBuilder::create()
-            ->withInputChannelName($destinationChannel)
-            ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $factoryIdentifierMetadataMapping, $factoryIdentifierMapping, $factoryHandledPayloadType, $this->interfaceToCallRegistry))
-            ->chainInterceptedProcessor(
-                LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $factoryHandledPayloadType, LoadAggregateMode::createContinueOnNotFound())
-            )
-            ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
-            ->chain(RouterProcessorBuilder::createHeaderExistsRouter(AggregateMessage::CALLED_AGGREGATE_INSTANCE, $actionChannels[0], $factoryChannel))
+        $factoryProcessor = ChainedMessageProcessorBuilder::create()->chainInterceptedProcessor(
+            CallAggregateServiceBuilder::create($aggregateClassDefinition, $factoryRegistration->getMethodName(), true, $this->interfaceToCallRegistry)
+                ->withMethodParameterConverters($factoryParameterConverters)
+        )
+            ->withRequiredInterceptorNames($factoryAnnotation->getRequiredInterceptorNames());
+
+        // action processor
+        /** @var CommandHandler|EventHandler $actionAnnotation */
+        $actionAnnotation = $actionRegistration->getAnnotationForMethod();
+        $actionInterface = $this->interfaceToCallRegistry->getFor($actionRegistration->getClassName(), $actionRegistration->getMethodName());
+        $actionParameterConverters = $parameterConverterAnnotationFactory->createParameterWithDefaults($actionInterface);
+        $actionProcessor = ChainedMessageProcessorBuilder::create()->chainInterceptedProcessor(
+            CallAggregateServiceBuilder::create($aggregateClassDefinition, $actionRegistration->getMethodName(), true, $this->interfaceToCallRegistry)
+                ->withMethodParameterConverters($actionParameterConverters)
+        )
+            ->withRequiredInterceptorNames($actionAnnotation->getRequiredInterceptorNames());
+
+        $messagingConfiguration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::create()
+                ->withInputChannelName($destinationChannel)
+                // factory endpoint name is used. action endpoint name is not used
+                ->withEndpointId($factoryAnnotation->getEndpointId())
+                ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($factoryRegistration)->toAttributeDefinition()])
+                ->chain(TransformerProcessorBuilder::create(
+                    TransformerBuilder::createHeaderEnricher([
+                        AggregateMessage::CALLED_AGGREGATE_CLASS => $factoryRegistration->getClassName(),
+                    ])
+                ))
+                ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $factoryIdentifierMetadataMapping, $factoryIdentifierMapping, $factoryHandledPayloadType, $this->interfaceToCallRegistry))
+                ->chain(
+                    LoadAggregateServiceBuilder::create($aggregateClassDefinition, $factoryRegistration->getMethodName(), $factoryHandledPayloadType, LoadAggregateMode::createContinueOnNotFound())
+                )
+                ->chain(
+                    RouterProcessorBuilder::createHeaderExistsRouter(
+                        AggregateMessage::CALLED_AGGREGATE_INSTANCE,
+                        $actionProcessor,
+                        $factoryProcessor,
+                    )
+                )
+                ->chain(
+                    SaveAggregateServiceBuilder::create()
+                )
+        );
+
+        $actionInputChannelName = match(true) {
+            $actionAnnotation instanceof EventHandler => $actionAnnotation->getListenTo(),
+            $actionAnnotation instanceof CommandHandler => $actionAnnotation->getInputChannelName(),
+            default => throw ConfigurationException::create("Action handler should be either CommandHandler or EventHandler, but got " . $actionAnnotation::class),
+        };
+        if (!$actionInputChannelName) {
+            // this is just a fake channel to avoid B/C break when action handler has an Asynchronous attribute (only the factory method should have the attribute)
+            $actionInputChannelName = Uuid::uuid4();
+        }
+        // Add a bridge from the action channel to the factory+action channel
+        $messagingConfiguration->registerMessageHandler(
+            BridgeBuilder::create()
+                ->withEndpointId($actionAnnotation->getEndpointId())
+                ->withInputChannelName($actionInputChannelName)
+                ->withOutputMessageChannel($destinationChannel)
+                ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($actionRegistration)->toAttributeDefinition()])
+        );
     }
 }

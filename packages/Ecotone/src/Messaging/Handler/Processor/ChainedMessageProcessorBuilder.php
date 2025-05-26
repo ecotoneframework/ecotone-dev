@@ -15,7 +15,7 @@ use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\MessageProcessor;
 
-class ChainedMessageProcessorBuilder
+class ChainedMessageProcessorBuilder implements CompilableBuilder
 {
     private ?InterceptedMessageProcessorBuilder $interceptedProcessor = null;
 
@@ -80,5 +80,35 @@ class ChainedMessageProcessorBuilder
             1 => $compiledProcessors[0],
             default => new Definition(ChainedMessageProcessor::class, [$compiledProcessors])
         };
+    }
+
+    private array $annotations = [];
+    public function withEndpointAnnotations(array $annotations): self
+    {
+        $this->annotations = $annotations;
+
+        return $this;
+    }
+
+    private array $requiredInterceptorNames = [];
+    public function withRequiredInterceptorNames(array $requiredInterceptorNames): self
+    {
+        $this->requiredInterceptorNames = $requiredInterceptorNames;
+
+        return $this;
+    }
+
+    public function compile(MessagingContainerBuilder $builder): Definition|Reference
+    {
+        $interceptedInterface = $this->getInterceptedInterface();
+        $interceptorsConfiguration = $interceptedInterface
+            ? $builder->getRelatedInterceptors(
+                $interceptedInterface,
+                $this->annotations,
+                $this->requiredInterceptorNames,
+            )
+            : MethodInterceptorsConfiguration::createEmpty();
+
+        return $this->compileProcessor($builder, $interceptorsConfiguration);
     }
 }

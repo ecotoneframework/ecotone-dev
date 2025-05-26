@@ -172,10 +172,6 @@ class InterceptorsOrderingTest extends TestCase
             [
                 'beforeChangeHeaders',
                 'before',
-                'afterChangeHeaders',
-                'after',
-                'beforeChangeHeaders',
-                'before',
                 'around begin',
                 'factory',
                 'around end',

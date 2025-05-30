@@ -27,6 +27,11 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class MessengerIntegrationTest extends WebTestCase
 {
+    protected function tearDown(): void
+    {
+        restore_exception_handler();
+    }
+
     public function setUp(): void
     {
         try {

@@ -39,18 +39,17 @@ final class CallAggregateResultToMessageConverter implements ResultToMessageConv
 
         if ($this->isCommandHandler) {
             $calledAggregate = $requestMessage->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE) ? $requestMessage->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE) : null;
-            $versionBeforeHandling = $requestMessage->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $requestMessage->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;
 
-            if (is_null($versionBeforeHandling) && $this->aggregateVersionProperty) {
-                if ($this->isFactoryMethod) {
-                    $versionBeforeHandling = 0;
-                } else {
-                    $versionBeforeHandling = $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($this->aggregateVersionProperty), $calledAggregate);
-                    $versionBeforeHandling = is_null($versionBeforeHandling) ? 0 : $versionBeforeHandling;
-                }
-
-                $resultMessage = $resultMessage->setHeader(AggregateMessage::TARGET_VERSION, $versionBeforeHandling);
+            if ($this->isFactoryMethod) {
+                $versionBeforeHandling = 0;
+            } elseif ($this->aggregateVersionProperty) {
+                $versionBeforeHandling = $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($this->aggregateVersionProperty), $calledAggregate);
+                $versionBeforeHandling = is_null($versionBeforeHandling) ? 0 : $versionBeforeHandling;
+            } else {
+                $versionBeforeHandling = $requestMessage->getHeaders()->containsKey(AggregateMessage::TARGET_VERSION) ? $requestMessage->getHeaders()->get(AggregateMessage::TARGET_VERSION) : null;
             }
+
+            $resultMessage = $resultMessage->setHeader(AggregateMessage::TARGET_VERSION, $versionBeforeHandling);
         }
 
         if (! is_null($result)) {

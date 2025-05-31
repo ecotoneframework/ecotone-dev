@@ -11,6 +11,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
 use Fixture\MessengerConsumer\AmqpExampleCommand;
 use Fixture\MessengerConsumer\AmqpMessengerAsyncCommandHandler;
+use PHPUnit\Framework\Attributes\After;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -24,6 +25,11 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
 {
     private string $channelName = 'amqp_async';
     private FlowTestSupport $messaging;
+
+    protected function tearDown(): void
+    {
+        restore_exception_handler();
+    }
 
     protected function setUp(): void
     {

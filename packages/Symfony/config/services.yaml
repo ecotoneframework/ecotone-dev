@@ -16,6 +16,8 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     Fixture\:
         resource: '../tests/Fixture/*'
+        exclude:
+            - '../tests/Fixture/User/User.php'
 
     Fixture\Car\CarService:
         public: true

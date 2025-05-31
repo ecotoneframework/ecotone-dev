@@ -47,6 +47,11 @@ final class SingleTenantTest extends TestCase
         $this->kernel = $kernel;
     }
 
+    protected function tearDown(): void
+    {
+        restore_exception_handler();
+    }
+
     public function test_run_message_handlers_for_single_tenant(): void
     {
         $this->commandBus->send(new RegisterCustomer(1, 'John Doe'));

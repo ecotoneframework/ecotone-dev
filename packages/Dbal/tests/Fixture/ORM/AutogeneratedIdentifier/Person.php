@@ -26,6 +26,7 @@ class Person
     use WithEvents;
 
     public const RENAME_COMMAND = 'person.rename';
+    public const REGISTER_COMMAND = 'person.register';
 
     #[ORM\Id()]
     #[ORM\Column(name: 'person_id', type: 'integer')]
@@ -43,20 +44,15 @@ class Person
     #[ORM\Column(name: 'roles', type: 'json')]
     public array $roles = [];
 
-    private function __construct(int $personId, string $name)
+    private function __construct(string $name)
     {
         $this->name = $name;
-
-        $this->recordThat(new PersonRegistered($personId, $name));
     }
 
-    #[CommandHandler]
-    public static function register(RegisterPerson $command): static
+    #[CommandHandler(self::REGISTER_COMMAND)]
+    public static function register(string $name): static
     {
-        $person = new self($command->getPersonId(), $command->getName());
-        if ($command->isException()) {
-            throw new RuntimeException('Exception');
-        }
+        $person = new self($name);
 
         return $person;
     }

@@ -24,12 +24,14 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
@@ -46,11 +48,16 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\IgnorePayload;
+use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Attribute\NotUniqueHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\Config\Routing\BusRoutingConfigBuilder;
-use Ecotone\Modelling\Config\Routing\BusRoutingSelector;
+use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
+use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
+use Ecotone\Modelling\Config\Routing\BusRouteSelector;
+use Ecotone\Modelling\Config\Routing\CommandBusRouteSelector;
+use Ecotone\Modelling\Config\Routing\EventBusRouteSelector;
+use Ecotone\Modelling\Config\Routing\QueryBusRouteSelector;
 use Ecotone\Modelling\Config\Routing\RoutedChannels;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
 use Ecotone\Modelling\EventBus;
@@ -437,7 +444,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $routingEventHandlers = ExtensionObjectResolver::resolve(RoutingEventHandler::class, $extensionObjects);
-        $commandBusRoutingConfig = new BusRoutingConfigBuilder(true, $routingEventHandlers, $messagingConfiguration);
+        $commandBusRoutingConfig = new BusRoutingMapBuilder(true, $routingEventHandlers, $messagingConfiguration);
         foreach ($this->annotationFinder->findAnnotatedMethods(CommandHandler::class) as $registration) {
             $destinationChannel = $commandBusRoutingConfig->addRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
             /** @var CommandHandler $commandHandler */
@@ -447,10 +454,11 @@ class MessageHandlerRoutingModule implements AnnotationModule
                     BridgeBuilder::create()
                         ->withInputChannelName($commandHandler->getInputChannelName())
                         ->withOutputMessageChannel($destinationChannel)
+                        ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($registration)->toAttributeDefinition()])
                 );
             }
         }
-        $queryBusRouting = new BusRoutingConfigBuilder(true, $routingEventHandlers, $messagingConfiguration);
+        $queryBusRouting = new BusRoutingMapBuilder(true, $routingEventHandlers, $messagingConfiguration);
         foreach ($this->annotationFinder->findAnnotatedMethods(QueryHandler::class) as $registration) {
             $destinationChannel = $queryBusRouting->addRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
             /** @var QueryHandler $commandHandler */
@@ -463,9 +471,13 @@ class MessageHandlerRoutingModule implements AnnotationModule
                 );
             }
         }
-        $eventBusRouting = new BusRoutingConfigBuilder(false, $routingEventHandlers, $messagingConfiguration);
+        $eventBusRouting = new BusRoutingMapBuilder(false, $routingEventHandlers, $messagingConfiguration);
         foreach ($this->annotationFinder->findAnnotatedMethods(EventHandler::class) as $registration) {
             $eventBusRouting->addRoutesFromAnnotatedFinding($registration, $this->interfaceToCallRegistry);
+        }
+        foreach ($this->annotationFinder->findAnnotatedClasses(NamedEvent::class) as $className) {
+            $attribute = $this->annotationFinder->getAttributeForClass($className, NamedEvent::class);
+            $eventBusRouting->addObjectAlias($className, $attribute->getName());
         }
 
         $messagingConfiguration
@@ -520,17 +532,24 @@ class MessageHandlerRoutingModule implements AnnotationModule
             );
     }
 
-    private function buildRouterHandler(BusRoutingConfigBuilder $busRoutingConfig, string $channel, bool $isResolutionRequired = true): MessageProcessorActivatorBuilder
+    private function buildRouterHandler(BusRoutingMapBuilder $busRoutingConfig, string $channel, bool $isResolutionRequired = true): MessageProcessorActivatorBuilder
     {
+        $busRouteSelectorClass = match ($channel) {
+            MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME => CommandBusRouteSelector::class,
+            MessageBusChannel::QUERY_CHANNEL_NAME_BY_NAME => QueryBusRouteSelector::class,
+            MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME => EventBusRouteSelector::class,
+            default => BusRouteSelector::class,
+        };
         return MessageProcessorActivatorBuilder::create()
             ->withInputChannelName($channel)
             ->chain(new Definition(RouterProcessor::class, [
-                new Definition(BusRoutingSelector::class, [
+                new Definition($busRouteSelectorClass, [
                     $busRoutingConfig->compile(),
-                    $channel
+                    new Definition(BusRoutingKeyResolver::class, [$channel]), // Yes, the channel name is also used as routing key header
+                    new Reference(LoggingGateway::class),
                 ]),
                 new Definition(RouteToChannelResolver::class, [new Reference(ChannelResolver::class)]),
-                false,
+                $isResolutionRequired, // Single route if resolution is required
                 $isResolutionRequired,
             ]));
     }

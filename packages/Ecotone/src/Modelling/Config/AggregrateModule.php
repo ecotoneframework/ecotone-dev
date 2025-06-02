@@ -55,7 +55,7 @@ use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\Attribute\RelatedAggregate;
 use Ecotone\Modelling\Attribute\Repository;
-use Ecotone\Modelling\Config\Routing\BusRoutingConfigBuilder;
+use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Modelling\Config\Routing\RoutingEvent;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
 use Ecotone\Modelling\EventSourcingExecutor\EnterpriseAggregateMethodInvoker;
@@ -181,7 +181,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         foreach ($this->getCombinedCommandAndEventHandlersPerAggregate() as $aggregateClassname => $registrations) {
             $staticRegistrations = [];
             $staticChannelsOfAggregate = [];
-            $routerBuilder = new BusRoutingConfigBuilder();
+            $routerBuilder = new BusRoutingMapBuilder();
             /** @var array<string, AnnotatedFinding> $channelToRegistrations */
             $channelToRegistrations = [];
             foreach ($registrations as $registration) {
@@ -204,7 +204,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
 
                 $bridgeForThisFactoryMethod = null;
                 foreach ($routedKeys as $routedKey) {
-                    $channels = $routerBuilder->resolve($routedKey);
+                    $channels = $routerBuilder->get($routedKey);
                     $staticChannels = \array_filter($channels, fn ($channel) => \in_array($channel, $staticChannelsOfAggregate, true));
                     $actionChannels = \array_filter($channels, fn ($channel) => !\in_array($channel, $staticChannelsOfAggregate, true));
                     if (empty($staticChannels) || empty($actionChannels)) {

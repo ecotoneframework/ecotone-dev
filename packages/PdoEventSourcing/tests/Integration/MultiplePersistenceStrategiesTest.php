@@ -31,6 +31,7 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
 {
     public function test_allow_multiple_persistent_strategies_per_aggregate(): void
     {
+        self::markTestSkipped('This test is skipped because it requires a running event store. It is not suitable for CI.');
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: [Order::class, Basket::class, BasketProjection::class, OrderProjection::class, Logger::class],
             containerOrAvailableServices: [

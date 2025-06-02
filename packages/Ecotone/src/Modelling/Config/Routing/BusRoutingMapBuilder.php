@@ -15,10 +15,9 @@ use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Modelling\Attribute\EventHandler;
 
-class BusRoutingConfigBuilder extends BusRoutingConfig
+class BusRoutingMapBuilder extends BusRoutingMap
 {
     private array $channelsName = [];
-    private array $routesToChannels = [];
 
     /**
      * @param array<RoutingEventHandler> $routingEventHandlers
@@ -72,7 +71,7 @@ class BusRoutingConfigBuilder extends BusRoutingConfig
 
         $routingEvent = new RoutingEvent($registration, $destinationChannel, $routes, $priority->getPriorityArray());
 
-        return $this->handleRoutingEvent($routingEvent);
+        return $this->dispatchRoutingEvent($routingEvent);
     }
 
     /**
@@ -205,7 +204,7 @@ class BusRoutingConfigBuilder extends BusRoutingConfig
                 }
             }
         }
-        return new Definition(BusRoutingConfig::class, [
+        return new Definition(BusRoutingMap::class, [
             $this->channelsPriority,
             $this->objectRoutes,
             $this->catchAllRoutes,
@@ -237,7 +236,7 @@ class BusRoutingConfigBuilder extends BusRoutingConfig
     /**
      * @return ?string the destination channel name or null if the event is canceled
      */
-    private function handleRoutingEvent(RoutingEvent $routingEvent): ?string
+    private function dispatchRoutingEvent(RoutingEvent $routingEvent): ?string
     {
         foreach ($this->routingEventHandlers as $routingEventHandler) {
             $routingEventHandler->handleRoutingEvent($routingEvent, $this->messagingConfiguration);

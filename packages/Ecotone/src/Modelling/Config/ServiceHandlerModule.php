@@ -72,14 +72,6 @@ final class ServiceHandlerModule implements AnnotationModule
         );
     }
 
-    public static function getHandlerChannel(AnnotatedFinding $registration): string
-    {
-        /** @var EndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        return $annotationForMethod->getEndpointId() . '.target';
-    }
-
     /**
      * @inheritDoc
      */

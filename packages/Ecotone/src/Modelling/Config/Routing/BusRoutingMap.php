@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\Routing;
 
-class BusRoutingConfig
+class BusRoutingMap
 {
     public function __construct(
         /**
@@ -47,7 +47,10 @@ class BusRoutingConfig
     {
     }
 
-    public function resolve(string $routingKeyOrClass): array
+    /**
+     * @inheritDoc
+     */
+    public function get(string $routingKeyOrClass): array
     {
         if (isset($this->optimizedRoutes[$routingKeyOrClass])) {
             return $this->optimizedRoutes[$routingKeyOrClass];

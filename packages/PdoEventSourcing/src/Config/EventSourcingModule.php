@@ -48,10 +48,8 @@ use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
-use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Filter\MessageFilterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -299,6 +297,15 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
         }
 
+        $pollingProjectionNames = [];
+        foreach ($serviceExtensions as $extensionObject) {
+            if ($extensionObject instanceof ProjectionRunningConfiguration) {
+                if ($extensionObject->isPolling()) {
+                    $pollingProjectionNames[] = $extensionObject->getProjectionName();
+                }
+            }
+        }
+
         $eventSourcingRepositories = [];
         foreach ($serviceExtensions as $extensionObject) {
             if ($extensionObject instanceof EventSourcingConfiguration) {
@@ -306,7 +313,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
         }
 
-        return $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create()];
+        $eventSourcingRepositories = $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create()];
+        return [...$eventSourcingRepositories, new EventSourcingModuleRoutingExtension($pollingProjectionNames)];
     }
 
     private function registerEventStore(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
@@ -579,9 +587,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
 
         foreach ($this->projectionSetupConfigurations as $index => $projectionSetupConfiguration) {
-            $projectionRunningConfiguration = ProjectionRunningConfiguration::createEventDriven($projectionSetupConfiguration->getProjectionName());
             if (array_key_exists($projectionSetupConfiguration->getProjectionName(), $projectionRunningConfigurations)) {
                 $projectionRunningConfiguration = $projectionRunningConfigurations[$projectionSetupConfiguration->getProjectionName()];
+            } else {
+                $projectionRunningConfiguration = ProjectionRunningConfiguration::createEventDriven($projectionSetupConfiguration->getProjectionName());
             }
 
             $projectionSetupConfiguration = $projectionSetupConfiguration
@@ -608,26 +617,13 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     )
                         ->withEndpointId($projectionSetupConfiguration->getProjectionName())
                 );
-
-                continue;
             }
 
-            /** Projection will be called sync or async triggered by Event Bus. In that case we need to connect them to event related channels */
-            foreach ($projectionSetupConfiguration->getProjectionEventHandlerConfigurations() as $eventHandlerConfiguration) {
-                $interfaceToCall = $interfaceToCallRegistry->getFor($eventHandlerConfiguration->getClassName(), $eventHandlerConfiguration->getMethodName());
-                $messagingConfiguration->registerMessageHandler(
-                    BridgeBuilder::create()
-                        ->withInputChannelName($eventHandlerConfiguration->getEventBusRoutingKey())
-                        ->withOutputMessageChannel($projectionSetupConfiguration->getProjectionInputChannel())
-                        ->withEndpointAnnotations([PriorityBasedOnType::fromInterfaceToCall($interfaceToCall)->toAttributeDefinition()])
+            if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) && $projectionSetupConfiguration->isAsynchronous()) {
+                $messagingConfiguration->registerAsynchronousEndpoint(
+                    $projectionSetupConfiguration->getAsynchronousChannelName(),
+                    $projectionSetupConfiguration->getProjectionEndpointId()
                 );
-
-                if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) && $projectionSetupConfiguration->isAsynchronous()) {
-                    $messagingConfiguration->registerAsynchronousEndpoint(
-                        $projectionSetupConfiguration->getAsynchronousChannelName(),
-                        $projectionSetupConfiguration->getProjectionEndpointId()
-                    );
-                }
             }
         }
     }

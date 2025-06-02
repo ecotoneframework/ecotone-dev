@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
-use Ecotone\Modelling\Config\Routing\BusRoutingConfigBuilder;
+use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -18,9 +18,9 @@ class BusRoutingConfigTest extends TestCase
         yield 'optimized' => [true];
     }
 
-    public static function routingConfig(bool $isOptimized): BusRoutingConfigBuilder
+    public static function routingConfig(bool $isOptimized): BusRoutingMapBuilder
     {
-        $routingConfig = new BusRoutingConfigBuilder();
+        $routingConfig = new BusRoutingMapBuilder();
         $routingConfig->addObjectRoute(AClass::class, 'AClassRouteChannel1', 3);
         $routingConfig->addObjectRoute(AClass::class, 'AClassRouteChannel2', 2);
         $routingConfig->addCatchAllRoute('CatchAllRouteChannel', -2);
@@ -45,7 +45,7 @@ class BusRoutingConfigTest extends TestCase
             'AClassRouteChannel2',
             'testChannelRegex',
             'CatchAllRouteChannel',
-        ], $routingConfig->resolve(AClass::class));
+        ], $routingConfig->get(AClass::class));
     }
 
     #[DataProvider('optimizedProvider')]
@@ -58,7 +58,7 @@ class BusRoutingConfigTest extends TestCase
                 'AClassRouteChannel2',
                 'CatchAllRouteChannel',
             ],
-            $routingConfig->resolve(BClass::class),
+            $routingConfig->get(BClass::class),
             "BClass should not inherit the named channel alias from AClass");
     }
 
@@ -70,7 +70,7 @@ class BusRoutingConfigTest extends TestCase
         self::assertEqualsCanonicalizing([
             'testNamedChannel',
             'testChannelRegex',
-        ], $routingConfig->resolve('test.named'));
+        ], $routingConfig->get('test.named'));
     }
 
     #[DataProvider('optimizedProvider')]
@@ -78,7 +78,7 @@ class BusRoutingConfigTest extends TestCase
     {
         $routingConfig = self::routingConfig($isOptimized);
 
-        self::assertEqualsCanonicalizing(['testChannelRegex'], $routingConfig->resolve('test.unknown'));
+        self::assertEqualsCanonicalizing(['testChannelRegex'], $routingConfig->get('test.unknown'));
     }
 }
 

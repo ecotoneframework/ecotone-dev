@@ -6,23 +6,19 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\Routing;
 
-use Ecotone\Messaging\Handler\Router\RouteSelector;
 use Ecotone\Messaging\Message;
 
-class BusRoutingSelector implements RouteSelector
+class BusRoutingKeyResolver
 {
-    public function __construct(private BusRoutingConfig $busRoutingConfig, private string $routingKeyHeader)
+    public function __construct(private string $routingKeyHeader)
     {
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function route(Message $message): array
+    public function resolve(Message $message): string
     {
         if ($message->getHeaders()->containsKey($this->routingKeyHeader)) {
             $routingKey = $message->getHeaders()->get($this->routingKeyHeader);
-            if (! \is_string($routingKey)) {
+            if (!\is_string($routingKey)) {
                 throw new \InvalidArgumentException(sprintf('Routing key should be a string, but got %s', \gettype($routingKey)));
             }
         } else {
@@ -33,6 +29,6 @@ class BusRoutingSelector implements RouteSelector
             $routingKey = get_class($payload);
         }
 
-        return $this->busRoutingConfig->resolve($routingKey);
+        return $routingKey;
     }
 }

@@ -31,7 +31,6 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
 {
     public function test_allow_multiple_persistent_strategies_per_aggregate(): void
     {
-        self::markTestSkipped('This test is skipped because it requires a running event store. It is not suitable for CI.');
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: [Order::class, Basket::class, BasketProjection::class, OrderProjection::class, Logger::class],
             containerOrAvailableServices: [
@@ -89,13 +88,11 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
             )
         ;
 
-        $ecotone
-            ->publishEventWithRoutingKey(OrderCreated::NAME, new OrderCreated('order-1'))
-            ->publishEventWithRoutingKey(OrderCreated::NAME, new OrderCreated('order-2'))
-            ->publishEventWithRoutingKey(BasketCreated::NAME, new BasketCreated('basket-1'))
-            ->publishEventWithRoutingKey(BasketCreated::NAME, new BasketCreated('basket-2'))
-            ->triggerProjection([BasketProjection::NAME, OrderProjection::NAME])
-        ;
+        $ecotone->publishEventWithRoutingKey(OrderCreated::NAME, new OrderCreated('order-1'));
+        $ecotone->publishEventWithRoutingKey(OrderCreated::NAME, new OrderCreated('order-2'));
+        $ecotone->publishEventWithRoutingKey(BasketCreated::NAME, new BasketCreated('basket-1'));
+        $ecotone->publishEventWithRoutingKey(BasketCreated::NAME, new BasketCreated('basket-2'));
+        $ecotone->triggerProjection([BasketProjection::NAME, OrderProjection::NAME]);
 
         $eventStore = $ecotone->getGateway(EventStore::class);
 

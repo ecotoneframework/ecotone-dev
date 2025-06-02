@@ -4,16 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
-use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\Repository\AggregateRepository;
@@ -45,12 +41,9 @@ final class SaveAggregateService implements MessageProcessor
         }
 
         foreach ($resolvedAggregates as $key => $resolvedAggregate) {
-            $version = $resolvedAggregate->getVersionBeforeHandling();
-
             $this->aggregateRepository->save(
                 $resolvedAggregate,
                 $metadata,
-                $version
             );
 
             /** For ORM identifier may be assigned after saving */

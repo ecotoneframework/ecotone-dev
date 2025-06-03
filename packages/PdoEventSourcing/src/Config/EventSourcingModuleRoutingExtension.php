@@ -13,6 +13,9 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Config\Routing\RoutingEvent;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
 
+/**
+ * This routing event handler is responsible to trigger projection instead of routing directly to execution endpoint.
+ */
 class EventSourcingModuleRoutingExtension implements RoutingEventHandler
 {
     /**

@@ -35,7 +35,6 @@ final class ServiceHandlerModule implements AnnotationModule
      * @param AnnotatedFinding[] $serviceEventHandlers
      */
     private function __construct(
-        private InterfaceToCallRegistry $interfaceToCallRegistry,
         private array $serviceCommandHandlers,
         private array $serviceQueryHandlers,
         private array $serviceEventHandlers,
@@ -50,7 +49,6 @@ final class ServiceHandlerModule implements AnnotationModule
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         return new self(
-            $interfaceToCallRegistry,
             array_filter(
                 $annotationRegistrationService->findAnnotatedMethods(CommandHandler::class),
                 function (AnnotatedFinding $annotatedFinding) {

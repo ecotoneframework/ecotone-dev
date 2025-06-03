@@ -271,7 +271,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
                 ]),
                 new Definition(RouteToChannelResolver::class, [new Reference(ChannelResolver::class)]),
                 $isResolutionRequired, // Single route if resolution is required
-                $isResolutionRequired,
             ]));
     }
 

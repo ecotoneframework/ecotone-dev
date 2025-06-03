@@ -100,13 +100,13 @@ class BusRoutingMap
         return $result;
     }
 
-    private static function globMatch(string $pattern, string $string): bool
+    public static function globMatch(string $pattern, string $route): bool
     {
         $pattern = str_replace('\\', '\\\\', $pattern);
         $pattern = str_replace('.', '\\.', $pattern);
         $pattern = str_replace('*', '.*', $pattern);
 
-        return (bool) preg_match('#^' . $pattern . '$#i', $string);
+        return (bool) preg_match('#^' . $pattern . '$#i', $route);
     }
 
     /**

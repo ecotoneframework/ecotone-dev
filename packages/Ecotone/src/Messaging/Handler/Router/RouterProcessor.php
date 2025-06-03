@@ -16,17 +16,12 @@ class RouterProcessor implements MessageProcessor
         private RouteSelector $routeSelector,
         private RouteResolver $routeResolver,
         private bool $singleRoute = true,
-        private bool $isResolutionRequired = false,
     ) {
     }
 
     public function process(Message $message): ?Message
     {
         $routes = $this->routeSelector->route($message);
-
-        if (empty($routes) && $this->isResolutionRequired) {
-            throw DestinationResolutionException::create("Can't resolve destination, because there are no channels to send message to.");
-        }
 
         if ($this->singleRoute) {
             if (count($routes) === 0) {

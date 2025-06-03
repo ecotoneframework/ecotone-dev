@@ -42,10 +42,7 @@ final class SaveAggregateService implements MessageProcessor
         }
 
         foreach ($resolvedAggregates as $key => $resolvedAggregate) {
-            $this->aggregateRepository->save(
-                $resolvedAggregate,
-                $metadata,
-            );
+            $versionAfterHandling = $this->aggregateRepository->save($resolvedAggregate, $metadata);
 
             /** For ORM identifier may be assigned after saving */
             $resolvedAggregates[$key] = $resolvedAggregate->withIdentifiers(
@@ -56,7 +53,7 @@ final class SaveAggregateService implements MessageProcessor
                     $resolvedAggregate->getAggregateClassDefinition(),
                     true,
                 )
-            );
+            )->withVersionAfterHandling($versionAfterHandling);
         }
 
         foreach ($resolvedAggregates as $resolvedAggregate) {
@@ -66,6 +63,7 @@ final class SaveAggregateService implements MessageProcessor
         return SaveAggregateServiceTemplate::buildReplyMessage(
             $resolvedAggregates[0]->isNewInstance(),
             $resolvedAggregates[0]->isNewInstance() ? $resolvedAggregates[0]->getIdentifiers() : [],
+            $resolvedAggregates[0]->getVersionAfterHandling(),
             $message,
         );
     }

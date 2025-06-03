@@ -1,4 +1,5 @@
 <?php
+declare(strict_types = 1);
 
 /*
  * licence Apache-2.0
@@ -85,17 +86,19 @@ class ChainedMessageProcessorBuilder implements CompilableBuilder
     private array $annotations = [];
     public function withEndpointAnnotations(array $annotations): self
     {
-        $this->annotations = $annotations;
+        $self = clone $this;
+        $self->annotations = $annotations;
 
-        return $this;
+        return $self;
     }
 
-    private array $requiredInterceptorNames = [];
+    private iterable $requiredInterceptorNames = [];
     public function withRequiredInterceptorNames(array $requiredInterceptorNames): self
     {
-        $this->requiredInterceptorNames = $requiredInterceptorNames;
+        $self = clone $this;
+        $self->requiredInterceptorNames = $requiredInterceptorNames;
 
-        return $this;
+        return $self;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference

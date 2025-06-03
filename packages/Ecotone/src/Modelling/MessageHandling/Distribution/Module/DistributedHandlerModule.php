@@ -74,16 +74,6 @@ class DistributedHandlerModule implements AnnotationModule
         return $this->eventBusDistributedRoutes->getRoutingKeys();
     }
 
-    public static function getDistributedEventHandlerRoutingKeys(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): array
-    {
-        $routingKeys = array_merge(
-            MessageHandlerRoutingModule::getEventBusByNamesMapping($annotationFinder, $interfaceToCallRegistry, true),
-            MessageHandlerRoutingModule::getEventBusByObjectsMapping($annotationFinder, $interfaceToCallRegistry, true)
-        );
-
-        return array_keys($routingKeys);
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [$this];

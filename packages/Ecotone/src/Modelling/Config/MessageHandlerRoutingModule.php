@@ -90,92 +90,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
         );
     }
 
-    public static function getCommandBusByObjectMapping(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry, bool $hasToBeDistributed, array &$uniqueChannels = []): array
-    {
-        $objectCommandHandlers = [];
-        foreach ($annotationRegistrationService->findCombined(Aggregate::class, CommandHandler::class) as $registration) {
-            if (self::hasMessageNameDefined($registration)) {
-                continue;
-            }
-            if ($hasToBeDistributed && (! $registration->hasMethodAnnotation(Distributed::class) && ! $registration->hasClassAnnotation(Distributed::class))) {
-                continue;
-            }
-
-            $classChannel = self::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
-            if ($classChannel) {
-                $objectCommandHandlers[$classChannel][] = self::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
-                $objectCommandHandlers[$classChannel]   = array_unique($objectCommandHandlers[$classChannel]);
-                $uniqueChannels[$classChannel][]        = $registration;
-            }
-        }
-        foreach ($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class) as $registration) {
-            if ($registration->hasClassAnnotation(Aggregate::class)) {
-                continue;
-            }
-            if (self::hasMessageNameDefined($registration)) {
-                continue;
-            }
-            if ($hasToBeDistributed && (! $registration->hasMethodAnnotation(Distributed::class) && ! $registration->hasClassAnnotation(Distributed::class))) {
-                continue;
-            }
-
-            $classChannel = self::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
-            if ($classChannel) {
-                $objectCommandHandlers[$classChannel][] = self::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
-                $objectCommandHandlers[$classChannel]   = array_unique($objectCommandHandlers[$classChannel]);
-                $uniqueChannels[$classChannel][]        = $registration;
-            }
-        }
-
-        self::verifyUniqueness($uniqueChannels);
-
-        return $objectCommandHandlers;
-    }
-
-    public static function getCommandBusByNamesMapping(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry, bool $hasToBeDistributed, array &$uniqueChannels = []): array
-    {
-        $namedCommandHandlers = [];
-        foreach ($annotationRegistrationService->findCombined(Aggregate::class, CommandHandler::class) as $registration) {
-            if ($hasToBeDistributed && (! $registration->hasMethodAnnotation(Distributed::class) && ! $registration->hasClassAnnotation(Distributed::class))) {
-                continue;
-            }
-
-            $namedChannel = self::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
-            if ($namedChannel) {
-                $namedCommandHandlers[$namedChannel][] = $namedChannel;
-                $namedCommandHandlers[$namedChannel]   = array_unique($namedCommandHandlers[$namedChannel]);
-                $uniqueChannels[$namedChannel][]       = $registration;
-            }
-        }
-        foreach ($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class) as $registration) {
-            if ($registration->hasMethodAnnotation(Asynchronous::class)) {
-                /** @var Asynchronous $asynchronous */
-                $asynchronous = $registration->getMethodAnnotationsWithType(Asynchronous::class)[0];
-                /** @var CommandHandler $annotationForMethod */
-                $annotationForMethod = $registration->getAnnotationForMethod();
-                Assert::isTrue(! in_array($annotationForMethod->getInputChannelName(), $asynchronous->getChannelName()), "Command Handler routing key can't be equal to asynchronous channel name in {$registration}");
-            }
-
-            if ($registration->hasClassAnnotation(Aggregate::class)) {
-                continue;
-            }
-            if ($hasToBeDistributed && (! $registration->hasMethodAnnotation(Distributed::class) && ! $registration->hasClassAnnotation(Distributed::class))) {
-                continue;
-            }
-
-            $namedChannel = self::getRoutingInputMessageChannelFor($registration, $interfaceToCallRegistry);
-            if ($namedChannel) {
-                $namedCommandHandlers[$namedChannel][] = $namedChannel;
-                $namedCommandHandlers[$namedChannel]   = array_unique($namedCommandHandlers[$namedChannel]);
-                $uniqueChannels[$namedChannel][]       = $registration;
-            }
-        }
-
-        self::verifyUniqueness($uniqueChannels);
-
-        return $namedCommandHandlers;
-    }
-
     public static function getFirstParameterClassIfAny(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): ?string
     {
         $type = TypeDescriptor::create(self::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
@@ -185,20 +99,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
         }
 
         return null;
-    }
-
-    public static function getFirstParameterEventPayloadClasses(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): array
-    {
-        $type = TypeDescriptor::create(self::getFirstParameterTypeFor($registration, $interfaceToCallRegistry));
-        if ($type->isClassOrInterface() && ! $type->isClassOfType(TypeDescriptor::create(Message::class))) {
-            if ($type->isUnionType()) {
-                return array_map(fn (TypeDescriptor $type) => $type->toString(), $type->getUnionTypes());
-            }
-
-            return [$type->toString()];
-        }
-
-        return [];
     }
 
     public static function getFirstParameterTypeFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
@@ -226,146 +126,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
         return TypeDescriptor::ARRAY;
     }
 
-    public static function getEventBusByObjectsMapping(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry, bool $hasToBeDistributed): array
-    {
-        $objectEventHandlers = [];
-        foreach ($annotationRegistrationService->findCombined(Aggregate::class, EventHandler::class) as $registration) {
-            if (self::hasMessageNameDefined($registration)) {
-                continue;
-            }
-            if ($hasToBeDistributed && (! $registration->hasMethodAnnotation(Distributed::class) || ! $registration->hasClassAnnotation(Distributed::class))) {
-                continue;
-            }
-
-            $unionEventClasses           = self::getFirstParameterEventPayloadClasses($registration, $interfaceToCallRegistry);
-            $namedMessageChannelFor = self::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
-
-            foreach ($unionEventClasses as $classChannel) {
-                $objectEventHandlers[$classChannel][] = $namedMessageChannelFor;
-                $objectEventHandlers[$classChannel]   = array_unique($objectEventHandlers[$classChannel]);
-            }
-        }
-        foreach ($annotationRegistrationService->findAnnotatedMethods(EventHandler::class) as $registration) {
-            if ($registration->hasMethodAnnotation(Asynchronous::class)) {
-                /** @var Asynchronous $asynchronous */
-                $asynchronous = $registration->getMethodAnnotationsWithType(Asynchronous::class)[0];
-                /** @var EventHandler $annotationForMethod */
-                $annotationForMethod = $registration->getAnnotationForMethod();
-                Assert::isTrue(! in_array($annotationForMethod->getListenTo(), $asynchronous->getChannelName()), "Event Handler listen to routing can't be equal to asynchronous channel name in {$registration}");
-            }
-
-            if ($registration->hasClassAnnotation(Aggregate::class)) {
-                continue;
-            }
-            if (self::hasMessageNameDefined($registration)) {
-                continue;
-            }
-
-            if ($hasToBeDistributed && (! $registration->hasMethodAnnotation(Distributed::class) || ! $registration->hasClassAnnotation(Distributed::class))) {
-                continue;
-            }
-
-            $unionEventClasses           = self::getFirstParameterEventPayloadClasses($registration, $interfaceToCallRegistry);
-            $namedMessageChannelFor = self::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
-            foreach ($unionEventClasses as $classChannel) {
-                if (! EventBusRouter::isRegexBasedRoute($namedMessageChannelFor)) {
-                    $objectEventHandlers[$classChannel][] = $namedMessageChannelFor;
-                    $objectEventHandlers[$classChannel]   = array_unique($objectEventHandlers[$classChannel]);
-                }
-            }
-        }
-
-        return $objectEventHandlers;
-    }
-
-    public static function getEventBusByNamesMapping(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry, bool $hasToBeDistributed): array
-    {
-        $namedEventHandlers = [];
-        foreach ($annotationRegistrationService->findAnnotatedMethods(EventHandler::class) as $registration) {
-            /** @var EventHandler $annotation */
-            $annotation = $registration->getAnnotationForMethod();
-            if ($registration->hasClassAnnotation(Aggregate::class)) {
-                continue;
-            }
-            if ($hasToBeDistributed && ! $registration->hasMethodAnnotation(Distributed::class)) {
-                continue;
-            }
-
-            if ($annotation->getListenTo()) {
-                $chanelName = self::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
-                $namedEventHandlers[$chanelName][] = $chanelName;
-                $namedEventHandlers[$chanelName]   = array_unique($namedEventHandlers[$chanelName]);
-            }
-        }
-        foreach ($annotationRegistrationService->findCombined(Aggregate::class, EventHandler::class) as $registration) {
-            $channelName = self::getRoutingInputMessageChannelForEventHandler($registration, $interfaceToCallRegistry);
-            if (EventBusRouter::isRegexBasedRoute($channelName)) {
-                throw ConfigurationException::create("Can not registered regex listen to channel for aggregates in {$registration}");
-            }
-            if ($hasToBeDistributed && ! $registration->hasMethodAnnotation(Distributed::class)) {
-                continue;
-            }
-
-            $namedEventHandlers[$channelName][] = $channelName;
-            $namedEventHandlers[$channelName]   = array_unique($namedEventHandlers[$channelName]);
-        }
-
-        return $namedEventHandlers;
-    }
-
-    private static function isForTheSameAggregate(array $aggregateMethodUsage, $uniqueChannelName, string $oppositeMethodType, AnnotatedFinding $registration): bool
-    {
-        return ! isset($aggregateMethodUsage[$uniqueChannelName][$oppositeMethodType])
-            || $aggregateMethodUsage[$uniqueChannelName][$oppositeMethodType]->getClassName() === $registration->getClassName();
-    }
-
-    /**
-     * @param AnnotatedDefinition[][] $uniqueChannels
-     *
-     * @throws MessagingException
-     */
-    private static function verifyUniqueness(array $uniqueChannels): void
-    {
-        $notUniqueHandlerAnnotation = TypeDescriptor::create(NotUniqueHandler::class);
-        $aggregateAnnotation        = TypeDescriptor::create(Aggregate::class);
-        foreach ($uniqueChannels as $uniqueChannelName => $registrations) {
-            $combinedRegistrationNames = '';
-            $registrationsToVerify     = [];
-            $aggregateMethodUsage      = [];
-            foreach ($registrations as $registration) {
-                if ($registration->hasMethodAnnotation($notUniqueHandlerAnnotation)) {
-                    continue;
-                }
-
-                if ($registration->hasClassAnnotation($aggregateAnnotation)) {
-                    $isStatic           = (new ReflectionMethod($registration->getClassName(), $registration->getMethodName()))->isStatic();
-                    $methodType         = $isStatic ? 'factory' : 'action';
-                    $oppositeMethodType = $isStatic ? 'action' : 'factory';
-                    if (! isset($aggregateMethodUsage[$uniqueChannelName][$methodType])) {
-                        $aggregateMethodUsage[$uniqueChannelName][$methodType] = $registration;
-                        if (self::isForTheSameAggregate($aggregateMethodUsage, $uniqueChannelName, $oppositeMethodType, $registration)) {
-                            continue;
-                        }
-                    }
-
-                    $registrationsToVerify[] = $aggregateMethodUsage[$uniqueChannelName][$methodType];
-                }
-
-                $registrationsToVerify[] = $registration;
-            }
-
-            if (count($registrationsToVerify) <= 1) {
-                continue;
-            }
-
-            foreach ($registrationsToVerify as $registration) {
-                $combinedRegistrationNames .= " {$registration->getClassName()}:{$registration->getMethodName()}";
-            }
-
-            throw ConfigurationException::create("Channel name `{$uniqueChannelName}` should be unique, but is used in multiple handlers:{$combinedRegistrationNames}");
-        }
-    }
-
     /**
      * This allows to decouple input channel for routing from specific channel that executes the Handler.
      * This way each handler can be treated separately (e.g. for async processing)
@@ -388,7 +148,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             $inputChannelName = $annotationForMethod->getListenTo();
         }
 
-        if (! $inputChannelName) {
+        if (!$inputChannelName) {
             $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
             if ($interfaceToCall->hasNoParameters()) {
                 throw ConfigurationException::create("Missing command class or listen routing for {$registration}.");
@@ -397,45 +157,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
         }
 
         return $inputChannelName;
-    }
-
-    public static function getRoutingInputMessageChannelFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
-    {
-        /** @var InputOutputEndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        if ($annotationForMethod instanceof EventHandler) {
-            $inputChannelName = $annotationForMethod->getListenTo();
-        } else {
-            $inputChannelName = $annotationForMethod->getInputChannelName();
-        }
-
-        if (! $inputChannelName) {
-            $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
-            if ($interfaceToCall->hasNoParameters()) {
-                throw ConfigurationException::create("Missing class type hint or routing key for {$registration}.");
-            }
-            if ($interfaceToCall->getFirstParameter()->getTypeDescriptor()->isUnionType()) {
-                throw ConfigurationException::create("Query and Command handlers can not be registered with union Command type in {$registration}");
-            }
-            $inputChannelName = $interfaceToCall->getFirstParameterTypeHint();
-        }
-
-        return $inputChannelName;
-    }
-
-    public static function hasMessageNameDefined(AnnotatedFinding $registration): bool
-    {
-        /** @var InputOutputEndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        if ($annotationForMethod instanceof EventHandler) {
-            $inputChannelName = $annotationForMethod->getListenTo();
-        } else {
-            $inputChannelName = $annotationForMethod->getInputChannelName();
-        }
-
-        return $inputChannelName ? true : false;
     }
 
     /**

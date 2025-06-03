@@ -663,7 +663,10 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                     ])
                 ))
                 ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $factoryIdentifierMetadataMapping, $factoryIdentifierMapping, $factoryHandledPayloadType, $this->interfaceToCallRegistry))
-                ->chain(
+                ->chainInterceptedProcessor(
+                    // Registering this processor as intercepted causes before and after interceptors to be executed twice, once for loading aggregate and once for calling action or factory method.
+                    // This is required to avoid B/C breaks where before interceptor could add identifier metadata to the message.
+                    // First interception uses factory method pointcut only, second interception uses factory or action interface
                     LoadAggregateServiceBuilder::create($aggregateClassDefinition, $factoryRegistration->getMethodName(), $factoryHandledPayloadType, LoadAggregateMode::createContinueOnNotFound())
                 )
                 ->chain(

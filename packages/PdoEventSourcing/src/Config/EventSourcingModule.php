@@ -265,7 +265,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
         ]));
 
-        $messagingConfiguration->registerServiceDefinition(LazyProophProjectionManager::class,
+        $messagingConfiguration->registerServiceDefinition(
+            LazyProophProjectionManager::class,
             new Definition(LazyProophProjectionManager::class, [
                 Reference::to(EventSourcingConfiguration::class),
                 $this->projectionSetupConfigurations,

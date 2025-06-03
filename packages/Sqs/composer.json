@@ -33,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~1.254.1",
+        "ecotone/enqueue": "~1.255.0",
         "enqueue/sqs": "^0.10.15",
         "aws/aws-sdk-php": ">=3.340.5"
     },
@@ -58,7 +58,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.254.1-dev"
+            "dev-main": "1.255.0-dev"
         },
         "ecotone": {
             "repository": "sqs"
@@ -79,7 +79,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2025-04-23 06:22:22"
+        "release-time": "2025-06-03 18:15:00"
     },
     "config": {
         "sort-packages": true,

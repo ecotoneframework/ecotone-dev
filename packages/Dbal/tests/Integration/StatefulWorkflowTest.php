@@ -15,6 +15,9 @@ use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\Cycle;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\CycleGateway;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\EventsConverters;
 
+/**
+ * @internal
+ */
 class StatefulWorkflowTest extends DbalMessagingTestCase
 {
     public function test_stateful_workflow(): void

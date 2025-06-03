@@ -17,6 +17,9 @@ use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow\CertificateI
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow\CycleStarted;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow\EventsConverters;
 
+/**
+ * @internal
+ */
 class StatefulAsyncEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
 {
     public function test_stateful_async_event_sourced_workflow(): void

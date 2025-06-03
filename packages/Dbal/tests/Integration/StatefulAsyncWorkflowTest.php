@@ -16,6 +16,9 @@ use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\Certificate;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\CertificateIssued;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\EventsConverters;
 
+/**
+ * @internal
+ */
 class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
 {
     public function test_stateful_async_workflow(): void

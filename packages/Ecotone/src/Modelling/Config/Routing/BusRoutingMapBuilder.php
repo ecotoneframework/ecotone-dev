@@ -182,6 +182,18 @@ class BusRoutingMapBuilder extends BusRoutingMap
         }
     }
 
+    public function getRoutingKeys(): array
+    {
+        $allKnownRoutingKeys = array_merge(
+            array_keys($this->objectRoutes),
+            array_keys($this->namedRoutes),
+            array_keys($this->regexRoutes),
+            array_keys($this->classToNameAliases),
+            array_keys($this->nameToClassAliases),
+        );
+        return \array_unique($allKnownRoutingKeys);
+    }
+
     private function addChannel(string $channel, int|array $priority): void
     {
         if (!empty($this->optimizedRoutes)) {

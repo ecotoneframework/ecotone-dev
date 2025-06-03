@@ -90,7 +90,7 @@ class BusRoutingMapBuilder extends BusRoutingMap
     }
 
     /**
-     * @param class-string $class
+     * @param class-string|'object' $class
      * @param int|int[] $priority
      */
     public function addObjectRoute(string $class, string $channel, int|array $priority = 1): void
@@ -144,19 +144,27 @@ class BusRoutingMapBuilder extends BusRoutingMap
     public function addNamedRoute(string $routeName, string $channel, int|array $priority = 1): void
     {
         $this->addChannel($channel, $priority);
+
         if (\str_contains($routeName, '*')) {
-            $pattern = str_replace('\\', '\\\\', $routeName);
-            $pattern = str_replace('.', '\\.', $pattern);
-            $pattern = str_replace('*', '.*', $pattern);
-            $pattern = '#^' . $pattern . '$#';
-            $this->regexRoutes[$pattern][] = $channel;
+            $this->regexRoutes[$routeName][] = $channel;
         } else {
             $this->namedRoutes[$routeName][] = $channel;
         }
     }
 
+    /**
+     * @param class-string $class
+     * @param string $routingKey
+     */
     public function addObjectAlias(string $class, string $routingKey): void
     {
+        if (isset($this->classToNameAliases[$class])) {
+            throw ConfigurationException::create("Class $class already has an alias registered: " . $this->classToNameAliases[$class]);
+        }
+        if (isset($this->nameToClassAliases[$routingKey])) {
+            throw ConfigurationException::create("Routing key $routingKey already has a class alias registered: " . $this->nameToClassAliases[$routingKey]);
+        }
+
         $this->classToNameAliases[$class] = $routingKey;
         $this->nameToClassAliases[$routingKey] = $class;
     }

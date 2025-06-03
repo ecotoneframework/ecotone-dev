@@ -87,7 +87,7 @@ class BusRoutingMap
                 $result = array_merge($result, $this->namedRoutes[$routingKey]);
             }
             foreach ($this->regexRoutes as $pattern => $routes) {
-                if (preg_match($pattern, $routingKey)) {
+                if (self::globMatch($pattern, $routingKey)) {
                     $result = array_merge($result, $routes);
                 }
             }
@@ -98,6 +98,15 @@ class BusRoutingMap
         \usort($result, $this->sortByChannelPriority(...));
 
         return $result;
+    }
+
+    private static function globMatch(string $pattern, string $string): bool
+    {
+        $pattern = str_replace('\\', '\\\\', $pattern);
+        $pattern = str_replace('.', '\\.', $pattern);
+        $pattern = str_replace('*', '.*', $pattern);
+
+        return (bool) preg_match('#^' . $pattern . '$#i', $string);
     }
 
     /**

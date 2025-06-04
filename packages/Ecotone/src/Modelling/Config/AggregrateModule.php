@@ -6,6 +6,7 @@ use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Mapping\EventMapper;
+use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -654,6 +655,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         $messagingConfiguration->registerMessageHandler(
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName($connectionChannel)
+                ->withOutputMessageChannel($factoryAnnotation->getOutputChannelName())
                 // factory endpoint name is used. action endpoint name is not used
                 ->withEndpointId($factoryAnnotation->getEndpointId())
                 ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($factoryRegistration)->toAttributeDefinition()])
@@ -691,12 +693,14 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
             $actionInputChannelName = Uuid::uuid4();
         }
         // Add a bridge from the action channel to the factory+action channel
-        $messagingConfiguration->registerMessageHandler(
-            BridgeBuilder::create()
-                ->withEndpointId($actionAnnotation->getEndpointId())
-                ->withInputChannelName($actionInputChannelName)
-                ->withOutputMessageChannel($destinationChannel)
-                ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($actionRegistration)->toAttributeDefinition()])
-        );
+        if (! ($factoryAnnotation instanceof CommandHandler && $actionInputChannelName === $factoryAnnotation->getInputChannelName())) {
+            $messagingConfiguration->registerMessageHandler(
+                BridgeBuilder::create()
+                    ->withEndpointId($actionAnnotation->getEndpointId())
+                    ->withInputChannelName($actionInputChannelName)
+                    ->withOutputMessageChannel($destinationChannel)
+                    ->withEndpointAnnotations([PriorityBasedOnType::fromAnnotatedFinding($actionRegistration)->toAttributeDefinition()])
+            );
+        }
     }
 }

@@ -2,11 +2,8 @@
 
 namespace Ecotone\Modelling\Config;
 
-use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Attribute\StreamBasedSource;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
@@ -22,23 +19,16 @@ use Ecotone\Modelling\Attribute\ChangingHeaders;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\Config\Routing\RoutingEvent;
+use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
 
 #[ModuleAnnotation]
 /**
  * licence Apache-2.0
  */
-final class ServiceHandlerModule implements AnnotationModule
+final class ServiceHandlerModule implements AnnotationModule, RoutingEventHandler
 {
-    /**
-     * @param AnnotatedFinding[] $serviceCommandHandlers
-     * @param AnnotatedFinding[] $serviceQueryHandlers
-     * @param AnnotatedFinding[] $serviceEventHandlers
-     */
-    private function __construct(
-        private array $serviceCommandHandlers,
-        private array $serviceQueryHandlers,
-        private array $serviceEventHandlers,
-    ) {
+    private function __construct(private InterfaceToCallRegistry $interfaceToCallRegistry) {
     }
 
     /**
@@ -48,26 +38,7 @@ final class ServiceHandlerModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self(
-            array_filter(
-                $annotationRegistrationService->findAnnotatedMethods(CommandHandler::class),
-                function (AnnotatedFinding $annotatedFinding) {
-                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
-                }
-            ),
-            array_filter(
-                $annotationRegistrationService->findAnnotatedMethods(QueryHandler::class),
-                function (AnnotatedFinding $annotatedFinding) {
-                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
-                }
-            ),
-            array_filter(
-                $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
-                function (AnnotatedFinding $annotatedFinding) {
-                    return ! $annotatedFinding->hasClassAnnotation(Aggregate::class);
-                }
-            ),
-        );
+        return new self($interfaceToCallRegistry);
     }
 
     /**
@@ -80,7 +51,7 @@ final class ServiceHandlerModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        return [$this];
     }
 
     /**
@@ -88,34 +59,29 @@ final class ServiceHandlerModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $moduleExtensions, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        foreach ($this->serviceCommandHandlers as $registration) {
-            $this->registerServiceHandler($messagingConfiguration, $registration, $interfaceToCallRegistry, false);
-        }
-        foreach ($this->serviceQueryHandlers as $registration) {
-            $this->registerServiceHandler($messagingConfiguration, $registration, $interfaceToCallRegistry, false);
-        }
-        foreach ($this->serviceEventHandlers as $registration) {
-            $this->registerServiceHandler($messagingConfiguration, $registration, $interfaceToCallRegistry, $registration->hasClassAnnotation(StreamBasedSource::class));
-        }
     }
 
-    private function registerServiceHandler(Configuration $configuration, AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, bool $isStreamBasedSource): void
+    public function handleRoutingEvent(RoutingEvent $event, ?Configuration $messagingConfiguration = null): void
     {
+        $registration = $event->getRegistration();
+        if ($registration->hasClassAnnotation(Aggregate::class)) {
+            return;
+        }
+
         /** @var QueryHandler|CommandHandler|EventHandler $methodAnnotation */
         $methodAnnotation = $registration->getAnnotationForMethod();
-        $executionInputChannel = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 
-        $relatedClassInterface = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
+        $relatedClassInterface = $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
         $parameterConverters = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
 
         $handler = $registration->hasMethodAnnotation(ChangingHeaders::class)
-            ? TransformerBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()))
-            : ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()));
+            ? TransformerBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()))
+            : ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($registration), $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName()));
 
-        $configuration->registerMessageHandler(
+        $messagingConfiguration->registerMessageHandler(
             $handler
-                ->withInputChannelName($executionInputChannel)
+                ->withInputChannelName($event->getDestinationChannel())
                 ->withOutputMessageChannel($methodAnnotation->getOutputChannelName())
                 ->withEndpointId($methodAnnotation->getEndpointId())
                 ->withMethodParameterConverters($parameterConverters)

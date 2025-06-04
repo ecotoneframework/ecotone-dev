@@ -164,7 +164,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
         );
     }
 
-    public function test_multi_tenancy_do_not_work_with_polling_endpoint(): void
+    public function test_multi_tenancy_do_work_with_polling_endpoint(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [

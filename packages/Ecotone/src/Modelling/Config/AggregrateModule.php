@@ -2,11 +2,9 @@
 
 namespace Ecotone\Modelling\Config;
 
-use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Mapping\EventMapper;
-use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -67,9 +65,7 @@ use Ecotone\Modelling\FetchAggregate;
 use Ecotone\Modelling\Repository\AggregateRepositoryBuilder;
 use Ecotone\Modelling\Repository\StandardRepositoryAdapterBuilder;
 use Ecotone\Modelling\RepositoryBuilder;
-use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
-use ReflectionMethod;
 
 #[ModuleAnnotation]
 /**
@@ -101,7 +97,6 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         private array $aggregateClasses,
         private array $aggregateClassDefinitions,
         private array $aggregateCommandHandlers,
-        private array $aggregateQueryHandlers,
         private array $aggregateEventHandlers,
         private array $aggregateRepositoryReferenceNames,
         private array $gatewayRepositoryMethods,
@@ -155,12 +150,6 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                 }
             ),
             array_filter(
-                $annotationRegistrationService->findAnnotatedMethods(QueryHandler::class),
-                function (AnnotatedFinding $annotatedFinding) {
-                    return $annotatedFinding->hasClassAnnotation(Aggregate::class);
-                }
-            ),
-            array_filter(
                 $annotationRegistrationService->findAnnotatedMethods(EventHandler::class),
                 function (AnnotatedFinding $annotatedFinding) {
                     return $annotatedFinding->hasClassAnnotation(Aggregate::class);
@@ -172,11 +161,6 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         );
     }
 
-    /**
-     * @return array<string, array{string, string}> key is routingKey, value is [factory-channel, action-channel]
-     * @throws ConfigurationException
-     * @throws \Ecotone\Messaging\MessagingException
-     */
     private function initChannelsToBridge(): void
     {
         foreach ($this->getCombinedCommandAndEventHandlersPerAggregate() as $aggregateClassname => $registrations) {
@@ -267,8 +251,6 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         $messagingConfiguration->registerConverter(new AggregateIdMetadataConverter());
         $this->initialization($messagingConfiguration, $interfaceToCallRegistry);
 
-        $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
-
         $repositories = $this->aggregateRepositoryReferenceNames;
         $aggregateRepositoryBuilders = [];
         foreach ($moduleExtensions as $aggregateRepositoryBuilder) {
@@ -289,34 +271,31 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
 
         $this->registerForDirectLoadAndSaveOfAggregate($interfaceToCallRegistry, $messagingConfiguration);
         $this->registerBusinessRepositories($interfaceToCallRegistry, $messagingConfiguration);
-
-        foreach ($this->aggregateQueryHandlers as $registration) {
-            $this->registerAggregateQueryHandler($registration, $interfaceToCallRegistry, $parameterConverterAnnotationFactory, $messagingConfiguration);
-        }
     }
 
-    private function registerAggregateQueryHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry, ParameterConverterAnnotationFactory $parameterConverterAnnotationFactory, Configuration $configuration): void
+    private function registerAggregateQueryHandler(AnnotatedFinding $registration, string $destinationChannel, Configuration $configuration): void
     {
+        $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
+
         /** @var QueryHandler $annotationForMethod */
         $annotationForMethod = $registration->getAnnotationForMethod();
 
-        $relatedClassInterface    = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
+        $relatedClassInterface    = $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
         $parameterConverters      = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
-        $endpointChannelName      = MessageHandlerRoutingModule::getExecutionMessageHandlerChannel($registration);
-        $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($registration->getClassName()));
-        $handledPayloadType       = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $interfaceToCallRegistry);
-        $handledPayloadType       = $handledPayloadType ? $interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($handledPayloadType)) : null;
+        $aggregateClassDefinition = $this->interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($registration->getClassName()));
+        $handledPayloadType       = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $this->interfaceToCallRegistry);
+        $handledPayloadType       = $handledPayloadType ? $this->interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($handledPayloadType)) : null;
 
         $configuration->registerMessageHandler(
             MessageProcessorActivatorBuilder::create()
-                ->withInputChannelName($endpointChannelName)
+                ->withInputChannelName($destinationChannel)
                 ->withOutputMessageChannel($annotationForMethod->getOutputChannelName())
-                ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], $handledPayloadType, $interfaceToCallRegistry))
+                ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, [], [], $handledPayloadType, $this->interfaceToCallRegistry))
                 ->chain(
                     LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $handledPayloadType, LoadAggregateMode::createThrowOnNotFound())
                 )
                 ->chainInterceptedProcessor(
-                    CallAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), false, $interfaceToCallRegistry)
+                    CallAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), false, $this->interfaceToCallRegistry)
                         ->withMethodParameterConverters($parameterConverters)
                 )
                 ->withRequiredInterceptorNames($annotationForMethod->getRequiredInterceptorNames())
@@ -365,18 +344,6 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
             $messagingConfiguration->registerServiceDefinition(Reference::to(EnterpriseAggregateMethodInvoker::class), new Definition(EnterpriseAggregateMethodInvoker::class));
         } else {
             $messagingConfiguration->registerServiceDefinition(Reference::to(OpenCoreAggregateMethodInvoker::class), new Definition(OpenCoreAggregateMethodInvoker::class));
-        }
-
-        foreach ($this->aggregateCommandHandlers as $registration) {
-            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as command handler', $registration->getClassName(), $registration->getMethodName()));
-        }
-
-        foreach ($this->aggregateEventHandlers as $registration) {
-            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as event handler', $registration->getClassName(), $registration->getMethodName()));
-        }
-
-        foreach ($this->aggregateQueryHandlers as $registration) {
-            Assert::isFalse($registration->isMagicMethod(), sprintf('%s::%s cannot be annotated as query handler', $registration->getClassName(), $registration->getMethodName()));
         }
 
         $eventSourcingExecutors = [];
@@ -531,29 +498,43 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
 
     public function handleRoutingEvent(RoutingEvent $event, ?Configuration $messagingConfiguration = null): void
     {
-        if (! $event->getRegistration()->hasAnnotation(Aggregate::class)) {
-            return;
-        }
-        if ($event->getRegistration()->getAnnotationForMethod() instanceof QueryHandler) {
-            // TODO: handle query handlers with this module
+        $registration = $event->getRegistration();
+
+        if (! $registration->hasAnnotation(Aggregate::class)) {
             return;
         }
 
         Assert::notNull($messagingConfiguration, "RoutingEvent should be handled with messaging configuration, but it is null. Did you forget to pass it?");
 
+        if ($registration->isMagicMethod()) {
+            $attribute = $registration->getAnnotationForMethod();
+            $handlerType = match (true) {
+                $attribute instanceof CommandHandler => 'command handler',
+                $attribute instanceof EventHandler => 'event handler',
+                $attribute instanceof QueryHandler => 'query handler',
+                default => 'handler',
+            };
+            throw ConfigurationException::create(sprintf('%s::%s cannot be annotated as %s', $registration->getClassName(), $registration->getMethodName(), $handlerType));
+        }
+
+        if ($registration->getAnnotationForMethod() instanceof QueryHandler) {
+            $this->registerAggregateQueryHandler($registration, $event->getDestinationChannel(), $messagingConfiguration);
+            return;
+        }
+
         if (\in_array($event->getDestinationChannel(), $this->channelsToCancel, true)) {
             // Cancel the route to the action channel, as it is already bridged inside factory method
             $event->cancel();
-        }else if (isset($this->channelsToBridge[$event->getDestinationChannel()])) {
+        } else if (isset($this->channelsToBridge[$event->getDestinationChannel()])) {
             // Register a router to bridge factory method and action method
-            $this->registerRoutedFactoryHandler($event->getRegistration(), $this->channelsToBridge[$event->getDestinationChannel()], $event->getDestinationChannel(), $messagingConfiguration);
+            $this->registerRoutedFactoryHandler($registration, $this->channelsToBridge[$event->getDestinationChannel()], $event->getDestinationChannel(), $messagingConfiguration);
         } else {
             // Normal handler registration
-            $this->registerHandler($event->getRegistration(), $event->getDestinationChannel(), $messagingConfiguration);
+            $this->registerCommandHandler($registration, $event->getDestinationChannel(), $messagingConfiguration);
         }
     }
 
-    private function registerHandler(AnnotatedFinding $registration, string $destinationChannel, Configuration $messagingConfiguration): void
+    private function registerCommandHandler(AnnotatedFinding $registration, string $destinationChannel, Configuration $messagingConfiguration): void
     {
         $parameterConverterAnnotationFactory = ParameterConverterAnnotationFactory::create();
 

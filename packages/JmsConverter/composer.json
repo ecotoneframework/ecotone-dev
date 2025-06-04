@@ -38,7 +38,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.254.1",
+        "ecotone/ecotone": "~1.255.0",
         "jms/serializer": "^3.32",
         "symfony/cache": "^5.4|^6.1|^7.0"
     },
@@ -60,7 +60,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.254.1-dev"
+            "dev-main": "1.255.0-dev"
         },
         "ecotone": {
             "repository": "jms-converter"
@@ -81,7 +81,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2025-04-23 06:22:22"
+        "release-time": "2025-06-03 18:15:00"
     },
     "config": {
         "sort-packages": true,

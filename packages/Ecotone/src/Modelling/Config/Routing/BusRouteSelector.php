@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -8,7 +9,6 @@ namespace Ecotone\Modelling\Config\Routing;
 
 use Ecotone\Messaging\Handler\Router\RouteSelector;
 use Ecotone\Messaging\Message;
-use Psr\Log\LoggerInterface;
 
 class BusRouteSelector implements RouteSelector
 {

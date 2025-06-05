@@ -9,7 +9,6 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\CommandBus;

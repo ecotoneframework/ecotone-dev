@@ -5,8 +5,6 @@ namespace Ecotone\Modelling\Config;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
-use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
 use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\Parameter\ConfigurationVariable;
@@ -17,7 +15,6 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -66,8 +63,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
     public function __construct(
         private InterfaceToCallRegistry $interfaceToCallRegistry,
         private AnnotationFinder $annotationFinder,
-    )
-    {
+    ) {
     }
 
     /**
@@ -161,11 +157,14 @@ class MessageHandlerRoutingModule implements AnnotationModule
 
         $messagingConfiguration
             ->registerMessageHandler(
-                $this->buildRouterHandler($commandBusRoutingConfig, MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME))
+                $this->buildRouterHandler($commandBusRoutingConfig, MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME)
+            )
             ->registerMessageHandler(
-                $this->buildRouterHandler($queryBusRouting, MessageBusChannel::QUERY_CHANNEL_NAME_BY_NAME))
+                $this->buildRouterHandler($queryBusRouting, MessageBusChannel::QUERY_CHANNEL_NAME_BY_NAME)
+            )
             ->registerMessageHandler(
-                $this->buildRouterHandler($eventBusRouting, MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME, false));
+                $this->buildRouterHandler($eventBusRouting, MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME, false)
+            );
 
         $messagingConfiguration->registerServiceDefinition(
             MessageHeadersPropagatorInterceptor::class,

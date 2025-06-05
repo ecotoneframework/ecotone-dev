@@ -6,7 +6,6 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\AnnotatedConstructor\ConstructorAsCommandHandler;
 use Test\Ecotone\Modelling\Fixture\AnnotatedConstructor\ConstructorAsEventHandler;

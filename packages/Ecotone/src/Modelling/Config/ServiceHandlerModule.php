@@ -28,7 +28,8 @@ use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
  */
 final class ServiceHandlerModule implements AnnotationModule, RoutingEventHandler
 {
-    private function __construct(private InterfaceToCallRegistry $interfaceToCallRegistry) {
+    private function __construct(private InterfaceToCallRegistry $interfaceToCallRegistry)
+    {
     }
 
     /**

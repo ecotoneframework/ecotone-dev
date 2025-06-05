@@ -16,6 +16,9 @@ use Test\Ecotone\EventSourcing\Fixture\MultipleAsyncHandlersForOneMessage\Action
 use Test\Ecotone\EventSourcing\Fixture\MultipleAsyncHandlersForOneMessage\EventConverter;
 use Test\Ecotone\EventSourcing\Fixture\MultipleAsyncHandlersForOneMessage\TestAggregate;
 
+/**
+ * @internal
+ */
 final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagingTestCase
 {
     public function test_handling_multiple_same_messages(): void

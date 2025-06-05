@@ -1,10 +1,15 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
 declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\Routing;
+
+use function array_unique;
+use function class_exists;
+use function usort;
 
 class BusRoutingMap
 {
@@ -43,8 +48,7 @@ class BusRoutingMap
          * @var array<string, list<string>> key is the routing key, value is the full list of channels
          */
         protected array $optimizedRoutes = [],
-    )
-    {
+    ) {
     }
 
     /**
@@ -63,7 +67,7 @@ class BusRoutingMap
     protected function resolveWithoutOptimization(string $routingKeyOrClass): array
     {
         $result = [];
-        $isObject = \class_exists($routingKeyOrClass);
+        $isObject = class_exists($routingKeyOrClass);
 
         if ($isObject) {
             $className = $routingKeyOrClass;
@@ -93,9 +97,9 @@ class BusRoutingMap
             }
         }
 
-        $result = \array_unique($result);
+        $result = array_unique($result);
 
-        \usort($result, $this->sortByChannelPriority(...));
+        usort($result, $this->sortByChannelPriority(...));
 
         return $result;
     }

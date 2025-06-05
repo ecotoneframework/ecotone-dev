@@ -6,7 +6,6 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\SagaWithMultipleActions\RandomEvent;
 use Test\Ecotone\Modelling\Fixture\SagaWithMultipleActions\SagaWithMultipleEventHandlers;

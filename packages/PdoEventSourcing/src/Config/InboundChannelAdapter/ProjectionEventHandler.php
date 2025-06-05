@@ -2,11 +2,9 @@
 
 namespace Ecotone\EventSourcing\Config\InboundChannelAdapter;
 
-use Ecotone\EventSourcing\ChannelProjectionExecutor;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStatus;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Prooph\EventStore\StreamName;
 

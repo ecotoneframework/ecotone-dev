@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -10,6 +11,9 @@ use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 class BusRoutingConfigTest extends TestCase
 {
     public static function optimizedProvider(): iterable
@@ -53,13 +57,15 @@ class BusRoutingConfigTest extends TestCase
     {
         $routingConfig = self::routingConfig($isOptimized);
 
-        self::assertEquals([
+        self::assertEquals(
+            [
                 'AClassRouteChannel1',
                 'AClassRouteChannel2',
                 'CatchAllRouteChannel',
             ],
             $routingConfig->get(BClass::class),
-            "BClass should not inherit the named channel alias from AClass");
+            'BClass should not inherit the named channel alias from AClass'
+        );
     }
 
     #[DataProvider('optimizedProvider')]

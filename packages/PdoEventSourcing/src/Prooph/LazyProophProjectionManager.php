@@ -27,6 +27,7 @@ use Prooph\EventStore\Projection\Projector;
 use Prooph\EventStore\Projection\Query;
 use Prooph\EventStore\Projection\ReadModel;
 use Prooph\EventStore\Projection\ReadModelProjector;
+
 use function str_contains;
 
 /**

@@ -10,7 +10,6 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
-use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\Repository\AggregateRepository;

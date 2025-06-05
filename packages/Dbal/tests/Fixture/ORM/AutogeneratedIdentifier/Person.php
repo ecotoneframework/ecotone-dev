@@ -10,10 +10,7 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
-use RuntimeException;
-use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonRegistered;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonWasRenamed;
-use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'persons')]

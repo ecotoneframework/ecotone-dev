@@ -11,7 +11,6 @@ use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
 use Ecotone\Modelling\EventSourcingHandlerMethod;
 use ReflectionClass;

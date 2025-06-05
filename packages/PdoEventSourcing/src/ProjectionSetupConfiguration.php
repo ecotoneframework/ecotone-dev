@@ -5,7 +5,6 @@ namespace Ecotone\EventSourcing;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\NullableMessageChannel;
-use Ecotone\Messaging\Support\Assert;
 
 /**
  * licence Apache-2.0

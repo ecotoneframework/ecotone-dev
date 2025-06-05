@@ -198,7 +198,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
         );
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Lack of context about tenant in Message Headers. Please add `tenant` header metadata to your message.");
+        $this->expectExceptionMessage('Lack of context about tenant in Message Headers. Please add `tenant` header metadata to your message.');
 
         $ecotone->run(\Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
     }

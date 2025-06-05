@@ -9,7 +9,7 @@ use Ecotone\Messaging\Attribute\PropagateHeaders;
  */
 interface ProjectionManager
 {
-    public function run(string $projectionName, ProjectionStreamSource $projectionStreamSource, array $projectionConfiguration, \Ecotone\EventSourcing\ProjectionStatus $status): void;
+    public function run(string $projectionName, ProjectionStreamSource $projectionStreamSource, array $projectionConfiguration, ProjectionStatus $status): void;
 
     /**
      * @throws ProjectionNotFoundException

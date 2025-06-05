@@ -73,7 +73,6 @@ use Ramsey\Uuid\Uuid;
  */
 class AggregrateModule implements AnnotationModule, RoutingEventHandler
 {
-
     /**
      * @var array<string, AnnotatedFinding> $channelsToBridge key is factoryChannel, value is actionChannel registration
      */
@@ -172,7 +171,8 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
             foreach ($registrations as $registration) {
                 $destinationChannel = $routerBuilder->addRoutesFromAnnotatedFinding(
                     $registration,
-                    $this->interfaceToCallRegistry);
+                    $this->interfaceToCallRegistry
+                );
                 if ($destinationChannel) {
                     $channelToRegistrations[$destinationChannel] = $registration;
                 }
@@ -191,7 +191,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                 foreach ($routedKeys as $routedKey) {
                     $channels = $routerBuilder->get($routedKey);
                     $staticChannels = \array_filter($channels, fn ($channel) => \in_array($channel, $staticChannelsOfAggregate, true));
-                    $actionChannels = \array_filter($channels, fn ($channel) => !\in_array($channel, $staticChannelsOfAggregate, true));
+                    $actionChannels = \array_filter($channels, fn ($channel) => ! \in_array($channel, $staticChannelsOfAggregate, true));
                     if (empty($staticChannels) || empty($actionChannels)) {
                         // All channels on this route are factory or action channels, continue normal processing
                         continue;
@@ -204,7 +204,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                         $bridgeForThisFactoryMethod = [
                             'factoryChannel' => reset($staticChannels),
                             'actionChannel' => reset($actionChannels),
-                            'routes' => [$routedKey]
+                            'routes' => [$routedKey],
                         ];
                     } else {
                         // If we already have a bridge for this factory method, add the route to it
@@ -504,7 +504,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
             return;
         }
 
-        Assert::notNull($messagingConfiguration, "RoutingEvent should be handled with messaging configuration, but it is null. Did you forget to pass it?");
+        Assert::notNull($messagingConfiguration, 'RoutingEvent should be handled with messaging configuration, but it is null. Did you forget to pass it?');
 
         if ($registration->isMagicMethod()) {
             $attribute = $registration->getAnnotationForMethod();
@@ -525,7 +525,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         if (\in_array($event->getDestinationChannel(), $this->channelsToCancel, true)) {
             // Cancel the route to the action channel, as it is already bridged inside factory method
             $event->cancel();
-        } else if (isset($this->channelsToBridge[$event->getDestinationChannel()])) {
+        } elseif (isset($this->channelsToBridge[$event->getDestinationChannel()])) {
             // Register a router to bridge factory method and action method
             $this->registerRoutedFactoryHandler($registration, $this->channelsToBridge[$event->getDestinationChannel()], $event->getDestinationChannel(), $messagingConfiguration);
         } else {
@@ -554,7 +554,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
             ->withInputChannelName($destinationChannel)
             ->withOutputMessageChannel($connectionChannel = $destinationChannel . '-connection')
             ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getIdentifierMapping(), null, $this->interfaceToCallRegistry))
-            ;
+        ;
         $messagingConfiguration->registerMessageHandler($aggregateIdentifierHandlerPreCheck);
 
         $serviceActivatorHandler = MessageProcessorActivatorBuilder::create()
@@ -667,9 +667,9 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         $actionInputChannelName = match(true) {
             $actionAnnotation instanceof EventHandler => $actionAnnotation->getListenTo(),
             $actionAnnotation instanceof CommandHandler => $actionAnnotation->getInputChannelName(),
-            default => throw ConfigurationException::create("Action handler should be either CommandHandler or EventHandler, but got " . $actionAnnotation::class),
+            default => throw ConfigurationException::create('Action handler should be either CommandHandler or EventHandler, but got ' . $actionAnnotation::class),
         };
-        if (!$actionInputChannelName) {
+        if (! $actionInputChannelName) {
             // this is a fake channel to avoid B/C break when action handler has an Asynchronous attribute (only the factory method should have the attribute)
             $actionInputChannelName = Uuid::uuid4();
         }

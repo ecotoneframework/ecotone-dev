@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -16,8 +17,8 @@ use Ecotone\Modelling\WithAggregateVersioning;
 #[EventSourcingAggregate, Stream(self::STREAM_NAME)]
 class AnAggregate
 {
-    public const STREAM_NAME = 'an_aggregate_stream';
     use WithAggregateVersioning;
+    public const STREAM_NAME = 'an_aggregate_stream';
 
     #[Identifier]
     private string $id;

@@ -7,6 +7,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\AggregateNotFoundException;
+use Exception;
 use Test\Ecotone\Messaging\BaseEcotoneTestCase;
 use Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate\AggregateWithoutMessageClassesExample;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
@@ -259,11 +260,11 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     public function test_throwing_exception_if_factory_method_for_event_sourced_aggregate_has_no_parameters()
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage(EventSourcingHandlerMethodWithWrongParameterCountExample::class ."::factory is Event Sourcing Handler and should have at least one parameter.");
+        $this->expectExceptionMessage(EventSourcingHandlerMethodWithWrongParameterCountExample::class .'::factory is Event Sourcing Handler and should have at least one parameter.');
 
         try {
             EcotoneLite::bootstrapFlowTesting(classesToResolve: [EventSourcingHandlerMethodWithWrongParameterCountExample::class]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             throw $e;
         }
     }

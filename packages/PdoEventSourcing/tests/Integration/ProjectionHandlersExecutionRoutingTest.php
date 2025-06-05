@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -18,6 +19,9 @@ use Test\Ecotone\EventSourcing\Fixture\ProjectionHandlersExecutionRoutingTest\{A
     ProjectionWithObjectRouting,
     ProjectionWithRegexRouting};
 
+/**
+ * @internal
+ */
 class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestCase
 {
     public function test_projection_with_object_routing(): void
@@ -83,4 +87,3 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
         );
     }
 }
-

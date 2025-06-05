@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -14,8 +15,7 @@ class RouteToChannelResolver implements RouteResolver
 {
     public function __construct(
         public ChannelResolver $channelResolver
-    )
-    {
+    ) {
     }
 
     public function resolve(string $routeName): MessageProcessor

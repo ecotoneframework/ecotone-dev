@@ -28,7 +28,6 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\Config\MessageHandlerRoutingModule;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributedMessageHandler;
@@ -40,25 +39,23 @@ use Ecotone\Modelling\MessageHandling\Distribution\DistributionEntrypoint;
  */
 class DistributedHandlerModule implements AnnotationModule
 {
-
     public function __construct(
         private BusRoutingMapBuilder $commandBusDistributedRoutes,
         private BusRoutingMapBuilder $eventBusDistributedRoutes,
-    )
-    {
+    ) {
     }
 
     public static function create(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $commandBusDistributedRoutes = new BusRoutingMapBuilder();
-        foreach($annotationFinder->findAnnotatedMethods(CommandHandler::class) as $registration) {
+        foreach ($annotationFinder->findAnnotatedMethods(CommandHandler::class) as $registration) {
             if ($registration->hasAnnotation(Distributed::class)) {
                 $commandBusDistributedRoutes->addRoutesFromAnnotatedFinding($registration, $interfaceToCallRegistry);
             }
         }
 
         $eventBusDistributedRoutes = new BusRoutingMapBuilder();
-        foreach($annotationFinder->findAnnotatedMethods(EventHandler::class) as $registration) {
+        foreach ($annotationFinder->findAnnotatedMethods(EventHandler::class) as $registration) {
             if ($registration->hasAnnotation(Distributed::class)) {
                 $eventBusDistributedRoutes->addRoutesFromAnnotatedFinding($registration, $interfaceToCallRegistry);
             }

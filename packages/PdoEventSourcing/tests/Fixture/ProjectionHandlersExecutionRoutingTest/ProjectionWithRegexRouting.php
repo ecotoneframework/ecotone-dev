@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -12,7 +13,6 @@ use Ecotone\Modelling\Attribute\EventHandler;
 #[Projection(self::NAME, AnAggregate::STREAM_NAME)]
 class ProjectionWithRegexRouting
 {
-
     public const NAME = 'projection_with_regex_routing';
     public array $events = [];
 

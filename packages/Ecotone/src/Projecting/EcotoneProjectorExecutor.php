@@ -9,7 +9,6 @@ namespace Ecotone\Projecting;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
-use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionEventHandlerConfiguration;
 
 class EcotoneProjectorExecutor implements ProjectorExecutor
 {
@@ -23,7 +22,7 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
     public function project(Event $event, mixed $userState = null): mixed
     {
         $metadata = $event->getMetadata();
-        $metadata[ProjectingHeaders::PROJECTION_STATE] = $userState;
+        $metadata[ProjectingHeaders::PROJECTION_STATE] = $userState ?? [];
 
         // Those three headers are required by EventStreamEmitter
         $metadata[ProjectingHeaders::PROJECTION_NAME] = $this->projectionName;

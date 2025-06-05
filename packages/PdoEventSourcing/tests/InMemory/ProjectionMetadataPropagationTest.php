@@ -62,7 +62,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
         $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 2, metadata: ['eventId' => 2]);
         $ecotoneLite->sendCommandWithRoutingKey(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz', 'eventId' => 3]);
 
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 1000));
+        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 15, maxExecutionTimeInMilliseconds: 1000));
 
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));

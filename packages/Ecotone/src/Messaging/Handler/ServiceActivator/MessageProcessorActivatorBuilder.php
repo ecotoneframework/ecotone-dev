@@ -63,26 +63,18 @@ class MessageProcessorActivatorBuilder extends InputOutputMessageHandlerBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
-        $interceptedInterface = $this->chainedMessageProcessorBuilder->getInterceptedInterface();
-        $interceptorsConfiguration = $interceptedInterface
-            ? $builder->getRelatedInterceptors(
-                $interceptedInterface,
-                $this->getEndpointAnnotations(),
-                $this->getRequiredInterceptorNames()
-            )
-            : MethodInterceptorsConfiguration::createEmpty();
-
-        $name = $this->getInterceptedInterface($builder->getInterfaceToCallRegistry())->toString();
-        $processor = $this->chainedMessageProcessorBuilder->compileProcessor($builder, $interceptorsConfiguration);
+        $chainedMessageProcessorBuilder = $this->chainedMessageProcessorBuilder
+            ->withRequiredInterceptorNames($this->getRequiredInterceptorNames())
+            ->withEndpointAnnotations($this->getEndpointAnnotations());
 
         return new Definition(
             RequestReplyProducer::class,
             [
                 $this->outputMessageChannelName ? new ChannelReference($this->outputMessageChannelName) : null,
-                $processor,
+                $chainedMessageProcessorBuilder->compile($builder),
                 new Reference(ChannelResolver::class),
                 $this->isReplyRequired,
-                $name,
+                $chainedMessageProcessorBuilder->getInterceptedInterface()?->getName() ?? '',
             ]
         );
     }

@@ -38,7 +38,7 @@ class AmqpModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self(AmqpDistributionModule::create($annotationRegistrationService, $interfaceToCallRegistry));
+        return new self(AmqpDistributionModule::create());
     }
 
     /**

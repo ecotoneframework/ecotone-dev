@@ -36,26 +36,22 @@ class AmqpDistributionModule
     public const AMQP_ROUTING_KEY = 'ecotone.amqp.distributed.service_target';
     public const CHANNEL_PREFIX   = 'distributed_';
 
-    private array $distributedEventHandlers;
-    private array $distributedCommandHandlers;
-
-    public function __construct(array $distributedEventHandlers, array $distributedCommandHandlers)
+    public function __construct()
     {
-        $this->distributedEventHandlers   = $distributedEventHandlers;
-        $this->distributedCommandHandlers = $distributedCommandHandlers;
     }
 
-    public static function create(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): self
+    public static function create(): self
     {
-        return new self(
-            DistributedHandlerModule::getDistributedEventHandlerRoutingKeys($annotationFinder, $interfaceToCallRegistry),
-            DistributedHandlerModule::getDistributedCommandHandlerRoutingKeys($annotationFinder, $interfaceToCallRegistry)
-        );
+        return new self();
     }
 
     public function getAmqpConfiguration(array $extensionObjects): array
     {
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $distributedModule = ExtensionObjectResolver::resolve(DistributedHandlerModule::class, $extensionObjects)[0] ?? null;
+
+        $distributedEventHandlerRoutingKeys = $distributedModule ? $distributedModule->getDistributedEventHandlerRoutes() : [];
+
         $amqpConfiguration = [];
         /** @var AmqpDistributedBusConfiguration $distributedBusConfiguration */
         foreach ($extensionObjects as $distributedBusConfiguration) {
@@ -73,7 +69,7 @@ class AmqpDistributionModule
                 $amqpConfiguration[] = AmqpQueue::createWith($queueName);
                 $amqpConfiguration[] = AmqpBinding::createFromNames(self::AMQP_DISTRIBUTED_EXCHANGE, $queueName, $applicationConfiguration->getServiceName());
 
-                foreach ($this->distributedEventHandlers as $distributedEventHandler) {
+                foreach ($distributedEventHandlerRoutingKeys as $distributedEventHandler) {
                     /** Adjust star to RabbitMQ so it can substitute for zero or more words. */
                     $distributedEventHandler = str_replace('*', '#', $distributedEventHandler);
                     $amqpConfiguration[] = AmqpBinding::createFromNames(self::AMQP_DISTRIBUTED_EXCHANGE, $queueName, $distributedEventHandler);
@@ -126,7 +122,8 @@ class AmqpDistributionModule
     {
         return
             $extensionObject instanceof AmqpDistributedBusConfiguration
-            || $extensionObject instanceof ServiceConfiguration;
+            || $extensionObject instanceof ServiceConfiguration
+            || $extensionObject instanceof DistributedHandlerModule;
     }
 
     private function registerPublisher(AmqpDistributedBusConfiguration|AmqpMessagePublisherConfiguration $amqpPublisher, ServiceConfiguration $applicationConfiguration, Configuration $configuration): void

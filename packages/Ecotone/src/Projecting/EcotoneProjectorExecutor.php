@@ -13,22 +13,15 @@ use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionEventHandlerConfigurat
 
 class EcotoneProjectorExecutor implements ProjectorExecutor
 {
-    /**
-     * @param array<string, ProjectionEventHandlerConfiguration> $projectionEventHandlers key is event name
-     */
     public function __construct(
         private MessagingEntrypoint $messagingEntrypoint,
-        private array $projectionEventHandlers,
+        private string $channelName,
         private string $projectionName, // this is required for event stream emitter so it can create a stream with this name
     ) {
     }
 
     public function project(Event $event, mixed $userState = null): mixed
     {
-        $projectionEventHandler = $this->projectionEventHandlers[$event->getEventName()] ?? null;
-        if (!$projectionEventHandler) {
-            return $userState;
-        }
         $metadata = $event->getMetadata();
         $metadata[ProjectingHeaders::PROJECTION_STATE] = $userState;
 
@@ -40,10 +33,10 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         $newUserState = $this->messagingEntrypoint->sendWithHeaders(
             $event->getPayload(),
             $metadata,
-            $projectionEventHandler->channelName,
+            $this->channelName,
         );
 
-        if ($projectionEventHandler->doesItReturnsUserState) {
+        if (!\is_null($newUserState)) {
             return $newUserState;
         } else {
             return $userState;

@@ -6,20 +6,19 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config\ProjectionBuilder;
 
-use Ecotone\Messaging\Attribute\Endpoint\Priority;
+use Ecotone\AnnotationFinder\AnnotatedDefinition;
+use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 
 class ProjectionBuilder
 {
     /**
-     * @param array<string, ProjectionEventHandlerConfiguration> $projectionEventHandlers key is event name
-     * @param array<string, Priority> $projectionEventTriggerPriorities key is event name
+     * @param AnnotatedDefinition[] $projectionEventHandlers
      */
     public function __construct(
         public readonly string  $projectionName,
         public readonly array   $projectionEventHandlers,
-        public readonly ?string $asynchronousChannelName,
-        public readonly array   $projectionEventTriggerPriorities,
-        public readonly ?string $partitionHeaderName = null,
+        public readonly ?string $partitionHeaderName,
+        public readonly ?string $asynchronousChannelName
     )
     {
     }

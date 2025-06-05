@@ -100,7 +100,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
      * @param GatewayProxyBuilder[] $projectionStateGateways
      * @param Projection[] $projectionsWithNewProjectingSystem
      */
-    private function __construct(private array $projectionSetupConfigurations, private array $projectionEventHandlers, private array $projectionLifeCycleServiceActivators, private AggregateStreamMapping $aggregateToStreamMapping, private AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways, private array $projectionsWithNewProjectingSystem)
+    private function __construct(private array $projectionSetupConfigurations, private array $projectionEventHandlers, private array $namedEvents, private array $projectionLifeCycleServiceActivators, private AggregateStreamMapping $aggregateToStreamMapping, private AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways, private array $projectionsWithNewProjectingSystem)
     {
     }
 
@@ -302,10 +302,20 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return array_merge(
-            $this->buildEventStoreStreamSourceBuilder(),
-            $this->buildEventSourcingRepositoryBuilder($serviceExtensions)
-        );
+        $pollingProjectionNames = [];
+        foreach ($serviceExtensions as $extensionObject) {
+            if ($extensionObject instanceof ProjectionRunningConfiguration) {
+                if ($extensionObject->isPolling()) {
+                    $pollingProjectionNames[] = $extensionObject->getProjectionName();
+                }
+            }
+        }
+
+        return [
+            ...$this->buildEventStoreStreamSourceBuilder(),
+            ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
+            new EventSourcingModuleRoutingExtension($pollingProjectionNames),
+        ];
     }
 
     private function buildEventStoreStreamSourceBuilder(): array
@@ -333,15 +343,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
         }
 
-        $pollingProjectionNames = [];
-        foreach ($serviceExtensions as $extensionObject) {
-            if ($extensionObject instanceof ProjectionRunningConfiguration) {
-                if ($extensionObject->isPolling()) {
-                    $pollingProjectionNames[] = $extensionObject->getProjectionName();
-                }
-            }
-        }
-
         $eventSourcingRepositories = [];
         foreach ($serviceExtensions as $extensionObject) {
             if ($extensionObject instanceof EventSourcingConfiguration) {
@@ -349,8 +350,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
         }
 
-        $eventSourcingRepositories = $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create()];
-        return [...$eventSourcingRepositories, new EventSourcingModuleRoutingExtension($pollingProjectionNames)];
+        return $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create()];
     }
 
     private function registerEventStore(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void

@@ -9,11 +9,7 @@ use Ecotone\Messaging\Attribute\PropagateHeaders;
  */
 interface ProjectionManager
 {
-    /**
-     * @param ProjectionExecutor $projectionExecutor to be called with
-     * @param string[] $relatedEventClassNames events that projection is interested in. May be used for filtering the stream.
-     */
-    public function run(string $projectionName, ProjectionStreamSource $projectionStreamSource, ProjectionExecutor $projectionExecutor, array $relatedEventClassNames, array $projectionConfiguration): void;
+    public function run(string $projectionName, ProjectionStreamSource $projectionStreamSource, array $projectionConfiguration, \Ecotone\EventSourcing\ProjectionStatus $status): void;
 
     /**
      * @throws ProjectionNotFoundException

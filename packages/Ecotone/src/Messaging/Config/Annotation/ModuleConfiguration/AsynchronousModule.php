@@ -9,6 +9,7 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Attribute\StreamBasedSource;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -63,6 +64,9 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
                     /** @var EndpointAnnotation $annotationForMethod */
                     $annotationForMethod = $endpoint->getAnnotationForMethod();
                     if ($annotationForMethod instanceof QueryHandler) {
+                        continue;
+                    }
+                    if ($endpoint->hasClassAnnotation(StreamBasedSource::class)) {
                         continue;
                     }
                     if (in_array(get_class($annotationForMethod), [CommandHandler::class, EventHandler::class, InternalHandler::class])) {

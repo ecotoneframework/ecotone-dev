@@ -16,13 +16,13 @@ use Prooph\EventStore\StreamName;
 class ProjectionEventHandler
 {
     public const PROJECTION_STATE = 'projection.state';
+    public const PROJECTION_EVENT_NAME = 'projection.event_name';
     public const PROJECTION_IS_REBUILDING = 'projection.is_rebuilding';
     public const PROJECTION_NAME = 'projection.name';
 
     public function __construct(
         private LazyProophProjectionManager $lazyProophProjectionManager,
         private ProjectionSetupConfiguration $projectionSetupConfiguration,
-        private ConversionService $conversionService
     ) {
     }
 
@@ -38,8 +38,6 @@ class ProjectionEventHandler
             }
         }
 
-        $projectionExecutor = new ChannelProjectionExecutor($this->projectionSetupConfiguration, $this->conversionService, $messagingEntrypoint, $status);
-
         if ($status == ProjectionStatus::REBUILDING() && $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getRebuildRequestChannel()) {
             $messagingEntrypoint->send([], $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getRebuildRequestChannel());
         }
@@ -48,11 +46,11 @@ class ProjectionEventHandler
             $messagingEntrypoint->send([], $this->projectionSetupConfiguration->getProjectionLifeCycleConfiguration()->getDeleteRequestChannel());
         }
 
-        $this->lazyProophProjectionManager->run($this->projectionSetupConfiguration->getProjectionName(), $this->projectionSetupConfiguration->getProjectionStreamSource(), $projectionExecutor, array_keys($this->projectionSetupConfiguration->getProjectionEventHandlerConfigurations()), $this->projectionSetupConfiguration->getProjectionOptions());
+        $this->lazyProophProjectionManager->run($this->projectionSetupConfiguration->getProjectionName(), $this->projectionSetupConfiguration->getProjectionStreamSource(), $this->projectionSetupConfiguration->getProjectionOptions(), $status);
         while (in_array($status->getStatus(), [ProjectionStatus::REBUILDING, ProjectionStatus::RUNNING], true)) {
             $status = $this->lazyProophProjectionManager->getProjectionStatus($this->projectionSetupConfiguration->getProjectionName());
 
-            $this->lazyProophProjectionManager->run($this->projectionSetupConfiguration->getProjectionName(), $this->projectionSetupConfiguration->getProjectionStreamSource(), $projectionExecutor, array_keys($this->projectionSetupConfiguration->getProjectionEventHandlerConfigurations()), $this->projectionSetupConfiguration->getProjectionOptions());
+            $this->lazyProophProjectionManager->run($this->projectionSetupConfiguration->getProjectionName(), $this->projectionSetupConfiguration->getProjectionStreamSource(), $this->projectionSetupConfiguration->getProjectionOptions(), $status);
         }
 
         if ($status == ProjectionStatus::DELETING() && $projectHasRelatedStream) {

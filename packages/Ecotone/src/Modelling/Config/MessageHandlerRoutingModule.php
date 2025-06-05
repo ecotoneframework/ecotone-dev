@@ -92,7 +92,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
         return null;
     }
 
-    public static function getFirstParameterTypeFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
+    private static function getFirstParameterTypeFor(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
     {
         $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
 
@@ -115,39 +115,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
         }
 
         return TypeDescriptor::ARRAY;
-    }
-
-    /**
-     * This allows to decouple input channel for routing from specific channel that executes the Handler.
-     * This way each handler can be treated separately (e.g. for async processing)
-     */
-    public static function getExecutionMessageHandlerChannel(AnnotatedFinding $registration): string
-    {
-        /** @var IdentifiedAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        return $annotationForMethod->getEndpointId() . '.target';
-    }
-
-    public static function getRoutingInputMessageChannelForEventHandler(AnnotatedFinding $registration, InterfaceToCallRegistry $interfaceToCallRegistry): string
-    {
-        /** @var InputOutputEndpointAnnotation $annotationForMethod */
-        $annotationForMethod = $registration->getAnnotationForMethod();
-
-        $inputChannelName = null;
-        if ($annotationForMethod instanceof EventHandler) {
-            $inputChannelName = $annotationForMethod->getListenTo();
-        }
-
-        if (!$inputChannelName) {
-            $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
-            if ($interfaceToCall->hasNoParameters()) {
-                throw ConfigurationException::create("Missing command class or listen routing for {$registration}.");
-            }
-            $inputChannelName = $interfaceToCall->getFirstParameterTypeHint();
-        }
-
-        return $inputChannelName;
     }
 
     /**

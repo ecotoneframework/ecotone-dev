@@ -2,15 +2,17 @@
 
 namespace Ecotone\EventSourcing\Prooph;
 
+use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\EventSourcing\ProjectionExecutor;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStreamSource;
 use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Modelling\Event;
+use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
+use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\MessageHeaders;
 use Prooph\Common\Messaging\Message;
 use Prooph\EventStore\Exception\ProjectionNotFound;
 use Prooph\EventStore\Exception\RuntimeException;
@@ -25,7 +27,6 @@ use Prooph\EventStore\Projection\Projector;
 use Prooph\EventStore\Projection\Query;
 use Prooph\EventStore\Projection\ReadModel;
 use Prooph\EventStore\Projection\ReadModelProjector;
-
 use function str_contains;
 
 /**
@@ -37,12 +38,13 @@ class LazyProophProjectionManager implements ProjectionManager
     private array $lazyInitializedProjectionManager = [];
 
     /**
-     * @param ProjectionSetupConfiguration[] $projectionSetupConfigurations
+     * @param array<string, ProjectionSetupConfiguration> $projectionSetupConfigurations
      */
     public function __construct(
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private array                      $projectionSetupConfigurations,
-        private ReferenceSearchService     $referenceSearchService,
+        private MessagingEntrypointWithHeadersPropagation        $messagingEntrypoint,
+        private ConversionService          $conversionService,
         private LazyProophEventStore       $lazyProophEventStore,
     ) {
     }
@@ -128,9 +130,7 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function initializeProjection(string $name): void
     {
-        /** @var MessagingEntrypoint $messagingEntrypoint */
-        $messagingEntrypoint = $this->referenceSearchService->get(MessagingEntrypoint::class);
-        $messagingEntrypoint->send([], $this->projectionSetupConfigurations[$name]->getInitializationChannelName());
+        $this->messagingEntrypoint->send([], $this->projectionSetupConfigurations[$name]->getInitializationChannelName());
         $this->triggerActionOnProjection($name);
     }
 
@@ -138,7 +138,6 @@ class LazyProophProjectionManager implements ProjectionManager
     {
         $this->getProjectionManager()->stopProjection($name);
 
-        /** @var MessagingEntrypoint $messagingEntrypoint */
         $this->triggerActionOnProjection($name);
     }
 
@@ -201,7 +200,7 @@ class LazyProophProjectionManager implements ProjectionManager
         return $this->getProjectionManager()->fetchProjectionState($name);
     }
 
-    public function run(string $projectionName, ProjectionStreamSource $projectionStreamSource, ProjectionExecutor $projectionExecutor, array $relatedEventClassNames, array $projectionConfiguration): void
+    public function run(string $projectionName, ProjectionStreamSource $projectionStreamSource, array $projectionConfiguration, \Ecotone\EventSourcing\ProjectionStatus $status): void
     {
         $projection = $this->createReadModelProjection($projectionName, new ProophReadModel(), $projectionConfiguration);
         if ($projectionStreamSource->isForAllStreams()) {
@@ -212,17 +211,40 @@ class LazyProophProjectionManager implements ProjectionManager
             $projection = $projection->fromStreams(...$projectionStreamSource->getStreams());
         }
 
-        $handlers = [];
-        foreach ($relatedEventClassNames as $eventName) {
-            $handlers[$eventName] = function ($state, Message $event) use ($eventName, $projectionExecutor): mixed {
-                return $projectionExecutor->executeWith(
-                    $eventName,
-                    Event::createWithType($eventName, $event->payload(), $event->metadata()),
-                    $state
-                );
-            };
-        }
-        $projection = $projection->when($handlers);
+        $messagingEntrypoint = $this->messagingEntrypoint;
+        $routerChannel = $this->projectionSetupConfigurations[$projectionName]->getActionRouterChannel();
+        $conversionService = $this->conversionService;
+        $projection = $projection->whenAny(function ($state, Message $event) use ($projectionName, $status, $messagingEntrypoint, $routerChannel, $conversionService): mixed {
+            $state = $messagingEntrypoint->sendWithHeaders(
+                $event->payload(),
+                array_merge(
+                    $event->metadata(),
+                    [
+                        ProjectionEventHandler::PROJECTION_STATE => $state,
+                        ProjectionEventHandler::PROJECTION_EVENT_NAME => $event->messageName(),
+                        ProjectionEventHandler::PROJECTION_IS_REBUILDING => $status == \Ecotone\EventSourcing\ProjectionStatus::REBUILDING(),
+                        ProjectionEventHandler::PROJECTION_NAME => $projectionName,
+                        MessageHeaders::STREAM_BASED_SOURCED => true,
+                    ]
+                ),
+                $routerChannel,
+            );
+
+            if (! is_null($state)) {
+                $stateType = TypeDescriptor::createFromVariable($state);
+                if (! $stateType->isArrayButNotClassBasedCollection()) {
+                    $state = $conversionService->convert(
+                        $state,
+                        $stateType,
+                        MediaType::createApplicationXPHP(),
+                        TypeDescriptor::createArrayType(),
+                        MediaType::createApplicationXPHP()
+                    );
+                }
+            }
+
+            return $state;
+        });
 
         try {
             $projection->run(false);
@@ -238,15 +260,12 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function getLazyProophEventStore(): LazyProophEventStore
     {
-        // REVIEW: is this change ok ?
         return $this->lazyProophEventStore;
     }
 
     private function triggerActionOnProjection(string $name): void
     {
-        /** @var MessagingEntrypoint $messagingEntrypoint */
-        $messagingEntrypoint = $this->referenceSearchService->get(MessagingEntrypoint::class);
-        $messagingEntrypoint->send([], $this->projectionSetupConfigurations[$name]->getTriggeringChannelName());
+        $this->messagingEntrypoint->send([], $this->projectionSetupConfigurations[$name]->getTriggeringChannelName());
     }
 
     public static function getProjectionStreamName(string $name): string

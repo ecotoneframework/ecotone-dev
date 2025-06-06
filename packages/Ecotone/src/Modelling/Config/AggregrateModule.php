@@ -496,13 +496,15 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         }
     }
 
-    public function handleRoutingEvent(RoutingEvent $event, ?Configuration $messagingConfiguration = null): void
+    public function handleRoutingEvent(RoutingEvent $event): void
     {
         $registration = $event->getRegistration();
 
         if (! $registration->hasAnnotation(Aggregate::class)) {
             return;
         }
+
+        $messagingConfiguration = $event->getBusRoutingMapBuilder()->getMessagingConfiguration();
 
         Assert::notNull($messagingConfiguration, 'RoutingEvent should be handled with messaging configuration, but it is null. Did you forget to pass it?');
 

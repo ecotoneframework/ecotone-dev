@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Config\Routing\RoutingEvent;
@@ -26,7 +25,7 @@ class EventSourcingModuleRoutingExtension implements RoutingEventHandler
     {
     }
 
-    public function handleRoutingEvent(RoutingEvent $event, ?Configuration $messagingConfiguration = null): void
+    public function handleRoutingEvent(RoutingEvent $event): void
     {
         $registration = $event->getRegistration();
         $isCommandOrEventHandler = $registration->hasAnnotation(CommandHandler::class) || $registration->hasAnnotation(EventHandler::class);

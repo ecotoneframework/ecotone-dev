@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates;
+namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common;
 
 use Ecotone\Modelling\Attribute\NamedEvent;
 

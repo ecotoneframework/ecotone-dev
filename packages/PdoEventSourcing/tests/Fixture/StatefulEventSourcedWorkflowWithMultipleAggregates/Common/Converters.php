@@ -1,8 +1,9 @@
 <?php
 
-namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates;
+namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common;
 
 use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Messaging\Attribute\Interceptor\Presend;
 
 class Converters
 {
@@ -83,5 +84,11 @@ class Converters
             itemId: $payload['itemId'],
             quantity: $payload['quantity']
         );
+    }
+
+    #[Presend(pointcut: 'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\ItemInventory::makeReservation', changeHeaders: true)]
+    public function beforeMakeReservation(ItemReservation $message): array
+    {
+        return ['itemId' => $message->itemId];
     }
 }

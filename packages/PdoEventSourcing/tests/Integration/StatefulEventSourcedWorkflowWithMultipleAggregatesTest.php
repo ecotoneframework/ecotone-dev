@@ -4,6 +4,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -43,7 +44,10 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
             ]
         );
 
-        $ecotone->sendCommand(command: new AddItemToBasket('basket-1', 'item-1', 4));
+        $ecotone
+            ->sendCommand(command: new AddItemToBasket('basket-1', 'item-1', 4))
+            ->run('itemInventory')
+        ;
 
         self::assertEquals(
             [
@@ -66,10 +70,11 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                 self::getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates']),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
+            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('itemInventory')],
         );
     }
 }

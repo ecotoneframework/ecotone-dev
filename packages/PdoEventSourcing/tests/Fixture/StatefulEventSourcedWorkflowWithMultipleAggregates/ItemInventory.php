@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates;
 
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
@@ -21,7 +22,8 @@ class ItemInventory
 
     private int $quantity = 0;
 
-    #[CommandHandler(routingKey: 'itemInventory.makeReservation')]
+    #[CommandHandler(routingKey: 'itemInventory.makeReservation', endpointId:  'itemInventory.makeReservation.endpoint', identifierMetadataMapping: ['itemId' => 'itemId'])]
+    #[Asynchronous('itemInventory')]
     public function makeReservation(#[Payload] ItemReservation $itemReservation): void
     {
         $this->recordThat(new ItemReserved($this->itemId, $itemReservation->quantity));

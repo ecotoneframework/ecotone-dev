@@ -29,12 +29,15 @@ use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\PaymentWasDoneEvent;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestAbstractHandler;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestCommand;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestHandler;
+use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestViewer;
+use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestWasAddedToBook;
 use Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod\Aggregate;
 use Test\Ecotone\Modelling\Fixture\Outbox\OutboxWithMultipleChannels;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityWithHigherPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityWithLowerPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandler;
+use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandlerWithInheritance;
 use Ecotone\Modelling\ComandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
@@ -47,7 +50,7 @@ use Ecotone\Modelling\QueryBus;
 #[CoversClass(EventBus::class)]
 #[CoversClass(QueryBus::class)]
 #[CoversClass(MessagingGatewayModule::class)]
-final class MessageBusTest extends TestCase
+final class ModellingEcotoneLiteTest extends TestCase
 {
     public function test_command_event_command_flow()
     {
@@ -80,6 +83,23 @@ final class MessageBusTest extends TestCase
 
         $this->assertSame(
             ['higherPriorityHandler', 'middlePriorityHandler', 'lowerPriorityHandler'],
+            $ecotoneTestSupport
+                ->publishEvent(new OrderWasPlaced(1))
+                ->sendQueryWithRouting('getTriggers')
+        );
+    }
+
+    public function test_synchronous_event_handlers_should_be_handled_in_priority_with_inheritance()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [SynchronousPriorityHandlerWithInheritance::class],
+            [
+                new SynchronousPriorityHandlerWithInheritance(),
+            ]
+        );
+
+        $this->assertSame(
+            ['higherPriorityHandler', 'middlePriorityHandler', 'lowerPriorityHandlerWithObjectRouting'],
             $ecotoneTestSupport
                 ->publishEvent(new OrderWasPlaced(1))
                 ->sendQueryWithRouting('getTriggers')
@@ -239,6 +259,27 @@ final class MessageBusTest extends TestCase
             $ecotoneLite
                 ->sendCommandWithRoutingKey('aggregate.create')
                 ->getRecordedEvents()
+        );
+    }
+
+    public function test_named_event_are_aliased_without_being_part_of_resolved_classes(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [
+                GuestViewer::class,
+                // GuestWasAddedToBook::class // Not necessary to resolve named event for aliasing
+            ],
+            containerOrAvailableServices: [new GuestViewer()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+        );
+
+        self::assertEquals(
+            ['John Doe'],
+            $ecotoneLite
+                ->publishEvent(new GuestWasAddedToBook('book-1', 'John Doe'))
+                ->sendQueryWithRouting(GuestViewer::BOOK_GET_GUESTS, 'book-1'),
+            'Named event should be aliased to GuestWasAddedToBook without being part of resolved classes'
         );
     }
 

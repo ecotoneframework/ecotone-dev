@@ -35,8 +35,9 @@ final class LicenceTest extends TestCase
     protected function tearDown(): void
     {
         putenv('SYMFONY_LICENCE_KEY');
-    }
 
+        restore_exception_handler();
+    }
 
     public function test_triggering_symfony_with_licence_key(): void
     {

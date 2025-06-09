@@ -8,6 +8,7 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\SymfonyBundle\Messenger\MetadataStamp;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessageConverter;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
+use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\Messenger\Bridge\Amqp\Transport\AmqpTransport;
@@ -25,6 +26,13 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
 {
     private SymfonyMessageConverter $messageConverter;
     private Envelope $envelope;
+
+    #[After]
+    public function internalDisableErrorHandler(): void
+    {
+        restore_exception_handler();
+    }
+
     public function setUp(): void
     {
         $this->messageConverter = new SymfonyMessageConverter(

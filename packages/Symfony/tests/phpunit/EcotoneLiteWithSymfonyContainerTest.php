@@ -23,6 +23,11 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
 {
+    protected function tearDown(): void
+    {
+        restore_exception_handler();
+    }
+
     public function test_when_messaging_configured_in_container_replacing_it_with_test_one()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(

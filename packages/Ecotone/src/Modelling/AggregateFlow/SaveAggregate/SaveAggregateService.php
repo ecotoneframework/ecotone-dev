@@ -4,16 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
-use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\Repository\AggregateRepository;
@@ -45,13 +41,7 @@ final class SaveAggregateService implements MessageProcessor
         }
 
         foreach ($resolvedAggregates as $key => $resolvedAggregate) {
-            $version = $resolvedAggregate->getVersionBeforeHandling();
-
-            $this->aggregateRepository->save(
-                $resolvedAggregate,
-                $metadata,
-                $version
-            );
+            $versionAfterHandling = $this->aggregateRepository->save($resolvedAggregate, $metadata);
 
             /** For ORM identifier may be assigned after saving */
             $resolvedAggregates[$key] = $resolvedAggregate->withIdentifiers(
@@ -62,7 +52,7 @@ final class SaveAggregateService implements MessageProcessor
                     $resolvedAggregate->getAggregateClassDefinition(),
                     true,
                 )
-            );
+            )->withVersionAfterHandling($versionAfterHandling);
         }
 
         foreach ($resolvedAggregates as $resolvedAggregate) {
@@ -72,6 +62,7 @@ final class SaveAggregateService implements MessageProcessor
         return SaveAggregateServiceTemplate::buildReplyMessage(
             $resolvedAggregates[0]->isNewInstance(),
             $resolvedAggregates[0]->isNewInstance() ? $resolvedAggregates[0]->getIdentifiers() : [],
+            $resolvedAggregates[0]->getVersionAfterHandling(),
             $message,
         );
     }
@@ -83,15 +74,6 @@ final class SaveAggregateService implements MessageProcessor
     {
         foreach ($events as $event) {
             $this->eventBus->publish($event->getPayload(), $event->getMetadata());
-
-            $eventDefinition = ClassDefinition::createFor(TypeDescriptor::createFromVariable($event->getPayload()));
-            $namedEvent = TypeDescriptor::create(NamedEvent::class);
-            if ($eventDefinition->hasClassAnnotation($namedEvent)) {
-                /** @var NamedEvent $namedEvent */
-                $namedEvent = $eventDefinition->getSingleClassAnnotation($namedEvent);
-
-                $this->eventBus->publishWithRouting($namedEvent->getName(), $event->getPayload(), MediaType::APPLICATION_X_PHP, $event->getMetadata());
-            }
         }
     }
 

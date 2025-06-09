@@ -4,16 +4,14 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
-use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 
 /**
@@ -23,13 +21,11 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
 {
     /**
      * @param ParameterConverterBuilder[] $parameterConverters
-     * @param ProjectionSetupConfiguration[] $projectionSetupConfigurations
      */
     private function __construct(
         private string $methodName,
         private array $parameterConverters,
         private EventSourcingConfiguration $eventSourcingConfiguration,
-        private array $projectionSetupConfigurations
     ) {
     }
 
@@ -41,9 +37,8 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
         string $methodName,
         array $parameterConverters,
         EventSourcingConfiguration $eventSourcingConfiguration,
-        array $projectionSetupConfigurations
     ): static {
-        return new self($methodName, $parameterConverters, $eventSourcingConfiguration, $projectionSetupConfigurations);
+        return new self($methodName, $parameterConverters, $eventSourcingConfiguration);
     }
 
     public function getInputMessageChannelName(): string
@@ -58,17 +53,7 @@ class ProjectionManagerBuilder extends InputOutputMessageHandlerBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $lazyProophProjectionManager = new Definition(
-            LazyProophProjectionManager::class,
-            [
-                new Reference(EventSourcingConfiguration::class),
-                $this->projectionSetupConfigurations,
-                new Reference(ReferenceSearchService::class),
-                new Reference(LazyProophEventStore::class),
-            ]
-        );
-
-        return ServiceActivatorBuilder::createWithDefinition($lazyProophProjectionManager, $this->methodName)
+        return ServiceActivatorBuilder::create(LazyProophProjectionManager::class, new InterfaceToCallReference(LazyProophProjectionManager::class, $this->methodName))
             ->withMethodParameterConverters($this->parameterConverters)
             ->withInputChannelName($this->getInputMessageChannelName())
             ->compile($builder);

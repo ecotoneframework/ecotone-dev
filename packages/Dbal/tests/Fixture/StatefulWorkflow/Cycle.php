@@ -1,0 +1,97 @@
+<?php
+
+namespace Test\Ecotone\Dbal\Fixture\StatefulWorkflow;
+
+use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Messaging\Attribute\Parameter\Payload;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\Attribute\Saga;
+use Ecotone\Modelling\WithEvents;
+
+#[Saga]
+class Cycle
+{
+    use WithEvents;
+
+    /**
+     * @var list<string>
+     */
+    private array $audits = [];
+
+    /**
+     * @var list<string>
+     */
+    private array $certificates = [];
+
+    public function __construct(
+        #[Identifier] private string $cycleId
+    ) {
+    }
+
+    #[CommandHandler(
+        routingKey: 'cycle.submitAnAudit',
+        outputChannelName: 'cycle.validateAnAudit',
+        identifierMetadataMapping: ['cycleId' => 'cycleId'],
+    )]
+    public static function startCycleBySubmittingAnAudit(
+        #[Header('cycleId')] string $cycleId
+    ): self {
+        return new self($cycleId);
+    }
+
+    #[CommandHandler(
+        routingKey: 'cycle.submitAnAudit',
+        outputChannelName: 'cycle.validateAnAudit',
+        identifierMetadataMapping: ['cycleId' => 'cycleId'],
+    )]
+    public function submitAnAudit(#[Header('audit')] Audit $audit): Audit
+    {
+        return $audit;
+    }
+
+    #[CommandHandler(
+        routingKey: 'cycle.validateAnAudit',
+        outputChannelName: 'cycle.conductAnAudit'
+    )]
+    public function validateAnAudit(#[Header('audit')] Audit $audit): Audit
+    {
+        // some validations
+
+        return $audit;
+    }
+
+    #[CommandHandler(
+        routingKey: 'cycle.conductAnAudit',
+        outputChannelName: 'cycle.issueACertificate'
+    )]
+    public function conductAnAudit(#[Payload] Audit $audit): ?Certificate
+    {
+        $this->audits[] = $audit->auditId;
+        $this->recordThat(new AuditConducted($this->cycleId, $audit->auditId));
+
+        return $audit->certificate;
+    }
+
+    #[CommandHandler(
+        routingKey: 'cycle.issueACertificate',
+    )]
+    public function issueACertificate(#[Payload] Certificate $certificate): void
+    {
+        $this->certificates[] = $certificate->certificateId;
+        $this->recordThat(new CertificateIssued($this->cycleId, $certificate->certificateId));
+    }
+
+    #[QueryHandler('cycle.conductedAudits')]
+    public function conductedAudits(): array
+    {
+        return $this->audits;
+    }
+
+    #[QueryHandler('cycle.issuedCertificates')]
+    public function issuedCertificates(): array
+    {
+        return $this->certificates;
+    }
+}

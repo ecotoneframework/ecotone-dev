@@ -2,9 +2,7 @@
 
 namespace Ecotone\EventSourcing\Config\InboundChannelAdapter;
 
-use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
-use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -16,7 +14,6 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 
 /**
@@ -26,7 +23,6 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
 {
     public function __construct(
         private ProjectionSetupConfiguration $projectionSetupConfiguration,
-        private array $projectSetupConfigurations,
         private string $methodName
     ) {
     }
@@ -41,12 +37,7 @@ class ProjectionExecutorBuilder extends InputOutputMessageHandlerBuilder impleme
         $projectionEventHandler =  new Definition(
             ProjectionEventHandler::class,
             [
-                new Definition(LazyProophProjectionManager::class, [
-                    Reference::to(EventSourcingConfiguration::class),
-                    $this->projectSetupConfigurations,
-                    Reference::to(ReferenceSearchService::class),
-                    Reference::to(LazyProophEventStore::class),
-                ]),
+                new Reference(LazyProophProjectionManager::class),
                 $this->projectionSetupConfiguration,
                 Reference::to(ConversionService::REFERENCE_NAME),
             ]

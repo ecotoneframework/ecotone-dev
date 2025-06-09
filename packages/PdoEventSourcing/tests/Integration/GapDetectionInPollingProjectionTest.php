@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
@@ -55,24 +57,24 @@ final class GapDetectionInPollingProjectionTest extends EventSourcingMessagingTe
         $this->missingEvent = $connection->fetchAssociative(sprintf('select * from %s where no = ?', $streamName), [2]);
         $connection->delete($streamName, ['no' => 2]);
 
-        $initialTimestamp = 1712501960;
+        $initialTimestamp = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->getTimestamp();
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [1]), true);
         $metadata['timestamp'] = $initialTimestamp;
         $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp)], ['no' => 1]);
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [3]), true);
-        $metadata['timestamp'] = $initialTimestamp + 100;
-        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 100)], ['no' => 3]);
+        $metadata['timestamp'] = $initialTimestamp + 10;
+        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 10)], ['no' => 3]);
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [4]), true);
-        $metadata['timestamp'] = $initialTimestamp + 200;
-        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 200)], ['no' => 4]);
+        $metadata['timestamp'] = $initialTimestamp + 20;
+        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 20)], ['no' => 4]);
     }
 
     public function test_detecting_gaps_without_detection_window(): void
     {
-        $gapDetection = new GapDetection([10, 20, 50]);
+        $gapDetection = new GapDetection([0]);
 
         $ecotone = $this->bootstrapEcotoneWithGapDetection($gapDetection);
         $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -80,10 +82,13 @@ final class GapDetectionInPollingProjectionTest extends EventSourcingMessagingTe
 
         self::assertEquals([
             ['ticket_id' => '123', 'ticket_type' => 'alert'],
+            ['ticket_id' => '124', 'ticket_type' => 'alert'],
+            ['ticket_id' => '125', 'ticket_type' => 'warning'],
         ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
 
         $this->addMissingEvent();
 
+        $ecotone->resetProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotone->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
         self::assertEquals([

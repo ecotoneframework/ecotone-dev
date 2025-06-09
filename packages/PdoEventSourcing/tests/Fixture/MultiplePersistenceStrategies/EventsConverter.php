@@ -34,4 +34,16 @@ final class EventsConverter
     {
         return new BasketCreated($payload['basketId']);
     }
+
+    #[Converter]
+    public function convertFromLogEvent(LogEvent $event): array
+    {
+        return ['name' => $event->name];
+    }
+
+    #[Converter]
+    public function convertToLogEvent(array $payload): LogEvent
+    {
+        return new LogEvent($payload['name']);
+    }
 }

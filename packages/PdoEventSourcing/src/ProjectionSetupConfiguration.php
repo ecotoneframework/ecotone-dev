@@ -5,7 +5,6 @@ namespace Ecotone\EventSourcing;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\NullableMessageChannel;
-use Ecotone\Messaging\Support\Assert;
 
 /**
  * licence Apache-2.0
@@ -13,7 +12,6 @@ use Ecotone\Messaging\Support\Assert;
 final class ProjectionSetupConfiguration implements DefinedObject
 {
     /**
-     * @param ProjectionEventHandlerConfiguration[] $projectionEventHandlerConfigurations
      * @param array $projectionOptions http://docs.getprooph.org/event-store/projections.html#Options https://github.com/prooph/pdo-event-store/pull/221/files
      */
     public function __construct(
@@ -23,8 +21,6 @@ final class ProjectionSetupConfiguration implements DefinedObject
         private ProjectionStreamSource $projectionStreamSource,
         private ?string $asynchronousChannelName,
         private bool $isPolling = false,
-        private array $projectionEventHandlerConfigurations = [],
-        private bool $keepStateBetweenEvents = true,
         private array $projectionOptions = [],
     ) {
     }
@@ -45,18 +41,9 @@ final class ProjectionSetupConfiguration implements DefinedObject
                 $this->projectionStreamSource->getDefinition(),
                 $this->asynchronousChannelName,
                 $this->isPolling,
-                $this->projectionEventHandlerConfigurations,
-                $this->keepStateBetweenEvents,
                 $this->projectionOptions,
             ]
         );
-    }
-
-    public function withKeepingStateBetweenEvents(bool $keepState): static
-    {
-        $this->keepStateBetweenEvents = $keepState;
-
-        return $this;
     }
 
     public function withPolling(bool $isPolling): self
@@ -64,25 +51,6 @@ final class ProjectionSetupConfiguration implements DefinedObject
         $this->isPolling = $isPolling;
 
         return $this;
-    }
-
-    public function isKeepingStateBetweenEvents(): bool
-    {
-        return $this->keepStateBetweenEvents;
-    }
-
-    public function withProjectionEventHandler(string $eventBusRoutingKey, string $className, string $methodName, string $eventHandlerInputChannel): static
-    {
-        Assert::keyNotExists($this->projectionEventHandlerConfigurations, $eventBusRoutingKey, "Projection {$this->projectionName} has incorrect configuration. Can't register event handler twice for the same event {$eventBusRoutingKey}");
-
-        $this->projectionEventHandlerConfigurations[$eventBusRoutingKey] = new ProjectionEventHandlerConfiguration($className, $methodName, $eventBusRoutingKey, $eventHandlerInputChannel);
-
-        return $this;
-    }
-
-    public function getEventStoreReferenceName(): string
-    {
-        return $this->eventStoreReferenceName;
     }
 
     public function withOptions(array $options): static
@@ -105,14 +73,6 @@ final class ProjectionSetupConfiguration implements DefinedObject
     public function getProjectionLifeCycleConfiguration(): ProjectionLifeCycleConfiguration
     {
         return $this->projectionLifeCycleConfiguration;
-    }
-
-    /**
-     * @return ProjectionEventHandlerConfiguration[]
-     */
-    public function getProjectionEventHandlerConfigurations(): array
-    {
-        return $this->projectionEventHandlerConfigurations;
     }
 
     public function getProjectionOptions(): array
@@ -155,5 +115,10 @@ final class ProjectionSetupConfiguration implements DefinedObject
     public function getInitializationChannelName(): string
     {
         return $this->projectionLifeCycleConfiguration->getInitializationRequestChannel() ?? NullableMessageChannel::CHANNEL_NAME;
+    }
+
+    public function getActionRouterChannel(): string
+    {
+        return 'projection_action_router_' . $this->projectionName;
     }
 }

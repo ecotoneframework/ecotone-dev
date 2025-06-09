@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Integration;
+namespace Test\Ecotone\EventSourcing\Integration;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
@@ -54,35 +54,37 @@ final class GapDetectionInSynchronousProjectionTest extends EventSourcingMessagi
         $this->missingEvent = $connection->fetchAssociative(sprintf('select * from %s where no = ?', $streamName), [2]);
         $connection->delete($streamName, ['no' => 2]);
 
-        $initialTimestamp = 1712501960;
+        $initialTimestamp = time();
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [1]), true);
         $metadata['timestamp'] = $initialTimestamp;
         $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp)], ['no' => 1]);
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [3]), true);
-        $metadata['timestamp'] = $initialTimestamp + 100;
-        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 100)], ['no' => 3]);
+        $metadata['timestamp'] = $initialTimestamp + 10;
+        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 10)], ['no' => 3]);
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [4]), true);
-        $metadata['timestamp'] = $initialTimestamp + 200;
-        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 200)], ['no' => 4]);
+        $metadata['timestamp'] = $initialTimestamp + 20;
+        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 20)], ['no' => 4]);
     }
 
     public function test_detecting_gaps_without_detection_window(): void
     {
-        $ecotone = $this->bootstrapEcotoneWithGapDetection(new GapDetection([10, 20, 50], null));
+        $ecotone = $this->bootstrapEcotoneWithGapDetection(new GapDetection([0], null));
         $ecotone->sendCommand(new CloseTicket('124'));
 
         self::assertEquals(
             [
                 ['ticket_id' => '123', 'ticket_type' => 'alert'],
+                ['ticket_id' => '125', 'ticket_type' => 'warning'],
             ],
             $ecotone->sendQueryWithRouting('getInProgressTickets')
         );
 
         $this->addMissingEvent();
 
+        $ecotone->resetProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotone->triggerProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
         self::assertEquals(
@@ -95,7 +97,7 @@ final class GapDetectionInSynchronousProjectionTest extends EventSourcingMessagi
 
     public function test_detecting_gaps_with_detection_window(): void
     {
-        $ecotone = $this->bootstrapEcotoneWithGapDetection(new GapDetection([10, 20, 50], new DateInterval('PT10S')));
+        $ecotone = $this->bootstrapEcotoneWithGapDetection(new GapDetection([0], new DateInterval('PT1S')));
         $ecotone->sendCommand(new CloseTicket('124'));
 
         self::assertEquals(

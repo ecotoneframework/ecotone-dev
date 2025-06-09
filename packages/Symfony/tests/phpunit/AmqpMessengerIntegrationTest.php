@@ -25,6 +25,11 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
     private string $channelName = 'amqp_async';
     private FlowTestSupport $messaging;
 
+    protected function tearDown(): void
+    {
+        restore_exception_handler();
+    }
+
     protected function setUp(): void
     {
         $this->messaging = EcotoneLite::bootstrapFlowTesting(

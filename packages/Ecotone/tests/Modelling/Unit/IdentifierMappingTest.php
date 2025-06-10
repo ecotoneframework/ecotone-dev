@@ -9,6 +9,9 @@ use Ecotone\Messaging\Attribute\Converter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Modelling\AggregateMessage;
 use Exception;
+
+use function get_class;
+
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;
@@ -183,16 +186,15 @@ final class IdentifierMappingTest extends TestCase
 
     public function test_it_does_not_serialize_command_when_synchronous(): void
     {
-        $converter = new class
-        {
+        $converter = new class () {
             #[Converter]
             public function convert(PublishArticleCommand $command): array
             {
-                throw new Exception("Command should not be serialized when handled synchronously");
+                throw new Exception('Command should not be serialized when handled synchronously');
             }
         };
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Article::class, \get_class($converter)],
+            [Article::class, get_class($converter)],
             [$converter]
         );
 

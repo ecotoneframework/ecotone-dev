@@ -67,7 +67,7 @@ final class RoutingSlipTest extends TestCase
         );
 
         $ecotoneLite->sendDirectToChannel(
-            MerchantCreated::class,
+            'merchantToUser',
             $event = new MerchantCreated('123'),
             metadata: [
                 MessageHeaders::ROUTING_SLIP => 'audit',
@@ -104,7 +104,7 @@ final class RoutingSlipTest extends TestCase
         );
 
         $ecotoneLite->sendDirectToChannel(
-            MerchantCreated::class,
+            'merchantToUser',
             $event = new MerchantCreated('123'),
             metadata: [
                 MessageHeaders::ROUTING_SLIP => 'audit',

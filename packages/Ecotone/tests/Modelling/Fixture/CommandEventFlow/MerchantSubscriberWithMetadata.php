@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\CommandEventFlow;
 
+use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\CommandBus;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantCreated;
@@ -11,6 +12,7 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\RegisterUser;
 
 final class MerchantSubscriberWithMetadata
 {
+    #[InternalHandler('merchantToUser')]
     #[EventHandler]
     public function merchantToUser(MerchantCreated $event, array $metadata, CommandBus $commandBus): MerchantCreated
     {

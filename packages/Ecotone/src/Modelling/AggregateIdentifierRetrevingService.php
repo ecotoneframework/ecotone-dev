@@ -57,6 +57,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
         $mediaType = $message->getHeaders()->containsKey(MessageHeaders::CONTENT_TYPE)
             ? MediaType::parseMediaType($message->getHeaders()->get(MessageHeaders::CONTENT_TYPE))
             : MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($payload)->toString());
+
         if ($this->conversionService->canConvert(
             TypeDescriptor::createFromVariable($payload),
             $mediaType,

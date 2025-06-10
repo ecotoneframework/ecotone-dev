@@ -6,8 +6,12 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Modelling\AggregateIdentifierRetrevingService;
 use Ecotone\Modelling\AggregateMessage;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Modelling\Fixture\IdentifierMapping\AttributeMapping\ChangeStatus;
+use Test\Ecotone\Modelling\Fixture\IdentifierMapping\AttributeMapping\ChangeStatusConverter;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\AttributeMapping\OrderProcessWithAttributeHeadersMapping;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\AttributeMapping\OrderProcessWithAttributePayloadMapping;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier\OrderProcess;
@@ -22,6 +26,7 @@ use Test\Ecotone\Modelling\Fixture\IdentifierMapping\TargetIdentifier\OrderStart
  * licence Apache-2.0
  * @internal
  */
+#[CoversClass(AggregateIdentifierRetrevingService::class)]
 final class IdentifierMappingTest extends TestCase
 {
     /**
@@ -173,6 +178,41 @@ final class IdentifierMappingTest extends TestCase
                     'orderId' => '123',
                 ])
                 ->getSaga(OrderProcessWithAttributeHeadersMapping::class, '123')
+                ->getStatus()
+        );
+    }
+
+    public function test_doing_automapping_based_on_property_name(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OrderProcessWithAttributeHeadersMapping::class],
+        );
+
+        $orderId = '123';
+        $this->assertEquals(
+            'ongoing',
+            $ecotoneLite
+                ->sendCommandWithRoutingKey('startOrder', $orderId)
+                ->sendCommand(new ChangeStatus($orderId, 'ongoing'))
+                ->getSaga(OrderProcessWithAttributeHeadersMapping::class, $orderId)
+                ->getStatus()
+        );
+    }
+
+    public function test_doing_automapping_based_on_property_rather_than_conversion(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OrderProcessWithAttributeHeadersMapping::class, ChangeStatusConverter::class],
+            [new ChangeStatusConverter()]
+        );
+
+        $orderId = '123';
+        $this->assertEquals(
+            'ongoing',
+            $ecotoneLite
+                ->sendCommandWithRoutingKey('startOrder', $orderId)
+                ->sendCommand(new ChangeStatus($orderId, 'ongoing'))
+                ->getSaga(OrderProcessWithAttributeHeadersMapping::class, $orderId)
                 ->getStatus()
         );
     }

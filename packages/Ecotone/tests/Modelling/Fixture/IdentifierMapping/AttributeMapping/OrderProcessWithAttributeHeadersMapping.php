@@ -37,6 +37,12 @@ final class OrderProcessWithAttributeHeadersMapping
         $this->status = $event->status;
     }
 
+    #[CommandHandler]
+    public function changeStatus(ChangeStatus $command): void
+    {
+        $this->status = $command->status;
+    }
+
     public function getOrderId(): string
     {
         return $this->orderId;

@@ -551,11 +551,20 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         $parameterConverters   = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
         $aggregateClassDefinition = $this->interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($registration->getClassName()));
 
+        $handledPayloadType       = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $this->interfaceToCallRegistry);
+        $handledPayloadType       = $handledPayloadType ? $this->interfaceToCallRegistry->getClassDefinitionFor(TypeDescriptor::create($handledPayloadType)) : null;
+
         // This is executed before sending to async channel
         $aggregateIdentifierHandlerPreCheck = MessageProcessorActivatorBuilder::create()
             ->withInputChannelName($destinationChannel)
             ->withOutputMessageChannel($connectionChannel = $destinationChannel . '-connection')
-            ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getIdentifierMapping(), null, $this->interfaceToCallRegistry))
+            ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith(
+                $aggregateClassDefinition,
+                $annotation->getIdentifierMetadataMapping(),
+                $annotation->getIdentifierMapping(),
+                $handledPayloadType,
+                $this->interfaceToCallRegistry
+            ))
         ;
         $messagingConfiguration->registerMessageHandler($aggregateIdentifierHandlerPreCheck);
 

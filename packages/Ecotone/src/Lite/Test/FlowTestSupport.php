@@ -19,6 +19,7 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateMessage;
@@ -29,6 +30,8 @@ use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\Projecting\Lifecycle\LifecycleManager;
+use Prooph\EventStore\Exception\ProjectionNotFound;
 
 /**
  * @template T
@@ -224,7 +227,12 @@ final class FlowTestSupport
         Assert::allStrings($projectionName, '$projectionName must be single or collection of strings');
 
         foreach ($projectionName as $name) {
-            $this->getGateway(ProjectionManager::class)->triggerProjection($name);
+            try {
+                $this->getGateway(LifecycleManager::class)->trigger($name);
+            } catch (InvalidArgumentException) {
+                $this->getGateway(ProjectionManager::class)->triggerProjection($name);
+                // ignore if projection is not running
+            }
         }
 
         return $this;
@@ -232,21 +240,34 @@ final class FlowTestSupport
 
     public function initializeProjection(string $projectionName): self
     {
-        $this->getGateway(ProjectionManager::class)->initializeProjection($projectionName);
+        try {
+            $this->getGateway(ProjectionManager::class)->initializeProjection($projectionName);
+        } catch (InvalidArgumentException) {
+            $this->getGateway(LifecycleManager::class)->init($projectionName);
+        }
 
         return $this;
     }
 
     public function stopProjection(string $projectionName): self
     {
-        $this->getGateway(ProjectionManager::class)->stopProjection($projectionName);
+        try {
+            $this->getGateway(ProjectionManager::class)->stopProjection($projectionName);
+        } catch (InvalidArgumentException) {
+//            $this->getGateway(LifecycleManager::class)->stop($projectionName);
+        }
 
         return $this;
     }
 
     public function resetProjection(string $projectionName): self
     {
-        $this->getGateway(ProjectionManager::class)->resetProjection($projectionName);
+        try {
+            $this->getGateway(ProjectionManager::class)->resetProjection($projectionName);
+        } catch (InvalidArgumentException) {
+            $this->getGateway(LifecycleManager::class)->reset($projectionName);
+        }
+
 
         return $this;
     }
@@ -255,7 +276,12 @@ final class FlowTestSupport
     {
         // fixme Calling ProjectionManager to delete the projection throws `Header with name ecotone.eventSourcing.manager.deleteEmittedEvents does not exists` exception
         //$this->getGateway(ProjectionManager::class)->deleteProjection($projectionName);
-        $this->configuredMessagingSystem->runConsoleCommand('ecotone:es:delete-projection', ['name' => $projectionName]);
+        try {
+            $this->configuredMessagingSystem->runConsoleCommand('ecotone:es:delete-projection', ['name' => $projectionName]);
+        } catch (InvalidArgumentException) {
+            $this->getGateway(LifecycleManager::class)->delete($projectionName);
+        }
+
 
         return $this;
     }

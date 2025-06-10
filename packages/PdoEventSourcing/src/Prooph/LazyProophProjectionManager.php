@@ -13,6 +13,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Prooph\Common\Messaging\Message;
 use Prooph\EventStore\Exception\ProjectionNotFound;
 use Prooph\EventStore\Exception\RuntimeException;
@@ -120,17 +121,26 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function resetProjection(string $name): void
     {
+        if (!isset($this->projectionSetupConfigurations[$name])) {
+            throw new InvalidArgumentException("Projection with name '$name' is not configured.");
+        }
         $this->getProjectionManager()->resetProjection($name);
         $this->triggerActionOnProjection($name);
     }
 
     public function triggerProjection(string $name): void
     {
+        if (!isset($this->projectionSetupConfigurations[$name])) {
+            throw new InvalidArgumentException("Projection with name '$name' is not configured.");
+        }
         $this->triggerActionOnProjection($name);
     }
 
     public function initializeProjection(string $name): void
     {
+        if (!isset($this->projectionSetupConfigurations[$name])) {
+            throw new InvalidArgumentException("Projection with name '$name' is not configured.");
+        }
         $this->messagingEntrypoint->send([], $this->projectionSetupConfigurations[$name]->getInitializationChannelName());
         $this->triggerActionOnProjection($name);
     }

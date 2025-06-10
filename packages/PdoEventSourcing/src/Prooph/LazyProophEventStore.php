@@ -12,6 +12,7 @@ use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamSt
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Modelling\Event;
 use Interop\Queue\ConnectionFactory;
 use Iterator;
 use PDO;
@@ -99,7 +100,17 @@ class LazyProophEventStore implements EventStore
 
     public function load(StreamName $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null): Iterator
     {
-        return $this->getEventStore($streamName)->load($streamName, $fromNumber, $count, $metadataMatcher);
+        if ($this->eventSourcingConfiguration->isInMemory()) {
+            $events = $this->getEventStore($streamName)->load($streamName, $fromNumber, $count, $metadataMatcher);
+            $position = $fromNumber;
+            /** @var ProophMessage $event */
+            foreach ($events as $event) {
+                yield $event->withAddedMetadata('_position', $position);
+                $position++;
+            }
+        } else {
+            return $this->getEventStore($streamName)->load($streamName, $fromNumber, $count, $metadataMatcher);
+        }
     }
 
     public function loadReverse(StreamName $streamName, ?int $fromNumber = null, ?int $count = null, ?MetadataMatcher $metadataMatcher = null): Iterator

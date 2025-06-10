@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\CommandEventFlow;
 
+use App\MultiTenant\Application\Command\RegisterCustomer;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
@@ -18,7 +19,7 @@ final class User
     #[Identifier]
     private string $userId;
 
-    #[CommandHandler]
+    #[CommandHandler(routingKey: RegisterCustomer::class)]
     public static function register(RegisterUser $command): self
     {
         $user = new self();

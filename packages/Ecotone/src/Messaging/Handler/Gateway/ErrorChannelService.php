@@ -8,6 +8,7 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\MessageHandlingException;
+use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
@@ -28,16 +29,16 @@ final class ErrorChannelService
     }
 
     public function handle(
-        Message $requestMessage,
-        \Throwable $exception,
+        Message        $requestMessage,
+        \Throwable     $cause,
         MessageChannel $errorChannel,
-        ?string $relatedPolledChannelName,
+        ?string        $relatedPolledChannelName,
     )
     {
         $this->loggingGateway->error(
             'Error occurred during handling message. Sending Message to handle it in predefined Error Channel.',
             $requestMessage,
-            ['exception' => $exception],
+            ['exception' => $cause],
         );
 
         $outboundMessage = $this->outboundMessageConverter->prepare($requestMessage, $this->conversionService);
@@ -48,18 +49,17 @@ final class ErrorChannelService
             $messageBuilder = $messageBuilder->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, $relatedPolledChannelName);
         }
 
-        $errorChannel->send(ErrorMessage::create(
-            MessageHandlingException::fromOtherException(
-                $exception,
-                $messageBuilder
-                    ->build()
+        $errorChannel->send(
+            ErrorMessage::create(
+                $messageBuilder->build(),
+                $cause
             )
-        ));
+        );
 
         $this->loggingGateway->info(
             'Message was sent to Error Channel successfully.',
             $requestMessage,
-            ['exception' => $exception],
+            ['exception' => $cause],
         );
     }
 }

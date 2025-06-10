@@ -17,6 +17,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
+use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -517,7 +518,7 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->getMessageChannel($replyChannelName)->send(ErrorMessage::create(MessageHandlingException::create('error occurred')));
+        $messaging->getMessageChannel($replyChannelName)->send(ErrorMessage::create(MessageBuilder::withPayload('some')->build(), MessageHandlingException::create('error occurred')));
 
         $this->expectException(MessageHandlingException::class);
 
@@ -544,7 +545,7 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->getMessageChannel($replyChannelName)->send(ErrorMessage::create(MessageHandlingException::create('error occurred')));
+        $messaging->getMessageChannel($replyChannelName)->send(ErrorMessage::create(MessageBuilder::withPayload('some')->build(), MessageHandlingException::create('error occurred')));
 
         $this->expectException(MessageHandlingException::class);
 
@@ -646,7 +647,7 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             )
             ->build();
 
-        $messaging->getMessageChannel($replyChannelName)->send(ErrorMessage::create(MessageHandlingException::create('error occurred')));
+        $messaging->getMessageChannel($replyChannelName)->send(ErrorMessage::create(MessageBuilder::withPayload('some')->build(), MessageHandlingException::create('error occurred')));
 
         $messaging->getGateway(ServiceInterfaceReceiveOnlyWithNull::class)->sendMail();
 

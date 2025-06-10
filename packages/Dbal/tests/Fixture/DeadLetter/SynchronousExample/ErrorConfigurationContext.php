@@ -29,6 +29,6 @@ class ErrorConfigurationContext
     public function asyncReplyChannel()
     {
         return DbalBackedMessageChannelBuilder::create(self::ASYNC_REPLY_CHANNEL, 'managerRegistry')
-            ->withReceiveTimeout(1);
+            ->withReceiveTimeout(1000);
     }
 }

@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\MessageHandlingException;
+use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\LicensingException;
@@ -72,18 +73,13 @@ final class ErrorChannelCommandBusTest extends TestCase
         );
 
 
-        $message = $ecotoneLite->getMessageChannel('someErrorChannel')->receive();
-        /** @var MessageHandlingException $messagingException */
-        $messagingException = $message->getPayload();
-        $this->assertInstanceOf(MessageHandlingException::class, $messagingException);
-        $this->assertInstanceOf(\RuntimeException::class, $messagingException->getCause());
-        $failedMessage = $messagingException->getFailedMessage();
+        $failedMessage = $ecotoneLite->getMessageChannel('someErrorChannel')->receive();
+        $messagingException = $failedMessage->getHeaders()->get(ErrorContext::EXCEPTION_MESSAGE);
+        $this->assertSame('test', $messagingException);
         /** It should be converted to serializable payload */
         $this->assertSame(MediaType::createApplicationXPHPSerialized(), $failedMessage->getHeaders()->getContentType());
         $this->assertSame(LazyUuidFromString::class, $failedMessage->getHeaders()->get(MessageHeaders::TYPE_ID));
         $this->assertSame(SerializationSupport::withPHPSerialization($payload), $failedMessage->getPayload());
-
-        $this->assertSame(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME, $failedMessage->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME));
     }
 
     public function test_using_custom_error_channel_with_reply_channel(): void

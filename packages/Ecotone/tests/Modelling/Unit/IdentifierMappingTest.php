@@ -188,7 +188,7 @@ final class IdentifierMappingTest extends TestCase
             #[Converter]
             public function convert(PublishArticleCommand $command): array
             {
-                throw new Exception("Command should not be serialized when synchronous");
+                throw new Exception("Command should not be serialized when handled synchronously");
             }
         };
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
@@ -204,7 +204,7 @@ final class IdentifierMappingTest extends TestCase
                     'title',
                     'content'
                 ))
-                ->getAggregate(Article::class, 'author')
+                ->getAggregate(Article::class, ['author', 'title'])
                 ->getTitle()
         );
     }

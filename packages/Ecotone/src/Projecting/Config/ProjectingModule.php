@@ -250,6 +250,7 @@ class ProjectingModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             LifecycleManager::class,
             new Definition(LifecycleManager::class, [
+                $projectionNames,
                 new Reference(ProjectionStateStorage::class),
                 new Reference(ProjectionLifecycleStateStorage::class),
                 $ecotoneLifecycleExecutor,

@@ -7,7 +7,6 @@ declare(strict_types=1);
 namespace Ecotone\Projecting\Config\ProjectionBuilder;
 
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
-use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 
 class ProjectionBuilder
 {

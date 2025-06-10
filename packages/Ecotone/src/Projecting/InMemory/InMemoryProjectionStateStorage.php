@@ -35,7 +35,7 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
 
     public function deleteState(string $projectionName): void
     {
-        $projectionStartKey = $this->getKey($projectionName, "");
+        $projectionStartKey = $this->getKey($projectionName, null);
         foreach ($this->projectionStates as $key => $value) {
             if (str_starts_with($key, $projectionStartKey)) {
                 unset($this->projectionStates[$key]);

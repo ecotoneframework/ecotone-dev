@@ -6,6 +6,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
 use Ecotone\Modelling\Config\MessageBusChannel;
@@ -541,5 +542,18 @@ final class MessageHeaders
         }
 
         return $data;
+    }
+
+    /**
+     * @param string[]
+     */
+    public function resolveRoutingSlip(): array
+    {
+        $routingSlip = $this->containsKey(MessageHeaders::ROUTING_SLIP) ? $this->get(MessageHeaders::ROUTING_SLIP) : [];
+        if ($routingSlip === []) {
+            throw MessagingException::create('Can not resolve routing slip, as it is not set');
+        }
+
+        return explode(',', $routingSlip);
     }
 }

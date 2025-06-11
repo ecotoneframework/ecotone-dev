@@ -23,8 +23,8 @@ class ErrorChannelInterceptor
 {
     public function __construct(
         private ErrorChannelService $errorChannelService,
-        private MessageChannel $errorChannel,
-        private ?string $relatedPolledChannelName = null,
+        private MessageChannel      $errorChannel,
+        private ?string             $requestChannel = null,
     )
     {
     }
@@ -38,7 +38,8 @@ class ErrorChannelInterceptor
                 $requestMessage,
                 $exception,
                 $this->errorChannel,
-                $this->relatedPolledChannelName,
+                null,
+                $this->requestChannel,
             );
         }
     }

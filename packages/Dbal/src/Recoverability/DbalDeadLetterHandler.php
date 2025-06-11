@@ -257,10 +257,28 @@ class DbalDeadLetterHandler
     private function replyWithoutInitialization(string $messageId, MessagingEntrypoint $messagingEntrypoint): void
     {
         $message = $this->show($messageId);
+        if (! $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) && ! $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)) {
+            throw InvalidArgumentException::create("Can not reply to message {$messageId}, as it does not contain either `polledChannelName` or `routingSlip` header. Please add one of them, so Message can be routed back to the original channel.");
+        }
+
+        if ($message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)) {
+            $entrypoint = $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME);
+        }else {
+            // This allows to replay Error Message stored for synchronous calls (non asynchronous)
+            $routingSlip = $message->getHeaders()->resolveRoutingSlip();
+            $entrypoint = array_shift($routingSlip);
+
+            $message = MessageBuilder::fromMessage($message)
+                ->setRoutingSlip($routingSlip)
+                ->build();
+        }
+
         $message = MessageBuilder::fromMessage($message)
             ->removeHeaders(ErrorContext::WHOLE_ERROR_CONTEXT)
             ->setHeader(ErrorContext::DLQ_MESSAGE_REPLIED, '1')
-            ->setHeader(MessagingEntrypoint::ENTRYPOINT, $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME))
+            ->setHeader(MessagingEntrypoint::ENTRYPOINT,
+                $entrypoint
+            )
             ->build();
 
         $messagingEntrypoint->sendMessage($message);

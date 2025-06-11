@@ -28,7 +28,8 @@ class ErrorHandler
 
     public function __construct(
         private RetryTemplate $delayedRetryTemplate,
-        private bool $hasDeadLetterOutput
+        private bool $hasDeadLetterOutput,
+        private LoggingGateway $loggingGateway,
     ) {
     }
 
@@ -42,6 +43,13 @@ class ErrorHandler
         $retryNumber = $failedMessage->getHeaders()->containsKey(self::ECOTONE_RETRY_HEADER) ? $failedMessage->getHeaders()->get(self::ECOTONE_RETRY_HEADER) + 1 : 1;
 
         if (! $failedMessage->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)) {
+            $this->loggingGateway->error(
+                'Failed to handle Error Message via your Retry Configuration, as it does not contain information about origination channel from which it was polled.  
+                    This means that most likely Synchronous Dead Letter is configured with Retry Configuration which works only for Asynchronous configuration.',
+                $failedMessage,
+                ['exception' => $cause],
+            );
+
             throw $cause;
         }
         /** @var MessageChannel $messageChannel */
@@ -108,6 +116,7 @@ class ErrorHandler
             $messageBuilder
                 ->setHeader(MessageHeaders::DELIVERY_DELAY, $delayMs)
                 ->removeHeaders(ErrorContext::WHOLE_ERROR_CONTEXT)
+                ->setHeader(self::ECOTONE_RETRY_HEADER, $retryNumber)
                 ->build()
         );
 

@@ -33,6 +33,7 @@ final class ErrorChannelService
         \Throwable     $cause,
         MessageChannel $errorChannel,
         ?string        $relatedPolledChannelName,
+        ?string $routingSlip = null,
     )
     {
         $this->loggingGateway->error(
@@ -47,6 +48,10 @@ final class ErrorChannelService
 
         if ($relatedPolledChannelName) {
             $messageBuilder = $messageBuilder->setHeader(MessageHeaders::POLLED_CHANNEL_NAME, $relatedPolledChannelName);
+        }
+
+        if ($routingSlip) {
+            $messageBuilder = $messageBuilder->prependRoutingSlip([$routingSlip]);
         }
 
         $errorChannel->send(

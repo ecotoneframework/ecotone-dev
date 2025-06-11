@@ -36,7 +36,7 @@ class ErrorHandlerTest extends TestCase
 
         $consumedChannel = QueueChannel::create();
         $logger = StubLoggingGateway::create();
-        $errorHandler = new ErrorHandler($retryTemplate, false);
+        $errorHandler = new ErrorHandler($retryTemplate, false, StubLoggingGateway::create());
 
         $this->assertNull(
             $errorHandler->handle(
@@ -75,7 +75,7 @@ class ErrorHandlerTest extends TestCase
         $retryTemplate = RetryTemplateBuilder::exponentialBackoff(10, 2)->build();
 
         $consumedChannel = QueueChannel::create();
-        $errorHandler = new ErrorHandler($retryTemplate, false);
+        $errorHandler = new ErrorHandler($retryTemplate, false, StubLoggingGateway::create());
 
         $errorHandler->handle(
             $this->createFailedMessage(
@@ -99,7 +99,7 @@ class ErrorHandlerTest extends TestCase
 
         $consumedChannel = QueueChannel::create();
         $logger = StubLoggingGateway::create();
-        $errorHandler = new ErrorHandler($retryTemplate, true);
+        $errorHandler = new ErrorHandler($retryTemplate, true, StubLoggingGateway::create());
 
         $resultMessage = $errorHandler->handle(
             $this->createFailedMessage(
@@ -126,7 +126,7 @@ class ErrorHandlerTest extends TestCase
 
         $consumedChannel = QueueChannel::create();
         $logger = StubLoggingGateway::create();
-        $errorHandler = new ErrorHandler($retryTemplate, false);
+        $errorHandler = new ErrorHandler($retryTemplate, false, StubLoggingGateway::create());
 
         $resultMessage = $errorHandler->handle(
             $this->createFailedMessage(
@@ -151,7 +151,7 @@ class ErrorHandlerTest extends TestCase
             ->build();
 
         $consumedChannel = QueueChannel::create();
-        $errorHandler = new ErrorHandler($retryTemplate, true);
+        $errorHandler = new ErrorHandler($retryTemplate, true, StubLoggingGateway::create());
 
         $resultMessage = $errorHandler->handle(
             $this->createFailedMessage(
@@ -175,7 +175,8 @@ class ErrorHandlerTest extends TestCase
             RetryTemplateBuilder::exponentialBackoff(1, 2)
                 ->maxRetryAttempts(2)
                 ->build(),
-            false
+            false,
+            StubLoggingGateway::create()
         );
 
         $this->expectException(InvalidArgumentException::class);

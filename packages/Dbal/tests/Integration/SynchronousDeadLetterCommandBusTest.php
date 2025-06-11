@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Test\StubLogger;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
@@ -25,7 +26,7 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRe
  * licence Enterprise
  * @internal
  */
-final class DeadLetterCommandBusTest extends DbalMessagingTestCase
+final class SynchronousDeadLetterCommandBusTest extends DbalMessagingTestCase
 {
     public function test_exception_handling_with_using_error_channel_right_away(): void
     {
@@ -111,18 +112,31 @@ final class DeadLetterCommandBusTest extends DbalMessagingTestCase
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
-    public function test_it_retries_immediately_if_no_retry_channel_defined(): void
+    public function test_it_fails_on_using_asynchronous_retry_on_synchronous_dead_letter(): void
     {
         $ecotone = $this->bootstrapEcotone([
             'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
             'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply',
-        ], [new SynchronousOrderService(1)]);
+        ], [
+            new SynchronousOrderService(1),
+            'logger' => $logger = StubLogger::create(),
+        ]);
 
         $commandBus = $ecotone->getGateway(SynchronousRetryWithoutRetryCommandBus::class);
 
-        $commandBus->sendWithRouting('order.place', 'coffee');
+        $exception = false;
+        try {
+            $commandBus->sendWithRouting('order.place', 'coffee');
+        } catch (\InvalidArgumentException) {
+            $exception = true;
+        }
 
-        self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
+        self::assertContains(
+            'Failed to handle Error Message via your Retry Configuration, as it does not contain information about origination channel from which it was polled.  
+                    This means that most likely Synchronous Dead Letter is configured with Retry Configuration which works only for Asynchronous configuration.',
+            $logger->getError()
+        );
+        $this->assertTrue($exception);
     }
 
     public function test_passing_message_directly_to_async_channel_on_failure_and_then_failing(): void
@@ -140,11 +154,6 @@ final class DeadLetterCommandBusTest extends DbalMessagingTestCase
         $this->assertErrorMessageCount($ecotone, 0);
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL);
-
-        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
-        $this->assertErrorMessageCount($ecotone, 1);
-
-        $this->replyAllErrorMessages($ecotone);
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL);

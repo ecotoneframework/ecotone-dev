@@ -7,6 +7,7 @@ use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\EventSourcing\InMemory\StreamIteratorWithPosition;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
 use Ecotone\EventSourcing\ProophEventMapper;
@@ -102,12 +103,7 @@ class LazyProophEventStore implements EventStore
     {
         if ($this->eventSourcingConfiguration->isInMemory()) {
             $events = $this->getEventStore($streamName)->load($streamName, $fromNumber, $count, $metadataMatcher);
-            $position = $fromNumber;
-            /** @var ProophMessage $event */
-            foreach ($events as $event) {
-                yield $event->withAddedMetadata('_position', $position);
-                $position++;
-            }
+            return new StreamIteratorWithPosition($events, $fromNumber);
         } else {
             return $this->getEventStore($streamName)->load($streamName, $fromNumber, $count, $metadataMatcher);
         }

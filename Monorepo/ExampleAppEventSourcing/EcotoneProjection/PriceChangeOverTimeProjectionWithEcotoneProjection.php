@@ -10,9 +10,8 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
 use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChange;
-use Monorepo\ExampleAppEventSourcing\Common\PriceChangeOverTimeTrait;
 
-#[\Ecotone\Projecting\Attribute\Projection("price_change_over_time", "product_stream_source")]
+#[\Ecotone\Projecting\Attribute\Projection("price_change_over_time")]
 class PriceChangeOverTimeProjectionWithEcotoneProjection
 {
     public const NAME = "price_change_over_time";

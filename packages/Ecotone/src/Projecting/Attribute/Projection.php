@@ -16,7 +16,7 @@ class Projection extends StreamBasedSource
     public function __construct(
         public readonly string  $name,
         public readonly ?string $partitionHeaderName = MessageHeaders::EVENT_AGGREGATE_ID,
-        public readonly bool    $disableDefaultProjectionHandler = false,
+        public readonly bool    $enabled = true,
     ) {
     }
 }

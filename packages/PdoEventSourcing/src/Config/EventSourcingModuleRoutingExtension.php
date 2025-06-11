@@ -33,7 +33,7 @@ class EventSourcingModuleRoutingExtension implements RoutingEventHandler
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $event->getRegistration()->getClassAnnotationsWithType(Projection::class)[0];
 
-            if ($projectionAttribute->disableDefaultProjectionHandler === false) {
+            if ($projectionAttribute->enabled) {
                 return; // Do not route if projection is disabled
             }
 

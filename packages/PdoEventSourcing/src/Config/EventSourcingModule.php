@@ -163,7 +163,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 }
             }
 
-            if ($projectionAttribute->disableDefaultProjectionHandler === false) {
+            if ($projectionAttribute->enabled) {
                 $projectionsWithNewProjectingSystem[] = $projectionAttribute;
                 continue;
             }

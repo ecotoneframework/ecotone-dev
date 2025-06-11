@@ -14,12 +14,12 @@ class StreamIteratorWithPosition implements StreamIterator
     private int $currentPosition;
     public function __construct(private Iterator $decorated, private int $initialPosition)
     {
-        $this->currentPosition = $this->initialPosition - 1;
+        $this->currentPosition = $this->initialPosition;
     }
 
     public function current(): mixed
     {
-        return $this->decorated->current()->withAddedMetadata('_position', $this->currentPosition);
+        return $this->decorated->current()?->withAddedMetadata('_position', $this->currentPosition);
     }
 
     public function next(): void

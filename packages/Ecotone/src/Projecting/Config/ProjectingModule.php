@@ -96,7 +96,7 @@ class ProjectingModule implements AnnotationModule
         foreach ($annotationRegistrationService->findCombined(Projection::class, EventHandler::class) as $projectionEventHandler) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
-            if ($projectionAttribute->disableDefaultProjectionHandler) {
+            if (! $projectionAttribute->enabled) {
                 continue;
             }
             $eventHandlersByProjectionName[$projectionAttribute->name][] = $projectionEventHandler;

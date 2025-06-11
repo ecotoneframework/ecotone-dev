@@ -30,7 +30,7 @@ class ProjectingModuleRoutingExtension implements RoutingEventHandler
         if ($isCommandOrEventHandler && $event->getRegistration()->hasAnnotation(Projection::class)) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $event->getRegistration()->getClassAnnotationsWithType(Projection::class)[0];
-            if ($projectionAttribute->disableDefaultProjectionHandler) {
+            if (! $projectionAttribute->enabled) {
                 return;
             }
 

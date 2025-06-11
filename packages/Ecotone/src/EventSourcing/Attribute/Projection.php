@@ -18,9 +18,9 @@ class Projection extends \Ecotone\Projecting\Attribute\Projection
     private bool $fromAll;
     private string $eventStoreReferenceName;
 
-    public function __construct(string $name, string|array $fromStreams = [], string|array $fromCategories = [], bool $fromAll = false, string $eventStoreReferenceName = EventStore::class, bool $useNewProjectingSystem = false)
+    public function __construct(string $name, string|array $fromStreams = [], string|array $fromCategories = [], bool $fromAll = false, string $eventStoreReferenceName = EventStore::class, bool $useNewProjectingSystem = true)
     {
-        parent::__construct($name, partitionHeaderName: null, disableDefaultProjectionHandler: ! $useNewProjectingSystem);
+        parent::__construct($name, partitionHeaderName: null, enabled: $useNewProjectingSystem);
         $fromStreams = is_string($fromStreams) ? [$fromStreams] : $fromStreams;
         $fromCategories = is_string($fromCategories) ? [$fromCategories] : $fromCategories;
         $countDefined = (int)$fromStreams + (int)$fromCategories + (int)$fromAll;

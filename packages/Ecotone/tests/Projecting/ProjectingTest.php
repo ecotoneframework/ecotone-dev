@@ -31,6 +31,7 @@ class ProjectingTest extends TestCase
         return new ProjectingManager(
             $projectionStateStorage,
             new LifecycleManager(
+                ['projection-name'],
                 $projectionStateStorage,
                 new InMemoryProjectionLifecycleStateStorage(),
                 new NullLifecycleExecutor(),

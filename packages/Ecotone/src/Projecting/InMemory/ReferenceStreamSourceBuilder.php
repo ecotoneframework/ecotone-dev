@@ -12,7 +12,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\Config\StreamSourceBuilder;
 
-class InMemoryStreamSourceBuilder implements StreamSourceBuilder
+class ReferenceStreamSourceBuilder implements StreamSourceBuilder
 {
     /**
      * @param array<string> $streams projection names

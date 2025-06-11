@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
-use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
+use Ecotone\Projecting\InMemory\ReferenceStreamSourceBuilder;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Projecting\Fixture\TicketProjectionWithLifecycle;
 use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
@@ -27,7 +27,7 @@ class LifecycleManagerTest extends TestCase
             [TicketProjectionWithLifecycle::class],
             ['ticket_stream_source' => $streamSource, TicketProjectionWithLifecycle::class => $projection],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new InMemoryStreamSourceBuilder([TicketProjectionWithLifecycle::NAME], 'ticket_stream_source'))
+                ->addExtensionObject(new ReferenceStreamSourceBuilder([TicketProjectionWithLifecycle::NAME], 'ticket_stream_source'))
         );
 
         $streamSource->append(

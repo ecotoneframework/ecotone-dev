@@ -22,7 +22,7 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
     public function project(Event $event, mixed $userState = null): mixed
     {
         $metadata = $event->getMetadata();
-        $metadata[ProjectingHeaders::PROJECTION_STATE] = $userState ?? [];
+        $metadata[ProjectingHeaders::PROJECTION_STATE] = $userState ?? null;
 
         // Those three headers are required by EventStreamEmitter
         $metadata[ProjectingHeaders::PROJECTION_NAME] = $this->projectionName;

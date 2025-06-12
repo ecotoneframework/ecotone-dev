@@ -19,6 +19,7 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousOrderService;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousInstantRetryWithAsyncChannelCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithAsyncRetryCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithAsyncChannelCommandBus;
 
@@ -110,6 +111,36 @@ final class SynchronousDeadLetterCommandBusTest extends DbalMessagingTestCase
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
+    }
+
+    public function test_recovering_with_instant_retry_before_reaching_dead_letter(): void
+    {
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply',
+        ], [new SynchronousOrderService(1)]);
+
+        $commandBus = $ecotone->getGateway(SynchronousInstantRetryWithAsyncChannelCommandBus::class);
+
+        $commandBus->sendWithRouting('order.place', 'coffee');
+
+        self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
+        $this->assertErrorMessageCount($ecotone, 0);
+    }
+
+    public function test_failing_with_instant_retry_and_reaching_dead_letter(): void
+    {
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample',
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply',
+        ], [new SynchronousOrderService(2)]);
+
+        $commandBus = $ecotone->getGateway(SynchronousInstantRetryWithAsyncChannelCommandBus::class);
+
+        $commandBus->sendWithRouting('order.place', 'coffee');
+
+        self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
+        $this->assertErrorMessageCount($ecotone, 1);
     }
 
     public function test_passing_message_directly_to_async_channel_on_failure_and_then_succeeding_after_retry(): void

@@ -7,9 +7,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\Routing;
 
-use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Modelling\Attribute\NamedEvent;
 use function array_map;
 use function array_unique;
 
@@ -20,7 +17,10 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\NamedEvent;
 use RuntimeException;
 
 use function str_contains;
@@ -53,7 +53,7 @@ class BusRoutingMapBuilder extends BusRoutingMap
         }
 
         $type = $this->getFirstParameterType($interfaceToCallRegistry, $registration);
-        if (!$type) {
+        if (! $type) {
             return [];
         } else {
             $routes = [];

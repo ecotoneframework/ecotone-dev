@@ -13,6 +13,6 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\RetryConfigur
  * licence Apache-2.0
  */
 #[ErrorChannel(RetryConfiguration::ERROR_CHANNEL)]
-interface SynchronousRetryWithoutRetryCommandBus extends CommandBus
+interface SynchronousRetryWithAsyncRetryCommandBus extends CommandBus
 {
 }

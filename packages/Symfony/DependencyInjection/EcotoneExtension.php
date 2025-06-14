@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheWarmer;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\SymfonyConfigurationVariableService;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -82,6 +83,7 @@ class EcotoneExtension extends Extension
             ]);
 
         $container->register(CacheWarmer::class)->setAutowired(true)->addTag('kernel.cache_warmer');
+        $container->register(CacheClearer::class)->setAutowired(true)->addTag('kernel.cache_clearer')->setPublic(true);
 
         $messagingConfiguration = MessagingSystemConfiguration::prepare(
             realpath(($container->hasParameter('kernel.project_dir') ? $container->getParameter('kernel.project_dir') : $container->getParameter('kernel.root_dir') . '/..')),

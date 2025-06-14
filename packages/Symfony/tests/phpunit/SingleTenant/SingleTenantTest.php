@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\App\SingleTenant\Application\Command\RegisterCustomer;
@@ -48,6 +49,8 @@ final class SingleTenantTest extends TestCase
         $this->queryBus = $app->get(QueryBus::class);
         $this->deadLetterGateway = $app->get(DeadLetterGateway::class);
         $this->kernel = $kernel;
+
+        $this->kernel->getContainer()->get(CacheClearer::class)->clear('');
     }
 
     protected function tearDown(): void

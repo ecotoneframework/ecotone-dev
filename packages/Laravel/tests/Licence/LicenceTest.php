@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Licence;
 
+use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\Test\LicenceTesting;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
+use Illuminate\Support\Facades\Artisan;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -30,6 +32,8 @@ final class LicenceTest extends TestCase
         $this->app = $app;
         $this->queryBus = $app->get(QueryBus::class);
         $this->commandBus = $app->get(CommandBus::class);
+
+        EcotoneCacheClear::clearEcotoneCacheDirectories($app->storagePath());
     }
 
     protected function tearDown(): void

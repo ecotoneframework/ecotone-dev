@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\MultiTenant;
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
+use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -37,6 +39,35 @@ final class MultiTenantTest extends TestCase
         $this->app = $app;
         $this->queryBus = $app->get(QueryBus::class);
         $this->commandBus = $app->get(CommandBus::class);
+
+        EcotoneCacheClear::clearEcotoneCacheDirectories($app->storagePath());
+    }
+
+    public function test_optimize_clear_triggers_ecotone_cache_clear_via_event(): void
+    {
+        $laravelCacheDirectory = storage_path('framework/cache/data/ecotone');
+        $liteCacheDirectory = storage_path('framework/cache/data/ecotone');
+
+        // Create cache directories and test files
+        if(!File::exists($laravelCacheDirectory)) {
+            File::makeDirectory($laravelCacheDirectory, 0755, true);
+        }
+        File::put($laravelCacheDirectory . '/test_cache_file', 'test content');
+
+        if(!File::exists($liteCacheDirectory)) {
+            File::makeDirectory($liteCacheDirectory, 0755, true);
+        }
+        File::put($liteCacheDirectory . '/test_lite_cache_file', 'lite test content');
+
+        $this->assertTrue(File::exists($laravelCacheDirectory . '/test_cache_file'));
+        $this->assertTrue(File::exists($liteCacheDirectory . '/test_lite_cache_file'));
+
+        // Run optimize:clear command - this should trigger the CommandFinished event
+        Artisan::call('optimize:clear');
+
+        // Verify both Ecotone cache files were removed via the event listener
+        $this->assertFalse(File::exists($laravelCacheDirectory . '/test_cache_file'));
+        $this->assertFalse(File::exists($liteCacheDirectory . '/test_lite_cache_file'));
     }
 
     public function tearDown(): void

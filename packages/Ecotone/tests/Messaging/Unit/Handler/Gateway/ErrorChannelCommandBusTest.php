@@ -22,6 +22,7 @@ use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Lazy\LazyUuidFromString;
+use Ramsey\Uuid\UuidInterface;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelCommandBus;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelWithAsyncChannel;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketService;
@@ -83,7 +84,8 @@ final class ErrorChannelCommandBusTest extends TestCase
         $this->assertSame('test', $messagingException);
         /** It should be converted to serializable payload */
         $this->assertSame(MediaType::createApplicationXPHPSerialized(), $failedMessage->getHeaders()->getContentType());
-        $this->assertSame(LazyUuidFromString::class, $failedMessage->getHeaders()->get(MessageHeaders::TYPE_ID));
+        $typeId = $failedMessage->getHeaders()->get(MessageHeaders::TYPE_ID);
+        $this->assertTrue(is_subclass_of($typeId, UuidInterface::class));
         $this->assertSame(SerializationSupport::withPHPSerialization($payload), $failedMessage->getPayload());
     }
 

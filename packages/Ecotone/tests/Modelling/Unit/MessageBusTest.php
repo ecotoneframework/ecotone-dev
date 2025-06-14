@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -29,6 +30,7 @@ use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\PaymentWasDoneEvent;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestAbstractHandler;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestCommand;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestHandler;
+use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestNotifier;
 use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestViewer;
 use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestWasAddedToBook;
 use Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod\Aggregate;
@@ -281,6 +283,38 @@ final class MessageBusTest extends TestCase
                 ->sendQueryWithRouting(GuestViewer::BOOK_GET_GUESTS, 'book-1'),
             'Named event should be aliased to GuestWasAddedToBook without being part of resolved classes'
         );
+    }
+
+    public function test_it_does_use_endpoint_ids_as_routing_slips_to_ensure_it_kept_static(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [
+                GuestNotifier::class,
+            ],
+            containerOrAvailableServices: [new GuestNotifier()],
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+                SimpleMessageChannelBuilder::createQueueChannel('background'),
+            ]
+        );
+
+        $ecotoneLite
+            ->publishEvent(new GuestWasAddedToBook('book-1', 'John Doe'));
+
+        $channelAsync = $ecotoneLite->getMessageChannel('async');
+        $channelBackground = $ecotoneLite->getMessageChannel('background');
+
+        $message = $channelAsync->receive();
+        self::assertNotNull($message);
+        self::assertEquals('guestViewer.notify1.target.execute', $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP));
+
+        $message = $channelAsync->receive();
+        self::assertNotNull($message);
+        self::assertEquals('guestViewer.notify2.target.execute', $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP));
+
+        $message = $channelBackground->receive();
+        self::assertNotNull($message);
+        self::assertEquals('guestViewer.notify3.target.execute', $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP));
     }
 
     public function test_sending_to_command_channel_directly_with_type_id_and_serialized_payload(): void

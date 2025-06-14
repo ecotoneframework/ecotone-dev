@@ -24,7 +24,7 @@ class ErrorChannelInterceptor
     public function __construct(
         private ErrorChannelService $errorChannelService,
         private MessageChannel      $errorChannel,
-        private ?string             $requestChannel = null,
+        private ?string             $errorChannelRoutingSlip = null,
     )
     {
     }
@@ -39,7 +39,7 @@ class ErrorChannelInterceptor
                 $exception,
                 $this->errorChannel,
                 null,
-                $this->requestChannel,
+                $this->errorChannelRoutingSlip,
             );
         }
     }

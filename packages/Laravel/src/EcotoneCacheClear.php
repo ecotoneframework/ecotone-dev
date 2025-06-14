@@ -2,9 +2,6 @@
 
 namespace Ecotone\Laravel;
 
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\App;
-
 /**
  * licence Apache-2.0
  */

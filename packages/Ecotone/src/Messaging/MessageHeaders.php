@@ -4,7 +4,6 @@ namespace Ecotone\Messaging;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;

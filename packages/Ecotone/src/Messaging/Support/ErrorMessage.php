@@ -25,7 +25,7 @@ final class ErrorMessage implements Message
 
     public static function createFromMessage(Message $message): self
     {
-        if (!self::isErrorMessage($message)) {
+        if (! self::isErrorMessage($message)) {
             throw MessagingException::create('Trying to create error message from message that is not generic message.');
         }
 
@@ -35,7 +35,7 @@ final class ErrorMessage implements Message
     public static function isErrorMessage(Message $message): bool
     {
         foreach (ErrorContext::WHOLE_ERROR_CONTEXT as $errorContextKey) {
-            if (!$message->getHeaders()->containsKey($errorContextKey)) {
+            if (! $message->getHeaders()->containsKey($errorContextKey)) {
                 return false;
             }
         }

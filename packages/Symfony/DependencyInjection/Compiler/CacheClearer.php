@@ -2,11 +2,8 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Symfony\Component\HttpKernel\CacheClearer\CacheClearerInterface;
-use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 
 /**
  * licence Apache-2.0

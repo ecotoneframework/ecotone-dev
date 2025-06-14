@@ -3,7 +3,6 @@
 namespace Test;
 
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -25,13 +24,13 @@ class CacheClearingTest extends KernelTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         self::bootKernel([
             'environment' => 'test',
         ]);
-        
+
         $this->filesystem = new Filesystem();
-        
+
         // Get the actual cache directories
         /** @var ServiceCacheConfiguration $cacheConfig */
         $cacheConfig = self::getContainer()->get(ServiceCacheConfiguration::REFERENCE_NAME);

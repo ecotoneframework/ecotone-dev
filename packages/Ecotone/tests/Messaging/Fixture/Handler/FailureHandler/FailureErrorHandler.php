@@ -7,7 +7,6 @@ namespace Test\Ecotone\Messaging\Fixture\Handler\FailureHandler;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Support\ErrorMessage;
-use Monolog\ErrorHandler;
 
 final class FailureErrorHandler
 {

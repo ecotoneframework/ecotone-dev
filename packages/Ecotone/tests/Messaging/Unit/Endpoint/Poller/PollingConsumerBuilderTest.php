@@ -14,7 +14,6 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;

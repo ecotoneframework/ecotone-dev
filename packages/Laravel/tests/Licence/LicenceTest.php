@@ -10,7 +10,6 @@ use Ecotone\Modelling\QueryBus;
 use Ecotone\Test\LicenceTesting;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
-use Illuminate\Support\Facades\Artisan;
 use PHPUnit\Framework\TestCase;
 
 /**

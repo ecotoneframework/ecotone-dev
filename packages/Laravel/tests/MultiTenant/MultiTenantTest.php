@@ -49,12 +49,12 @@ final class MultiTenantTest extends TestCase
         $liteCacheDirectory = storage_path('framework/cache/data/ecotone');
 
         // Create cache directories and test files
-        if(!File::exists($laravelCacheDirectory)) {
+        if (! File::exists($laravelCacheDirectory)) {
             File::makeDirectory($laravelCacheDirectory, 0755, true);
         }
         File::put($laravelCacheDirectory . '/test_cache_file', 'test content');
 
-        if(!File::exists($liteCacheDirectory)) {
+        if (! File::exists($liteCacheDirectory)) {
             File::makeDirectory($liteCacheDirectory, 0755, true);
         }
         File::put($liteCacheDirectory . '/test_lite_cache_file', 'lite test content');

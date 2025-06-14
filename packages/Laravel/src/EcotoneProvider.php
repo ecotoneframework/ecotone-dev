@@ -2,6 +2,10 @@
 
 namespace Ecotone\Laravel;
 
+use function class_exists;
+
+use const DIRECTORY_SEPARATOR;
+
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
@@ -23,8 +27,6 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use ReflectionMethod;
-use function class_exists;
-use const DIRECTORY_SEPARATOR;
 
 /**
  * licence Apache-2.0

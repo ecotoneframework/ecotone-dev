@@ -16,6 +16,9 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriberWithMetada
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
 
+/**
+ * licence Apache-2.0
+ */
 final class RoutingSlipTest extends TestCase
 {
     public function test_using_routing_slip_on_factory_command_handler(): void

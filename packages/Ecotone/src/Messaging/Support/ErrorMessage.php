@@ -45,14 +45,8 @@ final class ErrorMessage implements Message
 
     public static function create(Message $message, Throwable $cause): self
     {
-        $builder = MessageBuilder::fromMessage($message);
-        if ($cause->getPrevious()) {
-            $builder = $builder
-                ->setHeader(ErrorContext::EXCEPTION_PREVIOUS_CLASS, get_class($cause->getPrevious()));
-        }
-
         return new self(
-            $builder
+            MessageBuilder::fromMessage($message)
                 ->setHeader(ErrorContext::EXCEPTION_CLASS, get_class($cause))
                 ->setHeader(ErrorContext::EXCEPTION_MESSAGE, $cause->getMessage())
                 ->setHeader(ErrorContext::EXCEPTION_STACKTRACE, $cause->getTraceAsString())

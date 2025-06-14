@@ -5,6 +5,9 @@ namespace Ecotone\Laravel;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\App;
 
+/**
+ * licence Apache-2.0
+ */
 class EcotoneCacheClear
 {
     public static function clearEcotoneCacheDirectories(string $storagePath): void

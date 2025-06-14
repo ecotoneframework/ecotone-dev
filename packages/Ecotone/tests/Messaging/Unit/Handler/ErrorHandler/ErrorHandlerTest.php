@@ -8,6 +8,7 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\InMemoryChannelResolver;
 use Ecotone\Messaging\Handler\Logger\StubLoggingGateway;
 use Ecotone\Messaging\Handler\MessageHandlingException;
+use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandler;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
@@ -35,7 +36,7 @@ class ErrorHandlerTest extends TestCase
 
         $consumedChannel = QueueChannel::create();
         $logger = StubLoggingGateway::create();
-        $errorHandler = new ErrorHandler($retryTemplate, false);
+        $errorHandler = new ErrorHandler($retryTemplate, false, StubLoggingGateway::create());
 
         $this->assertNull(
             $errorHandler->handle(
@@ -64,9 +65,9 @@ class ErrorHandlerTest extends TestCase
         $this->assertCount(0, $logger->getError());
     }
 
-    private function createFailedMessage(Message $message, ?Throwable $exception = null): ErrorMessage
+    private function createFailedMessage(Message $message, ?Throwable $exception = null): Message
     {
-        return ErrorMessage::create(MessageHandlingException::fromOtherException($exception ?? new MessageHandlingException(), $message));
+        return ErrorMessage::create($message, $exception ?? new MessageHandlingException());
     }
 
     public function test_calculating_correct_delay_for_retry_template()
@@ -74,7 +75,7 @@ class ErrorHandlerTest extends TestCase
         $retryTemplate = RetryTemplateBuilder::exponentialBackoff(10, 2)->build();
 
         $consumedChannel = QueueChannel::create();
-        $errorHandler = new ErrorHandler($retryTemplate, false);
+        $errorHandler = new ErrorHandler($retryTemplate, false, StubLoggingGateway::create());
 
         $errorHandler->handle(
             $this->createFailedMessage(
@@ -98,7 +99,7 @@ class ErrorHandlerTest extends TestCase
 
         $consumedChannel = QueueChannel::create();
         $logger = StubLoggingGateway::create();
-        $errorHandler = new ErrorHandler($retryTemplate, true);
+        $errorHandler = new ErrorHandler($retryTemplate, true, StubLoggingGateway::create());
 
         $resultMessage = $errorHandler->handle(
             $this->createFailedMessage(
@@ -125,7 +126,7 @@ class ErrorHandlerTest extends TestCase
 
         $consumedChannel = QueueChannel::create();
         $logger = StubLoggingGateway::create();
-        $errorHandler = new ErrorHandler($retryTemplate, false);
+        $errorHandler = new ErrorHandler($retryTemplate, false, StubLoggingGateway::create());
 
         $resultMessage = $errorHandler->handle(
             $this->createFailedMessage(
@@ -150,7 +151,7 @@ class ErrorHandlerTest extends TestCase
             ->build();
 
         $consumedChannel = QueueChannel::create();
-        $errorHandler = new ErrorHandler($retryTemplate, true);
+        $errorHandler = new ErrorHandler($retryTemplate, true, StubLoggingGateway::create());
 
         $resultMessage = $errorHandler->handle(
             $this->createFailedMessage(
@@ -174,7 +175,8 @@ class ErrorHandlerTest extends TestCase
             RetryTemplateBuilder::exponentialBackoff(1, 2)
                 ->maxRetryAttempts(2)
                 ->build(),
-            false
+            false,
+            StubLoggingGateway::create()
         );
 
         $this->expectException(InvalidArgumentException::class);

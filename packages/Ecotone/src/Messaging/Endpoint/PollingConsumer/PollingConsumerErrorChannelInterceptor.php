@@ -4,6 +4,7 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -17,7 +18,10 @@ use Throwable;
  */
 class PollingConsumerErrorChannelInterceptor
 {
-    public function __construct(private ChannelResolver $channelResolver, private LoggingGateway $loggingGateway)
+    public function __construct(
+        private ErrorChannelService $errorChannelService,
+        private ChannelResolver $channelResolver,
+    )
     {
     }
 
@@ -40,19 +44,12 @@ class PollingConsumerErrorChannelInterceptor
             $errorChannelName = $pollingMetadata->getErrorChannelName();
 
             if ($errorChannelName && $this->channelResolver->hasChannelWithName($errorChannelName)) {
-                $this->loggingGateway->critical(
-                    sprintf('Error occurred during handling message. Sending Message to handle it in predefined Error Channel: `%s`.', $errorChannelName),
-                    $requestMessage,
-                    ['exception' => $exception],
-                );
-
                 $errorChannel = $this->channelResolver->resolve($errorChannelName);
-                $errorChannel->send(ErrorMessage::create(MessageHandlingException::fromOtherException($exception, $requestMessage)));
-
-                $this->loggingGateway->info(
-                    sprintf('Message was sent to Error Channel: `%s` successfully.', $errorChannelName),
+                $this->errorChannelService->handle(
                     $requestMessage,
-                    ['exception' => $exception],
+                    $exception,
+                    $errorChannel,
+                    $requestMessage->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME)
                 );
 
                 return true;

@@ -1,0 +1,3 @@
+ecotone:
+# handled on consumer level
+#  defaultErrorChannel: 'dbal_dead_letter'

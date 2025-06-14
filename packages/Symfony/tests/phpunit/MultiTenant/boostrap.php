@@ -25,6 +25,12 @@ function runMigrationForSymfonyTenants(Kernel $kernel): void
 function migrateSymfony(Connection $connection): void
 {
     $connection->executeStatement(<<<SQL
+                DROP TABLE IF EXISTS ecotone_error_messages
+        SQL);
+    $connection->executeStatement(<<<SQL
+                DROP TABLE IF EXISTS messenger_messages
+        SQL);
+    $connection->executeStatement(<<<SQL
                 DROP TABLE IF EXISTS persons
         SQL);
     $connection->executeStatement(<<<SQL

@@ -28,22 +28,28 @@ class ErrorHandler
 
     public function __construct(
         private RetryTemplate $delayedRetryTemplate,
-        private bool $hasDeadLetterOutput
+        private bool $hasDeadLetterOutput,
+        private LoggingGateway $loggingGateway,
     ) {
     }
 
     public function handle(
-        ErrorMessage $errorMessage,
+        Message $errorMessage,
         ChannelResolver $channelResolver,
         #[Reference] LoggingGateway $logger
     ): ?Message {
-        /** @var MessagingException $messagingException */
-        $messagingException = $errorMessage->getPayload();
-        $failedMessage = $messagingException->getFailedMessage();
-        $cause = $messagingException->getCause() ? $messagingException->getCause() : $messagingException;
+        $failedMessage = $errorMessage;
+        $cause = $errorMessage->getHeaders()->get(ErrorContext::EXCEPTION);
         $retryNumber = $failedMessage->getHeaders()->containsKey(self::ECOTONE_RETRY_HEADER) ? $failedMessage->getHeaders()->get(self::ECOTONE_RETRY_HEADER) + 1 : 1;
 
         if (! $failedMessage->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)) {
+            $this->loggingGateway->error(
+                'Failed to handle Error Message via your Retry Configuration, as it does not contain information about origination channel from which it was polled.  
+                    This means that most likely Synchronous Dead Letter is configured with Retry Configuration which works only for Asynchronous configuration.',
+                $failedMessage,
+                ['exception' => $cause],
+            );
+
             throw $cause;
         }
         /** @var MessageChannel $messageChannel */
@@ -58,6 +64,8 @@ class ErrorHandler
             MessageHeaders::DELIVERY_DELAY,
             MessageHeaders::TIME_TO_LIVE,
             MessageHeaders::CONSUMER_ACK_HEADER_LOCATION,
+            ErrorContext::EXCEPTION,
+            self::ECOTONE_RETRY_HEADER,
         ]);
 
         if ($this->shouldBeSendToDeadLetter($retryNumber)) {
@@ -86,15 +94,8 @@ class ErrorHandler
                 $failedMessage,
                 ['exception' => $cause],
             );
-            $messageBuilder->removeHeader(self::ECOTONE_RETRY_HEADER);
 
-            return $messageBuilder
-                    ->setHeader(ErrorContext::EXCEPTION_MESSAGE, $cause->getMessage())
-                    ->setHeader(ErrorContext::EXCEPTION_STACKTRACE, $cause->getTraceAsString())
-                    ->setHeader(ErrorContext::EXCEPTION_FILE, $cause->getFile())
-                    ->setHeader(ErrorContext::EXCEPTION_LINE, $cause->getLine())
-                    ->setHeader(ErrorContext::EXCEPTION_CODE, $cause->getCode())
-                    ->build();
+            return $messageBuilder->build();
         }
 
         $delayMs = $this->delayedRetryTemplate->calculateNextDelay($retryNumber);
@@ -114,6 +115,7 @@ class ErrorHandler
         $messageChannel->send(
             $messageBuilder
                 ->setHeader(MessageHeaders::DELIVERY_DELAY, $delayMs)
+                ->removeHeaders(ErrorContext::WHOLE_ERROR_CONTEXT)
                 ->setHeader(self::ECOTONE_RETRY_HEADER, $retryNumber)
                 ->build()
         );

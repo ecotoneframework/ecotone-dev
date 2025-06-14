@@ -168,31 +168,6 @@ class DbalDeadLetterHandler
     public function store(Message $message): void
     {
         $this->initialize();
-        if ($message instanceof ErrorMessage) {
-            //            @TODO this should be handled inside Ecotone, as it's duplicate of ErrorHandler
-
-            $messagingException = $message->getPayload();
-            $cause = $messagingException->getCause() ? $messagingException->getCause() : $messagingException;
-
-            $messageBuilder     = MessageBuilder::fromMessage($messagingException->getFailedMessage());
-            if ($messageBuilder->containsKey(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION)) {
-                $messageBuilder->removeHeader($messageBuilder->getHeaderWithName(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION));
-            }
-
-            $message = $messageBuilder
-                ->removeHeader(ErrorHandler::ECOTONE_RETRY_HEADER)
-                ->setHeader(ErrorContext::EXCEPTION_MESSAGE, $cause->getMessage())
-                ->setHeader(ErrorContext::EXCEPTION_STACKTRACE, $cause->getTraceAsString())
-                ->setHeader(ErrorContext::EXCEPTION_FILE, $cause->getFile())
-                ->setHeader(ErrorContext::EXCEPTION_LINE, $cause->getLine())
-                ->setHeader(ErrorContext::EXCEPTION_CODE, $cause->getCode())
-                ->removeHeaders([
-                    MessageHeaders::DELIVERY_DELAY,
-                    MessageHeaders::TIME_TO_LIVE,
-                    MessageHeaders::CONSUMER_ACK_HEADER_LOCATION,
-                ])
-                ->build();
-        }
 
         $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 3, 1000)
             ->maxRetryAttempts(3)
@@ -282,18 +257,28 @@ class DbalDeadLetterHandler
     private function replyWithoutInitialization(string $messageId, MessagingEntrypoint $messagingEntrypoint): void
     {
         $message = $this->show($messageId);
+        if (! $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) && ! $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)) {
+            throw InvalidArgumentException::create("Can not reply to message {$messageId}, as it does not contain either `polledChannelName` or `routingSlip` header. Please add one of them, so Message can be routed back to the original channel.");
+        }
+
+        if ($message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)) {
+            $entrypoint = $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME);
+        }else {
+            // This allows to replay Error Message stored for synchronous calls (non asynchronous)
+            $routingSlip = $message->getHeaders()->resolveRoutingSlip();
+            $entrypoint = array_shift($routingSlip);
+
+            $message = MessageBuilder::fromMessage($message)
+                ->setRoutingSlip($routingSlip)
+                ->build();
+        }
+
         $message = MessageBuilder::fromMessage($message)
-            ->removeHeaders(
-                [
-                    ErrorContext::EXCEPTION_STACKTRACE,
-                    ErrorContext::EXCEPTION_CODE,
-                    ErrorContext::EXCEPTION_MESSAGE,
-                    ErrorContext::EXCEPTION_FILE,
-                    ErrorContext::EXCEPTION_LINE,
-                ]
-            )
+            ->removeHeaders(ErrorContext::WHOLE_ERROR_CONTEXT)
             ->setHeader(ErrorContext::DLQ_MESSAGE_REPLIED, '1')
-            ->setHeader(MessagingEntrypoint::ENTRYPOINT, $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME))
+            ->setHeader(MessagingEntrypoint::ENTRYPOINT,
+                $entrypoint
+            )
             ->build();
 
         $messagingEntrypoint->sendMessage($message);

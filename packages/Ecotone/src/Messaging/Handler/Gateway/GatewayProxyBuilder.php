@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Gateway;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
@@ -29,6 +30,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\ChainedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
@@ -291,6 +293,12 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
 
+        // Choose resolver based on Enterprise license
+        $isEnterprise = $builder->getServiceConfiguration()->isRunningForEnterprise();
+        $errorChannelResolver = $isEnterprise
+            ? new EnterpriseGatewayErrorChannelResolver()
+            : new StandardGatewayErrorChannelResolver();
+
         if (! $interfaceToCall->canReturnValue() && $this->replyChannelName) {
             throw InvalidArgumentException::create("Can't set reply channel for {$interfaceToCall}");
         }
@@ -300,7 +308,8 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             Assert::isTrue(is_a($requestChannelDefinition->getClassName(), SubscribableChannel::class, true), 'Gateway request channel should not be pollable if expected return type is not nullable');
         }
 
-        if (! $interfaceToCall->canItReturnNull() && $this->errorChannelName && ! $interfaceToCall->hasReturnTypeVoid()) {
+        $errorChannelName = $errorChannelResolver->getErrorChannel($interfaceToCall, $this->errorChannelName);
+        if (! $interfaceToCall->canItReturnNull() && $errorChannelName && ! $interfaceToCall->hasReturnTypeVoid()) {
             throw InvalidArgumentException::create("Gateway {$interfaceToCall} with error channel must allow nullable return type");
         }
 
@@ -344,7 +353,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
             $methodArgumentConverters = [GatewayPayloadConverter::create($interfaceToCall->getFirstParameter())];
         }
 
-        $internalHandlerReference = $this->compileGatewayInternalProcessor($builder);
+        $internalHandlerReference = $this->compileGatewayInternalProcessor($builder, $errorChannelResolver);
 
         return new Definition(Gateway::class, [
             new Definition(MethodCallToMessageConverter::class, [
@@ -363,18 +372,22 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
         ]);
     }
 
-    private function compileGatewayInternalProcessor(MessagingContainerBuilder $builder): Definition
+    private function compileGatewayInternalProcessor(MessagingContainerBuilder $builder, GatewayErrorChannelResolver $errorChannelResolver): Definition
     {
         $interfaceToCallReference = new InterfaceToCallReference($this->interfaceName, $this->methodName);
         $interfaceToCall = $builder->getInterfaceToCall($interfaceToCallReference);
 
         $aroundInterceptors = $this->aroundInterceptors;
-        if ($this->errorChannelName) {
+        $errorChannelName = $errorChannelResolver->getErrorChannel($interfaceToCall, $this->errorChannelName);
+        if ($errorChannelName) {
+            $errorChannelRoutingSlip = $errorChannelResolver->getErrorChannelRoutingSlip($interfaceToCall, $this->requestChannelName);
+
             $interceptorReference = $builder->register(
                 Uuid::uuid4()->toString(),
                 new Definition(ErrorChannelInterceptor::class, [
-                    new ChannelReference($this->errorChannelName),
-                    Reference::to(LoggingGateway::class),
+                    Reference::to(ErrorChannelService::class),
+                    new ChannelReference($errorChannelName),
+                    $errorChannelRoutingSlip,
                 ])
             );
             $channelInterceptorInterface = $builder->getInterfaceToCall(new InterfaceToCallReference(ErrorChannelInterceptor::class, 'handle'));

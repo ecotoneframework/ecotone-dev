@@ -52,7 +52,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
 
     private function createFailedMessage(Message $message, ?Throwable $exception = null): Message
     {
-        return ErrorMessage::create(MessageHandlingException::fromOtherException($exception ?? new MessageHandlingException(), $message));
+        return ErrorMessage::create($message, $exception ?? new MessageHandlingException());
     }
 
     public function test_listing_error_messages()

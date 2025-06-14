@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -29,6 +31,36 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderService;
  */
 final class DeadLetterTest extends DbalMessagingTestCase
 {
+    public function test_exception_handling_with_using_error_channel_right_away(): void
+    {
+        $ecotone = $this->bootstrapEcotone([
+            'Test\Ecotone\Dbal\Fixture\DeadLetter\Example',
+        ], extensionObjects: [
+            PollingMetadata::create('orderService')
+                ->setExecutionTimeLimitInMilliseconds(1000)
+                ->setHandledMessageLimit(1)
+                ->setErrorChannelName(DbalDeadLetterBuilder::STORE_CHANNEL)
+        ], orderService: new OrderService(1));
+
+        $gateway = $ecotone->getGateway(OrderGateway::class);
+
+        $gateway->order('coffee');
+
+        $ecotone->run('orderService');
+
+        self::assertEquals(0, $gateway->getOrderAmount());
+
+        $this->assertErrorMessageCount($ecotone, 1, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
+
+        $this->replyAllErrorMessages($ecotone);
+
+        $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
+
+        $ecotone->run('orderService');
+
+        self::assertEquals(1, $gateway->getOrderAmount());
+    }
+
     public function test_exception_handling_with_custom_handling_1_retry(): void
     {
         $ecotone = $this->bootstrapEcotone([
@@ -204,19 +236,20 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $ecotone->getGateway(DeadLetterGateway::class)->replyAll();
     }
 
-    private function bootstrapEcotone(array $namespaces, array $services = []): FlowTestSupport
+    private function bootstrapEcotone(array $namespaces, array $services = [], array $extensionObjects = [], ?OrderService $orderService = null): FlowTestSupport
     {
         $connectionFactory = $this->getConnectionFactory();
 
         return (EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($services, [
-                new OrderService(),
+                $orderService ?? new OrderService(),
                 DbalConnectionFactory::class => $connectionFactory,
                 'managerRegistry' => $connectionFactory,
             ]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects($extensionObjects)
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         ));

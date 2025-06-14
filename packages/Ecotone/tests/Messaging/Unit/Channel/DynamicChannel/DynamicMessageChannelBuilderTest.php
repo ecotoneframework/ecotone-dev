@@ -614,7 +614,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $messageChannelName = 'test';
         $messageHandler = NoReturnMessageHandler::create();
 
-        $messagingSystem = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
+        $messagingSystem = MessagingSystemConfiguration::prepareWithDefaultsForTesting()
             ->registerMessageHandler(DumbMessageHandlerBuilder::create($messageHandler, $messageChannelName))
             ->registerMessageChannel(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName)))
             ->registerConsumerFactory(new PollOrThrowMessageHandlerConsumerBuilder())
@@ -628,7 +628,7 @@ final class DynamicMessageChannelBuilderTest extends TestCase
         $messageChannelName = 'test';
         $messageHandler = NoReturnMessageHandler::create();
 
-        $messagingSystem = MessagingSystemConfiguration::prepareWithDefaults(InMemoryModuleMessaging::createEmpty())
+        $messagingSystem = MessagingSystemConfiguration::prepareWithDefaultsForTesting()
             ->registerMessageHandler(DumbMessageHandlerBuilder::create($messageHandler, $messageChannelName))
             ->registerMessageChannel(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName)))
             ->registerConsumerFactory(new PollingConsumerBuilder())

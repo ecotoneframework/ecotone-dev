@@ -13,7 +13,6 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
-        'defaultSerializationMediaType' => 'application/json',
         'loadSrcNamespaces' => false,
         'namespaces' => ['Monorepo\\ExampleApp\\Common\\'],
         'defaultErrorChannel' => 'errorChannel',

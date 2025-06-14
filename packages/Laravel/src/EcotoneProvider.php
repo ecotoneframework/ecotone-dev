@@ -308,7 +308,7 @@ class EcotoneProvider extends ServiceProvider
             CommandFinished::class,
             function ($event) {
                 // Clear Ecotone cache when optimize commands finishes successfully
-                if (in_array($event->command, ['optimize', 'optimize:clear']) && $event->exitCode === 0) {
+                if (in_array($event->command, ['optimize', 'optimize:clear', 'cache:clear']) && $event->exitCode === 0) {
                     EcotoneCacheClear::clearEcotoneCacheDirectories($this->getCacheDirectoryPath());
                 }
             }

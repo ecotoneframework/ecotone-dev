@@ -14,13 +14,11 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandler;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
@@ -263,7 +261,7 @@ class DbalDeadLetterHandler
 
         if ($message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)) {
             $entrypoint = $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME);
-        }else {
+        } else {
             // This allows to replay Error Message stored for synchronous calls (non asynchronous)
             $routingSlip = $message->getHeaders()->resolveRoutingSlip();
             $entrypoint = array_shift($routingSlip);
@@ -276,7 +274,8 @@ class DbalDeadLetterHandler
         $message = MessageBuilder::fromMessage($message)
             ->removeHeaders(ErrorContext::WHOLE_ERROR_CONTEXT)
             ->setHeader(ErrorContext::DLQ_MESSAGE_REPLIED, '1')
-            ->setHeader(MessagingEntrypoint::ENTRYPOINT,
+            ->setHeader(
+                MessagingEntrypoint::ENTRYPOINT,
                 $entrypoint
             )
             ->build();

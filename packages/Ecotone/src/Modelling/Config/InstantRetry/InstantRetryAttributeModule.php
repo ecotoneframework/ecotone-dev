@@ -18,6 +18,7 @@ use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\CommandBus;
+use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
 
 #[ModuleAnnotation]
@@ -42,8 +43,8 @@ final class InstantRetryAttributeModule implements AnnotationModule
         $annotatedInterfaces = $annotationRegistrationService->findAnnotatedClasses(InstantRetry::class);
 
         foreach ($annotatedInterfaces as $annotatedInterface) {
-            if (!is_subclass_of($annotatedInterface, CommandBus::class)) {
-                throw new \InvalidArgumentException(sprintf(
+            if (! is_subclass_of($annotatedInterface, CommandBus::class)) {
+                throw new InvalidArgumentException(sprintf(
                     "InstantRetry attribute can only be used on interfaces extending CommandBus. '%s' does not extend CommandBus.",
                     $annotatedInterface
                 ));
@@ -65,7 +66,7 @@ final class InstantRetryAttributeModule implements AnnotationModule
             return;
         }
 
-        if (!$messagingConfiguration->isRunningForEnterpriseLicence()) {
+        if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             throw LicensingException::create('Instant retry attribute is available only for Ecotone Enterprise.');
         }
 
@@ -110,8 +111,7 @@ final class InstantRetryAttributeModule implements AnnotationModule
         array $exceptions,
         string $pointcut,
         int $precedence,
-    ): void
-    {
+    ): void {
         $instantRetryId = Uuid::uuid4()->toString();
         $messagingConfiguration->registerServiceDefinition($instantRetryId, Definition::createFor(InstantRetryInterceptor::class, [$retryAttempt, $exceptions, Reference::to(RetryStatusTracker::class)]));
 

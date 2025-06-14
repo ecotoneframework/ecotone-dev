@@ -13,16 +13,14 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\AuditLog;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantConversion;
+use Ecotone\Modelling\EventBus;
+use Ecotone\Modelling\QueryBus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\Merchant;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantCreated;
+use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantConversion;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriber;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriberWithMetadata;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
 use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\OrderDispatch;
 use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\OrderWasCreated;
@@ -30,9 +28,9 @@ use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\PaymentWasDoneEvent;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestAbstractHandler;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestCommand;
 use Test\Ecotone\Modelling\Fixture\HandlerWithAbstractClass\TestHandler;
-use Test\Ecotone\Modelling\Fixture\NamedEventAsyncSubscriber\GuestNotifier;
 use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestViewer;
 use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestWasAddedToBook;
+use Test\Ecotone\Modelling\Fixture\NamedEventAsyncSubscriber\GuestNotifier;
 use Test\Ecotone\Modelling\Fixture\NoEventsReturnedFromFactoryMethod\Aggregate;
 use Test\Ecotone\Modelling\Fixture\Outbox\OutboxWithMultipleChannels;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPriorityWithHigherPriorityHandler;
@@ -40,9 +38,6 @@ use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPrio
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandlerWithInheritance;
-use Ecotone\Modelling\ComandBus;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\QueryBus;
 
 /**
  * licence Apache-2.0

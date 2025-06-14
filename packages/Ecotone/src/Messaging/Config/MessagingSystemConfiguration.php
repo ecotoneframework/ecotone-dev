@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Messaging\Config\Container\Compiler\ModuleConfigurationCompilerPass;
-use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -26,6 +24,7 @@ use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\Compiler\ModuleConfigurationCompilerPass;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterSingletonMessagingServices;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\ContainerConfig;
@@ -58,6 +57,7 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
 use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\NullableMessageChannel;
@@ -514,9 +514,9 @@ final class MessagingSystemConfiguration implements Configuration
     }
 
     public static function prepareWithDefaultsForTesting(
-        array $extensionObjects = [], ?ServiceConfiguration $serviceConfiguration = null
-    ): Configuration
-    {
+        array $extensionObjects = [],
+        ?ServiceConfiguration $serviceConfiguration = null
+    ): Configuration {
         return self::prepare(
             __DIR__ .'/../../../',
             InMemoryConfigurationVariableService::createEmpty(),

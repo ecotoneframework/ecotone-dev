@@ -6,7 +6,6 @@ namespace Test\Ecotone\Modelling\Fixture\CommandEventFlow;
 
 use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantCreated;
 
 final class AuditLog
 {

@@ -8,25 +8,18 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\ErrorChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
-use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Lazy\LazyUuidFromString;
+use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelCommandBus;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelWithAsyncChannel;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketService;
-use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Messaging\SerializationSupport;
 
 /**
@@ -67,7 +60,8 @@ final class ErrorChannelCommandBusTest extends TestCase
 
         $payload = Uuid::uuid4();
         $commandBus->sendWithRouting(
-            'createViaCommand', $payload,
+            'createViaCommand',
+            $payload,
             metadata: [
                 'throwException' => true,
             ]
@@ -105,7 +99,8 @@ final class ErrorChannelCommandBusTest extends TestCase
 
         $payload = Uuid::uuid4();
         $commandBus->sendWithRouting(
-            'createViaCommand', $payload,
+            'createViaCommand',
+            $payload,
             metadata: [
                 'throwException' => true,
             ]

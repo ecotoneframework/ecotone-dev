@@ -7,8 +7,6 @@ namespace Test\Ecotone\Modelling\Fixture\CommandEventFlow;
 use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\CommandBus;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantCreated;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\RegisterUser;
 
 final class MerchantSubscriberWithMetadata
 {

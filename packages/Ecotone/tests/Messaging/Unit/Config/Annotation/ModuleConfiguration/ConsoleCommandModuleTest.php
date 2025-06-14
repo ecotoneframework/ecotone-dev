@@ -7,24 +7,11 @@ namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
-use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
-use Ecotone\Messaging\Config\ConsoleCommandParameter;
-use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ConsoleCommandWithArrayOptions;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ConsoleCommandWithMessageHeaders;
-use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\DefaultParametersOneTimeCommandExample;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\OneTimeWithIncorrectResultSet;
-use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\OneTimeWithResultExample;
-use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ParametersOneTimeCommandExample;
-use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ParametersWithReferenceOneTimeCommandExample;
-use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ReferenceBasedConsoleCommand;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\StdClassConverter;
 
 /**

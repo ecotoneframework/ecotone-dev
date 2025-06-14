@@ -11,5 +11,4 @@ use Ecotone\Messaging\MessagingException;
  */
 final class MessageChannelNotFound extends MessagingException
 {
-
 }

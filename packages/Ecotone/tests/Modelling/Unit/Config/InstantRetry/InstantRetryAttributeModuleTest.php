@@ -8,7 +8,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
@@ -19,7 +18,6 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithCustomRetryCountAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithErrorChannelAndInstantRetryAttribute;
-use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithInstantRetryAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithInvalidArgumentExceptionsAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithRuntimeExceptionsAttribute;
 use Test\Ecotone\Modelling\Fixture\Retry\ErrorChannelHandler;
@@ -28,6 +26,7 @@ use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
 
 /**
  * licence Enterprise
+ * @internal
  */
 #[CoversClass(InstantRetry::class)]
 final class InstantRetryAttributeModuleTest extends TestCase
@@ -165,7 +164,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
             [RetriedCommandHandler::class, CommandBusWithErrorChannelAndInstantRetryAttribute::class, ErrorChannelHandler::class],
             [
                 new RetriedCommandHandler(),
-                $errorChannelHandler
+                $errorChannelHandler,
             ],
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -185,7 +184,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
             [RetriedCommandHandler::class, CommandBusWithErrorChannelAndInstantRetryAttribute::class, ErrorChannelHandler::class],
             [
                 new RetriedCommandHandler(),
-                $errorChannelHandler
+                $errorChannelHandler,
             ],
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -200,8 +199,8 @@ final class InstantRetryAttributeModuleTest extends TestCase
 
     public function test_instant_retry_attribute_fails_on_non_command_bus_interfaces()
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage("InstantRetry attribute can only be used on interfaces extending CommandBus");
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('InstantRetry attribute can only be used on interfaces extending CommandBus');
 
         EcotoneLite::bootstrapFlowTesting(
             [RetriedCommandHandler::class, NonCommandBusWithInstantRetryAttribute::class],

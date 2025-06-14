@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging;
 
-use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
-
 final class SerializationSupport
 {
     public static function withPHPSerialization(mixed $data): string

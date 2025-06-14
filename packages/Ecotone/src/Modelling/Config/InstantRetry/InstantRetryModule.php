@@ -81,8 +81,7 @@ final class InstantRetryModule implements AnnotationModule
         array $exceptions,
         string $pointcut,
         int $precedence,
-    ): void
-    {
+    ): void {
         $instantRetryId = Uuid::uuid4()->toString();
         $messagingConfiguration->registerServiceDefinition($instantRetryId, Definition::createFor(InstantRetryInterceptor::class, [$retryAttempt, $exceptions, Reference::to(RetryStatusTracker::class)]));
 

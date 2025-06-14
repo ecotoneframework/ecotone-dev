@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -18,14 +17,15 @@ use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 use Enqueue\Dbal\DbalConnectionFactory;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousOrderService;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousInstantRetryWithAsyncChannelCommandBus;
-use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithAsyncRetryCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithAsyncChannelCommandBus;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRetryWithAsyncRetryCommandBus;
 
 /**
  * licence Enterprise
@@ -189,12 +189,12 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
         $exception = false;
         try {
             $commandBus->sendWithRouting('order.place', 'coffee');
-        } catch (\InvalidArgumentException) {
+        } catch (InvalidArgumentException) {
             $exception = true;
         }
 
         self::assertContains(
-            'Failed to handle Error Message via your Retry Configuration, as it does not contain information about origination channel from which it was polled.  
+            'Failed to handle Error Message via your Retry Configuration, as it does not contain information about origination channel from which it was polled.
                     This means that most likely Synchronous Dead Letter is configured with Retry Configuration which works only for Asynchronous configuration.',
             $logger->getError()
         );

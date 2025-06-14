@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace Test\SingleTenant;
 
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use PHPUnit\Framework\TestCase;
@@ -168,7 +165,7 @@ final class SingleTenantTest extends TestCase
             'command' => 'ecotone:run',
             'consumerName' => 'notifications',
             '--stopOnFailure' => false,
-            '--executionTimeLimit' => 1000
+            '--executionTimeLimit' => 1000,
         ]);
         $application->run($input, $output);
 
@@ -193,7 +190,7 @@ final class SingleTenantTest extends TestCase
             'command' => 'ecotone:run',
             'consumerName' => 'notifications',
             '--stopOnFailure' => false,
-            '--executionTimeLimit' => 1000
+            '--executionTimeLimit' => 1000,
         ]);
         $application->run($input, $output);
 

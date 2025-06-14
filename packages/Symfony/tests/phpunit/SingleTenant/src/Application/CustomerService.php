@@ -12,6 +12,7 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use RuntimeException;
 use Symfony\App\SingleTenant\Application\Event\CustomerWasRegistered;
 
 /**
@@ -43,7 +44,7 @@ final class CustomerService
 
         if ($this->asyncExceptionTimes < $shouldThrowExceptionTimes) {
             $this->asyncExceptionTimes++;
-            throw new \RuntimeException('Throwing an exception during async.');
+            throw new RuntimeException('Throwing an exception during async.');
         }
 
         $notificationSender->sendWelcomeNotification($customer, '', $objectManager->getConnection());

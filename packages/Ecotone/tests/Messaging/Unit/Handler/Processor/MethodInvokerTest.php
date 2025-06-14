@@ -352,8 +352,8 @@ class MethodInvokerTest extends MessagingTestCase
                     MediaType::createApplicationJson(),
                     TypeDescriptor::STRING,
                     MediaType::createApplicationXPHP(),
-                    \stdClass::class,
-                    $result = new \stdClass()
+                    stdClass::class,
+                    $result = new stdClass()
                 )
             )
             ->withMessageHandler(
@@ -368,7 +368,7 @@ class MethodInvokerTest extends MessagingTestCase
                 $inputChannel,
                 $data,
                 metadata: [
-                    MessageHeaders::TYPE_ID => \stdClass::class,
+                    MessageHeaders::TYPE_ID => stdClass::class,
                     MessageHeaders::CONTENT_TYPE => MediaType::createApplicationJson()->toString(),
                 ]
             )

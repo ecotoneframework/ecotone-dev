@@ -6,7 +6,6 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerDefinitionsHolder;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**

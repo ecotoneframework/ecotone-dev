@@ -5,18 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use Doctrine\Common\Annotations\AnnotationException;
-use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConverterModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SerializerModule;
-use Ecotone\Messaging\Config\Container\ContainerConfig;
-use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
 use Ecotone\Messaging\Gateway\Converter\Serializer;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessagingException;
 use ReflectionException;

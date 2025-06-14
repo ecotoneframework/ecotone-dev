@@ -18,8 +18,7 @@ class ErrorChannel
      */
     public function __construct(
         public readonly string   $errorChannelName,
-    )
-    {
+    ) {
         Assert::notNullAndEmpty($errorChannelName, 'Channel name can not be empty string');
     }
 }

@@ -10,5 +10,4 @@ use Ecotone\Modelling\CommandBus;
 #[ErrorChannel('someErrorChannel')]
 interface ErrorChannelCommandBus extends CommandBus
 {
-
 }

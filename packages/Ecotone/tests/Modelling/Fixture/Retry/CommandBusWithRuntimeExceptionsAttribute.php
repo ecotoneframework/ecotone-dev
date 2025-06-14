@@ -6,12 +6,12 @@ namespace Test\Ecotone\Modelling\Fixture\Retry;
 
 use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\CommandBus;
-use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * licence Enterprise
  */
-#[InstantRetry(retryTimes: 3, exceptions: [\RuntimeException::class])]
+#[InstantRetry(retryTimes: 3, exceptions: [RuntimeException::class])]
 interface CommandBusWithRuntimeExceptionsAttribute extends CommandBus
 {
 }

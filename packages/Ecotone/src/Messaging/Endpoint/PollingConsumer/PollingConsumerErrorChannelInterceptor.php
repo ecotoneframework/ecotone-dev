@@ -5,12 +5,9 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\ErrorMessage;
 use Throwable;
 
 /**
@@ -21,8 +18,7 @@ class PollingConsumerErrorChannelInterceptor
     public function __construct(
         private ErrorChannelService $errorChannelService,
         private ChannelResolver $channelResolver,
-    )
-    {
+    ) {
     }
 
     public function handle(MethodInvocation $methodInvocation, Message $requestMessage)

@@ -8,7 +8,6 @@ use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 
 /**
  * licence Enterprise

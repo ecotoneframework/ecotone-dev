@@ -13,14 +13,13 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\AuditLog;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\CreateMerchantService;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\Merchant;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantCreated;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriber;
-use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriberWithMetadata;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\RegisterUser;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
 
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class RoutingSlipTest extends TestCase
 {

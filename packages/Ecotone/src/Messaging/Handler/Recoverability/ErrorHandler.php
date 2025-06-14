@@ -10,8 +10,6 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
@@ -44,7 +42,7 @@ class ErrorHandler
 
         if (! $failedMessage->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)) {
             $this->loggingGateway->error(
-                'Failed to handle Error Message via your Retry Configuration, as it does not contain information about origination channel from which it was polled.  
+                'Failed to handle Error Message via your Retry Configuration, as it does not contain information about origination channel from which it was polled.
                     This means that most likely Synchronous Dead Letter is configured with Retry Configuration which works only for Asynchronous configuration.',
                 $failedMessage,
                 ['exception' => $cause],

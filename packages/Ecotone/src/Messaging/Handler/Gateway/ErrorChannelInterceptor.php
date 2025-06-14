@@ -4,16 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
-use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
-use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\ErrorMessage;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
 
 /**
@@ -25,8 +18,7 @@ class ErrorChannelInterceptor
         private ErrorChannelService $errorChannelService,
         private MessageChannel      $errorChannel,
         private ?string             $errorChannelRoutingSlip = null,
-    )
-    {
+    ) {
     }
 
     public function handle(MethodInvocation $methodInvocation, Message $requestMessage)

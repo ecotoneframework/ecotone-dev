@@ -25,8 +25,7 @@ final class ModuleConfigurationCompilerPass implements CompilerPass
         private ServiceConfiguration $serviceConfiguration,
         private MessagingSystemConfiguration $configuration,
         private ModuleReferenceSearchService $moduleReferenceSearchService
-    )
-    {
+    ) {
 
     }
 

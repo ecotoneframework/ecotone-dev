@@ -16,8 +16,7 @@ class OrderService
 
     public function __construct(
         private int $callFailureLimit = 2
-    )
-    {
+    ) {
 
     }
 

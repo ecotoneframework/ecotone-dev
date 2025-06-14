@@ -8,7 +8,7 @@ use Ecotone\Messaging\Attribute\ErrorChannel;
 use Ecotone\Modelling\CommandBus;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 #[ErrorChannel(ErrorConfigurationContext::ERROR_CHANNEL)]
 interface SynchronousErrorChannelCommandBus extends CommandBus

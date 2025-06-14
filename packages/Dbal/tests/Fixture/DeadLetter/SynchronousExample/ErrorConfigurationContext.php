@@ -10,7 +10,7 @@ use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 class ErrorConfigurationContext
 {

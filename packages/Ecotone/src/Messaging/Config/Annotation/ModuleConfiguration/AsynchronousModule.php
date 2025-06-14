@@ -152,7 +152,6 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
                                 PollingMetadata::create($asyncEndpointChannel)
                                     ->setStopOnError(true)
                                     ->setFinishWhenNoMessages(true)
-                                    ->setExecutionTimeLimitInMilliseconds(1000)
                             );
 
                             continue;

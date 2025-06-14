@@ -9,7 +9,7 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use InvalidArgumentException;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 class SynchronousOrderService
 {

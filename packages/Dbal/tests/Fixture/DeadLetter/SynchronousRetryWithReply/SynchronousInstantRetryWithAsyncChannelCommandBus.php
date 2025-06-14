@@ -11,7 +11,7 @@ use Ecotone\Modelling\CommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 #[InstantRetry(retryTimes: 1)]
 #[ErrorChannel(ErrorConfigurationContext::ERROR_CHANNEL)]

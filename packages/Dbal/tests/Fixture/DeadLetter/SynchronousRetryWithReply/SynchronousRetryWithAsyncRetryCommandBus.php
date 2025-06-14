@@ -10,7 +10,7 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationCo
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\RetryConfiguration;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 #[ErrorChannel(RetryConfiguration::ERROR_CHANNEL)]
 interface SynchronousRetryWithAsyncRetryCommandBus extends CommandBus

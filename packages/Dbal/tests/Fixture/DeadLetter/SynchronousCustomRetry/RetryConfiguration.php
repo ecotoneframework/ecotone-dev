@@ -11,7 +11,7 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 class RetryConfiguration
 {

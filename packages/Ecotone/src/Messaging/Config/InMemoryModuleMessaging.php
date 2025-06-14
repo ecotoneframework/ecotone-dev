@@ -40,16 +40,6 @@ class InMemoryModuleMessaging implements ModuleRetrievingService
         return new self([], []);
     }
 
-    public static function createWithCoreModules(): self
-    {
-        $instances = [];
-        foreach (ModuleClassList::CORE_MODULES as $moduleClassName) {
-            $instances[] = new $moduleClassName();
-        }
-
-        return new self($instances, []);
-    }
-
     /**
      * @param Module[] $moduleConfigurations
      * @param object[] $moduleExtensions

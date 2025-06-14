@@ -6,6 +6,7 @@ namespace Test\Licence;
 
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\Licence\Configuration\Kernel;
@@ -30,6 +31,8 @@ final class LicenceTest extends TestCase
         $this->commandBus = $app->get(CommandBus::class);
         $this->queryBus = $app->get(QueryBus::class);
         $this->kernel = $kernel;
+
+        $this->kernel->getContainer()->get(CacheClearer::class)->clear('');
     }
 
     protected function tearDown(): void

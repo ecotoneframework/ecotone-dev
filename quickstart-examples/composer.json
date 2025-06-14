@@ -60,7 +60,9 @@
             "(cd ConsoleCommand/Symfony && composer update && php bin/console app:example-command John --types=1 --types=2 --selection=custom)",
             "(cd Workflows/SynchronousStateless && composer update && php run_example.php)",
             "(cd Workflows/AsynchronousStateless && composer update && php run_example.php)",
-            "(cd Workflows/Saga && composer update && php run_example.php)"
+            "(cd Workflows/Saga && composer update && php run_example.php)",
+            "(cd ConsoleCommand/Symfony && ./test.sh)",
+            "(cd ConsoleCommand/Laravel && ./test.sh)"
         ]
     },
     "extra": {

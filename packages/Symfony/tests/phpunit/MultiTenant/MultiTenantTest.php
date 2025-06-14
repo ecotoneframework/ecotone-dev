@@ -6,6 +6,7 @@ namespace Test\MultiTenant;
 
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\App\MultiTenant\Application\Command\RegisterCustomer;
@@ -39,6 +40,8 @@ final class MultiTenantTest extends TestCase
         $this->commandBus = $app->get(CommandBus::class);
         $this->queryBus = $app->get(QueryBus::class);
         $this->kernel = $kernel;
+
+        $this->kernel->getContainer()->get(CacheClearer::class)->clear('');
     }
 
     protected function tearDown(): void

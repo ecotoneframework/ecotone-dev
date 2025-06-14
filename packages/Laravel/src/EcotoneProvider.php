@@ -2,10 +2,6 @@
 
 namespace Ecotone\Laravel;
 
-use function class_exists;
-
-use const DIRECTORY_SEPARATOR;
-
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
@@ -19,6 +15,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
@@ -26,6 +23,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use ReflectionMethod;
+use function class_exists;
+use const DIRECTORY_SEPARATOR;
 
 /**
  * licence Apache-2.0
@@ -55,13 +54,13 @@ class EcotoneProvider extends ServiceProvider
 
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
-        $skippedModules = Config::get('ecotone.skippedModulePackageNames');
+        $skippedModules = Config::get('ecotone.skippedModulePackageNames') ?? [];
         /** @TODO Ecotone 2.0 use ServiceContext to configure Laravel */
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
-            ->withNamespaces(Config::get('ecotone.namespaces'))
+            ->withNamespaces(Config::get('ecotone.namespaces') ?? [])
             ->withSkippedModulePackageNames($skippedModules)
             ->withCacheDirectoryPath($cacheDirectory);
 
@@ -182,6 +181,9 @@ class EcotoneProvider extends ServiceProvider
         if (! $this->app->has('logger')) {
             $this->app->singleton('logger', LaravelLogger::class);
         }
+
+        // Hook into Laravel's optimization commands to clear Ecotone cache
+        $this->registerOptimizationHooks();
     }
 
     private function getCacheDirectoryPath(): string
@@ -295,5 +297,21 @@ class EcotoneProvider extends ServiceProvider
         }
 
         return [$serviceCacheConfiguration, $definitionHolder];
+    }
+
+    /**
+     * Register hooks to clear Ecotone cache when Laravel optimization commands are run
+     */
+    private function registerOptimizationHooks(): void
+    {
+        $this->app['events']->listen(
+            CommandFinished::class,
+            function ($event) {
+                // Clear Ecotone cache when optimize commands finishes successfully
+                if (in_array($event->command, ['optimize', 'optimize:clear']) && $event->exitCode === 0) {
+                    EcotoneCacheClear::clearEcotoneCacheDirectories($this->getCacheDirectoryPath());
+                }
+            }
+        );
     }
 }

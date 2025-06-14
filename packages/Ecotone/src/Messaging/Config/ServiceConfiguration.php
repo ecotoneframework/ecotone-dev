@@ -239,6 +239,11 @@ class ServiceConfiguration
         return $this->licenceKey;
     }
 
+    public function isRunningForEnterprise(): bool
+    {
+        return $this->licenceKey !== null;
+    }
+
     /**
      * List which packages should be skipped. The core package can't be skipped.
      * @link ModulePackageList list of available packages

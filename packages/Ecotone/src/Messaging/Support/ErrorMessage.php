@@ -5,6 +5,7 @@ namespace Ecotone\Messaging\Support;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\MessagingException;
 use Throwable;
 
 /**
@@ -20,6 +21,26 @@ final class ErrorMessage implements Message
     private function __construct(
         private Message $message
     ) {
+    }
+
+    public static function createFromMessage(Message $message): self
+    {
+        if (!self::isErrorMessage($message)) {
+            throw MessagingException::create('Trying to create error message from message that is not generic message.');
+        }
+
+        return new self($message);
+    }
+
+    public static function isErrorMessage(Message $message): bool
+    {
+        foreach (ErrorContext::WHOLE_ERROR_CONTEXT as $errorContextKey) {
+            if (!$message->getHeaders()->containsKey($errorContextKey)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static function create(Message $message, Throwable $cause): self

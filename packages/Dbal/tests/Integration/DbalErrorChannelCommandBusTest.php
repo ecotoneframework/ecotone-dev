@@ -8,13 +8,17 @@ use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Attribute\ErrorChannel;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
+use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 use Enqueue\Dbal\DbalConnectionFactory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\SynchronousErrorChannelCommandBus;
@@ -27,7 +31,10 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply\SynchronousRe
  * licence Enterprise
  * @internal
  */
-final class SynchronousDeadLetterCommandBusTest extends DbalMessagingTestCase
+#[CoversClass(ErrorChannel::class)]
+#[CoversClass(InstantRetry::class)]
+#[CoversClass(MessagingGatewayModule::class)]
+final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
 {
     public function test_exception_handling_with_using_error_channel_right_away(): void
     {

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Messaging\Unit\Handler\Gateway;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Attribute\ErrorChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -17,6 +19,7 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Lazy\LazyUuidFromString;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelCommandBus;
@@ -29,6 +32,8 @@ use Test\Ecotone\Messaging\SerializationSupport;
  * licence Enterprise
  * @internal
  */
+#[CoversClass(ErrorChannel::class)]
+#[CoversClass(MessagingGatewayModule::class)]
 final class ErrorChannelCommandBusTest extends TestCase
 {
     public function test_it_throws_when_using_in_non_enterprise_mode(): void

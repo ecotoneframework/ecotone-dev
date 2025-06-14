@@ -10,9 +10,11 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Test\Ecotone\Modelling\Fixture\Retry\CommandBusWithCustomRetryCountAttribute;
@@ -27,6 +29,7 @@ use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
 /**
  * licence Enterprise
  */
+#[CoversClass(InstantRetry::class)]
 final class InstantRetryAttributeModuleTest extends TestCase
 {
     public function test_throwing_exception_if_no_licence_for_instant_retry_attribute()

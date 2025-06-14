@@ -15,6 +15,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
+use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
@@ -303,12 +304,13 @@ class PollingConsumerBuilderTest extends MessagingTestCase
             enableAsynchronousProcessing: true,
         );
 
-        $originalNessage = MessageBuilder::withPayload('some')->build();
         $messaging->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
 
         $messaging->run($asyncChannelName);
 
-        $this->assertNotNull($messaging->getMessageChannel($errorChannelName)->receive());
+        $message = $messaging->getMessageChannel($errorChannelName)->receive();
+        $this->assertNotNull($message);
+        $this->assertTrue($message->getHeaders()->containsKey(ErrorContext::EXCEPTION_MESSAGE));
     }
 
 

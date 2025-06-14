@@ -50,7 +50,7 @@ use Ecotone\Modelling\QueryBus;
 #[CoversClass(EventBus::class)]
 #[CoversClass(QueryBus::class)]
 #[CoversClass(MessagingGatewayModule::class)]
-final class ModellingEcotoneLiteTest extends TestCase
+final class MessageBusTest extends TestCase
 {
     public function test_command_event_command_flow()
     {
@@ -301,6 +301,7 @@ final class ModellingEcotoneLiteTest extends TestCase
                     MessageBusChannel::COMMAND_CHANNEL_NAME_BY_OBJECT,
                     ['merchantId' => $merchantId],
                     metadata: [
+                        MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME => 'create.merchant',
                         MessageHeaders::TYPE_ID => CreateMerchant::class,
                         MessageHeaders::CONTENT_TYPE => MediaType::createApplicationXPHPArray()->toString(),
                     ]

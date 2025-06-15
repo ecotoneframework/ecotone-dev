@@ -8,7 +8,7 @@ use Attribute;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 class Fetch
 {

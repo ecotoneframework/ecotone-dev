@@ -8,5 +8,4 @@ use Ecotone\Modelling\CommandBus;
 
 interface ExtendedCommandBus extends CommandBus
 {
-
 }

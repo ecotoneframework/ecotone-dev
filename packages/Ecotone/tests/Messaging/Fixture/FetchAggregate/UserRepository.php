@@ -13,8 +13,7 @@ class UserRepository implements StandardRepository
 {
     public function __construct(
         private array $users = []
-    )
-    {
+    ) {
         foreach ($users as $user) {
             $this->addUser($user);
         }
@@ -27,7 +26,7 @@ class UserRepository implements StandardRepository
 
     public function findBy(string $aggregateClassName, array $identifiers): ?object
     {
-        if (!array_key_exists('userId', $identifiers)) {
+        if (! array_key_exists('userId', $identifiers)) {
             return null;
         }
 

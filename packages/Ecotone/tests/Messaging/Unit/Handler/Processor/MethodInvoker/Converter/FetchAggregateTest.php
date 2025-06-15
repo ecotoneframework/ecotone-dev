@@ -19,13 +19,14 @@ use Test\Ecotone\Messaging\Fixture\FetchAggregate\UserRepository;
 
 /**
  * licence Enterprise
+ * @internal
  */
 class FetchAggregateTest extends TestCase
 {
     public function test_fetching_aggregate_using_expression(): void
     {
         $userRepository = new UserRepository([
-            new User('user-1', 'John Doe')
+            new User('user-1', 'John Doe'),
         ]);
         $orderService = new OrderService();
 
@@ -52,7 +53,7 @@ class FetchAggregateTest extends TestCase
     public function test_fetching_aggregate_using_expression_with_headers(): void
     {
         $userRepository = new UserRepository([
-            new User('user-1', 'John Doe')
+            new User('user-1', 'John Doe'),
         ]);
         $orderService = new OrderService();
 
@@ -67,7 +68,7 @@ class FetchAggregateTest extends TestCase
 
         $command = new PlaceOrder('order-123', '', 'Laptop');
         $ecotoneLite->sendCommandWithRoutingKey('placeOrderWithHeaders', $command, metadata: [
-            'userId' => 'user-1'
+            'userId' => 'user-1',
         ]);
 
         $order = $orderService->getOrder('order-123');
@@ -125,7 +126,7 @@ class FetchAggregateTest extends TestCase
     public function test_fetching_aggregate_with_complex_expression(): void
     {
         $userRepository = new UserRepository([
-            $user = new User($userId = 'user-1', 'John Doe')
+            $user = new User($userId = 'user-1', 'John Doe'),
         ]);
         $complexService = new ComplexService();
 
@@ -134,7 +135,7 @@ class FetchAggregateTest extends TestCase
             [
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
-                'identifierMapper' => new IdentifierMapper(['johny@wp.pl' => $userId])
+                'identifierMapper' => new IdentifierMapper(['johny@wp.pl' => $userId]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -151,7 +152,7 @@ class FetchAggregateTest extends TestCase
     public function test_fetching_aggregate_with_array_of_identifiers(): void
     {
         $userRepository = new UserRepository([
-            $user = new User($userId = 'user-1', 'John Doe')
+            $user = new User($userId = 'user-1', 'John Doe'),
         ]);
         $complexService = new ComplexService();
 
@@ -160,7 +161,7 @@ class FetchAggregateTest extends TestCase
             [
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
-                'identifierMapper' => new IdentifierMapper(['johny@wp.pl' => $userId])
+                'identifierMapper' => new IdentifierMapper(['johny@wp.pl' => $userId]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -184,7 +185,7 @@ class FetchAggregateTest extends TestCase
             [
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
-                'identifierMapper' => new IdentifierMapper([])
+                'identifierMapper' => new IdentifierMapper([]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -207,8 +208,8 @@ class FetchAggregateTest extends TestCase
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
                 'identifierMapper' => new IdentifierMapper([
-                    'johny@wp.pl' => 'user-1'
-                ])
+                    'johny@wp.pl' => 'user-1',
+                ]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -228,8 +229,8 @@ class FetchAggregateTest extends TestCase
                 UserRepository::class => new UserRepository([]),
                 ComplexService::class => new ComplexService(),
                 'identifierMapper' => new IdentifierMapper([
-                    'johny@wp.pl' => 'user-1'
-                ])
+                    'johny@wp.pl' => 'user-1',
+                ]),
             ],
         );
 
@@ -246,8 +247,8 @@ class FetchAggregateTest extends TestCase
                 UserRepository::class => new UserRepository([]),
                 ComplexService::class => new ComplexService(),
                 'identifierMapper' => new IdentifierMapper([
-                    'johny@wp.pl' => 'user-1'
-                ])
+                    'johny@wp.pl' => 'user-1',
+                ]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

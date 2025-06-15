@@ -12,6 +12,7 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
+use InvalidArgumentException;
 
 /**
  * licence Enterprise
@@ -53,10 +54,10 @@ class FetchAggregateConverter implements ParameterConverter
             return null;
         }
 
-        if (!is_array($identifiers)) {
+        if (! is_array($identifiers)) {
             $identifierMapping = $this->aggregateDefinitionRegistry->getFor($this->aggregateClassName)->getAggregateIdentifierMapping();
             if (count($identifierMapping) > 1) {
-                throw new \InvalidArgumentException("Can't fetch aggregate {$this->aggregateClassName} as it has multiple identifiers. Please provide array of identifiers.");
+                throw new InvalidArgumentException("Can't fetch aggregate {$this->aggregateClassName} as it has multiple identifiers. Please provide array of identifiers.");
             }
 
             $identifiers = [array_key_first($identifierMapping) => $identifiers];

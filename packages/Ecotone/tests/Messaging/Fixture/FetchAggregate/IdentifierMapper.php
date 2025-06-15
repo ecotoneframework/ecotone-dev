@@ -8,8 +8,7 @@ final class IdentifierMapper
 {
     public function __construct(
         private array $mapping
-    )
-    {
+    ) {
 
     }
 

@@ -15,10 +15,10 @@ class OrderService
     #[CommandHandler]
     public function placeOrder(
         PlaceOrder $command,
-        #[Fetch("payload.getUserId()")] ?User $user
+        #[Fetch('payload.getUserId()')] ?User $user
     ): void {
         if ($user === null) {
-            throw new UserNotFound("User not found");
+            throw new UserNotFound('User not found');
         }
 
         $this->orders[$command->getOrderId()] = [
@@ -35,7 +35,7 @@ class OrderService
         #[Fetch("headers['userId']")] ?User $user
     ): void {
         if ($user === null) {
-            throw new UserNotFound("User not found");
+            throw new UserNotFound('User not found');
         }
 
         $this->orders[$command->getOrderId()] = [

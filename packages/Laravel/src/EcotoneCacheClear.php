@@ -2,6 +2,8 @@
 
 namespace Ecotone\Laravel;
 
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+
 /**
  * licence Apache-2.0
  */
@@ -15,7 +17,7 @@ class EcotoneCacheClear
         }
 
         // Clear EcotoneLite test cache directory
-        $liteCacheDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone';
+        $liteCacheDirectory = ServiceCacheConfiguration::defaultCachePath() . DIRECTORY_SEPARATOR . 'ecotone';
         if (is_dir($liteCacheDirectory)) {
             self::clearDirectory($liteCacheDirectory);
         }

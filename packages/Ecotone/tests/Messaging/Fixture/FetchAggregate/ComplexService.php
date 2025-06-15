@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\FetchAggregate;
 
+use _PHPStan_7c0c857f7\Symfony\Component\Console\Command\CompleteCommand;
 use Ecotone\Messaging\Attribute\Parameter\FetchAggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 
@@ -17,6 +18,19 @@ class ComplexService
         ComplexCommand $command,
         #[FetchAggregate("reference('identifierMapper').map(payload.email)")] User $user
     ): void {
+        $this->results[] = [
+            'command' => $command,
+            'user' => $user,
+            'userName' => $user?->getName(),
+        ];
+    }
+
+    #[CommandHandler('handleWithArrayIdentifiers')]
+    public function handleWithArrayIdentifiers(
+        ComplexCommand $command,
+        #[FetchAggregate("{'userId': reference('identifierMapper').map(payload.email)}")] User $user
+    ): void
+    {
         $this->results[] = [
             'command' => $command,
             'user' => $user,

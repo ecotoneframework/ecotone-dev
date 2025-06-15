@@ -118,6 +118,32 @@ class FetchAggregateTest extends TestCase
         $this->assertSame($user, $result['user']);
     }
 
+    public function test_fetching_aggregate_with_array_of_identifiers(): void
+    {
+        $userRepository = new UserRepository([
+            $user = new User($userId = 'user-1', 'John Doe')
+        ]);
+        $complexService = new ComplexService();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [User::class, ComplexService::class, UserRepository::class],
+            [
+                UserRepository::class => $userRepository,
+                ComplexService::class => $complexService,
+                'identifierMapper' => new IdentifierMapper(['johny@wp.pl' => $userId])
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $command = new ComplexCommand('johny@wp.pl');
+        $ecotoneLite->sendCommandWithRoutingKey('handleWithArrayIdentifiers', $command);
+
+        $result = $complexService->getLastResult();
+
+        $this->assertNotNull($result);
+        $this->assertSame($user, $result['user']);
+    }
+
     public function test_reference_is_not_providing_any_identifier_ending_up_with_aggregate_not_found(): void
     {
         $userRepository = new UserRepository([]);

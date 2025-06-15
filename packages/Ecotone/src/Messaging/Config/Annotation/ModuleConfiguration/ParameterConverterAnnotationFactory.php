@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\Messaging\Attribute\Parameter\ConfigurationVariable;
+use Ecotone\Messaging\Attribute\Parameter\FetchAggregate;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
@@ -12,8 +13,10 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ConfigurationVariableBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\FetchAggregateConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderExpressionBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
@@ -109,6 +112,12 @@ class ParameterConverterAnnotationFactory
                 return AllHeadersBuilder::createWith($interfaceParameter->getName());
             } elseif ($annotation instanceof ConfigurationVariable) {
                 return ConfigurationVariableBuilder::createFrom($annotation->getName(), $interfaceParameter);
+            } elseif ($annotation instanceof FetchAggregate) {
+                return FetchAggregateConverterBuilder::create(
+                    $interfaceParameter->getName(),
+                    $interfaceParameter->getTypeHint(),
+                    $annotation->getExpression()
+                );
             }
         }
 

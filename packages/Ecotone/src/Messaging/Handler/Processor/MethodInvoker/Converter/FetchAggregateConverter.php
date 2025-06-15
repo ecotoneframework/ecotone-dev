@@ -22,12 +22,17 @@ class FetchAggregateConverter implements ParameterConverter
         private ExpressionEvaluationService $expressionEvaluationService,
         private string $aggregateClassName,
         private string $expression,
-        private bool $doesAllowsNull
+        private bool $doesAllowsNull,
+        private LicenceDecider $licenceDecider,
     ) {
     }
 
     public function getArgumentFrom(Message $message): ?object
     {
+        if (! $this->licenceDecider->hasEnterpriseLicence()) {
+            throw LicensingException::create('FetchAggregate attribute is available as part of Ecotone Enterprise.');
+        }
+
         $identifier = $this->expressionEvaluationService->evaluate(
             $this->expression,
             [

@@ -44,6 +44,7 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
             $this->aggregateClassName,
             $this->expression,
             $interfaceToCall->getParameterWithName($this->parameterName)->doesAllowNulls(),
+            Reference::to(LicenceDecider::class),
         ]);
     }
 }

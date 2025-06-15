@@ -3,7 +3,9 @@
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor\MethodInvoker\Converter;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\AggregateNotFoundException;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\ComplexCommand;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\ComplexService;
@@ -31,7 +33,8 @@ class FetchAggregateTest extends TestCase
             [
                 UserRepository::class => $userRepository,
                 OrderService::class => $orderService,
-            ]
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $command = new PlaceOrder('order-123', 'user-1', 'Laptop');
@@ -55,7 +58,8 @@ class FetchAggregateTest extends TestCase
             [
                 UserRepository::class => $userRepository,
                 OrderService::class => $orderService,
-            ]
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $command = new PlaceOrder('order-456', null, 'Mouse');
@@ -76,7 +80,8 @@ class FetchAggregateTest extends TestCase
             [
                 UserRepository::class => $userRepository,
                 OrderService::class => $orderService,
-            ]
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $command = new PlaceOrder('order-789', 'non-existent-user', 'Keyboard');
@@ -100,7 +105,8 @@ class FetchAggregateTest extends TestCase
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
                 'identifierMapper' => new IdentifierMapper(['johny@wp.pl' => $userId])
-            ]
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $command = new ComplexCommand('johny@wp.pl');
@@ -123,7 +129,8 @@ class FetchAggregateTest extends TestCase
                 UserRepository::class => $userRepository,
                 ComplexService::class => $complexService,
                 'identifierMapper' => new IdentifierMapper([])
-            ]
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // This will throw Ecotone's exception, as interface does not allow for null
@@ -146,7 +153,8 @@ class FetchAggregateTest extends TestCase
                 'identifierMapper' => new IdentifierMapper([
                     'johny@wp.pl' => 'user-1'
                 ])
-            ]
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         // This will throw Ecotone's exception, as interface does not allow for null
@@ -154,5 +162,23 @@ class FetchAggregateTest extends TestCase
 
         $command = new ComplexCommand('johny@wp.pl');
         $ecotoneLite->sendCommand($command);
+    }
+
+    public function test_throwing_exception_when_using_fetch_aggregate_in_non_enterprise_mode(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [User::class, ComplexService::class, UserRepository::class],
+            [
+                UserRepository::class => new UserRepository([]),
+                ComplexService::class => new ComplexService(),
+                'identifierMapper' => new IdentifierMapper([
+                    'johny@wp.pl' => 'user-1'
+                ])
+            ],
+        );
+
+        $this->expectException(LicensingException::class);
+
+        $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
     }
 }

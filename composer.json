@@ -54,6 +54,7 @@
             "Ecotone\\Kafka\\": "packages/Kafka/src",
             "Ecotone\\SymfonyBundle\\": "packages/Symfony/SymfonyBundle",
             "Ecotone\\SymfonyBundle\\DependencyInjection\\": "packages/Symfony/DependencyInjection",
+            "Ecotone\\Tempest\\": "packages/Tempest/src",
             "Monorepo\\": "Monorepo"
         }
     },
@@ -101,6 +102,7 @@
             "Test\\Ecotone\\Kafka\\": [
                 "packages/Kafka/tests"
             ],
+            "Test\\Ecotone\\Tempest\\": "packages/Tempest/tests",
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
             "App\\MultiTenant\\": "packages/Laravel/tests/MultiTenant/app",
             "App\\Licence\\Laravel\\": "packages/Laravel/tests/Licence/app",

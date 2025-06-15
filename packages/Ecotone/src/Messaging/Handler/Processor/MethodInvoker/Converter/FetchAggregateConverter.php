@@ -9,6 +9,7 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
 
@@ -24,6 +25,7 @@ class FetchAggregateConverter implements ParameterConverter
         private string $expression,
         private bool $doesAllowsNull,
         private LicenceDecider $licenceDecider,
+        private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
     ) {
     }
 
@@ -33,7 +35,8 @@ class FetchAggregateConverter implements ParameterConverter
             throw LicensingException::create('FetchAggregate attribute is available as part of Ecotone Enterprise.');
         }
 
-        $identifier = $this->expressionEvaluationService->evaluate(
+        /** @var string|string<string, string>|null $identifiers */
+        $identifiers = $this->expressionEvaluationService->evaluate(
             $this->expression,
             [
                 'value' => $message->getPayload(),
@@ -42,21 +45,30 @@ class FetchAggregateConverter implements ParameterConverter
             ],
         );
 
-        if ($identifier === null) {
+        if ($identifiers === null) {
             if (! $this->doesAllowsNull) {
-                throw new AggregateNotFoundException("Aggregate {$this->aggregateClassName} was not found as identifier is null.");
+                throw new AggregateNotFoundException("Aggregate {$this->aggregateClassName} was not found as identifiers is null.");
             }
 
             return null;
         }
 
+        if (!is_array($identifiers)) {
+            $identifierMapping = $this->aggregateDefinitionRegistry->getFor($this->aggregateClassName)->getAggregateIdentifierMapping();
+            if (count($identifierMapping) > 1) {
+                throw new \InvalidArgumentException("Can't fetch aggregate {$this->aggregateClassName} as it has multiple identifiers. Please provide array of identifiers.");
+            }
+
+            $identifiers = [array_key_first($identifierMapping) => $identifiers];
+        }
+
         $resolvedAggregate = $this->aggregateRepository->findBy(
             $this->aggregateClassName,
-            [$identifier]
+            $identifiers
         );
 
         if (! $resolvedAggregate && ! $this->doesAllowsNull) {
-            throw new AggregateNotFoundException("Aggregate {$this->aggregateClassName} was not found for identifier {$identifier}.");
+            throw new AggregateNotFoundException("Aggregate {$this->aggregateClassName} was not found for identifiers {$identifiers}.");
         }
 
         return $resolvedAggregate?->getAggregateInstance();

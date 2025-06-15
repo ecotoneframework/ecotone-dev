@@ -11,7 +11,11 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
+use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
 
 /**
@@ -45,6 +49,7 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
             $this->expression,
             $interfaceToCall->getParameterWithName($this->parameterName)->doesAllowNulls(),
             Reference::to(LicenceDecider::class),
+            Reference::to(AggregateDefinitionRegistry::class),
         ]);
     }
 }

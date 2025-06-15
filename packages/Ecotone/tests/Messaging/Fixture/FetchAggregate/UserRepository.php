@@ -27,6 +27,10 @@ class UserRepository implements StandardRepository
 
     public function findBy(string $aggregateClassName, array $identifiers): ?object
     {
+        if (!array_key_exists('userId', $identifiers)) {
+            return null;
+        }
+
         $userId = array_pop($identifiers);
         return $this->users[$userId] ?? null;
     }

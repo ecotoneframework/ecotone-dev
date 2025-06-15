@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor\MethodInvoker\Converter;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Test\LicenceTesting;
@@ -206,5 +207,24 @@ class FetchAggregateTest extends TestCase
         $this->expectException(LicensingException::class);
 
         $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
+    }
+
+    public function test_throwing_exception_when_using_fetch_with_non_aggregate(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [User::class, ComplexService::class, UserRepository::class],
+            [
+                UserRepository::class => new UserRepository([]),
+                ComplexService::class => new ComplexService(),
+                'identifierMapper' => new IdentifierMapper([
+                    'johny@wp.pl' => 'user-1'
+                ])
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->expectException(ConfigurationException::class);
+
+        $ecotoneLite->sendCommandWithRoutingKey('incorrectFetchAggregate', new ComplexCommand('johny@wp.pl'));
     }
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\Messaging\Attribute\Parameter\ConfigurationVariable;
-use Ecotone\Messaging\Attribute\Parameter\FetchAggregate;
+use Ecotone\Messaging\Attribute\Parameter\Fetch;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
@@ -112,7 +112,7 @@ class ParameterConverterAnnotationFactory
                 return AllHeadersBuilder::createWith($interfaceParameter->getName());
             } elseif ($annotation instanceof ConfigurationVariable) {
                 return ConfigurationVariableBuilder::createFrom($annotation->getName(), $interfaceParameter);
-            } elseif ($annotation instanceof FetchAggregate) {
+            } elseif ($annotation instanceof Fetch) {
                 return FetchAggregateConverterBuilder::create(
                     $interfaceParameter->getName(),
                     $interfaceParameter->getTypeHint(),

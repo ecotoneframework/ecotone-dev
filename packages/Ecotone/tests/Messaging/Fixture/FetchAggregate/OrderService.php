@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\FetchAggregate;
 
-use Ecotone\Messaging\Attribute\Parameter\FetchAggregate;
+use Ecotone\Messaging\Attribute\Parameter\Fetch;
 use Ecotone\Modelling\Attribute\CommandHandler;
 
 /**
@@ -15,7 +15,7 @@ class OrderService
     #[CommandHandler]
     public function placeOrder(
         PlaceOrder $command,
-        #[FetchAggregate("payload.getUserId()")] ?User $user
+        #[Fetch("payload.getUserId()")] ?User $user
     ): void {
         if ($user === null) {
             throw new UserNotFound("User not found");

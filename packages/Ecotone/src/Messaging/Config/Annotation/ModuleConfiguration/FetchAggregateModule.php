@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Attribute\Parameter\FetchAggregate;
+use Ecotone\Messaging\Attribute\Parameter\Fetch;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -45,7 +45,7 @@ class FetchAggregateModule implements AnnotationModule
             // Check if any method uses the FetchAggregate attribute
             foreach ($interfaceToCallRegistry->getAllInterfaces() as $interfaceToCall) {
                 foreach ($interfaceToCall->getInterfaceParameters() as $parameter) {
-                    if ($parameter->hasAnnotation(FetchAggregate::class)) {
+                    if ($parameter->hasAnnotation(Fetch::class)) {
                         throw LicensingException::create('FetchAggregate attribute is available as part of Ecotone Enterprise.');
                     }
                 }

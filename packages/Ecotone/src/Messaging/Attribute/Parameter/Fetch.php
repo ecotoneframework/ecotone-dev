@@ -10,7 +10,7 @@ use Attribute;
 /**
  * licence Apache-2.0
  */
-class FetchAggregate
+class Fetch
 {
     public string $expression;
 

@@ -26,7 +26,7 @@ class CacheClearer implements CacheClearerInterface
     public function clear(string $cacheDir): void
     {
         $this->deleteDirectory($this->serviceCacheConfiguration->getPath());
-        $this->deleteDirectory(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone');
+        $this->deleteDirectory(ServiceCacheConfiguration::defaultCachePath() . DIRECTORY_SEPARATOR . 'ecotone');
     }
 
     private function deleteDirectory(string $directory): void

@@ -49,6 +49,35 @@ class FetchAggregateTest extends TestCase
         $this->assertEquals('John Doe', $order['userName']);
     }
 
+    public function test_fetching_aggregate_using_expression_with_headers(): void
+    {
+        $userRepository = new UserRepository([
+            new User('user-1', 'John Doe')
+        ]);
+        $orderService = new OrderService();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [User::class, OrderService::class, UserRepository::class],
+            [
+                UserRepository::class => $userRepository,
+                OrderService::class => $orderService,
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $command = new PlaceOrder('order-123', '', 'Laptop');
+        $ecotoneLite->sendCommandWithRoutingKey('placeOrderWithHeaders', $command, metadata: [
+            'userId' => 'user-1'
+        ]);
+
+        $order = $orderService->getOrder('order-123');
+
+        $this->assertNotNull($order);
+        $this->assertEquals('order-123', $order['orderId']);
+        $this->assertEquals('user-1', $order['userId']);
+        $this->assertEquals('John Doe', $order['userName']);
+    }
+
     public function test_fetching_aggregate_with_null_identifier_returns_null(): void
     {
         $userRepository = new UserRepository();

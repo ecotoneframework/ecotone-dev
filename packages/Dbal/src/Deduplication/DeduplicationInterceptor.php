@@ -15,6 +15,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\Duration;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
@@ -35,9 +36,14 @@ class DeduplicationInterceptor
 {
     public const DEFAULT_DEDUPLICATION_TABLE = 'ecotone_deduplication';
     private array $initialized = [];
+    private Duration $minimumTimeToRemoveMessage;
 
-    public function __construct(private ConnectionFactory $connection, private Clock $clock, private int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger)
+    public function __construct(private ConnectionFactory $connection, private Clock $clock, int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger)
     {
+        $this->minimumTimeToRemoveMessage = Duration::milliseconds($minimumTimeToRemoveMessageInMilliseconds);
+        if ($this->minimumTimeToRemoveMessage->toMilliseconds() <= 0) {
+            throw new Exception('Minimum time to remove message must be greater than 0');
+        }
     }
 
     public function deduplicate(MethodInvocation $methodInvocation, Message $message, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): mixed
@@ -117,7 +123,7 @@ class DeduplicationInterceptor
             $this->getTableName(),
             [
                 'message_id' => $messageId,
-                'handled_at' => $this->clock->unixTimeInMilliseconds(),
+                'handled_at' => $this->clock->timestamp()->toMilliseconds(),
                 'consumer_endpoint_id' => $consumerEndpointId,
                 'routing_slip' => $routingSlip,
             ],
@@ -175,7 +181,7 @@ class DeduplicationInterceptor
             ->select('message_id')
             ->from($this->getTableName())
             ->andWhere('handled_at <= :threshold')
-            ->setParameter('threshold', ($this->clock->unixTimeInMilliseconds() - $this->minimumTimeToRemoveMessageInMilliseconds), Types::BIGINT)
+            ->setParameter('threshold', ($this->clock->timestamp()->subtract($this->minimumTimeToRemoveMessage)->toMilliseconds()), Types::BIGINT)
             ->setMaxResults($this->deduplicationRemovalBatchSize)
             ->executeQuery()
             ->fetchAllAssociative();

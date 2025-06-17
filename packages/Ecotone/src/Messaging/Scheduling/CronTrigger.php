@@ -40,7 +40,7 @@ class CronTrigger implements Trigger
     /**
      * @inheritDoc
      */
-    public function nextExecutionTime(Clock $clock, TriggerContext $triggerContext): int
+    public function nextExecutionTime(Clock $clock, TriggerContext $triggerContext): Timestamp
     {
         $cron = CronExpression::factory($this->cronExpression);
 
@@ -51,15 +51,14 @@ class CronTrigger implements Trigger
             return $triggerContext->lastScheduledTime();
         }
 
-        $dateTime = new DateTime('now', new DateTimeZone('UTC'));
-        $dateTime->setTimestamp((int)($clock->unixTimeInMilliseconds() / 1000));
+        $dateTime = $clock->timestamp()->toDateTime();
 
         $nextExecutionTime = $cron->getNextRunDate($dateTime, 0, true, 'UTC')->getTimestamp();
         if ($nextExecutionTime < $dateTime->getTimestamp()) {
             $nextExecutionTime = $cron->getNextRunDate($dateTime, 1, true, 'UTC')->getTimestamp();
         }
 
-        return $nextExecutionTime * 1000;
+        return Timestamp::fromTimestamp($nextExecutionTime);
     }
 
     /**

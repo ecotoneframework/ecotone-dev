@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\Interceptor;
 
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
+use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Messaging\Scheduling\Timestamp;
 use Throwable;
 
 /**
@@ -13,14 +16,18 @@ use Throwable;
 class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor
 {
     private bool $shouldBeStopped = false;
-    private float $lastTimeMessageWasReceived = 0;
+    private ?Timestamp $lastTimeMessageWasReceived;
+
+    public function __construct(private Clock $clock)
+    {
+    }
 
     /**
      * @inheritDoc
      */
     public function onStartup(): void
     {
-        $this->lastTimeMessageWasReceived = $this->currentTimeInMilliseconds();
+        $this->lastTimeMessageWasReceived = $this->clock->timestamp();
     }
 
     /**
@@ -48,7 +55,7 @@ class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor
          * wait at least 10ms between each message before deciding to finish.
          * Messages can be requeued and we don't want to finish too early
          */
-        if ($this->lastTimeMessageWasReceived + 10 > $this->currentTimeInMilliseconds()) {
+        if ($this->clock->timestamp()->isBefore($this->lastTimeMessageWasReceived->add(Duration::milliseconds(10)))) {
             $this->shouldBeStopped = false;
         }
 
@@ -68,11 +75,6 @@ class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor
     public function postSend(): void
     {
         $this->shouldBeStopped = false;
-        $this->lastTimeMessageWasReceived = $this->currentTimeInMilliseconds();
-    }
-
-    private function currentTimeInMilliseconds(): int|float
-    {
-        return floor(microtime(true) * 1000);
+        $this->lastTimeMessageWasReceived = $this->clock->timestamp();
     }
 }

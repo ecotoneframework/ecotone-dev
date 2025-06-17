@@ -17,7 +17,7 @@ interface Trigger
     /**
      * @param Clock $clock
      * @param TriggerContext $triggerContext
-     * @return int 	Milliseconds since Epoch
+     * @return Timestamp
      */
-    public function nextExecutionTime(Clock $clock, TriggerContext $triggerContext): int;
+    public function nextExecutionTime(Clock $clock, TriggerContext $triggerContext): Timestamp;
 }

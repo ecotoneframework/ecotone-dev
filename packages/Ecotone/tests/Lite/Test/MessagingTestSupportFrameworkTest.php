@@ -15,8 +15,10 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Scheduling\EpochBasedClock;
+use Ecotone\Messaging\Scheduling\DateUtils;
+use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Messaging\Scheduling\Timestamp;
 use Ecotone\Modelling\CommandBus;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -526,7 +528,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
-            MessageHeaders::TIMESTAMP => EpochBasedClock::getTimestampFor($time = new DateTimeImmutable('2020-01-01 12:00:00')),
+            MessageHeaders::TIMESTAMP => Timestamp::fromDateTime($time = new DateTimeImmutable('2020-01-01 12:00:00'))->toSeconds(),
             MessageHeaders::DELIVERY_DELAY => $time->modify('-1 hour'),
         ]);
 

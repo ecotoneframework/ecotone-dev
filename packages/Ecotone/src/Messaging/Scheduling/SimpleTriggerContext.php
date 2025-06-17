@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
+use Ramsey\Uuid\Type\Time;
+
 /**
  * Class SimpleTriggerContext
  * @package Ecotone\Messaging\Scheduling
@@ -14,18 +16,11 @@ namespace Ecotone\Messaging\Scheduling;
  */
 class SimpleTriggerContext implements TriggerContext
 {
-    private ?int $lastScheduledExecutionTime;
-    private ?int $lastActualExecutionTime;
-
     /**
      * SimpleTriggerContext constructor.
-     * @param int|null $lastScheduledExecutionTime
-     * @param int|null $lastActualExecutionTime
      */
-    private function __construct(?int $lastScheduledExecutionTime, ?int $lastActualExecutionTime)
+    private function __construct(private ?Timestamp $lastScheduledExecutionTime, private ?Timestamp $lastActualExecutionTime)
     {
-        $this->lastScheduledExecutionTime = $lastScheduledExecutionTime;
-        $this->lastActualExecutionTime = $lastActualExecutionTime;
     }
 
     /**
@@ -37,41 +32,31 @@ class SimpleTriggerContext implements TriggerContext
     }
 
     /**
-     * @param int|null $lastScheduledExecutionTime
-     * @param int|null $lastActualExecutionTime
      * @return SimpleTriggerContext
      */
-    public static function createWith(?int $lastScheduledExecutionTime, ?int $lastActualExecutionTime): self
+    public static function createWith(?Timestamp $lastScheduledExecutionTime, ?Timestamp $lastActualExecutionTime): self
     {
         return new self($lastScheduledExecutionTime, $lastActualExecutionTime);
     }
 
-    /**
-     * @param int $lastScheduledExecutionTime
-     * @return SimpleTriggerContext
-     */
-    public function withLastScheduledExecutionTime(int $lastScheduledExecutionTime): self
+    public function withLastScheduledExecutionTime(Timestamp $lastScheduledExecutionTime): self
     {
         $this->lastScheduledExecutionTime = $lastScheduledExecutionTime;
 
-        return self::createWith($lastScheduledExecutionTime, $this->lastActualExecutionTime());
+        return new self($lastScheduledExecutionTime, $this->lastActualExecutionTime());
     }
 
-    /**
-     * @param int $lastActualExecutionTime
-     * @return SimpleTriggerContext
-     */
-    public function withLastActualExecutionTime(int $lastActualExecutionTime): self
+    public function withLastActualExecutionTime(Timestamp $lastActualExecutionTime): self
     {
         $this->lastActualExecutionTime = $lastActualExecutionTime;
 
-        return self::createWith($this->lastScheduledExecutionTime, $lastActualExecutionTime);
+        return new self($this->lastScheduledExecutionTime, $lastActualExecutionTime);
     }
 
     /**
      * @inheritDoc
      */
-    public function lastScheduledTime(): ?int
+    public function lastScheduledTime(): ?Timestamp
     {
         return $this->lastScheduledExecutionTime;
     }
@@ -79,7 +64,7 @@ class SimpleTriggerContext implements TriggerContext
     /**
      * @inheritDoc
      */
-    public function lastActualExecutionTime(): ?int
+    public function lastActualExecutionTime(): ?Timestamp
     {
         return $this->lastActualExecutionTime;
     }

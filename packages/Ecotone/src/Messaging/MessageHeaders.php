@@ -5,6 +5,7 @@ namespace Ecotone\Messaging;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Scheduling\GlobalClock;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
 use Ecotone\Modelling\Config\MessageBusChannel;
@@ -491,11 +492,11 @@ final class MessageHeaders
             $headers[self::MESSAGE_ID] = Uuid::uuid4()->toString();
         }
         if (! array_key_exists(self::TIMESTAMP, $headers)) {
-            $headers[self::TIMESTAMP] = (int)round(microtime(true));
+            $headers[self::TIMESTAMP] = GlobalClock::get()->timestamp()->toSeconds();
         } else {
             $headers[self::TIMESTAMP] = (int)$headers[self::TIMESTAMP];
             if ($headers[self::TIMESTAMP] === 0) {
-                $headers[self::TIMESTAMP] = (int)round(microtime(true));
+                $headers[self::TIMESTAMP] = GlobalClock::get()->timestamp()->toSeconds();
             }
         }
         if (! array_key_exists(self::MESSAGE_CORRELATION_ID, $headers)) {

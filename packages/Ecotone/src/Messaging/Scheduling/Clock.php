@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
+use Psr\Clock\ClockInterface;
+
 /**
  * Interface Clock
  * @package Ecotone\Messaging\Scheduling
@@ -12,10 +14,10 @@ namespace Ecotone\Messaging\Scheduling;
 /**
  * licence Apache-2.0
  */
-interface Clock
+interface Clock extends ClockInterface
 {
-    /**
-     * @return integer Milliseconds since Epoch
-     */
-    public function unixTimeInMilliseconds(): int;
+    public function timestamp(): Timestamp;
+
+    public function sleep(float|int|Duration $secondsOrDuration): void;
+    public function usleep(int $microseconds): void;
 }

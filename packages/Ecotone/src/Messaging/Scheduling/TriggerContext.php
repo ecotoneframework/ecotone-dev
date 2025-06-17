@@ -14,13 +14,7 @@ namespace Ecotone\Messaging\Scheduling;
  */
 interface TriggerContext
 {
-    /**
-     * @return int|null Milliseconds since Epoch
-     */
-    public function lastScheduledTime(): ?int;
+    public function lastScheduledTime(): ?Timestamp;
 
-    /**
-     * @return int|null Milliseconds since Epoch
-     */
-    public function lastActualExecutionTime(): ?int;
+    public function lastActualExecutionTime(): ?Timestamp;
 }

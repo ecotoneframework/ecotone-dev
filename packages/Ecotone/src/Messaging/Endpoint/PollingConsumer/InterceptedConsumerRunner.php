@@ -39,7 +39,7 @@ class InterceptedConsumerRunner implements EndpointRunner
     {
         $this->logger->info('Message Consumer starting to consume messages');
         $pollingMetadata = $this->defaultPollingMetadata->applyExecutionPollingMetadata($executionPollingMetadata);
-        $interceptors = InterceptedConsumer::createInterceptorsForPollingMetadata($pollingMetadata, $this->logger);
+        $interceptors = InterceptedConsumer::createInterceptorsForPollingMetadata($pollingMetadata, $this->logger, $this->clock);
         $interceptedGateway = new InterceptedGateway($this->gateway, $interceptors);
 
         $interceptedConsumer = new ScheduledTaskConsumer(

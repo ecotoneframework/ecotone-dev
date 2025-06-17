@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Messaging\Scheduling\Timestamp;
 use Interop\Queue\Consumer;
 use Interop\Queue\SubscriptionConsumer;
 use InvalidArgumentException;
@@ -97,7 +99,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
         }
 
         $timeout /= 1000;
-        $now = time();
+        $stopConsumptionTimestamp = $timeout > 0 ? $this->getTimestamp()->add(Duration::seconds($timeout)) : null;
         $redeliveryDelay = $this->getRedeliveryDelay() / 1000; // milliseconds to seconds
 
         $currentQueueNames = [];
@@ -129,11 +131,11 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
                 $currentQueueNames = [];
 
                 if (! $queueConsumed) {
-                    usleep($this->getPollingInterval() * 1000);
+                    $this->context->getClock()->sleep(Duration::milliseconds($this->getPollingInterval()));
                 }
             }
 
-            if ($timeout && microtime(true) >= $now + $timeout) {
+            if ($stopConsumptionTimestamp && $stopConsumptionTimestamp->isAfter($this->getTimestamp())) {
                 return;
             }
         }
@@ -195,5 +197,10 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
     protected function getConnection(): Connection
     {
         return $this->dbal;
+    }
+
+    protected function getTimestamp(): Timestamp
+    {
+        return $this->context->getClock()->timestamp();
     }
 }

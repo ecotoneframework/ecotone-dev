@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: simplycodedsoftware/php:8.4.6
+    image: simplycodedsoftware/php:8.4.7
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"

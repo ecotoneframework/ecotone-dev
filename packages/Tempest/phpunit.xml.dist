@@ -3,7 +3,13 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
         backupGlobals="true"
+        bootstrap="vendor/autoload.php"
+        colors="true"
 >
+    <php>
+        <env name="APP_ENV" value="test"/>
+        <env name="ECOTONE_CACHE" value="false"/>
+    </php>
     <coverage processUncoveredFiles="true">
         <include>
             <directory suffix=".php">./src</directory>

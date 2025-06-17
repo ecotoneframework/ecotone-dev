@@ -11,6 +11,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurat
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Tempest\TempestEcotoneProvider;
 
 #[ModuleAnnotation]
 final class TempestModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -22,12 +23,12 @@ final class TempestModule extends NoExternalConfigurationModule implements Annot
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-
+        // Register Tempest-specific configurations if needed
     }
 
     public function canHandle($extensionObject): bool
     {
-        return false;
+        return $extensionObject instanceof TempestEcotoneProvider;
     }
 
     public function getModulePackageName(): string

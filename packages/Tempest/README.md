@@ -1,9 +1,20 @@
-# This is Read Only Repository
-To contribute make use of [Ecotone-Dev repository](https://github.com/ecotoneframework/ecotone-dev).
+# Ecotone Framework - Tempest Integration
 
 <p align="left"><a href="https://ecotone.tech" target="_blank">
     <img src="https://github.com/ecotoneframework/ecotone-dev/blob/main/ecotone_small.png?raw=true">
 </a></p>
+
+This package provides integration between [Ecotone Framework](https://docs.ecotone.tech) and [Tempest PHP Framework](https://tempestphp.com).
+
+## Overview
+
+The integration allows you to use Ecotone's powerful message-driven architecture, CQRS, Event Sourcing, and DDD patterns within Tempest applications. Ecotone provides the messaging layer while Tempest provides the application framework.
+
+## Installation
+
+```bash
+composer require ecotone/tempest
+```
 
 ![Github Actions](https://github.com/ecotoneFramework/ecotone-dev/actions/workflows/split-testing.yml/badge.svg)
 [![Latest Stable Version](https://poser.pugx.org/ecotone/ecotone/v/stable)](https://packagist.org/packages/ecotone/ecotone)

@@ -10,19 +10,18 @@ use DateTimeInterface;
 use DateTimeZone;
 
 /**
- * Class StubClock
  * @package Ecotone\Messaging\Scheduling
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 /**
  * licence Apache-2.0
  */
-class StubUTCClock implements Clock
+class StubUTCClock implements EcotoneClockInterface
 {
     use ClockTrait;
 
     public function __construct(
-        private Timestamp $currentTime
+        private DatePoint $currentTime
     ) {
     }
 
@@ -32,15 +31,7 @@ class StubUTCClock implements Clock
      */
     public static function createWithCurrentTime(string $currentTime): self
     {
-        return new self(Timestamp::fromString($currentTime));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function timestamp(): Timestamp
-    {
-        return$this->currentTime;
+        return new self(new DatePoint($currentTime, new DateTimeZone('UTC')));
     }
 
     public function usleep(int $microseconds): void
@@ -53,19 +44,18 @@ class StubUTCClock implements Clock
         $this->currentTime = self::createTimestamp($newCurrentTime);
     }
 
-    private static function createTimestamp(string|DateTimeInterface $dateTime): Timestamp
+    private static function createTimestamp(string|DateTimeInterface $dateTime): DatePoint
     {
         if ($dateTime === 'now') {
             throw new \InvalidArgumentException('Cannot create epoch time in milliseconds from "now" string. Use "now" method instead.');
         }
 
-        $dateTime = is_string($dateTime) ? new DateTime($dateTime, new DateTimeZone('UTC')) : $dateTime;
-
-        return Timestamp::fromDateTime($dateTime);
+        $dateTime = is_string($dateTime) ? new DatePoint($dateTime, new DateTimeZone('UTC')) : $dateTime;
+        return $dateTime instanceof DatePoint ? $dateTime : DatePoint::createFromInterface($dateTime);
     }
 
-    public function now(): DateTimeImmutable
+    public function now(): DatePoint
     {
-        return $this->currentTime->toDateTime();
+        return $this->currentTime;
     }
 }

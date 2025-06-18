@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\Timestamp;
 use Interop\Queue\Consumer;
 use Interop\Queue\SubscriptionConsumer;
 use InvalidArgumentException;
@@ -99,7 +99,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
         }
 
         $timeout /= 1000;
-        $stopConsumptionTimestamp = $timeout > 0 ? $this->getTimestamp()->add(Duration::seconds($timeout)) : null;
+        $stopConsumptionTimestamp = $timeout > 0 ? $this->now()->add(Duration::seconds($timeout)) : null;
         $redeliveryDelay = $this->getRedeliveryDelay() / 1000; // milliseconds to seconds
 
         $currentQueueNames = [];
@@ -135,7 +135,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
                 }
             }
 
-            if ($stopConsumptionTimestamp && $stopConsumptionTimestamp->isAfter($this->getTimestamp())) {
+            if ($stopConsumptionTimestamp && $stopConsumptionTimestamp->isAfter($this->now())) {
                 return;
             }
         }
@@ -199,8 +199,8 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
         return $this->dbal;
     }
 
-    protected function getTimestamp(): Timestamp
+    protected function now(): DatePoint
     {
-        return $this->context->getClock()->timestamp();
+        return $this->context->getClock()->now();
     }
 }

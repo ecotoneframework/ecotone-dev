@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
-use Ramsey\Uuid\Type\Time;
-
 /**
  * Class SimpleTriggerContext
  * @package Ecotone\Messaging\Scheduling
@@ -19,7 +17,7 @@ class SimpleTriggerContext implements TriggerContext
     /**
      * SimpleTriggerContext constructor.
      */
-    private function __construct(private ?Timestamp $lastScheduledExecutionTime, private ?Timestamp $lastActualExecutionTime)
+    private function __construct(private ?DatePoint $lastScheduledExecutionTime, private ?DatePoint $lastActualExecutionTime)
     {
     }
 
@@ -34,19 +32,19 @@ class SimpleTriggerContext implements TriggerContext
     /**
      * @return SimpleTriggerContext
      */
-    public static function createWith(?Timestamp $lastScheduledExecutionTime, ?Timestamp $lastActualExecutionTime): self
+    public static function createWith(?DatePoint $lastScheduledExecutionTime, ?DatePoint $lastActualExecutionTime): self
     {
         return new self($lastScheduledExecutionTime, $lastActualExecutionTime);
     }
 
-    public function withLastScheduledExecutionTime(Timestamp $lastScheduledExecutionTime): self
+    public function withLastScheduledExecutionTime(DatePoint $lastScheduledExecutionTime): self
     {
         $this->lastScheduledExecutionTime = $lastScheduledExecutionTime;
 
         return new self($lastScheduledExecutionTime, $this->lastActualExecutionTime());
     }
 
-    public function withLastActualExecutionTime(Timestamp $lastActualExecutionTime): self
+    public function withLastActualExecutionTime(DatePoint $lastActualExecutionTime): self
     {
         $this->lastActualExecutionTime = $lastActualExecutionTime;
 
@@ -56,7 +54,7 @@ class SimpleTriggerContext implements TriggerContext
     /**
      * @inheritDoc
      */
-    public function lastScheduledTime(): ?Timestamp
+    public function lastScheduledTime(): ?DatePoint
     {
         return $this->lastScheduledExecutionTime;
     }
@@ -64,7 +62,7 @@ class SimpleTriggerContext implements TriggerContext
     /**
      * @inheritDoc
      */
-    public function lastActualExecutionTime(): ?Timestamp
+    public function lastActualExecutionTime(): ?DatePoint
     {
         return $this->lastActualExecutionTime;
     }

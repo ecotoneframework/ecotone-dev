@@ -21,7 +21,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Precedence;
-use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 
 #[ModuleAnnotation]
 /**
@@ -64,7 +64,7 @@ class DeduplicationModule implements AnnotationModule
                 DeduplicationInterceptor::class,
                 [
                     new Reference($connectionFactory),
-                    new Reference(Clock::class),
+                    new Reference(EcotoneClockInterface::class),
                     $dbalConfiguration->minimumTimeToRemoveMessageFromDeduplication(),
                     $dbalConfiguration->deduplicationRemovalBatchSize(),
                     new Reference(LoggingGateway::class),

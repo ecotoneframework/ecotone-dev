@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Enqueue\Dbal;
 
-use Ecotone\Messaging\Scheduling\Clock;
-use Ecotone\Messaging\Scheduling\GlobalClock;
 use Interop\Queue\Destination;
 use Interop\Queue\Exception\Exception;
 use Interop\Queue\Exception\InvalidDestinationException;
@@ -68,7 +66,7 @@ class DbalProducer implements Producer
         $body = $message->getBody();
 
         $publishedAt = $message->getPublishedAt()
-            ?? (int) ($this->context->getClock()->timestamp()->toFloat() * 10_000); // x 10_000 ?!?!!??
+            ?? (int) ($this->context->getClock()->now()->unixTime()->toFloat() * 10_000); // x 10_000 ?!?!!??
 
         $dbalMessage = [
             'id' => Uuid::uuid4(),
@@ -93,7 +91,7 @@ class DbalProducer implements Producer
                 throw new LogicException(sprintf('Delay must be positive integer but got: "%s"', $delay));
             }
 
-            $dbalMessage['delayed_until'] = $this->context->getClock()->timestamp()->toSeconds() + (int) ($delay / 1000);
+            $dbalMessage['delayed_until'] = $this->context->getClock()->now()->unixTime()->toSeconds() + (int) ($delay / 1000);
         }
 
         $timeToLive = $message->getTimeToLive();
@@ -106,7 +104,7 @@ class DbalProducer implements Producer
                 throw new LogicException(sprintf('TimeToLive must be positive integer but got: "%s"', $timeToLive));
             }
 
-            $dbalMessage['time_to_live'] = $this->context->getClock()->timestamp()->toSeconds() + (int) ($timeToLive / 1000);
+            $dbalMessage['time_to_live'] = $this->context->getClock()->now()->unixTime()->toSeconds() + (int) ($timeToLive / 1000);
         }
 
         try {

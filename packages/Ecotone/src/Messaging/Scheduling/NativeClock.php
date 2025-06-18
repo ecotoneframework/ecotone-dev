@@ -14,17 +14,9 @@ use DateTimeImmutable;
 /**
  * licence Apache-2.0
  */
-class NativeClock implements Clock
+class NativeClock implements EcotoneClockInterface
 {
     use ClockTrait;
-
-    /**
-     * @inheritDoc
-     */
-    public function timestamp(): Timestamp
-    {
-        return Timestamp::fromTimestamp(microtime(true));
-    }
 
     public function usleep(int $microseconds): void
     {
@@ -34,8 +26,8 @@ class NativeClock implements Clock
     /**
      * @inheritDoc
      */
-    public function now(): DateTimeImmutable
+    public function now(): DatePoint
     {
-        return $this->timestamp()->toDateTime();
+        return new DatePoint('now');
     }
 }

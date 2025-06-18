@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Messaging\Scheduling\Timestamp;
+use Ecotone\Messaging\Scheduling\DatePoint;
 use Interop\Queue\Consumer;
 use Interop\Queue\Exception\InvalidMessageException;
 use Interop\Queue\Impl\ConsumerPollingTrait;
@@ -125,8 +125,8 @@ class DbalConsumer implements Consumer
         return $this->dbal;
     }
 
-    protected function getTimestamp(): Timestamp
+    protected function now(): DatePoint
     {
-        return $this->context->getClock()->timestamp();
+        return $this->context->getClock()->now();
     }
 }

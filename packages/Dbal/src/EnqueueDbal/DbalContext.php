@@ -6,8 +6,8 @@ namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\Clock;
-use Ecotone\Messaging\Scheduling\GlobalClock;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
 use Interop\Queue\Destination;
@@ -41,7 +41,7 @@ class DbalContext implements Context
      * @var array
      */
     private $config;
-    private Clock $clock;
+    private EcotoneClockInterface $clock;
 
     /**
      * Callable must return instance of Doctrine\DBAL\Connection once called.
@@ -64,7 +64,7 @@ class DbalContext implements Context
             throw new InvalidArgumentException(sprintf('The connection argument must be either %s or callable that returns %s.', Connection::class, Connection::class));
         }
 
-        $this->clock = GlobalClock::get();
+        $this->clock = Clock::get();
     }
 
     /**
@@ -255,7 +255,7 @@ class DbalContext implements Context
         $schemaManager->createTable($table);
     }
 
-    public function getClock(): Clock
+    public function getClock(): EcotoneClockInterface
     {
         return $this->clock;
     }

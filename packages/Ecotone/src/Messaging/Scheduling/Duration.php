@@ -45,7 +45,7 @@ final class Duration
 
     public function toMilliseconds(): int
     {
-        return (int) round($this->microseconds / 1000);
+        return (int) round($this->microseconds / 1_000);
     }
 
     public function toSeconds(): int
@@ -66,7 +66,7 @@ final class Duration
         return new self($this->microseconds + $duration->microseconds);
     }
 
-    public function subtract(Duration $duration): self
+    public function sub(Duration $duration): self
     {
         return new self($this->microseconds - $duration->microseconds);
     }
@@ -119,6 +119,11 @@ final class Duration
     public function isZero(): bool
     {
         return $this->microseconds === 0;
+    }
+
+    public function zeroIfNegative(): self
+    {
+        return $this->isNegative() ? self::zero() : $this;
     }
 
     public function __toString(): string

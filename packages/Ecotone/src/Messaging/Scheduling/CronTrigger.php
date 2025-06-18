@@ -40,7 +40,7 @@ class CronTrigger implements Trigger
     /**
      * @inheritDoc
      */
-    public function nextExecutionTime(Clock $clock, TriggerContext $triggerContext): Timestamp
+    public function nextExecutionTime(EcotoneClockInterface $clock, TriggerContext $triggerContext): DatePoint
     {
         $cron = CronExpression::factory($this->cronExpression);
 
@@ -51,14 +51,14 @@ class CronTrigger implements Trigger
             return $triggerContext->lastScheduledTime();
         }
 
-        $dateTime = $clock->timestamp()->toDateTime();
+        $dateTime = $clock->now();
 
-        $nextExecutionTime = $cron->getNextRunDate($dateTime, 0, true, 'UTC')->getTimestamp();
-        if ($nextExecutionTime < $dateTime->getTimestamp()) {
-            $nextExecutionTime = $cron->getNextRunDate($dateTime, 1, true, 'UTC')->getTimestamp();
+        $nextExecutionTime = $cron->getNextRunDate($dateTime, 0, true, 'UTC');
+        if ($nextExecutionTime < $dateTime) {
+            $nextExecutionTime = $cron->getNextRunDate($dateTime, 1, true, 'UTC');
         }
 
-        return Timestamp::fromTimestamp($nextExecutionTime);
+        return DatePoint::createFromInterface($nextExecutionTime);
     }
 
     /**

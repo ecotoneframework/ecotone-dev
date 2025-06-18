@@ -14,7 +14,7 @@ namespace Ecotone\Messaging\Scheduling;
  */
 interface TriggerContext
 {
-    public function lastScheduledTime(): ?Timestamp;
+    public function lastScheduledTime(): ?DatePoint;
 
-    public function lastActualExecutionTime(): ?Timestamp;
+    public function lastActualExecutionTime(): ?DatePoint;
 }

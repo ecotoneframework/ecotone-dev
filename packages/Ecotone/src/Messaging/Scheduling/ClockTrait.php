@@ -8,11 +8,10 @@ namespace Ecotone\Messaging\Scheduling;
 
 trait ClockTrait
 {
-    public function sleep(float|int|Duration $secondsOrDuration): void
+    abstract function usleep(int $microseconds): void;
+
+    public function sleep(Duration $secondsOrDuration): void
     {
-        if (!$secondsOrDuration instanceof Duration) {
-            $secondsOrDuration = Duration::seconds($secondsOrDuration);
-        }
         if ($secondsOrDuration->isNegativeOrZero()) {
             return;
         }

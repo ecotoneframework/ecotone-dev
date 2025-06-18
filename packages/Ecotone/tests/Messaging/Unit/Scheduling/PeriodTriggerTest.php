@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Scheduling;
 
+use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\PeriodicTrigger;
 use Ecotone\Messaging\Scheduling\SimpleTriggerContext;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
-use Ecotone\Messaging\Scheduling\Timestamp;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,7 +28,7 @@ class PeriodTriggerTest extends TestCase
         $periodTrigger = PeriodicTrigger::create(1, 0);
 
         $this->assertEquals(
-            Timestamp::fromString('2017-01-01 00:00:00'),
+            new DatePoint('2017-01-01 00:00:00'),
             $periodTrigger->nextExecutionTime(
                 StubUTCClock::createWithCurrentTime('2017-01-01 00:00:00'),
                 SimpleTriggerContext::createEmpty()
@@ -41,10 +41,10 @@ class PeriodTriggerTest extends TestCase
         $periodTrigger = PeriodicTrigger::create(1000, 0);
 
         $this->assertEquals(
-            Timestamp::fromString('2017-01-01 12:00:01'),
+            new DatePoint('2017-01-01 12:00:01'),
             $periodTrigger->nextExecutionTime(
                 StubUTCClock::createWithCurrentTime('2017-01-01 00:00:00'),
-                SimpleTriggerContext::createWith(null, Timestamp::fromString('2017-01-01 12:00:00'))
+                SimpleTriggerContext::createWith(null, new DatePoint('2017-01-01 12:00:00'))
             )
         );
     }
@@ -54,10 +54,10 @@ class PeriodTriggerTest extends TestCase
         $periodTrigger = PeriodicTrigger::create(1000, 0);
 
         $this->assertEquals(
-            Timestamp::fromString('2017-01-01 14:00:00'),
+            new DatePoint('2017-01-01 14:00:00'),
             $periodTrigger->nextExecutionTime(
                 StubUTCClock::createWithCurrentTime('2017-01-01 00:00:00'),
-                SimpleTriggerContext::createWith(Timestamp::fromString('2017-01-01 14:00:00'), null)
+                SimpleTriggerContext::createWith(new DatePoint('2017-01-01 14:00:00'), null)
             )
         );
     }
@@ -67,10 +67,10 @@ class PeriodTriggerTest extends TestCase
         $periodTrigger = PeriodicTrigger::create(1000, 100);
 
         $this->assertEquals(
-            Timestamp::fromString('2017-01-01 14:30:01'),
+            new DatePoint('2017-01-01 14:30:01'),
             $periodTrigger->nextExecutionTime(
                 StubUTCClock::createWithCurrentTime('2017-01-01 12:00:00'),
-                SimpleTriggerContext::createWith(Timestamp::fromString('2017-01-01 14:30:00'), Timestamp::fromString('2017-01-01 14:30:00'))
+                SimpleTriggerContext::createWith(new DatePoint('2017-01-01 14:30:00'), new DatePoint('2017-01-01 14:30:00'))
             )
         );
     }
@@ -80,7 +80,7 @@ class PeriodTriggerTest extends TestCase
         $periodTrigger = PeriodicTrigger::create(1000, 10000);
 
         $this->assertEquals(
-            Timestamp::fromString('2017-01-01 00:00:10'),
+            new DatePoint('2017-01-01 00:00:10'),
             $periodTrigger->nextExecutionTime(
                 StubUTCClock::createWithCurrentTime('2017-01-01 00:00:00'),
                 SimpleTriggerContext::createEmpty()
@@ -93,10 +93,10 @@ class PeriodTriggerTest extends TestCase
         $periodTrigger = PeriodicTrigger::create(600, 10);
 
         $this->assertEquals(
-            Timestamp::fromString('2017-01-01 00:30:00'),
+            new DatePoint('2017-01-01 00:30:00'),
             $periodTrigger->nextExecutionTime(
                 StubUTCClock::createWithCurrentTime('2017-01-01 00:21:00'),
-                SimpleTriggerContext::createWith(Timestamp::fromString('2017-01-01 00:30:00'), Timestamp::fromString('2017-01-01 00:20:00'))
+                SimpleTriggerContext::createWith(new DatePoint('2017-01-01 00:30:00'), new DatePoint('2017-01-01 00:20:00'))
             )
         );
     }

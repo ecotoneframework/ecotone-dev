@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\Interceptor;
 
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
-use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\Timestamp;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Throwable;
 
 /**
@@ -16,9 +16,9 @@ use Throwable;
 class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor
 {
     private bool $shouldBeStopped = false;
-    private ?Timestamp $lastTimeMessageWasReceived;
+    private ?DatePoint $lastTimeMessageWasReceived;
 
-    public function __construct(private Clock $clock)
+    public function __construct(private EcotoneClockInterface $clock)
     {
     }
 
@@ -27,7 +27,7 @@ class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor
      */
     public function onStartup(): void
     {
-        $this->lastTimeMessageWasReceived = $this->clock->timestamp();
+        $this->lastTimeMessageWasReceived = $this->clock->now();
     }
 
     /**
@@ -55,7 +55,7 @@ class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor
          * wait at least 10ms between each message before deciding to finish.
          * Messages can be requeued and we don't want to finish too early
          */
-        if ($this->clock->timestamp()->isBefore($this->lastTimeMessageWasReceived->add(Duration::milliseconds(10)))) {
+        if ($this->lastTimeMessageWasReceived->add(Duration::milliseconds(10)) > $this->clock->now()) {
             $this->shouldBeStopped = false;
         }
 
@@ -75,6 +75,6 @@ class FinishWhenNoMessagesInterceptor implements ConsumerInterceptor
     public function postSend(): void
     {
         $this->shouldBeStopped = false;
-        $this->lastTimeMessageWasReceived = $this->clock->timestamp();
+        $this->lastTimeMessageWasReceived = $this->clock->now();
     }
 }

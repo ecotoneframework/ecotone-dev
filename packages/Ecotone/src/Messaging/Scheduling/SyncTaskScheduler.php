@@ -16,16 +16,16 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
  */
 class SyncTaskScheduler implements TaskScheduler
 {
-    private function __construct(private Clock $clock, private TriggerContext $triggerContext, private PollingMetadata $pollingMetadata)
+    private function __construct(private EcotoneClockInterface $clock, private TriggerContext $triggerContext, private PollingMetadata $pollingMetadata)
     {
     }
 
-    public static function createWithEmptyTriggerContext(Clock $clock, PollingMetadata $pollingMetadata): self
+    public static function createWithEmptyTriggerContext(EcotoneClockInterface $clock, PollingMetadata $pollingMetadata): self
     {
         return new self($clock, SimpleTriggerContext::createEmpty(), $pollingMetadata);
     }
 
-    public static function createWith(Clock $clock, SimpleTriggerContext $triggerContext, PollingMetadata $pollingMetadata): self
+    public static function createWith(EcotoneClockInterface $clock, SimpleTriggerContext $triggerContext, PollingMetadata $pollingMetadata): self
     {
         return new self($clock, $triggerContext, $pollingMetadata);
     }
@@ -55,7 +55,7 @@ class SyncTaskScheduler implements TaskScheduler
             return false;
         }
 
-        return $this->triggerContext->lastScheduledTime()->equals($this->triggerContext->lastActualExecutionTime());
+        return $this->triggerContext->lastScheduledTime() == $this->triggerContext->lastActualExecutionTime();
     }
 
     /**
@@ -63,7 +63,7 @@ class SyncTaskScheduler implements TaskScheduler
      */
     private function isItTimeForNextExecution(): bool
     {
-        return $this->clock->timestamp()->isAfterOrEqual($this->triggerContext->lastScheduledTime());
+        return $this->clock->now() >= $this->triggerContext->lastScheduledTime();
     }
 
     /**
@@ -71,6 +71,6 @@ class SyncTaskScheduler implements TaskScheduler
      */
     private function waitTime(): Duration
     {
-        return $this->triggerContext->lastScheduledTime()->diff($this->clock->timestamp());
+        return $this->triggerContext->lastScheduledTime()->durationSince($this->clock->now());
     }
 }

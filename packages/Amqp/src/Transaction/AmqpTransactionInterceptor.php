@@ -8,6 +8,7 @@ use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
@@ -28,7 +29,7 @@ class AmqpTransactionInterceptor
     /**
      * @param array<string, AmqpConnectionFactory> $connectionFactories
      */
-    public function __construct(private array $connectionFactories, private LoggingGateway $logger)
+    public function __construct(private array $connectionFactories, private LoggingGateway $logger, private RetryRunner $retryRunner)
     {
     }
 
@@ -58,9 +59,9 @@ class AmqpTransactionInterceptor
                     ->maxRetryAttempts(2)
                     ->build();
 
-                $retryStrategy->runCallbackWithRetries(function () use ($connectionFactory) {
+                $this->retryRunner->runWithRetry(function () use ($connectionFactory) {
                     $connectionFactory->createContext()->getExtChannel()->startTransaction();
-                }, $message, AMQPConnectionException::class, $this->logger, 'Starting AMQP transaction has failed due to network work, retrying in order to self heal.');
+                }, $retryStrategy, $message, AMQPConnectionException::class, 'Starting AMQP transaction has failed due to network work, retrying in order to self heal.');
                 $this->logger->info(
                     'AMQP transaction started',
                     $message
@@ -84,7 +85,7 @@ class AmqpTransactionInterceptor
                         $extChannel->rollbackTransaction();
                     } catch (Throwable) {
                     }
-                    $extChannel->close(); // Has to be closed in amqp_lib, as if channel is trarnsactional does not allow for sending outside of transaction
+                    $extChannel->close(); // Has to be closed in amqp_lib, as if channel is transactional does not allow for sending outside of transaction
                 }
 
                 $this->logger->info(

@@ -14,7 +14,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
-use Ecotone\Messaging\Scheduling\GlobalClock;
+use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -154,7 +154,7 @@ class SaveAggregateServiceTemplate
 
             $eventMetadata = RevisionMetadataEnricher::enrich($eventMetadata, $event);
             $eventMetadata[MessageHeaders::MESSAGE_ID] ??= Uuid::uuid4()->toString();
-            $eventMetadata[MessageHeaders::TIMESTAMP] ??= GlobalClock::get()->timestamp()->toSeconds();
+            $eventMetadata[MessageHeaders::TIMESTAMP] ??= Clock::get()->now()->unixTime()->toSeconds();
             $eventMetadata = MessageHeaders::propagateContextHeaders([
                 MessageHeaders::MESSAGE_ID => $message->getHeaders()->getMessageId(),
                 MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId(),

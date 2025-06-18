@@ -34,10 +34,10 @@ class PeriodicTrigger implements Trigger
     /**
      * @inheritDoc
      */
-    public function nextExecutionTime(Clock $clock, TriggerContext $triggerContext): Timestamp
+    public function nextExecutionTime(EcotoneClockInterface $clock, TriggerContext $triggerContext): DatePoint
     {
         if ($this->isFirstSchedule($triggerContext)) {
-            return $clock->timestamp()->add($this->initialDelay);
+            return $clock->now()->add($this->initialDelay);
         }
 
         if ($this->isPlannedAndNeverExecuted($triggerContext) || $this->isPlannedTimeAfterExecution($triggerContext)) {
@@ -73,6 +73,6 @@ class PeriodicTrigger implements Trigger
      */
     private function isPlannedTimeAfterExecution(TriggerContext $triggerContext): bool
     {
-        return $triggerContext->lastScheduledTime() && $triggerContext->lastScheduledTime()->isAfter($triggerContext->lastActualExecutionTime());
+        return $triggerContext->lastScheduledTime() && $triggerContext->lastScheduledTime() > $triggerContext->lastActualExecutionTime();
     }
 }

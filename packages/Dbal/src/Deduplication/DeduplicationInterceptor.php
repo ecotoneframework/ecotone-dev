@@ -14,7 +14,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\Duration;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
@@ -38,7 +38,7 @@ class DeduplicationInterceptor
     private array $initialized = [];
     private Duration $minimumTimeToRemoveMessage;
 
-    public function __construct(private ConnectionFactory $connection, private Clock $clock, int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger)
+    public function __construct(private ConnectionFactory $connection, private EcotoneClockInterface $clock, int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger)
     {
         $this->minimumTimeToRemoveMessage = Duration::milliseconds($minimumTimeToRemoveMessageInMilliseconds);
         if ($this->minimumTimeToRemoveMessage->toMilliseconds() <= 0) {
@@ -123,7 +123,7 @@ class DeduplicationInterceptor
             $this->getTableName(),
             [
                 'message_id' => $messageId,
-                'handled_at' => $this->clock->timestamp()->toMilliseconds(),
+                'handled_at' => $this->clock->now()->unixTime()->toMilliseconds(),
                 'consumer_endpoint_id' => $consumerEndpointId,
                 'routing_slip' => $routingSlip,
             ],
@@ -181,7 +181,7 @@ class DeduplicationInterceptor
             ->select('message_id')
             ->from($this->getTableName())
             ->andWhere('handled_at <= :threshold')
-            ->setParameter('threshold', ($this->clock->timestamp()->subtract($this->minimumTimeToRemoveMessage)->toMilliseconds()), Types::BIGINT)
+            ->setParameter('threshold', ($this->clock->now()->unixTime()->sub($this->minimumTimeToRemoveMessage)->toMilliseconds()), Types::BIGINT)
             ->setMaxResults($this->deduplicationRemovalBatchSize)
             ->executeQuery()
             ->fetchAllAssociative();

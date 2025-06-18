@@ -14,6 +14,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
+use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -42,7 +43,7 @@ class DbalDeadLetterHandler
         private ConnectionFactory $connectionFactory,
         private HeaderMapper $headerMapper,
         private ConversionService $conversionService,
-        private LoggingGateway $loggingGateway,
+        private RetryRunner $retryRunner,
     ) {
     }
 
@@ -171,7 +172,7 @@ class DbalDeadLetterHandler
             ->maxRetryAttempts(3)
             ->build();
 
-        $retryStrategy->runCallbackWithRetries(function () use ($message) {
+        $this->retryRunner->runWithRetry(function () use ($message) {
             try {
                 $this->insertHandledMessage($message->getPayload(), $message->getHeaders()->headers());
             } catch (\Exception $exception) {
@@ -179,7 +180,7 @@ class DbalDeadLetterHandler
 
                 throw $exception;
             }
-        }, $message, \Exception::class, $this->loggingGateway, 'Storing Error Message in dead letter failed. Trying to self-heal and retry.');
+        }, $retryStrategy, $message, \Exception::class, 'Storing Error Message in dead letter failed. Trying to self-heal and retry.');
     }
 
     private function insertHandledMessage(string $payload, array $headers): void

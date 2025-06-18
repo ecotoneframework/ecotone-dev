@@ -101,7 +101,7 @@ class OutboundMessageConverter
         if ($deliveryDelay instanceof DateTimeInterface) {
             $deliveryDelay = DateUtils::getTimestampWithMillisecondsFor($deliveryDelay) - ($messageToConvert->getHeaders()->getTimestamp() * 1000);
         } else if ($deliveryDelay instanceof Duration) {
-            $deliveryDelay = $deliveryDelay->toMilliseconds();
+            $deliveryDelay = $deliveryDelay->inMilliseconds();
         }
 
         if ($deliveryDelay && $deliveryDelay < 0) {

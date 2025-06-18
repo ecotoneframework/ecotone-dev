@@ -526,7 +526,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
-            MessageHeaders::TIMESTAMP => ($time = new DatePoint('2020-01-01 12:00:00'))->unixTime()->toSeconds(),
+            MessageHeaders::TIMESTAMP => ($time = new DatePoint('2020-01-01 12:00:00'))->unixTime()->inSeconds(),
             MessageHeaders::DELIVERY_DELAY => $time->modify('-1 hour'),
         ]);
 

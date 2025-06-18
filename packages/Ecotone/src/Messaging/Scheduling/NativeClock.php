@@ -32,6 +32,6 @@ class NativeClock implements EcotoneClockInterface
             return;
         }
 
-        \usleep($duration->toMicroseconds());
+        \usleep($duration->inMicroseconds());
     }
 }

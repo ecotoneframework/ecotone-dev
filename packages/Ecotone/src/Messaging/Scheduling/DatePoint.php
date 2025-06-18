@@ -18,7 +18,7 @@ class DatePoint extends DateTimeImmutable
 
     public function setUnixTime(Duration $duration): static
     {
-        $microseconds = $duration->toMicroseconds();
+        $microseconds = $duration->inMicroseconds();
         $timestamp = (int) ($microseconds / 1_000_000);
         $microsecond = $microseconds % 1_000_000;
 

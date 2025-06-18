@@ -38,17 +38,17 @@ final class Duration
         return new self(abs($this->microseconds));
     }
 
-    public function toMicroseconds(): int
+    public function inMicroseconds(): int
     {
         return $this->microseconds;
     }
 
-    public function toMilliseconds(): int
+    public function inMilliseconds(): int
     {
         return (int) round($this->microseconds / 1_000);
     }
 
-    public function toSeconds(): int
+    public function inSeconds(): int
     {
         return (int) round($this->microseconds / 1_000_000);
     }

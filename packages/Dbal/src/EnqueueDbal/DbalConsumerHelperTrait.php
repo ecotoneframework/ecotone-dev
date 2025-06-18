@@ -48,7 +48,7 @@ trait DbalConsumerHelperTrait
             ->addOrderBy('priority', 'asc')
             ->addOrderBy('published_at', 'asc')
             ->setParameter('queues', $queues, class_exists('\Doctrine\DBAL\ArrayParameterType') ? \Doctrine\DBAL\ArrayParameterType::STRING : (defined('\Doctrine\DBAL\Connection::PARAM_STR_ARRAY') ? Connection::PARAM_STR_ARRAY : 'string[]'))
-            ->setParameter('delayedUntil', $now->unixTime()->toSeconds(), DbalType::INTEGER)
+            ->setParameter('delayedUntil', $now->unixTime()->inSeconds(), DbalType::INTEGER)
             ->setMaxResults(1);
 
         $update = $this->getConnection()->createQueryBuilder()
@@ -58,7 +58,7 @@ trait DbalConsumerHelperTrait
             ->andWhere('id = :messageId')
             ->andWhere('delivery_id IS NULL')
             ->setParameter('deliveryId', $deliveryId, DbalType::GUID)
-            ->setParameter('redeliverAfter', $now->add($redeliveryDelayDuration)->unixTime()->toSeconds(), DbalType::BIGINT)
+            ->setParameter('redeliverAfter', $now->add($redeliveryDelayDuration)->unixTime()->inSeconds(), DbalType::BIGINT)
         ;
 
         while ($this->now() < $endAt) {
@@ -92,7 +92,7 @@ trait DbalConsumerHelperTrait
                         continue;
                     }
 
-                    if ($deliveredMessage['redelivered'] || empty($deliveredMessage['time_to_live']) || $deliveredMessage['time_to_live'] > $this->now()->unixTime()->toSeconds()) {
+                    if ($deliveredMessage['redelivered'] || empty($deliveredMessage['time_to_live']) || $deliveredMessage['time_to_live'] > $this->now()->unixTime()->inSeconds()) {
                         return $this->getContext()->convertMessage($deliveredMessage);
                     }
                 }
@@ -109,7 +109,7 @@ trait DbalConsumerHelperTrait
         $now = $this->now();
         if (null === $this->redeliverMessagesLastExecutedAt) {
             $this->redeliverMessagesLastExecutedAt = $now;
-        } elseif (($now->durationSince($this->redeliverMessagesLastExecutedAt))->toSeconds() < 1) {
+        } elseif (($now->durationSince($this->redeliverMessagesLastExecutedAt))->inSeconds() < 1) {
             return;
         }
 
@@ -119,7 +119,7 @@ trait DbalConsumerHelperTrait
             ->set('redelivered', ':redelivered')
             ->andWhere('redeliver_after < :now')
             ->andWhere('delivery_id IS NOT NULL')
-            ->setParameter('now', $now->unixTime()->toSeconds(), DbalType::BIGINT)
+            ->setParameter('now', $now->unixTime()->inSeconds(), DbalType::BIGINT)
             ->setParameter('deliveryId', null, DbalType::GUID)
             ->setParameter('redelivered', true, DbalType::BOOLEAN)
         ;
@@ -143,7 +143,7 @@ trait DbalConsumerHelperTrait
         $now = $this->now();
         if (null === $this->removeExpiredMessagesLastExecutedAt) {
             $this->removeExpiredMessagesLastExecutedAt = $now;
-        } elseif ($now->durationSince($this->removeExpiredMessagesLastExecutedAt)->toSeconds() < 1) {
+        } elseif ($now->durationSince($this->removeExpiredMessagesLastExecutedAt)->inSeconds() < 1) {
             return;
         }
 
@@ -153,7 +153,7 @@ trait DbalConsumerHelperTrait
             ->andWhere('delivery_id IS NULL')
             ->andWhere('redelivered = :redelivered')
 
-            ->setParameter('now', $now->unixTime()->toSeconds(), DbalType::BIGINT)
+            ->setParameter('now', $now->unixTime()->inSeconds(), DbalType::BIGINT)
             ->setParameter('redelivered', false, DbalType::BOOLEAN)
         ;
 

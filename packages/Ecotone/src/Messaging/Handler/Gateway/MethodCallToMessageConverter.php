@@ -72,7 +72,7 @@ class MethodCallToMessageConverter
     public function getMessageBuilderUsingPayloadConverter(array $methodArguments): MessageBuilder
     {
         $defaultBuilder = MessageBuilder::withPayload('')
-            ->setHeader(MessageHeaders::TIMESTAMP, $this->clock->now()->unixTime()->toSeconds());
+            ->setHeader(MessageHeaders::TIMESTAMP, $this->clock->now()->unixTime()->inSeconds());
         foreach ($methodArguments as $methodArgument) {
             foreach ($this->methodArgumentConverters as $methodParameterConverter) {
                 if ($methodParameterConverter->isSupporting($methodArgument) && $this->isPayloadConverter($methodParameterConverter)) {

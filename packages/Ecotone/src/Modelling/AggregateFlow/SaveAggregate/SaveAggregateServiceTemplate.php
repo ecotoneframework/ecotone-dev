@@ -154,7 +154,7 @@ class SaveAggregateServiceTemplate
 
             $eventMetadata = RevisionMetadataEnricher::enrich($eventMetadata, $event);
             $eventMetadata[MessageHeaders::MESSAGE_ID] ??= Uuid::uuid4()->toString();
-            $eventMetadata[MessageHeaders::TIMESTAMP] ??= Clock::get()->now()->unixTime()->toSeconds();
+            $eventMetadata[MessageHeaders::TIMESTAMP] ??= Clock::get()->now()->unixTime()->inSeconds();
             $eventMetadata = MessageHeaders::propagateContextHeaders([
                 MessageHeaders::MESSAGE_ID => $message->getHeaders()->getMessageId(),
                 MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId(),

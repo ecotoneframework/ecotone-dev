@@ -15,6 +15,6 @@ trait ClockTrait
         if ($duration->isNegativeOrZero()) {
             return;
         }
-        $this->usleep($duration->toMicroseconds());
+        $this->usleep($duration->inMicroseconds());
     }
 }

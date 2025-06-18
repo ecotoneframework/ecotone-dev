@@ -492,11 +492,11 @@ final class MessageHeaders
             $headers[self::MESSAGE_ID] = Uuid::uuid4()->toString();
         }
         if (! array_key_exists(self::TIMESTAMP, $headers)) {
-            $headers[self::TIMESTAMP] = Clock::get()->now()->unixTime()->toSeconds();
+            $headers[self::TIMESTAMP] = Clock::get()->now()->unixTime()->inSeconds();
         } else {
             $headers[self::TIMESTAMP] = (int)$headers[self::TIMESTAMP];
             if ($headers[self::TIMESTAMP] === 0) {
-                $headers[self::TIMESTAMP] = Clock::get()->now()->unixTime()->toSeconds();
+                $headers[self::TIMESTAMP] = Clock::get()->now()->unixTime()->inSeconds();
             }
         }
         if (! array_key_exists(self::MESSAGE_CORRELATION_ID, $headers)) {

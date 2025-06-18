@@ -91,7 +91,7 @@ class DbalProducer implements Producer
                 throw new LogicException(sprintf('Delay must be positive integer but got: "%s"', $delay));
             }
 
-            $dbalMessage['delayed_until'] = $this->context->getClock()->now()->unixTime()->toSeconds() + (int) ($delay / 1000);
+            $dbalMessage['delayed_until'] = $this->context->getClock()->now()->unixTime()->inSeconds() + (int) ($delay / 1000);
         }
 
         $timeToLive = $message->getTimeToLive();
@@ -104,7 +104,7 @@ class DbalProducer implements Producer
                 throw new LogicException(sprintf('TimeToLive must be positive integer but got: "%s"', $timeToLive));
             }
 
-            $dbalMessage['time_to_live'] = $this->context->getClock()->now()->unixTime()->toSeconds() + (int) ($timeToLive / 1000);
+            $dbalMessage['time_to_live'] = $this->context->getClock()->now()->unixTime()->inSeconds() + (int) ($timeToLive / 1000);
         }
 
         try {

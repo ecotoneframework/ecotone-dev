@@ -34,17 +34,7 @@ class StubUTCClock implements EcotoneClockInterface
 
     public function changeCurrentTime(string|DateTimeInterface $newCurrentTime): void
     {
-        $this->currentTime = self::createTimestamp($newCurrentTime);
-    }
-
-    private static function createTimestamp(string|DateTimeInterface $dateTime): DatePoint
-    {
-        if ($dateTime === 'now') {
-            throw new \InvalidArgumentException('Cannot create epoch time in milliseconds from "now" string. Use "now" method instead.');
-        }
-
-        $dateTime = is_string($dateTime) ? new DatePoint($dateTime, new DateTimeZone('UTC')) : $dateTime;
-        return $dateTime instanceof DatePoint ? $dateTime : DatePoint::createFromInterface($dateTime);
+        $this->currentTime = new DatePoint($newCurrentTime);
     }
 
     public function now(): DatePoint

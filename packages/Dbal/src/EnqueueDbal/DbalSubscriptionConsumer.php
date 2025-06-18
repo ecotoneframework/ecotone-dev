@@ -99,7 +99,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
         }
 
         $timeout /= 1000;
-        $stopConsumptionTimestamp = $timeout > 0 ? $this->now()->add(Duration::seconds($timeout)) : null;
+        $stopConsumptionDate = $timeout > 0 ? $this->now()->add(Duration::seconds($timeout)) : null;
         $redeliveryDelay = $this->getRedeliveryDelay() / 1000; // milliseconds to seconds
 
         $currentQueueNames = [];
@@ -135,7 +135,7 @@ class DbalSubscriptionConsumer implements SubscriptionConsumer
                 }
             }
 
-            if ($stopConsumptionTimestamp && $stopConsumptionTimestamp->isAfter($this->now())) {
+            if ($stopConsumptionDate && $this->now() >= $stopConsumptionDate) {
                 return;
             }
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Enqueue\Dbal;
 
+use Ecotone\Messaging\Scheduling\Duration;
 use Interop\Queue\Destination;
 use Interop\Queue\Exception\Exception;
 use Interop\Queue\Exception\InvalidDestinationException;
@@ -91,7 +92,7 @@ class DbalProducer implements Producer
                 throw new LogicException(sprintf('Delay must be positive integer but got: "%s"', $delay));
             }
 
-            $dbalMessage['delayed_until'] = $this->context->getClock()->now()->unixTime()->inSeconds() + (int) ($delay / 1000);
+            $dbalMessage['delayed_until'] = $this->context->getClock()->now()->add(Duration::milliseconds($delay))->unixTime()->inSeconds();
         }
 
         $timeToLive = $message->getTimeToLive();
@@ -104,7 +105,7 @@ class DbalProducer implements Producer
                 throw new LogicException(sprintf('TimeToLive must be positive integer but got: "%s"', $timeToLive));
             }
 
-            $dbalMessage['time_to_live'] = $this->context->getClock()->now()->unixTime()->inSeconds() + (int) ($timeToLive / 1000);
+            $dbalMessage['time_to_live'] = $this->context->getClock()->now()->add(Duration::milliseconds($timeToLive))->unixTime()->inSeconds();
         }
 
         try {

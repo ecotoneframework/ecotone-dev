@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\DateUtils;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\NativeClock;
@@ -99,8 +100,10 @@ class OutboundMessageConverter
         $deliveryDelay = $messageToConvert->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) ? $messageToConvert->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) : $this->defaultDeliveryDelay;
 
         if ($deliveryDelay instanceof DateTimeInterface) {
-            $deliveryDelay = DateUtils::getTimestampWithMillisecondsFor($deliveryDelay) - ($messageToConvert->getHeaders()->getTimestamp() * 1000);
-        } else if ($deliveryDelay instanceof Duration) {
+            $deliveryDelay = DatePoint::createFromInterface($deliveryDelay)->durationSince(DatePoint::createFromTimestamp($messageToConvert->getHeaders()->getTimestamp()));
+        }
+
+        if ($deliveryDelay instanceof Duration) {
             $deliveryDelay = $deliveryDelay->inMilliseconds();
         }
 

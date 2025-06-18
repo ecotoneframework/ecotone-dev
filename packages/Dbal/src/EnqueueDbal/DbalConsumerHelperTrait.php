@@ -132,7 +132,7 @@ trait DbalConsumerHelperTrait
                 $update->executeStatement();
             }
 
-            $this->redeliverMessagesLastExecutedAt = $this->now();
+            $this->redeliverMessagesLastExecutedAt = $now;
         } catch (RetryableException $e) {
             // maybe next time we'll get more luck
         }
@@ -168,7 +168,7 @@ trait DbalConsumerHelperTrait
             // maybe next time we'll get more luck
         }
 
-        $this->removeExpiredMessagesLastExecutedAt = $this->now();
+        $this->removeExpiredMessagesLastExecutedAt = $now;
     }
 
     private function deleteMessage(string $deliveryId): void

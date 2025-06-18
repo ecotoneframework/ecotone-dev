@@ -41,7 +41,7 @@ class DeduplicationInterceptor
     public function __construct(private ConnectionFactory $connection, private EcotoneClockInterface $clock, int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger)
     {
         $this->minimumTimeToRemoveMessage = Duration::milliseconds($minimumTimeToRemoveMessageInMilliseconds);
-        if ($this->minimumTimeToRemoveMessage->inMilliseconds() <= 0) {
+        if ($this->minimumTimeToRemoveMessage->isNegativeOrZero()) {
             throw new Exception('Minimum time to remove message must be greater than 0');
         }
     }
@@ -181,7 +181,7 @@ class DeduplicationInterceptor
             ->select('message_id')
             ->from($this->getTableName())
             ->andWhere('handled_at <= :threshold')
-            ->setParameter('threshold', ($this->clock->now()->unixTime()->sub($this->minimumTimeToRemoveMessage)->inMilliseconds()), Types::BIGINT)
+            ->setParameter('threshold', $this->clock->now()->sub($this->minimumTimeToRemoveMessage)->unixTime()->inMilliseconds(), Types::BIGINT)
             ->setMaxResults($this->deduplicationRemovalBatchSize)
             ->executeQuery()
             ->fetchAllAssociative();

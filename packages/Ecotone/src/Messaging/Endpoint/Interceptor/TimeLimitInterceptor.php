@@ -29,12 +29,12 @@ class TimeLimitInterceptor implements ConsumerInterceptor
      * @param int $milliseconds
      * @throws \Ecotone\Messaging\MessagingException
      */
-    public function __construct(private EcotoneClockInterface $clock, private int $milliseconds)
+    public function __construct(private EcotoneClockInterface $clock, int $milliseconds)
     {
         if ($milliseconds <= 0) {
             throw ConfigurationException::create("Time limit is set to incorrect value: {$milliseconds}");
         }
-        $this->timeout = Duration::milliseconds($this->milliseconds);
+        $this->timeout = Duration::milliseconds($milliseconds);
     }
 
     /**

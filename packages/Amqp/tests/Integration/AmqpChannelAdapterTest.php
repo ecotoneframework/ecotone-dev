@@ -267,7 +267,12 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     private function receiveOnce(ComponentTestBuilder $componentTestBuilder, AmqpInboundChannelAdapterBuilder $inboundAmqpGatewayBuilder, QueueChannel $inboundRequestChannel): ?Message
     {
-        return $this->receiveWithPollingMetadata($componentTestBuilder, $inboundAmqpGatewayBuilder, $inboundRequestChannel, PollingMetadata::create($inboundAmqpGatewayBuilder->getEndpointId())->setExecutionAmountLimit(100)->setExecutionTimeLimitInMilliseconds(100));
+        return $this->receiveWithPollingMetadata(
+            $componentTestBuilder,
+            $inboundAmqpGatewayBuilder,
+            $inboundRequestChannel,
+            PollingMetadata::create($inboundAmqpGatewayBuilder->getEndpointId()),
+            PollingMetadata::create($inboundAmqpGatewayBuilder->getEndpointId())->setExecutionAmountLimit(100)->setExecutionTimeLimitInMilliseconds(100));
     }
 
     /**
@@ -283,7 +288,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     {
         $messaging = $this->buildWithInboundAdapter($componentTestBuilder, $inboundAmqpGatewayBuilder, $pollingMetadata);
 
-        $messaging->run($inboundAmqpGatewayBuilder->getEndpointId());
+        $messaging->run($inboundAmqpGatewayBuilder->getEndpointId(), ExecutionPollingMetadata::createWithTestingSetup());
 
         return $inboundRequestChannel->receive();
     }
@@ -816,7 +821,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $message = $amqpBackedMessageChannel->receiveWithTimeout(1000);
         $this->acceptMessage($message);
 
-        $this->assertNull($amqpBackedMessageChannel->receive());
+        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(1));
     }
 
     /**
@@ -836,7 +841,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
         $acknowledgeCallback->reject();
 
-        $this->assertNull($amqpBackedMessageChannel->receive());
+        $this->assertNull($amqpBackedMessageChannel->receiveWithTimeout(1));
     }
 
     /**

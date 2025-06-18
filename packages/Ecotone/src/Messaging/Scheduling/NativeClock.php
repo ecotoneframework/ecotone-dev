@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
-use DateTimeImmutable;
-
 /**
  * Class UTCBasedClock
  * @package Ecotone\Messaging\Scheduling
@@ -16,12 +14,6 @@ use DateTimeImmutable;
  */
 class NativeClock implements EcotoneClockInterface
 {
-    use ClockTrait;
-
-    public function usleep(int $microseconds): void
-    {
-        usleep($microseconds);
-    }
 
     /**
      * @inheritDoc
@@ -29,5 +21,17 @@ class NativeClock implements EcotoneClockInterface
     public function now(): DatePoint
     {
         return new DatePoint('now');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function sleep(Duration $duration): void
+    {
+        if ($duration->isNegativeOrZero()) {
+            return;
+        }
+
+        \usleep($duration->toMicroseconds());
     }
 }

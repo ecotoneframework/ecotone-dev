@@ -19,5 +19,5 @@ interface EcotoneClockInterface extends PsrClockInterface
 {
     public function now(): DatePoint;
 
-    public function sleep(Duration $secondsOrDuration): void;
+    public function sleep(Duration $duration): void;
 }

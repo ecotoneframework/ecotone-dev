@@ -18,10 +18,8 @@ use DateTimeZone;
  */
 class StubUTCClock implements EcotoneClockInterface
 {
-    use ClockTrait;
-
     public function __construct(
-        private DatePoint $currentTime
+        private DatePoint $currentTime = new DatePoint('now', new DateTimeZone('UTC'))
     ) {
     }
 
@@ -32,11 +30,6 @@ class StubUTCClock implements EcotoneClockInterface
     public static function createWithCurrentTime(string $currentTime): self
     {
         return new self(new DatePoint($currentTime, new DateTimeZone('UTC')));
-    }
-
-    public function usleep(int $microseconds): void
-    {
-        $this->currentTime = $this->currentTime->add(Duration::microseconds($microseconds));
     }
 
     public function changeCurrentTime(string|DateTimeInterface $newCurrentTime): void
@@ -57,5 +50,10 @@ class StubUTCClock implements EcotoneClockInterface
     public function now(): DatePoint
     {
         return $this->currentTime;
+    }
+
+    public function sleep(Duration $duration): void
+    {
+        $this->currentTime = $this->currentTime->add($duration->zeroIfNegative());
     }
 }

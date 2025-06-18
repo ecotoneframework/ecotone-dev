@@ -40,14 +40,14 @@ class Clock implements EcotoneClockInterface
         return $now;
     }
 
-    public function sleep(Duration $secondsOrDuration): void
+    public function sleep(Duration $duration): void
     {
         $clock = $this->clock ?? self::get();
 
         if ($clock instanceof EcotoneClockInterface) {
-            $clock->sleep($secondsOrDuration);
+            $clock->sleep($duration);
         } else {
-            (new NativeClock())->sleep($secondsOrDuration);
+            (new NativeClock())->sleep($duration);
         }
     }
 }

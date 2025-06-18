@@ -10,11 +10,11 @@ trait ClockTrait
 {
     abstract function usleep(int $microseconds): void;
 
-    public function sleep(Duration $secondsOrDuration): void
+    public function sleep(Duration $duration): void
     {
-        if ($secondsOrDuration->isNegativeOrZero()) {
+        if ($duration->isNegativeOrZero()) {
             return;
         }
-        $this->usleep($secondsOrDuration->toMicroseconds());
+        $this->usleep($duration->toMicroseconds());
     }
 }

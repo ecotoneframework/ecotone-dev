@@ -126,12 +126,21 @@ final class Duration
         return $this->isNegative() ? self::zero() : $this;
     }
 
+    public function getSecondsPart(): int
+    {
+        return (int) floor($this->microseconds / 1_000_000);
+    }
+
+    public function getMicrosecondsPart(): int
+    {
+        return $this->microseconds % 1_000_000;
+    }
+
     public function __toString(): string
     {
-        $seconds = floor($this->microseconds / 1_000_000);
-        $milliseconds = floor(($this->microseconds % 1_000_000) / 1000);
-        $microseconds = $this->microseconds % 1000;
+        $seconds = $this->getSecondsPart();
+        $microseconds = $this->getMicrosecondsPart();
 
-        return sprintf('%d.%03d.%03d', $seconds, $milliseconds, $microseconds);
+        return sprintf('%d.%06d', $seconds, $microseconds);
     }
 }

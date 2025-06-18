@@ -12,11 +12,16 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
+use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Test\ClockSensitiveTrait;
 use Ecotone\Test\ComponentTestBuilder;
 use Ecotone\Test\StubLogger;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousHandler\OrderService;
@@ -30,6 +35,8 @@ use Test\Ecotone\Dbal\Fixture\AsynchronousHandler\OrderService;
  */
 class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 {
+    use ClockSensitiveTrait;
+
     public function test_sending_and_receiving_via_channel()
     {
         $channelName = Uuid::uuid4()->toString();
@@ -159,12 +166,15 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         /** @var PollableChannel $messageChannel */
         $messageChannel = $this->getComponentTestingWithConnection(true)
+            ->withReference(ClockInterface::class, $clock = new StubUTCClock())
             ->withChannel(
                 DbalBackedMessageChannelBuilder::create($channelName = Uuid::uuid4()->toString())
                     ->withReceiveTimeout(1)
             )
             ->build()
             ->getMessageChannel($channelName);
+
+        Clock::set($clock);
 
         $messageChannel->send(
             MessageBuilder::withPayload('some')
@@ -174,7 +184,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
         $this->assertNull($messageChannel->receive());
 
-        sleep(3);
+        $clock->sleep(Duration::seconds(3));
 
         $this->assertNotNull($messageChannel->receive());
     }

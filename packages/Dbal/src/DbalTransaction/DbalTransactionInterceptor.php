@@ -10,6 +10,7 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -33,11 +34,11 @@ class DbalTransactionInterceptor
      * @param array<string, DbalConnectionFactory|ManagerRegistryConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      */
-    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints)
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger)
     {
     }
 
-    public function transactional(MethodInvocation $methodInvocation, Message $message, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata, #[Reference(LoggingGateway::class)] LoggingGateway $logger)
+    public function transactional(MethodInvocation $methodInvocation, Message $message, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata)
     {
         $endpointId = $pollingMetadata?->getEndpointId();
 
@@ -73,15 +74,15 @@ class DbalTransactionInterceptor
                 ->maxRetryAttempts(2)
                 ->build();
 
-            $retryStrategy->runCallbackWithRetries(function () use ($connection) {
+            $this->retryRunner->runWithRetry(function () use ($connection) {
                 try {
                     $connection->beginTransaction();
                 } catch (Exception $exception) {
                     $connection->close();
                     throw $exception;
                 }
-            }, $message, ConnectionException::class, $logger, 'Starting Database transaction has failed due to network work, retrying in order to self heal.');
-            $logger->info('Database Transaction started', $message);
+            }, $retryStrategy, $message, ConnectionException::class, 'Starting Database transaction has failed due to network work, retrying in order to self heal.');
+            $this->logger->info('Database Transaction started', $message);
         }
         try {
             $result = $methodInvocation->proceed();
@@ -89,11 +90,11 @@ class DbalTransactionInterceptor
             foreach ($connections as $connection) {
                 try {
                     $connection->commit();
-                    $logger->info('Database Transaction committed', $message);
+                    $this->logger->info('Database Transaction committed', $message);
                 } catch (Exception $exception) {
                     // Handle the case where a database did an implicit commit or the transaction is no longer active
                     if ($this->isImplicitCommitException($exception)) {
-                        $logger->info(
+                        $this->logger->info(
                             sprintf('Implicit Commit was detected, skipping manual one.'),
                             $message,
                             ['exception' => $exception],
@@ -114,7 +115,7 @@ class DbalTransactionInterceptor
         } catch (Throwable $exception) {
             foreach ($connections as $connection) {
                 try {
-                    $logger->info(
+                    $this->logger->info(
                         'Exception has been thrown, rolling back transaction.',
                         $message,
                         ['exception' => $exception]

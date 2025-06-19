@@ -135,7 +135,8 @@
         "wikimedia/composer-merge-plugin": "^2.1",
         "php-di/php-di": "^7.0.1",
         "open-telemetry/sdk": "^1.0.0",
-        "psr/container": "^1.1.1|^2.0.1"
+        "psr/container": "^1.1.1|^2.0.1",
+        "psr/clock": "^1.0"
     },
     "require-dev": {
         "behat/behat": "^3.10",

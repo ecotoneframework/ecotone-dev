@@ -15,7 +15,9 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -61,6 +63,8 @@ class DbalTransactionModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
             array_map(fn (string $id) => new Reference($id), $connectionFactories),
             $dbalConfiguration->getDisabledTransactionsOnAsynchronousEndpointNames(),
+            new Reference(RetryRunner::class),
+            new Reference(LoggingGateway::class),
         ]);
 
         $messagingConfiguration

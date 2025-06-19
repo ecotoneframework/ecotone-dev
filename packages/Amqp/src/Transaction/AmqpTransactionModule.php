@@ -2,6 +2,7 @@
 
 namespace Ecotone\Amqp\Transaction;
 
+use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use function array_map;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
@@ -67,6 +68,7 @@ class AmqpTransactionModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(AmqpTransactionInterceptor::class, [
             array_map(fn (string $connectionFactory) => Reference::to($connectionFactory), $connectionFactories),
             Reference::to(LoggingGateway::class),
+            Reference::to(RetryRunner::class),
         ]);
 
         $messagingConfiguration

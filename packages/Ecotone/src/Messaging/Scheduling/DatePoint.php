@@ -46,7 +46,7 @@ class DatePoint extends DateTimeImmutable
     public static function createFromTimestamp(int|float $timestamp): static
     {
         if (\PHP_VERSION_ID >= 80400) {
-            // phpstan-ignore-next-line Call to an undefined static method
+            // @phpstan-ignore-next-line Call to an undefined static method
             return parent::createFromTimestamp($timestamp);
         }
 
@@ -130,14 +130,14 @@ class DatePoint extends DateTimeImmutable
             return $this->setTime(...explode('.', $this->format('H.i.s.'.$microsecond)));
         }
 
-        // phpstan-ignore-next-line Call to an undefined static method
+        // @phpstan-ignore-next-line Call to an undefined static method
         return parent::setMicrosecond($microsecond);
     }
 
     public function getMicrosecond(): int
     {
         if (\PHP_VERSION_ID >= 80400) {
-            // phpstan-ignore-next-line Call to an undefined static method
+            // @phpstan-ignore-next-line Call to an undefined static method
             return parent::getMicrosecond();
         }
 

@@ -30,7 +30,7 @@ class DatePoint extends DateTimeImmutable
      */
     public static function createFromFormat(string $format, string $datetime, ?\DateTimeZone $timezone = null): static
     {
-        return parent::createFromFormat($format, $datetime, $timezone) ?: throw new \DateMalformedStringException(static::getLastErrors()['errors'][0] ?? 'Invalid date string or format.');
+        return parent::createFromFormat($format, $datetime, $timezone);
     }
 
     public static function createFromInterface(\DateTimeInterface $object): static
@@ -54,7 +54,7 @@ class DatePoint extends DateTimeImmutable
         }
 
         if (!is_finite($timestamp) || \PHP_INT_MAX + 1.0 <= $timestamp || \PHP_INT_MIN > $timestamp) {
-            throw new \DateRangeError(\sprintf('DateTimeImmutable::createFromTimestamp(): Argument #1 ($timestamp) must be a finite number between %s and %s.999999, %s given', \PHP_INT_MIN, \PHP_INT_MAX, $timestamp));
+            throw new \InvalidArgumentException(\sprintf('DateTimeImmutable::createFromTimestamp(): Argument #1 ($timestamp) must be a finite number between %s and %s.999999, %s given', \PHP_INT_MIN, \PHP_INT_MAX, $timestamp));
         }
 
         if ($timestamp < 0) {
@@ -88,15 +88,8 @@ class DatePoint extends DateTimeImmutable
         return $this->unixTime()->sub($datePoint->unixTime());
     }
 
-    /**
-     * @throws \DateMalformedStringException When $modifier is invalid
-     */
     public function modify(string $modifier): static
     {
-        if (\PHP_VERSION_ID < 80300) {
-            return @parent::modify($modifier) ?: throw new \DateMalformedStringException(error_get_last()['message'] ?? \sprintf('Invalid modifier: "%s".', $modifier));
-        }
-
         return parent::modify($modifier);
     }
 
@@ -110,9 +103,9 @@ class DatePoint extends DateTimeImmutable
         return parent::setDate($year, $month, $day);
     }
 
-    public function setISODate(int $year, int $week, int $day = 1): static
+    public function setISODate(int $year, int $week, int $dayOfWeek = 1): static
     {
-        return parent::setISODate($year, $week, $day);
+        return parent::setISODate($year, $week, $dayOfWeek);
     }
 
     public function setTime(int $hour, int $minute, int $second = 0, int $microsecond = 0): static
@@ -127,15 +120,11 @@ class DatePoint extends DateTimeImmutable
 
     public function getTimezone(): \DateTimeZone
     {
-        return parent::getTimezone() ?: throw new \DateInvalidTimeZoneException('The DatePoint object has no timezone.');
+        return parent::getTimezone();
     }
 
     public function setMicrosecond(int $microsecond): static
     {
-        if ($microsecond < 0 || $microsecond > 999999) {
-            throw new \DateRangeError('DatePoint::setMicrosecond(): Argument #1 ($microsecond) must be between 0 and 999999, '.$microsecond.' given');
-        }
-
         if (\PHP_VERSION_ID < 80400) {
             return $this->setTime(...explode('.', $this->format('H.i.s.'.$microsecond)));
         }

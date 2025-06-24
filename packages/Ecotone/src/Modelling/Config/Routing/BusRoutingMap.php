@@ -67,7 +67,7 @@ class BusRoutingMap
     protected function resolveWithoutOptimization(string $routingKeyOrClass): array
     {
         $result = [];
-        $isObject = class_exists($routingKeyOrClass);
+        $isObject = class_exists($routingKeyOrClass) || \interface_exists($routingKeyOrClass);
 
         if ($isObject) {
             $className = $routingKeyOrClass;

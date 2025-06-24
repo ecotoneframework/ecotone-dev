@@ -6,10 +6,12 @@ namespace Test\Ecotone\Tempest\Fixture\Product;
 
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Tempest\Container\Singleton;
 
 /**
  * licence Apache-2.0
  */
+#[Singleton]
 final class ProductService
 {
     private static array $products = [];

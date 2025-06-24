@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\Event\TicketCreated;
@@ -25,11 +27,11 @@ final class TicketNotificationEventHandler
 
     #[Asynchronous('async')]
     #[EventHandler(endpointId: 'notify')]
-    public function notify(TicketCreated $event): void
+    public function notify(TicketCreated $event, EcotoneClockInterface $clock): void
     {
         $delay = array_shift($this->delays);
         if ($delay) {
-            sleep($delay);
+            $clock->sleep(Duration::seconds($delay));
         }
 
         $this->ticketNotifications[] = $event->getTicket();

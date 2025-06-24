@@ -138,7 +138,11 @@
         "php-di/php-di": "^7.0.1",
         "open-telemetry/sdk": "^1.0.0",
         "psr/container": "^1.1.1|^2.0.1",
+<<<<<<< HEAD
         "tempest/core": "v1.0.0-beta.1"
+=======
+        "psr/clock": "^1.0"
+>>>>>>> origin/main
     },
     "require-dev": {
         "behat/behat": "^3.10",

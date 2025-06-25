@@ -57,7 +57,13 @@ class PayloadConverter implements ParameterConverter
             )) {
                 $convertedData = $this->doConversion($data, $sourceTypeDescriptor, $sourceMediaType, $parameterType, $parameterMediaType);
             } elseif ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
-                $resolvedTargetParameterType = TypeDescriptor::create($message->getHeaders()->get(MessageHeaders::TYPE_ID));
+                $typeId = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
+                if (\class_exists($typeId) || \interface_exists($typeId)) {
+                    $resolvedTargetParameterType = TypeDescriptor::create($typeId);
+                } else {
+                    $className = $this->mapper?->mapNameToEventType($typeId);
+                    $resolvedTargetParameterType = TypeDescriptor::create($className ?? $typeId);
+                }
                 if ($this->canConvertParameter(
                     $sourceTypeDescriptor,
                     $sourceMediaType,

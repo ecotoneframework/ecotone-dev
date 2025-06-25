@@ -62,7 +62,17 @@ class AutoCollectionConversionService implements ConversionService
             throw ConversionException::create("Converter was not found for {$sourceMediaType}:{$sourcePHPType} to {$targetMediaType}:{$targetPHPType};");
         }
 
-        return $converter->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
+        $converted = $converter->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
+        $convertedType = TypeDescriptor::createFromVariable($converted);
+        if (! $convertedType->isCompatibleWith($targetPHPType) && \is_array($converted)) {
+            // If the converted value is an array, we can try to convert it to the target type
+            $converter = $this->getConverter($convertedType, $targetMediaType, $targetPHPType, $targetMediaType);
+            if (is_object($converter)) {
+                $converted = $converter->convert($converted, $convertedType, $targetMediaType, $targetPHPType, $targetMediaType);
+            }
+        }
+
+        return $converted;
     }
 
     public function canConvert(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool

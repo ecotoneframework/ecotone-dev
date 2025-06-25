@@ -13,7 +13,6 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;

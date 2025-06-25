@@ -12,9 +12,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Messaging\Scheduling\DateUtils;
 use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\NativeClock;
 
 /**
  * licence Apache-2.0

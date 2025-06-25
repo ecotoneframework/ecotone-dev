@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
+use function usleep;
+
 /**
  * Class UTCBasedClock
  * @package Ecotone\Messaging\Scheduling
@@ -14,7 +16,6 @@ namespace Ecotone\Messaging\Scheduling;
  */
 class NativeClock implements EcotoneClockInterface
 {
-
     /**
      * @inheritDoc
      */
@@ -32,6 +33,6 @@ class NativeClock implements EcotoneClockInterface
             return;
         }
 
-        \usleep($duration->inMicroseconds());
+        usleep($duration->inMicroseconds());
     }
 }

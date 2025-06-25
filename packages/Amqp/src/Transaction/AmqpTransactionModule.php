@@ -2,7 +2,6 @@
 
 namespace Ecotone\Amqp\Transaction;
 
-use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use function array_map;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
@@ -20,6 +19,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;

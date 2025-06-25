@@ -1,11 +1,25 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
 
 namespace Ecotone\Messaging\Scheduling;
 
+use DateInterval;
+use DateMalformedStringException;
+use DateTime;
 use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
+use InvalidArgumentException;
+
+use function is_int;
+
+use const PHP_INT_MAX;
+use const PHP_INT_MIN;
+
+use function sprintf;
 
 class DatePoint extends DateTimeImmutable
 {
@@ -26,46 +40,46 @@ class DatePoint extends DateTimeImmutable
     }
 
     /**
-     * @throws \DateMalformedStringException When $format or $datetime are invalid
+     * @throws DateMalformedStringException When $format or $datetime are invalid
      */
-    public static function createFromFormat(string $format, string $datetime, ?\DateTimeZone $timezone = null): static
+    public static function createFromFormat(string $format, string $datetime, ?DateTimeZone $timezone = null): static
     {
         return parent::createFromFormat($format, $datetime, $timezone);
     }
 
-    public static function createFromInterface(\DateTimeInterface $object): static
+    public static function createFromInterface(DateTimeInterface $object): static
     {
         return parent::createFromInterface($object);
     }
 
-    public static function createFromMutable(\DateTime $object): static
+    public static function createFromMutable(DateTime $object): static
     {
         return parent::createFromMutable($object);
     }
 
     public static function createFromTimestamp(int|float $timestamp): static
     {
-//        Not passing phpstan check
-//        if (\PHP_VERSION_ID >= 80400) {
-//            return parent::createFromTimestamp($timestamp);
-//        }
+        //        Not passing phpstan check
+        //        if (\PHP_VERSION_ID >= 80400) {
+        //            return parent::createFromTimestamp($timestamp);
+        //        }
 
-        if (\is_int($timestamp) || !$ms = (int) $timestamp - $timestamp) {
+        if (is_int($timestamp) || ! $ms = (int) $timestamp - $timestamp) {
             return static::createFromFormat('U', (string) $timestamp);
         }
 
-        if (!is_finite($timestamp) || \PHP_INT_MAX + 1.0 <= $timestamp || \PHP_INT_MIN > $timestamp) {
-            throw new \InvalidArgumentException(\sprintf('DateTimeImmutable::createFromTimestamp(): Argument #1 ($timestamp) must be a finite number between %s and %s.999999, %s given', \PHP_INT_MIN, \PHP_INT_MAX, $timestamp));
+        if (! is_finite($timestamp) || PHP_INT_MAX + 1.0 <= $timestamp || PHP_INT_MIN > $timestamp) {
+            throw new InvalidArgumentException(sprintf('DateTimeImmutable::createFromTimestamp(): Argument #1 ($timestamp) must be a finite number between %s and %s.999999, %s given', PHP_INT_MIN, PHP_INT_MAX, $timestamp));
         }
 
         if ($timestamp < 0) {
             $timestamp = (int) $timestamp - 2.0 + $ms;
         }
 
-        return static::createFromFormat('U.u', \sprintf('%.6F', $timestamp));
+        return static::createFromFormat('U.u', sprintf('%.6F', $timestamp));
     }
 
-    public function add(\DateInterval|Duration $interval): static
+    public function add(DateInterval|Duration $interval): static
     {
         if ($interval instanceof Duration) {
             return $this->setUnixTime($this->unixTime()->add($interval));
@@ -74,7 +88,7 @@ class DatePoint extends DateTimeImmutable
         }
     }
 
-    public function sub(\DateInterval|Duration $interval): static
+    public function sub(DateInterval|Duration $interval): static
     {
         if ($interval instanceof Duration) {
             return $this->setUnixTime($this->unixTime()->sub($interval));
@@ -83,7 +97,7 @@ class DatePoint extends DateTimeImmutable
         }
     }
 
-    public function durationSince(\DateTimeInterface $datePoint): Duration
+    public function durationSince(DateTimeInterface $datePoint): Duration
     {
         $datePoint = $datePoint instanceof DatePoint ? $datePoint : DatePoint::createFromInterface($datePoint);
         return $this->unixTime()->sub($datePoint->unixTime());
@@ -114,32 +128,32 @@ class DatePoint extends DateTimeImmutable
         return parent::setTime($hour, $minute, $second, $microsecond);
     }
 
-    public function setTimezone(\DateTimeZone $timezone): static
+    public function setTimezone(DateTimeZone $timezone): static
     {
         return parent::setTimezone($timezone);
     }
 
-    public function getTimezone(): \DateTimeZone
+    public function getTimezone(): DateTimeZone
     {
         return parent::getTimezone();
     }
 
     public function setMicrosecond(int $microsecond): static
     {
-//        Not passing phpstan check
-//        if (\PHP_VERSION_ID >= 80400) {
-//            return parent::setMicrosecond($microsecond);
-//        }
+        //        Not passing phpstan check
+        //        if (\PHP_VERSION_ID >= 80400) {
+        //            return parent::setMicrosecond($microsecond);
+        //        }
 
         return $this->setTime(...explode('.', $this->format('H.i.s.'.$microsecond)));
     }
 
     public function getMicrosecond(): int
     {
-//        Not passing phpstan check
-//        if (\PHP_VERSION_ID >= 80400) {
-//            return parent::getMicrosecond();
-//        }
+        //        Not passing phpstan check
+        //        if (\PHP_VERSION_ID >= 80400) {
+        //            return parent::getMicrosecond();
+        //        }
 
         return (int) $this->format('u');
     }

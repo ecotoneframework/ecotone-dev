@@ -10,8 +10,8 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\MessagePoller;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\CronTrigger;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\PeriodicTrigger;
 use Ecotone\Messaging\Scheduling\SyncTaskScheduler;
 

@@ -6,8 +6,6 @@ use DateTimeImmutable;
 use Ecotone\Messaging\Channel\DelayableQueueChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Messaging\Scheduling\DateUtils;
-use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\MessageBuilder;
 use PHPUnit\Framework\TestCase;

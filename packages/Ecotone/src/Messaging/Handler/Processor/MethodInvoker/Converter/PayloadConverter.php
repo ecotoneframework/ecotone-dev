@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
+use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -14,6 +15,7 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Modelling\Config\MessageBusChannel;
 
 /**
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
@@ -24,13 +26,8 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 class PayloadConverter implements ParameterConverter
 {
-    public function __construct(private ConversionService $conversionService, private string $interfaceName, private string $parameterName, private Type $targetType)
+    public function __construct(private ConversionService $conversionService, private ?EventMapper $mapper, private string $interfaceName, private string $parameterName, private Type $targetType)
     {
-    }
-
-    public static function create(ConversionService $conversionService, InterfaceParameter $interfaceParameter): PayloadConverter
-    {
-        return new self($conversionService, '', $interfaceParameter->getName(), $interfaceParameter->getTypeDescriptor());
     }
 
     /**
@@ -69,6 +66,22 @@ class PayloadConverter implements ParameterConverter
                 )
                 ) {
                     $convertedData = $this->doConversion($data, $sourceTypeDescriptor, $sourceMediaType, $resolvedTargetParameterType, $parameterMediaType);
+                }
+            } elseif ($this->mapper && $message->getHeaders()->containsKey(MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME)) {
+                $messageName = $message->getHeaders()->get(MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME);
+                $className = $this->mapper->mapNameToEventType($messageName);
+                if (\class_exists($className) || \interface_exists($className)) {
+                    $resolvedTargetParameterType = TypeDescriptor::create($className);
+
+                    if ($this->canConvertParameter(
+                        $sourceTypeDescriptor,
+                        $sourceMediaType,
+                        $resolvedTargetParameterType,
+                        $parameterMediaType
+                    )
+                    ) {
+                        $convertedData = $this->doConversion($data, $sourceTypeDescriptor, $sourceMediaType, $resolvedTargetParameterType, $parameterMediaType);
+                    }
                 }
             }
 

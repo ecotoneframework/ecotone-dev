@@ -64,8 +64,9 @@ class AutoCollectionConversionService implements ConversionService
 
         $converted = $converter->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
         $convertedType = TypeDescriptor::createFromVariable($converted);
-        if (! $convertedType->isCompatibleWith($targetPHPType) && \is_array($converted)) {
-            // If the converted value is an array, we can try to convert it to the target type
+        // Some converters (eg. DeserializingConverter) may return a value that is not compatible with the target type,
+        // so we try to convert it again, from the new media type and PHP type.
+        if (! $convertedType->isCompatibleWith($targetPHPType)) {
             $converter = $this->getConverter($convertedType, $targetMediaType, $targetPHPType, $targetMediaType);
             if (is_object($converter)) {
                 $converted = $converter->convert($converted, $convertedType, $targetMediaType, $targetPHPType, $targetMediaType);

@@ -421,6 +421,8 @@ final class MessagingSystemConfiguration implements Configuration
                     $this->registerMessageHandler(
                         UninterruptibleServiceActivator::create(
                             HeaderEnricher::create([
+                                MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME => null,
+                                MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME => null,
                                 MessageHeaders::ROUTING_SLIP => implode(',', $consequentialChannels),
                             ]),
                             'transform',

@@ -8,14 +8,12 @@ use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Config\MessageBusChannel;
 
 /**
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
@@ -57,13 +55,8 @@ class PayloadConverter implements ParameterConverter
             )) {
                 $convertedData = $this->doConversion($data, $sourceTypeDescriptor, $sourceMediaType, $parameterType, $parameterMediaType);
             } elseif ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
-                $typeId = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
-                if (\class_exists($typeId) || \interface_exists($typeId)) {
-                    $resolvedTargetParameterType = TypeDescriptor::create($typeId);
-                } else {
-                    $className = $this->mapper?->mapNameToEventType($typeId);
-                    $resolvedTargetParameterType = TypeDescriptor::create($className ?? $typeId);
-                }
+                $typeHeader = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
+                $resolvedTargetParameterType = TypeDescriptor::create($this->mapper?->mapNameToEventType($typeHeader) ?? $typeHeader);
                 if ($this->canConvertParameter(
                     $sourceTypeDescriptor,
                     $sourceMediaType,
@@ -72,22 +65,6 @@ class PayloadConverter implements ParameterConverter
                 )
                 ) {
                     $convertedData = $this->doConversion($data, $sourceTypeDescriptor, $sourceMediaType, $resolvedTargetParameterType, $parameterMediaType);
-                }
-            } elseif ($this->mapper && $message->getHeaders()->containsKey(MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME)) {
-                $messageName = $message->getHeaders()->get(MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME);
-                $className = $this->mapper->mapNameToEventType($messageName);
-                if (\class_exists($className) || \interface_exists($className)) {
-                    $resolvedTargetParameterType = TypeDescriptor::create($className);
-
-                    if ($this->canConvertParameter(
-                        $sourceTypeDescriptor,
-                        $sourceMediaType,
-                        $resolvedTargetParameterType,
-                        $parameterMediaType
-                    )
-                    ) {
-                        $convertedData = $this->doConversion($data, $sourceTypeDescriptor, $sourceMediaType, $resolvedTargetParameterType, $parameterMediaType);
-                    }
                 }
             }
 

@@ -13,7 +13,6 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Modelling\Config\MessageBusChannel;
 
 /**
  * licence Apache-2.0
@@ -68,9 +67,7 @@ class OutboundMessageConverter
                     $targetType,
                     $targetConversionMediaType
                 )) {
-                    if (! \is_object($messagePayload) && $messageToConvert->getHeaders()->containsKey(MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME)) {
-                        $applicationHeaders[MessageHeaders::TYPE_ID] = $messageToConvert->getHeaders()->get(MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME);
-                    } else {
+                    if (! isset($applicationHeaders[MessageHeaders::TYPE_ID])) {
                         $applicationHeaders[MessageHeaders::TYPE_ID] = TypeDescriptor::createFromVariable($messagePayload)->toString();
                     }
                     $messagePayload = $conversionService->convert(

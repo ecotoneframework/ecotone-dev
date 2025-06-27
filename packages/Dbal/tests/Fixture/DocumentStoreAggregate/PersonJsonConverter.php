@@ -32,6 +32,9 @@ final class PersonJsonConverter implements Converter
 
     public function matches(TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType): bool
     {
-        return true;
+        return ($sourceType->getTypeHint() === Person::class
+                && $targetMediaType->isCompatibleWith(MediaType::createApplicationJson()))
+            || ($sourceMediaType->isCompatibleWith(MediaType::createApplicationJson())
+                && $targetType->getTypeHint() === Person::class);
     }
 }

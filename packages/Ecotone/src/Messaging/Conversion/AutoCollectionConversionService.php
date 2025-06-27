@@ -66,10 +66,11 @@ class AutoCollectionConversionService implements ConversionService
         $convertedType = TypeDescriptor::createFromVariable($converted);
         // Some converters (eg. DeserializingConverter) may return a value that is not compatible with the target type,
         // so we try to convert it again, from the new media type and PHP type.
-        if (! $convertedType->isCompatibleWith($targetPHPType)) {
-            $converter = $this->getConverter($convertedType, $targetMediaType, $targetPHPType, $targetMediaType);
+        if (! $convertedType->isCompatibleWith($targetPHPType) && $targetMediaType->isCompatibleWith(MediaType::createApplicationXPHP())) {
+            $sourceMediaType = MediaType::createApplicationXPHPWithTypeParameter($convertedType->getTypeHint());
+            $converter = $this->getConverter($convertedType, $sourceMediaType, $targetPHPType, $targetMediaType);
             if (is_object($converter)) {
-                $converted = $converter->convert($converted, $convertedType, $targetMediaType, $targetPHPType, $targetMediaType);
+                $converted = $converter->convert($converted, $convertedType, $sourceMediaType, $targetPHPType, $targetMediaType);
             }
         }
 

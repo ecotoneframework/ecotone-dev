@@ -32,10 +32,9 @@ final class EcotoneInitializer implements Initializer
         $configurationVariableService = new TempestConfigurationVariableService();
         
         // Configure Ecotone service configuration
-        $loadCatalog = $environment === 'test' ? 'tests' : 'src';
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
-            ->withLoadCatalog($loadCatalog) // Load from tests directory for testing
+            ->withLoadCatalog('app') // Load from tests directory for testing
             ->withFailFast(false)
             ->withNamespaces(['Test\\Ecotone\\Tempest\\Fixture']) // Include test fixtures for testing
             ->withSkippedModulePackageNames([]);

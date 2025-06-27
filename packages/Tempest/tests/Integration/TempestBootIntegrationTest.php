@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Integration;
 
+use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\QueryBus;
+use Ecotone\Tempest\EcotoneTempestConfiguration;
 use PHPUnit\Framework\TestCase;
-use Tempest\Console\ConsoleApplication;
-use Tempest\Console\ExitCode;
-use Tempest\Console\Input\ConsoleArgumentBag;
-use Tempest\Core\AppConfig;
-use Tempest\Core\Environment;
+use Tempest\Core\Tempest;
 use Tempest\Discovery\DiscoveryLocation;
+use Test\Ecotone\Tempest\Fixture\Order\GetOrder;
+use Test\Ecotone\Tempest\Fixture\Order\Order;
 use Test\Ecotone\Tempest\Fixture\Order\OrderService;
+use Test\Ecotone\Tempest\Fixture\Order\PlaceOrder;
+use Test\Ecotone\Tempest\Fixture\Product\GetProduct;
+use Test\Ecotone\Tempest\Fixture\Product\Product;
 use Test\Ecotone\Tempest\Fixture\Product\ProductService;
+use Test\Ecotone\Tempest\Fixture\Product\RegisterProduct;
 
 /**
  * @internal
@@ -20,187 +25,113 @@ use Test\Ecotone\Tempest\Fixture\Product\ProductService;
  */
 final class TempestBootIntegrationTest extends TestCase
 {
+    private \Tempest\Container\Container $container;
+
     protected function setUp(): void
     {
-        parent::setUp();
-        
-        // Reset test data before each test
-        OrderService::reset();
-        ProductService::reset();
-    }
-
-    public function test_ecotone_integration_through_tempest_console_application_boot(): void
-    {
-        // This test verifies that Ecotone integration works through proper Tempest application bootstrap
-        // We use the manual execution approach since the full console run would exit the process
-
+        // Create discovery locations that include our test fixtures and Ecotone integration
         $discoveryLocations = [
+            EcotoneTempestConfiguration::getDiscoveryPaths(),
             new DiscoveryLocation('Test\\Ecotone\\Tempest\\Fixture\\', __DIR__ . '/../Fixture/'),
-            new DiscoveryLocation('Ecotone\\Tempest\\', __DIR__ . '/../../src/'),
         ];
 
-        // Boot the Tempest console application with proper discovery
-        $consoleApp = ConsoleApplication::boot(
-            name: 'Tempest Test',
-            root: __DIR__ . '/../../',
-            discoveryLocations: $discoveryLocations
-        );
-
-        // Get the container
-        $reflection = new \ReflectionClass($consoleApp);
-        $containerProperty = $reflection->getProperty('container');
-        $containerProperty->setAccessible(true);
-        $container = $containerProperty->getValue($consoleApp);
+        // Boot Tempest directly to get the container
+        $this->container = Tempest::boot(__DIR__ . '/../../', $discoveryLocations);
 
         // Manually register the services if they're not discovered automatically
-        if (!$container->has(\Test\Ecotone\Tempest\Fixture\Order\OrderService::class)) {
-            $container->singleton(\Test\Ecotone\Tempest\Fixture\Order\OrderService::class, new \Test\Ecotone\Tempest\Fixture\Order\OrderService());
+        if (!$this->container->has(OrderService::class)) {
+            $this->container->singleton(OrderService::class, new OrderService());
         }
 
-        if (!$container->has(\Test\Ecotone\Tempest\Fixture\Product\ProductService::class)) {
-            $container->singleton(\Test\Ecotone\Tempest\Fixture\Product\ProductService::class, new \Test\Ecotone\Tempest\Fixture\Product\ProductService());
+        if (!$this->container->has(ProductService::class)) {
+            $this->container->singleton(ProductService::class, new ProductService());
         }
-
-        // Debug: Check if Ecotone services are available
-        $hasMessagingSystem = $container->has(\Ecotone\Messaging\Config\ConfiguredMessagingSystem::class);
-        $hasCommandBus = $container->has(\Ecotone\Modelling\CommandBus::class);
-        $hasQueryBus = $container->has(\Ecotone\Modelling\QueryBus::class);
-
-        // If Ecotone services are not available, this means the integration is not working properly
-        // In a real application, these should be automatically discovered and registered
-        if (!$hasMessagingSystem || !$hasCommandBus || !$hasQueryBus) {
-            $this->markTestSkipped('Ecotone services not automatically discovered - this indicates the integration needs improvement');
-        }
-
-        // Verify that Ecotone services are properly registered through the boot process
-        $this->assertTrue($hasMessagingSystem);
-        $this->assertTrue($hasCommandBus);
-        $this->assertTrue($hasQueryBus);
-
-        // Get the integration test command and execute it
-        $command = $container->get(\Test\Ecotone\Tempest\Fixture\Console\EcotoneIntegrationTestCommand::class);
-        $this->assertInstanceOf(\Test\Ecotone\Tempest\Fixture\Console\EcotoneIntegrationTestCommand::class, $command);
-
-        // Execute the command and verify it succeeds
-        $exitCode = $command();
-        $this->assertEquals(ExitCode::SUCCESS, $exitCode, 'Integration test should pass when run through proper Tempest boot');
     }
 
-    public function test_ecotone_integration_with_manual_console_execution(): void
+    public function test_ecotone_messaging_system_is_available(): void
     {
-        // Alternative approach: manually execute the command without full application exit
-        $discoveryLocations = [
-            new DiscoveryLocation('Test\\Ecotone\\Tempest\\Fixture\\', __DIR__ . '/../Fixture/'),
-            new DiscoveryLocation('Ecotone\\Tempest\\', __DIR__ . '/../../src/'),
-        ];
-
-        // Boot the application
-        $consoleApp = ConsoleApplication::boot(
-            name: 'Tempest Test',
-            root: __DIR__ . '/../../',
-            discoveryLocations: $discoveryLocations
+        $this->assertInstanceOf(
+            \Ecotone\Messaging\Config\ConfiguredMessagingSystem::class,
+            $this->container->get(\Ecotone\Messaging\Config\ConfiguredMessagingSystem::class)
         );
-
-        // Get the container to access our command directly
-        $container = $consoleApp->container ?? null;
-
-        if ($container === null) {
-            // Try to access container through reflection if not public
-            $reflection = new \ReflectionClass($consoleApp);
-            $containerProperty = $reflection->getProperty('container');
-            $containerProperty->setAccessible(true);
-            $container = $containerProperty->getValue($consoleApp);
-        }
-
-        $this->assertNotNull($container, 'Container should be available');
-
-        // Debug: Check what services are available
-        try {
-            $messagingSystem = $container->get(\Ecotone\Messaging\Config\ConfiguredMessagingSystem::class);
-            $this->assertInstanceOf(\Ecotone\Messaging\Config\ConfiguredMessagingSystem::class, $messagingSystem);
-        } catch (\Throwable $e) {
-            $this->fail('ConfiguredMessagingSystem not available: ' . $e->getMessage());
-        }
-
-        try {
-            $commandBus = $container->get(\Ecotone\Modelling\CommandBus::class);
-            $this->assertInstanceOf(\Ecotone\Modelling\CommandBus::class, $commandBus);
-        } catch (\Throwable $e) {
-            $this->fail('CommandBus not available: ' . $e->getMessage());
-        }
-
-        try {
-            $queryBus = $container->get(\Ecotone\Modelling\QueryBus::class);
-            $this->assertInstanceOf(\Ecotone\Modelling\QueryBus::class, $queryBus);
-        } catch (\Throwable $e) {
-            $this->fail('QueryBus not available: ' . $e->getMessage());
-        }
-
-        // Try to manually register the services if they're not found
-        if (!$container->has(\Test\Ecotone\Tempest\Fixture\Order\OrderService::class)) {
-            $container->singleton(\Test\Ecotone\Tempest\Fixture\Order\OrderService::class, new \Test\Ecotone\Tempest\Fixture\Order\OrderService());
-        }
-
-        if (!$container->has(\Test\Ecotone\Tempest\Fixture\Product\ProductService::class)) {
-            $container->singleton(\Test\Ecotone\Tempest\Fixture\Product\ProductService::class, new \Test\Ecotone\Tempest\Fixture\Product\ProductService());
-        }
-
-        // Get the command and execute it manually
-        $command = $container->get(\Test\Ecotone\Tempest\Fixture\Console\EcotoneIntegrationTestCommand::class);
-        $this->assertInstanceOf(\Test\Ecotone\Tempest\Fixture\Console\EcotoneIntegrationTestCommand::class, $command);
-
-        // Execute the command
-        $exitCode = $command();
-
-        $this->assertEquals(ExitCode::SUCCESS, $exitCode, 'Integration test command should return success exit code');
     }
 
-    public function test_ecotone_services_are_discoverable_through_tempest_boot(): void
+    public function test_ecotone_command_bus_is_available(): void
     {
-        // Test that Ecotone services are properly discovered and registered when booting Tempest
-        $discoveryLocations = [
-            new DiscoveryLocation('Test\\Ecotone\\Tempest\\Fixture\\', __DIR__ . '/../Fixture/'),
-            new DiscoveryLocation('Ecotone\\Tempest\\', __DIR__ . '/../../src/'),
-        ];
-
-        $consoleApp = ConsoleApplication::boot(
-            name: 'Tempest Test',
-            root: __DIR__ . '/../../',
-            discoveryLocations: $discoveryLocations
+        $this->assertInstanceOf(
+            CommandBus::class,
+            $this->container->get(CommandBus::class)
         );
-
-        // Access container
-        $reflection = new \ReflectionClass($consoleApp);
-        $containerProperty = $reflection->getProperty('container');
-        $containerProperty->setAccessible(true);
-        $container = $containerProperty->getValue($consoleApp);
-
-        // Check if Ecotone services are available
-        $hasMessagingSystem = $container->has(\Ecotone\Messaging\Config\ConfiguredMessagingSystem::class);
-        $hasCommandBus = $container->has(\Ecotone\Modelling\CommandBus::class);
-        $hasQueryBus = $container->has(\Ecotone\Modelling\QueryBus::class);
-
-        if (!$hasMessagingSystem || !$hasCommandBus || !$hasQueryBus) {
-            $this->markTestSkipped('Ecotone services not automatically discovered through Tempest boot - integration needs improvement');
-        }
-
-        // Verify Ecotone core services are available
-        $this->assertTrue($hasMessagingSystem);
-
-        $messagingSystem = $container->get(\Ecotone\Messaging\Config\ConfiguredMessagingSystem::class);
-        $this->assertInstanceOf(\Ecotone\Messaging\Config\ConfiguredMessagingSystem::class, $messagingSystem);
-
-        // Verify buses are available
-        $this->assertTrue($hasCommandBus);
-        $this->assertTrue($hasQueryBus);
-
-        $commandBus = $container->get(\Ecotone\Modelling\CommandBus::class);
-        $queryBus = $container->get(\Ecotone\Modelling\QueryBus::class);
-
-        $this->assertInstanceOf(\Ecotone\Modelling\CommandBus::class, $commandBus);
-        $this->assertInstanceOf(\Ecotone\Modelling\QueryBus::class, $queryBus);
-
-        // Note: Test services may not be automatically discovered in this test setup
-        // This is expected as they require proper namespace configuration
     }
+
+    public function test_ecotone_query_bus_is_available(): void
+    {
+        $this->assertInstanceOf(
+            QueryBus::class,
+            $this->container->get(QueryBus::class)
+        );
+    }
+
+    public function test_ecotone_command_bus_works(): void
+    {
+        /** @var CommandBus $commandBus */
+        $commandBus = $this->container->get(CommandBus::class);
+
+        // Send command through Ecotone's CommandBus
+        $commandBus->send(new PlaceOrder('user123', ['product1', 'product2']));
+
+        // Verify command was handled
+        $orders = OrderService::getOrders();
+        $this->assertCount(1, $orders);
+
+        $order = array_values($orders)[0];
+        $this->assertInstanceOf(Order::class, $order);
+        $this->assertEquals('user123', $order->userId);
+        $this->assertEquals(['product1', 'product2'], $order->productIds);
+    }
+
+    public function test_ecotone_query_bus_works(): void
+    {
+        /** @var CommandBus $commandBus */
+        $commandBus = $this->container->get(CommandBus::class);
+        /** @var QueryBus $queryBus */
+        $queryBus = $this->container->get(QueryBus::class);
+
+        // First register a product
+        $commandBus->send(new RegisterProduct('prod123', 'Test Product', 99.99));
+
+        // Query for the product using Ecotone's QueryBus
+        $product = $queryBus->send(new GetProduct('prod123'));
+
+        $this->assertInstanceOf(Product::class, $product);
+        $this->assertEquals('prod123', $product->productId);
+        $this->assertEquals('Test Product', $product->name);
+        $this->assertEquals(99.99, $product->price);
+    }
+
+    public function test_command_and_query_integration(): void
+    {
+        /** @var CommandBus $commandBus */
+        $commandBus = $this->container->get(CommandBus::class);
+        /** @var QueryBus $queryBus */
+        $queryBus = $this->container->get(QueryBus::class);
+
+        // Place an order
+        $commandBus->send(new PlaceOrder('user456', ['product3']));
+
+        // Get the order ID from the stored orders
+        $orders = OrderService::getOrders();
+        $this->assertCount(1, $orders);
+
+        $orderId = array_keys($orders)[0];
+
+        // Query for the order
+        $order = $queryBus->send(new GetOrder($orderId));
+
+        $this->assertInstanceOf(Order::class, $order);
+        $this->assertEquals('user456', $order->userId);
+        $this->assertEquals(['product3'], $order->productIds);
+    }
+
+
 }

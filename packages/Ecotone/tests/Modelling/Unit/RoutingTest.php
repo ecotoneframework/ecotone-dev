@@ -79,7 +79,7 @@ class RoutingTest extends TestCase
             classesToResolve: [$handler::class, GuestWasAddedToBook::class, GuestWasAddedToBookConverter::class],
             containerOrAvailableServices: [$handler, new GuestWasAddedToBookConverter()],
             enableAsynchronousProcessing:  $async ? [
-                SimpleMessageChannelBuilder::createQueueChannel(RoutingTestHandler::ASYNC_CHANNEL),
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
             ] : null
         );
 

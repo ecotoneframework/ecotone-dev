@@ -32,9 +32,10 @@ final class EcotoneInitializer implements Initializer
         $configurationVariableService = new TempestConfigurationVariableService();
         
         // Configure Ecotone service configuration
+        $loadCatalog = $environment === 'test' ? 'tests' : 'src';
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
-            ->withLoadCatalog('app') // Load from tests directory for testing
+            ->withLoadCatalog($loadCatalog) // Load from tests directory for testing
             ->withFailFast(false)
             ->withNamespaces(['Test\\Ecotone\\Tempest\\Fixture']) // Include test fixtures for testing
             ->withSkippedModulePackageNames([]);
@@ -61,6 +62,18 @@ final class EcotoneInitializer implements Initializer
         $containerAdapter = new TempestContainerAdapter($container);
 
         // Build and configure the messaging system
-        return $messagingConfiguration->buildMessagingSystemFromConfiguration($containerAdapter);
+        $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration($containerAdapter);
+
+        // Register all Ecotone Gateways (Business Interfaces) in the Tempest container
+        $registeredGateways = $messagingConfiguration->getRegisteredGateways();
+        foreach ($registeredGateways as $gatewayReference) {
+            $gatewayClass = $gatewayReference->getReferenceName();
+            if (interface_exists($gatewayClass)) {
+                // Register the gateway interface in the container
+                $container->singleton($gatewayClass, fn() => $messagingSystem->getGatewayByName($gatewayClass));
+            }
+        }
+
+        return $messagingSystem;
     }
 }

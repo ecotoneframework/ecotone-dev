@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\BusinessInterface;
 
-use Ecotone\Modelling\Attribute\BusinessMethod;
+use Ecotone\Messaging\Attribute\BusinessMethod;
 
 /**
  * Business Interface for Ticket operations

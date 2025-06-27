@@ -13,7 +13,7 @@ use Ecotone\Tempest\Configuration\TempestConfigurationVariableService;
 use Ecotone\Tempest\Container\CommandBusInitializer;
 use Ecotone\Tempest\Container\EcotoneInitializer;
 use Ecotone\Tempest\Container\EventBusInitializer;
-use Ecotone\Tempest\Container\QueryBusInitializer;
+use Ecotone\Tempest\Container\GatewayInitializer;
 use Tempest\Container\Container;
 use Tempest\Core\KernelEvent;
 use Tempest\EventBus\EventHandler;

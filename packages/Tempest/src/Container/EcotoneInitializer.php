@@ -30,14 +30,17 @@ final class EcotoneInitializer implements Initializer
         
         // Create configuration variable service
         $configurationVariableService = new TempestConfigurationVariableService();
-        
+
         // Configure Ecotone service configuration
         $loadCatalog = $environment === 'test' ? 'tests' : 'src';
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
             ->withLoadCatalog($loadCatalog) // Load from tests directory for testing
             ->withFailFast(false)
-            ->withNamespaces(['Test\\Ecotone\\Tempest\\Fixture']) // Include test fixtures for testing
+            ->withNamespaces([
+                'Test\\Ecotone\\Tempest\\Fixture',
+                'Test\\Ecotone\\Tempest\\Fixture\\BusinessInterface'
+            ]) // Include test fixtures for testing
             ->withSkippedModulePackageNames([]);
 
         // Create annotation finder for discovery
@@ -58,22 +61,8 @@ final class EcotoneInitializer implements Initializer
             enableTestPackage: $environment === 'test'
         );
 
-        // Create container adapter
-        $containerAdapter = new TempestContainerAdapter($container);
-
-        // Build and configure the messaging system
-        $messagingSystem = $messagingConfiguration->buildMessagingSystemFromConfiguration($containerAdapter);
-
-        // Register all Ecotone Gateways (Business Interfaces) in the Tempest container
-        $registeredGateways = $messagingConfiguration->getRegisteredGateways();
-        foreach ($registeredGateways as $gatewayReference) {
-            $gatewayClass = $gatewayReference->getReferenceName();
-            if (interface_exists($gatewayClass)) {
-                // Register the gateway interface in the container
-                $container->singleton($gatewayClass, fn() => $messagingSystem->getGatewayByName($gatewayClass));
-            }
-        }
-
-        return $messagingSystem;
+        return $messagingConfiguration->buildMessagingSystemFromConfiguration(
+            new TempestContainerAdapter($container)
+        );
     }
 }

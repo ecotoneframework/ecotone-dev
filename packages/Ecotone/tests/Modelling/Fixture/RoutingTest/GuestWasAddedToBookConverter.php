@@ -4,9 +4,10 @@
  */
 declare(strict_types=1);
 
-namespace Test\Ecotone\Modelling\Fixture\NamedEvent;
+namespace Test\Ecotone\Modelling\Fixture\RoutingTest;
 
 use Ecotone\Messaging\Attribute\Converter;
+use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestWasAddedToBook;
 
 class GuestWasAddedToBookConverter
 {

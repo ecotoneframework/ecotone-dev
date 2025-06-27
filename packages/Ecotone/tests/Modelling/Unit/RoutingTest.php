@@ -13,7 +13,7 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestWasAddedToBook;
-use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestWasAddedToBookConverter;
+use Test\Ecotone\Modelling\Fixture\RoutingTest\GuestWasAddedToBookConverter;
 use Test\Ecotone\Modelling\Fixture\RoutingTest\RoutingTestHandler;
 
 class RoutingTest extends TestCase

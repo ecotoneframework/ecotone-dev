@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -16,12 +17,15 @@ use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestWasAddedToBook;
 use Test\Ecotone\Modelling\Fixture\RoutingTest\GuestWasAddedToBookConverter;
 use Test\Ecotone\Modelling\Fixture\RoutingTest\RoutingTestHandler;
 
+/**
+ * @internal
+ */
 class RoutingTest extends TestCase
 {
-    const ASYNC_CHANNEL = 'async';
+    public const ASYNC_CHANNEL = 'async';
     public static function handlerCases(): iterable
     {
-        yield 'class' => new class extends RoutingTestHandler {
+        yield 'class' => new class () extends RoutingTestHandler {
             #[EventHandler(listenTo: GuestWasAddedToBook::EVENT_NAME, endpointId: 'async_class')]
             #[Asynchronous('async')]
             public function handleAsync(GuestWasAddedToBook $message): void
@@ -30,7 +34,7 @@ class RoutingTest extends TestCase
             }
         };
 
-        yield 'object' => new class extends RoutingTestHandler {
+        yield 'object' => new class () extends RoutingTestHandler {
             #[EventHandler(listenTo: GuestWasAddedToBook::EVENT_NAME, endpointId: 'async_object')]
             #[Asynchronous('async')]
             public function handleAsyncCatchAll(object $message): void
@@ -39,7 +43,7 @@ class RoutingTest extends TestCase
             }
         };
 
-        yield 'array' => new class extends RoutingTestHandler {
+        yield 'array' => new class () extends RoutingTestHandler {
             #[EventHandler(listenTo: GuestWasAddedToBook::EVENT_NAME, endpointId: 'async_array')]
             #[Asynchronous('async')]
             public function handleAsyncArray(array $message): void

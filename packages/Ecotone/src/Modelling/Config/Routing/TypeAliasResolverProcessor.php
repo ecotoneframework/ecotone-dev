@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -10,6 +11,8 @@ use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
+
+use function is_object;
 
 class TypeAliasResolverProcessor implements MessageProcessor
 {
@@ -32,7 +35,7 @@ class TypeAliasResolverProcessor implements MessageProcessor
             }
         }
 
-        if(\is_object($message->getPayload())) {
+        if (is_object($message->getPayload())) {
             return MessageBuilder::fromMessage($message)
                 ->setHeader(MessageHeaders::TYPE_ID, get_class($message->getPayload()))
                 ->build();

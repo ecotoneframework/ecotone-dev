@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -8,5 +9,4 @@ namespace Test\Ecotone\Modelling\Fixture\EmailNotifier;
 
 interface EmailNotification
 {
-
 }

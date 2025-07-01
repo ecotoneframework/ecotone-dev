@@ -12,9 +12,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Messaging\Scheduling\DateUtils;
 use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\NativeClock;
 
 /**
  * licence Apache-2.0
@@ -69,7 +67,9 @@ class OutboundMessageConverter
                     $targetType,
                     $targetConversionMediaType
                 )) {
-                    $applicationHeaders[MessageHeaders::TYPE_ID] = TypeDescriptor::createFromVariable($messagePayload)->toString();
+                    if (! isset($applicationHeaders[MessageHeaders::TYPE_ID])) {
+                        $applicationHeaders[MessageHeaders::TYPE_ID] = TypeDescriptor::createFromVariable($messagePayload)->toString();
+                    }
                     $messagePayload = $conversionService->convert(
                         $messagePayload,
                         $sourceType,

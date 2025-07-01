@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -8,7 +9,7 @@ namespace Ecotone\Messaging\Scheduling;
 
 trait ClockTrait
 {
-    abstract function usleep(int $microseconds): void;
+    abstract public function usleep(int $microseconds): void;
 
     public function sleep(Duration $duration): void
     {

@@ -4,20 +4,14 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint;
 
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Config\Container\DefinedObject;
-use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\Precedence;
 use Exception;
 use Throwable;
 

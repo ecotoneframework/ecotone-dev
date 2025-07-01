@@ -11,9 +11,6 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Messaging\Scheduling\DateUtils;
-use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\MessageBuilder;
 

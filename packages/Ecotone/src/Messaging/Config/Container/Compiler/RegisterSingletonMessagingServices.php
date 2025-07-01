@@ -21,7 +21,6 @@ use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
-use Ecotone\Messaging\Scheduling\NativeClock;
 use Psr\Clock\ClockInterface;
 use Psr\Container\ContainerInterface;
 
@@ -44,7 +43,7 @@ class RegisterSingletonMessagingServices implements CompilerPass
         $this->registerDefault($builder, ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), [], []]));
     }
 
-    private function registerDefault(ContainerBuilder $builder, string $id,  Definition|Reference $definition): void
+    private function registerDefault(ContainerBuilder $builder, string $id, Definition|Reference $definition): void
     {
         if (! $builder->has($id)) {
             $builder->register($id, $definition);

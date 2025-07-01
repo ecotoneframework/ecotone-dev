@@ -12,7 +12,6 @@ use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;

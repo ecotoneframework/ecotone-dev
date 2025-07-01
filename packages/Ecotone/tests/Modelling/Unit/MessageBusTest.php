@@ -23,7 +23,6 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantConversion;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriber;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
 use Test\Ecotone\Modelling\Fixture\EmailNotifier\ANotification;
-use Test\Ecotone\Modelling\Fixture\EmailNotifier\EmailNotification;
 use Test\Ecotone\Modelling\Fixture\EmailNotifier\EmailNotifier;
 use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\OrderDispatch;
 use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\OrderWasCreated;
@@ -344,7 +343,7 @@ final class MessageBusTest extends TestCase
     public function test_it_can_route_by_interface(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [EmailNotifier::class,],
+            classesToResolve: [EmailNotifier::class, ],
             containerOrAvailableServices: [$emailNotifier = new EmailNotifier()],
         );
 

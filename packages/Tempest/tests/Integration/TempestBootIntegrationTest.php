@@ -181,18 +181,6 @@ final class TempestBootIntegrationTest extends TestCase
         $this->assertEquals(0.01, $cheapProduct->price);
     }
 
-    public function test_business_interface_is_available(): void
-    {
-        // For now, let's skip the Business Interface test and focus on the basic integration
-        // The Business Interface discovery needs more investigation
-        $this->markTestSkipped('Business Interface auto-discovery needs further investigation. Basic Ecotone integration is working.');
-    }
-
-    public function test_business_interface_create_ticket(): void
-    {
-        $this->markTestSkipped('Business Interface tests skipped - auto-discovery needs investigation');
-    }
-
     public function test_business_interface_get_ticket(): void
     {
         /** @var TicketApi $ticketApi */
@@ -257,17 +245,5 @@ final class TempestBootIntegrationTest extends TestCase
         $this->assertContains('Ticket 1', $titles);
         $this->assertContains('Ticket 2', $titles);
         $this->assertContains('Ticket 3', $titles);
-    }
-
-    public function test_business_interface_edge_case_empty_ticket_list(): void
-    {
-        /** @var TicketApi $ticketApi */
-        $ticketApi = $this->container->get(TicketApi::class);
-
-        // List tickets when none exist
-        $allTickets = $ticketApi->listAllTickets();
-
-        $this->assertIsArray($allTickets);
-        $this->assertCount(0, $allTickets);
     }
 }

@@ -126,4 +126,9 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
     {
         $this->configuredMessagingSystem->replaceWith($messagingSystem);
     }
+
+    public function getRegisteredConsoleCommands(): array
+    {
+        return $this->configuredMessagingSystem->getRegisteredConsoleCommands();
+    }
 }

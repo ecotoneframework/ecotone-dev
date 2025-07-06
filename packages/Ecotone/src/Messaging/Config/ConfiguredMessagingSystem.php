@@ -81,4 +81,9 @@ interface ConfiguredMessagingSystem
      * Allows to replace configured messaging system with new one
      */
     public function replaceWith(self $messagingSystem): void;
+
+    /**
+     * @return PreparedConsoleCommand[]
+     */
+    public function getRegisteredConsoleCommands(): array;
 }

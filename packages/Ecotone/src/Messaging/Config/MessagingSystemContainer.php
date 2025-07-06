@@ -31,8 +31,9 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 {
     /**
      * @param array<string, string> $pollingEndpoints a map of endpointId => consumer lifecycle runner reference id
+     * @param ConsoleCommandConfiguration[] $consoleCommands
      */
-    public function __construct(private ContainerInterface $container, private array $pollingEndpoints, private array $gatewayList)
+    public function __construct(private ContainerInterface $container, private array $pollingEndpoints, private array $gatewayList, private array $consoleCommands = [])
     {
     }
 
@@ -113,10 +114,22 @@ class MessagingSystemContainer implements ConfiguredMessagingSystem
 
         $this->container = $messagingSystem->container;
         $this->pollingEndpoints = $messagingSystem->pollingEndpoints;
+        $this->consoleCommands = $messagingSystem->consoleCommands;
     }
 
     public function getGatewayList(): array
     {
         return $this->gatewayList;
+    }
+
+    /**
+     * @return PreparedConsoleCommand[]
+     */
+    public function getRegisteredConsoleCommands(): array
+    {
+        return array_map(
+            fn(ConsoleCommandConfiguration $config) => PreparedConsoleCommand::fromConfiguration($config),
+            $this->consoleCommands
+        );
     }
 }

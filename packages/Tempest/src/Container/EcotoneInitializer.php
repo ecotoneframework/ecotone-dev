@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Tempest\Configuration\TempestConfigurationVariableService;
+use Ecotone\Tempest\Console\EcotoneConsoleCommandInitializer;
 use Tempest\Container\Container;
 use Tempest\Container\Initializer;
 use Tempest\Container\Singleton;
@@ -52,7 +53,7 @@ final class EcotoneInitializer implements Initializer
             ->withFailFast(false)
             ->withCacheDirectoryPath($kernel->internalStorage . DIRECTORY_SEPARATOR . 'cache');
 
-        return EcotoneLite::bootstrap(
+        $messagingSystem = EcotoneLite::bootstrap(
             classesToResolve: [],
             containerOrAvailableServices: new TempestContainerAdapter($container),
             configuration: $serviceConfiguration,
@@ -60,5 +61,9 @@ final class EcotoneInitializer implements Initializer
             allowGatewaysToBeRegisteredInContainer: false,
             licenceKey: $serviceConfiguration->getLicenceKey(),
         );
+
+        EcotoneConsoleCommandInitializer::registerCommands($container, $messagingSystem);
+
+        return $messagingSystem;
     }
 }

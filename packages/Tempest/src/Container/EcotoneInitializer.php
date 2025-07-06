@@ -28,7 +28,6 @@ final class EcotoneInitializer implements Initializer
         $kernel = $container->get(Kernel::class);
         $appConfig = $container->get(AppConfig::class);
         $environment = $appConfig->environment->value ?? 'local';
-        $rootCatalog = getcwd();
 
         // Create configuration variable service
         $configurationVariableService = new TempestConfigurationVariableService();
@@ -46,16 +45,17 @@ final class EcotoneInitializer implements Initializer
             $serviceConfiguration = $container->get(ServiceConfiguration::class);
         }else {
             $serviceConfiguration = ServiceConfiguration::createWithDefaults()
-                ->withEnvironment($environment)
                 ->withLoadCatalog('app');
         }
 
-        $serviceConfiguration = $serviceConfiguration
-            ->withNamespaces(array_merge($namespaces, $serviceConfiguration->getNamespaces()));
-
         $isRunningForTesting = in_array($environment, [Environment::CI, Environment::TESTING]);
+        $serviceConfiguration = $serviceConfiguration
+            ->withNamespaces(array_merge($namespaces, $serviceConfiguration->getNamespaces()))
+            ->withEnvironment($environment);
+        $serviceConfiguration = MessagingSystemConfiguration::addCorePackage($serviceConfiguration, $isRunningForTesting);
+
         $annotationFinder = AnnotationFinderFactory::createForAttributes(
-            realpath($rootCatalog),
+            realpath($kernel->root),
             $serviceConfiguration->getNamespaces(),
             $serviceConfiguration->getEnvironment(),
             $serviceConfiguration->getLoadedCatalog() ?? '',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Tempest\Container;
 
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -29,9 +30,6 @@ final class EcotoneInitializer implements Initializer
         $appConfig = $container->get(AppConfig::class);
         $environment = $appConfig->environment->value ?? 'local';
 
-        // Create configuration variable service
-        $configurationVariableService = new TempestConfigurationVariableService();
-
         $namespaces = [];
         foreach ($kernel->discoveryLocations as $discoveryLocation) {
             if (starts_with($discoveryLocation->namespace, 'Tempest\\')) {
@@ -48,31 +46,17 @@ final class EcotoneInitializer implements Initializer
                 ->withLoadCatalog('app');
         }
 
-        $isRunningForTesting = in_array($environment, [Environment::CI, Environment::TESTING]);
         $serviceConfiguration = $serviceConfiguration
             ->withNamespaces(array_merge($namespaces, $serviceConfiguration->getNamespaces()))
             ->withEnvironment($environment);
-        $serviceConfiguration = MessagingSystemConfiguration::addCorePackage($serviceConfiguration, $isRunningForTesting);
 
-        $annotationFinder = AnnotationFinderFactory::createForAttributes(
-            realpath($kernel->root),
-            $serviceConfiguration->getNamespaces(),
-            $serviceConfiguration->getEnvironment(),
-            $serviceConfiguration->getLoadedCatalog() ?? '',
-            MessagingSystemConfiguration::getModuleClassesFor($serviceConfiguration),
-            isRunningForTesting: $isRunningForTesting
-        );
-
-        // Prepare messaging system configuration
-        $messagingConfiguration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
-            $annotationFinder,
-            $configurationVariableService,
-            $serviceConfiguration,
-            enableTestPackage: $isRunningForTesting
-        );
-
-        return $messagingConfiguration->buildMessagingSystemFromConfiguration(
-            new TempestContainerAdapter($container)
+        return EcotoneLite::bootstrap(
+            classesToResolve: [],
+            containerOrAvailableServices: new TempestContainerAdapter($container),
+            configuration: $serviceConfiguration,
+            pathToRootCatalog: $kernel->root,
+            allowGatewaysToBeRegisteredInContainer: false,
+            licenceKey: $serviceConfiguration->getLicenceKey(),
         );
     }
 }

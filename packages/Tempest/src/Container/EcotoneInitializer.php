@@ -48,7 +48,9 @@ final class EcotoneInitializer implements Initializer
 
         $serviceConfiguration = $serviceConfiguration
             ->withNamespaces(array_merge($namespaces, $serviceConfiguration->getNamespaces()))
-            ->withEnvironment($environment);
+            ->withEnvironment($environment)
+            ->withFailFast(false)
+            ->withCacheDirectoryPath($kernel->internalStorage . DIRECTORY_SEPARATOR . 'cache');
 
         return EcotoneLite::bootstrap(
             classesToResolve: [],

@@ -199,6 +199,7 @@ final class EcotoneLite
 
         $externalContainer = $containerOrAvailableServices instanceof ContainerInterface ? $containerOrAvailableServices : InMemoryPSRContainer::createFromAssociativeArray($containerOrAvailableServices);
         $serviceConfiguration = MessagingSystemConfiguration::addCorePackage($serviceConfiguration, $enableTesting);
+        /** @TODO production cache - look EcotoneProvider in Laravel */
 
         $annotationFinder = AnnotationFinderFactory::createForAttributes(
             realpath($pathToRootCatalog),

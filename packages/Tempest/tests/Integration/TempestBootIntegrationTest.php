@@ -10,6 +10,11 @@ use Ecotone\Tempest\EcotoneTempestConfiguration;
 use PHPUnit\Framework\TestCase;
 use Tempest\Core\Tempest;
 use Tempest\Discovery\DiscoveryLocation;
+use Test\Ecotone\Tempest\Fixture\BusinessInterface\CreateTicketCommand;
+use Test\Ecotone\Tempest\Fixture\BusinessInterface\GetTicketQuery;
+use Test\Ecotone\Tempest\Fixture\BusinessInterface\Ticket;
+use Test\Ecotone\Tempest\Fixture\BusinessInterface\TicketApi;
+use Test\Ecotone\Tempest\Fixture\BusinessInterface\TicketService;
 use Test\Ecotone\Tempest\Fixture\Order\GetOrder;
 use Test\Ecotone\Tempest\Fixture\Order\Order;
 use Test\Ecotone\Tempest\Fixture\Order\OrderService;
@@ -18,11 +23,6 @@ use Test\Ecotone\Tempest\Fixture\Product\GetProduct;
 use Test\Ecotone\Tempest\Fixture\Product\Product;
 use Test\Ecotone\Tempest\Fixture\Product\ProductService;
 use Test\Ecotone\Tempest\Fixture\Product\RegisterProduct;
-use Test\Ecotone\Tempest\Fixture\BusinessInterface\TicketApi;
-use Test\Ecotone\Tempest\Fixture\BusinessInterface\CreateTicketCommand;
-use Test\Ecotone\Tempest\Fixture\BusinessInterface\GetTicketQuery;
-use Test\Ecotone\Tempest\Fixture\BusinessInterface\Ticket;
-use Test\Ecotone\Tempest\Fixture\BusinessInterface\TicketService;
 
 /**
  * @internal

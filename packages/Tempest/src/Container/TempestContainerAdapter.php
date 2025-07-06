@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Tempest\Container;
 
 use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
 use Tempest\Container\Container;
 
 /**

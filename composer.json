@@ -138,7 +138,9 @@
         "php-di/php-di": "^7.0.1",
         "open-telemetry/sdk": "^1.0.0",
         "psr/container": "^1.1.1|^2.0.1",
-        "tempest/core": "v1.0.0-beta.1",
+        "tempest/core": "^1.0",
+        "tempest/container": "^1.0",
+        "tempest/discovery": "^1.0",
         "psr/clock": "^1.0"
     },
     "require-dev": {
@@ -150,7 +152,6 @@
         "friendsofphp/php-cs-fixer": "^3.9",
         "guzzlehttp/psr7": "^2.0",
         "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
-        "php-coveralls/php-coveralls": "^2.5",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^11.0",
         "predis/predis": "^1.1.10",
@@ -169,7 +170,8 @@
         "moneyphp/money": "^4.1.0",
         "timacdonald/log-fake": "^2.0",
         "symfony/monolog-bundle": "^3.10",
-        "kwn/php-rdkafka-stubs": "^2.2"
+        "kwn/php-rdkafka-stubs": "^2.2",
+        "tempest/framework": "^1.0"
     },
     "conflict": {
         "symfony/doctrine-messenger": ">7.0.5 < 7.1.0",

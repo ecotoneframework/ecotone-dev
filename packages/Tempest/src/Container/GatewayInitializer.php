@@ -7,13 +7,8 @@ namespace Ecotone\Tempest\Container;
 use Ecotone\Messaging\Attribute\BusinessMethod;
 use Ecotone\Messaging\Attribute\MessageGateway;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
-use Ecotone\Modelling\QueryBus;
 use Tempest\Container\Container;
 use Tempest\Container\DynamicInitializer;
-use Tempest\Container\Initializer;
-use Tempest\Container\Singleton;
 use Tempest\Reflection\ClassReflector;
 use function Tempest\Support\Str\starts_with;
 
@@ -22,11 +17,15 @@ use function Tempest\Support\Str\starts_with;
  */
 final class GatewayInitializer implements DynamicInitializer
 {
-    public function canInitialize(ClassReflector $class, ?string $tag): bool
+    public function canInitialize(ClassReflector $class, null|string|\UnitEnum $tag): bool
     {
         /** Must be interface to be Gateway */
         if (!interface_exists($class->getName())) {
             return false;
+        }
+
+        if (starts_with($class->getName(), 'Ecotone\\')) {
+            return true;
         }
 
         foreach ($class->getPublicMethods() as $method) {
@@ -35,11 +34,11 @@ final class GatewayInitializer implements DynamicInitializer
             }
         }
 
-        return starts_with($class->getName(), 'Ecotone\\');
+        return false;
     }
 
     #[\Override]
-    public function initialize(ClassReflector $class, ?string $tag, Container $container): object
+    public function initialize(ClassReflector $class, null|string|\UnitEnum $tag, Container $container): object
     {
         /** @var ConfiguredMessagingSystem $messagingSystem */
         $messagingSystem = $container->get(ConfiguredMessagingSystem::class);

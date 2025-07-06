@@ -36,7 +36,7 @@ final class TempestBootIntegrationTest extends TestCase
     {
         // Create discovery locations that include our test fixtures and Ecotone integration
         $discoveryLocations = [
-            ...EcotoneTempestConfiguration::getDiscoveryPaths(),
+            EcotoneTempestConfiguration::getDiscoveryPath(),
             new DiscoveryLocation('Test\\Ecotone\\Tempest\\Fixture\\', __DIR__ . '/../Fixture/'),
         ];
 

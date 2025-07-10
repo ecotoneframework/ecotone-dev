@@ -17,7 +17,7 @@ class EcotoneConfiguration
     #[ServiceContext]
     public function enableStreamSourceFromEventStore(): EventStoreAggregateStreamSourceBuilder
     {
-        return new EventStoreAggregateStreamSourceBuilder('product_stream_source', Product::class, Product::class);
+        return new EventStoreAggregateStreamSourceBuilder(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME, Product::class, Product::class);
     }
 
     #[ServiceContext]

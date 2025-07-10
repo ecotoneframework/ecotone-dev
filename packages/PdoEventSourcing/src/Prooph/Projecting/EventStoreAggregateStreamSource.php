@@ -20,7 +20,7 @@ class EventStoreAggregateStreamSource implements StreamSource
     public function __construct(
         private EventStore      $eventStore,
         private string          $streamName,
-        private string          $aggregateType,
+        private ?string         $aggregateType,
     ) {
     }
 
@@ -29,10 +29,13 @@ class EventStoreAggregateStreamSource implements StreamSource
         Assert::notNull($partitionKey, "Partition key cannot be null for aggregate stream source");
 
         $metadataMatcher = new MetadataMatcher();
-        $metadataMatcher = $metadataMatcher->withMetadataMatch(
-                MessageHeaders::EVENT_AGGREGATE_TYPE,
-                Operator::EQUALS(),
-                $this->aggregateType);
+        if ($this->aggregateType !== null) {
+            // @todo: watch out ! Prooph's event store has an index on (aggregate_type, aggregate_id). Not adding aggregate type here will result in a full table scan
+            $metadataMatcher = $metadataMatcher->withMetadataMatch(
+                    MessageHeaders::EVENT_AGGREGATE_TYPE,
+                    Operator::EQUALS(),
+                    $this->aggregateType);
+        }
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
             MessageHeaders::EVENT_AGGREGATE_ID,
             Operator::EQUALS(),

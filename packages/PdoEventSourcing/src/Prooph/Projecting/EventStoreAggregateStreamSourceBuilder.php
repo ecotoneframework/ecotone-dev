@@ -14,12 +14,12 @@ use Ecotone\Projecting\Config\StreamSourceBuilder;
 
 class EventStoreAggregateStreamSourceBuilder implements StreamSourceBuilder
 {
-    public function __construct(public readonly string $streamSourceName, public string $aggregateType, private ?string $streamName = null) {
+    public function __construct(public readonly string $handledProjectionName, public ?string $aggregateType, private string $streamName) {
     }
 
     public function canHandle(string $projectionName): bool
     {
-        return true;
+        return $this->handledProjectionName === $projectionName;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
@@ -28,7 +28,7 @@ class EventStoreAggregateStreamSourceBuilder implements StreamSourceBuilder
             EventStoreAggregateStreamSource::class,
             [
                 new Reference(EventStore::class),
-                $this->streamName ?? $this->streamSourceName,
+                $this->streamName,
                 $this->aggregateType,
             ],
         );

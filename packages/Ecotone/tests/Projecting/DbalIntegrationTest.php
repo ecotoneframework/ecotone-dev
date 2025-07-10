@@ -31,7 +31,7 @@ class DbalIntegrationTest extends TestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory()
             ],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder('ticket_stream_source', Ticket::class, Ticket::STREAM_NAME))
+                ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))
                 ->addExtensionObject(ProjectingConfiguration::createDbal())
                 ->withNamespaces(['Test\Ecotone\Projecting\Fixture\Ticket'])
             ,
@@ -70,7 +70,7 @@ class DbalIntegrationTest extends TestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory()
             ],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder('ticket_stream_source', Ticket::class, Ticket::STREAM_NAME))
+                ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))
                 ->addExtensionObject(ProjectingConfiguration::createDbal())
             ,
             runForProductionEventStore: true,

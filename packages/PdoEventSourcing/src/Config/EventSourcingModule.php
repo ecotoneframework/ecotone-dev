@@ -72,6 +72,7 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\MessageBusChannel;
@@ -327,10 +328,20 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 throw new ConfigurationException("Projection {$projection->getName()} can only be used with one stream. Found: " . implode(', ', $streams));
             }
             $stream = reset($streams);
-            $builders[] = new EventStoreGlobalStreamSourceBuilder(
-                $stream,
-                [$projection->getName()]
-            );
+            if ($projection->partitionHeaderName === null) {
+                $builders[] = new EventStoreGlobalStreamSourceBuilder(
+                    $stream,
+                    [$projection->getName()]
+                );
+            } elseif ($projection->partitionHeaderName === AggregateMessage::AGGREGATE_ID) {
+                $builders[] = new EventStoreAggregateStreamSourceBuilder(
+                    $projection->getName(),
+                    null, // @todo: watch out ! Prooph's event store has an index on (aggregate_type, aggregate_id). Not adding aggregate type here will result in a full table scan
+                    $stream
+                );
+            } else {
+                throw new ConfigurationException("Projection {$projection->getName()} must have partitionHeaderName defined");
+            }
         }
         return $builders;
     }

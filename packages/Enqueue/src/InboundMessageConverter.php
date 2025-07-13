@@ -33,20 +33,17 @@ class InboundMessageConverter
         $messageBuilder = MessageBuilder::withPayload($source->getBody())
             ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($enqueueMessageHeaders, $conversionService));
 
-        if (in_array($this->acknowledgeMode, [EnqueueAcknowledgementCallback::AUTO_ACK, EnqueueAcknowledgementCallback::MANUAL_ACK])) {
-            $isAutoAcked = $this->acknowledgeMode == EnqueueAcknowledgementCallback::AUTO_ACK;
-            $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithFailureStrategy(
-                $consumer,
-                $source,
-                $connectionFactory,
-                $this->loggingGateway,
-                $this->finalFailureStrategy,
-                $isAutoAcked
-            );
+        $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::create(
+            $consumer,
+            $source,
+            $connectionFactory,
+            $this->loggingGateway,
+            $this->finalFailureStrategy,
+            $this->acknowledgeMode == EnqueueAcknowledgementCallback::AUTO_ACK
+        );
 
-            $messageBuilder = $messageBuilder
-                ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback);
-        }
+        $messageBuilder = $messageBuilder
+            ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback);
 
         if (isset($enqueueMessageHeaders[MessageHeaders::MESSAGE_ID])) {
             $messageBuilder = $messageBuilder

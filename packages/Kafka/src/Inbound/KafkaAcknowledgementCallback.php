@@ -28,18 +28,13 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
         private KafkaMessage         $message,
         private LoggingGateway       $loggingGateway,
         private KafkaAdmin           $kafkaAdmin,
-        private string               $endpointId
+        private string               $endpointId,
     ) {
     }
 
-    public static function createWithAutoAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId): self
+    public static function create(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId, FinalFailureStrategy $finalFailureStrategy, bool $isAutoAcked): self
     {
-        return new self(FinalFailureStrategy::RESEND, true, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
-    }
-
-    public static function createWithManualAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId): self
-    {
-        return new self(FinalFailureStrategy::STOP, false, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
+        return new self($finalFailureStrategy, $isAutoAcked, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
     }
 
     /**

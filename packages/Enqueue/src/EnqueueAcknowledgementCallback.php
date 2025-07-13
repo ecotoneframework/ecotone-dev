@@ -60,31 +60,11 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
     /**
      * @param EnqueueConsumer $enqueueConsumer
      * @param EnqueueMessage $enqueueMessage
-     * @return EnqueueAcknowledgementCallback
-     */
-    public static function createWithAutoAck(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, CachedConnectionFactory $connectionFactory, LoggingGateway $loggingGateway): self
-    {
-        return new self(FinalFailureStrategy::RESEND, true, $enqueueConsumer, $enqueueMessage, $connectionFactory, $loggingGateway);
-    }
-
-    /**
-     * @param EnqueueConsumer $enqueueConsumer
-     * @param EnqueueMessage $enqueueMessage
-     * @return EnqueueAcknowledgementCallback
-     */
-    public static function createWithManualAck(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, CachedConnectionFactory $connectionFactory, LoggingGateway $loggingGateway): self
-    {
-        return new self(FinalFailureStrategy::STOP, false, $enqueueConsumer, $enqueueMessage, $connectionFactory, $loggingGateway);
-    }
-
-    /**
-     * @param EnqueueConsumer $enqueueConsumer
-     * @param EnqueueMessage $enqueueMessage
      * @param FinalFailureStrategy $finalFailureStrategy
      * @param bool $isAutoAcked
      * @return EnqueueAcknowledgementCallback
      */
-    public static function createWithFailureStrategy(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, CachedConnectionFactory $connectionFactory, LoggingGateway $loggingGateway, FinalFailureStrategy $finalFailureStrategy, bool $isAutoAcked): self
+    public static function create(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, CachedConnectionFactory $connectionFactory, LoggingGateway $loggingGateway, FinalFailureStrategy $finalFailureStrategy, bool $isAutoAcked): self
     {
         return new self($finalFailureStrategy, $isAutoAcked, $enqueueConsumer, $enqueueMessage, $connectionFactory, $loggingGateway);
     }

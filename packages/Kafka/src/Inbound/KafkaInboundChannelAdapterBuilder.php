@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -34,6 +35,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
     public function __construct(
         string $endpointId,
         ?string  $requestChannelName = null,
+        private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND,
     ) {
         $this->inboundGateway = $requestChannelName
             ? GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName)
@@ -67,6 +69,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
                     Reference::to(KafkaAdmin::class),
                     $this->endpointId,
                     KafkaHeader::ACKNOWLEDGE_HEADER_NAME,
+                    $this->finalFailureStrategy,
                     Reference::to(LoggingGateway::class),
                 ]),
                 Reference::to(ConversionService::REFERENCE_NAME),
@@ -93,6 +96,13 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
     public function withReceiveTimeout(int $timeoutInMilliseconds): self
     {
         $this->receiveTimeoutInMilliseconds = $timeoutInMilliseconds;
+
+        return $this;
+    }
+
+    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
+    {
+        $this->finalFailureStrategy = $finalFailureStrategy;
 
         return $this;
     }

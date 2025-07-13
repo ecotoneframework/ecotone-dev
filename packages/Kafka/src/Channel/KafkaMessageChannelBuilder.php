@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 
@@ -81,6 +82,13 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     public function withHeaderMapping(string $headerMapper): self
     {
         $this->headerMapper = $headerMapper;
+
+        return $this;
+    }
+
+    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
+    {
+        $this->inboundChannelAdapterBuilder->withFinalFailureStrategy($finalFailureStrategy);
 
         return $this;
     }

@@ -7,6 +7,7 @@ namespace Ecotone\Laravel\Queue;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
@@ -35,7 +36,8 @@ final class LaravelQueueMessageChannel implements PollableChannel
         private string $queueName,
         private string $acknowledgeMode,
         private OutboundMessageConverter $outboundMessageConverter,
-        private ConversionService $conversionService
+        private ConversionService $conversionService,
+        private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND
     ) {
 
     }
@@ -82,27 +84,15 @@ final class LaravelQueueMessageChannel implements PollableChannel
         $messageBuilder = MessageBuilder::withPayload($message[self::PAYLOAD])
             ->setMultipleHeaders($message[self::HEADERS]);
 
-        if (in_array($this->acknowledgeMode, [LaravelQueueAcknowledgementCallback::MANUAL_ACK, LaravelQueueAcknowledgementCallback::AUTO_ACK])) {
-            $messageBuilder = $messageBuilder
-                ->setHeader(
-                    MessageHeaders::CONSUMER_ACK_HEADER_LOCATION,
-                    self::ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER
-                );
-        }
-
-        if ($this->acknowledgeMode === LaravelQueueAcknowledgementCallback::MANUAL_ACK) {
-            $messageBuilder = $messageBuilder
-                ->setHeader(
-                    self::ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER,
-                    LaravelQueueAcknowledgementCallback::createWithManualAck($job)
-                );
-        } elseif ($this->acknowledgeMode === LaravelQueueAcknowledgementCallback::AUTO_ACK) {
-            $messageBuilder = $messageBuilder
-                ->setHeader(
-                    self::ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER,
-                    LaravelQueueAcknowledgementCallback::createWithAutoAck($job)
-                );
-        }
+        $messageBuilder = $messageBuilder
+            ->setHeader(
+                MessageHeaders::CONSUMER_ACK_HEADER_LOCATION,
+                self::ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER
+            )
+            ->setHeader(
+                self::ECOTONE_LARAVEL_ACKNOWLEDGE_HEADER,
+                LaravelQueueAcknowledgementCallback::create($job, $this->finalFailureStrategy, $this->acknowledgeMode === LaravelQueueAcknowledgementCallback::AUTO_ACK)
+            );
 
         return $messageBuilder
             ->build();

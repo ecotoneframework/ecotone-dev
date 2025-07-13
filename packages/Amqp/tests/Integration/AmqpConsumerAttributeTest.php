@@ -10,6 +10,7 @@ use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Converter;
 use Ecotone\Messaging\Attribute\MediaTypeConverter;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -25,6 +26,7 @@ use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerAttributeExample;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerAttributeWithObject;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerWithFailStrategyAttributeExample;
+use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerWithInstantRetryAndErrorChannelExample;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerWithInstantRetryExample;
 
 /**
@@ -196,6 +198,44 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         // Test that message is not consumed again
         $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
         $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
+    }
+
+    public function test_defining_error_channel(): void
+    {
+        $endpointId = 'amqp_consumer_attribute';
+        $queueName = 'test_queue';
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [AmqpConsumerWithInstantRetryAndErrorChannelExample::class],
+            [
+                new AmqpConsumerWithInstantRetryAndErrorChannelExample(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createWith($queueName),
+                    AmqpMessagePublisherConfiguration::create()
+                        ->withAutoDeclareQueueOnSend(true)
+                        ->withHeaderMapper("*")
+                        ->withDefaultRoutingKey($queueName),
+                    SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        $payload = Uuid::uuid4()->toString();
+        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+        $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
+
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
+
+        // Test that message is not consumed again
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
+
+        $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
     }
 
     public function test_consuming_multiple_messages_from_queue(): void

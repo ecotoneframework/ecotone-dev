@@ -3,10 +3,12 @@
 namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageHeaders;
 use Exception;
 
 /**
@@ -15,14 +17,21 @@ use Exception;
 class InstantRetryInterceptor
 {
     public function __construct(
-        private int $maxRetryAttempts,
-        private array $exceptions,
+        private int                $maxRetryAttempts,
+        private array              $exceptions,
         private RetryStatusTracker $retryStatusTracker,
+        private ?string            $relatedEndpointId = null,
     ) {
     }
 
-    public function retry(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger)
+    public function retry(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger, ?PollingMetadata $pollingMetadata)
     {
+        if (! is_null($this->relatedEndpointId)) {
+            if (!$pollingMetadata || $pollingMetadata->getEndpointId() !== $this->relatedEndpointId) {
+                return $methodInvocation->proceed();
+            }
+        }
+
         if ($this->retryStatusTracker->isCurrentlyWrappedByRetry()) {
             return $methodInvocation->proceed();
         }

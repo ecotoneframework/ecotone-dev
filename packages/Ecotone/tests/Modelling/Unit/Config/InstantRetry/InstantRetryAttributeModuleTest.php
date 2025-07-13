@@ -6,6 +6,7 @@ namespace Modelling\Unit\Config\InstantRetry;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\LicensingException;
@@ -199,7 +200,7 @@ final class InstantRetryAttributeModuleTest extends TestCase
 
     public function test_instant_retry_attribute_fails_on_non_command_bus_interfaces()
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('InstantRetry attribute can only be used on interfaces extending CommandBus');
 
         EcotoneLite::bootstrapFlowTesting(

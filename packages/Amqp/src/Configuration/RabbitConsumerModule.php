@@ -6,6 +6,7 @@ namespace Ecotone\Amqp\Configuration;
 
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\Amqp\Attribute\RabbitConsumer;
+use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -14,6 +15,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\LicensingException;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
@@ -21,13 +23,13 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  * licence Enterprise
  */
 #[ModuleAnnotation]
-final class AmqpConsumerModule extends NoExternalConfigurationModule implements AnnotationModule
+final class RabbitConsumerModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
-     * @param RabbitConsumer[] $amqpConsumers
+     * @param AnnotatedMethod[] $amqpConsumersAnnotatedMethods
      */
     private function __construct(
-        private array $amqpConsumers,
+        private array $amqpConsumersAnnotatedMethods,
     ) {
     }
 
@@ -35,10 +37,7 @@ final class AmqpConsumerModule extends NoExternalConfigurationModule implements 
     {
         $amqpConsumers = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(RabbitConsumer::class) as $annotatedMethod) {
-            /** @var RabbitConsumer $amqpConsumer */
-            $amqpConsumer = $annotatedMethod->getAnnotationForMethod();
-
-            $amqpConsumers[$amqpConsumer->getEndpointId()] = $amqpConsumer;
+            $amqpConsumers[] = $annotatedMethod;
         }
 
         return new self($amqpConsumers);
@@ -46,7 +45,7 @@ final class AmqpConsumerModule extends NoExternalConfigurationModule implements 
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (empty($this->amqpConsumers)) {
+        if (empty($this->amqpConsumersAnnotatedMethods)) {
             return;
         }
 
@@ -54,7 +53,10 @@ final class AmqpConsumerModule extends NoExternalConfigurationModule implements 
             throw LicensingException::create('AmqpConsumer attribute is available only with Ecotone Enterprise licence.');
         }
 
-        foreach ($this->amqpConsumers as $amqpConsumer) {
+        foreach ($this->amqpConsumersAnnotatedMethods as $amqpConsumerAnnotatedMethod) {
+            /** @var RabbitConsumer $amqpConsumer */
+            $amqpConsumer = $amqpConsumerAnnotatedMethod->getAnnotationForMethod();
+
             $messagingConfiguration->registerConsumer(
                 AmqpInboundChannelAdapterBuilder::createWith(
                     $amqpConsumer->getEndpointId(),
@@ -65,6 +67,7 @@ final class AmqpConsumerModule extends NoExternalConfigurationModule implements 
                     ->withHeaderMapper("*")
                     ->withFinalFailureStrategy($amqpConsumer->getFinalFailureStrategy())
                     ->withDeclareOnStartup(true)
+                    ->withEndpointAnnotations($amqpConsumerAnnotatedMethod->getAllAnnotationDefinitions())
             );
         }
     }

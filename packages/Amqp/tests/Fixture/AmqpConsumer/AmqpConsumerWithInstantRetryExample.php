@@ -8,16 +8,18 @@ use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
+use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
 /**
  * licence Enterprise
  */
-final class AmqpConsumerWithFailStrategyAttributeExample
+final class AmqpConsumerWithInstantRetryExample
 {
     /** @var string[] */
     private array $messagePayloads = [];
 
+    #[InstantRetry(retryTimes: 1)]
     #[RabbitConsumer('amqp_consumer_attribute', 'test_queue', finalFailureStrategy: FinalFailureStrategy::IGNORE)]
     public function handle(#[Payload] string $payload, #[Header('fail')] bool $fail = false): void
     {

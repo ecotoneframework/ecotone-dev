@@ -8,6 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
 use Exception;
@@ -140,6 +141,29 @@ final class MessengerIntegrationTest extends WebTestCase
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
         $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
+    }
+
+    public function test_using_custom_failure_strategy()
+    {
+        $channelName = 'messenger_async';
+        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncCommandHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    SymfonyMessengerMessageChannelBuilder::create($channelName)
+                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
+                ])
+        );
+
+        $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
     public function test_sending_via_routing_without_payload()

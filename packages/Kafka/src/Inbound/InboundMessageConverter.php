@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Inbound;
 use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
@@ -26,6 +27,7 @@ final class InboundMessageConverter
         private KafkaAdmin $kafkaAdmin,
         private string $endpointId,
         private string $acknowledgeHeaderName,
+        private FinalFailureStrategy $finalFailureStrategy,
         private LoggingGateway $loggingGateway,
     ) {
         $kafkaConsumerConfiguration = $kafkaAdmin->getConfigurationForConsumer($endpointId);
@@ -42,21 +44,15 @@ final class InboundMessageConverter
         $messageBuilder = MessageBuilder::withPayload($source->payload)
             ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($messageHeaders, $conversionService));
 
-        if (in_array($this->acknowledgeMode, [KafkaAcknowledgementCallback::AUTO_ACK, KafkaAcknowledgementCallback::MANUAL_ACK])) {
-            if ($this->acknowledgeMode == KafkaAcknowledgementCallback::AUTO_ACK) {
-                $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::createWithAutoAck($consumer, $source, $this->loggingGateway, $this->kafkaAdmin, $this->endpointId);
-            } else {
-                $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::createWithManualAck($consumer, $source, $this->loggingGateway, $this->kafkaAdmin, $this->endpointId);
-            }
+        $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::create($consumer, $source, $this->loggingGateway, $this->kafkaAdmin, $this->endpointId, $this->finalFailureStrategy, $this->acknowledgeMode === KafkaAcknowledgementCallback::AUTO_ACK);
 
-            $messageBuilder = $messageBuilder
-                ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback)
-                ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, $this->acknowledgeHeaderName)
-                ->setHeader(KafkaHeader::TOPIC_HEADER_NAME, $source->topic_name)
-                ->setHeader(KafkaHeader::PARTITION_HEADER_NAME, $source->partition)
-                ->setHeader(KafkaHeader::OFFSET_HEADER_NAME, $source->offset)
-                ->setHeader(KafkaHeader::KAFKA_TIMESTAMP_HEADER_NAME, $source->timestamp);
-        }
+        $messageBuilder = $messageBuilder
+            ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback)
+            ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, $this->acknowledgeHeaderName)
+            ->setHeader(KafkaHeader::TOPIC_HEADER_NAME, $source->topic_name)
+            ->setHeader(KafkaHeader::PARTITION_HEADER_NAME, $source->partition)
+            ->setHeader(KafkaHeader::OFFSET_HEADER_NAME, $source->offset)
+            ->setHeader(KafkaHeader::KAFKA_TIMESTAMP_HEADER_NAME, $source->timestamp);
 
         if (isset($messageHeaders[MessageHeaders::MESSAGE_ID])) {
             $messageBuilder = $messageBuilder

@@ -9,6 +9,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageHeaders;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
@@ -108,7 +109,7 @@ final class LaravelQueueIntegrationTest extends TestCase
     public function test_sending_with_explicit_connection()
     {
         $channelName = 'async_channel';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand('test');
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
@@ -122,7 +123,7 @@ final class LaravelQueueIntegrationTest extends TestCase
                 ])
         );
         $metadata = [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
+            MessageHeaders::MESSAGE_ID => '123',
             MessageHeaders::TIMESTAMP => 123333,
         ];
 
@@ -186,6 +187,29 @@ final class LaravelQueueIntegrationTest extends TestCase
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
         $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
+    }
+
+    public function test_using_custom_failure_strategy()
+    {
+        $channelName = 'async_channel';
+        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [AsyncCommandHandler::class],
+            $this->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    LaravelQueueMessageChannelBuilder::create($channelName)
+                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
+                ])
+        );
+
+        $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
     public function test_sending_via_routing_without_payload()

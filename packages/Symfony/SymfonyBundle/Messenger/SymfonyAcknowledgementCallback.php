@@ -6,6 +6,7 @@ namespace Ecotone\SymfonyBundle\Messenger;
 
 use Ecotone\Enqueue\EnqueueAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
@@ -24,37 +25,50 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
     public const NONE = 'none';
 
     private function __construct(
-        private bool $isAutoAck,
-        private TransportInterface $symfonyTransport,
-        private Envelope $envelope
+        private FinalFailureStrategy $failureStrategy,
+        private bool $isAutoAcked,
+        private TransportInterface   $symfonyTransport,
+        private Envelope             $envelope
     ) {
 
     }
 
     public static function createWithAutoAck(TransportInterface $symfonyTransport, Envelope $envelope): self
     {
-        return new self(true, $symfonyTransport, $envelope);
+        return new self(FinalFailureStrategy::RESEND, true, $symfonyTransport, $envelope);
     }
 
     public static function createWithManualAck(TransportInterface $symfonyTransport, Envelope $envelope): self
     {
-        return new self(false, $symfonyTransport, $envelope);
+        return new self(FinalFailureStrategy::STOP, false, $symfonyTransport, $envelope);
+    }
+
+    /**
+     * @param TransportInterface $symfonyTransport
+     * @param Envelope $envelope
+     * @param FinalFailureStrategy $finalFailureStrategy
+     * @param bool $isAutoAcked
+     * @return SymfonyAcknowledgementCallback
+     */
+    public static function createWithFailureStrategy(TransportInterface $symfonyTransport, Envelope $envelope, FinalFailureStrategy $finalFailureStrategy, bool $isAutoAcked): self
+    {
+        return new self($finalFailureStrategy, $isAutoAcked, $symfonyTransport, $envelope);
     }
 
     /**
      * @inheritDoc
      */
-    public function isAutoAck(): bool
+    public function getFailureStrategy(): FinalFailureStrategy
     {
-        return $this->isAutoAck;
+        return $this->failureStrategy;
     }
 
     /**
      * @inheritDoc
      */
-    public function disableAutoAck(): void
+    public function isAutoAcked(): bool
     {
-        $this->isAutoAck = false;
+        return $this->isAutoAcked;
     }
 
     /**

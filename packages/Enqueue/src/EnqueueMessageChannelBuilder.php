@@ -6,6 +6,7 @@ use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 
 /**
@@ -43,6 +44,13 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
     {
         $this->getInboundChannelAdapter()->withHeaderMapper($headerMapper);
         $this->getOutboundChannelAdapter()->withHeaderMapper($headerMapper);
+
+        return $this;
+    }
+
+    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
+    {
+        $this->getInboundChannelAdapter()->withFinalFailureStrategy($finalFailureStrategy);
 
         return $this;
     }

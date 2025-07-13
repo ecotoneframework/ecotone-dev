@@ -3,6 +3,7 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
@@ -21,6 +22,7 @@ class InboundMessageConverter
         private HeaderMapper $headerMapper,
         private string $acknowledgeHeaderName,
         private LoggingGateway $loggingGateway,
+        private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND,
     ) {
 
     }
@@ -31,16 +33,17 @@ class InboundMessageConverter
         $messageBuilder = MessageBuilder::withPayload($source->getBody())
             ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($enqueueMessageHeaders, $conversionService));
 
-        if (in_array($this->acknowledgeMode, [EnqueueAcknowledgementCallback::AUTO_ACK, EnqueueAcknowledgementCallback::MANUAL_ACK])) {
-            if ($this->acknowledgeMode == EnqueueAcknowledgementCallback::AUTO_ACK) {
-                $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithAutoAck($consumer, $source, $connectionFactory, $this->loggingGateway);
-            } else {
-                $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithManualAck($consumer, $source, $connectionFactory, $this->loggingGateway);
-            }
+        $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::create(
+            $consumer,
+            $source,
+            $connectionFactory,
+            $this->loggingGateway,
+            $this->finalFailureStrategy,
+            $this->acknowledgeMode == EnqueueAcknowledgementCallback::AUTO_ACK
+        );
 
-            $messageBuilder = $messageBuilder
-                ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback);
-        }
+        $messageBuilder = $messageBuilder
+            ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback);
 
         if (isset($enqueueMessageHeaders[MessageHeaders::MESSAGE_ID])) {
             $messageBuilder = $messageBuilder

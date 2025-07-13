@@ -11,6 +11,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Illuminate\Support\Facades\Config;
@@ -26,7 +27,8 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
         private string $connectionName,
         private string $queueName,
         private string $acknowledgeMode = LaravelQueueAcknowledgementCallback::AUTO_ACK,
-        private ?MediaType $defaultOutboundConversionMediaType = null
+        private ?MediaType $defaultOutboundConversionMediaType = null,
+        private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND
     ) {
         $this->withHeaderMapping('*');
     }
@@ -70,6 +72,13 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
         return $this;
     }
 
+    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
+    {
+        $this->finalFailureStrategy = $finalFailureStrategy;
+
+        return $this;
+    }
+
     public function getConversionMediaType(): ?MediaType
     {
         return $this->defaultOutboundConversionMediaType;
@@ -94,6 +103,7 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
                     $this->defaultOutboundConversionMediaType?->getDefinition(),
                 ]),
                 new Reference(ConversionService::REFERENCE_NAME),
+                $this->finalFailureStrategy,
             ]
         );
     }

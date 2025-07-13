@@ -58,7 +58,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             RD_KAFKA_PARTITION_UA,
             0,
             $outboundMessage->getPayload(),
-            $partitionKey,
+            (string)$partitionKey,
             array_merge(
                 $headers,
                 [

@@ -83,6 +83,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $aggregateId = Uuid::uuid4()->toString();
         $eventAggregateId = Uuid::uuid4()->toString();
         $customKey = Uuid::uuid4()->toString();
+        $intKey = 2;
 
         yield 'with no partition key, message id is used' => [
             'metadata' => [MessageHeaders::MESSAGE_ID => $messageId],
@@ -99,6 +100,10 @@ final class KafkaChannelAdapterTest extends TestCase
         yield 'with custom partition key' => [
             'metadata' => [MessageHeaders::MESSAGE_ID => $messageId, MessageHeaders::EVENT_AGGREGATE_ID => $eventAggregateId, AggregateMessage::AGGREGATE_ID => ['orderId' => $aggregateId], KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME => $customKey],
             'expectedKey' => $customKey,
+        ];
+        yield 'with partition being int' => [
+            'metadata' => [MessageHeaders::MESSAGE_ID => $messageId, KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME => $intKey],
+            'expectedKey' => (string)$intKey,
         ];
     }
 

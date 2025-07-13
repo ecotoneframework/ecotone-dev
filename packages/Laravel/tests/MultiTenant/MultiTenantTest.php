@@ -6,6 +6,7 @@ namespace Test\Ecotone\Laravel\MultiTenant;
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use Ecotone\Laravel\EcotoneCacheClear;
+use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Application;
@@ -37,10 +38,9 @@ final class MultiTenantTest extends TestCase
         $app->make(Kernel::class)->bootstrap();
         runMigrationForTenants(DB::connection('tenant_a_connection'), DB::connection('tenant_b_connection'));
         $this->app = $app;
+        EcotoneCacheClear::clearEcotoneCacheDirectories(EcotoneProvider::getCacheDirectoryPath());
         $this->queryBus = $app->get(QueryBus::class);
         $this->commandBus = $app->get(CommandBus::class);
-
-        EcotoneCacheClear::clearEcotoneCacheDirectories($app->storagePath());
     }
 
     public function test_optimize_clear_triggers_ecotone_cache_clear_via_event(): void

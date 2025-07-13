@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Exception;
 use Interop\Queue\Consumer as EnqueueConsumer;
@@ -25,9 +26,13 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
     public const NONE = 'none';
 
     /**
+     * @var FinalFailureStrategy
+     */
+    private $failureStrategy;
+    /**
      * @var bool
      */
-    private $isAutoAck;
+    private $isAutoAcked;
     /**
      * @var EnqueueConsumer
      */
@@ -39,13 +44,15 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
 
     /**
      * EnqueueAcknowledgementCallback constructor.
-     * @param bool $isAutoAck
+     * @param FinalFailureStrategy $failureStrategy
+     * @param bool $isAutoAcked
      * @param EnqueueConsumer $enqueueConsumer
      * @param EnqueueMessage $enqueueMessage
      */
-    private function __construct(bool $isAutoAck, EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, private CachedConnectionFactory $connectionFactory, private LoggingGateway $loggingGateway)
+    private function __construct(FinalFailureStrategy $failureStrategy, bool $isAutoAcked, EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, private CachedConnectionFactory $connectionFactory, private LoggingGateway $loggingGateway)
     {
-        $this->isAutoAck = $isAutoAck;
+        $this->failureStrategy = $failureStrategy;
+        $this->isAutoAcked = $isAutoAcked;
         $this->enqueueConsumer = $enqueueConsumer;
         $this->enqueueMessage = $enqueueMessage;
     }
@@ -53,37 +60,29 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
     /**
      * @param EnqueueConsumer $enqueueConsumer
      * @param EnqueueMessage $enqueueMessage
+     * @param FinalFailureStrategy $finalFailureStrategy
+     * @param bool $isAutoAcked
      * @return EnqueueAcknowledgementCallback
      */
-    public static function createWithAutoAck(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, CachedConnectionFactory $connectionFactory, LoggingGateway $loggingGateway): self
+    public static function create(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, CachedConnectionFactory $connectionFactory, LoggingGateway $loggingGateway, FinalFailureStrategy $finalFailureStrategy, bool $isAutoAcked): self
     {
-        return new self(true, $enqueueConsumer, $enqueueMessage, $connectionFactory, $loggingGateway);
-    }
-
-    /**
-     * @param EnqueueConsumer $enqueueConsumer
-     * @param EnqueueMessage $enqueueMessage
-     * @return EnqueueAcknowledgementCallback
-     */
-    public static function createWithManualAck(EnqueueConsumer $enqueueConsumer, EnqueueMessage $enqueueMessage, CachedConnectionFactory $connectionFactory, LoggingGateway $loggingGateway): self
-    {
-        return new self(false, $enqueueConsumer, $enqueueMessage, $connectionFactory, $loggingGateway);
+        return new self($finalFailureStrategy, $isAutoAcked, $enqueueConsumer, $enqueueMessage, $connectionFactory, $loggingGateway);
     }
 
     /**
      * @inheritDoc
      */
-    public function isAutoAck(): bool
+    public function getFailureStrategy(): FinalFailureStrategy
     {
-        return $this->isAutoAck;
+        return $this->failureStrategy;
     }
 
     /**
      * @inheritDoc
      */
-    public function disableAutoAck(): void
+    public function isAutoAcked(): bool
     {
-        $this->isAutoAck = false;
+        return $this->isAutoAcked;
     }
 
     /**

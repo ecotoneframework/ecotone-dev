@@ -6,6 +6,7 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapterEntrypoint;
 use Ecotone\Messaging\Endpoint\InterceptedChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -31,6 +32,10 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
      * @var string
      */
     protected $acknowledgeMode = EnqueueAcknowledgementCallback::AUTO_ACK;
+    /**
+     * @var FinalFailureStrategy
+     */
+    protected $finalFailureStrategy = FinalFailureStrategy::RESEND;
 
     protected bool $declareOnStartup = self::DECLARE_ON_STARTUP_DEFAULT;
 
@@ -90,6 +95,19 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
     public function withReceiveTimeout(int $timeoutInMilliseconds): self
     {
         $this->receiveTimeoutInMilliseconds = $timeoutInMilliseconds;
+
+        return $this;
+    }
+
+    /**
+     * Set the final failure strategy for message acknowledgment
+     *
+     * @param FinalFailureStrategy $finalFailureStrategy
+     * @return static
+     */
+    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
+    {
+        $this->finalFailureStrategy = $finalFailureStrategy;
 
         return $this;
     }

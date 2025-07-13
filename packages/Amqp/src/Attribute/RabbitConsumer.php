@@ -16,7 +16,7 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  * licence Enterprise
  */
 #[Attribute]
-final class AmqpConsumer extends MessageConsumer implements DefinedObject
+final class RabbitConsumer extends MessageConsumer implements DefinedObject
 {
     public function __construct(
         string $endpointId,

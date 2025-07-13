@@ -9,7 +9,7 @@ use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\AmqpBinding;
 use Ecotone\Amqp\AmqpExchange;
 use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\Attribute\AmqpConsumer;
+use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -43,8 +43,8 @@ class AmqpModule implements AnnotationModule
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $amqpQueues = [];
-        foreach ($annotationRegistrationService->findAnnotatedMethods(AmqpConsumer::class) as $annotatedMethod) {
-            /** @var AmqpConsumer $amqpConsumer */
+        foreach ($annotationRegistrationService->findAnnotatedMethods(RabbitConsumer::class) as $annotatedMethod) {
+            /** @var RabbitConsumer $amqpConsumer */
             $amqpConsumer = $annotatedMethod->getAnnotationForMethod();
 
             $amqpQueues[] = AmqpQueue::createWith($amqpConsumer->getQueueName());

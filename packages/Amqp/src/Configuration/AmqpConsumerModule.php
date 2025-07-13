@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Amqp\Configuration;
 
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
-use Ecotone\Amqp\Attribute\AmqpConsumer;
+use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -24,7 +24,7 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
 final class AmqpConsumerModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
-     * @param AmqpConsumer[] $amqpConsumers
+     * @param RabbitConsumer[] $amqpConsumers
      */
     private function __construct(
         private array $amqpConsumers,
@@ -34,8 +34,8 @@ final class AmqpConsumerModule extends NoExternalConfigurationModule implements 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $amqpConsumers = [];
-        foreach ($annotationRegistrationService->findAnnotatedMethods(AmqpConsumer::class) as $annotatedMethod) {
-            /** @var AmqpConsumer $amqpConsumer */
+        foreach ($annotationRegistrationService->findAnnotatedMethods(RabbitConsumer::class) as $annotatedMethod) {
+            /** @var RabbitConsumer $amqpConsumer */
             $amqpConsumer = $annotatedMethod->getAnnotationForMethod();
 
             $amqpConsumers[$amqpConsumer->getEndpointId()] = $amqpConsumer;

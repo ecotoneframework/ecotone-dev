@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\AmqpConsumer;
 
-use Ecotone\Amqp\Attribute\AmqpConsumer;
+use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
@@ -18,7 +18,7 @@ final class AmqpConsumerWithFailStrategyAttributeExample
     /** @var string[] */
     private array $messagePayloads = [];
 
-    #[AmqpConsumer('amqp_consumer_attribute', 'test_queue', finalFailureStrategy: FinalFailureStrategy::IGNORE)]
+    #[RabbitConsumer('amqp_consumer_attribute', 'test_queue', finalFailureStrategy: FinalFailureStrategy::IGNORE)]
     public function handle(#[Payload] string $payload, #[Header('fail')] bool $fail = false): void
     {
         if ($fail) {

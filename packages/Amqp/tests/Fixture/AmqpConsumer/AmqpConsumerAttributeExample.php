@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\AmqpConsumer;
 
-use Ecotone\Amqp\Attribute\AmqpConsumer;
+use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -17,7 +17,7 @@ final class AmqpConsumerAttributeExample
     /** @var string[] */
     private array $messagePayloads = [];
 
-    #[AmqpConsumer(
+    #[RabbitConsumer(
         endpointId: 'amqp_consumer_attribute',
         queueName: 'test_queue'
     )]

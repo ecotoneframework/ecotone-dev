@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp\Examples;
 
-use Ecotone\Amqp\Attribute\AmqpConsumer;
+use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Modelling\Attribute\QueryHandler;
 
@@ -23,7 +23,7 @@ final class AmqpConsumerAttributeExample
      * This method will consume messages from the 'order_queue' AMQP queue.
      * The endpointId 'order_processor' is used to identify this consumer.
      */
-    #[AmqpConsumer('order_processor', 'order_queue')]
+    #[RabbitConsumer('order_processor', 'order_queue')]
     public function processOrder(#[Payload] string $orderData): void
     {
         // Process the order

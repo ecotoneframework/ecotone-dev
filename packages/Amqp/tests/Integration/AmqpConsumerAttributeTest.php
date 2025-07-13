@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\Attribute\AmqpConsumer;
+use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Converter;
@@ -33,7 +33,7 @@ use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerWithFailStrategyAttribute
  * licence Enterprise
  * @internal
  */
-#[CoversClass(AmqpConsumer::class)]
+#[CoversClass(RabbitConsumer::class)]
 final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
 {
     public function test_throwing_exception_if_no_licence_for_amqp_consumer_attribute(): void

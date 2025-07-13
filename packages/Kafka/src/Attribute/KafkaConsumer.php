@@ -8,6 +8,7 @@ use Attribute;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Support\Assert;
 
 /**
@@ -19,7 +20,8 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
     public function __construct(
         string $endpointId,
         private array|string $topics,
-        private ?string $groupId = null
+        private ?string $groupId = null,
+        private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::STOP
     ) {
         Assert::notNullAndEmpty($topics, "Topics can't be empty");
 
@@ -43,6 +45,11 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
         return $this->groupId;
     }
 
+    public function getFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return $this->finalFailureStrategy;
+    }
+
     public function getDefinition(): Definition
     {
         return new Definition(
@@ -51,6 +58,7 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
                 $this->getEndpointId(),
                 $this->topics,
                 $this->groupId,
+                $this->finalFailureStrategy,
             ]
         );
     }

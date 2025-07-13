@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\AggregateMessage;
@@ -23,6 +24,9 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
 use Test\Ecotone\Kafka\Fixture\ChannelAdapter\ExampleKafkaConsumer;
+use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithFailStrategyExample;
+use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryAndErrorChannelExample;
+use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryExample;
 
 /**
  * licence Enterprise
@@ -145,5 +149,115 @@ final class KafkaChannelAdapterTest extends TestCase
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    public function test_defining_custom_failure_strategy(): void
+    {
+        $endpointId = 'kafka_consumer_attribute';
+        $topicName = 'test_topic_failure_' . Uuid::uuid4()->toString();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [KafkaConsumerWithFailStrategyExample::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                new KafkaConsumerWithFailStrategyExample(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults($topicName)
+                        ->withHeaderMapper("*"),
+                    TopicConfiguration::createWithReferenceName('testTopicFailure', $topicName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        $payload = Uuid::uuid4()->toString();
+        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+        $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
+
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $this->assertEquals([$payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
+
+        // Test that message is not consumed again
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $this->assertEquals([$payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
+    }
+
+    public function test_defining_instant_retries(): void
+    {
+        $endpointId = 'kafka_consumer_attribute';
+        $topicName = 'test_topic_retry_' . Uuid::uuid4()->toString();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [KafkaConsumerWithInstantRetryExample::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                new KafkaConsumerWithInstantRetryExample(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults($topicName)
+                        ->withHeaderMapper("*"),
+                    TopicConfiguration::createWithReferenceName('testTopicRetry', $topicName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        $payload = Uuid::uuid4()->toString();
+        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+        $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
+
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messages = $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads');
+        $this->assertCount(2, $messages);
+        $this->assertEquals($payload, $messages[0]);
+        $this->assertEquals($payload, $messages[1]);
+
+        // Test that message is not consumed again
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $messages = $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads');
+        $this->assertCount(2, $messages);
+    }
+
+    public function test_defining_error_channel(): void
+    {
+        $endpointId = 'kafka_consumer_attribute';
+        $topicName = 'test_topic_error_' . Uuid::uuid4()->toString();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [KafkaConsumerWithInstantRetryAndErrorChannelExample::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                new KafkaConsumerWithInstantRetryAndErrorChannelExample(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults($topicName)
+                        ->withHeaderMapper("*"),
+                    TopicConfiguration::createWithReferenceName('testTopicError', $topicName),
+                    SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        $payload = Uuid::uuid4()->toString();
+        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+        $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
+
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messages = $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads');
+        $this->assertCount(2, $messages);
+        $this->assertEquals($payload, $messages[0]);
+        $this->assertEquals($payload, $messages[1]);
+
+        // Test that message is not consumed again
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $messages = $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads');
+        $this->assertCount(2, $messages);
+
+        $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
     }
 }

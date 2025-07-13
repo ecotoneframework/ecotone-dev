@@ -6,6 +6,7 @@ namespace Ecotone\SymfonyBundle\Messenger;
 
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
@@ -25,7 +26,8 @@ final class SymfonyMessageConverter
     public function __construct(
         private HeaderMapper $headerMapper,
         private string $acknowledgeMode,
-        private ConversionService $conversionService
+        private ConversionService $conversionService,
+        private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND
     ) {
 
     }
@@ -73,23 +75,16 @@ final class SymfonyMessageConverter
                 ->setContentType(MediaType::parseMediaType($headers[MessageHeaders::CONTENT_TYPE]));
         }
 
-        if (in_array($this->acknowledgeMode, [SymfonyAcknowledgementCallback::AUTO_ACK, SymfonyAcknowledgementCallback::MANUAL_ACK])) {
-            if ($this->acknowledgeMode == SymfonyAcknowledgementCallback::AUTO_ACK) {
-                $amqpAcknowledgeCallback = SymfonyAcknowledgementCallback::createWithAutoAck(
-                    $symfonyTransport,
-                    $symfonyEnvelope
-                );
-            } else {
-                $amqpAcknowledgeCallback = SymfonyAcknowledgementCallback::createWithManualAck(
-                    $symfonyTransport,
-                    $symfonyEnvelope
-                );
-            }
+        $amqpAcknowledgeCallback = SymfonyAcknowledgementCallback::createWithFailureStrategy(
+            $symfonyTransport,
+            $symfonyEnvelope,
+            $this->finalFailureStrategy,
+            $this->acknowledgeMode == SymfonyAcknowledgementCallback::AUTO_ACK
+        );
 
-            $messageBuilder = $messageBuilder
-                ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, self::ECOTONE_SYMFONY_ACKNOWLEDGE_HEADER)
-                ->setHeader(self::ECOTONE_SYMFONY_ACKNOWLEDGE_HEADER, $amqpAcknowledgeCallback);
-        }
+        $messageBuilder = $messageBuilder
+            ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, self::ECOTONE_SYMFONY_ACKNOWLEDGE_HEADER)
+            ->setHeader(self::ECOTONE_SYMFONY_ACKNOWLEDGE_HEADER, $amqpAcknowledgeCallback);
 
         return $messageBuilder->build();
     }

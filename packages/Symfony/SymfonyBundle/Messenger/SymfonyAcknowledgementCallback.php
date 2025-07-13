@@ -44,6 +44,18 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
     }
 
     /**
+     * @param TransportInterface $symfonyTransport
+     * @param Envelope $envelope
+     * @param FinalFailureStrategy $finalFailureStrategy
+     * @param bool $isAutoAcked
+     * @return SymfonyAcknowledgementCallback
+     */
+    public static function createWithFailureStrategy(TransportInterface $symfonyTransport, Envelope $envelope, FinalFailureStrategy $finalFailureStrategy, bool $isAutoAcked): self
+    {
+        return new self($finalFailureStrategy, $isAutoAcked, $symfonyTransport, $envelope);
+    }
+
+    /**
      * @inheritDoc
      */
     public function getFailureStrategy(): FinalFailureStrategy

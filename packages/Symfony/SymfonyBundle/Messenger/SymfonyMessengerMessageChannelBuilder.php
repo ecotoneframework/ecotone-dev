@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 
@@ -26,6 +27,8 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
     private HeaderMapper $headerMapper;
 
     private string $acknowledgeMode = SymfonyAcknowledgementCallback::AUTO_ACK;
+
+    private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND;
 
     private function __construct(private string $transportName)
     {
@@ -59,6 +62,13 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
         return $this;
     }
 
+    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
+    {
+        $this->finalFailureStrategy = $finalFailureStrategy;
+
+        return $this;
+    }
+
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(
@@ -69,6 +79,7 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
                     $this->headerMapper,
                     $this->acknowledgeMode,
                     new Reference(ConversionService::REFERENCE_NAME),
+                    $this->finalFailureStrategy,
                 ]),
             ]
         );

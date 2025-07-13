@@ -3,9 +3,12 @@
 namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -15,6 +18,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\CommandBus;
@@ -27,11 +31,19 @@ use Ramsey\Uuid\Uuid;
  */
 final class InstantRetryAttributeModule implements AnnotationModule
 {
+    /**
+     * @var array<string, InstantRetry> $commandBusesWithInstantRetry key is interface name, value is InstantRetry attribute
+     */
     private array $commandBusesWithInstantRetry;
+    /**
+     * @var array<string, InstantRetry> $asynchronousEndpointsWithInstantRetry key is endpoint id
+     */
+    private array $asynchronousEndpointsWithInstantRetry;
 
-    private function __construct(array $commandBusesWithInstantRetry)
+    private function __construct(array $commandBusesWithInstantRetry, array $asynchronousEndpointsWithInstantRetry)
     {
         $this->commandBusesWithInstantRetry = $commandBusesWithInstantRetry;
+        $this->asynchronousEndpointsWithInstantRetry = $asynchronousEndpointsWithInstantRetry;
     }
 
     /**
@@ -44,7 +56,7 @@ final class InstantRetryAttributeModule implements AnnotationModule
 
         foreach ($annotatedInterfaces as $annotatedInterface) {
             if (! is_subclass_of($annotatedInterface, CommandBus::class)) {
-                throw new InvalidArgumentException(sprintf(
+                throw new ConfigurationException(sprintf(
                     "InstantRetry attribute can only be used on interfaces extending CommandBus. '%s' does not extend CommandBus.",
                     $annotatedInterface
                 ));
@@ -54,7 +66,22 @@ final class InstantRetryAttributeModule implements AnnotationModule
             $commandBusesWithInstantRetry[$annotatedInterface] = $instantRetryAttribute;
         }
 
-        return new self($commandBusesWithInstantRetry);
+        $asynchronousEndpointsWithInstantRetry = [];
+        $annotatedMethods = $annotationRegistrationService->findAnnotatedMethods(InstantRetry::class);
+        foreach ($annotatedMethods as $annotatedMethod) {
+            if (!$annotatedMethod->hasMethodAnnotation(MessageConsumer::class)) {
+                throw new ConfigurationException(sprintf(
+                    "InstantRetry attribute can only be used on methods annotated with MessageConsumer. '%s' is not annotated with MessageConsumer (e.g. RabbitConsumer, KafkaConsumer).",
+                    $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName()
+                ));
+            }
+
+            /** @var MessageConsumer $messageConsumer */
+            $messageConsumer = $annotatedMethod->getMethodAnnotationsWithType(MessageConsumer::class)[0];
+            $asynchronousEndpointsWithInstantRetry[$messageConsumer->getEndpointId()] = $annotatedMethod->getAnnotationForMethod();
+        }
+
+        return new self($commandBusesWithInstantRetry, $asynchronousEndpointsWithInstantRetry);
     }
 
     /**
@@ -62,7 +89,7 @@ final class InstantRetryAttributeModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (empty($this->commandBusesWithInstantRetry)) {
+        if (empty($this->commandBusesWithInstantRetry) && empty($this->asynchronousEndpointsWithInstantRetry)) {
             return;
         }
 
@@ -79,6 +106,19 @@ final class InstantRetryAttributeModule implements AnnotationModule
                 $instantRetryAttribute->exceptions,
                 TypeDescriptor::create($commandBusInterface)->toString(),
                 Precedence::CUSTOM_INSTANT_RETRY_PRECEDENCE,
+                null,
+            );
+        }
+
+        foreach ($this->asynchronousEndpointsWithInstantRetry as $asynchronousEndpoint => $instantRetryAttribute) {
+            $this->registerInterceptor(
+                $messagingConfiguration,
+                $interfaceToCallRegistry,
+                $instantRetryAttribute->retryTimes,
+                $instantRetryAttribute->exceptions,
+                AsynchronousRunningEndpoint::class,
+                Precedence::CUSTOM_INSTANT_RETRY_PRECEDENCE,
+                $asynchronousEndpoint,
             );
         }
     }
@@ -111,9 +151,10 @@ final class InstantRetryAttributeModule implements AnnotationModule
         array $exceptions,
         string $pointcut,
         int $precedence,
+        ?string $relatedEndpointId,
     ): void {
         $instantRetryId = Uuid::uuid4()->toString();
-        $messagingConfiguration->registerServiceDefinition($instantRetryId, Definition::createFor(InstantRetryInterceptor::class, [$retryAttempt, $exceptions, Reference::to(RetryStatusTracker::class)]));
+        $messagingConfiguration->registerServiceDefinition($instantRetryId, Definition::createFor(InstantRetryInterceptor::class, [$retryAttempt, $exceptions, Reference::to(RetryStatusTracker::class), $relatedEndpointId]));
 
         $messagingConfiguration
             ->registerAroundMethodInterceptor(

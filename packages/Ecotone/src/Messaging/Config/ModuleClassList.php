@@ -2,6 +2,7 @@
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Amqp\Configuration\RabbitConsumerModule;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerModule;
 use Ecotone\Amqp\Configuration\AmqpModule;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherModule;
@@ -119,6 +120,7 @@ class ModuleClassList
         AmqpMessagePublisherModule::class,
         AmqpModule::class,
         AmqpMessageConsumerModule::class,
+        RabbitConsumerModule::class,
     ];
 
     public const DBAL_MODULES = [

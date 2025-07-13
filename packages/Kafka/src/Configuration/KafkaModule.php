@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
+use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Kafka\Attribute\KafkaConsumer;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
@@ -42,23 +43,27 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 {
     /**
      * @param KafkaConsumer[] $kafkaConsumers
+     * @param AnnotatedMethod[] $kafkaConsumersAnnotatedMethods
      */
     private function __construct(
         private array $kafkaConsumers,
+        private array $kafkaConsumersAnnotatedMethods,
     ) {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $kafkaConsumers = [];
+        $kafkaConsumersAnnotatedMethods = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(KafkaConsumer::class) as $annotatedMethod) {
             /** @var KafkaConsumer $kafkaConsumer */
             $kafkaConsumer = $annotatedMethod->getAnnotationForMethod();
 
             $kafkaConsumers[$kafkaConsumer->getEndpointId()] = $kafkaConsumer;
+            $kafkaConsumersAnnotatedMethods[] = $annotatedMethod;
         }
 
-        return new self($kafkaConsumers);
+        return new self($kafkaConsumers, $kafkaConsumersAnnotatedMethods);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -109,12 +114,17 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
             $kafkaBrokerConfigurations[$publisherConfiguration->getBrokerConfigurationReference()] = Reference::to($publisherConfiguration->getBrokerConfigurationReference());
         }
 
-        foreach ($this->kafkaConsumers as $kafkaConsumer) {
+        foreach ($this->kafkaConsumersAnnotatedMethods as $kafkaConsumerAnnotatedMethod) {
+            /** @var KafkaConsumer $kafkaConsumer */
+            $kafkaConsumer = $kafkaConsumerAnnotatedMethod->getAnnotationForMethod();
+
             $messagingConfiguration->registerConsumer(
                 KafkaInboundChannelAdapterBuilder::create(
                     endpointId: $kafkaConsumer->getEndpointId(),
                     requestChannelName: $kafkaConsumer->getEndpointId(),
                 )
+                    ->withFinalFailureStrategy($kafkaConsumer->getFinalFailureStrategy())
+                    ->withEndpointAnnotations($kafkaConsumerAnnotatedMethod->getAllAnnotationDefinitions())
             );
         }
 

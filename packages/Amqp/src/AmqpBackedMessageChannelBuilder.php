@@ -61,13 +61,6 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return $this;
     }
 
-    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
-    {
-        $this->getInboundChannelAdapter()->withFinalFailureStrategy($finalFailureStrategy);
-
-        return $this;
-    }
-
     public function getMessageChannelName(): string
     {
         return $this->channelName;

@@ -31,10 +31,12 @@ final class InMemoryQueueAcknowledgeModule extends NoExternalConfigurationModule
     {
         $pollableMessageChannels = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
 
+        /** @var SimpleMessageChannelBuilder $pollableMessageChannel */
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
             $messagingConfiguration->registerChannelInterceptor(
                 new InMemoryQueueAcknowledgeInterceptorBuilder(
-                    $pollableMessageChannel->getMessageChannelName()
+                    $pollableMessageChannel->getMessageChannelName(),
+                    $pollableMessageChannel->getFinalFailureStrategy()
                 )
             );
         }

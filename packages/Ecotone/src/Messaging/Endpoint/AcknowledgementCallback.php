@@ -17,14 +17,9 @@ namespace Ecotone\Messaging\Endpoint;
 interface AcknowledgementCallback
 {
     /**
-     * @return bool
+     * Get the failure strategy for this acknowledgement callback
      */
-    public function isAutoAck(): bool;
-
-    /**
-     * Disable auto acknowledgment
-     */
-    public function disableAutoAck(): void;
+    public function getFailureStrategy(): FinalFailureStrategy;
 
     /**
      * Mark the message as accepted

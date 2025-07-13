@@ -6,6 +6,7 @@ namespace Ecotone\SymfonyBundle\Messenger;
 
 use Ecotone\Enqueue\EnqueueAcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Transport\TransportInterface;
 
@@ -24,37 +25,29 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
     public const NONE = 'none';
 
     private function __construct(
-        private bool $isAutoAck,
-        private TransportInterface $symfonyTransport,
-        private Envelope $envelope
+        private FinalFailureStrategy $failureStrategy,
+        private TransportInterface   $symfonyTransport,
+        private Envelope             $envelope
     ) {
 
     }
 
     public static function createWithAutoAck(TransportInterface $symfonyTransport, Envelope $envelope): self
     {
-        return new self(true, $symfonyTransport, $envelope);
+        return new self(FinalFailureStrategy::RESEND, $symfonyTransport, $envelope);
     }
 
     public static function createWithManualAck(TransportInterface $symfonyTransport, Envelope $envelope): self
     {
-        return new self(false, $symfonyTransport, $envelope);
+        return new self(FinalFailureStrategy::STOP, $symfonyTransport, $envelope);
     }
 
     /**
      * @inheritDoc
      */
-    public function isAutoAck(): bool
+    public function getFailureStrategy(): FinalFailureStrategy
     {
-        return $this->isAutoAck;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function disableAutoAck(): void
-    {
-        $this->isAutoAck = false;
+        return $this->failureStrategy;
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Laravel\Queue;
 
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Illuminate\Contracts\Queue\Job;
 
 /**
@@ -17,36 +18,28 @@ class LaravelQueueAcknowledgementCallback implements AcknowledgementCallback
     public const NONE = 'none';
 
     private function __construct(
-        private bool $isAutoAck,
-        private Job $job
+        private FinalFailureStrategy $failureStrategy,
+        private Job                  $job
     ) {
 
     }
 
     public static function createWithAutoAck(Job $job): self
     {
-        return new self(true, $job);
+        return new self(FinalFailureStrategy::RESEND, $job);
     }
 
     public static function createWithManualAck(Job $job): self
     {
-        return new self(false, $job);
+        return new self(FinalFailureStrategy::STOP, $job);
     }
 
     /**
      * @inheritDoc
      */
-    public function isAutoAck(): bool
+    public function getFailureStrategy(): FinalFailureStrategy
     {
-        return $this->isAutoAck;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function disableAutoAck(): void
-    {
-        $this->isAutoAck = false;
+        return $this->failureStrategy;
     }
 
     /**

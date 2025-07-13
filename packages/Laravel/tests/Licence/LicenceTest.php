@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\Licence;
 
 use Ecotone\Laravel\EcotoneCacheClear;
+use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\Test\LicenceTesting;
@@ -28,11 +29,11 @@ final class LicenceTest extends TestCase
 
         $app = require __DIR__ . '/bootstrap/app.php';
         $app->make(Kernel::class)->bootstrap();
+        EcotoneCacheClear::clearEcotoneCacheDirectories(EcotoneProvider::getCacheDirectoryPath());
+
         $this->app = $app;
         $this->queryBus = $app->get(QueryBus::class);
         $this->commandBus = $app->get(CommandBus::class);
-
-        EcotoneCacheClear::clearEcotoneCacheDirectories($app->storagePath());
     }
 
     protected function tearDown(): void

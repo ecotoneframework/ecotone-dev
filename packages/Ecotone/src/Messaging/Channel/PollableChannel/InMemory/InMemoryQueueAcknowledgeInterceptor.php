@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Channel\PollableChannel\InMemory;
 
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
@@ -18,6 +19,11 @@ final class InMemoryQueueAcknowledgeInterceptor extends AbstractChannelIntercept
 {
     public const ECOTONE_IN_MEMORY_QUEUE_ACK = 'ecotone.in_memory_queue.ack';
 
+    public function __construct(private FinalFailureStrategy $finalFailureStrategy)
+    {
+
+    }
+
     /**
      * @inheritDoc
      */
@@ -29,7 +35,7 @@ final class InMemoryQueueAcknowledgeInterceptor extends AbstractChannelIntercept
 
         return MessageBuilder::fromMessage($message)
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, self::ECOTONE_IN_MEMORY_QUEUE_ACK)
-            ->setHeader(self::ECOTONE_IN_MEMORY_QUEUE_ACK, new InMemoryAcknowledgeCallback($messageChannel, $message))
+            ->setHeader(self::ECOTONE_IN_MEMORY_QUEUE_ACK, new InMemoryAcknowledgeCallback($messageChannel, $message, failureStrategy: $this->finalFailureStrategy))
             ->build();
     }
 }

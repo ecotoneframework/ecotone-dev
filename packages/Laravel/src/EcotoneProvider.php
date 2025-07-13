@@ -2,6 +2,7 @@
 
 namespace Ecotone\Laravel;
 
+use Illuminate\Foundation\Application;
 use function class_exists;
 
 use const DIRECTORY_SEPARATOR;
@@ -188,7 +189,7 @@ class EcotoneProvider extends ServiceProvider
         $this->registerOptimizationHooks();
     }
 
-    private function getCacheDirectoryPath(): string
+    public static function getCacheDirectoryPath(): string
     {
         return App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data';
     }

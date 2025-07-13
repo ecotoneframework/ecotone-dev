@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\Application\Execution;
 
 use Ecotone\Laravel\EcotoneCacheClear;
+use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Modelling\CommandBus;
@@ -32,8 +33,6 @@ final class ApplicationTest extends TestCase
             CommandBus::class,
             $app->get(CommandBus::class)
         );
-
-        EcotoneCacheClear::clearEcotoneCacheDirectories($app->storagePath());
     }
 
     public function createApplication()
@@ -41,6 +40,8 @@ final class ApplicationTest extends TestCase
         $app = require __DIR__ . '/../bootstrap/app.php';
 
         $app->make(Kernel::class)->bootstrap();
+
+        EcotoneCacheClear::clearEcotoneCacheDirectories(EcotoneProvider::getCacheDirectoryPath());
 
         return $app;
     }

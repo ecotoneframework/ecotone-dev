@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Application\Execution;
 
+use Ecotone\Laravel\EcotoneCacheClear;
+use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
@@ -104,6 +106,7 @@ final class EloquentIntegrationTest extends TestCase
         $app = require __DIR__ . '/../bootstrap/app.php';
 
         $app->make(Kernel::class)->bootstrap();
+        EcotoneCacheClear::clearEcotoneCacheDirectories(EcotoneProvider::getCacheDirectoryPath());
 
         return $app;
     }

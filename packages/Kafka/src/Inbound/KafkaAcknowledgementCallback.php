@@ -6,6 +6,7 @@ namespace Ecotone\Kafka\Inbound;
 
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Exception;
 use RdKafka\KafkaConsumer;
@@ -21,39 +22,31 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public const NONE = 'none';
 
     private function __construct(
-        private bool           $isAutoAck,
-        private KafkaConsumer  $consumer,
-        private KafkaMessage   $message,
-        private LoggingGateway $loggingGateway,
-        private KafkaAdmin     $kafkaAdmin,
-        private string         $endpointId
+        private FinalFailureStrategy $failureStrategy,
+        private KafkaConsumer        $consumer,
+        private KafkaMessage         $message,
+        private LoggingGateway       $loggingGateway,
+        private KafkaAdmin           $kafkaAdmin,
+        private string               $endpointId
     ) {
     }
 
     public static function createWithAutoAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId): self
     {
-        return new self(true, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
+        return new self(FinalFailureStrategy::RESEND, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
     }
 
     public static function createWithManualAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId): self
     {
-        return new self(false, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
+        return new self(FinalFailureStrategy::STOP, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
     }
 
     /**
      * @inheritDoc
      */
-    public function isAutoAck(): bool
+    public function getFailureStrategy(): FinalFailureStrategy
     {
-        return $this->isAutoAck;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function disableAutoAck(): void
-    {
-        $this->isAutoAck = false;
+        return $this->failureStrategy;
     }
 
     /**

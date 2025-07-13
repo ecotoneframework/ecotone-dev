@@ -163,14 +163,6 @@ class AnnotatedMethod implements AnnotatedFinding
         return $this->getClassAnnotationsWithType($type);
     }
 
-    /**
-     * @return AttributeDefinition[]
-     */
-    public function getAttributeDefinitions(): array
-    {
-        $object = [];
-    }
-
     public function hasClassAnnotation(string|TypeDescriptor $type): bool
     {
         $type = $type instanceof TypeDescriptor ? $type->toString() : $type;

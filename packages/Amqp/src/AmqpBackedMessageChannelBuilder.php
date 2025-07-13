@@ -3,6 +3,7 @@
 namespace Ecotone\Amqp;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**
@@ -56,6 +57,13 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
     public function withPublisherAcknowledgments(bool $enabled): self
     {
         $this->getAmqpOutboundChannelAdapter()->withPublisherAcknowledgments($enabled);
+
+        return $this;
+    }
+
+    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
+    {
+        $this->getInboundChannelAdapter()->withFinalFailureStrategy($finalFailureStrategy);
 
         return $this;
     }

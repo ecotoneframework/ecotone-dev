@@ -3,6 +3,7 @@
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
@@ -21,6 +22,7 @@ class InboundMessageConverter
         private HeaderMapper $headerMapper,
         private string $acknowledgeHeaderName,
         private LoggingGateway $loggingGateway,
+        private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND,
     ) {
 
     }
@@ -32,11 +34,15 @@ class InboundMessageConverter
             ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($enqueueMessageHeaders, $conversionService));
 
         if (in_array($this->acknowledgeMode, [EnqueueAcknowledgementCallback::AUTO_ACK, EnqueueAcknowledgementCallback::MANUAL_ACK])) {
-            if ($this->acknowledgeMode == EnqueueAcknowledgementCallback::AUTO_ACK) {
-                $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithAutoAck($consumer, $source, $connectionFactory, $this->loggingGateway);
-            } else {
-                $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithManualAck($consumer, $source, $connectionFactory, $this->loggingGateway);
-            }
+            $isAutoAcked = $this->acknowledgeMode == EnqueueAcknowledgementCallback::AUTO_ACK;
+            $amqpAcknowledgeCallback = EnqueueAcknowledgementCallback::createWithFailureStrategy(
+                $consumer,
+                $source,
+                $connectionFactory,
+                $this->loggingGateway,
+                $this->finalFailureStrategy,
+                $isAutoAcked
+            );
 
             $messageBuilder = $messageBuilder
                 ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback);

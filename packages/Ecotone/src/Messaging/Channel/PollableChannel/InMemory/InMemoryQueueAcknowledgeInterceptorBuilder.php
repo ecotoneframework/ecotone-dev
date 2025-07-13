@@ -17,7 +17,7 @@ use Ecotone\Messaging\PrecedenceChannelInterceptor;
  */
 final class InMemoryQueueAcknowledgeInterceptorBuilder implements ChannelInterceptorBuilder
 {
-    public function __construct(private string $relatedChannel, private FinalFailureStrategy $finalFailureStrategy)
+    public function __construct(private string $relatedChannel, private FinalFailureStrategy $finalFailureStrategy, private bool $isAutoAcked)
     {
     }
 
@@ -35,6 +35,7 @@ final class InMemoryQueueAcknowledgeInterceptorBuilder implements ChannelInterce
     {
         return new Definition(InMemoryQueueAcknowledgeInterceptor::class, [
             $this->finalFailureStrategy,
+            $this->isAutoAcked,
         ]);
     }
 }

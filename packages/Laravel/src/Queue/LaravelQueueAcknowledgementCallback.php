@@ -19,6 +19,7 @@ class LaravelQueueAcknowledgementCallback implements AcknowledgementCallback
 
     private function __construct(
         private FinalFailureStrategy $failureStrategy,
+        private bool $isAutoAcked,
         private Job                  $job
     ) {
 
@@ -26,12 +27,12 @@ class LaravelQueueAcknowledgementCallback implements AcknowledgementCallback
 
     public static function createWithAutoAck(Job $job): self
     {
-        return new self(FinalFailureStrategy::RESEND, $job);
+        return new self(FinalFailureStrategy::RESEND, true, $job);
     }
 
     public static function createWithManualAck(Job $job): self
     {
-        return new self(FinalFailureStrategy::STOP, $job);
+        return new self(FinalFailureStrategy::STOP, false, $job);
     }
 
     /**
@@ -40,6 +41,14 @@ class LaravelQueueAcknowledgementCallback implements AcknowledgementCallback
     public function getFailureStrategy(): FinalFailureStrategy
     {
         return $this->failureStrategy;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isAutoAcked(): bool
+    {
+        return $this->isAutoAcked;
     }
 
     /**

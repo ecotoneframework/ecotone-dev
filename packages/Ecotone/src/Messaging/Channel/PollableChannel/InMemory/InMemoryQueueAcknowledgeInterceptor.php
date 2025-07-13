@@ -10,7 +10,9 @@ use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Messaging\PollableChannel;
 
 /**
  * licence Apache-2.0
@@ -19,7 +21,7 @@ final class InMemoryQueueAcknowledgeInterceptor extends AbstractChannelIntercept
 {
     public const ECOTONE_IN_MEMORY_QUEUE_ACK = 'ecotone.in_memory_queue.ack';
 
-    public function __construct(private FinalFailureStrategy $finalFailureStrategy)
+    public function __construct(private FinalFailureStrategy $finalFailureStrategy, private bool $isAutoAcked)
     {
 
     }
@@ -33,9 +35,11 @@ final class InMemoryQueueAcknowledgeInterceptor extends AbstractChannelIntercept
             return $message;
         }
 
+        Assert::isTrue($messageChannel instanceof PollableChannel, "InMemoryQueueAcknowledgeInterceptor can be used only with PollableChannel");
+
         return MessageBuilder::fromMessage($message)
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, self::ECOTONE_IN_MEMORY_QUEUE_ACK)
-            ->setHeader(self::ECOTONE_IN_MEMORY_QUEUE_ACK, new InMemoryAcknowledgeCallback($messageChannel, $message, failureStrategy: $this->finalFailureStrategy))
+            ->setHeader(self::ECOTONE_IN_MEMORY_QUEUE_ACK, new InMemoryAcknowledgeCallback(queueChannel: $messageChannel, message: $message, failureStrategy: $this->finalFailureStrategy, isAutoAcked: $this->isAutoAcked))
             ->build();
     }
 }

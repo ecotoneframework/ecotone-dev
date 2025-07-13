@@ -26,6 +26,7 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
 
     private function __construct(
         private FinalFailureStrategy $failureStrategy,
+        private bool $isAutoAcked,
         private TransportInterface   $symfonyTransport,
         private Envelope             $envelope
     ) {
@@ -34,12 +35,12 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
 
     public static function createWithAutoAck(TransportInterface $symfonyTransport, Envelope $envelope): self
     {
-        return new self(FinalFailureStrategy::RESEND, $symfonyTransport, $envelope);
+        return new self(FinalFailureStrategy::RESEND, true, $symfonyTransport, $envelope);
     }
 
     public static function createWithManualAck(TransportInterface $symfonyTransport, Envelope $envelope): self
     {
-        return new self(FinalFailureStrategy::STOP, $symfonyTransport, $envelope);
+        return new self(FinalFailureStrategy::STOP, false, $symfonyTransport, $envelope);
     }
 
     /**
@@ -48,6 +49,14 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
     public function getFailureStrategy(): FinalFailureStrategy
     {
         return $this->failureStrategy;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isAutoAcked(): bool
+    {
+        return $this->isAutoAcked;
     }
 
     /**

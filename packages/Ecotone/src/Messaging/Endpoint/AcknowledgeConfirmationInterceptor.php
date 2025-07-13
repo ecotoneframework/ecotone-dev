@@ -117,13 +117,16 @@ class AcknowledgeConfirmationInterceptor
             return;
         }
 
-        $this->retryRunner->runWithRetry(function () use ($message, $logger, $messageChannelName, $acknowledgementCallback) {
-            $acknowledgementCallback->accept();
+        // Only auto-acknowledge if auto-ack is enabled
+        if ($acknowledgementCallback->isAutoAcked()) {
+            $this->retryRunner->runWithRetry(function () use ($message, $logger, $messageChannelName, $acknowledgementCallback) {
+                $acknowledgementCallback->accept();
 
-            $logger->info(
-                sprintf('Message with id `%s` was acknowledged in Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
-                $message
-            );
-        }, $retryStrategy, $message, Exception::class, sprintf('Acknowledging Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
+                $logger->info(
+                    sprintf('Message with id `%s` was acknowledged in Message Channel `%s`', $message->getHeaders()->getMessageId(), $messageChannelName),
+                    $message
+                );
+            }, $retryStrategy, $message, Exception::class, sprintf('Acknowledging Message in Message Channel `%s` failed. Trying to self-heal and retry.', $messageChannelName));
+        }
     }
 }

@@ -20,6 +20,7 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
         private PollableChannel           $queueChannel,
         private Message                   $message,
         private FinalFailureStrategy      $failureStrategy = FinalFailureStrategy::RESEND,
+        private bool                      $isAutoAcked = true,
         private InMemoryAcknowledgeStatus $status = InMemoryAcknowledgeStatus::AWAITING
     ) {
     }
@@ -30,6 +31,14 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
     public function getFailureStrategy(): FinalFailureStrategy
     {
         return $this->failureStrategy;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isAutoAcked(): bool
+    {
+        return $this->isAutoAcked;
     }
 
     public function getStatus(): InMemoryAcknowledgeStatus

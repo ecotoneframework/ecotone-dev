@@ -23,6 +23,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
 
     private function __construct(
         private FinalFailureStrategy $failureStrategy,
+        private bool $isAutoAcked,
         private KafkaConsumer        $consumer,
         private KafkaMessage         $message,
         private LoggingGateway       $loggingGateway,
@@ -33,12 +34,12 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
 
     public static function createWithAutoAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId): self
     {
-        return new self(FinalFailureStrategy::RESEND, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
+        return new self(FinalFailureStrategy::RESEND, true, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
     }
 
     public static function createWithManualAck(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId): self
     {
-        return new self(FinalFailureStrategy::STOP, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
+        return new self(FinalFailureStrategy::STOP, false, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
     }
 
     /**
@@ -47,6 +48,14 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public function getFailureStrategy(): FinalFailureStrategy
     {
         return $this->failureStrategy;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isAutoAcked(): bool
+    {
+        return $this->isAutoAcked;
     }
 
     /**

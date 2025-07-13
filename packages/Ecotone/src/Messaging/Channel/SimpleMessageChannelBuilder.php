@@ -32,10 +32,11 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         private ?MediaType           $conversionMediaType,
         private HeaderMapper         $headerMapper,
         private FinalFailureStrategy $finalFailureStrategy,
+        private bool                 $isAutoAcked,
     ) {
     }
 
-    public static function create(string $messageChannelName, MessageChannel $messageChannel, string|MediaType|null $conversionMediaType = null, FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND): self
+    public static function create(string $messageChannelName, MessageChannel $messageChannel, string|MediaType|null $conversionMediaType = null, FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND, bool $isAutoAcked = true): self
     {
         return new self(
             $messageChannelName,
@@ -44,6 +45,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
             $conversionMediaType ? (is_string($conversionMediaType) ? MediaType::parseMediaType($conversionMediaType) : $conversionMediaType) : null,
             DefaultHeaderMapper::createAllHeadersMapping(),
             $finalFailureStrategy,
+            $isAutoAcked,
         );
     }
 
@@ -57,11 +59,11 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return self::create($messageChannelName, PublishSubscribeChannel::create($messageChannelName), null);
     }
 
-    public static function createQueueChannel(string $messageChannelName, bool $delayable = false, string|MediaType|null $conversionMediaType = null, FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND): self
+    public static function createQueueChannel(string $messageChannelName, bool $delayable = false, string|MediaType|null $conversionMediaType = null, FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND, bool $isAutoAcked = true): self
     {
         $messageChannel = $delayable ? DelayableQueueChannel::create($messageChannelName) : QueueChannel::create($messageChannelName);
 
-        return self::create($messageChannelName, $messageChannel, $conversionMediaType, $finalFailureStrategy);
+        return self::create($messageChannelName, $messageChannel, $conversionMediaType, $finalFailureStrategy, $isAutoAcked);
     }
 
     public static function createNullableChannel(string $messageChannelName): self
@@ -85,6 +87,11 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
     public function getFinalFailureStrategy(): FinalFailureStrategy
     {
         return $this->finalFailureStrategy;
+    }
+
+    public function isAutoAcked(): bool
+    {
+        return $this->isAutoAcked;
     }
 
     public function withDefaultConversionMediaType(string $mediaType): self

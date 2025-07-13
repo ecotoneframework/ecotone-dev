@@ -7,10 +7,13 @@ namespace Test\Ecotone\Messaging\Unit\Endpoint;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryAcknowledgeCallback;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryAcknowledgeStatus;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptor;
+use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\NullAcknowledgementCallback;
@@ -142,6 +145,44 @@ final class FinalFailureStrategyTest extends TestCase
             $service->getMessage()->getHeaders()->get(InMemoryQueueAcknowledgeInterceptor::ECOTONE_IN_MEMORY_QUEUE_ACK)->getStatus()
         );
     }
+
+    public function test_manual_ack_service_acknowledges_message_manually()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [ManualAckService::class],
+            [$service = new ManualAckService()],
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::STOP, isAutoAcked: false),
+            ]
+        );
+
+        $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+
+        $this->assertSame(
+            InMemoryAcknowledgeStatus::IGNORED,
+            $service->getMessage()->getHeaders()->get(InMemoryQueueAcknowledgeInterceptor::ECOTONE_IN_MEMORY_QUEUE_ACK)->getStatus()
+        );
+    }
+
+    public function test_auto_ack_disabled_and_fails()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [FailingService::class],
+            [$service = new FailingService()],
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::RESEND, isAutoAcked: false),
+            ]
+        );
+
+        $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+
+        $this->assertSame(
+            InMemoryAcknowledgeStatus::RESENT,
+            $service->getMessage()->getHeaders()->get(InMemoryQueueAcknowledgeInterceptor::ECOTONE_IN_MEMORY_QUEUE_ACK)->getStatus()
+        );
+    }
 }
 
 class FailingService
@@ -193,6 +234,27 @@ class RejectingService
         $this->message = $message;
 
         throw new RejectMessageException('Reject this message');
+    }
+
+    public function getMessage(): Message
+    {
+        return $this->message;
+    }
+}
+
+class ManualAckService
+{
+    private Message $message;
+
+    #[Asynchronous('async')]
+    #[ServiceActivator('executionChannel')]
+    public function handle(Message $message): void
+    {
+        $this->message = $message;
+
+        /** @var AcknowledgementCallback $ackCallback */
+        $ackCallback = $message->getHeaders()->get(InMemoryQueueAcknowledgeInterceptor::ECOTONE_IN_MEMORY_QUEUE_ACK);
+        $ackCallback->reject();
     }
 
     public function getMessage(): Message

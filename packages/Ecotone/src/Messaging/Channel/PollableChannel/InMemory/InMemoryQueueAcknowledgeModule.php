@@ -36,7 +36,8 @@ final class InMemoryQueueAcknowledgeModule extends NoExternalConfigurationModule
             $messagingConfiguration->registerChannelInterceptor(
                 new InMemoryQueueAcknowledgeInterceptorBuilder(
                     $pollableMessageChannel->getMessageChannelName(),
-                    $pollableMessageChannel->getFinalFailureStrategy()
+                    $pollableMessageChannel->getFinalFailureStrategy(),
+                    $pollableMessageChannel->isAutoAcked()
                 )
             );
         }

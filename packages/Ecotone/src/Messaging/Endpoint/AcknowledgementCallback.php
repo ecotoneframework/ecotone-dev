@@ -22,6 +22,11 @@ interface AcknowledgementCallback
     public function getFailureStrategy(): FinalFailureStrategy;
 
     /**
+     * Check if this acknowledgement callback is in auto-ack mode
+     */
+    public function isAutoAcked(): bool;
+
+    /**
      * Mark the message as accepted
      */
     public function accept(): void;

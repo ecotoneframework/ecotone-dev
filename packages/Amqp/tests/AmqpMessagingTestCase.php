@@ -65,6 +65,7 @@ abstract class AmqpMessagingTestCase extends TestCase
         $this->deleteQueue(new AmqpQueue('ecotone_1_delay'));
         $this->deleteQueue(new AmqpQueue('async'));
         $this->deleteQueue(new AmqpQueue('notification_channel'));
+        $this->deleteQueue(new AmqpQueue('test_queue'));
     }
 
     private function deleteQueue(AmqpQueue $queue): void

@@ -9,6 +9,7 @@ use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\AmqpBinding;
 use Ecotone\Amqp\AmqpExchange;
 use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Amqp\Attribute\AmqpConsumer;
 use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -28,7 +29,10 @@ class AmqpModule implements AnnotationModule
 {
     private AmqpDistributionModule $amqpDistributionModule;
 
-    private function __construct(AmqpDistributionModule $amqpDistributionModule)
+    /**
+     * @param AmqpQueue[] $amqpQueuesFromMessageConsumers
+     */
+    private function __construct(AmqpDistributionModule $amqpDistributionModule, private array $amqpQueuesFromMessageConsumers)
     {
         $this->amqpDistributionModule = $amqpDistributionModule;
     }
@@ -38,7 +42,18 @@ class AmqpModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self(AmqpDistributionModule::create());
+        $amqpQueues = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(AmqpConsumer::class) as $annotatedMethod) {
+            /** @var AmqpConsumer $amqpConsumer */
+            $amqpConsumer = $annotatedMethod->getAnnotationForMethod();
+
+            $amqpQueues[] = AmqpQueue::createWith($amqpConsumer->getQueueName());
+        }
+
+        return new self(
+            AmqpDistributionModule::create(),
+            $amqpQueues,
+        );
     }
 
     /**
@@ -62,6 +77,15 @@ class AmqpModule implements AnnotationModule
             } elseif ($extensionObject instanceof AmqpBinding) {
                 $amqpBindings[] = $extensionObject;
             }
+        }
+
+        foreach ($this->amqpQueuesFromMessageConsumers as $amqpQueue) {
+            foreach ($amqpQueues as $queue) {
+                if ($queue->getQueueName() === $amqpQueue->getQueueName()) {
+                    continue 2;
+                }
+            }
+            $amqpQueues[] = $amqpQueue;
         }
 
         $this->amqpDistributionModule->prepare($messagingConfiguration, $extensionObjects);

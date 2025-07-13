@@ -12,21 +12,17 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 /**
  * licence Enterprise
  */
-final class AmqpConsumerAttributeExample
+final class AmqpConsumerAttributeWithObject
 {
     /** @var string[] */
     private array $messagePayloads = [];
 
     #[AmqpConsumer(
         endpointId: 'amqp_consumer_attribute',
-        queueName: 'test_queue'
-    )]
-    public function handle(#[Payload] string $payload, #[Header('fail')] bool $fail = false): void
+        queueName: 'test_queue')
+    ]
+    public function handle(\stdClass $payload): void
     {
-        if ($fail) {
-            throw new \RuntimeException('Failed');
-        }
-
         $this->messagePayloads[] = $payload;
     }
 

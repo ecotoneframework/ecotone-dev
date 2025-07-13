@@ -8,9 +8,13 @@ use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Attribute\AmqpConsumer;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Messaging\Attribute\MediaTypeConverter;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -19,6 +23,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerAttributeExample;
+use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerAttributeWithObject;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerWithFailStrategyAttributeExample;
 
 /**
@@ -192,5 +197,54 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         // Consume second message
         $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
         $this->assertEquals([$payload1, $payload2], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
+    }
+
+    public function test_consuming_with_converter(): void
+    {
+        $endpointId = 'amqp_consumer_attribute';
+        $queueName = 'test_queue';
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [AmqpConsumerAttributeWithObject::class, StdClassConvert::class],
+            [
+                new AmqpConsumerAttributeWithObject(), new StdClassConvert,
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createWith($queueName),
+                    AmqpMessagePublisherConfiguration::create()
+                        ->withAutoDeclareQueueOnSend(true)
+                        ->withDefaultRoutingKey($queueName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        $payload1 = 'message1';
+        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+        $messagePublisher->send($payload1);
+
+        // Consume first message
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(1));
+        $this->assertEquals($payload1, $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads')[0]->data);
+    }
+}
+
+#[MediaTypeConverter]
+class StdClassConvert implements \Ecotone\Messaging\Conversion\Converter
+{
+
+    public function convert($source, TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType)
+    {
+        $stdClass = new \stdClass();
+        $stdClass->data = $source;
+
+        return $stdClass;
+    }
+
+    public function matches(TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType): bool
+    {
+        return $targetType->equals(TypeDescriptor::create(\stdClass::class));
     }
 }

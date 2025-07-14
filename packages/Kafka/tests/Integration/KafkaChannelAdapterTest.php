@@ -11,11 +11,11 @@ use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\AggregateMessage;
@@ -166,7 +166,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
-                        ->withHeaderMapper("*"),
+                        ->withHeaderMapper('*'),
                     TopicConfiguration::createWithReferenceName('testTopicFailure', $topicName),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
@@ -199,7 +199,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
-                        ->withHeaderMapper("*"),
+                        ->withHeaderMapper('*'),
                     TopicConfiguration::createWithReferenceName('testTopicRetry', $topicName),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
@@ -236,7 +236,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
-                        ->withHeaderMapper("*"),
+                        ->withHeaderMapper('*'),
                     TopicConfiguration::createWithReferenceName('testTopicError', $topicName),
                     SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
                 ]),

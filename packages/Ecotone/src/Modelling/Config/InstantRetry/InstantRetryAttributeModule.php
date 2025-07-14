@@ -18,11 +18,9 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Precedence;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\CommandBus;
-use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
 
 #[ModuleAnnotation]
@@ -69,7 +67,7 @@ final class InstantRetryAttributeModule implements AnnotationModule
         $asynchronousEndpointsWithInstantRetry = [];
         $annotatedMethods = $annotationRegistrationService->findAnnotatedMethods(InstantRetry::class);
         foreach ($annotatedMethods as $annotatedMethod) {
-            if (!$annotatedMethod->hasMethodAnnotation(MessageConsumer::class)) {
+            if (! $annotatedMethod->hasMethodAnnotation(MessageConsumer::class)) {
                 throw new ConfigurationException(sprintf(
                     "InstantRetry attribute can only be used on methods annotated with MessageConsumer. '%s' is not annotated with MessageConsumer (e.g. RabbitConsumer, KafkaConsumer).",
                     $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName()

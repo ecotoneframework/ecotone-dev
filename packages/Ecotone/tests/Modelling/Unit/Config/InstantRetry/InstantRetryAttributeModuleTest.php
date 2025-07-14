@@ -13,7 +13,6 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Ecotone\Test\LicenceTesting;
-use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;

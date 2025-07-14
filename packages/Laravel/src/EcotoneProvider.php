@@ -2,7 +2,6 @@
 
 namespace Ecotone\Laravel;
 
-use Illuminate\Foundation\Application;
 use function class_exists;
 
 use const DIRECTORY_SEPARATOR;

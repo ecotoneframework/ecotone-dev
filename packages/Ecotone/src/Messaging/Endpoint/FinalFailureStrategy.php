@@ -24,12 +24,12 @@ enum FinalFailureStrategy: string implements DefinedObject
      * Ignores the failed message - it will not be redelivered
      */
     case IGNORE = 'ignore';
-    
+
     /**
      * Resends the failed message back to original Message Channel - it will be redelivered
      */
     case RESEND = 'resend';
-    
+
     /**
      * Stop the consumer by rethrowing the exception
      */

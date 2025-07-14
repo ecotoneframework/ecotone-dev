@@ -3,7 +3,6 @@
 namespace Ecotone\Amqp;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**

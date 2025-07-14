@@ -2,9 +2,9 @@
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Amqp\Configuration\RabbitConsumerModule;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerModule;
 use Ecotone\Amqp\Configuration\AmqpModule;
+use Ecotone\Amqp\Configuration\RabbitConsumerModule;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherModule;
 use Ecotone\Amqp\Transaction\AmqpTransactionModule;
 use Ecotone\Dbal\Configuration\DbalPublisherModule;

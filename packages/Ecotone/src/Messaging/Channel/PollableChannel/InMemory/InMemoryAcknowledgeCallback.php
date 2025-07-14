@@ -51,7 +51,7 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
      */
     public function accept(): void
     {
-        Assert::isTrue(in_array($this->status, [InMemoryAcknowledgeStatus::AWAITING, InMemoryAcknowledgeStatus::RESENT], true), "Message was already acknowledged.");
+        Assert::isTrue(in_array($this->status, [InMemoryAcknowledgeStatus::AWAITING, InMemoryAcknowledgeStatus::RESENT], true), 'Message was already acknowledged.');
         $this->status = InMemoryAcknowledgeStatus::ACKED;
     }
 
@@ -60,7 +60,7 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
      */
     public function reject(): void
     {
-        Assert::isTrue(in_array($this->status, [InMemoryAcknowledgeStatus::AWAITING, InMemoryAcknowledgeStatus::RESENT], true), "Message was already acknowledged.");
+        Assert::isTrue(in_array($this->status, [InMemoryAcknowledgeStatus::AWAITING, InMemoryAcknowledgeStatus::RESENT], true), 'Message was already acknowledged.');
         $this->status = InMemoryAcknowledgeStatus::IGNORED;
     }
 
@@ -71,7 +71,7 @@ final class InMemoryAcknowledgeCallback implements AcknowledgementCallback
      */
     public function requeue(): void
     {
-        Assert::isTrue(in_array($this->status, [InMemoryAcknowledgeStatus::AWAITING, InMemoryAcknowledgeStatus::RESENT], true), "Message was already acknowledged.");
+        Assert::isTrue(in_array($this->status, [InMemoryAcknowledgeStatus::AWAITING, InMemoryAcknowledgeStatus::RESENT], true), 'Message was already acknowledged.');
 
         $this->status = InMemoryAcknowledgeStatus::RESENT;
         $this->requeueCount++;

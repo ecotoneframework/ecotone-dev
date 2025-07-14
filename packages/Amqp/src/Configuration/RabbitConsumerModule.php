@@ -15,9 +15,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Support\LicensingException;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**
  * licence Enterprise
@@ -64,7 +62,7 @@ final class RabbitConsumerModule extends NoExternalConfigurationModule implement
                     $amqpConsumer->getEndpointId(),
                     $amqpConsumer->getConnectionReference(),
                 )
-                    ->withHeaderMapper("*")
+                    ->withHeaderMapper('*')
                     ->withFinalFailureStrategy($amqpConsumer->getFinalFailureStrategy())
                     ->withDeclareOnStartup(true)
                     ->withEndpointAnnotations($amqpConsumerAnnotatedMethod->getAllAnnotationDefinitions())

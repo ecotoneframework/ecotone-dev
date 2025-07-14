@@ -8,22 +8,20 @@ use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ServiceActivator;
-use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryAcknowledgeStatus;
-use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptor;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use PHPUnit\Framework\TestCase;
+use Exception;
 
 /**
  * @internal
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class FinalFailureStrategyTest extends AmqpMessagingTestCase
 {
@@ -31,7 +29,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
-            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),],
+            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(), ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -52,7 +50,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
-            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),],
+            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(), ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -81,7 +79,7 @@ class FailingService
     {
         $this->message = $message;
 
-        throw new \Exception('Service failed');
+        throw new Exception('Service failed');
     }
 
     public function getMessage(): Message

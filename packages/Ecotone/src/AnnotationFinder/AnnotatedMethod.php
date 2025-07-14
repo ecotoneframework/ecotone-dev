@@ -3,7 +3,6 @@
 namespace Ecotone\AnnotationFinder;
 
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
-use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use InvalidArgumentException;
 
@@ -88,7 +87,7 @@ class AnnotatedMethod implements AnnotatedFinding
             $annotations[] = AttributeDefinition::fromObject($methodAnnotation);
         }
 
-       return $annotations;
+        return $annotations;
     }
 
     public function hasMethodAnnotation(string|TypeDescriptor $type): bool

@@ -8,7 +8,6 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Exception;
 
 /**
@@ -27,7 +26,7 @@ class InstantRetryInterceptor
     public function retry(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger, ?PollingMetadata $pollingMetadata)
     {
         if (! is_null($this->relatedEndpointId)) {
-            if (!$pollingMetadata || $pollingMetadata->getEndpointId() !== $this->relatedEndpointId) {
+            if (! $pollingMetadata || $pollingMetadata->getEndpointId() !== $this->relatedEndpointId) {
                 return $methodInvocation->proceed();
             }
         }

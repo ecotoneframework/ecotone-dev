@@ -10,9 +10,9 @@ use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Messaging\PollableChannel;
 
 /**
  * licence Apache-2.0
@@ -35,7 +35,7 @@ final class InMemoryQueueAcknowledgeInterceptor extends AbstractChannelIntercept
             return $message;
         }
 
-        Assert::isTrue($messageChannel instanceof PollableChannel, "InMemoryQueueAcknowledgeInterceptor can be used only with PollableChannel");
+        Assert::isTrue($messageChannel instanceof PollableChannel, 'InMemoryQueueAcknowledgeInterceptor can be used only with PollableChannel');
 
         return MessageBuilder::fromMessage($message)
             ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, self::ECOTONE_IN_MEMORY_QUEUE_ACK)

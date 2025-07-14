@@ -8,7 +8,6 @@ use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Converter;
 use Ecotone\Messaging\Attribute\MediaTypeConverter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -22,6 +21,7 @@ use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Ramsey\Uuid\Uuid;
+use stdClass;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerAttributeExample;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerAttributeWithObject;
@@ -147,7 +147,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
-                        ->withHeaderMapper("*")
+                        ->withHeaderMapper('*')
                         ->withDefaultRoutingKey($queueName),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
@@ -182,7 +182,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
-                        ->withHeaderMapper("*")
+                        ->withHeaderMapper('*')
                         ->withDefaultRoutingKey($queueName),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
@@ -217,7 +217,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
-                        ->withHeaderMapper("*")
+                        ->withHeaderMapper('*')
                         ->withDefaultRoutingKey($queueName),
                     SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
                 ]),
@@ -282,7 +282,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [AmqpConsumerAttributeWithObject::class, StdClassConvert::class],
             [
-                new AmqpConsumerAttributeWithObject(), new StdClassConvert,
+                new AmqpConsumerAttributeWithObject(), new StdClassConvert(),
                 AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
@@ -310,10 +310,9 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
 #[MediaTypeConverter]
 class StdClassConvert implements \Ecotone\Messaging\Conversion\Converter
 {
-
     public function convert($source, TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType)
     {
-        $stdClass = new \stdClass();
+        $stdClass = new stdClass();
         $stdClass->data = $source;
 
         return $stdClass;
@@ -321,6 +320,6 @@ class StdClassConvert implements \Ecotone\Messaging\Conversion\Converter
 
     public function matches(TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType): bool
     {
-        return $targetType->equals(TypeDescriptor::create(\stdClass::class));
+        return $targetType->equals(TypeDescriptor::create(stdClass::class));
     }
 }

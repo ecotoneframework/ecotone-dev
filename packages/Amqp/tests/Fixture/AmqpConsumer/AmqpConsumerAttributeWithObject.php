@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Fixture\AmqpConsumer;
 
 use Ecotone\Amqp\Attribute\RabbitConsumer;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use stdClass;
 
 /**
  * licence Enterprise
@@ -19,9 +18,10 @@ final class AmqpConsumerAttributeWithObject
 
     #[RabbitConsumer(
         endpointId: 'amqp_consumer_attribute',
-        queueName: 'test_queue')
+        queueName: 'test_queue'
+    )
     ]
-    public function handle(\stdClass $payload): void
+    public function handle(stdClass $payload): void
     {
         $this->messagePayloads[] = $payload;
     }

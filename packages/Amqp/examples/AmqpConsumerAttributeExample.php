@@ -10,7 +10,7 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 
 /**
  * licence Enterprise
- * 
+ *
  * Example demonstrating the usage of AmqpConsumer attribute
  * for consuming messages from AMQP queues.
  */
@@ -28,9 +28,9 @@ final class AmqpConsumerAttributeExample
     {
         // Process the order
         $this->processedOrders[] = $orderData;
-        
+
         // Your business logic here
-        echo "Processing order: " . $orderData . "\n";
+        echo 'Processing order: ' . $orderData . "\n";
     }
 
     /**

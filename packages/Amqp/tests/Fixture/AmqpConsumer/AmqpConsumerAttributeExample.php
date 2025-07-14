@@ -8,6 +8,7 @@ use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use RuntimeException;
 
 /**
  * licence Enterprise
@@ -24,7 +25,7 @@ final class AmqpConsumerAttributeExample
     public function handle(#[Payload] string $payload, #[Header('fail')] bool $fail = false): void
     {
         if ($fail) {
-            throw new \RuntimeException('Failed');
+            throw new RuntimeException('Failed');
         }
 
         $this->messagePayloads[] = $payload;

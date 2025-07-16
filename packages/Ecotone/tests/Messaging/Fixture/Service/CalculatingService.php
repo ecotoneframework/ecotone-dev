@@ -15,7 +15,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 /**
  * licence Apache-2.0
  */
-class CalculatingService implements DefinedObject
+class CalculatingService
 {
     /**
      * @var int
@@ -32,6 +32,15 @@ class CalculatingService implements DefinedObject
     {
         $calculatingService = new self();
         $calculatingService->secondValueForMathOperations = $secondValueForMathOperations;
+
+        return $calculatingService;
+    }
+
+    public static function reconstruct(int $secondValueForMathOperations, mixed $lastResult): self
+    {
+        $calculatingService = new self();
+        $calculatingService->secondValueForMathOperations = $secondValueForMathOperations;
+        $calculatingService->lastResult = $lastResult;
 
         return $calculatingService;
     }
@@ -63,10 +72,5 @@ class CalculatingService implements DefinedObject
     public function getLastResult()
     {
         return $this->lastResult;
-    }
-
-    public function getDefinition(): Definition
-    {
-        return new Definition(self::class, [$this->secondValueForMathOperations], 'create');
     }
 }

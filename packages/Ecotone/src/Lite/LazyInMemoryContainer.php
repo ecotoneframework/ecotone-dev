@@ -3,6 +3,7 @@
 namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
+use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
@@ -49,7 +50,9 @@ class LazyInMemoryContainer implements ContainerInterface
             return $object;
         } elseif ($argument instanceof Reference) {
             return $this->resolveReference($argument);
-        } else {
+        } elseif ($argument instanceof DefinedObject) {
+            return $this->resolveArgument($argument->getDefinition());
+        }else {
             return $argument;
         }
     }

@@ -52,7 +52,7 @@ class LazyInMemoryContainer implements ContainerInterface
             return $this->resolveReference($argument);
         } elseif ($argument instanceof DefinedObject) {
             return $this->resolveArgument($argument->getDefinition());
-        }else {
+        } else {
             return $argument;
         }
     }

@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Service;
 
-use Ecotone\Messaging\Config\Container\DefinedObject;
-use Ecotone\Messaging\Config\Container\Definition;
-
 /**
  * Class CalculatingService
  * @package Test\Ecotone\Messaging\Fixture\Service

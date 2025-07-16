@@ -2,8 +2,6 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Endpoint;
 
-use Ecotone\Messaging\Config\Container\DefinedObject;
-use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Transaction\Transactional;
 
 #[Transactional(['transactionFactory1'])]

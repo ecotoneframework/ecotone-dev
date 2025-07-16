@@ -16,7 +16,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
-use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\InMemoryModuleMessaging;
@@ -301,7 +300,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerPollingMetadata(PollingMetadata::create('asyncChannel')->setExecutionAmountLimit(1))
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel('asyncChannel'))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
-                $reference => $calculatingService
+                $reference => $calculatingService,
             ]));
 
         $message = MessageBuilder::withPayload(2)
@@ -369,7 +368,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($asyncChannelNameOne))
             ->registerMessageChannel(SimpleMessageChannelBuilder::createQueueChannel($asyncChannelNameTwo))
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
-                $reference => $calculatingService
+                $reference => $calculatingService,
             ]));
 
         /** @var MessageChannel $channel */
@@ -415,7 +414,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 )
             )
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
-                $reference => $calculatingService
+                $reference => $calculatingService,
             ]));
 
         $replyChannel = QueueChannel::create();
@@ -460,7 +459,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 )
             )
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
-                $reference => $interceptorService
+                $reference => $interceptorService,
             ]));
 
         /** @var PollableChannel $channel */
@@ -493,7 +492,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 )
             )
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
-                $reference => $calculatingService
+                $reference => $calculatingService,
             ]));
 
         $replyChannel = QueueChannel::create();
@@ -542,7 +541,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             )
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
                 $reference1 => $calculatingService1,
-                $reference2 => $calculatingService2
+                $reference2 => $calculatingService2,
             ]));
 
         $replyChannel = QueueChannel::create();
@@ -593,7 +592,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 )
             )
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
-                $reference => $calculatingService
+                $reference => $calculatingService,
             ]));
 
         $replyChannel = QueueChannel::create();
@@ -1255,7 +1254,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
                 $beforeInterceptorRef => $beforeInterceptor,
                 $afterInterceptorRef => $afterInterceptor,
-                $lastServiceRef => $lastServiceFromChain
+                $lastServiceRef => $lastServiceFromChain,
             ]));
 
         $messagingSystem->run($endpointName);
@@ -1310,7 +1309,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             )
             ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
                 ConsumerContinuouslyWorkingService::class => ConsumerContinuouslyWorkingService::createWithReturn(5),
-                NoReturnMessageHandler::class => $interceptingHandler
+                NoReturnMessageHandler::class => $interceptingHandler,
             ]));
 
         $messagingSystem->run($endpointName);
@@ -1366,7 +1365,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 ->registerConsumerFactory(new EventDrivenConsumerBuilder())
                 ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
                     $beforeInterceptorRef => $beforeInterceptor,
-                    $afterInterceptorRef => $afterInterceptor
+                    $afterInterceptorRef => $afterInterceptor,
                 ]));
 
         $messageChannel = $messagingSystemConfiguration->getMessageChannelByName($inputChannelName);
@@ -1734,7 +1733,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     $beforeInterceptor1Ref => $beforeInterceptor1,
                     $beforeInterceptor2Ref => $beforeInterceptor2,
                     $afterInterceptor1Ref => $afterInterceptor1,
-                    $afterInterceptor2Ref => $afterInterceptor2
+                    $afterInterceptor2Ref => $afterInterceptor2,
                 ]));
 
         $messageChannel = $messagingSystemConfiguration->getMessageChannelByName($inputChannelName);
@@ -1777,7 +1776,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 )
                 ->registerConsumerFactory(new EventDrivenConsumerBuilder())
                 ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
-                    $interceptorRef => $interceptor
+                    $interceptorRef => $interceptor,
                 ]));
 
         /** @var ServiceInterfaceCalculatingService $gateway */
@@ -1813,7 +1812,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 )
                 ->registerConsumerFactory(new EventDrivenConsumerBuilder())
                 ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
-                    NoReturnMessageHandler::class => $aroundInterceptor
+                    NoReturnMessageHandler::class => $aroundInterceptor,
                 ]));
 
         /** @var ServiceInterfaceCalculatingService $gateway */
@@ -1862,7 +1861,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 ->registerConsumerFactory(new EventDrivenConsumerBuilder())
                 ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createWith([
                     $beforeInterceptorRef => $beforeInterceptor,
-                    NoReturnMessageHandler::class => $aroundInterceptor
+                    NoReturnMessageHandler::class => $aroundInterceptor,
                 ]));
 
         /** @var ServiceInterfaceCalculatingService $gateway */
@@ -1946,7 +1945,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     $beforeInterceptor2Ref => $beforeInterceptor2,
                     $afterInterceptor1Ref => $afterInterceptor1,
                     $afterInterceptor2Ref => $afterInterceptor2,
-                    NoReturnMessageHandler::class => $aroundInterceptor
+                    NoReturnMessageHandler::class => $aroundInterceptor,
                 ]));
 
         /** @var ServiceInterfaceCalculatingService $gateway */
@@ -2035,7 +2034,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                     $interceptor1Ref => $interceptor1,
                     $interceptor2Ref => $interceptor2,
                     $interceptor3Ref => $interceptor3,
-                    NoReturnMessageHandler::class => $aroundInterceptor
+                    NoReturnMessageHandler::class => $aroundInterceptor,
                 ]));
 
         /** @var ServiceInterfaceCalculatingService $gateway */

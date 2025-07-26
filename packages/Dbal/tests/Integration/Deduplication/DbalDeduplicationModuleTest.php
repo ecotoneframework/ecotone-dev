@@ -16,6 +16,7 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\ExpressionDeduplicationCommandHandler;
+use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\TrackingNameDeduplicationCommandHandler;
 use Test\Ecotone\Dbal\Fixture\DeduplicationEventHandler\DeduplicatedEventHandler;
 
 /**
@@ -335,5 +336,49 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, 300))
                 ->sendQueryWithRouting('expression_deduplication.getCallCount')
         );
+    }
+
+    public function test_deduplicating_with_tracking_name_isolation()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [TrackingNameDeduplicationCommandHandler::class],
+            [
+                new TrackingNameDeduplicationCommandHandler(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+        );
+
+        // Send same orderId to both tracking contexts
+        $ecotoneLite
+            ->sendCommandWithRoutingKey('tracking.handle_with_tracking_one', metadata: ['orderId' => 'order-123'])
+            ->sendCommandWithRoutingKey('tracking.handle_with_tracking_two', metadata: ['orderId' => 'order-123']);
+
+        // Both should be processed because they have different tracking names
+        $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('tracking.getTrackingOneCallCount'));
+        $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('tracking.getTrackingTwoCallCount'));
+    }
+
+    public function test_deduplicating_within_same_tracking_name()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [TrackingNameDeduplicationCommandHandler::class],
+            [
+                new TrackingNameDeduplicationCommandHandler(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+        );
+
+        // Send same orderId twice to same tracking context
+        $ecotoneLite
+            ->sendCommandWithRoutingKey('tracking.handle_with_tracking_one', metadata: ['orderId' => 'order-456'])
+            ->sendCommandWithRoutingKey('tracking.handle_with_tracking_one', metadata: ['orderId' => 'order-456']);
+
+        // Only first should be processed due to deduplication within same tracking name
+        $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('tracking.getTrackingOneCallCount'));
+        $this->assertEquals(0, $ecotoneLite->sendQueryWithRouting('tracking.getTrackingTwoCallCount'));
     }
 }

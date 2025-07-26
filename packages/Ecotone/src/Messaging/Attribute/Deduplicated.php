@@ -13,7 +13,7 @@ use Ecotone\Messaging\Support\Assert;
  */
 final class Deduplicated
 {
-    public function __construct(private string $deduplicationHeaderName = '', private ?string $expression = null)
+    public function __construct(private string $deduplicationHeaderName = '', private ?string $expression = null, private ?string $trackingName = null)
     {
         Assert::isTrue(
             ($this->deduplicationHeaderName === '' && $this->expression !== null)
@@ -36,5 +36,10 @@ final class Deduplicated
     public function hasExpression(): bool
     {
         return $this->expression !== null;
+    }
+
+    public function getTrackingName(): ?string
+    {
+        return $this->trackingName;
     }
 }

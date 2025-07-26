@@ -235,4 +235,90 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
         $this->assertEquals(2, $methodInvocation->getCalledTimes());
     }
+
+    public function test_deduplicating_with_tracking_name_isolation()
+    {
+        $dbalTransactionInterceptor = new DeduplicationInterceptor(
+            $this->getConnectionFactory(),
+            new NativeClock(),
+            1000,
+            1000,
+            new StubLoggingGateway(),
+            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty())
+        );
+
+        $methodInvocation = StubMethodInvocation::create();
+        $deduplicatedAttributeOne = new Deduplicated(expression: "headers['orderId']", trackingName: 'tracking_one');
+        $deduplicatedAttributeTwo = new Deduplicated(expression: "headers['orderId']", trackingName: 'tracking_two');
+
+        // First call with tracking_one
+        $dbalTransactionInterceptor->deduplicate(
+            $methodInvocation,
+            MessageBuilder::withPayload('test')->setHeader('orderId', 'order-123')->build(),
+            $deduplicatedAttributeOne,
+            null,
+            new AsynchronousRunningEndpoint('endpoint1')
+        );
+
+        $this->assertEquals(1, $methodInvocation->getCalledTimes());
+
+        // Second call with same orderId but different tracking name (should be processed)
+        $dbalTransactionInterceptor->deduplicate(
+            $methodInvocation,
+            MessageBuilder::withPayload('test')->setHeader('orderId', 'order-123')->build(),
+            $deduplicatedAttributeTwo,
+            null,
+            new AsynchronousRunningEndpoint('endpoint1')
+        );
+
+        $this->assertEquals(2, $methodInvocation->getCalledTimes());
+
+        // Third call with same orderId and same tracking name as first (should be deduplicated)
+        $dbalTransactionInterceptor->deduplicate(
+            $methodInvocation,
+            MessageBuilder::withPayload('test')->setHeader('orderId', 'order-123')->build(),
+            $deduplicatedAttributeOne,
+            null,
+            new AsynchronousRunningEndpoint('endpoint1')
+        );
+
+        $this->assertEquals(2, $methodInvocation->getCalledTimes());
+    }
+
+    public function test_deduplicating_with_tracking_name_overrides_endpoint_id()
+    {
+        $dbalTransactionInterceptor = new DeduplicationInterceptor(
+            $this->getConnectionFactory(),
+            new NativeClock(),
+            1000,
+            1000,
+            new StubLoggingGateway(),
+            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty())
+        );
+
+        $methodInvocation = StubMethodInvocation::create();
+        $deduplicatedAttribute = new Deduplicated(expression: "headers['orderId']", trackingName: 'custom_tracking');
+
+        // First call with custom tracking name
+        $dbalTransactionInterceptor->deduplicate(
+            $methodInvocation,
+            MessageBuilder::withPayload('test')->setHeader('orderId', 'order-123')->build(),
+            $deduplicatedAttribute,
+            null,
+            new AsynchronousRunningEndpoint('endpoint1')
+        );
+
+        $this->assertEquals(1, $methodInvocation->getCalledTimes());
+
+        // Second call with same orderId and different endpoint but same tracking name (should be deduplicated)
+        $dbalTransactionInterceptor->deduplicate(
+            $methodInvocation,
+            MessageBuilder::withPayload('test')->setHeader('orderId', 'order-123')->build(),
+            $deduplicatedAttribute,
+            null,
+            new AsynchronousRunningEndpoint('endpoint2')
+        );
+
+        $this->assertEquals(1, $methodInvocation->getCalledTimes());
+    }
 }

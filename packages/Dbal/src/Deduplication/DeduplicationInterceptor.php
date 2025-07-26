@@ -58,8 +58,8 @@ class DeduplicationInterceptor
         }
 
         $messageId = $this->extractDeduplicationId($message, $deduplicatedAttribute);
-        /** If global deduplication consumer_endpoint_id will be used */
-        $consumerEndpointId = $asynchronousRunningEndpoint ? $asynchronousRunningEndpoint->getEndpointId() : '';
+        /** If trackingName is provided, use it for deduplication isolation */
+        $consumerEndpointId = $this->determineConsumerEndpointId($deduplicatedAttribute, $asynchronousRunningEndpoint);
         /** IF handler deduplication then endpoint id will be used */
         $routingSlip = $deduplicatedAttribute === null && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
             ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)
@@ -211,5 +211,16 @@ class DeduplicationInterceptor
         }
 
         return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
+    }
+
+    private function determineConsumerEndpointId(?Deduplicated $deduplicatedAttribute, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): string
+    {
+        // If trackingName is provided, use it for deduplication isolation
+        if ($deduplicatedAttribute?->getTrackingName() !== null) {
+            return $deduplicatedAttribute->getTrackingName();
+        }
+
+        // If global deduplication consumer_endpoint_id will be used
+        return $asynchronousRunningEndpoint ? $asynchronousRunningEndpoint->getEndpointId() : '';
     }
 }

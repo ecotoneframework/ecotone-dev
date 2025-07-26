@@ -16,6 +16,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
@@ -68,6 +69,7 @@ class DeduplicationModule implements AnnotationModule
                     $dbalConfiguration->minimumTimeToRemoveMessageFromDeduplication(),
                     $dbalConfiguration->deduplicationRemovalBatchSize(),
                     new Reference(LoggingGateway::class),
+                    new Reference(ExpressionEvaluationService::REFERENCE),
                 ]
             )
         );

@@ -9,6 +9,7 @@ use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Lite\EcotoneLite;
+
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -18,6 +19,8 @@ use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\KafkaConsumerWithDeduplicationExample;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\KafkaConsumerWithDefaultDeduplicationExample;
+use Monorepo\CrossModuleTests\Fixture\Deduplication\KafkaConsumerWithExpressionDeduplicationExample;
+use Monorepo\CrossModuleTests\Fixture\Deduplication\KafkaConsumerWithPayloadExpressionDeduplicationExample;
 use Monorepo\CrossModuleTests\Tests\MessagingTestCase;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -250,5 +253,127 @@ final class KafkaConsumerDeduplicationTest extends TestCase
 
         // Verify no duplicate processing occurred (still only 2 messages)
         $this->assertEquals(['test-payload-1', 'test-payload-2'], $ecotoneLite->sendQueryWithRouting('kafka.getProcessedMessages'));
+    }
+
+    public function test_deduplicating_with_expression_kafka_consumer(): void
+    {
+        $topicName = 'expression_deduplication_topic_' . Uuid::uuid4()->toString();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [KafkaConsumerWithExpressionDeduplicationExample::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                new KafkaConsumerWithExpressionDeduplicationExample(),
+                DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::KAFKA_PACKAGE,
+                    ModulePackageList::DBAL_PACKAGE
+                ]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    TopicConfiguration::createWithReferenceName('expression_deduplication_topic', $topicName),
+                    KafkaPublisherConfiguration::createWithDefaults($topicName)
+                        ->withHeaderMapper('*'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        /** @var MessagePublisher $messagePublisher */
+        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+
+        // Send first message with orderId header
+        $messagePublisher->sendWithMetadata(
+            'laptop',
+            'application/text',
+            ['orderId' => 'order-123-expression']
+        );
+
+        // Run consumer
+        $ecotoneLite->run('kafka_expression_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+
+        // Verify message processed
+        $this->assertEquals(['laptop'], $ecotoneLite->sendQueryWithRouting('kafka.getExpressionProcessedMessages'));
+
+        // Send second message with same orderId (should be deduplicated)
+        $messagePublisher->sendWithMetadata(
+            'mouse',
+            'application/text',
+            ['orderId' => 'order-123-expression']
+        );
+
+        // Run consumer again
+        $ecotoneLite->run('kafka_expression_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+
+        // Verify message NOT processed again (still only one message)
+        $this->assertEquals(['laptop'], $ecotoneLite->sendQueryWithRouting('kafka.getExpressionProcessedMessages'));
+
+        // Send message with different orderId
+        $messagePublisher->sendWithMetadata(
+            'keyboard',
+            'application/text',
+            ['orderId' => 'order-456-expression']
+        );
+
+        // Run consumer
+        $ecotoneLite->run('kafka_expression_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+
+        // Verify new message IS processed
+        $this->assertEquals(['laptop', 'keyboard'], $ecotoneLite->sendQueryWithRouting('kafka.getExpressionProcessedMessages'));
+    }
+
+    public function test_deduplicating_with_payload_expression_kafka_consumer(): void
+    {
+        $topicName = 'payload_expression_deduplication_topic_' . Uuid::uuid4()->toString();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [KafkaConsumerWithPayloadExpressionDeduplicationExample::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                new KafkaConsumerWithPayloadExpressionDeduplicationExample(),
+                DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::KAFKA_PACKAGE,
+                    ModulePackageList::DBAL_PACKAGE
+                ]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    TopicConfiguration::createWithReferenceName('payload_expression_deduplication_topic', $topicName),
+                    KafkaPublisherConfiguration::createWithDefaults($topicName)
+                        ->withHeaderMapper('*'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        /** @var MessagePublisher $messagePublisher */
+        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+
+        // Send first message
+        $messagePublisher->send('unique-payload-1', 'application/text');
+
+        // Run consumer
+        $ecotoneLite->run('kafka_payload_expression_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+
+        // Verify message processed
+        $this->assertEquals(['unique-payload-1'], $ecotoneLite->sendQueryWithRouting('kafka.getPayloadExpressionProcessedMessages'));
+
+        // Send same message (should be deduplicated)
+        $messagePublisher->send('unique-payload-1', 'application/text');
+
+        // Run consumer again
+        $ecotoneLite->run('kafka_payload_expression_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+
+        // Verify message NOT processed again (still only one message)
+        $this->assertEquals(['unique-payload-1'], $ecotoneLite->sendQueryWithRouting('kafka.getPayloadExpressionProcessedMessages'));
+
+        // Send message with different payload
+        $messagePublisher->send('unique-payload-2', 'application/text');
+
+        // Run consumer
+        $ecotoneLite->run('kafka_payload_expression_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+
+        // Verify new message IS processed
+        $this->assertEquals(['unique-payload-1', 'unique-payload-2'], $ecotoneLite->sendQueryWithRouting('kafka.getPayloadExpressionProcessedMessages'));
     }
 }

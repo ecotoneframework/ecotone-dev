@@ -15,6 +15,7 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
+use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\ExpressionDeduplicationCommandHandler;
 use Test\Ecotone\Dbal\Fixture\DeduplicationEventHandler\DeduplicatedEventHandler;
 
 /**
@@ -223,6 +224,116 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 ->sendCommandWithRoutingKey('email_event_handler.handle_with_custom_deduplication_header', metadata: ['emailId' => $emailId])
                 ->sendCommandWithRoutingKey('email_event_handler.handle_with_custom_deduplication_header', metadata: ['emailId' => $emailId])
                 ->sendQueryWithRouting('email_event_handler.getCallCount')
+        );
+    }
+
+    public function test_deduplicating_with_header_expression()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ExpressionDeduplicationCommandHandler::class],
+            [
+                new ExpressionDeduplicationCommandHandler(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+        );
+
+        $this->assertEquals(
+            1,
+            $ecotoneLite
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-123'])
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-123'])
+                ->sendQueryWithRouting('expression_deduplication.getCallCount')
+        );
+    }
+
+    public function test_deduplicating_with_payload_expression()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ExpressionDeduplicationCommandHandler::class],
+            [
+                new ExpressionDeduplicationCommandHandler(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+        );
+
+        $this->assertEquals(
+            1,
+            $ecotoneLite
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_payload_expression', 'unique-payload-1')
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_payload_expression', 'unique-payload-1')
+                ->sendQueryWithRouting('expression_deduplication.getCallCount')
+        );
+    }
+
+    public function test_deduplicating_with_complex_expression()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ExpressionDeduplicationCommandHandler::class],
+            [
+                new ExpressionDeduplicationCommandHandler(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+        );
+
+        $this->assertEquals(
+            1,
+            $ecotoneLite
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_complex_expression', 'order-data', metadata: ['customerId' => 'customer-123'])
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_complex_expression', 'order-data', metadata: ['customerId' => 'customer-123'])
+                ->sendQueryWithRouting('expression_deduplication.getCallCount')
+        );
+    }
+
+    public function test_deduplicating_with_expression_allows_different_values()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ExpressionDeduplicationCommandHandler::class],
+            [
+                new ExpressionDeduplicationCommandHandler(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+        );
+
+        $this->assertEquals(
+            2,
+            $ecotoneLite
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-123'])
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_with_header_expression', metadata: ['orderId' => 'order-456'])
+                ->sendQueryWithRouting('expression_deduplication.getCallCount')
+        );
+    }
+
+    public function test_deduplicating_with_expression_in_asynchronous_processing()
+    {
+        $queueName = 'async_expression';
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ExpressionDeduplicationCommandHandler::class],
+            [
+                new ExpressionDeduplicationCommandHandler(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create($queueName),
+                ])
+        );
+
+        $this->assertEquals(
+            1,
+            $ecotoneLite
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_async_with_expression', metadata: ['orderId' => 'order-123'])
+                ->sendCommandWithRoutingKey('expression_deduplication.handle_async_with_expression', metadata: ['orderId' => 'order-123'])
+                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, 300))
+                ->sendQueryWithRouting('expression_deduplication.getCallCount')
         );
     }
 }

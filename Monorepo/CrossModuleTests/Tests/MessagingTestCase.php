@@ -28,7 +28,7 @@ final class MessagingTestCase
         self::cleanUpDbal();
         $context = AmqpMessagingTestCase::getRabbitConnectionFactory()->createContext();
 
-        foreach (['async'] as $queue) {
+        foreach (['async', 'deduplication_queue_independent', 'deduplication_queue_custom', 'default_deduplication_queue_default'] as $queue) {
             try {
                 $context->deleteQueue($context->createQueue($queue));
             }catch (\Exception $e) {}

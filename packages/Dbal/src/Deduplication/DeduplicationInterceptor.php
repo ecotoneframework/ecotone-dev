@@ -10,6 +10,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
@@ -38,7 +39,7 @@ class DeduplicationInterceptor
     private array $initialized = [];
     private Duration $minimumTimeToRemoveMessage;
 
-    public function __construct(private ConnectionFactory $connection, private EcotoneClockInterface $clock, int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger)
+    public function __construct(private ConnectionFactory $connection, private EcotoneClockInterface $clock, int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger, private ExpressionEvaluationService $expressionEvaluationService)
     {
         $this->minimumTimeToRemoveMessage = Duration::milliseconds($minimumTimeToRemoveMessageInMilliseconds);
         if ($this->minimumTimeToRemoveMessage->isNegativeOrZero()) {
@@ -55,9 +56,10 @@ class DeduplicationInterceptor
             $this->createDataBaseTable($connectionFactory);
             $this->initialized[$contextId] = true;
         }
-        $messageId = $deduplicatedAttribute?->getDeduplicationHeaderName() ? $message->getHeaders()->get($deduplicatedAttribute->getDeduplicationHeaderName()) : $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
-        /** If global deduplication consumer_endpoint_id will be used */
-        $consumerEndpointId = $asynchronousRunningEndpoint ? $asynchronousRunningEndpoint->getEndpointId() : '';
+
+        $messageId = $this->extractDeduplicationId($message, $deduplicatedAttribute);
+        /** If trackingName is provided, use it for deduplication isolation */
+        $consumerEndpointId = $this->determineConsumerEndpointId($deduplicatedAttribute, $asynchronousRunningEndpoint);
         /** IF handler deduplication then endpoint id will be used */
         $routingSlip = $deduplicatedAttribute === null && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
             ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)
@@ -186,5 +188,39 @@ class DeduplicationInterceptor
             ->executeQuery()
             ->fetchAllAssociative();
         return $messageIds;
+    }
+
+    private function extractDeduplicationId(Message $message, ?Deduplicated $deduplicatedAttribute): string
+    {
+        if ($deduplicatedAttribute === null) {
+            return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
+        }
+
+        if ($deduplicatedAttribute->hasExpression()) {
+            return (string) $this->expressionEvaluationService->evaluate(
+                $deduplicatedAttribute->getExpression(),
+                [
+                    'payload' => $message->getPayload(),
+                    'headers' => $message->getHeaders()->headers(),
+                ]
+            );
+        }
+
+        if ($deduplicatedAttribute->getDeduplicationHeaderName() !== '') {
+            return $message->getHeaders()->get($deduplicatedAttribute->getDeduplicationHeaderName());
+        }
+
+        return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
+    }
+
+    private function determineConsumerEndpointId(?Deduplicated $deduplicatedAttribute, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): string
+    {
+        // If trackingName is provided, use it for deduplication isolation
+        if ($deduplicatedAttribute?->getTrackingName() !== null) {
+            return $deduplicatedAttribute->getTrackingName();
+        }
+
+        // If global deduplication consumer_endpoint_id will be used
+        return $asynchronousRunningEndpoint ? $asynchronousRunningEndpoint->getEndpointId() : '';
     }
 }

@@ -18,12 +18,12 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
+use Ecotone\Messaging\Support\LicensingException;
 
 #[ModuleAnnotation]
 /**
@@ -126,7 +126,7 @@ class DeduplicationModule implements AnnotationModule
         // Check for Deduplicated attribute on interfaces/gateways (class-level usage)
         $deduplicatedClasses = $this->annotationFinder->findAnnotatedClasses(Deduplicated::class);
 
-        if (!empty($deduplicatedClasses)) {
+        if (! empty($deduplicatedClasses)) {
             $classNames = implode(', ', $deduplicatedClasses);
             throw LicensingException::create("Deduplicated attribute on interfaces/gateways ({$classNames}) is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper gateway-level deduplication.");
         }

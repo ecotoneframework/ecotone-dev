@@ -9,6 +9,8 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -21,7 +23,7 @@ use Test\Ecotone\Dbal\Fixture\DeduplicationCommandBus\OrderService;
  * @internal
  */
 /**
- * licence Apache-2.0
+ * licence Enterprise
  * @internal
  */
 final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
@@ -38,7 +40,8 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ])
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $commandBus = $ecotoneLite->getGateway(DeduplicatedCommandBus::class);
@@ -65,7 +68,8 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ])
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $commandBus = $ecotoneLite->getGateway(CustomHeaderDeduplicatedCommandBus::class);
@@ -92,7 +96,8 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ])
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $commandBus = $ecotoneLite->getGateway(ExpressionDeduplicatedCommandBus::class);
@@ -119,7 +124,8 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ])
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $commandBus = $ecotoneLite->getGateway(ExpressionDeduplicatedCommandBus::class);
@@ -146,7 +152,8 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                ])
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
         );
 
         $commandBus = $ecotoneLite->getGateway(ExpressionDeduplicatedCommandBus::class);
@@ -159,5 +166,53 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
         // Only first command should be processed due to deduplication
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('order.getCount'));
         $this->assertEquals(['coffee'], $ecotoneLite->sendQueryWithRouting('order.getProcessedOrders'));
+    }
+
+    public function test_using_deduplication_in_multiple_command_buses()
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, ExpressionDeduplicatedCommandBus::class, CustomHeaderDeduplicatedCommandBus::class],
+            [
+                new OrderService(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        $commandBusOne = $ecotoneLite->getGateway(ExpressionDeduplicatedCommandBus::class);
+        $commandBusTwo = $ecotoneLite->getGateway(CustomHeaderDeduplicatedCommandBus::class);
+        $orderId = 'order-123';
+
+        // Send different command types with same orderId
+        $commandBusOne->sendWithRouting('order.place', 'coffee', metadata: ['orderId' => $orderId, 'customOrderId' => $orderId]);
+        $commandBusTwo->sendWithRouting('order.place', 'coffee', metadata: ['orderId' => $orderId, 'customOrderId' => $orderId]);
+
+        // Only first command should be processed due to deduplication
+        $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('order.getCount'));
+    }
+
+    public function test_throws_licensing_exception_when_using_deduplicated_on_interface_without_enterprise_license()
+    {
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessage('Deduplicated attribute on interfaces/gateways');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, DeduplicatedCommandBus::class],
+            [
+                new OrderService(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                ])
+            // No license key provided - should throw exception
+        );
     }
 }

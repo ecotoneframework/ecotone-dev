@@ -60,6 +60,17 @@ abstract class DbalMessagingTestCase extends TestCase
         return $this->getConnectionFactory()->createContext()->getDbalConnection();
     }
 
+    public static function cleanUpDbalTables(Connection $connection): void
+    {
+        self::deleteTable('enqueue', $connection);
+        self::deleteTable(OrderService::ORDER_TABLE, $connection);
+        self::deleteTable(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
+        self::deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
+        self::deleteTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
+        self::deleteTable('persons', $connection);
+        self::deleteTable('activities', $connection);
+    }
+
     protected function getComponentTestingWithConnection(bool $isRegistry = false): ComponentTestBuilder
     {
         return ComponentTestBuilder::create()->withReference(DbalConnectionFactory::class, $this->getConnectionFactory($isRegistry));
@@ -71,13 +82,7 @@ abstract class DbalMessagingTestCase extends TestCase
         foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connection) {
             $connection = $connection->createContext()->getDbalConnection();
 
-            $this->deleteTable('enqueue', $connection);
-            $this->deleteTable(OrderService::ORDER_TABLE, $connection);
-            $this->deleteTable(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $connection);
-            $this->deleteTable(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, $connection);
-            $this->deleteTable(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, $connection);
-            $this->deleteTable('persons', $connection);
-            $this->deleteTable('activities', $connection);
+            self::cleanUpDbalTables($connection);
         }
     }
 
@@ -87,14 +92,14 @@ abstract class DbalMessagingTestCase extends TestCase
         $this->connectionForTenantB()->createContext()->getDbalConnection()->close();
     }
 
-    protected function checkIfTableExists(Connection $connection, string $table): bool
+    protected static function checkIfTableExists(Connection $connection, string $table): bool
     {
-        return $this->getSchemaManager($connection)->tablesExist([$table]);
+        return self::getSchemaManager($connection)->tablesExist([$table]);
     }
 
-    private function deleteTable(string $tableName, Connection $connection): void
+    private static function deleteTable(string $tableName, Connection $connection): void
     {
-        $doesExists = $this->checkIfTableExists($connection, $tableName);
+        $doesExists = self::checkIfTableExists($connection, $tableName);
 
         if ($doesExists) {
             $connection->executeStatement('DROP TABLE ' . $tableName);
@@ -170,7 +175,7 @@ abstract class DbalMessagingTestCase extends TestCase
         );
     }
 
-    private function getSchemaManager(Connection $connection): ?\Doctrine\DBAL\Schema\AbstractSchemaManager
+    private static function getSchemaManager(Connection $connection): ?\Doctrine\DBAL\Schema\AbstractSchemaManager
     {
         return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
     }

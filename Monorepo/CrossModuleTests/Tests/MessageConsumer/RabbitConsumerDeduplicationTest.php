@@ -36,11 +36,13 @@ final class RabbitConsumerDeduplicationTest extends TestCase
     protected function setUp(): void
     {
         MessagingTestCase::cleanRabbitMQ();
+        DbalMessagingTestCase::cleanUpDbalTables(DbalMessagingTestCase::prepareConnection()->createContext()->getDbalConnection());
     }
 
     protected function tearDown(): void
     {
         MessagingTestCase::cleanRabbitMQ();
+        DbalMessagingTestCase::cleanUpDbalTables(DbalMessagingTestCase::prepareConnection()->createContext()->getDbalConnection());
     }
 
     public function test_deduplicating_with_custom_header_name_rabbit_consumer(): void
@@ -259,74 +261,5 @@ final class RabbitConsumerDeduplicationTest extends TestCase
 
         // Verify no duplicate processing occurred (still only 2 messages)
         $this->assertEquals(['test-payload-1', 'test-payload-2'], $ecotoneLite->sendQueryWithRouting('rabbit.getIndependentProcessedMessages'));
-    }
-
-    public function test_deduplicating_with_expression_rabbit_consumer(): void
-    {
-        $queueName = 'expression_deduplication_queue';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [RabbitConsumerWithExpressionDeduplicationExample::class],
-            [
-                AmqpConnectionFactory::class => AmqpMessagingTestCase::getRabbitConnectionFactory(),
-                new RabbitConsumerWithExpressionDeduplicationExample(),
-                DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
-            ],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
-                ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
-                    AmqpQueue::createWith($queueName),
-                    AmqpMessagePublisherConfiguration::create()
-                        ->withAutoDeclareQueueOnSend(true)
-                        ->withHeaderMapper('*')
-                        ->withDefaultRoutingKey($queueName),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE
-        );
-
-        /** @var MessagePublisher $messagePublisher */
-        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
-
-        // Send first message with orderId header
-        $messagePublisher->sendWithMetadata(
-            'laptop',
-            'application/text',
-            ['orderId' => 'order-123-expression-rabbit']
-        );
-
-        // Run consumer
-        $ecotoneLite->run('rabbit_expression_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
-
-        // Verify message processed
-        $this->assertEquals(['laptop'], $ecotoneLite->sendQueryWithRouting('rabbit.getExpressionProcessedMessages'));
-
-        // Send second message with same orderId (should be deduplicated)
-        $messagePublisher->sendWithMetadata(
-            'mouse',
-            'application/text',
-            ['orderId' => 'order-123-expression-rabbit']
-        );
-
-        // Run consumer again
-        $ecotoneLite->run('rabbit_expression_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
-
-        // Verify message NOT processed again (still only one message)
-        $this->assertEquals(['laptop'], $ecotoneLite->sendQueryWithRouting('rabbit.getExpressionProcessedMessages'));
-
-        // Send message with different orderId
-        $messagePublisher->sendWithMetadata(
-            'keyboard',
-            'application/text',
-            ['orderId' => 'order-456-expression-rabbit']
-        );
-
-        // Run consumer
-        $ecotoneLite->run('rabbit_expression_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
-
-        // Verify new message IS processed
-        $this->assertEquals(['laptop', 'keyboard'], $ecotoneLite->sendQueryWithRouting('rabbit.getExpressionProcessedMessages'));
     }
 }

@@ -18,6 +18,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
@@ -32,7 +33,7 @@ class DeduplicationModule implements AnnotationModule
 {
     public const REMOVE_MESSAGE_AFTER_7_DAYS = 1000 * 60 * 60 * 24 * 7;
 
-    private function __construct()
+    private function __construct(private AnnotationFinder $annotationFinder)
     {
     }
 
@@ -41,7 +42,7 @@ class DeduplicationModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        return new self($annotationRegistrationService);
     }
 
     /**
@@ -49,6 +50,8 @@ class DeduplicationModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $this->verifyEnterpriseFeatures($messagingConfiguration);
+
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
         $isDeduplicatedEnabled = $dbalConfiguration->isDeduplicatedEnabled();
@@ -112,5 +115,20 @@ class DeduplicationModule implements AnnotationModule
     public function getModulePackageName(): string
     {
         return ModulePackageList::DBAL_PACKAGE;
+    }
+
+    private function verifyEnterpriseFeatures(Configuration $messagingConfiguration): void
+    {
+        if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
+            return;
+        }
+
+        // Check for Deduplicated attribute on interfaces/gateways (class-level usage)
+        $deduplicatedClasses = $this->annotationFinder->findAnnotatedClasses(Deduplicated::class);
+
+        if (!empty($deduplicatedClasses)) {
+            $classNames = implode(', ', $deduplicatedClasses);
+            throw LicensingException::create("Deduplicated attribute on interfaces/gateways ({$classNames}) is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper gateway-level deduplication.");
+        }
     }
 }

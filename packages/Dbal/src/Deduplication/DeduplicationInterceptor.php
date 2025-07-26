@@ -56,6 +56,7 @@ class DeduplicationInterceptor
             $this->createDataBaseTable($connectionFactory);
             $this->initialized[$contextId] = true;
         }
+
         $messageId = $this->extractDeduplicationId($message, $deduplicatedAttribute);
         /** If global deduplication consumer_endpoint_id will be used */
         $consumerEndpointId = $asynchronousRunningEndpoint ? $asynchronousRunningEndpoint->getEndpointId() : '';

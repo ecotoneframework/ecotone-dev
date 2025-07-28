@@ -55,7 +55,7 @@ class ConsoleCommandRunner
             }
         }
 
-        return $this->entrypoint->sendWithHeaders([], $arguments, $this->commandConfiguration->getChannelName(), $arguments[MessageHeaders::ROUTING_SLIP] ?? null);
+        return $this->entrypoint->sendWithHeaders([], $arguments, $this->commandConfiguration->getChannelName());
     }
 
     private function hasParameterWithGivenName(int|string $argumentName): bool

@@ -57,7 +57,7 @@ class DistributedMessageHandler
                 throw InvalidArgumentException::create("Received command message which targets {$targetedServiceName} Service, but consuming in {$this->thisServiceName}. Message was wrongly distributed.");
             }
 
-            $messagingEntrypoint->sendWithHeaders($payload, $metadata, $routingKey);
+            $messagingEntrypoint->sendWithHeaders($payload, $metadata, $routingKey, $metadata[MessageHeaders::ROUTING_SLIP] ?? null);
         } else {
             throw InvalidArgumentException::create("Trying to call distributed command handler for payload type {$payloadType} and allowed are event/command/message");
         }

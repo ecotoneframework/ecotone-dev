@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Config;
 
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
@@ -54,7 +55,7 @@ class ConsoleCommandRunner
             }
         }
 
-        return $this->entrypoint->sendWithHeaders([], $arguments, $this->commandConfiguration->getChannelName());
+        return $this->entrypoint->sendWithHeaders([], $arguments, $this->commandConfiguration->getChannelName(), $arguments[MessageHeaders::ROUTING_SLIP] ?? null);
     }
 
     private function hasParameterWithGivenName(int|string $argumentName): bool

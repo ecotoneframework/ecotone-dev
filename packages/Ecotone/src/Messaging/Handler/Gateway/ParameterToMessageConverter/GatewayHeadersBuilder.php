@@ -54,18 +54,6 @@ class GatewayHeadersBuilder implements GatewayParameterConverterBuilder
     {
         return new Definition(GatewayHeadersConverter::class, [
             $this->parameterName,
-            $this->isStartingNewFlow($interfaceToCall),
         ]);
-    }
-
-    private function isStartingNewFlow(InterfaceToCall $interfaceToCall): bool
-    {
-        foreach ([MessagingEntrypoint::class] as $gateway) {
-            if ($interfaceToCall->getInterfaceType()->isCompatibleWith(TypeDescriptor::create($gateway))) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

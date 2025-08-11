@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
-use Psr\Clock\ClockInterface as PsrClockInterface;
-
 /**
- * Interface Clock
+ * Interface Sleep
  * @package Ecotone\Messaging\Scheduling
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */
 /**
  * licence Apache-2.0
  */
-interface EcotoneClockInterface extends PsrClockInterface, SleepInterface
+interface SleepInterface
 {
-    public function now(): DatePoint;
+    public function sleep(Duration $duration): void;
 }

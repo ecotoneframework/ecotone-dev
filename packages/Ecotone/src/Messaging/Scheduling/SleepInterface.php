@@ -7,7 +7,7 @@ namespace Ecotone\Messaging\Scheduling;
 /**
  * Interface Sleep
  * @package Ecotone\Messaging\Scheduling
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
+ * @author JB Cagumbay <cagumbay.jb@gmail.com>
  */
 /**
  * licence Apache-2.0

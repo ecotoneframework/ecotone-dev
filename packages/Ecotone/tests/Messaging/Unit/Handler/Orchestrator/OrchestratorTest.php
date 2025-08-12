@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Orchestrator;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -12,8 +13,10 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\AuthorizationOrchestrator;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\ArrayWithNonStringOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\InvalidReturnTypeOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\StringReturnTypeOrchestrator;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\VoidReturnTypeOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\SimpleOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\WorkflowStepHandlers;
 
@@ -93,6 +96,37 @@ class OrchestratorTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [InvalidReturnTypeOrchestrator::class],
             [new InvalidReturnTypeOrchestrator()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+        );
+    }
+
+    public function test_throwing_exception_with_array_returned_of_non_string(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Orchestrator returned array must contain only strings');
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ArrayWithNonStringOrchestrator::class],
+            [new ArrayWithNonStringOrchestrator()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+        );
+
+        // This should fail at runtime when the orchestrator executes and returns non-string array
+        $ecotoneLite->sendDirectToChannel("array.with.non.string", "test-data");
+    }
+
+    public function test_throwing_exception_with_void_return_type(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Orchestrator method Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\VoidReturnTypeOrchestrator::voidReturnType must return array of strings, but returns void');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [VoidReturnTypeOrchestrator::class],
+            [new VoidReturnTypeOrchestrator()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)

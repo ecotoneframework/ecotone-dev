@@ -24,14 +24,7 @@ class SpecificHeaderResultMessageConverter implements ResultToMessageConverter
 
         Assert::isFalse($result instanceof Message, 'Message should not be returned when setting specific header in ' . $this->headerName);
 
-        $messageBuilder = MessageBuilder::fromMessage($requestMessage);
-        if ($this->headerName === MessageHeaders::ROUTING_SLIP) {
-            return $messageBuilder
-                ->setRoutingSlip($result)
-                ->build();
-        }
-
-        return $messageBuilder
+        return MessageBuilder::fromMessage($requestMessage)
             ->setHeader($this->headerName, $result)
             ->build();
     }

@@ -11,11 +11,13 @@ use Ecotone\Messaging\Attribute\Orchestrator;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\OrchestratorResultMessageConverter;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -92,18 +94,15 @@ class OrchestratorModule implements AnnotationModule
 
         // Validate return type - only array is allowed
         $returnType = $interfaceToCall->getReturnType();
-        if ($returnType && !$returnType->isVoid()) {
-            $returnTypeName = $returnType->toString();
-            if ($returnTypeName !== 'array') {
-                throw InvalidArgumentException::create(
-                    sprintf(
-                        "Orchestrator method %s::%s must return array of strings, but returns %s",
-                        $annotationRegistration->getClassName(),
-                        $annotationRegistration->getMethodName(),
-                        $returnTypeName
-                    )
-                );
-            }
+        if (!$returnType->isArrayButNotClassBasedCollection()) {
+            throw InvalidArgumentException::create(
+                sprintf(
+                    "Orchestrator method %s::%s must return array of strings, but returns %s",
+                    $annotationRegistration->getClassName(),
+                    $annotationRegistration->getMethodName(),
+                    $returnType->toString()
+                )
+            );
         }
 
         /** @var Orchestrator $annotation */
@@ -112,7 +111,9 @@ class OrchestratorModule implements AnnotationModule
         return ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($annotationRegistration), $interfaceToCall)
             ->withEndpointId($annotation->getEndpointId())
             ->withInputChannelName($annotation->getInputChannelName())
-            ->withChangingHeaders(true, MessageHeaders::ROUTING_SLIP);
+            ->withCustomResultToMessageConverter(
+                new Definition(OrchestratorResultMessageConverter::class, [MessageHeaders::ROUTING_SLIP])
+            );
     }
 
     private function verifyOrchestratorLicense(Configuration $messagingConfiguration): void

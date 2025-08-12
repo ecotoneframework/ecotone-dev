@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\ServiceActivator;
 
+use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
@@ -36,6 +37,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     private bool $shouldPassThroughMessage = false;
     private bool $changeHeaders = false;
     private ?string $specificHeaderName = null;
+    private ?CompilableBuilder $customResultToMessageConverter = null;
 
     /**
      * @param Reference|Definition|DefinedObject $objectToInvokeOn
@@ -108,6 +110,13 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         return $this;
     }
 
+    public function withCustomResultToMessageConverter(CompilableBuilder $customResultToMessageConverter): self
+    {
+        $this->customResultToMessageConverter = $customResultToMessageConverter;
+
+        return $this;
+    }
+
     /**
      * @inheritDoc
      */
@@ -149,6 +158,10 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             $this->methodParameterConverterBuilders,
         )
         ->withPassTroughMessageIfVoid($this->shouldPassThroughMessage);
+
+        if ($this->customResultToMessageConverter !== null) {
+            return $methodInvokerBuilder->withResultToMessageConverter($this->customResultToMessageConverter);
+        }
 
         if ($this->specificHeaderName !== null) {
             return $methodInvokerBuilder->withResultToMessageConverter(

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator;
 
 use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Attribute\ServiceActivator;
 
 /**
  * licence Enterprise
@@ -33,6 +32,13 @@ class WorkflowStepHandlers
     {
         $this->executedSteps[] = "sendEmail";
         return "email sent for: " . $data;
+    }
+
+    #[InternalHandler(inputChannelName: "only_step")]
+    public function onlyStep(string $data): string
+    {
+        $this->executedSteps[] = "only_step";
+        return "validated: " . $data;
     }
 
     public function getExecutedSteps(): array

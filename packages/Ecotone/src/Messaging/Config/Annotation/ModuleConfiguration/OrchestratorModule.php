@@ -88,10 +88,28 @@ class OrchestratorModule implements AnnotationModule
             throw InvalidArgumentException::create("Orchestrator works as stateless Handler and can't be used on Aggregate or Saga");
         }
 
+        $interfaceToCall = $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName());
+
+        // Validate return type - only array is allowed
+        $returnType = $interfaceToCall->getReturnType();
+        if ($returnType && !$returnType->isVoid()) {
+            $returnTypeName = $returnType->toString();
+            if ($returnTypeName !== 'array') {
+                throw InvalidArgumentException::create(
+                    sprintf(
+                        "Orchestrator method %s::%s must return array of strings, but returns %s",
+                        $annotationRegistration->getClassName(),
+                        $annotationRegistration->getMethodName(),
+                        $returnTypeName
+                    )
+                );
+            }
+        }
+
         /** @var Orchestrator $annotation */
         $annotation = $annotationRegistration->getAnnotationForMethod();
 
-        return ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($annotationRegistration), $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName()))
+        return ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($annotationRegistration), $interfaceToCall)
             ->withEndpointId($annotation->getEndpointId())
             ->withInputChannelName($annotation->getInputChannelName())
             ->withChangingHeaders(true, MessageHeaders::ROUTING_SLIP);

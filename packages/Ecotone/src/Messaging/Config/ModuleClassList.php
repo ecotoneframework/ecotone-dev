@@ -44,6 +44,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SerializerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ServiceActivatorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\OrchestratorModule;
 use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
 use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
 use Ecotone\Modelling\CommandBus;
@@ -94,6 +95,7 @@ class ModuleClassList
         ServiceActivatorModule::class,
         SplitterModule::class,
         TransformerModule::class,
+        OrchestratorModule::class,
         MessageConsumerModule::class,
         InstantRetryModule::class,
         InstantRetryAttributeModule::class,

@@ -15,6 +15,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\SpecificHeaderResultMessageConverter;
 use Ecotone\Messaging\Support\Assert;
 
 use function get_class;
@@ -34,6 +35,7 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
     private array $methodParameterConverterBuilders = [];
     private bool $shouldPassThroughMessage = false;
     private bool $changeHeaders = false;
+    private ?string $specificHeaderName = null;
 
     /**
      * @param Reference|Definition|DefinedObject $objectToInvokeOn
@@ -98,9 +100,10 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
         return $this;
     }
 
-    public function withChangingHeaders(bool $changeHeaders): self
+    public function withChangingHeaders(bool $changeHeaders, ?string $specificHeaderName = null): self
     {
         $this->changeHeaders = $changeHeaders;
+        $this->specificHeaderName = $specificHeaderName;
 
         return $this;
     }
@@ -132,16 +135,28 @@ final class ServiceActivatorBuilder extends InputOutputMessageHandlerBuilder imp
             ->withRequiredInterceptorNames($this->requiredInterceptorReferenceNames)
             ->withRequiredReply($this->isReplyRequired)
             ->chainInterceptedProcessor(
-                MethodInvokerBuilder::create(
-                    $interfaceToCall->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,
-                    $this->interfaceToCallReference,
-                    $this->methodParameterConverterBuilders,
-                )
-                ->withPassTroughMessageIfVoid($this->shouldPassThroughMessage)
-                ->withChangeHeaders($this->changeHeaders)
+                $this->createMethodInvokerBuilder($interfaceToCall)
             );
 
         return $newImplementation->compile($builder);
+    }
+
+    private function createMethodInvokerBuilder(InterfaceToCall $interfaceToCall): MethodInvokerBuilder
+    {
+        $methodInvokerBuilder = MethodInvokerBuilder::create(
+            $interfaceToCall->isStaticallyCalled() ? $this->objectToInvokeOn->getId() : $this->objectToInvokeOn,
+            $this->interfaceToCallReference,
+            $this->methodParameterConverterBuilders,
+        )
+        ->withPassTroughMessageIfVoid($this->shouldPassThroughMessage);
+
+        if ($this->specificHeaderName !== null) {
+            return $methodInvokerBuilder->withResultToMessageConverter(
+                new Definition(SpecificHeaderResultMessageConverter::class, [$this->specificHeaderName])
+            );
+        }
+
+        return $methodInvokerBuilder->withChangeHeaders($this->changeHeaders);
     }
 
     public function __toString()

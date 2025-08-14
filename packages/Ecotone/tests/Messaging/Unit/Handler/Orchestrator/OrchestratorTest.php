@@ -9,6 +9,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -24,6 +25,7 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incor
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\UnionTypeOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\VoidReturnTypeOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\OrchestratorEndingDuringFlow;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\OrchestratorWithAsynchronousStep;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\OrchestratorWithInternalBus;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\SimpleOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\WorkflowStepHandlers;
@@ -244,7 +246,30 @@ class OrchestratorTest extends TestCase
         $ecotoneLite->sendDirectToChannel("asynchronous.workflow", []);
 
         $this->assertEquals([], $service->getExecutedSteps());
+
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertEquals(["stepA", "stepB", "stepC"], $service->getExecutedSteps());
+    }
+
+    public function test_asynchronous_step_within_orchestrator(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OrchestratorWithAsynchronousStep::class],
+            [$service = new OrchestratorWithAsynchronousStep()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]
+        );
+
+        $ecotoneLite->sendDirectToChannel("asynchronous.workflow", []);
+
+        $this->assertEquals(["stepA"], $service->getExecutedSteps());
+
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+
         $this->assertEquals(["stepA", "stepB", "stepC"], $service->getExecutedSteps());
     }
 

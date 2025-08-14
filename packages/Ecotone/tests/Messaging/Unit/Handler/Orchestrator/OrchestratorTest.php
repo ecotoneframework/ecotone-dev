@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Orchestrator;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\AsynchronousOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\AuthorizationOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\CombinedOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\ArrayWithNonStringOrchestrator;
@@ -223,6 +226,26 @@ class OrchestratorTest extends TestCase
         $ecotoneLite->sendDirectToChannel("orchestrator.ending.during.flow", []);
 
         $this->assertEquals(["stepA", "stepB", "commandBusAction.execute", "stepC"], $service->getExecutedSteps());
+    }
+
+    public function test_asynchronous_orchestrator(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [AsynchronousOrchestrator::class],
+            [$service = new AsynchronousOrchestrator()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]
+        );
+
+        $ecotoneLite->sendDirectToChannel("asynchronous.workflow", []);
+
+        $this->assertEquals([], $service->getExecutedSteps());
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertEquals(["stepA", "stepB", "stepC"], $service->getExecutedSteps());
     }
 
     public function test_orchestrator_requires_enterprise_license(): void

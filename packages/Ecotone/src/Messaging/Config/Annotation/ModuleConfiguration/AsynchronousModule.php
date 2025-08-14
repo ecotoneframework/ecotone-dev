@@ -69,10 +69,8 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
                     if ($endpoint->hasClassAnnotation(StreamBasedSource::class)) {
                         continue;
                     }
-                    if (in_array(get_class($annotationForMethod), [CommandHandler::class, EventHandler::class, InternalHandler::class])) {
-                        if ($annotationForMethod->isEndpointIdGenerated()) {
-                            throw ConfigurationException::create("{$endpoint} should have endpointId defined for handling asynchronously");
-                        }
+                    if ($annotationForMethod->isEndpointIdGenerated()) {
+                        throw ConfigurationException::create("{$endpoint} should have endpointId defined for handling asynchronously");
                     }
 
                     $registeredAsyncEndpoints[$annotationForMethod->getEndpointId()] = $asyncClass->getChannelName();
@@ -90,10 +88,8 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
                     if ($annotationForMethod instanceof QueryHandler) {
                         continue;
                     }
-                    if (in_array(get_class($annotationForMethod), [CommandHandler::class, EventHandler::class, InternalHandler::class])) {
-                        if ($annotationForMethod->isEndpointIdGenerated()) {
-                            throw ConfigurationException::create("{$endpoint} should have endpointId defined for handling asynchronously");
-                        }
+                    if ($annotationForMethod->isEndpointIdGenerated()) {
+                        throw ConfigurationException::create("{$endpoint} should have endpointId defined for handling asynchronously");
                     }
 
                     $registeredAsyncEndpoints[$annotationForMethod->getEndpointId()] = $asyncAnnotation->getChannelName();

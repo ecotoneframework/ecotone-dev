@@ -94,6 +94,48 @@ class OrchestratorModule implements AnnotationModule
 
         // Validate return type - only array is allowed
         $returnType = $interfaceToCall->getReturnType();
+        if ($returnType === null) {
+            throw InvalidArgumentException::create(
+                sprintf(
+                    "Orchestrator method %s::%s must have explicit array return type declaration",
+                    $annotationRegistration->getClassName(),
+                    $annotationRegistration->getMethodName()
+                )
+            );
+        }
+
+        if ($returnType->isVoid()) {
+            throw InvalidArgumentException::create(
+                sprintf(
+                    "Orchestrator method %s::%s must return array of strings, but returns void",
+                    $annotationRegistration->getClassName(),
+                    $annotationRegistration->getMethodName()
+                )
+            );
+        }
+
+        if ($returnType->isUnionType()) {
+            throw InvalidArgumentException::create(
+                sprintf(
+                    "Orchestrator method %s::%s must return array of strings, but returns union type %s",
+                    $annotationRegistration->getClassName(),
+                    $annotationRegistration->getMethodName(),
+                    $returnType->toString()
+                )
+            );
+        }
+
+        if ($interfaceToCall->canItReturnNull()) {
+            throw InvalidArgumentException::create(
+                sprintf(
+                    "Orchestrator method %s::%s must return array of strings, but returns nullable type %s",
+                    $annotationRegistration->getClassName(),
+                    $annotationRegistration->getMethodName(),
+                    $returnType->toString()
+                )
+            );
+        }
+
         if (!$returnType->isArrayButNotClassBasedCollection()) {
             throw InvalidArgumentException::create(
                 sprintf(

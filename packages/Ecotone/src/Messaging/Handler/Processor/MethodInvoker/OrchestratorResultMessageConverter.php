@@ -34,7 +34,7 @@ class OrchestratorResultMessageConverter implements ResultToMessageConverter
         }
 
         return MessageBuilder::fromMessage($requestMessage)
-            ->setRoutingSlip($result)
+            ->prependRoutingSlip($result)
             ->build();
     }
 }

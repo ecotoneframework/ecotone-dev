@@ -17,6 +17,10 @@ use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\AsynchronousOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\AuthorizationOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\CombinedOrchestrator;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution\AsynchronousEventHandlerAuthorizationProcessor;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution\AuthorizationProcess;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution\AuthorizationStarted;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution\CommandHandlerAuthorizationProcessor;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\ArrayWithNonStringOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\InvalidReturnTypeOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\NoReturnTypeOrchestrator;
@@ -30,6 +34,8 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Orche
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\OrchestratorWithInternalBus;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\SimpleOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\WorkflowStepHandlers;
+use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\EventBus;
 
 /**
  * licence Enterprise
@@ -39,11 +45,9 @@ class OrchestratorTest extends TestCase
 {
     public function test_orchestrator_passes_message(): void
     {
-        $stepHandlers = new WorkflowStepHandlers();
-
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AuthorizationOrchestrator::class, WorkflowStepHandlers::class],
-            [new AuthorizationOrchestrator(), $stepHandlers],
+            [AuthorizationOrchestrator::class],
+            [$orchestrator = new AuthorizationOrchestrator()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
@@ -54,8 +58,86 @@ class OrchestratorTest extends TestCase
         $this->assertNotNull($result);
         $this->assertEquals("email sent for: processed: validated: test-data", $result);
 
-        $executedSteps = $stepHandlers->getExecutedSteps();
+        $executedSteps = $orchestrator->getExecutedSteps();
         $this->assertEquals(["validate", "process", "sendEmail"], $executedSteps);
+    }
+
+    /**
+     * Provides clear interface for executing workflow
+     */
+    public function test_orchestrator_executed_from_business_interface(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [AuthorizationOrchestrator::class, AuthorizationProcess::class],
+            [$orchestrator = new AuthorizationOrchestrator()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+        );
+
+        /** @var AuthorizationProcess $authorizationProcess */
+        $authorizationProcess = $ecotoneLite->getGateway(AuthorizationProcess::class);
+        $result = $authorizationProcess->start('test-data');
+
+        $this->assertNotNull($result);
+        $this->assertEquals("email sent for: processed: validated: test-data", $result);
+
+        $executedSteps = $orchestrator->getExecutedSteps();
+        $this->assertEquals(["validate", "process", "sendEmail"], $executedSteps);
+    }
+
+    /**
+     * Allows to execute workflow as a result of given Command
+     */
+    public function test_orchestrator_executed_from_command_handler_output_channel(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [AuthorizationOrchestrator::class, CommandHandlerAuthorizationProcessor::class],
+            [$orchestrator = new AuthorizationOrchestrator(), new CommandHandlerAuthorizationProcessor()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+        );
+
+        /** @var CommandBus $commandBus */
+        $commandBus = $ecotoneLite->getGateway(CommandBus::class);
+        $result = $commandBus->sendWithRouting('execute.authorization', 'test-data');
+
+        $this->assertNotNull($result);
+        $this->assertEquals("email sent for: processed: validated: test-data", $result);
+
+        $executedSteps = $orchestrator->getExecutedSteps();
+        $this->assertEquals(["validate", "process", "sendEmail"], $executedSteps);
+    }
+
+    /**
+     * Allows to execute workflow as a result of given Event happening
+     */
+    public function test_orchestrator_executed_from_event_handler_output_channel(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [AuthorizationOrchestrator::class, AsynchronousEventHandlerAuthorizationProcessor::class],
+            [$orchestrator = new AuthorizationOrchestrator(), new AsynchronousEventHandlerAuthorizationProcessor()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]
+        );
+
+        /** @var EventBus $eventBus */
+        $eventBus = $ecotoneLite->getGateway(EventBus::class);
+        $eventBus->publish(new AuthorizationStarted('test-data'));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $executedSteps = $orchestrator->getExecutedSteps();
+        $this->assertEquals(["validate", "process", "sendEmail"], $executedSteps);
+    }
+
+    public function test_executing_workflow_with_aggregate_step(): void
+    {
+
     }
 
     public function test_orchestrator_returns_empty_array_no_routing_happens(): void
@@ -73,10 +155,9 @@ class OrchestratorTest extends TestCase
 
     public function test_orchestrator_with_single_step(): void
     {
-        $stepHandlers = new WorkflowStepHandlers();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SimpleOrchestrator::class, WorkflowStepHandlers::class],
-            [new SimpleOrchestrator(), $stepHandlers],
+            [SimpleOrchestrator::class],
+            [new SimpleOrchestrator()],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)

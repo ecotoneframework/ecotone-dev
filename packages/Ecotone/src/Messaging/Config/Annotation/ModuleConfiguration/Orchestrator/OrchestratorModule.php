@@ -67,7 +67,7 @@ class OrchestratorModule implements AnnotationModule
             $interfaceToCall = $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName());
             Assert::isTrue(count($interfaceToCall->getInterfaceParameters()) >= 2, "Orchestrator Gateway {$interfaceToCall} must have at least two parameters. First for list of channels, second for payload, and optional third for headers.");
             Assert::isTrue(count($interfaceToCall->getInterfaceParameters()) <= 3, "Orchestrator Gateway {$interfaceToCall} can have maximum three parameters. First for list of channels, second for payload, and optional third for headers.");
-            Assert::isTrue($interfaceToCall->getFirstParameter()->getTypeDescriptor()->isArrayButNotClassBasedCollection(), "Orchestrator Gateway {$interfaceToCall} first parameter must be array of strings for routed channels");
+            Assert::isTrue($interfaceToCall->getFirstParameter()->getTypeDescriptor()->isArrayButNotClassBasedCollection(), "Orchestrator Gateway {$interfaceToCall} first parameter must be array of strings for routed channels", true);
 
             $parameters = [
                 /** Replaces routing slip completely, as gateway should be treated as totally new flow */
@@ -76,6 +76,8 @@ class OrchestratorModule implements AnnotationModule
             ];
 
             if ($interfaceToCall->hasThirdParameter()) {
+                Assert::isTrue($interfaceToCall->getThirdParameter()->getTypeDescriptor()->isArrayButNotClassBasedCollection(), "Orchestrator Gateway {$interfaceToCall} third parameter must be array of headers", true);
+
                 $parameters[] = GatewayHeadersBuilder::create($interfaceToCall->getThirdParameter()->getName());
             }
 
@@ -217,7 +219,7 @@ class OrchestratorModule implements AnnotationModule
             return;
         }
 
-        if (!empty($this->orchestratorServiceActivators)) {
+        if ($this->orchestratorsServiceActivators !== []) {
             throw LicensingException::create("Orchestrator attribute is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper workflow orchestration capabilities.");
         }
     }

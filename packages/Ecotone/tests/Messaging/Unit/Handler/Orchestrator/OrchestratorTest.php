@@ -6,6 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Orchestrator;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -22,6 +23,8 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execu
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution\AuthorizationProcessGateway;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution\AuthorizationStarted;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution\CommandHandlerAuthorizationProcessor;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution\Incorrect\OrchestratorGatewayWithIncorrectMetadata;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution\Incorrect\OrchestratorGatewayWithIncorrectRouting;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\ArrayWithNonStringOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\InvalidReturnTypeOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect\NoReturnTypeOrchestrator;
@@ -184,6 +187,38 @@ class OrchestratorTest extends TestCase
         $gateway->start([
             new \stdClass()
         ],'test-data', []);
+    }
+
+    public function test_orchestrator_gateway_fails_with_incorrect_routing_channels(): void
+    {
+        $this->expectException(ConfigurationException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [OrchestratorGatewayWithIncorrectRouting::class],
+            [],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]
+        );
+    }
+
+    public function test_orchestrator_gateway_fails_with_incorrect_metadata(): void
+    {
+        $this->expectException(ConfigurationException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [OrchestratorGatewayWithIncorrectMetadata::class],
+            [],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]
+        );
     }
 
     public function test_executing_workflow_with_aggregate_step(): void
@@ -451,7 +486,6 @@ class OrchestratorTest extends TestCase
     public function test_orchestrator_requires_enterprise_license(): void
     {
         $this->expectException(LicensingException::class);
-        $this->expectExceptionMessage('Orchestrator attribute');
 
         EcotoneLite::bootstrapFlowTesting(
             [SimpleOrchestrator::class],

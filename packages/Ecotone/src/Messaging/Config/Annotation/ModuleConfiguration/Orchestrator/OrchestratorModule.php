@@ -67,6 +67,7 @@ class OrchestratorModule implements AnnotationModule
             $interfaceToCall = $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName());
             Assert::isTrue(count($interfaceToCall->getInterfaceParameters()) >= 2, "Orchestrator Gateway {$interfaceToCall} must have at least two parameters. First for list of channels, second for payload, and optional third for headers.");
             Assert::isTrue(count($interfaceToCall->getInterfaceParameters()) <= 3, "Orchestrator Gateway {$interfaceToCall} can have maximum three parameters. First for list of channels, second for payload, and optional third for headers.");
+            Assert::isTrue($interfaceToCall->getFirstParameter()->getTypeDescriptor()->isArrayButNotClassBasedCollection(), "Orchestrator Gateway {$interfaceToCall} first parameter must be array of strings for routed channels");
 
             $parameters = [
                 /** Replaces routing slip completely, as gateway should be treated as totally new flow */

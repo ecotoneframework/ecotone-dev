@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution;
+namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution;
 
 use Ecotone\Messaging\Attribute\OrchestratorGateway;
 

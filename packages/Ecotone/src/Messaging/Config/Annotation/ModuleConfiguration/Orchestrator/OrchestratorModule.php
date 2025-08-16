@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
+namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\Orchestrator;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\Orchestrator;
+use Ecotone\Messaging\Attribute\OrchestratorGateway;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -15,11 +16,17 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
+use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
+use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
+use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\OrchestratorResultMessageConverter;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\Aggregate;
@@ -31,14 +38,19 @@ use Ecotone\Modelling\Attribute\Saga;
  */
 class OrchestratorModule implements AnnotationModule
 {
-    /**
-     * @var MessageHandlerBuilderWithParameterConverters[]
-     */
-    private array $messageHandlerBuilders;
+    private const ORCHESTRATOR_GATEWAY_ENTRYPOINT_CHANNEL = 'ecotone.orchestrator.entrypoint';
+    private const ORCHESTRATOR_ROUTING_SLIP_HEADER = 'ecotone.orchestrator.routing_slip';
 
-    private function __construct(array $messageHandlerBuilders)
+    /**
+     * @param MessageHandlerBuilderWithParameterConverters[] $orchestratorsServiceActivators
+     * @param GatewayProxyBuilder[] $orchestratorGateways
+     */
+    private function __construct(
+        private array $orchestratorsServiceActivators,
+        private array $orchestratorGateways,
+    )
     {
-        $this->messageHandlerBuilders = $messageHandlerBuilders;
+
     }
 
     /**
@@ -50,8 +62,45 @@ class OrchestratorModule implements AnnotationModule
         foreach ($annotationRegistrationService->findAnnotatedMethods(Orchestrator::class) as $annotationRegistration) {
             $messageHandlerBuilders[] = self::createMessageHandlerFrom($annotationRegistration, $interfaceToCallRegistry);
         }
+        $orchestratorGateways = [];
+        foreach ($annotationRegistrationService->findAnnotatedMethods(OrchestratorGateway::class) as $annotationRegistration) {
+            $interfaceToCall = $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName());
+            Assert::isTrue(count($interfaceToCall->getInterfaceParameters()) >= 2, "Orchestrator Gateway {$interfaceToCall} must have at least two parameters. First for list of channels, second for payload, and optional third for headers.");
+            Assert::isTrue(count($interfaceToCall->getInterfaceParameters()) <= 3, "Orchestrator Gateway {$interfaceToCall} can have maximum three parameters. First for list of channels, second for payload, and optional third for headers.");
 
-        return new self($messageHandlerBuilders);
+            $parameters = [
+                /** Replaces routing slip completely, as gateway should be treated as totally new flow */
+                GatewayHeaderBuilder::create($interfaceToCall->getFirstParameterName(), self::ORCHESTRATOR_ROUTING_SLIP_HEADER),
+                GatewayPayloadBuilder::create($interfaceToCall->getSecondParameter()->getName()),
+            ];
+
+            if ($interfaceToCall->hasThirdParameter()) {
+                $parameters[] = GatewayHeadersBuilder::create($interfaceToCall->getThirdParameter()->getName());
+            }
+
+            $orchestratorGateways[] = GatewayProxyBuilder::create(
+                $annotationRegistration->getClassName(),
+                $annotationRegistration->getClassName(),
+                $annotationRegistration->getMethodName(),
+                self::ORCHESTRATOR_GATEWAY_ENTRYPOINT_CHANNEL,
+            )->withParameterConverters($parameters);
+        }
+
+
+        if (count($orchestratorGateways) > 0) {
+            $messageHandlerBuilders[] = ServiceActivatorBuilder::createWithDefinition(
+                new Definition(OrchestratorGatewayEntrypoint::class, []), 'handle'
+            )
+                ->withInputChannelName(self::ORCHESTRATOR_GATEWAY_ENTRYPOINT_CHANNEL)
+                ->withMethodParameterConverters([
+                    HeaderBuilder::create("routingSlip", self::ORCHESTRATOR_ROUTING_SLIP_HEADER),
+                ])
+                ->withCustomResultToMessageConverter(
+                    new Definition(OrchestratorResultMessageConverter::class, [MessageHeaders::ROUTING_SLIP])
+                );
+        }
+
+        return new self($messageHandlerBuilders, $orchestratorGateways);
     }
 
     /**
@@ -61,8 +110,11 @@ class OrchestratorModule implements AnnotationModule
     {
         $this->verifyOrchestratorLicense($messagingConfiguration);
 
-        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
+        foreach ($this->orchestratorsServiceActivators as $messageHandlerBuilder) {
             $messagingConfiguration->registerMessageHandler($messageHandlerBuilder);
+        }
+        foreach ($this->orchestratorGateways as $gatewayProxyBuilder) {
+            $messagingConfiguration->registerGatewayBuilder($gatewayProxyBuilder);
         }
     }
 
@@ -164,7 +216,7 @@ class OrchestratorModule implements AnnotationModule
             return;
         }
 
-        if (!empty($this->messageHandlerBuilders)) {
+        if (!empty($this->orchestratorServiceActivators)) {
             throw LicensingException::create("Orchestrator attribute is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper workflow orchestration capabilities.");
         }
     }

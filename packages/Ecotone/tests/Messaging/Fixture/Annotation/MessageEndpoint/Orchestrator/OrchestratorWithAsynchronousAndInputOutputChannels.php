@@ -31,7 +31,7 @@ class OrchestratorWithAsynchronousAndInputOutputChannels
     }
 
     #[Asynchronous('async')]
-    #[InternalHandler(inputChannelName: "stepB", endpointId: "async-step")]
+    #[InternalHandler(inputChannelName: "stepB", outputChannelName: "stepD", endpointId: "async-step")]
     public function stepB(array $data): array
     {
         $this->executedSteps[] = "stepB";
@@ -40,7 +40,7 @@ class OrchestratorWithAsynchronousAndInputOutputChannels
         return $data;
     }
 
-    #[InternalHandler(inputChannelName: "stepC", outputChannelName: "stepD")]
+    #[InternalHandler(inputChannelName: "stepC")]
     public function stepC(): array
     {
         $this->executedSteps[] = "stepC";

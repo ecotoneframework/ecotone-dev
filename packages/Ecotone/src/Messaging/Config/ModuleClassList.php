@@ -36,6 +36,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageConsumerModul
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands\MessagingCommandsModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\MethodInterceptorModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\Orchestrator\OrchestratorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\PollerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RequiredConsumersModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\RouterModule;
@@ -44,7 +45,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SerializerModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ServiceActivatorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\SplitterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\TransformerModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\OrchestratorModule;
 use Ecotone\Messaging\Handler\Logger\Config\LoggingModule;
 use Ecotone\Messaging\Handler\Logger\Config\MessageHandlerLogger;
 use Ecotone\Modelling\CommandBus;

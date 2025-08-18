@@ -11,7 +11,7 @@ use Ecotone\Messaging\Attribute\Orchestrator;
  */
 class VoidReturnTypeOrchestrator
 {
-    #[Orchestrator(inputChannelName: "void.return.type")]
+    #[Orchestrator(inputChannelName: 'void.return.type')]
     public function voidReturnType(): void
     {
         // void return type

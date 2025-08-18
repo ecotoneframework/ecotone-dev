@@ -11,9 +11,9 @@ use Ecotone\Messaging\Attribute\Orchestrator;
  */
 class UnionTypeOrchestrator
 {
-    #[Orchestrator(inputChannelName: "union.type")]
+    #[Orchestrator(inputChannelName: 'union.type')]
     public function unionType(): array|string
     {
-        return ["step1", "step2"];
+        return ['step1', 'step2'];
     }
 }

@@ -48,8 +48,7 @@ class OrchestratorModule implements AnnotationModule
     private function __construct(
         private array $orchestratorsServiceActivators,
         private array $orchestratorGateways,
-    )
-    {
+    ) {
 
     }
 
@@ -92,11 +91,12 @@ class OrchestratorModule implements AnnotationModule
 
         if (count($orchestratorGateways) > 0) {
             $messageHandlerBuilders[] = ServiceActivatorBuilder::createWithDefinition(
-                new Definition(OrchestratorGatewayEntrypoint::class, []), 'handle'
+                new Definition(OrchestratorGatewayEntrypoint::class, []),
+                'handle'
             )
                 ->withInputChannelName(self::ORCHESTRATOR_GATEWAY_ENTRYPOINT_CHANNEL)
                 ->withMethodParameterConverters([
-                    HeaderBuilder::create("routingSlip", self::ORCHESTRATOR_ROUTING_SLIP_HEADER),
+                    HeaderBuilder::create('routingSlip', self::ORCHESTRATOR_ROUTING_SLIP_HEADER),
                 ])
                 ->withCustomResultToMessageConverter(
                     new Definition(OrchestratorResultMessageConverter::class, [MessageHeaders::ROUTING_SLIP])
@@ -152,7 +152,7 @@ class OrchestratorModule implements AnnotationModule
         if ($returnType === null) {
             throw InvalidArgumentException::create(
                 sprintf(
-                    "Orchestrator method %s::%s must have explicit array return type declaration",
+                    'Orchestrator method %s::%s must have explicit array return type declaration',
                     $annotationRegistration->getClassName(),
                     $annotationRegistration->getMethodName()
                 )
@@ -162,7 +162,7 @@ class OrchestratorModule implements AnnotationModule
         if ($returnType->isVoid()) {
             throw InvalidArgumentException::create(
                 sprintf(
-                    "Orchestrator method %s::%s must return array of strings, but returns void",
+                    'Orchestrator method %s::%s must return array of strings, but returns void',
                     $annotationRegistration->getClassName(),
                     $annotationRegistration->getMethodName()
                 )
@@ -172,7 +172,7 @@ class OrchestratorModule implements AnnotationModule
         if ($returnType->isUnionType()) {
             throw InvalidArgumentException::create(
                 sprintf(
-                    "Orchestrator method %s::%s must return array of strings, but returns union type %s",
+                    'Orchestrator method %s::%s must return array of strings, but returns union type %s',
                     $annotationRegistration->getClassName(),
                     $annotationRegistration->getMethodName(),
                     $returnType->toString()
@@ -183,7 +183,7 @@ class OrchestratorModule implements AnnotationModule
         if ($interfaceToCall->canItReturnNull()) {
             throw InvalidArgumentException::create(
                 sprintf(
-                    "Orchestrator method %s::%s must return array of strings, but returns nullable type %s",
+                    'Orchestrator method %s::%s must return array of strings, but returns nullable type %s',
                     $annotationRegistration->getClassName(),
                     $annotationRegistration->getMethodName(),
                     $returnType->toString()
@@ -191,10 +191,10 @@ class OrchestratorModule implements AnnotationModule
             );
         }
 
-        if (!$returnType->isArrayButNotClassBasedCollection()) {
+        if (! $returnType->isArrayButNotClassBasedCollection()) {
             throw InvalidArgumentException::create(
                 sprintf(
-                    "Orchestrator method %s::%s must return array of strings, but returns %s",
+                    'Orchestrator method %s::%s must return array of strings, but returns %s',
                     $annotationRegistration->getClassName(),
                     $annotationRegistration->getMethodName(),
                     $returnType->toString()
@@ -220,7 +220,7 @@ class OrchestratorModule implements AnnotationModule
         }
 
         if ($this->orchestratorsServiceActivators !== []) {
-            throw LicensingException::create("Orchestrator attribute is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper workflow orchestration capabilities.");
+            throw LicensingException::create('Orchestrator attribute is available only with Ecotone Enterprise licence. This functionality requires enterprise mode to ensure proper workflow orchestration capabilities.');
         }
     }
 }

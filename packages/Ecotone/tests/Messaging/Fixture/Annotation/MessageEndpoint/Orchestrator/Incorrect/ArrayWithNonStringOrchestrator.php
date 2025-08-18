@@ -11,7 +11,7 @@ use Ecotone\Messaging\Attribute\Orchestrator;
  */
 class ArrayWithNonStringOrchestrator
 {
-    #[Orchestrator(inputChannelName: "array.with.non.string")]
+    #[Orchestrator(inputChannelName: 'array.with.non.string')]
     public function arrayWithNonString(): array
     {
         return [1, 2, 3]; // integers instead of strings

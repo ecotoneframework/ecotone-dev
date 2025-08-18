@@ -23,13 +23,13 @@ class OrchestratorResultMessageConverter implements ResultToMessageConverter
             return $requestMessage;
         }
 
-        if (!is_array($result)) {
-            throw InvalidArgumentException::create("Orchestrator must return array of strings, but returned " . gettype($result));
+        if (! is_array($result)) {
+            throw InvalidArgumentException::create('Orchestrator must return array of strings, but returned ' . gettype($result));
         }
 
         foreach ($result as $index => $item) {
-            if (!is_string($item)) {
-                throw InvalidArgumentException::create("Orchestrator returned array must contain only strings, but found " . gettype($item) . " at index {$index}");
+            if (! is_string($item)) {
+                throw InvalidArgumentException::create('Orchestrator returned array must contain only strings, but found ' . gettype($item) . " at index {$index}");
             }
         }
 

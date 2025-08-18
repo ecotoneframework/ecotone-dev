@@ -12,15 +12,15 @@ use stdClass;
  */
 class InvalidReturnTypeOrchestrator
 {
-    #[Orchestrator(inputChannelName: "invalid.return.type")]
+    #[Orchestrator(inputChannelName: 'invalid.return.type')]
     public function invalidReturnType(): stdClass
     {
         return new stdClass();
     }
 
-    #[Orchestrator(inputChannelName: "single.step.as.string")]
+    #[Orchestrator(inputChannelName: 'single.step.as.string')]
     public function singleStepAsString(): string
     {
-        return "only_step";
+        return 'only_step';
     }
 }

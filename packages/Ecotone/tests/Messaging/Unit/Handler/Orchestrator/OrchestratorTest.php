@@ -10,11 +10,13 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\CommandBus;
+use Ecotone\Modelling\EventBus;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\AsynchronousOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\AuthorizationOrchestrator;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\CombinedOrchestrator;
@@ -37,9 +39,6 @@ use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Orche
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\OrchestratorWithAsynchronousStep;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\OrchestratorWithInternalBus;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\SimpleOrchestrator;
-use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\WorkflowStepHandlers;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\EventBus;
 
 /**
  * licence Enterprise
@@ -57,13 +56,13 @@ class OrchestratorTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
-        $result = $ecotoneLite->sendDirectToChannel("start.authorization", "test-data");
+        $result = $ecotoneLite->sendDirectToChannel('start.authorization', 'test-data');
 
         $this->assertNotNull($result);
-        $this->assertEquals("email sent for: processed: validated: test-data", $result);
+        $this->assertEquals('email sent for: processed: validated: test-data', $result);
 
         $executedSteps = $orchestrator->getExecutedSteps();
-        $this->assertEquals(["validate", "process", "sendEmail"], $executedSteps);
+        $this->assertEquals(['validate', 'process', 'sendEmail'], $executedSteps);
     }
 
     /**
@@ -84,10 +83,10 @@ class OrchestratorTest extends TestCase
         $result = $authorizationProcess->start('test-data');
 
         $this->assertNotNull($result);
-        $this->assertEquals("email sent for: processed: validated: test-data", $result);
+        $this->assertEquals('email sent for: processed: validated: test-data', $result);
 
         $executedSteps = $orchestrator->getExecutedSteps();
-        $this->assertEquals(["validate", "process", "sendEmail"], $executedSteps);
+        $this->assertEquals(['validate', 'process', 'sendEmail'], $executedSteps);
     }
 
     /**
@@ -108,10 +107,10 @@ class OrchestratorTest extends TestCase
         $result = $commandBus->sendWithRouting('execute.authorization', 'test-data');
 
         $this->assertNotNull($result);
-        $this->assertEquals("email sent for: processed: validated: test-data", $result);
+        $this->assertEquals('email sent for: processed: validated: test-data', $result);
 
         $executedSteps = $orchestrator->getExecutedSteps();
-        $this->assertEquals(["validate", "process", "sendEmail"], $executedSteps);
+        $this->assertEquals(['validate', 'process', 'sendEmail'], $executedSteps);
     }
 
     /**
@@ -136,7 +135,7 @@ class OrchestratorTest extends TestCase
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
 
         $executedSteps = $orchestrator->getExecutedSteps();
-        $this->assertEquals(["validate", "process", "sendEmail"], $executedSteps);
+        $this->assertEquals(['validate', 'process', 'sendEmail'], $executedSteps);
     }
 
     /**
@@ -158,13 +157,13 @@ class OrchestratorTest extends TestCase
         /** @var AuthorizationProcessGateway $gateway */
         $gateway = $ecotoneLite->getGateway(AuthorizationProcessGateway::class);
         $gateway->start([
-            "validate",
-            "process",
-            "sendEmail",
-        ],'test-data', []);
+            'validate',
+            'process',
+            'sendEmail',
+        ], 'test-data', []);
 
         $executedSteps = $orchestrator->getExecutedSteps();
-        $this->assertEquals(["validate", "process", "sendEmail"], $executedSteps);
+        $this->assertEquals(['validate', 'process', 'sendEmail'], $executedSteps);
     }
 
     public function test_routing_fails_if_provided_non_string_collection_for_orchestrator_gateway(): void
@@ -185,8 +184,8 @@ class OrchestratorTest extends TestCase
         /** @var AuthorizationProcessGateway $gateway */
         $gateway = $ecotoneLite->getGateway(AuthorizationProcessGateway::class);
         $gateway->start([
-            new \stdClass()
-        ],'test-data', []);
+            new stdClass(),
+        ], 'test-data', []);
     }
 
     public function test_orchestrator_gateway_fails_with_incorrect_routing_channels(): void
@@ -231,7 +230,7 @@ class OrchestratorTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
-        $this->assertSame('test-data', $ecotoneLite->sendDirectToChannel("empty.workflow", "test-data"));
+        $this->assertSame('test-data', $ecotoneLite->sendDirectToChannel('empty.workflow', 'test-data'));
     }
 
     public function test_orchestrator_with_single_step(): void
@@ -244,7 +243,7 @@ class OrchestratorTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
-        $this->assertSame('validated: test-data', $ecotoneLite->sendDirectToChannel("single.step", "test-data"));
+        $this->assertSame('validated: test-data', $ecotoneLite->sendDirectToChannel('single.step', 'test-data'));
     }
 
     public function test_throwing_exception_with_single_step_as_string(): void
@@ -331,7 +330,7 @@ class OrchestratorTest extends TestCase
         );
 
         // This should fail at runtime when the orchestrator executes and returns non-string array
-        $ecotoneLite->sendDirectToChannel("array.with.non.string", "test-data");
+        $ecotoneLite->sendDirectToChannel('array.with.non.string', 'test-data');
     }
 
     public function test_throwing_exception_with_void_return_type(): void
@@ -358,9 +357,9 @@ class OrchestratorTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
-        $ecotoneLite->sendDirectToChannel("orchestrator.ending.during.flow", "test-data");
+        $ecotoneLite->sendDirectToChannel('orchestrator.ending.during.flow', 'test-data');
 
-        $this->assertEquals(["step1", "step2"], $service->getExecutedSteps());
+        $this->assertEquals(['step1', 'step2'], $service->getExecutedSteps());
     }
 
     public function test_second_orchestrator_is_step_within_the_workflow(): void
@@ -373,9 +372,9 @@ class OrchestratorTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
-        $ecotoneLite->sendDirectToChannel("orchestrator.ending.during.flow", []);
+        $ecotoneLite->sendDirectToChannel('orchestrator.ending.during.flow', []);
 
-        $this->assertEquals(["stepA", "stepB", "stepA", "stepB", "stepC"], $service->getExecutedSteps());
+        $this->assertEquals(['stepA', 'stepB', 'stepA', 'stepB', 'stepC'], $service->getExecutedSteps());
     }
 
     public function test_command_bus_is_called_within_the_workflow_not_affecting_orchestrator(): void
@@ -388,9 +387,9 @@ class OrchestratorTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
-        $ecotoneLite->sendDirectToChannel("orchestrator.ending.during.flow", []);
+        $ecotoneLite->sendDirectToChannel('orchestrator.ending.during.flow', []);
 
-        $this->assertEquals(["stepA", "stepB", "commandBusAction.execute", "stepC"], $service->getExecutedSteps());
+        $this->assertEquals(['stepA', 'stepB', 'commandBusAction.execute', 'stepC'], $service->getExecutedSteps());
     }
 
     public function test_asynchronous_orchestrator(): void
@@ -406,12 +405,12 @@ class OrchestratorTest extends TestCase
             ]
         );
 
-        $ecotoneLite->sendDirectToChannel("asynchronous.workflow", []);
+        $ecotoneLite->sendDirectToChannel('asynchronous.workflow', []);
 
         $this->assertEquals([], $service->getExecutedSteps());
 
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertEquals(["stepA", "stepB", "stepC"], $service->getExecutedSteps());
+        $this->assertEquals(['stepA', 'stepB', 'stepC'], $service->getExecutedSteps());
     }
 
     public function test_asynchronous_step_within_orchestrator(): void
@@ -427,13 +426,13 @@ class OrchestratorTest extends TestCase
             ]
         );
 
-        $ecotoneLite->sendDirectToChannel("asynchronous.workflow", []);
+        $ecotoneLite->sendDirectToChannel('asynchronous.workflow', []);
 
-        $this->assertEquals(["stepA"], $service->getExecutedSteps());
+        $this->assertEquals(['stepA'], $service->getExecutedSteps());
 
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
 
-        $this->assertEquals(["stepA", "stepB", "stepC"], $service->getExecutedSteps());
+        $this->assertEquals(['stepA', 'stepB', 'stepC'], $service->getExecutedSteps());
     }
 
     public function test_asynchronous_step_within_orchestrator_with_input_output_channel(): void
@@ -449,18 +448,18 @@ class OrchestratorTest extends TestCase
             ]
         );
 
-        $ecotoneLite->sendDirectToChannel("asynchronous.workflow", []);
+        $ecotoneLite->sendDirectToChannel('asynchronous.workflow', []);
 
-        $this->assertEquals(["stepA"], $service->getExecutedSteps());
-
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertEquals(["stepA", "stepB"], $service->getExecutedSteps());
+        $this->assertEquals(['stepA'], $service->getExecutedSteps());
 
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertEquals(["stepA", "stepB", "stepD"], $service->getExecutedSteps());
+        $this->assertEquals(['stepA', 'stepB'], $service->getExecutedSteps());
 
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
-        $this->assertEquals(["stepA", "stepB", "stepD", "stepE", "stepC"], $service->getExecutedSteps());
+        $this->assertEquals(['stepA', 'stepB', 'stepD'], $service->getExecutedSteps());
+
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+        $this->assertEquals(['stepA', 'stepB', 'stepD', 'stepE', 'stepC'], $service->getExecutedSteps());
     }
 
     public function test_failing_on_using_orchestrator_gateway_without_licence(): void

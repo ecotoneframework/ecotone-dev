@@ -14,31 +14,31 @@ class AuthorizationOrchestrator
 {
     private array $executedSteps = [];
 
-    #[Orchestrator(inputChannelName: "start.authorization", endpointId: "auth-orchestrator")]
+    #[Orchestrator(inputChannelName: 'start.authorization', endpointId: 'auth-orchestrator')]
     public function startAuthorization(): array
     {
-        return ["validate", "process", "sendEmail"];
+        return ['validate', 'process', 'sendEmail'];
     }
 
-    #[InternalHandler(inputChannelName: "validate")]
+    #[InternalHandler(inputChannelName: 'validate')]
     public function validate(string $data): string
     {
-        $this->executedSteps[] = "validate";
-        return "validated: " . $data;
+        $this->executedSteps[] = 'validate';
+        return 'validated: ' . $data;
     }
 
-    #[InternalHandler(inputChannelName: "process")]
+    #[InternalHandler(inputChannelName: 'process')]
     public function process(string $data): string
     {
-        $this->executedSteps[] = "process";
-        return "processed: " . $data;
+        $this->executedSteps[] = 'process';
+        return 'processed: ' . $data;
     }
 
-    #[InternalHandler(inputChannelName: "sendEmail")]
+    #[InternalHandler(inputChannelName: 'sendEmail')]
     public function sendEmail(string $data): string
     {
-        $this->executedSteps[] = "sendEmail";
-        return "email sent for: " . $data;
+        $this->executedSteps[] = 'sendEmail';
+        return 'email sent for: ' . $data;
     }
 
     public function getExecutedSteps(): array

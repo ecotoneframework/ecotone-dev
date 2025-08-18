@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Execution;
 
-use Ecotone\Messaging\Attribute\BusinessMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
 
 class CommandHandlerAuthorizationProcessor

@@ -11,9 +11,9 @@ use Ecotone\Messaging\Attribute\Orchestrator;
  */
 class NoReturnTypeOrchestrator
 {
-    #[Orchestrator(inputChannelName: "no.return.type")]
+    #[Orchestrator(inputChannelName: 'no.return.type')]
     public function noReturnType()
     {
-        return ["step1", "step2"];
+        return ['step1', 'step2'];
     }
 }

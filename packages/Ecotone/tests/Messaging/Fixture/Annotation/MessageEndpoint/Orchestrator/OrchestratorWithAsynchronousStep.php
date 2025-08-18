@@ -15,36 +15,36 @@ class OrchestratorWithAsynchronousStep
 {
     private array $executedSteps = [];
 
-    #[Orchestrator(inputChannelName: "asynchronous.workflow", endpointId: "async-orchestrator")]
+    #[Orchestrator(inputChannelName: 'asynchronous.workflow', endpointId: 'async-orchestrator')]
     public function simpleWorkflow(): array
     {
-        return ["stepA", "stepB", "stepC"];
+        return ['stepA', 'stepB', 'stepC'];
     }
 
-    #[InternalHandler(inputChannelName: "stepA")]
+    #[InternalHandler(inputChannelName: 'stepA')]
     public function stepA(array $data): array
     {
-        $this->executedSteps[] = "stepA";
-        $data[] = "stepA";
+        $this->executedSteps[] = 'stepA';
+        $data[] = 'stepA';
 
         return $data;
     }
 
     #[Asynchronous('async')]
-    #[InternalHandler(inputChannelName: "stepB", endpointId: "async-step")]
+    #[InternalHandler(inputChannelName: 'stepB', endpointId: 'async-step')]
     public function stepB(array $data): array
     {
-        $this->executedSteps[] = "stepB";
-        $data[] = "stepB";
+        $this->executedSteps[] = 'stepB';
+        $data[] = 'stepB';
 
         return $data;
     }
 
-    #[InternalHandler(inputChannelName: "stepC")]
+    #[InternalHandler(inputChannelName: 'stepC')]
     public function stepC(): array
     {
-        $this->executedSteps[] = "stepC";
-        $data[] = "stepC";
+        $this->executedSteps[] = 'stepC';
+        $data[] = 'stepC';
 
         return $data;
     }

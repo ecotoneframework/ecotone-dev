@@ -11,9 +11,9 @@ use Ecotone\Messaging\Attribute\Orchestrator;
  */
 class StringReturnTypeOrchestrator
 {
-    #[Orchestrator(inputChannelName: "single.step.as.string")]
+    #[Orchestrator(inputChannelName: 'single.step.as.string')]
     public function singleStepAsString(): string
     {
-        return "only_step";
+        return 'only_step';
     }
 }

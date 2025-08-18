@@ -11,9 +11,9 @@ use Ecotone\Messaging\Attribute\Orchestrator;
  */
 class NullableArrayOrchestrator
 {
-    #[Orchestrator(inputChannelName: "nullable.array")]
+    #[Orchestrator(inputChannelName: 'nullable.array')]
     public function nullableArray(): ?array
     {
-        return ["step1", "step2"];
+        return ['step1', 'step2'];
     }
 }

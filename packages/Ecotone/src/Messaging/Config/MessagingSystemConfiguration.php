@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Messaging\Handler\Transformer\RoutingSlipPrepender;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -420,11 +421,13 @@ final class MessagingSystemConfiguration implements Configuration
                     $generatedEndpointId = Uuid::uuid4()->toString();
                     $this->registerMessageHandler(
                         UninterruptibleServiceActivator::create(
-                            HeaderEnricher::create([
-                                MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME => null,
-                                MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME => null,
-                                MessageHeaders::ROUTING_SLIP => implode(',', $consequentialChannels),
-                            ]),
+                            RoutingSlipPrepender::create(
+                                $consequentialChannels,
+                                [
+                                    MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME,
+                                    MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME
+                                ]
+                            ),
                             'transform',
                         )
                             ->withEndpointId($generatedEndpointId)

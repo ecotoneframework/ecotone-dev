@@ -7,6 +7,9 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 
+/**
+ * licence Enterprise
+ */
 final class OrchestratorGatewayEntrypoint
 {
     public function handle(array $routingSlip): array

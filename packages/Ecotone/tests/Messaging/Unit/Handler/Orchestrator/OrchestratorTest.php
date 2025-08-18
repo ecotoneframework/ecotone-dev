@@ -221,11 +221,6 @@ class OrchestratorTest extends TestCase
         );
     }
 
-    public function test_executing_workflow_with_aggregate_step(): void
-    {
-
-    }
-
     public function test_orchestrator_returns_empty_array_no_routing_happens(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(

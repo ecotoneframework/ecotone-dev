@@ -7,7 +7,6 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageDeliveryException;
 use Ecotone\Messaging\MessageHeaders;
 use Throwable;
 

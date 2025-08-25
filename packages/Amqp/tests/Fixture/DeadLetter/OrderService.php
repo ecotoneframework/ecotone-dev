@@ -3,9 +3,7 @@
 namespace Test\Ecotone\Amqp\Fixture\DeadLetter;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\ServiceActivator;
-use Ecotone\Messaging\Handler\Recoverability\DelayedRetryErrorHandler;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use InvalidArgumentException;

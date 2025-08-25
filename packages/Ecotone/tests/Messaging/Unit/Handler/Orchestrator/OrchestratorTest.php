@@ -509,7 +509,7 @@ class OrchestratorTest extends TestCase
 
         $this->assertEquals([
             'prepare', 'split',
-            'processed_item1:test-data', 'processed_item2:test-data', 'processed_item3:test-data'
+            'processed_item1:test-data', 'processed_item2:test-data', 'processed_item3:test-data',
         ], $executedSteps);
     }
 
@@ -531,7 +531,7 @@ class OrchestratorTest extends TestCase
             'prepare', 'split',
             'finalized:transformed:data1:test-data',
             'finalized:transformed:data2:test-data',
-            'finalized:transformed:data3:test-data'
+            'finalized:transformed:data3:test-data',
         ], $executedSteps);
     }
 }

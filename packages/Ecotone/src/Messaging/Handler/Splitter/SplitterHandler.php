@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Handler\Splitter;
 
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\Message;
@@ -11,7 +12,6 @@ use Ecotone\Messaging\MessageDeliveryException;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Messaging\Handler\ChannelResolver;
 
 /**
  * @licence Apache-2.0
@@ -75,7 +75,7 @@ class SplitterHandler implements MessageHandler
 
         if (empty($routingSlip)) {
             throw MessageDeliveryException::createWithFailedMessage(
-                "Splitter has no output channel to determine next step to send message to.",
+                'Splitter has no output channel to determine next step to send message to.',
                 $message
             );
         }

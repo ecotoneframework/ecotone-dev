@@ -7,6 +7,7 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageDeliveryException;
 use Ecotone\Messaging\MessageHeaders;
 use Throwable;
 
@@ -39,17 +40,18 @@ class PollingConsumerErrorChannelInterceptor
             $pollingMetadata = $requestMessage->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA);
             $errorChannelName = $pollingMetadata->getErrorChannelName();
 
-            if ($errorChannelName && $this->channelResolver->hasChannelWithName($errorChannelName)) {
-                $errorChannel = $this->channelResolver->resolve($errorChannelName);
-                $this->errorChannelService->handle(
-                    $requestMessage,
-                    $exception,
-                    $errorChannel,
-                    $requestMessage->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME)
-                );
-
-                return true;
+            if (! $errorChannelName) {
+                return false;
             }
+
+            $this->errorChannelService->handle(
+                $requestMessage,
+                $exception,
+                $this->channelResolver->resolve($errorChannelName),
+                $requestMessage->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME)
+            );
+
+            return true;
         }
 
         return false;

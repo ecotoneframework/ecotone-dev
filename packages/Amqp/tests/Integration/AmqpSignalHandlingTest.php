@@ -101,6 +101,66 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $processedCommands = $ecotoneLite->getQueryBus()->sendWithRouting('async_command_handler.getProcessedCommands');
         $this->assertEquals(['command-1'], $processedCommands);
     }
+
+    public function test_asynchronous_command_handler_stops_after_current_command_when_signal_sent_with_defaults(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [AmqpAsyncCommandHandler::class],
+            [
+                new AmqpAsyncCommandHandler(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpBackedMessageChannelBuilder::create(
+                        'async_commands_unique',
+                        queueName: Uuid::uuid4()->toString()
+                    ),
+                ])
+        );
+
+        $commandBus = $ecotoneLite->getCommandBus();
+        $commandBus->send(new ProcessCommand('command-1'));
+        $commandBus->send(new ProcessCommand('command-2'));
+        $commandBus->send(new ProcessCommand('command-3'));
+
+        $ecotoneLite->run(
+            'async_commands_unique',
+            ExecutionPollingMetadata::createWithDefaults()
+                ->withExecutionTimeLimitInMilliseconds(0),
+        );
+
+        $processedCommands = $ecotoneLite->getQueryBus()->sendWithRouting('async_command_handler.getProcessedCommands');
+        $this->assertEquals(['command-1'], $processedCommands);
+    }
+
+    public function test_asynchronous_command_handler_stops_even_if_there_was_no_message(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [AmqpAsyncCommandHandler::class],
+            [
+                new AmqpAsyncCommandHandler(),
+                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpBackedMessageChannelBuilder::create(
+                        'async_commands_unique',
+                        queueName: Uuid::uuid4()->toString()
+                    ),
+                ])
+        );
+
+        $ecotoneLite->run(
+            'async_commands_unique',
+            ExecutionPollingMetadata::createWithDefaults()
+                ->withExecutionTimeLimitInMilliseconds(0),
+        );
+
+        $this->assertTrue(true);
+    }
 }
 
 class ProcessCommand

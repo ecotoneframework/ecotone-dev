@@ -123,6 +123,30 @@ final class MessageConsumerSignalHandlingTest extends TestCase
 
         $this->assertEquals(['message-1'], $signalHandler->getProcessedMessages());
     }
+
+    public function test_consumer_stops_after_current_message_when_signal_sent_during_processing_with_defaults(): void
+    {
+        $signalHandler = new SignalSendingMessageHandler();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [SignalSendingMessageHandler::class],
+            [$signalHandler],
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]
+        );
+
+        $ecotoneLite->sendDirectToChannel('handle_channel', 'message-1');
+        $ecotoneLite->sendDirectToChannel('handle_channel', 'message-2');
+        $ecotoneLite->sendDirectToChannel('handle_channel', 'message-3');
+
+        $ecotoneLite->run(
+            'async',
+            ExecutionPollingMetadata::createWithDefaults(),
+        );
+
+        $this->assertEquals(['message-1'], $signalHandler->getProcessedMessages());
+    }
 }
 
 class TestMessageHandler

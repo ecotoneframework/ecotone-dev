@@ -59,6 +59,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public function accept(): void
     {
         try {
+            dump("accept");
             $this->consumer->commit($this->message);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to acknowledge message. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
@@ -73,7 +74,14 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public function reject(): void
     {
         try {
+            dump("reject");
             $this->consumer->commit($this->message);
+
+            $this->loggingGateway->info('Message offset committed (ignored)', [
+                'topic' => $this->message->topic_name,
+                'partition' => $this->message->partition,
+                'offset' => $this->message->offset
+            ]);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to skip message. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 

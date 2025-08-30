@@ -6,6 +6,7 @@ namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -154,10 +155,9 @@ final class FinalFailureStrategyTest extends TestCase
     {
         $topicName = 'test_two_applications_' . Uuid::uuid4()->toString();
         $handler1 = new TwoApplicationHandler();
-        $handler2 = new TwoApplicationHandler();
 
         // First application - fails with execution limit 1
-        $ecotoneApp1 = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
             [TwoApplicationHandler::class],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -171,10 +171,10 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send a message
-        $ecotoneApp1->sendCommandWithRoutingKey('execute.two_app', new TestCommand('app_test'));
+        $ecotoneApp->sendCommandWithRoutingKey('execute.two_app', new TestCommand('app_test'));
 
         // First application run - should fail and reset offset
-        $ecotoneApp1->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
+        $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
             maxExecutionTimeInMilliseconds: 3000,
             failAtError: false
@@ -184,96 +184,144 @@ final class FinalFailureStrategyTest extends TestCase
         $this->assertEquals(1, $handler1->getCallCount());
         $this->assertEquals(['app_test'], $handler1->getProcessedMessages());
 
-        // Second application - should process the redelivered message
-        $ecotoneApp2 = EcotoneLite::bootstrapFlowTesting(
-            [TwoApplicationHandler::class],
-            [$handler2, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
-                        ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
-                        ->withReceiveTimeout(3000),
-                ]),
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
-
-        // Second application run - should succeed
-        $ecotoneApp2->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
+        // Second run - should succeed
+        $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
             maxExecutionTimeInMilliseconds: 3000,
             failAtError: false
         ));
 
         // Verify second handler was called once
-        $this->assertEquals(1, $handler2->getCallCount());
-        $this->assertEquals(['app_test'], $handler2->getProcessedMessages());
-
-        // Verify first handler wasn't called again
-        $this->assertEquals(1, $handler1->getCallCount());
+        $this->assertEquals(2, $handler1->getCallCount());
+        $this->assertEquals(['app_test', 'app_test'], $handler1->getProcessedMessages());
     }
 
     public function test_when_new_consumer_starts_it_skips_ignored_message()
     {
-        $topicName = 'test_two_applications_' . Uuid::uuid4()->toString();
-        $handler1 = new TwoApplicationHandler();
-        $handler2 = new TwoApplicationHandler();
+        $topicName = 'test_ignore_shared_' . Uuid::uuid4()->toString();
+        $sharedGroupId = 'shared_consumer_group_' . Uuid::uuid4()->toString();
+        $handler = new IgnoreTestHandler();
 
-        // First application - fails with execution limit 1
-        $ecotoneApp1 = EcotoneLite::bootstrapFlowTesting(
-            [TwoApplicationHandler::class],
+        // Single application that will process multiple messages
+        $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
+            [IgnoreTestHandler::class],
+            [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaMessageChannelBuilder::create(
+                        channelName: 'kafka_channel',
+                        topicName: $topicName,
+                        groupId: $sharedGroupId
+                    )
+                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
+                        ->withReceiveTimeout(3000),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        // Send two messages
+        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_1'));
+        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_2'));
+
+        // First run - should process first message (fail and ignore), then process second message (succeed)
+        $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
+            amountOfMessagesToHandle: 2,
+            maxExecutionTimeInMilliseconds: 5000,
+            failAtError: false
+        ));
+
+        // Verify behavior:
+        // - message_1: processed once and failed (ignored)
+        // - message_2: processed once and succeeded
+        // Total calls: 2, but only message_2 should be in successful messages
+        $this->assertEquals(2, $handler->getCallCount());
+        $this->assertEquals(['message_1', 'message_2'], $handler->getAllProcessedMessages());
+        $this->assertEquals(['message_2'], $handler->getSuccessfulMessages()); // Only message_2 succeeded
+
+        $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
+            amountOfMessagesToHandle: 2,
+            maxExecutionTimeInMilliseconds: 5000,
+            failAtError: false
+        ));
+
+        // Verify behavior is unchanged
+        $this->assertEquals(2, $handler->getCallCount());
+        $this->assertEquals(['message_1', 'message_2'], $handler->getAllProcessedMessages());
+        $this->assertEquals(['message_2'], $handler->getSuccessfulMessages());
+    }
+
+    public function test_different_message_groups_will_handle_ignored_message_twice()
+    {
+        $topicName = 'test_ignore_shared_' . Uuid::uuid4()->toString();
+        $handler1 = new IgnoreTestHandler();
+        $handler2 = new IgnoreTestHandler();
+
+        // Single application that will process multiple messages
+        $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
+            [IgnoreTestHandler::class],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
+                    KafkaMessageChannelBuilder::create(
+                        channelName: 'kafka_channel',
+                        topicName: $topicName,
+                        groupId: Uuid::uuid4()->toString()
+                    )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(3000),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        // Send a message
-        $ecotoneApp1->sendCommandWithRoutingKey('execute.two_app', new TestCommand('app_test'));
+        // Send two messages
+        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_1'));
+        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_2'));
 
-        // First application run - should fail and reset offset
-        $ecotoneApp1->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 3000,
+        // First run - should process first message (fail and ignore), then process second message (succeed)
+        $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
+            amountOfMessagesToHandle: 2,
+            maxExecutionTimeInMilliseconds: 5000,
             failAtError: false
         ));
 
-        // Verify first handler was called once
-        $this->assertEquals(1, $handler1->getCallCount());
-        $this->assertEquals(['app_test'], $handler1->getProcessedMessages());
+        // Verify behavior:
+        // - message_1: processed once and failed (ignored)
+        // - message_2: processed once and succeeded
+        // Total calls: 2, but only message_2 should be in successful messages
+        $this->assertEquals(2, $handler1->getCallCount());
+        $this->assertEquals(['message_1', 'message_2'], $handler1->getAllProcessedMessages());
+        $this->assertEquals(['message_2'], $handler1->getSuccessfulMessages()); // Only message_2 succeeded
 
-        // Second application - should process the redelivered message
-        $ecotoneApp2 = EcotoneLite::bootstrapFlowTesting(
-            [TwoApplicationHandler::class],
-            [$handler2, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
+        // Single application that will process multiple messages
+        $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
+            [IgnoreTestHandler::class],
+            [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
+                    KafkaMessageChannelBuilder::create(
+                        channelName: 'kafka_channel',
+                        topicName: $topicName,
+                        groupId: Uuid::uuid4()->toString()
+                    )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(3000),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        // Second application run - should succeed
-        $ecotoneApp2->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 3000,
+        $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
+            amountOfMessagesToHandle: 2,
+            maxExecutionTimeInMilliseconds: 5000,
             failAtError: false
         ));
 
-        // Verify second handler was called once
-        $this->assertEquals(0, $handler2->getCallCount());
-        $this->assertEquals([], $handler2->getProcessedMessages());
-
-        // Verify first handler wasn't called again
-        $this->assertEquals(1, $handler1->getCallCount());
+        // Verify behavior is unchanged
+        $this->assertEquals(2, $handler2->getCallCount());
+        $this->assertEquals(['message_1', 'message_2'], $handler2->getAllProcessedMessages());
+        $this->assertEquals(['message_2'], $handler2->getSuccessfulMessages());
     }
 }
 
@@ -374,6 +422,44 @@ class TwoApplicationHandler
     public function getProcessedMessages(): array
     {
         return $this->processedMessages;
+    }
+}
+
+class IgnoreTestHandler
+{
+    private int $callCount = 0;
+    private array $allProcessedMessages = [];
+    private array $successfulMessages = [];
+
+    #[Asynchronous('kafka_channel')]
+    #[CommandHandler('execute.ignore_test', 'ignore_test_endpoint')]
+    public function handle(TestCommand $command): void
+    {
+        $this->callCount++;
+        $this->allProcessedMessages[] = $command->payload;
+
+        // Fail only on message_1, succeed on others
+        if ($command->payload === 'message_1') {
+            throw new Exception('Simulated failure for message_1 (should be ignored)');
+        }
+
+        // If we reach here, the message was processed successfully
+        $this->successfulMessages[] = $command->payload;
+    }
+
+    public function getCallCount(): int
+    {
+        return $this->callCount;
+    }
+
+    public function getAllProcessedMessages(): array
+    {
+        return $this->allProcessedMessages;
+    }
+
+    public function getSuccessfulMessages(): array
+    {
+        return $this->successfulMessages;
     }
 }
 

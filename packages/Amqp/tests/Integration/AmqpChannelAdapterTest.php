@@ -779,7 +779,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
-        $acknowledgeCallback->requeue();
+        $acknowledgeCallback->resend();
 
         $this->assertNotNull($amqpBackedMessageChannel->receiveWithTimeout(1000));
     }
@@ -796,7 +796,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
 
         /** @var AcknowledgementCallback $acknowledgeCallback */
         $acknowledgeCallback = $message->getHeaders()->get(AmqpHeader::HEADER_ACKNOWLEDGE);
-        $acknowledgeCallback->requeue();
+        $acknowledgeCallback->resend();
 
         $this->assertNotNull($amqpBackedMessageChannel->receiveWithTimeout(1000));
     }

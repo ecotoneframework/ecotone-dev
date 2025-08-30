@@ -107,9 +107,28 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
 
     /**
      * @inheritDoc
+     * Resets the offset to redeliver the same message
      */
     public function release(): void
     {
-        throw new Exception('Release functionality is not available for Kafka acknowledgement callback');
+        try {
+            // Reset offset to current message's offset to redeliver it
+            $topicPartition = new \RdKafka\TopicPartition(
+                $this->message->topic_name,
+                $this->message->partition,
+                $this->message->offset
+            );
+
+            $this->consumer->assign([$topicPartition]);
+            $this->loggingGateway->info('Message offset reset for redelivery', [
+                'topic' => $this->message->topic_name,
+                'partition' => $this->message->partition,
+                'offset' => $this->message->offset
+            ]);
+        } catch (Exception $exception) {
+            $this->loggingGateway->info('Failed to reset offset for message redelivery. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
+
+            throw $exception;
+        }
     }
 }

@@ -71,7 +71,15 @@ class LaravelQueueAcknowledgementCallback implements AcknowledgementCallback
     /**
      * @inheritDoc
      */
-    public function requeue(): void
+    public function resend(): void
+    {
+        $this->job->release();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function release(): void
     {
         $this->job->release();
     }

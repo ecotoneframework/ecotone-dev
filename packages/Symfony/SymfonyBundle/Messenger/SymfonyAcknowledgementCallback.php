@@ -90,7 +90,16 @@ class SymfonyAcknowledgementCallback implements AcknowledgementCallback
     /**
      * @inheritDoc
      */
-    public function requeue(): void
+    public function resend(): void
+    {
+        $this->symfonyTransport->send($this->envelope);
+        $this->symfonyTransport->reject($this->envelope);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function release(): void
     {
         $this->symfonyTransport->send($this->envelope);
         $this->symfonyTransport->reject($this->envelope);

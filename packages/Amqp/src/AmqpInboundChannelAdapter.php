@@ -74,7 +74,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
     /**
      * @inheritDoc This provides consume instead of get, which does not work well with pnctl extensions (signals are not executored)
      */
-    public function receiveWithTimeoutOff(int $timeout = 0): ?Message
+    public function receiveWithTimeoutNOT(int $timeout = 0): ?Message
     {
         try {
             if ($this->declareOnStartup && $this->initialized === false) {
@@ -95,7 +95,9 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
                 return false;
             });
 
-            $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
+            $timeout = $timeout ?: $this->receiveTimeoutInMilliseconds;
+            /** Timeout equal 0, will ignore any POSIX signals */
+            $subscriptionConsumer->consume($timeout <= 0 ? 10000 : $timeout);
 
             return $this->queueChannel->receive();
         } catch (AMQPConnectionException|AMQPChannelException $exception) {

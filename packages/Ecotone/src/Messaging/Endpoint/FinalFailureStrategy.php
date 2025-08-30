@@ -26,12 +26,14 @@ enum FinalFailureStrategy: string implements DefinedObject
     case IGNORE = 'ignore';
 
     /**
-     * Resends the failed message back to original Message Channel - it will be redelivered
+     * Resends the failed message back to original Message Channel to the end of the Channel.
+     * This will result in lost Message order, yet message processing will be unblocked
      */
     case RESEND = 'resend';
 
     /**
-     * Releases the failed message back to the end of the original Message Channel - it will be redelivered at the end
+     * Releases the failed message back to the end of the original Message Channel - it will be redelivered keeping the order
+     * This may result in infinite loop, if the message keeps failing
      */
     case RELEASE = 'release';
 

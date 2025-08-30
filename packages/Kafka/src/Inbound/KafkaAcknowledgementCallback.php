@@ -84,7 +84,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     /**
      * @inheritDoc
      */
-    public function requeue(): void
+    public function resend(): void
     {
         try {
             $this->kafkaAdmin->getProducer($this->endpointId);
@@ -103,5 +103,13 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
 
             throw $exception;
         }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function release(): void
+    {
+        throw new Exception('Release functionality is not available for Kafka acknowledgement callback');
     }
 }

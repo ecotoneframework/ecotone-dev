@@ -31,6 +31,11 @@ enum FinalFailureStrategy: string implements DefinedObject
     case RESEND = 'resend';
 
     /**
+     * Releases the failed message back to the end of the original Message Channel - it will be redelivered at the end
+     */
+    case RELEASE = 'release';
+
+    /**
      * Stop the consumer by rethrowing the exception
      */
     case STOP = 'stop';

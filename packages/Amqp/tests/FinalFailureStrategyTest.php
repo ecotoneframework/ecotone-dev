@@ -60,11 +60,34 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 ])
         );
 
-        $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
+        $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_1');
+        $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_2');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
-        $this->assertNotNull($messageChannel->receive());
+        $this->assertSame('some_2', $messageChannel->receive()->getPayload());
+    }
+
+    public function test_release_failure_strategy_releases_message_on_exception()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [FailingService::class],
+            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(), ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpBackedMessageChannelBuilder::create(channelName: 'async')
+                        ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
+                        ->withReceiveTimeout(100),
+                ])
+        );
+
+        $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_1');
+        $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_2');
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+
+        $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
+        $this->assertSame('some_1', $messageChannel->receive()->getPayload());
     }
 }
 

@@ -8,6 +8,7 @@ use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Exception;
+use Interop\Amqp\AmqpProducer;
 use Interop\Queue\Consumer as EnqueueConsumer;
 use Interop\Queue\Message as EnqueueMessage;
 
@@ -119,8 +120,32 @@ class EnqueueAcknowledgementCallback implements AcknowledgementCallback
 
     /**
      * @inheritDoc
+     * Resends the message to the END of the queue by using MessageChannel.send()
      */
-    public function requeue(): void
+    public function resend(): void
+    {
+        try {
+            /** @var AmqpProducer $producer */
+            $producer = $this->connectionFactory->getProducer();
+            $producer->send(
+                $this->enqueueConsumer->getQueue(),
+                $this->enqueueMessage
+            );
+            $this->enqueueConsumer->reject($this->enqueueMessage, false);
+        } catch (Exception $exception) {
+            $this->loggingGateway->info('Failed to requeue message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
+
+            $this->connectionFactory->reconnect();
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @inheritDoc
+     * Releases the message to the BEGINNING of the queue by using reject with requeue=true
+     */
+    public function release(): void
     {
         try {
             $this->enqueueConsumer->reject($this->enqueueMessage, true);

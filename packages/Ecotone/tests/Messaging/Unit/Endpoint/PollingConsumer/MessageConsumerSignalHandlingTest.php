@@ -99,10 +99,6 @@ final class MessageConsumerSignalHandlingTest extends TestCase
 
     public function test_consumer_stops_after_current_message_when_signal_sent_during_processing(): void
     {
-        if (!extension_loaded('pcntl') || !extension_loaded('posix')) {
-            $this->markTestSkipped('pcntl and posix extensions are required for signal handling tests');
-        }
-
         $signalHandler = new SignalSendingMessageHandler();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(

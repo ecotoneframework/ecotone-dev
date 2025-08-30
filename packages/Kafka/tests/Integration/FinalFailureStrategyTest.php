@@ -297,7 +297,7 @@ final class FinalFailureStrategyTest extends TestCase
         // Single application that will process multiple messages
         $ecotoneApp = EcotoneLite::bootstrapFlowTesting(
             [IgnoreTestHandler::class],
-            [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
+            [$handler2, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([

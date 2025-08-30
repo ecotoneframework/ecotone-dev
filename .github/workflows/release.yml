@@ -46,7 +46,7 @@ jobs:
       - name: Setup Git
         run: |
           git config user.name "Ecotone Framework Bot"
-          git config user.email "support@simplycodedsoftware.com"
+          git config user.email "ecotoneframework@gmail.com"
 
       - name: Checkout branch related to tag
         run: |
@@ -140,7 +140,7 @@ jobs:
 
           # ↓ the user signed under the split commit
           user_name: "Ecotone FrameworkBot"
-          user_email: "support@simplycodedsoftware.com"
+          user_email: "ecotoneframework@gmail.com"
   tweet:
     runs-on: ubuntu-latest
     needs: split_packages

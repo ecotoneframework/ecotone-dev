@@ -13,7 +13,6 @@ use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
 use Exception;
 use Fixture\MessengerConsumer\ExampleCommand;
 use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;
-use Ramsey\Uuid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -21,6 +20,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
 {

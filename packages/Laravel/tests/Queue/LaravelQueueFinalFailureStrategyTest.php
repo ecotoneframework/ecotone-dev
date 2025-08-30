@@ -8,10 +8,10 @@ use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
+use Ecotone\Modelling\Attribute\CommandHandler;
 use Exception;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
@@ -24,6 +24,7 @@ use Psr\Container\ContainerInterface;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class LaravelQueueFinalFailureStrategyTest extends TestCase
 {

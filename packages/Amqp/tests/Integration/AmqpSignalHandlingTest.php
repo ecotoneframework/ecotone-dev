@@ -10,7 +10,6 @@ use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\ClassReference;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -33,7 +32,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $endpointId = 'signal_test_endpoint';
         $queueName = Uuid::uuid4()->toString();
         $signalHandler = new AmqpSignalSendingMessageHandler();
-        
+
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [AmqpSignalSendingMessageHandler::class],
             [
@@ -135,35 +134,37 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $this->assertEquals(['command-1'], $processedCommands);
     }
 
-//    public function test_asynchronous_command_handler_stops_even_if_there_was_no_message(): void
-//    {
-//        $channelName = 'async_commands_timeout_' . Uuid::uuid4()->toString();
-//
-//        $ecotoneLite = EcotoneLite::bootstrapForTesting(
-//            [AmqpAsyncCommandHandler::class],
-//            [
-//                new AmqpAsyncCommandHandler(),
-//                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
-//            ],
-//            ServiceConfiguration::createWithDefaults()
-//                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-//                ->withExtensionObjects([
-//                    AmqpBackedMessageChannelBuilder::create($channelName, queueName: Uuid::uuid4()->toString()),
-//                ])
-//        );
-//
-//        $ecotoneLite->run(
-//            $channelName,
-//            ExecutionPollingMetadata::createWithDefaults(),
-//        );
-//
-//        $this->assertTrue(true);
-//    }
+    //    public function test_asynchronous_command_handler_stops_even_if_there_was_no_message(): void
+    //    {
+    //        $channelName = 'async_commands_timeout_' . Uuid::uuid4()->toString();
+    //
+    //        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+    //            [AmqpAsyncCommandHandler::class],
+    //            [
+    //                new AmqpAsyncCommandHandler(),
+    //                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+    //            ],
+    //            ServiceConfiguration::createWithDefaults()
+    //                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+    //                ->withExtensionObjects([
+    //                    AmqpBackedMessageChannelBuilder::create($channelName, queueName: Uuid::uuid4()->toString()),
+    //                ])
+    //        );
+    //
+    //        $ecotoneLite->run(
+    //            $channelName,
+    //            ExecutionPollingMetadata::createWithDefaults(),
+    //        );
+    //
+    //        $this->assertTrue(true);
+    //    }
 }
 
 class ProcessCommand
 {
-    public function __construct(public readonly string $data) {}
+    public function __construct(public readonly string $data)
+    {
+    }
 }
 
 class AmqpSignalSendingMessageHandler

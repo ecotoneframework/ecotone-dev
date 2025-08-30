@@ -6,7 +6,6 @@ namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
-use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -462,5 +461,3 @@ class IgnoreTestHandler
         return $this->successfulMessages;
     }
 }
-
-

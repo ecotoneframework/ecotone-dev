@@ -41,7 +41,7 @@ final class MessageConsumerSignalHandlingTest extends TestCase
 
         $this->assertEquals(['test-message'], $messageHandler->getProcessedMessages());
     }
-    
+
     public function test_consumer_with_execution_time_limit_stops_gracefully_when_time_limit_reached(): void
     {
         $messageHandler = new TestMessageHandler();
@@ -69,7 +69,7 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $this->assertGreaterThanOrEqual(1, count($messageHandler->getProcessedMessages()));
         $this->assertLessThanOrEqual(3, count($messageHandler->getProcessedMessages()));
     }
-    
+
     public function test_consumer_without_execution_time_limit_processes_all_messages(): void
     {
         $messageHandler = new TestMessageHandler();

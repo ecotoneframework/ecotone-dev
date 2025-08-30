@@ -78,7 +78,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
             $this->loggingGateway->info('Message offset committed (ignored)', [
                 'topic' => $this->message->topic_name,
                 'partition' => $this->message->partition,
-                'offset' => $this->message->offset
+                'offset' => $this->message->offset,
             ]);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to skip message. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
@@ -129,7 +129,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
             $this->loggingGateway->info('Message offset reset for redelivery', [
                 'topic' => $this->message->topic_name,
                 'partition' => $this->message->partition,
-                'offset' => $this->message->offset
+                'offset' => $this->message->offset,
             ]);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to reset offset for message redelivery. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);

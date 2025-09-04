@@ -11,16 +11,15 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * licence Apache-2.0
  */
-class Projection extends \Ecotone\Projecting\Attribute\Projection
+class Projection extends StreamBasedSource
 {
     private array $fromStreams;
     private array|string $fromCategories;
     private bool $fromAll;
     private string $eventStoreReferenceName;
 
-    public function __construct(string $name, string|array $fromStreams = [], string|array $fromCategories = [], bool $fromAll = false, string $eventStoreReferenceName = EventStore::class, bool $useNewProjectingSystem = true)
+    public function __construct(private string $name, string|array $fromStreams = [], string|array $fromCategories = [], bool $fromAll = false, string $eventStoreReferenceName = EventStore::class)
     {
-        parent::__construct($name, partitionHeaderName: null, enabled: $useNewProjectingSystem);
         $fromStreams = is_string($fromStreams) ? [$fromStreams] : $fromStreams;
         $fromCategories = is_string($fromCategories) ? [$fromCategories] : $fromCategories;
         $countDefined = (int)$fromStreams + (int)$fromCategories + (int)$fromAll;

@@ -228,7 +228,7 @@ final class FlowTestSupport
 
         foreach ($projectionName as $name) {
             try {
-                $this->getGateway(LifecycleManager::class)->trigger($name);
+                $this->getGateway(LifecycleManager::class)->init($name);
             } catch (InvalidArgumentException) {
                 $this->getGateway(ProjectionManager::class)->triggerProjection($name);
                 // ignore if projection is not running

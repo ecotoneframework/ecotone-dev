@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Lifecycle;
 
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Projecting\ProjectionStateStorage;
 
 class LifecycleManager
@@ -51,7 +52,7 @@ class LifecycleManager
     private function assertProjectionNameIsHandled(string $projectionName)
     {
         if (!\in_array($projectionName, $this->handledProjectionNames, true)) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 \sprintf('Projection with name "%s" does not exist', $projectionName)
             );
         }

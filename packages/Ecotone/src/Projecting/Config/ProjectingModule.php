@@ -96,9 +96,6 @@ class ProjectingModule implements AnnotationModule
         foreach ($annotationRegistrationService->findCombined(Projection::class, EventHandler::class) as $projectionEventHandler) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
-            if (! $projectionAttribute->enabled) {
-                continue;
-            }
             $eventHandlersByProjectionName[$projectionAttribute->name][] = $projectionEventHandler;
         }
 
@@ -220,7 +217,7 @@ class ProjectingModule implements AnnotationModule
         }
 
         // Register projection state implementations
-        $projectingConfiguration = ExtensionObjectResolver::resolveUnique(ProjectingConfiguration::class, $extensionObjects, ProjectingConfiguration::createInMemory());
+        $projectingConfiguration = ExtensionObjectResolver::resolveUnique(ProjectingConfiguration::class, $extensionObjects, ProjectingConfiguration::createDbal());
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateStorage::class,
             match ($projectingConfiguration->projectionStateStorageReference) {

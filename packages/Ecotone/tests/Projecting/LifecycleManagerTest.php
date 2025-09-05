@@ -12,11 +12,12 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
 use Ecotone\Projecting\InMemory\ReferenceStreamSourceBuilder;
+use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Projecting\Fixture\TicketProjectionWithLifecycle;
 use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
 
-class LifecycleManagerTest extends TestCase
+class LifecycleManagerTest extends ProjectingTestCase
 {
     public function test_it_can_init_projection_lifecycle_state(): void
     {
@@ -25,7 +26,7 @@ class LifecycleManagerTest extends TestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [TicketProjectionWithLifecycle::class],
-            ['ticket_stream_source' => $streamSource, TicketProjectionWithLifecycle::class => $projection],
+            ['ticket_stream_source' => $streamSource, TicketProjectionWithLifecycle::class => $projection, DbalConnectionFactory::class => self::getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
                 ->addExtensionObject(new ReferenceStreamSourceBuilder([TicketProjectionWithLifecycle::NAME], 'ticket_stream_source'))
         );

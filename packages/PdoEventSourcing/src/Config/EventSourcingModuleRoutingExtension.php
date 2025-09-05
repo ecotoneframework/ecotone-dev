@@ -33,10 +33,6 @@ class EventSourcingModuleRoutingExtension implements RoutingEventHandler
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $event->getRegistration()->getClassAnnotationsWithType(Projection::class)[0];
 
-            if ($projectionAttribute->enabled) {
-                return; // Do not route if projection is disabled
-            }
-
             if (in_array($projectionAttribute->getName(), $this->pollingProjectionNames, true)) {
                 $event->cancel(); // Don't route if it is a polling projection
             } else {

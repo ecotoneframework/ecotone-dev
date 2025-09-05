@@ -164,7 +164,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 }
             }
 
-            if ($projectionAttribute->enabled) {
+            if ($projectionAttribute->useNewProjectingSystem()) {
                 $projectionsWithNewProjectingSystem[] = $projectionAttribute;
                 continue;
             }
@@ -313,37 +313,9 @@ class EventSourcingModule extends NoExternalConfigurationModule
         }
 
         return [
-            ...$this->buildEventStoreStreamSourceBuilder(),
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
             new EventSourcingModuleRoutingExtension($pollingProjectionNames),
         ];
-    }
-
-    private function buildEventStoreStreamSourceBuilder(): array
-    {
-        $builders = [];
-        foreach ($this->projectionsWithNewProjectingSystem as $projection) {
-            $streams = $projection->getFromStreams();
-            if (\count($streams) > 1) {
-                throw new ConfigurationException("Projection {$projection->getName()} can only be used with one stream. Found: " . implode(', ', $streams));
-            }
-            $stream = reset($streams);
-            if ($projection->partitionHeaderName === null) {
-                $builders[] = new EventStoreGlobalStreamSourceBuilder(
-                    $stream,
-                    [$projection->getName()]
-                );
-            } elseif ($projection->partitionHeaderName === AggregateMessage::AGGREGATE_ID) {
-                $builders[] = new EventStoreAggregateStreamSourceBuilder(
-                    $projection->getName(),
-                    null, // @todo: watch out ! Prooph's event store has an index on (aggregate_type, aggregate_id). Not adding aggregate type here will result in a full table scan
-                    $stream
-                );
-            } else {
-                throw new ConfigurationException("Projection {$projection->getName()} must have partitionHeaderName defined");
-            }
-        }
-        return $builders;
     }
 
     private function buildEventSourcingRepositoryBuilder(array $serviceExtensions): array

@@ -1,5 +1,7 @@
 <?php
-
+/*
+ * licence Apache-2.0
+ */
 namespace Ecotone\EventSourcing\Attribute;
 
 use Attribute;
@@ -54,5 +56,10 @@ class Projection extends StreamBasedSource
     public function isFromAll(): bool
     {
         return $this->fromAll;
+    }
+
+    public function useNewProjectingSystem(): bool
+    {
+        return false;
     }
 }

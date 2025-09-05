@@ -25,13 +25,17 @@ class InMemoryProjector implements ProjectorExecutor, Countable
         return $this->projectedEvents;
     }
 
-    public function clear(): void
-    {
-        $this->projectedEvents = [];
-    }
-
     public function count(): int
     {
         return count($this->projectedEvents);
+    }
+
+    public function init(): void
+    {
+    }
+
+    public function delete(): void
+    {
+        $this->projectedEvents = [];
     }
 }

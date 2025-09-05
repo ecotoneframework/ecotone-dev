@@ -40,7 +40,7 @@ class DbalIntegrationTest extends TestCase
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME);
         $projectionStateStorage = $ecotone->getGateway(ProjectionStateStorage::class);
-        $projectionStateStorage->deleteState(TicketProjection::NAME);
+        $projectionStateStorage->delete(TicketProjection::NAME);
 
         self::assertEquals([], $projection->getProjectedEvents());
 
@@ -78,7 +78,7 @@ class DbalIntegrationTest extends TestCase
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME);
         $projectionStateStorage = $ecotone->getGateway(ProjectionStateStorage::class);
-        $projectionStateStorage->deleteState(TicketProjection::NAME);
+        $projectionStateStorage->delete(TicketProjection::NAME);
 
         self::assertEquals([], $projection->getProjectedEvents());
 

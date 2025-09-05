@@ -8,27 +8,33 @@ namespace Ecotone\Projecting\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
-use Ecotone\Projecting\ProjectionState;
+use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 class DbalProjectionStateStorage implements ProjectionStateStorage
 {
+    private const STATE_INITIALIZED = 'initialized';
+
     private ?string $saveStateQuery = null;
     private Connection $connection;
     private bool $initialized = false;
 
-    public function __construct(DbalConnectionFactory $connectionFactory, private string $tableName = 'ecotone_projection_state')
+    public function __construct(
+        DbalConnectionFactory $connectionFactory,
+        private string        $stateTable = 'ecotone_projection_state',
+        private string        $lifecycleTable = 'ecotone_projection_lifecycle_state'
+    )
     {
         $this->connection = $connectionFactory->createContext()->getDbalConnection();
     }
 
-    public function getState(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionState
+    public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionPartitionState
     {
         $this->createSchema();
 
         $query = <<<SQL
-            SELECT last_position, user_state FROM {$this->tableName}
+            SELECT last_position, user_state FROM {$this->stateTable}
             WHERE projection_name = :projectionName AND partition_key = :partitionKey
             SQL;
 
@@ -41,25 +47,25 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             'partitionKey' => $partitionKey,
         ]);
         if (!$row) {
-            return new ProjectionState($projectionName, $partitionKey);
+            return new ProjectionPartitionState($projectionName, $partitionKey);
         }
 
-        return new ProjectionState($projectionName, $partitionKey, $row['last_position'], \json_decode($row['user_state'], true));
+        return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], \json_decode($row['user_state'], true));
     }
 
-    public function saveState(ProjectionState $projectionState): void
+    public function savePartition(ProjectionPartitionState $projectionState): void
     {
         $this->createSchema();
 
         if (!$this->saveStateQuery) {
             $this->saveStateQuery = match(true) {
                 $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
-                    INSERT INTO {$this->tableName} (projection_name, partition_key, last_position, user_state)
+                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state)
                     VALUES (:projectionName, :partitionKey, :lastPosition, :userState)
                     ON DUPLICATE KEY UPDATE last_position = :lastPosition, user_state = :userState
                     SQL,
                 default => <<<SQL
-                    INSERT INTO {$this->tableName} (projection_name, partition_key, last_position, user_state)
+                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state)
                     VALUES (:projectionName, :partitionKey, :lastPosition, :userState)
                     ON CONFLICT (projection_name, partition_key) DO UPDATE SET last_position = :lastPosition, user_state = :userState
                     SQL,
@@ -74,14 +80,50 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         ]);
     }
 
-    public function deleteState(string $projectionName): void
+    public function init(string $projectionName): bool
     {
         $this->createSchema();
 
-        $this->connection->executeStatement(
-            'DELETE FROM ' . $this->tableName . ' WHERE projection_name = :projectionName',
-            ['projectionName' => $projectionName]
-        );
+        $statement = match(true) {
+            $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
+                    INSERT INTO {$this->lifecycleTable} (projection_name, state) VALUES (:projectionName, :state)
+                    ON DUPLICATE KEY UPDATE projection_name = projection_name
+                    SQL,
+            default => <<<SQL
+                    INSERT INTO {$this->lifecycleTable} (projection_name, state) VALUES (:projectionName, :state)
+                    ON CONFLICT DO NOTHING
+                    SQL,
+        };
+
+        $rowsAffected = $this->connection->executeStatement($statement, [
+            'projectionName' => $projectionName,
+            'state' => self::STATE_INITIALIZED,
+        ]);
+
+        return $rowsAffected > 0;
+    }
+
+    public function delete(string $projectionName): bool
+    {
+        $this->createSchema();
+
+        $rowsAffected = $this->connection->executeStatement(<<<SQL
+            DELETE FROM {$this->lifecycleTable} WHERE projection_name = :projectionName
+            SQL, [
+            'projectionName' => $projectionName,
+        ]);
+
+        if ($rowsAffected > 0) {
+            $this->connection->executeStatement(<<<SQL
+                DELETE FROM {$this->stateTable} WHERE projection_name = :projectionName
+                SQL, [
+                'projectionName' => $projectionName,
+            ]);
+
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public function createSchema(): void
@@ -92,13 +134,21 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
         $this->initialized = true;
         $this->connection->executeStatement(
-            'CREATE TABLE IF NOT EXISTS ' . $this->tableName . ' (
+            'CREATE TABLE IF NOT EXISTS ' . $this->stateTable . ' (
                 projection_name VARCHAR(255) NOT NULL,
                 partition_key VARCHAR(255),
                 last_position TEXT NOT NULL,
                 user_state JSON,
                 PRIMARY KEY (projection_name, partition_key)
             )'
+        );
+        $this->connection->executeStatement(<<<SQL
+            CREATE TABLE IF NOT EXISTS {$this->lifecycleTable} (
+                projection_name VARCHAR(255) NOT NULL,
+                state VARCHAR(255) NOT NULL,
+                PRIMARY KEY (projection_name)
+            )
+            SQL
         );
     }
 }

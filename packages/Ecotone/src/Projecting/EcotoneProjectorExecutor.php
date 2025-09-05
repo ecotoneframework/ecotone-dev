@@ -14,8 +14,10 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
 {
     public function __construct(
         private MessagingEntrypoint $messagingEntrypoint,
-        private string $channelName,
         private string $projectionName, // this is required for event stream emitter so it can create a stream with this name
+        private string $projectChannel,
+        private ?string $initChannel = null,
+        private ?string $deleteChannel = null,
     ) {
     }
 
@@ -32,13 +34,27 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         $newUserState = $this->messagingEntrypoint->sendWithHeaders(
             $event->getPayload(),
             $metadata,
-            $this->channelName,
+            $this->projectChannel,
         );
 
         if (!\is_null($newUserState)) {
             return $newUserState;
         } else {
             return $userState;
+        }
+    }
+
+    public function init(): void
+    {
+        if ($this->initChannel) {
+            $this->messagingEntrypoint->send([], $this->initChannel);
+        }
+    }
+
+    public function delete(): void
+    {
+        if ($this->deleteChannel) {
+            $this->messagingEntrypoint->send([], $this->deleteChannel);
         }
     }
 }

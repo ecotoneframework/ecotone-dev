@@ -6,20 +6,27 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\InMemory;
 
-use Ecotone\Projecting\ProjectionState;
+use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 
 class InMemoryProjectionStateStorage implements ProjectionStateStorage
 {
+    /**
+     * @var array<string, true> key is projection name
+     */
+    private array $projectionLifecycleState = [];
+    /**
+     * @var array<string, ProjectionPartitionState> key is projection name
+     */
     private array $projectionStates = [];
 
-    public function getState(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionState
+    public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionPartitionState
     {
         $key = $this->getKey($projectionName, $partitionKey);
-        return $this->projectionStates[$key] ?? new ProjectionState($projectionName, $partitionKey);
+        return $this->projectionStates[$key] ?? new ProjectionPartitionState($projectionName, $partitionKey);
     }
 
-    public function saveState(ProjectionState $projectionState): void
+    public function savePartition(ProjectionPartitionState $projectionState): void
     {
         $key = $this->getKey($projectionState->projectionName, $projectionState->partitionKey);
         $this->projectionStates[$key] = $projectionState;
@@ -33,13 +40,30 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
         return $projectionName . '-' . $partitionKey;
     }
 
-    public function deleteState(string $projectionName): void
+    public function delete(string $projectionName): bool
     {
+        if (!isset($this->projectionLifecycleState[$projectionName])) {
+            return false;
+        }
+
         $projectionStartKey = $this->getKey($projectionName, null);
         foreach ($this->projectionStates as $key => $value) {
             if (str_starts_with($key, $projectionStartKey)) {
                 unset($this->projectionStates[$key]);
             }
         }
+        unset($this->projectionLifecycleState[$projectionName]);
+        return true;
+    }
+
+    public function init(string $projectionName): bool
+    {
+        if (isset($this->projectionLifecycleState[$projectionName])) {
+            return false;
+        }
+
+        $this->projectionLifecycleState[$projectionName] = true;
+
+        return true;
     }
 }

@@ -7,11 +7,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Projecting;
 
 use Ecotone\Modelling\Event;
-use Ecotone\Projecting\InMemory\InMemoryProjectionLifecycleStateStorage;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
 use Ecotone\Projecting\InMemory\InMemoryProjector;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
-use Ecotone\Projecting\Lifecycle\LifecycleManager;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectorExecutor;
 use PHPUnit\Framework\TestCase;
@@ -30,12 +28,6 @@ class ProjectingTest extends TestCase
 
         return new ProjectingManager(
             $projectionStateStorage,
-            new LifecycleManager(
-                ['projection-name'],
-                $projectionStateStorage,
-                new InMemoryProjectionLifecycleStateStorage(),
-                new NullLifecycleExecutor(),
-            ),
             $projectorExecutor,
             $source,
             "projection-name",

@@ -6,38 +6,60 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
-use Ecotone\Projecting\Lifecycle\LifecycleManager;
-
 class ProjectingManager
 {
     public function __construct(
         private ProjectionStateStorage $projectionStateStorage,
-        private LifecycleManager       $projectionLifecycleManager,
         private ProjectorExecutor      $projectorExecutor,
         private StreamSource           $streamSource,
         private string                 $projectionName,
-        private int                    $maxCount = 1000,
+        private int                    $batchSize = 1000,
     ) {
     }
 
     // This is the method that is linked to the event bus routing channel
     public function execute(?string $partitionKey = null): void
     {
-        $this->projectionLifecycleManager->init($this->projectionName);
+        $this->init();
 
-        $projectionState = $this->projectionStateStorage->getState($this->projectionName, $partitionKey);
+        $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
 
-        $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->maxCount, $partitionKey);
+        $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKey);
 
         $userState = $projectionState->userState;
         foreach ($streamPage->events as $event) {
             $userState = $this->projectorExecutor->project($event, $userState);
         }
 
-        $this->projectionStateStorage->saveState(
+        $this->projectionStateStorage->savePartition(
             $projectionState
                 ->withLastPosition($streamPage->lastPosition)
                 ->withUserState($userState)
         );
+    }
+
+    public function init(): void
+    {
+        $hasBeenInit = $this->projectionStateStorage->init($this->projectionName);
+
+        if ($hasBeenInit) {
+            $this->projectorExecutor->init();
+        }
+    }
+
+    public function delete(): void
+    {
+        $hasBeenDeleted = $this->projectionStateStorage->delete($this->projectionName);
+
+        if ($hasBeenDeleted) {
+            $this->projectorExecutor->delete();
+        }
+    }
+
+    public function backfill(PartitionProvider $partitionProvider): void
+    {
+        foreach ($partitionProvider->partitions() as $partition) {
+            $this->execute($partition);
+        }
     }
 }

@@ -25,9 +25,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
-use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
@@ -44,15 +42,11 @@ use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionBuilder;
-use Ecotone\Projecting\Dbal\DbalProjectionLifecycleStateStorage;
 use Ecotone\Projecting\Dbal\DbalProjectionStateStorage;
 use Ecotone\Projecting\EcotoneProjectorExecutor;
-use Ecotone\Projecting\InMemory\InMemoryProjectionLifecycleStateStorage;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
-use Ecotone\Projecting\Lifecycle\EcotoneLifecycleExecutor;
-use Ecotone\Projecting\Lifecycle\LifecycleManager;
-use Ecotone\Projecting\Lifecycle\ProjectionLifecycleStateStorage;
 use Ecotone\Projecting\ProjectingManager;
+use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
@@ -64,14 +58,12 @@ class ProjectingModule implements AnnotationModule
      * @param array<string, ProjectionBuilder> $configuredProjections
      * @param array<string, string> $namedEvents key is class name, value is event name
      * @param array<string, MessageProcessorActivatorBuilder> $projectionInitHandlers
-     * @param array<string, MessageProcessorActivatorBuilder> $projectionResetHandlers
      * @param array<string, MessageProcessorActivatorBuilder> $projectionDeleteHandlers
      */
     public function __construct(
         private array $configuredProjections,
         private array $namedEvents,
         private array $projectionInitHandlers,
-        private array $projectionResetHandlers,
         private array $projectionDeleteHandlers
     ) {
     }
@@ -79,7 +71,6 @@ class ProjectingModule implements AnnotationModule
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $projectionInitHandlers = self::buildProjectionLifeCycleHandlers($annotationRegistrationService, ProjectionInitialization::class);
-        $projectionResetHandlers = self::buildProjectionLifeCycleHandlers($annotationRegistrationService, ProjectionReset::class);
         $projectionDeleteHandlers = self::buildProjectionLifeCycleHandlers($annotationRegistrationService, ProjectionDelete::class);
 
         /** @var array<string, string> $asynchronousProjectionChannels */
@@ -116,7 +107,7 @@ class ProjectingModule implements AnnotationModule
             $namedEvents[$className] = $attribute->getName();
         }
 
-        return new self($configuredProjections, $namedEvents, $projectionInitHandlers, $projectionResetHandlers, $projectionDeleteHandlers);
+        return new self($configuredProjections, $namedEvents, $projectionInitHandlers, $projectionDeleteHandlers);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -145,6 +136,10 @@ class ProjectingModule implements AnnotationModule
             }
         }
 
+        $initChannelMap = self::registerProjectionLifecycleHandlers($messagingConfiguration, $this->projectionInitHandlers);
+        $deleteChannelMap = self::registerProjectionLifecycleHandlers($messagingConfiguration, $this->projectionDeleteHandlers);
+
+        $projectionRegistryMap = [];
         foreach ($this->configuredProjections as $projectionName => $projectionBuilder) {
             if (!isset($projectionNameToStreamSourceReferenceMap[$projectionName])) {
                 throw ConfigurationException::create(
@@ -154,23 +149,28 @@ class ProjectingModule implements AnnotationModule
 
             $projector = new Definition(EcotoneProjectorExecutor::class, [
                 new Reference(MessagingEntrypointWithHeadersPropagation::class), // Headers propagation is required for EventStreamEmitter
-                self::inputChannelForExecutionRouter($projectionName),
                 $projectionName,
+                self::inputChannelForExecutionRouter($projectionName),
+                $initChannelMap[$projectionName] ?? null,
+                $deleteChannelMap[$projectionName] ?? null,
             ]);
 
-            $projectingManager = new Definition(ProjectingManager::class, [
-                new Reference(ProjectionStateStorage::class),
-                new Reference(LifecycleManager::class),
-                $projector,
-                new Reference($projectionNameToStreamSourceReferenceMap[$projectionName]),
-                $projectionName,
-            ]);
+            $messagingConfiguration->registerServiceDefinition(
+                $projectingManagerReference = ProjectingManager::class . ':' . $projectionName,
+                new Definition(ProjectingManager::class, [
+                    new Reference(ProjectionStateStorage::class),
+                    $projector,
+                    new Reference($projectionNameToStreamSourceReferenceMap[$projectionName]),
+                    $projectionName,
+                ])
+            );
+            $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);
 
             $messagingConfiguration->registerMessageHandler(
                 MessageProcessorActivatorBuilder::create()
                     ->chainInterceptedProcessor(
                         MethodInvokerBuilder::create(
-                            $projectingManager,
+                            $projectingManagerReference,
                             InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
                             [
                                 $projectionBuilder->partitionHeaderName
@@ -227,31 +227,10 @@ class ProjectingModule implements AnnotationModule
             }
         );
 
+        // Register ProjectionRegistry
         $messagingConfiguration->registerServiceDefinition(
-            ProjectionLifecycleStateStorage::class,
-            match ($projectingConfiguration->projectionLifecycleStateStorageReference) {
-                InMemoryProjectionLifecycleStateStorage::class => new Definition(InMemoryProjectionLifecycleStateStorage::class),
-                DbalProjectionLifecycleStateStorage::class => new Definition(DbalProjectionLifecycleStateStorage::class, [new Reference(DbalConnectionFactory::class)]),
-                default => new Reference($projectingConfiguration->projectionLifecycleStateStorageReference)
-            }
-        );
-
-        // Lifecycle handlers
-        $ecotoneLifecycleExecutor = new Definition(EcotoneLifecycleExecutor::class, [
-            new Reference(MessagingEntrypoint::class),
-            self::registerProjectionLifecycleHandlers($messagingConfiguration, $this->projectionInitHandlers),
-            self::registerProjectionLifecycleHandlers($messagingConfiguration, $this->projectionResetHandlers),
-            self::registerProjectionLifecycleHandlers($messagingConfiguration, $this->projectionDeleteHandlers),
-        ]);
-
-        $messagingConfiguration->registerServiceDefinition(
-            LifecycleManager::class,
-            new Definition(LifecycleManager::class, [
-                $projectionNames,
-                new Reference(ProjectionStateStorage::class),
-                new Reference(ProjectionLifecycleStateStorage::class),
-                $ecotoneLifecycleExecutor,
-            ])
+            ProjectionRegistry::class,
+            new Definition(InMemoryProjectionRegistry::class, [$projectionRegistryMap])
         );
     }
 

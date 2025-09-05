@@ -8,7 +8,8 @@ namespace Ecotone\Projecting;
 
 interface ProjectionStateStorage
 {
-    public function getState(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionState;
-    public function saveState(ProjectionState $projectionState): void;
-    public function deleteState(string $projectionName): void;
+    public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionPartitionState;
+    public function savePartition(ProjectionPartitionState $projectionState): void;
+    public function delete(string $projectionName): bool;
+    public function init(string $projectionName): bool;
 }

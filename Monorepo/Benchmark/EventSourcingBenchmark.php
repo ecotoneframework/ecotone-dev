@@ -7,10 +7,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
-use Ecotone\Projecting\Lifecycle\LifecycleManager;
-use Ecotone\Projecting\ProjectingManager;
+use Ecotone\Projecting\ProjectionRegistry;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
@@ -88,8 +85,8 @@ class EventSourcingBenchmark
     public function bench_ecotone_projection_with_deletion(): void
     {
         self::executeWithDeletion(self::$ecotone, static function () {
-            $lifecycleManager = self::$ecotone->getServiceFromContainer(LifecycleManager::class);
-            $lifecycleManager->delete(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME);
+            $registry = self::$ecotone->getServiceFromContainer(ProjectionRegistry::class);
+            $registry->get(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME)->delete();
         });
     }
 

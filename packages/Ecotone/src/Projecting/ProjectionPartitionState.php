@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
-class ProjectionState
+class ProjectionPartitionState
 {
     public function __construct(
         public readonly string $projectionName,

@@ -44,7 +44,7 @@ class JMSConverter implements Converter
                 } elseif ($targetType->isIterable()) {
                     return $this->serializer->toArray($source, $context);
                 } else {
-                    throw new InvalidArgumentException("Can't conversion from {$sourceMediaType->toString()}:{$sourceType->toString()} to {$targetMediaType->toString()}:{$targetMediaType->toString()}");
+                    throw new InvalidArgumentException("Can't convert from {$sourceMediaType->toString()}:{$sourceType->toString()} to {$targetMediaType->toString()}:{$targetMediaType->toString()}");
                 }
             }
 
@@ -54,7 +54,7 @@ class JMSConverter implements Converter
                 } elseif ($sourceMediaType->isCompatibleWithParsed(MediaType::APPLICATION_XML)) {
                     return $this->serializer->deserialize($source, $targetType->toString(), 'xml');
                 } else {
-                    throw new InvalidArgumentException("Can't conversion from {$sourceMediaType->toString()}:{$sourceType->toString()} to {$targetMediaType->toString()}:{$targetMediaType->toString()}");
+                    throw new InvalidArgumentException("Can't convert from {$sourceMediaType->toString()}:{$sourceType->toString()} to {$targetMediaType->toString()}:{$targetMediaType->toString()}");
                 }
             } else {
                 if ($targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_JSON)) {
@@ -62,7 +62,7 @@ class JMSConverter implements Converter
                 } elseif ($targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_XML)) {
                     return $this->serializer->serialize($source, 'xml', $context);
                 } else {
-                    throw new InvalidArgumentException("Can't conversion from {$sourceMediaType->toString()}:{$sourceType->toString()} to {$targetMediaType->toString()}:{$targetMediaType->toString()}");
+                    throw new InvalidArgumentException("Can't convert from {$sourceMediaType->toString()}:{$sourceType->toString()} to {$targetMediaType->toString()}:{$targetMediaType->toString()}");
                 }
             }
         } catch (RuntimeException|InvalidArgumentException $exception) {

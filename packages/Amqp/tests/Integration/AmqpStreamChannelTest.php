@@ -38,6 +38,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
                         channelName: $queueName,
                         startPosition: 'first',

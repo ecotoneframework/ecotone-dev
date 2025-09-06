@@ -74,7 +74,7 @@ services:
     ports:
       - "3306:3306"
   rabbitmq:
-    image: rabbitmq:4.1.4-management
+    build: ./.docker/rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest

@@ -33,7 +33,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
 
     /**
      * Create a stream channel with consume method enabled and stream queue type
-     * 
+     *
      * @param string $channelName
      * @param string $startPosition Stream offset: 'first', 'last', 'next', or specific offset number
      * @param string $amqpConnectionReferenceName

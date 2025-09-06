@@ -42,15 +42,10 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                     AmqpStreamChannelBuilder::create(
                         channelName: $queueName,
                         startPosition: 'first',
-                        queueName: $queueName,
+                        queueName: $queueName . Uuid::uuid4()->toString(),
                     )
                 ])
         );
-
-        try {
-            $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new \Interop\Amqp\Impl\AmqpQueue($queueName));
-        } catch (\PhpAmqpLib\Exception\AMQPProtocolChannelException) {
-        }
 
         // Send three messages to the stream
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
@@ -61,11 +56,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
         // Consume from first position - should get all three messages
-        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithDefaults()
-            ->withTestingSetup()
-            ->withHandledMessageLimit(3)
-            ->withExecutionTimeLimitInMilliseconds(5000)
-        );
+        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Verify all three messages were consumed from first position
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');

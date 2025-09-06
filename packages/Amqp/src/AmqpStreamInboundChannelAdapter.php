@@ -21,6 +21,8 @@ use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
 use AMQPChannelException;
 use AMQPConnectionException;
+use PhpAmqpLib\Exception\AMQPChannelClosedException;
+use PhpAmqpLib\Exception\AMQPConnectionClosedException;
 use PhpAmqpLib\Exception\AMQPIOException;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage as PhpAmqpLibMessage;
@@ -58,6 +60,8 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $conversionService
         );
         $this->queueChannel = QueueChannel::create();
+
+
     }
 
     public function initialize(): void
@@ -95,41 +99,26 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $context = $connectionFactory->createContext();
             $libChannel = $context->getLibChannel();
 
-            // Clear any existing messages in the queue channel
             while ($this->queueChannel->receive() !== null) {
                 // Clear buffer
             }
 
             // Start consuming if not already started
             if ($this->consumerTag === null) {
-                $this->loggingGateway->info('Starting stream consumption', [
-                    'queueName' => $this->queueName,
-                    'streamOffset' => $this->streamOffset
-                ]);
                 $this->startStreamConsuming($context);
-                $this->loggingGateway->info('Stream consumption started', [
-                    'consumerTag' => $this->consumerTag
-                ]);
             }
 
             $timeout = $timeout ?: $this->receiveTimeoutInMilliseconds;
             $timeoutInSeconds = $timeout > 0 ? $timeout / 1000.0 : 10.0;
 
-            // Wait for messages with timeout
             try {
                 $libChannel->wait(null, false, $timeoutInSeconds);
             } catch (AMQPTimeoutException) {
+                // Expected timeout for running out of time
                 $this->loggingGateway->info('Stream consumption timeout reached');
-                // Expected timeout, continue to check buffer
             }
 
-            // Return message from buffer
-            $message = $this->queueChannel->receive();
-            $this->loggingGateway->info('Returning message from buffer', [
-                'hasMessage' => $message !== null
-            ]);
-            return $message;
-
+            return $this->queueChannel->receive();
         } catch (AMQPConnectionException|AMQPChannelException|AMQPIOException $exception) {
             $this->stopStreamConsuming();
             $this->connectionFactory->reconnect();
@@ -140,14 +129,10 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
     private function startStreamConsuming(AmqpContext $context): void
     {
         $libChannel = $context->getLibChannel();
-
-        // Set QoS
         $libChannel->basic_qos(0, 100, false);
 
-        // Prepare consumer arguments for stream channels with stream offset
         $arguments = new AMQPTable(['x-stream-offset' => $this->streamOffset]);
 
-        // Start consuming with stream arguments - THIS IS WHERE x-stream-offset IS PASSED
         $this->consumerTag = $libChannel->basic_consume(
             queue: $this->queueName,
             consumer_tag: '',
@@ -157,62 +142,34 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
             nowait: false,
             callback: $this->createStreamCallback($context),
             ticket: null,
-            arguments: $arguments  // <-- This is where the stream offset goes
+            arguments: $arguments
         );
     }
 
     private function createStreamCallback(AmqpContext $context): callable
     {
         return function (PhpAmqpLibMessage $amqpMessage) use ($context) {
-            try {
-                $this->loggingGateway->info('Stream message received', [
-                    'body' => $amqpMessage->getBody(),
-                    'properties' => $amqpMessage->get_properties()
-                ]);
+            /** @var AMQPTable $amqpHeaders */
+            $amqpHeaders = $amqpMessage->get_properties()['application_headers'];
+            $enqueueMessage = $context->createMessage(
+                $amqpMessage->getBody(),
+                $amqpHeaders->getNativeData(),
+                [],
+            );
 
-                // Convert AMQPMessage to Enqueue AmqpMessage
-                $headers = [];
-                if ($amqpMessage->has('application_headers')) {
-                    $applicationHeaders = $amqpMessage->get('application_headers');
-                    if ($applicationHeaders && method_exists($applicationHeaders, 'getNativeData')) {
-                        $headers = $applicationHeaders->getNativeData();
-                    }
-                }
+            $consumer = $context->createConsumer($context->createQueue($this->queueName));
+            $consumer->setConsumerTag($this->consumerTag);
+            $message = $this->inboundMessageConverter->toMessage(
+                $enqueueMessage,
+                $consumer,
+                $this->conversionService,
+                $this->cachedConnectionFactory
+            );
+            $message = $this->enrichMessage($enqueueMessage, $message);
 
-                $enqueueMessage = $context->createMessage(
-                    $amqpMessage->getBody(),
-                    $amqpMessage->get_properties(),
-                    $headers
-                );
+            $this->queueChannel->send($message->build());
 
-                // Create a consumer for the conversion process
-                $consumer = $context->createConsumer($context->createQueue($this->queueName));
-
-                // Convert to Ecotone message with acknowledgment callback
-                // The InboundMessageConverter creates the acknowledgment callback
-                $message = $this->inboundMessageConverter->toMessage(
-                    $enqueueMessage,
-                    $consumer,
-                    $this->conversionService,
-                    $this->cachedConnectionFactory
-                );
-                $message = $this->enrichMessage($enqueueMessage, $message);
-
-                // Store in queue channel - the acknowledgment will be handled by Ecotone's system
-                $this->queueChannel->send($message->build());
-
-                // DO NOT manually ack here - Ecotone's acknowledgment system handles it
-                return false;
-            } catch (\Throwable $exception) {
-                /** @TODO remove */
-                $this->loggingGateway->error(
-                    'Error processing stream message: ' . $exception->getMessage(),
-                    ['exception' => $exception]
-                );
-
-                // Reject and requeue on error
-                $amqpMessage->nack(true);
-            }
+            return false;
         };
     }
 
@@ -234,7 +191,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
     public function connectionException(): array
     {
-        return [AMQPConnectionException::class, AMQPChannelException::class, AMQPIOException::class];
+        return [AMQPConnectionException::class, AMQPChannelException::class, AMQPIOException::class, AMQPChannelClosedException::class, AMQPConnectionClosedException::class];
     }
 
     public function __destruct()

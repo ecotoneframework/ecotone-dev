@@ -42,7 +42,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
      */
     public static function create(
         string  $channelName,
-        string  $startPosition = 'next',
+        string  $startPosition = 'first',
         string  $amqpConnectionReferenceName = AmqpConnectionFactory::class,
         ?string $queueName = null
     ): self {

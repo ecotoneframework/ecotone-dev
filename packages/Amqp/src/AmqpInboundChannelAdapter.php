@@ -19,6 +19,8 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
+use PhpAmqpLib\Exception\AMQPChannelClosedException;
+use PhpAmqpLib\Exception\AMQPConnectionClosedException;
 use PhpAmqpLib\Exception\AMQPIOException;
 
 /**
@@ -72,10 +74,8 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         return $targetMessage;
     }
 
-
-
     public function connectionException(): array
     {
-        return [AMQPConnectionException::class, AMQPChannelException::class, AMQPIOException::class];
+        return [AMQPConnectionException::class, AMQPChannelException::class, AMQPIOException::class, AMQPChannelClosedException::class, AMQPConnectionClosedException::class];
     }
 }

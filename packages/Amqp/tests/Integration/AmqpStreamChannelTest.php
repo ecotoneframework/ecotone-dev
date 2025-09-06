@@ -42,7 +42,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                     AmqpStreamChannelBuilder::create(
                         channelName: $queueName,
                         startPosition: 'first',
-                        queueName: $queueName . Uuid::uuid4()->toString(),
+                        queueName: $queueName,
                     )
                 ])
         );

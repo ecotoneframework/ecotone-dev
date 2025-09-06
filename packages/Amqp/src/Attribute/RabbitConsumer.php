@@ -10,7 +10,7 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Support\Assert;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory;
 
 /**
  * licence Enterprise

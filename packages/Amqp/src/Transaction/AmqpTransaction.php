@@ -3,7 +3,7 @@
 namespace Ecotone\Amqp\Transaction;
 
 use Attribute;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory;
 
 #[Attribute]
 /**

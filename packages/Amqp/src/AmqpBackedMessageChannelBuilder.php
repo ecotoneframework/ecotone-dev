@@ -3,7 +3,7 @@
 namespace Ecotone\Amqp;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory;
 
 /**
  * Class AmqpBackedMessageChannelBuilder

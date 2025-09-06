@@ -4,7 +4,7 @@ namespace Test\Ecotone\Amqp;
 
 use AMQPQueueException;
 use Ecotone\Amqp\Distribution\AmqpDistributionModule;
-use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpLibConnection;
+use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use PHPUnit\Framework\TestCase;

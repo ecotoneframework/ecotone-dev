@@ -3,7 +3,7 @@
 namespace Ecotone\Amqp\Distribution;
 
 use Ecotone\Modelling\DistributedBus;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory;
 
 /**
  * Class RegisterAmqpPublisher

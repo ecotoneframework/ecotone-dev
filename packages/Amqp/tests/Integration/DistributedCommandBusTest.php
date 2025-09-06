@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\DistributedBus;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Interceptor\CustomDistributedBusInterceptor;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher\UserService;

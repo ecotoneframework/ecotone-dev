@@ -10,7 +10,8 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
-use Enqueue\AmqpExt\AmqpContext;
+use Ecotone\Messaging\Support\Assert;
+use Enqueue\AmqpLib\AmqpContext;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
 
@@ -78,13 +79,12 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $messageToSend
             ->setDeliveryMode($this->defaultPersistentDelivery ? AmqpMessage::DELIVERY_MODE_PERSISTENT : AmqpMessage::DELIVERY_MODE_NON_PERSISTENT);
 
-        /** @var AmqpContext $context */
-        $context = $this->connectionFactory->createContext();
-        if ($this->publisherAcknowledgments && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
-            /** Ensures no messages are lost along the way when heartbeat is lost and ensures messages was peristed on the Broker side. Without this message can be simply "swallowed" without throwing exception */
-            $context->getExtChannel()->confirmSelect();
+        if ($this->publisherAcknowledgments) {
+            Assert::isFalse($this->amqpTransactionInterceptor->isRunningInTransaction(), 'Cannot use publisher acknowledgments together with transactions. Please disable one of them.');
         }
 
+        /** @var AmqpContext $context */
+        $context = $this->connectionFactory->createContext();
         $this->connectionFactory->getProducer()
             ->setTimeToLive($outboundMessage->getTimeToLive())
             ->setDelayStrategy(new HeadersExchangeDelayStrategy())
@@ -93,7 +93,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             ->send(new AmqpTopic($exchangeName), $messageToSend);
 
         if ($this->publisherAcknowledgments && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
-            $context->getExtChannel()->waitForConfirm();
+            $context->getLibChannel()->wait_for_pending_acks(5000);
         }
     }
 }

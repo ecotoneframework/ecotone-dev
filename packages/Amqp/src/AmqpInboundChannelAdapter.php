@@ -19,6 +19,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
+use PhpAmqpLib\Exception\AMQPIOException;
 
 /**
  * Class InboundEnqueueGateway
@@ -100,7 +101,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
             $subscriptionConsumer->consume($timeout <= 0 ? 10000 : $timeout);
 
             return $this->queueChannel->receive();
-        } catch (AMQPConnectionException|AMQPChannelException $exception) {
+        } catch (AMQPConnectionException|AMQPChannelException|AMQPIOException $exception) {
             $this->connectionFactory->reconnect();
             throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
         }
@@ -108,6 +109,6 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
     public function connectionException(): array
     {
-        return [AMQPConnectionException::class, AMQPChannelException::class];
+        return [AMQPConnectionException::class, AMQPChannelException::class, AMQPIOException::class];
     }
 }

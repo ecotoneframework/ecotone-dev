@@ -16,8 +16,10 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\StubLogger;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
+use PhpAmqpLib\Exception\AMQPIOException;
+use PhpAmqpLib\Exception\AMQPProtocolChannelException;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext;
@@ -110,7 +112,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
         try {
             $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
-        } catch (AMQPQueueException) {
+        } catch (AMQPProtocolChannelException) {
         }
 
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
@@ -218,7 +220,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
         $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
 
-        $this->expectException(AMQPQueueException::class);
+        $this->expectException(AMQPProtocolChannelException::class);
 
         $messageChannel->receiveWithTimeout(1);
     }
@@ -252,7 +254,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                     ->withExecutionTimeLimitInMilliseconds(100)
                     ->withStopOnError(false)
             );
-        } catch (AMQPConnectionException) {
+        } catch (AMQPIOException) {
             $wasFinallyRethrown = true;
         }
 

@@ -17,7 +17,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     private function __construct(
         string $channelName,
         string $amqpConnectionReferenceName,
-        string $queueName,
+        public readonly string $queueName,
         string $streamOffset
     ) {
         $this->channelName = $channelName;
@@ -35,20 +35,20 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
      * Create a stream channel with consume method enabled and stream queue type
      * 
      * @param string $channelName
-     * @param string $streamOffset Stream offset: 'first', 'last', 'next', or specific offset number
+     * @param string $startPosition Stream offset: 'first', 'last', 'next', or specific offset number
      * @param string $amqpConnectionReferenceName
      * @param string|null $queueName If null, channel name will be used as queue name
      * @return self
      */
     public static function create(
-        string $channelName,
-        string $streamOffset = 'next',
-        string $amqpConnectionReferenceName = AmqpConnectionFactory::class,
+        string  $channelName,
+        string  $startPosition = 'next',
+        string  $amqpConnectionReferenceName = AmqpConnectionFactory::class,
         ?string $queueName = null
     ): self {
         $queueName ??= $channelName;
 
-        return new self($channelName, $amqpConnectionReferenceName, $queueName, $streamOffset);
+        return new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition);
     }
 
     public function getMessageChannelName(): string

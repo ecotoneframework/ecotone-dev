@@ -9,6 +9,7 @@ use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\AmqpBinding;
 use Ecotone\Amqp\AmqpExchange;
 use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -70,6 +71,8 @@ class AmqpModule implements AnnotationModule
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof AmqpBackedMessageChannelBuilder) {
                 $amqpQueues[] = AmqpQueue::createWith($extensionObject->getQueueName());
+            }   elseif ($extensionObject instanceof AmqpStreamChannelBuilder) {
+                $amqpQueues[] = AmqpQueue::createStreamQueue($extensionObject->queueName);
             } elseif ($extensionObject instanceof AmqpExchange) {
                 $amqpExchanges[] = $extensionObject;
             } elseif ($extensionObject instanceof AmqpQueue) {
@@ -105,6 +108,7 @@ class AmqpModule implements AnnotationModule
     {
         return
             $extensionObject instanceof AmqpBackedMessageChannelBuilder
+            || $extensionObject instanceof AmqpStreamChannelBuilder
             || $extensionObject instanceof AmqpExchange
             || $extensionObject instanceof AmqpQueue
             || $extensionObject instanceof AmqpBinding

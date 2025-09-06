@@ -74,7 +74,7 @@ services:
     ports:
       - "3306:3306"
   rabbitmq:
-    image: rabbitmq:3.11-management-alpine
+    image: rabbitmq:4.1.4-management
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest

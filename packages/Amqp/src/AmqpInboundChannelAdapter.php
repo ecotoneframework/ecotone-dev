@@ -34,9 +34,6 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
     private bool $initialized = false;
     private QueueChannel $queueChannel;
 
-    /**
-     * @param bool $useConsumeMethod Whatever consumption should happen using GET or CONSUME. Consume can't be bound for using multiple consumer with same process
-     */
     public function __construct(
         private CachedConnectionFactory         $cachedConnectionFactory,
         private AmqpAdmin               $amqpAdmin,
@@ -46,7 +43,6 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         InboundMessageConverter         $inboundMessageConverter,
         ConversionService $conversionService,
         private LoggingGateway $loggingGateway,
-        private bool $useConsumeMethod = false,
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -76,44 +72,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         return $targetMessage;
     }
 
-    /**
-     * @inheritDoc This provides consume instead of get, which does not work well with pnctl extensions in AMQP EXT (Therefore AMQP LIB has to be used)
-     */
-    public function receiveWithTimeout(int $timeout = 0): ?Message
-    {
-        if (! $this->useConsumeMethod) {
-            return parent::receiveWithTimeout($timeout);
-        }
 
-        try {
-            if ($this->declareOnStartup && $this->initialized === false) {
-                $this->initialize();
-
-                $this->initialized = true;
-            }
-
-            /** @var AmqpReconnectableConnectionFactory $connectionFactory */
-            $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
-            $queueChannel = $this->queueChannel;
-            $subscriptionConsumer = $connectionFactory->getSubscriptionConsumer($this->queueName, function (EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
-                $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer, $this->conversionService, $this->cachedConnectionFactory);
-                $message = $this->enrichMessage($receivedMessage, $message);
-
-                $queueChannel->send($message->build());
-
-                return false;
-            });
-
-            $timeout = $timeout ?: $this->receiveTimeoutInMilliseconds;
-            /** Timeout equal 0, will ignore any POSIX signals */
-            $subscriptionConsumer->consume($timeout <= 0 ? 10000 : $timeout);
-
-            return $this->queueChannel->receive();
-        } catch (AMQPConnectionException|AMQPChannelException|AMQPIOException $exception) {
-            $this->connectionFactory->reconnect();
-            throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
-        }
-    }
 
     public function connectionException(): array
     {

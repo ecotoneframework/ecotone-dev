@@ -34,6 +34,9 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
     private bool $initialized = false;
     private QueueChannel $queueChannel;
 
+    /**
+     * @param bool $useConsumeMethod Whatever consumption should happen using GET or CONSUME. Consume can't be bound for using multiple consumer with same process
+     */
     public function __construct(
         private CachedConnectionFactory         $cachedConnectionFactory,
         private AmqpAdmin               $amqpAdmin,
@@ -43,6 +46,7 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         InboundMessageConverter         $inboundMessageConverter,
         ConversionService $conversionService,
         private LoggingGateway $loggingGateway,
+        private bool $useConsumeMethod = false,
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -73,10 +77,14 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
     }
 
     /**
-     * @inheritDoc This provides consume instead of get, which does not work well with pnctl extensions (signals are not executored)
+     * @inheritDoc This provides consume instead of get, which does not work well with pnctl extensions in AMQP EXT (Therefore AMQP LIB has to be used)
      */
-    public function receiveWithTimeoutNOT(int $timeout = 0): ?Message
+    public function receiveWithTimeout(int $timeout = 0): ?Message
     {
+        if (! $this->useConsumeMethod) {
+            return parent::receiveWithTimeout($timeout);
+        }
+
         try {
             if ($this->declareOnStartup && $this->initialized === false) {
                 $this->initialize();

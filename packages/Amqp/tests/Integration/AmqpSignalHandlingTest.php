@@ -134,30 +134,30 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $this->assertEquals(['command-1'], $processedCommands);
     }
 
-    //    public function test_asynchronous_command_handler_stops_even_if_there_was_no_message(): void
-    //    {
-    //        $channelName = 'async_commands_timeout_' . Uuid::uuid4()->toString();
-    //
-    //        $ecotoneLite = EcotoneLite::bootstrapForTesting(
-    //            [AmqpAsyncCommandHandler::class],
-    //            [
-    //                new AmqpAsyncCommandHandler(),
-    //                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
-    //            ],
-    //            ServiceConfiguration::createWithDefaults()
-    //                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-    //                ->withExtensionObjects([
-    //                    AmqpBackedMessageChannelBuilder::create($channelName, queueName: Uuid::uuid4()->toString()),
-    //                ])
-    //        );
-    //
-    //        $ecotoneLite->run(
-    //            $channelName,
-    //            ExecutionPollingMetadata::createWithDefaults(),
-    //        );
-    //
-    //        $this->assertTrue(true);
-    //    }
+//    /**
+//     * Need to be tested manually using ctrl+c
+//     */
+//    public function test_asynchronous_command_handler_stops_even_if_there_was_no_message(): void
+//    {
+//        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+//            [],
+//            [
+//                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+//            ],
+//            ServiceConfiguration::createWithDefaults()
+//                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+//                ->withExtensionObjects([
+//                    AmqpBackedMessageChannelBuilder::create('async_commands_unique_empty', queueName: Uuid::uuid4()->toString()),
+//                ])
+//        );
+//
+//        $ecotoneLite->run(
+//            'async_commands_unique_empty',
+//            ExecutionPollingMetadata::createWithDefaults(),
+//        );
+//
+//        $this->assertTrue(true);
+//    }
 }
 
 class ProcessCommand

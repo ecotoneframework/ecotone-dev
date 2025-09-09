@@ -226,7 +226,7 @@ final class FlowTestSupport
 
         foreach ($projectionName as $name) {
             if ($this->getGateway(ProjectionRegistry::class)->has($name)) {
-                $this->getGateway(ProjectionRegistry::class)->get($name)->init();
+                $this->getGateway(ProjectionRegistry::class)->get($name)->backfill();
             } else {
                 $this->getGateway(ProjectionManager::class)->triggerProjection($name);
             }

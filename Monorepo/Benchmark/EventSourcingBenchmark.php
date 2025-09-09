@@ -180,7 +180,7 @@ class EventSourcingBenchmark
 //            self::$ecotone->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
 //        );
         $projectionManager = self::$ecotone->getServiceFromContainer(ProjectionRegistry::class)->get(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME);
-        $projectionManager->backfill(new NullPartitionProvider());
+        $projectionManager->backfill();
 //        Assert::assertEquals([
 //            new PriceChange(100, 0),
 //            new PriceChange(120, 20),

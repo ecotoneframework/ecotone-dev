@@ -12,6 +12,7 @@ class ProjectingManager
         private ProjectionStateStorage $projectionStateStorage,
         private ProjectorExecutor      $projectorExecutor,
         private StreamSource           $streamSource,
+        private PartitionProvider      $partitionProvider,
         private string                 $projectionName,
         private int                    $batchSize = 1000,
     ) {
@@ -61,9 +62,9 @@ class ProjectingManager
         }
     }
 
-    public function backfill(PartitionProvider $partitionProvider): void
+    public function backfill(): void
     {
-        foreach ($partitionProvider->partitions() as $partition) {
+        foreach ($this->partitionProvider->partitions() as $partition) {
             $this->execute($partition);
         }
     }

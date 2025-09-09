@@ -8,6 +8,7 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Attribute\FromStream;
+use Ecotone\EventSourcing\Prooph\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Prooph\Projecting\EventStoreAggregateStreamSourceBuilder;
 use Ecotone\EventSourcing\Prooph\Projecting\EventStoreGlobalStreamSourceBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -24,13 +25,13 @@ use Ecotone\Projecting\Attribute\Projection;
 
 class ProophProjectingModule implements AnnotationModule
 {
-    public function __construct(private array $projections)
+    public function __construct(private array $extensions)
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $projections = [];
+        $extensions = [];
         foreach($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($classname, Projection::class);
             $streamAttribute = $annotationRegistrationService->getAttributeForClass($classname, FromStream::class);
@@ -41,19 +42,20 @@ class ProophProjectingModule implements AnnotationModule
             $projectionName = $projectionAttribute->name;
             if ($projectionAttribute->partitionHeaderName) {
                 $aggregateType = $streamAttribute->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
-                $projections[$projectionName] = new EventStoreAggregateStreamSourceBuilder(
+                $extensions[] = new EventStoreAggregateStreamSourceBuilder(
                     $projectionName,
                     $aggregateType,
                     $streamAttribute->stream,
                 );
+                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamAttribute->stream);
             } else {
-                $projections[$projectionName] = new EventStoreGlobalStreamSourceBuilder(
+                $extensions[] = new EventStoreGlobalStreamSourceBuilder(
                     $streamAttribute->stream,
                     [$projectionName],
                 );
             }
         }
-        return new self($projections);
+        return new self($extensions);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -67,7 +69,7 @@ class ProophProjectingModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return \array_values($this->projections);
+        return \array_values($this->extensions);
     }
 
     public function getModulePackageName(): string

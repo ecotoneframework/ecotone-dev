@@ -16,6 +16,7 @@ use Ecotone\Dbal\MultiTenant\Module\MultiTenantConnectionFactoryModule;
 use Ecotone\Dbal\ObjectManager\ObjectManagerModule;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
+use Ecotone\EventSourcing\Config\ProophProjectingModule;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
 use Ecotone\Kafka\Configuration\KafkaModule;
@@ -150,6 +151,7 @@ class ModuleClassList
 
     public const EVENT_SOURCING_MODULES = [
         EventSourcingModule::class,
+        ProophProjectingModule::class
     ];
 
     public const JMS_CONVERTER_MODULES = [

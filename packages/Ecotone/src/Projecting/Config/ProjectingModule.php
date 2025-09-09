@@ -43,6 +43,7 @@ use Ecotone\Modelling\Config\Routing\BusRouteSelector;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Backfilling\NullPartitionProvider;
 use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionBuilder;
 use Ecotone\Projecting\Dbal\DbalProjectionStateStorage;
 use Ecotone\Projecting\EcotoneProjectorExecutor;
@@ -116,6 +117,7 @@ class ProjectingModule implements AnnotationModule
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $streamSourceBuilders = ExtensionObjectResolver::resolve(StreamSourceBuilder::class, $extensionObjects);
+        $partitionProviderBuilders = ExtensionObjectResolver::resolve(PartitionProviderBuilder::class, $extensionObjects);
 
         $projectionNames = array_keys($this->configuredProjections);
 
@@ -133,6 +135,25 @@ class ProjectingModule implements AnnotationModule
                         );
                     }
                     $projectionNameToStreamSourceReferenceMap[$projectionName] = $reference;
+                    break;
+                }
+            }
+        }
+
+        /** @var array<string, string> $projectionNameToPartitionProviderMap */
+        $projectionNameToPartitionProviderMap = [];
+        foreach ($partitionProviderBuilders as $partitionProviderBuilder) {
+            $reference = Uuid::uuid4()->toString();
+            $moduleReferenceSearchService->store($reference, $partitionProviderBuilder);
+            foreach ($projectionNames as $projectionName) {
+                if ($partitionProviderBuilder->canHandle($projectionName)) {
+                    if (isset($projectionNameToPartitionProviderMap[$projectionName])) {
+                        throw ConfigurationException::create(
+                            "Projection with name {$projectionName} is already registered for partition provider with reference {$projectionNameToPartitionProviderMap[$projectionName]}."
+                            . " You can only register one partition provider per projection. Please check your configuration."
+                        );
+                    }
+                    $projectionNameToPartitionProviderMap[$projectionName] = $reference;
                     break;
                 }
             }
@@ -163,6 +184,7 @@ class ProjectingModule implements AnnotationModule
                     new Reference(ProjectionStateStorage::class),
                     $projector,
                     new Reference($projectionNameToStreamSourceReferenceMap[$projectionName]),
+                    $projectionNameToPartitionProviderMap[$projectionName] ? new Reference($projectionNameToPartitionProviderMap[$projectionName]) : new Definition(NullPartitionProvider::class),
                     $projectionName,
                 ])
             );
@@ -241,7 +263,8 @@ class ProjectingModule implements AnnotationModule
     {
         return $extensionObject instanceof ServiceConfiguration
             || $extensionObject instanceof ProjectingConfiguration
-            || $extensionObject instanceof StreamSourceBuilder;
+            || $extensionObject instanceof StreamSourceBuilder
+            || $extensionObject instanceof PartitionProviderBuilder;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions, ?InterfaceToCallRegistry $interfaceToCallRegistry = null): array

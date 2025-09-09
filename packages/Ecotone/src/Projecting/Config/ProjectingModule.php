@@ -8,6 +8,7 @@ namespace Ecotone\Projecting\Config;
 
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Configuration\DbalPublisherModule;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
@@ -25,6 +26,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -148,7 +150,7 @@ class ProjectingModule implements AnnotationModule
             }
 
             $projector = new Definition(EcotoneProjectorExecutor::class, [
-                new Reference(MessagingEntrypointWithHeadersPropagation::class), // Headers propagation is required for EventStreamEmitter
+                new Reference(MessagingEntrypoint::class), // Headers propagation is required for EventStreamEmitter
                 $projectionName,
                 self::inputChannelForExecutionRouter($projectionName),
                 $initChannelMap[$projectionName] ?? null,
@@ -217,7 +219,8 @@ class ProjectingModule implements AnnotationModule
         }
 
         // Register projection state implementations
-        $projectingConfiguration = ExtensionObjectResolver::resolveUnique(ProjectingConfiguration::class, $extensionObjects, ProjectingConfiguration::createDbal());
+        $defaultProjectingConfiguration = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::DBAL_PACKAGE) ? ProjectingConfiguration::createDbal() : ProjectingConfiguration::createInMemory();
+        $projectingConfiguration = ExtensionObjectResolver::resolveUnique(ProjectingConfiguration::class, $extensionObjects, $defaultProjectingConfiguration);
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateStorage::class,
             match ($projectingConfiguration->projectionStateStorageReference) {

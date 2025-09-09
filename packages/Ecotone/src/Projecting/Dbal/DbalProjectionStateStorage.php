@@ -44,7 +44,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
         $row = $this->connection->fetchAssociative($query, [
             'projectionName' => $projectionName,
-            'partitionKey' => $partitionKey,
+            'partitionKey' => $partitionKey ?? '',
         ]);
         if (!$row) {
             return new ProjectionPartitionState($projectionName, $partitionKey);
@@ -74,7 +74,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
         $this->connection->executeStatement($this->saveStateQuery, [
             'projectionName' => $projectionState->projectionName,
-            'partitionKey' => $projectionState->partitionKey,
+            'partitionKey' => $projectionState->partitionKey ?? '',
             'lastPosition' => $projectionState->lastPosition,
             'userState' => \json_encode($projectionState->userState),
         ]);

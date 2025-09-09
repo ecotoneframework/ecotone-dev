@@ -8,6 +8,7 @@ namespace Ecotone\Projecting;
 
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Event;
 
 class EcotoneProjectorExecutor implements ProjectorExecutor
@@ -30,11 +31,13 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         $metadata[ProjectingHeaders::PROJECTION_NAME] = $this->projectionName;
         $metadata[ProjectingHeaders::PROJECTION_IS_REBUILDING] = false;
         $metadata[MessageHeaders::STREAM_BASED_SOURCED] = true; // this one is required for correct header propagation in EventStreamEmitter...
+        $metadata[MessagingEntrypoint::ENTRYPOINT] = $this->projectChannel;
 
-        $newUserState = $this->messagingEntrypoint->sendWithHeaders(
-            $event->getPayload(),
-            $metadata,
-            $this->projectChannel,
+        // constructing the message here is way faster than doing it in the gateway (avoids conversion overhead I guess)
+        $newUserState = $this->messagingEntrypoint->sendMessage(
+            MessageBuilder::withPayload($event->getPayload())
+                ->setMultipleHeaders($metadata)
+                ->build()
         );
 
         if (!\is_null($newUserState)) {

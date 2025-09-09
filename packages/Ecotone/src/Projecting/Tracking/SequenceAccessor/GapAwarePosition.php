@@ -83,10 +83,10 @@ class GapAwarePosition
             $this->gaps = array_values(array_diff($this->gaps, [$position]));
         } else if ($position > $this->position + 1) {
             // add all gaps between current position and new position
+            $this->position = $position;
             for ($i = $this->position + 1; $i < $position; $i++) {
                 $this->addGap($i);
             }
-            $this->position = $position;
         } else {
             throw new \InvalidArgumentException('Cannot advance to a position less than or equal to the current position. Current position: ' . $this->position . ', new position: ' . $position);
         }

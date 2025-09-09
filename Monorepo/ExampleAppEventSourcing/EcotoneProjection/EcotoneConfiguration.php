@@ -8,16 +8,19 @@ namespace Monorepo\ExampleAppEventSourcing\EcotoneProjection;
 
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\Projecting\EventStoreAggregateStreamSourceBuilder;
+use Ecotone\EventSourcing\Prooph\Projecting\EventStoreGlobalStreamSourceBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Projecting\Config\ProjectingConfiguration;
+use Ecotone\Projecting\Config\StreamSourceBuilder;
 use Monorepo\ExampleAppEventSourcing\Common\Product;
 
 class EcotoneConfiguration
 {
     #[ServiceContext]
-    public function enableStreamSourceFromEventStore(): EventStoreAggregateStreamSourceBuilder
+    public function enableStreamSourceFromEventStore(): StreamSourceBuilder
     {
-        return new EventStoreAggregateStreamSourceBuilder(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME, Product::class, Product::class);
+        return new EventStoreGlobalStreamSourceBuilder(Product::class, [PriceChangeOverTimeProjectionWithEcotoneProjection::NAME]);
+//        return new EventStoreAggregateStreamSourceBuilder(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME, Product::class, Product::class);
     }
 
     #[ServiceContext]

@@ -10,6 +10,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
+use Ecotone\Projecting\Config\ProjectingConfiguration;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
 use Ecotone\Projecting\InMemory\ReferenceStreamSourceBuilder;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -28,6 +29,7 @@ class LifecycleManagerTest extends ProjectingTestCase
             [TicketProjectionWithLifecycle::class],
             ['ticket_stream_source' => $streamSource, TicketProjectionWithLifecycle::class => $projection, DbalConnectionFactory::class => self::getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
+                ->addExtensionObject(ProjectingConfiguration::createInMemory())
                 ->addExtensionObject(new ReferenceStreamSourceBuilder([TicketProjectionWithLifecycle::NAME], 'ticket_stream_source'))
         );
 

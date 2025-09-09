@@ -8,7 +8,6 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Prooph\Projecting\EventStoreAggregateStreamSource;
 use Ecotone\EventSourcing\Prooph\Projecting\EventStoreAggregateStreamSourceBuilder;
 use Ecotone\EventSourcing\Prooph\Projecting\EventStoreGlobalStreamSourceBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -20,7 +19,6 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Projecting\Attribute\Projection;
-use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionBuilder;
 
 #[ModuleAnnotation]
 
